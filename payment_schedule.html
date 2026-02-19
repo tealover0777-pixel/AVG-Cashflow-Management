@@ -1,0 +1,896 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <base target="_top">
+    <link href="https://fonts.googleapis.com/css?family=Poppins|Roboto|Montserrat" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+    <!-- React & ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+
+    <!-- Babel -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <style>
+        /* Modern Light & Pretty Theme */
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: transparent;
+            margin: 0;
+        }
+
+        .container {
+            background: white;
+            padding: 24px;
+            border-radius: 12px;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+        }
+
+        .header h2 {
+            margin: 0;
+            color: #111827;
+            font-weight: 600;
+            font-size: 1.5rem;
+        }
+
+        .header p {
+            color: #6b7280;
+            margin-top: 4px;
+        }
+
+        .toolbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 24px 0;
+            gap: 16px;
+        }
+
+        .btn {
+            background: #4f46e5;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.2s;
+            box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            font-family: inherit;
+        }
+
+        .btn:hover {
+            background: #4338ca;
+            transform: translateY(-1px);
+        }
+
+        .btn-secondary {
+            background: white;
+            color: #4b5563;
+            border: 1px solid #d1d5db;
+        }
+
+        .btn-secondary:hover {
+            background: #f3f4f6;
+            border-color: #9ca3af;
+        }
+
+        .btn-success {
+            background: #10b981;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #059669;
+        }
+
+        .table-container {
+            overflow-x: auto;
+            border-radius: 8px;
+            border: 1px solid #e5e7eb;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            background: white;
+        }
+
+        th {
+            background: #f1f5f9;
+            color: #475569;
+            padding: 12px 16px;
+            text-align: left;
+            font-size: 0.85em;
+            font-weight: 600;
+            border-bottom: 2px solid #e2e8f0;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+
+        th:hover {
+            background: #e2e8f0;
+        }
+
+        td {
+            padding: 12px 16px;
+            border-bottom: 1px solid #f1f5f9;
+            font-size: 0.9em;
+            color: #334155;
+            vertical-align: middle;
+            white-space: nowrap;
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        tr:hover td {
+            background-color: #f8fafc;
+        }
+
+        .action-btn {
+            cursor: pointer;
+            margin-right: 12px;
+            color: #9ca3af;
+            transition: color 0.2s;
+        }
+
+        .action-btn:hover {
+            color: #4f46e5;
+        }
+
+        .delete-btn:hover {
+            color: #ef4444;
+        }
+
+        /* Modeless Dialog */
+        .dialog-container {
+            position: fixed;
+            top: 50px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 600px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            border: 1px solid #e2e8f0;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            max-height: 90vh;
+        }
+
+        .dialog-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid #e5e7eb;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: move;
+            background: #f8fafc;
+            border-radius: 12px 12px 0 0;
+        }
+
+        .dialog-content {
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        .dialog-footer {
+            padding: 16px 20px;
+            border-top: 1px solid #e5e7eb;
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+            background: #f8fafc;
+            border-radius: 0 0 12px 12px;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        label {
+            font-size: 0.9em;
+            color: #374151;
+            font-weight: 500;
+            display: block;
+            margin-bottom: 6px;
+        }
+
+        input,
+        select,
+        textarea {
+            width: 100%;
+            box-sizing: border-box;
+            padding: 10px 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            font-family: inherit;
+            color: #1f2937;
+            transition: border-color 0.2s;
+        }
+
+        input:focus,
+        select:focus,
+        textarea:focus {
+            outline: none;
+            border-color: #4f46e5;
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+        }
+
+        .form-row {
+            display: flex;
+            gap: 16px;
+        }
+
+        .flex-1 {
+            flex: 1;
+        }
+
+        .input-bg-gray {
+            background-color: #f9fafb;
+        }
+
+        .generated-id-group {
+            display: flex;
+            gap: 8px;
+        }
+
+        .toolbar-left {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .bulk-actions {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            background: #f1f5f9;
+            padding: 6px 12px;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            background: #111827;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 8px;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            z-index: 2000;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateY(100%);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .status-badge {
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 0.75em;
+            font-weight: 600;
+        }
+
+        .status-due {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        /* Red-ish for Due? Or maybe yellow/orange? Usually Due implies action needed. Let's stick to standard colors. */
+        .status-paid {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        /* Green */
+        .status-missed {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        /* Amber/Orange */
+    </style>
+</head>
+
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useMemo } = React;
+
+        const App = () => {
+            const [schedules, setSchedules] = useState([]);
+            const [formDataOptions, setFormDataOptions] = useState({ projects: [], parties: [], contracts: [], dimensions: {}, fees: [] });
+            const [loading, setLoading] = useState(true);
+            const [searchTerm, setSearchTerm] = useState("");
+            const [isModalOpen, setIsModalOpen] = useState(false);
+            const [currentSchedule, setCurrentSchedule] = useState(null);
+            const [toast, setToast] = useState(null);
+
+            // Bulk Selection
+            const [selectedIds, setSelectedIds] = useState(new Set());
+            const [bulkStatus, setBulkStatus] = useState("");
+
+            const loadData = () => {
+                setLoading(true);
+                if (typeof google !== 'undefined' && google.script) {
+                    google.script.run
+                        .withSuccessHandler((data) => {
+                            setSchedules(data);
+                            setLoading(false);
+                            setSelectedIds(new Set());
+                        })
+                        .withFailureHandler((err) => {
+                            showToast("Error loading data: " + err.message);
+                            setLoading(false);
+                        })
+                        .psGetDataJSON();
+
+                    google.script.run
+                        .withSuccessHandler((data) => {
+                            setFormDataOptions(data);
+                        })
+                        .psGetFormData();
+                } else {
+                    setLoading(false);
+                }
+            };
+
+            useEffect(() => {
+                loadData();
+            }, []);
+
+            const showToast = (msg) => {
+                setToast(msg);
+                setTimeout(() => setToast(null), 3000);
+            };
+
+            // Filter
+            const filteredSchedules = useMemo(() => {
+                if (!searchTerm) return schedules;
+                const lower = searchTerm.toLowerCase();
+                return schedules.filter(s =>
+                    (s.contract_id && s.contract_id.toLowerCase().includes(lower)) ||
+                    (s.schedule_id && s.schedule_id.toLowerCase().includes(lower)) ||
+                    (s.project_id && s.project_id.toLowerCase().includes(lower))
+                );
+            }, [schedules, searchTerm]);
+
+            // Selection
+            const handleSelectAll = (e) => {
+                if (e.target.checked) {
+                    const allIds = filteredSchedules.map(s => s.schedule_id);
+                    setSelectedIds(new Set(allIds));
+                } else {
+                    setSelectedIds(new Set());
+                }
+            };
+
+            const handleSelectRow = (id, checked) => {
+                const newSet = new Set(selectedIds);
+                if (checked) newSet.add(id);
+                else newSet.delete(id);
+                setSelectedIds(newSet);
+            };
+
+            const handleBulkUpdate = () => {
+                if (selectedIds.size === 0 || !bulkStatus) return;
+
+                if (typeof google !== 'undefined' && google.script) {
+                    const idsArray = Array.from(selectedIds);
+                    showToast(`Updating ${idsArray.length} items...`);
+                    google.script.run
+                        .withSuccessHandler(() => {
+                            showToast("Bulk update successful");
+                            loadData();
+                        })
+                        .withFailureHandler((err) => {
+                            showToast("Error: " + err.message);
+                        })
+                        .psBulkUpdateStatus(idsArray, bulkStatus);
+                }
+            };
+
+            // CRUD
+            const handleAdd = () => {
+                setCurrentSchedule(null);
+                setIsModalOpen(true);
+            };
+
+            const handleEdit = (id) => {
+                if (typeof google !== 'undefined' && google.script) {
+                    const loadingToast = "Loading schedule...";
+                    setToast(loadingToast);
+                    google.script.run
+                        .withSuccessHandler((data) => {
+                            if (data) {
+                                setCurrentSchedule(data);
+                                setIsModalOpen(true);
+                                setToast(null);
+                            }
+                        })
+                        .psGetScheduleById(id);
+                }
+            };
+
+            const handleDelete = (id) => {
+                if (confirm(`Are you sure you want to delete Schedule ${id}?`)) {
+                    if (typeof google !== 'undefined' && google.script) {
+                        google.script.run
+                            .withSuccessHandler(() => {
+                                showToast("Schedule deleted");
+                                loadData();
+                            })
+                            .psDelete(id);
+                    }
+                }
+            };
+
+            const handleSave = (formData, isEdit, catchUpData) => {
+                if (typeof google !== 'undefined' && google.script) {
+                    const fn = isEdit ? 'psUpdate' : 'psSaveRecord'; // psSaveRecord in GS
+
+                    google.script.run
+                        .withSuccessHandler(() => {
+                            showToast(isEdit ? "Schedule updated" : "Schedule created");
+
+                            if (catchUpData) {
+                                // If we need to create a catch-up schedule immediately
+                                showToast("Proceeding to create Catch-Up Schedule...");
+                                // Open modal with catchUpData
+                                setTimeout(() => {
+                                    setCurrentSchedule(null); // Clear current
+                                    // We need to pass this data to the new modal.
+                                    // We can just set state and open modal.
+                                    // However, `handleSave` closes modal usually.
+                                    // Let's modify the flow.
+                                    // We will reopen the modal with catchUpData.
+                                    // But `catchUpData` needs to be treated as "New"
+                                    // We can simulate "Add" with pre-filled data.
+
+                                    // Hacky way: set a special state or just pass it to a helper.
+                                    openCatchUpModal(catchUpData);
+                                }, 500);
+                            } else {
+                                setIsModalOpen(false);
+                                loadData();
+                            }
+                        })
+                        .withFailureHandler((err) => {
+                            showToast("Error: " + err.message);
+                        })
+                    [fn](formData);
+                }
+            };
+
+            const openCatchUpModal = (data) => {
+                // Prepare data for new schedule
+                // Reset ID (will be generated)
+                const newSched = {
+                    ...data,
+                    schedule_id: '',
+                    status: 'Due', // Default for new catchup
+                    linked_schedule_id: data.linked_schedule_id // Current ID becomes linked
+                };
+                setCurrentSchedule(newSched); // This is "New" mode but with data
+                setIsModalOpen(true);
+            };
+
+            // Helper to get Fee Name for Tooltip
+            const getFeeInfo = (id) => {
+                const f = formDataOptions.fees.find(fee => fee.id === id);
+                if (f) return `${f.name} (${f.method})`;
+                return id;
+            };
+
+            return (
+                <div className="container">
+                    <div className="header">
+                        <h2>Payment Schedule</h2>
+                        <p>Manage payment schedules</p>
+                    </div>
+
+                    <div className="toolbar">
+                        <div className="toolbar-left">
+                            <button className="btn" onClick={handleAdd}>
+                                <i className="fa fa-plus"></i> New Schedule
+                            </button>
+
+                            <div className="bulk-actions">
+                                <span style={{ fontSize: '0.85em', fontWeight: 600, color: '#4b5563' }}>Bulk Status:</span>
+                                <select
+                                    value={bulkStatus}
+                                    onChange={(e) => setBulkStatus(e.target.value)}
+                                    style={{ width: '120px', padding: '6px' }}
+                                >
+                                    <option value="">-- Select --</option>
+                                    {(formDataOptions.dimensions["PaymentStatus"] || []).map(s => (
+                                        <option key={s} value={s}>{s}</option>
+                                    ))}
+                                </select>
+                                <button
+                                    className="btn btn-success"
+                                    style={{ padding: '6px 12px', fontSize: '0.9em' }}
+                                    onClick={handleBulkUpdate}
+                                    disabled={selectedIds.size === 0 || !bulkStatus}
+                                >
+                                    Apply
+                                </button>
+                            </div>
+                        </div>
+
+                        <input
+                            type="text"
+                            placeholder="Search..."
+                            style={{ width: '200px' }}
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                        />
+                    </div>
+
+                    <div className="table-container">
+                        {loading ? (
+                            <div style={{ padding: '40px', textAlign: 'center', color: '#6b7280' }}>
+                                <i className="fa fa-spinner fa-spin"></i> Loading...
+                            </div>
+                        ) : (
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>
+                                            <input
+                                                type="checkbox"
+                                                onChange={handleSelectAll}
+                                                checked={filteredSchedules.length > 0 && selectedIds.size === filteredSchedules.length}
+                                            />
+                                        </th>
+                                        <th>ID</th>
+                                        <th>Contract</th>
+                                        <th>Linked</th>
+                                        <th>Due Date</th>
+                                        <th>Type</th>
+                                        <th>Principal</th>
+                                        <th>Payment</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {filteredSchedules.map(s => (
+                                        <tr key={s.schedule_id}>
+                                            <td>
+                                                <input
+                                                    type="checkbox"
+                                                    checked={selectedIds.has(s.schedule_id)}
+                                                    onChange={(e) => handleSelectRow(s.schedule_id, e.target.checked)}
+                                                />
+                                            </td>
+                                            <td>{s.schedule_id}</td>
+                                            <td>{s.contract_id}</td>
+                                            <td>{s.linked_schedule_id}</td>
+                                            <td>{s.due_date}</td>
+                                            <td title={s.fee_id ? getFeeInfo(s.fee_id) : ''}>
+                                                {s.payment_type} {s.fee_id ? `(${s.fee_id})` : ''}
+                                            </td>
+                                            <td>{s.principal_amount}</td>
+                                            <td style={{ fontWeight: 600 }}>{s.signed_payment_amount || s.payment_amount}</td>
+                                            <td>
+                                                <span className={`status-badge status-${(s.status || '').toLowerCase()}`}>
+                                                    {s.status}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <i className="fa fa-edit action-btn" onClick={() => handleEdit(s.schedule_id)} title="Edit"></i>
+                                                <i className="fa fa-trash action-btn delete-btn" onClick={() => handleDelete(s.schedule_id)} title="Delete"></i>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                    {filteredSchedules.length === 0 && (
+                                        <tr><td colSpan="10" style={{ textAlign: 'center', padding: '20px', color: '#888' }}>No schedules found.</td></tr>
+                                    )}
+                                </tbody>
+                            </table>
+                        )}
+                    </div>
+
+                    {isModalOpen && (
+                        <ScheduleDialog
+                            schedule={currentSchedule}
+                            options={formDataOptions}
+                            onClose={() => setIsModalOpen(false)}
+                            onSave={handleSave}
+                        />
+                    )}
+
+                    {toast && <div className="toast">{toast}</div>}
+                </div>
+            );
+        };
+
+        const ScheduleDialog = ({ schedule, options, onClose, onSave }) => {
+            const { projects, parties, contracts, dimensions, fees } = options;
+
+            const paymentTypes = dimensions["PaymentType"] || [];
+            const paymentStatuses = dimensions["PaymentStatus"] || ["Due", "Paid", "Missed", "Cancelled"];
+
+            const [formData, setFormData] = useState({
+                contract_id: '',
+                schedule_id: '',
+                linked_schedule_id: '',
+                project_id: '',
+                party_id: '',
+                payment_type: '',
+                fee_id: '',
+                period_number: '',
+                due_date: '',
+                principal_amount: '',
+                payment_amount: '',
+                status: 'Due'
+            });
+
+            // Keep track of original status to detect "Missed" change
+            const [originalStatus, setOriginalStatus] = useState('');
+
+            useEffect(() => {
+                if (schedule) {
+                    // Check if it's a "New" catch-up schedule (simulated) or true Edit
+                    if (!schedule.schedule_id) {
+                        // New Catch-up
+                        setFormData(schedule);
+                        setOriginalStatus('');
+                    } else {
+                        setFormData(schedule);
+                        setOriginalStatus(schedule.status);
+                    }
+                } else {
+                    // Default new
+                    setFormData(prev => ({ ...prev, status: 'Due' }));
+                    setOriginalStatus('');
+                }
+            }, [schedule]);
+
+            // Generate ID
+            const [loadingId, setLoadingId] = useState(false);
+            const generateId = () => {
+                setLoadingId(true);
+                if (typeof google !== 'undefined' && google.script) {
+                    google.script.run.withSuccessHandler(id => {
+                        setFormData(prev => ({ ...prev, schedule_id: id }));
+                        setLoadingId(false);
+                    }).psGenerateID();
+                }
+            };
+
+            const handleChange = (e) => {
+                const { name, value } = e.target;
+                setFormData(prev => ({ ...prev, [name]: value }));
+
+                // Auto-fill from Contract logic could go here
+                if (name === 'contract_id') {
+                    const c = contracts.find(ct => ct.id === value);
+                    // If we selected a contract, maybe we can auto-fill others?
+                    // But legacy didn't seem to enforce strict auto-fill, mostly just linking.
+                }
+            };
+
+            const calculateNextDueDate = (dateStr, freq) => {
+                if (!dateStr) return "";
+                const date = new Date(dateStr);
+                if (isNaN(date.getTime())) return "";
+
+                const f = freq ? freq.toLowerCase() : "";
+                let nextDate;
+
+                if (f.includes("month")) nextDate = new Date(date.getFullYear(), date.getMonth() + 2, 0); // +1 month
+                else if (f.includes("quart")) nextDate = new Date(date.getFullYear(), date.getMonth() + 4, 0); // +3 months
+                else if (f.includes("semi")) nextDate = new Date(date.getFullYear(), date.getMonth() + 7, 0); // +6 months
+                else if (f.includes("annu")) nextDate = new Date(date.getFullYear() + 1, date.getMonth() + 1, 0); // +1 year
+                else nextDate = new Date(date.getFullYear(), date.getMonth() + 2, 0); // Default +1 month
+
+                return nextDate.toISOString().split('T')[0];
+            };
+
+            const handleSubmit = () => {
+                if (!formData.contract_id || !formData.due_date || !formData.payment_amount) {
+                    alert("Contract, Due Date, and Amount are required");
+                    return;
+                }
+
+                // Catch-up Logic
+                if (schedule && schedule.schedule_id && originalStatus !== 'Missed' && formData.status === 'Missed') {
+                    // Status changed to Missed
+                    if (confirm('Status changed to "Missed". Do you want to create a Catch-Up Schedule?')) {
+                        // Determine Frequency from Contract
+                        const c = contracts.find(ct => ct.id === formData.contract_id);
+                        const freq = c ? c.payment_frequency : '';
+
+                        const nextDate = calculateNextDueDate(formData.due_date, freq);
+
+                        const catchUpData = {
+                            contract_id: formData.contract_id,
+                            project_id: formData.project_id,
+                            party_id: formData.party_id,
+                            payment_type: formData.payment_type, // Or Late Fee type? 
+                            // Legacy code preserved same payment type but allowed changing fee.
+                            // Actually Legacy pre-selected "Late Fee" in fee_id if available.
+
+                            linked_schedule_id: formData.schedule_id, // Link to this one
+                            period_number: formData.period_number,
+                            due_date: nextDate,
+                            principal_amount: formData.payment_amount,
+                            payment_amount: formData.payment_amount,
+                            // Try to find Late Fee
+                            fee_id: fees.find(f => f.name.toLowerCase().includes("late"))?.id || ""
+                        };
+
+                        onSave(formData, true, catchUpData);
+                        return;
+                    }
+                }
+
+                // Normal Save
+                // Determine isEdit
+                const isEdit = !!(schedule && schedule.schedule_id && formData.schedule_id === schedule.schedule_id);
+                onSave(formData, isEdit, null);
+            };
+
+            // Draggable Logic
+            const [position, setPosition] = useState({ x: 0, y: 50 });
+            const [isDragging, setIsDragging] = useState(false);
+            const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+
+            useEffect(() => {
+                setPosition({ x: (window.innerWidth - 600) / 2, y: 50 });
+            }, []);
+
+            const handleMouseDown = (e) => {
+                setIsDragging(true);
+                setDragOffset({ x: e.clientX - position.x, y: e.clientY - position.y });
+            };
+
+            useEffect(() => {
+                const handleMouseMove = (e) => {
+                    if (isDragging) {
+                        setPosition({ x: e.clientX - dragOffset.x, y: e.clientY - dragOffset.y });
+                    }
+                };
+                const handleMouseUp = () => setIsDragging(false);
+                if (isDragging) {
+                    window.addEventListener('mousemove', handleMouseMove);
+                    window.addEventListener('mouseup', handleMouseUp);
+                }
+                return () => {
+                    window.removeEventListener('mousemove', handleMouseMove);
+                    window.removeEventListener('mouseup', handleMouseUp);
+                };
+            }, [isDragging, dragOffset]);
+
+            return (
+                <div className="dialog-container" style={{ left: position.x, top: position.y, transform: 'none' }}>
+                    <div className="dialog-header" onMouseDown={handleMouseDown}>
+                        <h3 style={{ margin: 0 }}>{schedule && schedule.schedule_id ? 'Edit Schedule' : 'New Schedule'}</h3>
+                        <i className="fa fa-times" onClick={onClose} style={{ cursor: 'pointer' }}></i>
+                    </div>
+                    <div className="dialog-content">
+                        <div className="form-group">
+                            <label>Schedule ID</label>
+                            <div className="generated-id-group">
+                                <input name="schedule_id" value={formData.schedule_id} readOnly placeholder="Auto" className="input-bg-gray" />
+                                {(!schedule || !schedule.schedule_id) && <button className="btn btn-secondary" onClick={generateId} disabled={loadingId}>
+                                    {loadingId ? '...' : 'Generate'}
+                                </button>}
+                            </div>
+                        </div>
+
+                        <div className="form-row">
+                            <div className="form-group flex-1">
+                                <label>Contract</label>
+                                <select name="contract_id" value={formData.contract_id} onChange={handleChange}>
+                                    <option value="">-- Select --</option>
+                                    {contracts.map(c => <option key={c.id} value={c.id}>{c.id}</option>)}
+                                </select>
+                            </div>
+                            <div className="form-group flex-1">
+                                <label>Linked Sched ID</label>
+                                <input name="linked_schedule_id" value={formData.linked_schedule_id} onChange={handleChange} placeholder="Optional" />
+                            </div>
+                        </div>
+
+                        <div className="form-row">
+                            <div className="form-group flex-1">
+                                <label>Project</label>
+                                <select name="project_id" value={formData.project_id} onChange={handleChange}>
+                                    <option value="">-- Select --</option>
+                                    {projects.map(p => <option key={p.id} value={p.id}>{p.id} - {p.name}</option>)}
+                                </select>
+                            </div>
+                            <div className="form-group flex-1">
+                                <label>Party</label>
+                                <select name="party_id" value={formData.party_id} onChange={handleChange}>
+                                    <option value="">-- Select --</option>
+                                    {parties.map(p => <option key={p.id} value={p.id}>{p.id} - {p.name}</option>)}
+                                </select>
+                            </div>
+                        </div>
+
+                        <div className="form-row">
+                            <div className="form-group flex-1">
+                                <label>Payment Type</label>
+                                <select name="payment_type" value={formData.payment_type} onChange={handleChange}>
+                                    <option value="">-- Select --</option>
+                                    {paymentTypes.map(t => <option key={t} value={t}>{t}</option>)}
+                                </select>
+                            </div>
+                            <div className="form-group flex-1">
+                                <label>Status</label>
+                                <select name="status" value={formData.status} onChange={handleChange}>
+                                    {paymentStatuses.map(s => <option key={s} value={s}>{s}</option>)}
+                                </select>
+                            </div>
+                        </div>
+
+                        <div className="form-row">
+                            <div className="form-group flex-1">
+                                <label>Period #</label>
+                                <input name="period_number" type="number" value={formData.period_number} onChange={handleChange} />
+                            </div>
+                            <div className="form-group flex-1">
+                                <label>Due Date</label>
+                                <input name="due_date" type="date" value={formData.due_date ? formData.due_date.split('T')[0] : ''} onChange={handleChange} />
+                            </div>
+                        </div>
+
+                        <div className="form-row">
+                            <div className="form-group flex-1">
+                                <label>Principal Amount</label>
+                                <input name="principal_amount" type="number" value={formData.principal_amount} onChange={handleChange} />
+                            </div>
+                            <div className="form-group flex-1">
+                                <label>Payment Amount</label>
+                                <input name="payment_amount" type="number" value={formData.payment_amount} onChange={handleChange} />
+                            </div>
+                        </div>
+
+                        <div className="form-group">
+                            <label>Fee ID (Optional)</label>
+                            <select name="fee_id" value={formData.fee_id} onChange={handleChange}>
+                                <option value="">-- None --</option>
+                                {fees.map(f => <option key={f.id} value={f.id}>{f.id} - {f.name}</option>)}
+                            </select>
+                        </div>
+
+                    </div>
+                    <div className="dialog-footer">
+                        <button className="btn btn-secondary" onClick={onClose}>Cancel</button>
+                        <button className="btn" onClick={handleSubmit}>{schedule && schedule.schedule_id ? 'Update' : 'Save'}</button>
+                    </div>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+
+</html>

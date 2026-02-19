@@ -1,0 +1,24 @@
+{
+  "name": "avg-cashflow-management",
+  "version": "1.0.0",
+  "description": "Professional Cashflow Management App",
+  "main": "index.js",
+  "scripts": {
+    "build": "vite build",
+    "deploy": "npm run build && clasp push"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "devDependencies": {
+    "@types/google-apps-script": "^2.0.8",
+    "@vitejs/plugin-react": "^5.1.4",
+    "vite": "^7.3.1",
+    "vite-plugin-singlefile": "^2.3.0"
+  },
+  "dependencies": {
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4"
+  }
+}

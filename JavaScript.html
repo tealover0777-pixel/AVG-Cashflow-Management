@@ -1,0 +1,78 @@
+<script>
+  let pendingAction = null; // Stores the function to run if 'Yes' is clicked
+
+  // --- EXISTING FUNCTIONS ---
+  function showMsg(text) {
+    document.getElementById("customAlertMessage").innerText = text;
+    document.getElementById("customAlertOverlay").style.display = "flex";
+  }
+
+  function closeCustomAlert() {
+    document.getElementById("customAlertOverlay").style.display = "none";
+  }
+
+  // --- NEW CONFIRMATION LOGIC ---
+  function showConfirm(text, action) {
+    document.getElementById("customConfirmMessage").innerText = text;
+    document.getElementById("customConfirmOverlay").style.display = "flex";
+    pendingAction = action; // Assign the delete function here
+  }
+
+  function closeConfirm() {
+    document.getElementById("customConfirmOverlay").style.display = "none";
+    pendingAction = null;
+  }
+
+function handleConfirmYes(){
+  const action = pendingAction;
+  closeConfirm();              // hides the confirm + clears pendingAction
+  if (typeof action === "function") action();
+}
+
+
+function projRunBulkUpdate() {
+  const checkboxes = document.getElementsByClassName('proj-row-check');
+  const selectedIds = [];
+  const newStatus = document.getElementById('bulkStatusInput').value;
+
+  if (!newStatus) { showMsg("Please select a status first"); return; }
+
+  for (let i = 0; i < checkboxes.length; i++) {
+    if (checkboxes[i].checked) selectedIds.push(checkboxes[i].value);
+  }
+
+  if (selectedIds.length === 0) { showMsg("No projects selected"); return; }
+
+  projOverlay(true);
+  google.script.run.withSuccessHandler(() => {
+    showMsg(`Updated ${selectedIds.length} projects`);
+    projLoadTable();
+    projOverlay(false);
+  }).projBulkUpdateStatus(selectedIds, newStatus);
+}
+
+
+function loadPage(pageName) {
+
+  const overlay = document.getElementById("projOverlay");
+  if (overlay) overlay.style.display = "block";
+
+  google.script.run.withSuccessHandler(function(html) {
+
+    document.getElementById("main-content-area").innerHTML = html;
+
+    // Re-run page initializers if they exist
+    if (pageName.toLowerCase() === 'projects' && typeof projLoadTable === "function") {
+      projLoadTable();
+    }
+
+    if (pageName.toLowerCase() === 'parties' && typeof partyLoadTable === "function") {
+      partyLoadTable();
+    }
+
+    if (overlay) overlay.style.display = "none";
+
+  }).getPageContent(pageName.toLowerCase());
+}
+
+</script>

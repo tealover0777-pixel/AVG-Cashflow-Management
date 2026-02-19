@@ -1,0 +1,812 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <base target="_top">
+    <link href="https://fonts.googleapis.com/css?family=Poppins|Roboto|Montserrat" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+    <!-- React & ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+
+    <!-- Babel -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <style>
+        /* Modern Light & Pretty Theme */
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: transparent;
+            margin: 0;
+        }
+
+        .container {
+            background: white;
+            padding: 24px;
+            border-radius: 12px;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+        }
+
+        .header h2 {
+            margin: 0;
+            color: #111827;
+            font-weight: 600;
+            font-size: 1.5rem;
+        }
+
+        .header p {
+            color: #6b7280;
+            margin-top: 4px;
+        }
+
+        .toolbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 24px 0;
+            gap: 16px;
+        }
+
+        .btn {
+            background: #4f46e5;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.2s;
+            box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            font-family: inherit;
+        }
+
+        .btn:hover {
+            background: #4338ca;
+            transform: translateY(-1px);
+        }
+
+        .btn-secondary {
+            background: white;
+            color: #4b5563;
+            border: 1px solid #d1d5db;
+        }
+
+        .btn-secondary:hover {
+            background: #f3f4f6;
+            border-color: #9ca3af;
+        }
+
+        .btn-success {
+            background: #10b981;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #059669;
+        }
+
+        .btn:disabled {
+            background: #9ca3af;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .table-container {
+            overflow-x: auto;
+            border-radius: 8px;
+            border: 1px solid #e5e7eb;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            background: white;
+        }
+
+        th {
+            background: #f1f5f9;
+            color: #475569;
+            padding: 12px 16px;
+            text-align: left;
+            font-size: 0.85em;
+            font-weight: 600;
+            border-bottom: 2px solid #e2e8f0;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+
+        th:hover {
+            background: #e2e8f0;
+        }
+
+        td {
+            padding: 12px 16px;
+            border-bottom: 1px solid #f1f5f9;
+            font-size: 0.9em;
+            color: #334155;
+            vertical-align: middle;
+            white-space: nowrap;
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        tr:hover td {
+            background-color: #f8fafc;
+        }
+
+        .action-btn {
+            cursor: pointer;
+            margin-right: 12px;
+            color: #9ca3af;
+            transition: color 0.2s;
+        }
+
+        .action-btn:hover {
+            color: #4f46e5;
+        }
+
+        .delete-btn:hover {
+            color: #ef4444;
+        }
+
+        /* Modeless Dialog */
+        .dialog-container {
+            position: fixed;
+            top: 50px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 700px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            border: 1px solid #e2e8f0;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            max-height: 90vh;
+        }
+
+        .dialog-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid #e5e7eb;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: move;
+            background: #f8fafc;
+            border-radius: 12px 12px 0 0;
+        }
+
+        .dialog-content {
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        .dialog-footer {
+            padding: 16px 20px;
+            border-top: 1px solid #e5e7eb;
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+            background: #f8fafc;
+            border-radius: 0 0 12px 12px;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        label {
+            font-size: 0.9em;
+            color: #374151;
+            font-weight: 500;
+            display: block;
+            margin-bottom: 6px;
+        }
+
+        input,
+        select,
+        textarea {
+            width: 100%;
+            box-sizing: border-box;
+            padding: 10px 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            font-family: inherit;
+            color: #1f2937;
+            transition: border-color 0.2s;
+        }
+
+        input:focus,
+        select:focus,
+        textarea:focus {
+            outline: none;
+            border-color: #4f46e5;
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+        }
+
+        .form-row {
+            display: flex;
+            gap: 16px;
+        }
+
+        .flex-1 {
+            flex: 1;
+        }
+
+        .input-bg-gray {
+            background-color: #f9fafb;
+        }
+
+        .generated-id-group {
+            display: flex;
+            gap: 8px;
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            background: #111827;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 8px;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            z-index: 2000;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateY(100%);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        /* Custom Checkbox List for Fees */
+        .checkbox-list {
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            padding: 10px;
+            max-height: 120px;
+            overflow-y: auto;
+        }
+
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 6px;
+        }
+
+        .checkbox-item input {
+            width: auto;
+            margin-right: 8px;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useMemo } = React;
+
+        const App = () => {
+            const [contracts, setContracts] = useState([]);
+            const [formDataOptions, setFormDataOptions] = useState({ projects: [], parties: [], dimensions: {}, fees: [] });
+            const [loading, setLoading] = useState(true);
+            const [searchTerm, setSearchTerm] = useState("");
+            const [isModalOpen, setIsModalOpen] = useState(false);
+            const [currentContract, setCurrentContract] = useState(null);
+            const [toast, setToast] = useState(null);
+
+            // Bulk Selection State
+            const [selectedIds, setSelectedIds] = useState(new Set());
+
+            // Load Data
+            const loadData = () => {
+                setLoading(true);
+                if (typeof google !== 'undefined' && google.script) {
+                    google.script.run
+                        .withSuccessHandler((data) => {
+                            // Map needed fields if any, generally data is array of objects from updated backend
+                            setContracts(data);
+                            setLoading(false);
+                            setSelectedIds(new Set()); // Reset selection on reload
+                        })
+                        .withFailureHandler((err) => {
+                            showToast("Error loading data: " + err.message);
+                            setLoading(false);
+                        })
+                        .contractGetDataJSON();
+
+                    google.script.run
+                        .withSuccessHandler((data) => {
+                            setFormDataOptions(data);
+                        })
+                        .contractGetFormData();
+                } else {
+                    // Mock
+                    setLoading(false);
+                }
+            };
+
+            useEffect(() => {
+                loadData();
+            }, []);
+
+            const showToast = (msg) => {
+                setToast(msg);
+                setTimeout(() => setToast(null), 3000);
+            };
+
+            // Filter
+            const filteredContracts = useMemo(() => {
+                if (!searchTerm) return contracts;
+                const lower = searchTerm.toLowerCase();
+                return contracts.filter(c =>
+                    (c.project_name && c.project_name.toLowerCase().includes(lower)) ||
+                    (c.counterparty_name && c.counterparty_name.toLowerCase().includes(lower)) ||
+                    (c.contract_id && c.contract_id.toLowerCase().includes(lower))
+                );
+            }, [contracts, searchTerm]);
+
+            // Selection Handlers
+            const handleSelectAll = (e) => {
+                if (e.target.checked) {
+                    const allIds = filteredContracts.map(c => c.contract_id);
+                    setSelectedIds(new Set(allIds));
+                } else {
+                    setSelectedIds(new Set());
+                }
+            };
+
+            const handleSelectRow = (id, checked) => {
+                const newSet = new Set(selectedIds);
+                if (checked) newSet.add(id);
+                else newSet.delete(id);
+                setSelectedIds(newSet);
+            };
+
+            const handleGenerateSchedule = () => {
+                if (selectedIds.size === 0) return;
+                const idsArray = Array.from(selectedIds);
+
+                if (typeof google !== 'undefined' && google.script) {
+                    showToast("Generating schedule...");
+                    google.script.run
+                        .withSuccessHandler(() => {
+                            showToast("Payment Schedules Generated!");
+                            // Ideally refresh or something, but schedules are in another view.
+                            setSelectedIds(new Set());
+                        })
+                        .withFailureHandler((err) => {
+                            showToast("Error: " + err.message);
+                        })
+                        .contractGeneratePaymentScheduleGlobal(idsArray);
+                }
+            };
+
+            // CRUD Handlers
+            const handleAdd = () => {
+                setCurrentContract(null);
+                setIsModalOpen(true);
+            };
+
+            const handleEdit = (id) => {
+                if (typeof google !== 'undefined' && google.script) {
+                    const loadingToast = "Loading contract...";
+                    setToast(loadingToast);
+                    google.script.run
+                        .withSuccessHandler((data) => {
+                            if (data) {
+                                setCurrentContract(data); // Returns object from backend
+                                setIsModalOpen(true);
+                                setToast(null);
+                            }
+                        })
+                        .contractGetContractById(id);
+                }
+            };
+
+            const handleDelete = (id) => {
+                if (confirm(`Are you sure you want to delete Contract ${id}?`)) {
+                    if (typeof google !== 'undefined' && google.script) {
+                        google.script.run
+                            .withSuccessHandler(() => {
+                                showToast("Contract deleted");
+                                loadData();
+                            })
+                            .contractDelete(id);
+                    }
+                }
+            };
+
+            const handleSave = (formData) => {
+                if (typeof google !== 'undefined' && google.script) {
+                    const fn = currentContract ? 'contractUpdate' : 'contractSave';
+                    google.script.run
+                        .withSuccessHandler(() => {
+                            showToast(currentContract ? "Contract updated" : "Contract created");
+                            setIsModalOpen(false);
+                            loadData();
+                        })
+                        .withFailureHandler((err) => {
+                            showToast("Error: " + err.message);
+                        })
+                    [fn](formData);
+                }
+            };
+
+            return (
+                <div className="container">
+                    <div className="header">
+                        <h2>Contracts</h2>
+                        <p>Manage investment contracts</p>
+                    </div>
+
+                    <div className="toolbar">
+                        <div style={{ display: 'flex', gap: '10px' }}>
+                            <button className="btn" onClick={handleAdd}>
+                                <i className="fa fa-plus"></i> New Contract
+                            </button>
+                            <button
+                                className="btn btn-success"
+                                onClick={handleGenerateSchedule}
+                                disabled={selectedIds.size === 0}
+                                title={selectedIds.size === 0 ? "Select contracts to generate schedule" : "Generate Schedule"}
+                            >
+                                <i className="fa fa-calendar-alt"></i> Generate Schedule
+                            </button>
+                        </div>
+
+                        <input
+                            type="text"
+                            placeholder="Search contracts..."
+                            style={{ width: '250px' }}
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                        />
+                    </div>
+
+                    <div className="table-container">
+                        {loading ? (
+                            <div style={{ padding: '40px', textAlign: 'center', color: '#6b7280' }}>
+                                <i className="fa fa-spinner fa-spin"></i> Loading...
+                            </div>
+                        ) : (
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>
+                                            <input
+                                                type="checkbox"
+                                                onChange={handleSelectAll}
+                                                checked={filteredContracts.length > 0 && selectedIds.size === filteredContracts.length}
+                                            />
+                                        </th>
+                                        <th>ID</th>
+                                        <th>Project</th>
+                                        <th>Party</th>
+                                        <th>Type</th>
+                                        <th>Amount</th>
+                                        <th>Rate</th>
+                                        <th>Freq</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {filteredContracts.map(c => (
+                                        <tr key={c.contract_id}>
+                                            <td>
+                                                <input
+                                                    type="checkbox"
+                                                    checked={selectedIds.has(c.contract_id)}
+                                                    onChange={(e) => handleSelectRow(c.contract_id, e.target.checked)}
+                                                />
+                                            </td>
+                                            <td>{c.contract_id}</td>
+                                            <td title={c.project_name}>{c.project_name}</td>
+                                            <td title={c.counterparty_name}>{c.counterparty_name}</td>
+                                            <td>{c.contract_type}</td>
+                                            <td>{c.amount}</td>
+                                            <td>{c.interest_rate}</td>
+                                            <td>{c.payment_frequency}</td>
+                                            <td>
+                                                <span style={{
+                                                    padding: '2px 8px', borderRadius: '10px', fontSize: '0.75em', fontWeight: 600,
+                                                    background: c.status === 'Active' ? '#d1fae5' : '#f3f4f6',
+                                                    color: c.status === 'Active' ? '#065f46' : '#374151'
+                                                }}>
+                                                    {c.status}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <i className="fa fa-edit action-btn" onClick={() => handleEdit(c.contract_id)} title="Edit"></i>
+                                                <i className="fa fa-trash action-btn delete-btn" onClick={() => handleDelete(c.contract_id)} title="Delete"></i>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                    {filteredContracts.length === 0 && (
+                                        <tr><td colSpan="10" style={{ textAlign: 'center', padding: '20px', color: '#888' }}>No contracts found.</td></tr>
+                                    )}
+                                </tbody>
+                            </table>
+                        )}
+                    </div>
+
+                    {isModalOpen && (
+                        <ContractDialog
+                            contract={currentContract}
+                            options={formDataOptions}
+                            onClose={() => setIsModalOpen(false)}
+                            onSave={handleSave}
+                        />
+                    )}
+
+                    {toast && <div className="toast">{toast}</div>}
+                </div>
+            );
+        };
+
+        const ContractDialog = ({ contract, options, onClose, onSave }) => {
+            const { projects, parties, dimensions, fees } = options;
+            // Extract specific dimensions
+            const contractTypes = dimensions["ContractType"] || [];
+            const paymentFrequencies = dimensions["PaymentFrequency"] || [];
+            const contractStatuses = dimensions["ContractStatus"] || ["Active", "Closed"];
+            const calculators = dimensions["Calculator"] || ["30/360", "ACT/360"]; // Fallback if not in dimensions
+
+            const [formData, setFormData] = useState({
+                contract_id: '',
+                project_id: '',
+                project_name: '',
+                counterparty_id: '',
+                counterparty_name: '',
+                contract_type: '',
+                amount: '',
+                interest_rate: '',
+                payment_frequency: '',
+                term_months: '',
+                fees: '', // Comma ID string
+                start_date: '',
+                maturity_date: '',
+                status: 'Active',
+                calculator: ''
+            });
+
+            const [selectedFees, setSelectedFees] = useState(new Set());
+
+            useEffect(() => {
+                if (contract) {
+                    setFormData(contract);
+                    if (contract.fees) {
+                        const feeIds = String(contract.fees).split(',').map(s => s.trim());
+                        setSelectedFees(new Set(feeIds));
+                    }
+                } else {
+                    // Defaults
+                    setFormData(prev => ({ ...prev, status: 'Active' }));
+                }
+            }, [contract]);
+
+            // Generate ID
+            const [loadingId, setLoadingId] = useState(false);
+            const generateId = () => {
+                setLoadingId(true);
+                if (typeof google !== 'undefined' && google.script) {
+                    google.script.run.withSuccessHandler(id => {
+                        setFormData(prev => ({ ...prev, contract_id: id }));
+                        setLoadingId(false);
+                    }).contractGenerateID();
+                }
+            };
+
+            const handleChange = (e) => {
+                const { name, value } = e.target;
+
+                // Auto-fill names logic
+                if (name === "project_id") {
+                    const p = projects.find(pr => pr.id === value);
+                    setFormData(prev => ({
+                        ...prev,
+                        project_id: value,
+                        project_name: p ? p.name : ''
+                    }));
+                } else if (name === "counterparty_id") {
+                    const p = parties.find(pa => pa.id === value);
+                    setFormData(prev => ({
+                        ...prev,
+                        counterparty_id: value,
+                        counterparty_name: p ? p.name : ''
+                    }));
+                } else {
+                    setFormData(prev => ({ ...prev, [name]: value }));
+                }
+            };
+
+            const handleFeeChange = (feeId, checked) => {
+                const newSet = new Set(selectedFees);
+                if (checked) newSet.add(feeId);
+                else newSet.delete(feeId);
+                setSelectedFees(newSet);
+
+                setFormData(prev => ({ ...prev, fees: Array.from(newSet).join(', ') }));
+            };
+
+            const handleSubmit = () => {
+                if (!formData.project_id || !formData.counterparty_id) {
+                    alert("Project and Party are required");
+                    return;
+                }
+                onSave(formData);
+            };
+
+            // Draggable Logic
+            const [position, setPosition] = useState({ x: 0, y: 50 });
+            const [isDragging, setIsDragging] = useState(false);
+            const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+
+            useEffect(() => {
+                setPosition({ x: (window.innerWidth - 700) / 2, y: 50 });
+            }, []);
+
+            const handleMouseDown = (e) => {
+                setIsDragging(true);
+                setDragOffset({ x: e.clientX - position.x, y: e.clientY - position.y });
+            };
+
+            useEffect(() => {
+                const handleMouseMove = (e) => {
+                    if (isDragging) {
+                        setPosition({ x: e.clientX - dragOffset.x, y: e.clientY - dragOffset.y });
+                    }
+                };
+                const handleMouseUp = () => setIsDragging(false);
+                if (isDragging) {
+                    window.addEventListener('mousemove', handleMouseMove);
+                    window.addEventListener('mouseup', handleMouseUp);
+                }
+                return () => {
+                    window.removeEventListener('mousemove', handleMouseMove);
+                    window.removeEventListener('mouseup', handleMouseUp);
+                };
+            }, [isDragging, dragOffset]);
+
+            return (
+                <div className="dialog-container" style={{ left: position.x, top: position.y, transform: 'none' }}>
+                    <div className="dialog-header" onMouseDown={handleMouseDown}>
+                        <h3 style={{ margin: 0 }}>{contract ? 'Edit Contract' : 'New Contract'}</h3>
+                        <i className="fa fa-times" onClick={onClose} style={{ cursor: 'pointer' }}></i>
+                    </div>
+                    <div className="dialog-content">
+                        <div className="form-group">
+                            <label>Contract ID</label>
+                            <div className="generated-id-group">
+                                <input name="contract_id" value={formData.contract_id} readOnly placeholder="Auto" className="input-bg-gray" />
+                                {!contract && <button className="btn btn-secondary" onClick={generateId} disabled={loadingId}>
+                                    {loadingId ? '...' : 'Generate'}
+                                </button>}
+                            </div>
+                        </div>
+
+                        <div className="form-row">
+                            <div className="form-group flex-1">
+                                <label>Project</label>
+                                <select name="project_id" value={formData.project_id} onChange={handleChange}>
+                                    <option value="">-- Select Project --</option>
+                                    {projects.map(p => <option key={p.id} value={p.id}>{p.id} - {p.name}</option>)}
+                                </select>
+                            </div>
+                            <div className="form-group flex-1">
+                                <label>Party</label>
+                                <select name="counterparty_id" value={formData.counterparty_id} onChange={handleChange}>
+                                    <option value="">-- Select Party --</option>
+                                    {parties.map(p => <option key={p.id} value={p.id}>{p.id} - {p.name}</option>)}
+                                </select>
+                            </div>
+                        </div>
+
+                        <div className="form-row">
+                            <div className="form-group flex-1">
+                                <label>Type</label>
+                                <select name="contract_type" value={formData.contract_type} onChange={handleChange}>
+                                    <option value="">-- Select Type --</option>
+                                    {contractTypes.map(t => <option key={t} value={t}>{t}</option>)}
+                                </select>
+                            </div>
+                            <div className="form-group flex-1">
+                                <label>Status</label>
+                                <select name="status" value={formData.status} onChange={handleChange}>
+                                    {contractStatuses.map(s => <option key={s} value={s}>{s}</option>)}
+                                </select>
+                            </div>
+                        </div>
+
+                        <div className="form-row">
+                            <div className="form-group flex-1">
+                                <label>Amount</label>
+                                <input name="amount" type="number" value={formData.amount} onChange={handleChange} />
+                            </div>
+                            <div className="form-group flex-1">
+                                <label>Interest Rate (Decimal, e.g. 0.10)</label>
+                                <input name="interest_rate" value={formData.interest_rate} onChange={handleChange} />
+                            </div>
+                        </div>
+
+                        <div className="form-row">
+                            <div className="form-group flex-1">
+                                <label>Payment Freq</label>
+                                <select name="payment_frequency" value={formData.payment_frequency} onChange={handleChange}>
+                                    <option value="">-- Select --</option>
+                                    {paymentFrequencies.map(f => <option key={f} value={f}>{f}</option>)}
+                                </select>
+                            </div>
+                            <div className="form-group flex-1">
+                                <label>Term (Months)</label>
+                                <input name="term_months" type="number" value={formData.term_months} onChange={handleChange} />
+                            </div>
+                        </div>
+
+                        <div className="form-row">
+                            <div className="form-group flex-1">
+                                <label>Start Date</label>
+                                <input name="start_date" type="date" value={formData.start_date ? formData.start_date.split('T')[0] : ''} onChange={handleChange} />
+                            </div>
+                            <div className="form-group flex-1">
+                                <label>Maturity Date</label>
+                                <input name="maturity_date" type="date" value={formData.maturity_date ? formData.maturity_date.split('T')[0] : ''} onChange={handleChange} />
+                            </div>
+                        </div>
+
+                        <div className="form-group">
+                            <label>Calculator Method</label>
+                            <select name="calculator" value={formData.calculator} onChange={handleChange}>
+                                <option value="">-- Select --</option>
+                                {calculators.map(c => <option key={c} value={c}>{c}</option>)}
+                            </select>
+                        </div>
+
+                        <div className="form-group">
+                            <label>Applicable Fees</label>
+                            <div className="checkbox-list">
+                                {fees.map(f => (
+                                    <label key={f.id} className="checkbox-item">
+                                        <input
+                                            type="checkbox"
+                                            checked={selectedFees.has(f.id)}
+                                            onChange={(e) => handleFeeChange(f.id, e.target.checked)}
+                                        />
+                                        {f.name}
+                                    </label>
+                                ))}
+                            </div>
+                        </div>
+
+                    </div>
+                    <div className="dialog-footer">
+                        <button className="btn btn-secondary" onClick={onClose}>Cancel</button>
+                        <button className="btn" onClick={handleSubmit}>{contract ? 'Update' : 'Save'}</button>
+                    </div>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+
+</html>
