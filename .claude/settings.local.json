@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(grep:*)",
+      "Bash(ls:*)",
+      "Bash(npm install:*)",
+      "Bash(firebase projects:list:*)",
+      "Bash(firebase apps:list:*)",
+      "Bash(firebase apps:create:*)",
+      "Bash(node -e:*)"
+    ]
+  }
+}

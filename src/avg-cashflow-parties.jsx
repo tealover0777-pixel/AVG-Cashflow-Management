@@ -595,12 +595,12 @@ export default function App() {
             {/* Header */}
             <div style={{
               display: "grid",
-              gridTemplateColumns: "90px 1.5fr 100px 100px 90px 1fr 120px 1.2fr 100px 100px 100px 100px 100px",
+              gridTemplateColumns: "110px 1fr 130px 120px 1fr 100px",
               padding: "12px 22px",
               background: t.tableHeader,
               borderBottom: `1px solid ${t.surfaceBorder}`,
             }}>
-              {["ID", "NAME", "TYPE", "ROLE", "INV TYPE", "EMAIL", "PHONE", "ADDRESS", "TAX ID", "BANK INFO", "CREATED", "UPDATED", "ACTIONS"].map(col => (
+              {["ID", "NAME", "TYPE", "ROLE", "EMAIL", "ACTIONS"].map(col => (
                 <div key={col} style={{
                   fontSize: 10.5, fontWeight: 600,
                   letterSpacing: "1px", color: isDark ? "rgba(255,255,255,0.3)" : "#C4C0BA",
@@ -623,7 +623,7 @@ export default function App() {
                   onMouseLeave={() => setHoveredRow(null)}
                   style={{
                     display: "grid",
-                    gridTemplateColumns: "90px 1.5fr 100px 100px 90px 1fr 120px 1.2fr 100px 100px 100px 100px 100px",
+                    gridTemplateColumns: "110px 1fr 130px 120px 1fr 100px",
                     padding: "12px 22px",
                     borderBottom: i < filtered.length - 1 ? `1px solid ${t.rowDivider}` : "none",
                     alignItems: "center",
@@ -654,7 +654,6 @@ export default function App() {
                       color: isDark
                         ? "rgba(255,255,255,0.85)"
                         : (isHovered ? "#1C1917" : "#44403C"),
-                      overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
                     }}>
                       {party.name}
                     </span>
@@ -682,9 +681,6 @@ export default function App() {
                     </span>
                   </div>
 
-                  {/* INV TYPE */}
-                  <div style={{ fontSize: 12.5, color: t.textMuted }}>Fixed</div>
-
                   {/* Email */}
                   <div style={{
                     fontSize: 12.5,
@@ -695,20 +691,6 @@ export default function App() {
                       : <span style={{ color: t.emailEmpty }}>—</span>
                     }
                   </div>
-
-                  {/* PHONE */}
-                  <div style={{ fontSize: 12.5, color: t.textMuted, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{party.phone || "—"}</div>
-                  {/* ADDRESS */}
-                  <div style={{ fontSize: 12.5, color: t.textMuted, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>—</div>
-                  {/* TAX ID */}
-                  <div style={{ fontSize: 12.5, color: t.textMuted }}>—</div>
-                  {/* BANK INFO */}
-                  <div style={{ fontSize: 12.5, color: t.textMuted }}>—</div>
-                  {/* CREATED */}
-                  <div style={{ fontSize: 12.5, color: t.textMuted }}>—</div>
-                  {/* UPDATED */}
-                  <div style={{ fontSize: 12.5, color: t.textMuted }}>—</div>
-
 
                   {/* Actions */}
                   <div style={{

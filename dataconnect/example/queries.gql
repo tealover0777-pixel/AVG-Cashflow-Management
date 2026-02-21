@@ -1,0 +1,45 @@
+query ListAllMovies @auth(level: PUBLIC, insecureReason: "This operation is safe to expose to the public as it lists general movie information.") {
+  movies {
+    id
+    title
+    year
+    director
+    genres
+    posterUrl
+    runtimeMinutes
+    summary
+  }
+}
+
+query GetUserWatchHistory($userId: UUID!) @auth(level: USER, insecureReason: "This operation is safe to expose to all logged in users as it fetches their own watch history.") {
+  watches(where: {userId: {eq: $userId}}) {
+    id
+    watchDate
+    location
+    notes
+    movie {
+      title
+      year
+    }
+  }
+}
+
+mutation CreateNewMovieList($name: String!, $description: String, $isPublic: Boolean!, $privateShareLink: String) @auth(level: USER) {
+  movieList_insert(data: {
+    userId_expr: "auth.uid",
+    name: $name,
+    description: $description,
+    isPublic: $isPublic,
+    privateShareLink: $privateShareLink,
+    createdAt_expr: "request.time",
+    updatedAt_expr: "request.time"
+  })
+}
+
+mutation AddMovieToMovieList($movieListId: UUID!, $movieId: UUID!, $position: Int!) @auth(level: USER) {
+  movieListEntry_insert(data: {
+    movieListId: $movieListId,
+    movieId: $movieId,
+    position: $position
+  })
+}

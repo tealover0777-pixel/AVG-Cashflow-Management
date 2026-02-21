@@ -1,0 +1,132 @@
+mutation CreateDemoData @transaction @auth(level: USER, insecureReason: "Seed data mutations are typically run by an admin and do not require auth.uid to be present.") {
+  user_insertMany(data: [
+    {
+      id: "550e8400-e29b-41d4-a716-446655440000",
+      bio: "A bio for John Doe.",
+      createdAt: "2023-01-01T12:00:00Z",
+      displayName: "John Doe",
+      email: "john.doe@example.com",
+      photoUrl: "https://example.com/john_doe.jpg"
+    },
+    {
+      id: "550e8400-e29b-41d4-a716-446655440001",
+      bio: "A bio for Jane Smith.",
+      createdAt: "2023-01-02T13:00:00Z",
+      displayName: "Jane Smith",
+      email: "jane.smith@example.com",
+      photoUrl: "https://example.com/jane_smith.jpg"
+    }
+  ])
+  movie_insertMany(data: [
+    {
+      id: "550e8400-e29b-41d4-a716-446655440002",
+      createdAt: "2023-01-03T14:00:00Z",
+      director: "Christopher Nolan",
+      genres: ["Sci-Fi", "Action"],
+      posterUrl: "https://example.com/inception.jpg",
+      runtimeMinutes: 148,
+      summary: "A thief who steals corporate secrets through use of dream-sharing technology.",
+      title: "Inception",
+      year: 2010
+    },
+    {
+      id: "550e8400-e29b-41d4-a716-446655440003",
+      createdAt: "2023-01-04T15:00:00Z",
+      director: "Lana Wachowski, Lilly Wachowski",
+      genres: ["Sci-Fi", "Action"],
+      posterUrl: "https://example.com/matrix.jpg",
+      runtimeMinutes: 136,
+      summary: "A computer hacker learns from mysterious rebels about the true nature of his reality.",
+      title: "The Matrix",
+      year: 1999
+    }
+  ])
+  movieList_insertMany(data: [
+    {
+      id: "550e8400-e29b-41d4-a716-446655440004",
+      userId: "550e8400-e29b-41d4-a716-446655440000",
+      createdAt: "2023-01-05T16:00:00Z",
+      description: "John Doe's favorite movies.",
+      isPublic: true,
+      name: "John's Favorites",
+      privateShareLink: "https://example.com/share/johnsfavorites",
+      updatedAt: "2023-01-05T16:00:00Z"
+    },
+    {
+      id: "550e8400-e29b-41d4-a716-446655440005",
+      userId: "550e8400-e29b-41d4-a716-446655440001",
+      createdAt: "2023-01-06T17:00:00Z",
+      description: "Jane Smith's must-watch list.",
+      isPublic: false,
+      name: "Jane's Watchlist",
+      privateShareLink: "https://example.com/share/janeswatchlist",
+      updatedAt: "2023-01-06T17:00:00Z"
+    }
+  ])
+  movieListEntry_insertMany(data: [
+    {
+      movieListId: "550e8400-e29b-41d4-a716-446655440004",
+      movieId: "550e8400-e29b-41d4-a716-446655440002",
+      position: 1,
+      note: "Mind-bending plot!"
+    },
+    {
+      movieListId: "550e8400-e29b-41d4-a716-446655440004",
+      movieId: "550e8400-e29b-41d4-a716-446655440003",
+      position: 2,
+      note: "A classic sci-fi."
+    },
+    {
+      movieListId: "550e8400-e29b-41d4-a716-446655440005",
+      movieId: "550e8400-e29b-41d4-a716-446655440003",
+      position: 1,
+      note: "Re-watching this soon."
+    }
+  ])
+  watch_insertMany(data: [
+    {
+      id: "550e8400-e29b-41d4-a716-446655440006",
+      movieId: "550e8400-e29b-41d4-a716-446655440002",
+      userId: "550e8400-e29b-41d4-a716-446655440000",
+      createdAt: "2023-01-07T18:00:00Z",
+      location: "Home",
+      notes: "Watched with friends, great discussion afterwards.",
+      watchDate: "2023-01-07"
+    },
+    {
+      id: "550e8400-e29b-41d4-a716-446655440007",
+      movieId: "550e8400-e29b-41d4-a716-446655440003",
+      userId: "550e8400-e29b-41d4-a716-446655440001",
+      createdAt: "2023-01-08T19:00:00Z",
+      location: "Cinema",
+      notes: "First time seeing it on the big screen!",
+      watchDate: "2023-01-08"
+    }
+  ])
+  review_insertMany(data: [
+    {
+      id: "550e8400-e29b-41d4-a716-446655440008",
+      movieId: "550e8400-e29b-41d4-a716-446655440002",
+      userId: "550e8400-e29b-41d4-a716-446655440000",
+      watchId: "550e8400-e29b-41d4-a716-446655440006",
+      createdAt: "2023-01-07T20:00:00Z",
+      isPublic: true,
+      privateShareLink: "https://example.com/review/inception",
+      rating: 5,
+      reviewText: "Absolutely brilliant, a masterpiece of modern cinema.",
+      updatedAt: "2023-01-07T20:00:00Z"
+    },
+    {
+      id: "550e8400-e29b-41d4-a716-446655440009",
+      movieId: "550e8400-e29b-41d4-a716-446655440003",
+      userId: "550e8400-e29b-41d4-a716-446655440001",
+      watchId: "550e8400-e29b-41d4-a716-446655440007",
+      createdAt: "2023-01-08T21:00:00Z",
+      isPublic: false,
+      privateShareLink: "https://example.com/review/matrix",
+      rating: 4,
+      reviewText: "Still holds up! A bit dated in some parts, but the ideas are timeless.",
+      updatedAt: "2023-01-08T21:00:00Z"
+    }
+  ])
+}
