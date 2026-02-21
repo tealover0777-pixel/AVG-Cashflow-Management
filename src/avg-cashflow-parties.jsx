@@ -98,9 +98,9 @@ const lightTheme = {
   pageBtnText: "#78716C",
   scrollTrack: "#F1F0EE",
   scrollThumb: "#D1CFC9",
-  fontFamily: "'Plus Jakarta Sans', 'Inter', sans-serif",
-  titleFont: "'Cormorant Garamond', serif",
-  monoFont: "'JetBrains Mono', monospace",
+  fontFamily: "'''Plus Jakarta Sans''', '''Inter''', sans-serif",
+  titleFont: "'''Cormorant Garamond''', serif",
+  monoFont: "'''JetBrains Mono''', monospace",
   titleSize: 38,
   titleWeight: 700,
   roleConfigs: {
@@ -195,9 +195,9 @@ const darkTheme = {
   pageBtnText: "rgba(255,255,255,0.5)",
   scrollTrack: "transparent",
   scrollThumb: "rgba(255,255,255,0.1)",
-  fontFamily: "'DM Sans', 'Segoe UI', sans-serif",
-  titleFont: "'Syne', sans-serif",
-  monoFont: "'JetBrains Mono', monospace",
+  fontFamily: "'''DM Sans''', '''Segoe UI''', sans-serif",
+  titleFont: "'''Syne''', sans-serif",
+  monoFont: "'''JetBrains Mono''', monospace",
   titleSize: 30,
   titleWeight: 800,
   roleConfigs: {
@@ -322,7 +322,7 @@ export default function App() {
             }}>A</div>
             <div>
               <div style={{
-                fontFamily: isDark ? "'Syne', sans-serif" : "'Cormorant Garamond', serif",
+                fontFamily: isDark ? "'''Syne''', sans-serif" : "'''Cormorant Garamond''', serif",
                 fontWeight: isDark ? 800 : 700,
                 fontSize: isDark ? 14 : 17,
                 color: isDark ? "#fff" : "#1C1917",
@@ -638,7 +638,7 @@ export default function App() {
                   }}>{party.id}</div>
 
                   {/* Name + Avatar */}
-                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
                     <div style={{
                       width: 32, height: 32, borderRadius: 9,
                       background: av.bg,
@@ -654,6 +654,9 @@ export default function App() {
                       color: isDark
                         ? "rgba(255,255,255,0.85)"
                         : (isHovered ? "#1C1917" : "#44403C"),
+                      whiteSpace: "nowrap",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
                     }}>
                       {party.name}
                     </span>
