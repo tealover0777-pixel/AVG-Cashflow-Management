@@ -603,53 +603,39 @@ export default function App() {
             backdropFilter: t.glassTable ? "blur(20px)" : "none",
             boxShadow: t.tableShadow,
           }}>
-            {/* Header */}
+            {/* Header with filters */}
             <div style={{
               display: "grid",
               gridTemplateColumns: "110px 1fr 130px 120px 1fr 100px",
-              padding: "12px 22px",
+              padding: "12px 22px 10px",
               background: t.tableHeader,
               borderBottom: `1px solid ${t.surfaceBorder}`,
-            }}>
-              {["ID", "NAME", "TYPE", "ROLE", "EMAIL", "ACTIONS"].map(col => (
-                <div key={col} style={{
-                  fontSize: 10.5, fontWeight: 600,
-                  letterSpacing: "1px", color: isDark ? "rgba(255,255,255,0.3)" : "#C4C0BA",
-                  textTransform: "uppercase",
-                  fontFamily: t.monoFont,
-                }}>{col}</div>
-              ))}
-            </div>
-
-            {/* Column Filters */}
-            <div style={{
-              display: "grid",
-              gridTemplateColumns: "110px 1fr 130px 120px 1fr 100px",
-              padding: "8px 22px",
-              background: t.tableHeader,
-              borderBottom: `1px solid ${t.surfaceBorder}`,
-              gap: 8,
             }}>
               {[
-                { key: "id", placeholder: "Filter ID..." },
-                { key: "name", placeholder: "Filter name..." },
-                { key: "type", placeholder: "Filter type..." },
-                { key: "role", placeholder: "Filter role..." },
-                { key: "email", placeholder: "Filter email..." },
-                null,
-              ].map((col, i) =>
-                col ? (
-                  <input
-                    key={col.key}
-                    className="col-filter-input"
-                    value={columnFilters[col.key]}
-                    onChange={e => setColumnFilters(prev => ({ ...prev, [col.key]: e.target.value }))}
-                    placeholder={col.placeholder}
-                  />
-                ) : (
-                  <div key={i} />
-                )
-              )}
+                { label: "ID", key: "id" },
+                { label: "NAME", key: "name" },
+                { label: "TYPE", key: "type" },
+                { label: "ROLE", key: "role" },
+                { label: "EMAIL", key: "email" },
+                { label: "ACTIONS", key: null },
+              ].map(col => (
+                <div key={col.label} style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                  <div style={{
+                    fontSize: 10.5, fontWeight: 600,
+                    letterSpacing: "1px", color: isDark ? "rgba(255,255,255,0.3)" : "#C4C0BA",
+                    textTransform: "uppercase",
+                    fontFamily: t.monoFont,
+                  }}>{col.label}</div>
+                  {col.key && (
+                    <input
+                      className="col-filter-input"
+                      value={columnFilters[col.key]}
+                      onChange={e => setColumnFilters(prev => ({ ...prev, [col.key]: e.target.value }))}
+                      placeholder={`Filter...`}
+                    />
+                  )}
+                </div>
+              ))}
             </div>
 
             {/* Rows */}
