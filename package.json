@@ -4,20 +4,22 @@
   "description": "Professional Cashflow Management App",
   "main": "index.js",
   "scripts": {
+    "dev": "vite",
     "build": "vite build",
     "deploy": "npm run build && clasp push"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "type": "commonjs",
+  "type": "module",
   "devDependencies": {
     "@types/google-apps-script": "^2.0.8",
-    "@vitejs/plugin-react": "^5.1.4",
-    "vite": "^7.3.1",
+    "@vitejs/plugin-react": "^4.3.4",
+    "vite": "^6.3.5",
     "vite-plugin-singlefile": "^2.3.0"
   },
   "dependencies": {
+    "firebase": "^12.9.0",
     "react": "^19.2.4",
     "react-dom": "^19.2.4"
   }
