@@ -251,6 +251,9 @@ export default function App() {
   const [hoveredRow, setHoveredRow] = useState(null);
   const [activeNav, setActiveNav] = useState("Parties");
   const [activeChip, setActiveChip] = useState("All");
+  const [columnFilters, setColumnFilters] = useState({
+    id: "", name: "", type: "", role: "", email: "",
+  });
 
   const t = isDark ? darkTheme : lightTheme;
 
@@ -259,9 +262,14 @@ export default function App() {
       p.name.toLowerCase().includes(search.toLowerCase()) ||
       p.id.toLowerCase().includes(search.toLowerCase());
     if (!matchSearch) return false;
-    if (activeChip === "Investors") return p.role === "Investor";
-    if (activeChip === "Borrowers") return p.role === "Borrower";
-    if (activeChip === "Companies") return p.type === "Company";
+    if (activeChip === "Investors" && p.role !== "Investor") return false;
+    if (activeChip === "Borrowers" && p.role !== "Borrower") return false;
+    if (activeChip === "Companies" && p.type !== "Company") return false;
+    if (columnFilters.id && !p.id.toLowerCase().includes(columnFilters.id.toLowerCase())) return false;
+    if (columnFilters.name && !p.name.toLowerCase().includes(columnFilters.name.toLowerCase())) return false;
+    if (columnFilters.type && !p.type.toLowerCase().includes(columnFilters.type.toLowerCase())) return false;
+    if (columnFilters.role && !p.role.toLowerCase().includes(columnFilters.role.toLowerCase())) return false;
+    if (columnFilters.email && !p.email.toLowerCase().includes(columnFilters.email.toLowerCase())) return false;
     return true;
   });
 
@@ -292,6 +300,9 @@ export default function App() {
         .stat-card:hover { transform: translateY(-3px); }
         .search-input:focus { outline: none; border-color: ${t.searchFocusBorder} !important; box-shadow: 0 0 0 3px ${t.searchFocusShadow} !important; }
         .search-input::placeholder { color: ${t.searchPlaceholder}; }
+        .col-filter-input { transition: all 0.2s ease; background: ${isDark ? "rgba(255,255,255,0.04)" : "#FAFAF9"}; border: 1px solid ${isDark ? "rgba(255,255,255,0.08)" : "#E5E3DF"}; border-radius: 6px; padding: 5px 8px; font-size: 11px; color: ${t.searchText}; width: 100%; font-family: ${t.fontFamily}; }
+        .col-filter-input:focus { outline: none; border-color: ${t.searchFocusBorder}; box-shadow: 0 0 0 2px ${t.searchFocusShadow}; }
+        .col-filter-input::placeholder { color: ${isDark ? "rgba(255,255,255,0.2)" : "#C4C0BA"}; }
         .filter-chip { transition: all 0.15s ease; cursor: pointer; }
         .filter-chip:hover { background: ${t.chipHoverBg} !important; color: ${t.chipHoverText} !important; border-color: ${t.chipHoverBorder} !important; }
         .theme-toggle { transition: all 0.2s ease; cursor: pointer; border: none; }
@@ -608,6 +619,37 @@ export default function App() {
                   fontFamily: t.monoFont,
                 }}>{col}</div>
               ))}
+            </div>
+
+            {/* Column Filters */}
+            <div style={{
+              display: "grid",
+              gridTemplateColumns: "110px 1fr 130px 120px 1fr 100px",
+              padding: "8px 22px",
+              background: t.tableHeader,
+              borderBottom: `1px solid ${t.surfaceBorder}`,
+              gap: 8,
+            }}>
+              {[
+                { key: "id", placeholder: "Filter ID..." },
+                { key: "name", placeholder: "Filter name..." },
+                { key: "type", placeholder: "Filter type..." },
+                { key: "role", placeholder: "Filter role..." },
+                { key: "email", placeholder: "Filter email..." },
+                null,
+              ].map((col, i) =>
+                col ? (
+                  <input
+                    key={col.key}
+                    className="col-filter-input"
+                    value={columnFilters[col.key]}
+                    onChange={e => setColumnFilters(prev => ({ ...prev, [col.key]: e.target.value }))}
+                    placeholder={col.placeholder}
+                  />
+                ) : (
+                  <div key={i} />
+                )
+              )}
             </div>
 
             {/* Rows */}
