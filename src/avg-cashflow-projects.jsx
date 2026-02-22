@@ -178,14 +178,8 @@ function Shell({ isDark, setIsDark, activeNav, setActiveNav, page, children }) {
 export default function App() {
   const [isDark, setIsDark] = useState(true);
   const [activeNav, setActiveNav] = useState("Projects");
-  const [search, setSearch] = useState("");
   const [hoveredRow, setHoveredRow] = useState(null);
   const t = isDark ? dark : light;
-
-  const filtered = projects.filter(p =>
-    p.name.toLowerCase().includes(search.toLowerCase()) ||
-    p.id.toLowerCase().includes(search.toLowerCase())
-  );
 
   const statData = stats(isDark);
 
@@ -212,14 +206,6 @@ export default function App() {
         ))}
       </div>
 
-      {/* Toolbar */}
-      <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 16 }}>
-        <div style={{ position: "relative" }}>
-          <span style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: t.searchIcon, fontSize: 15, pointerEvents: "none" }}>⌕</span>
-          <input className="search-input" value={search} onChange={e => setSearch(e.target.value)} placeholder="Search projects..." style={{ background: t.searchBg, border: `1px solid ${t.searchBorder}`, borderRadius: 10, padding: "9px 14px 9px 34px", color: t.searchText, fontSize: 13, width: 240 }} />
-        </div>
-      </div>
-
       {/* Table */}
       <div style={{ background: t.surface, borderRadius: 16, border: `1px solid ${t.surfaceBorder}`, overflow: "hidden", backdropFilter: t.glass ? "blur(20px)" : "none", boxShadow: t.tableShadow }}>
         <div style={{ display: "grid", gridTemplateColumns: "120px 1fr 110px 90px 1fr 110px 90px", padding: "12px 22px", background: t.tableHeader, borderBottom: `1px solid ${t.surfaceBorder}` }}>
@@ -227,12 +213,12 @@ export default function App() {
             <div key={col} style={{ fontSize: 10.5, fontWeight: 600, letterSpacing: "1px", color: isDark ? "rgba(255,255,255,0.3)" : "#C4C0BA", textTransform: "uppercase", fontFamily: t.monoFont }}>{col}</div>
           ))}
         </div>
-        {filtered.map((p, i) => {
+        {projects.map((p, i) => {
           const sc = statusCfg(p.status, isDark);
           const isHov = hoveredRow === p.id;
           return (
             <div key={p.id} className="data-row" onMouseEnter={() => setHoveredRow(p.id)} onMouseLeave={() => setHoveredRow(null)}
-              style={{ display: "grid", gridTemplateColumns: "120px 1fr 110px 90px 1fr 110px 90px", padding: "12px 22px", borderBottom: i < filtered.length - 1 ? `1px solid ${t.rowDivider}` : "none", alignItems: "center", background: isHov ? t.rowHover : "transparent", transition: "all 0.15s ease" }}>
+              style={{ display: "grid", gridTemplateColumns: "120px 1fr 110px 90px 1fr 110px 90px", padding: "12px 22px", borderBottom: i < projects.length - 1 ? `1px solid ${t.rowDivider}` : "none", alignItems: "center", background: isHov ? t.rowHover : "transparent", transition: "all 0.15s ease" }}>
               <div style={{ fontFamily: t.monoFont, fontSize: 11, color: t.idText }}>{p.id}</div>
               <div style={{ fontSize: 13.5, fontWeight: 500, color: isDark ? "rgba(255,255,255,0.85)" : (isHov ? "#1C1917" : "#44403C") }}>{p.name}</div>
               <div><span style={{ fontSize: 11.5, fontWeight: 600, padding: "4px 11px", borderRadius: 20, background: sc.bg, color: sc.color, border: `1px solid ${sc.border}` }}>{p.status}</span></div>
@@ -246,13 +232,13 @@ export default function App() {
             </div>
           );
         })}
-        {filtered.length === 0 && <div style={{ padding: "48px", textAlign: "center", color: t.textMuted, fontSize: 13 }}>No projects found.</div>}
+        {projects.length === 0 && <div style={{ padding: "48px", textAlign: "center", color: t.textMuted, fontSize: 13 }}>No projects found.</div>}
       </div>
 
       {/* Footer */}
       <div style={{ marginTop: 16, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <span style={{ fontSize: 12, color: t.textSubtle }}>
-          Showing <strong style={{ color: t.textSecondary }}>{filtered.length}</strong> of <strong style={{ color: t.textSecondary }}>{projects.length}</strong> projects
+          Showing <strong style={{ color: t.textSecondary }}>{projects.length}</strong> of <strong style={{ color: t.textSecondary }}>{projects.length}</strong> projects
         </span>
         <div style={{ display: "flex", gap: 6 }}>
           {["‹", "1", "›"].map((p, i) => (

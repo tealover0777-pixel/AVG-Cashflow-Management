@@ -98,9 +98,9 @@ const lightTheme = {
   pageBtnText: "#78716C",
   scrollTrack: "#F1F0EE",
   scrollThumb: "#D1CFC9",
-  fontFamily: "'''Plus Jakarta Sans''', '''Inter''', sans-serif",
-  titleFont: "'''Cormorant Garamond''', serif",
-  monoFont: "'''JetBrains Mono''', monospace",
+  fontFamily: '''Plus Jakarta Sans''', '''Inter''', sans-serif,
+  titleFont: '''Cormorant Garamond''', serif,
+  monoFont: '''JetBrains Mono''', monospace,
   titleSize: 38,
   titleWeight: 700,
   roleConfigs: {
@@ -195,9 +195,9 @@ const darkTheme = {
   pageBtnText: "rgba(255,255,255,0.5)",
   scrollTrack: "transparent",
   scrollThumb: "rgba(255,255,255,0.1)",
-  fontFamily: "'''DM Sans''', '''Segoe UI''', sans-serif",
-  titleFont: "'''Syne''', sans-serif",
-  monoFont: "'''JetBrains Mono''', monospace",
+  fontFamily: '''DM Sans''', '''Segoe UI''', sans-serif,
+  titleFont: '''Syne''', sans-serif,
+  monoFont: '''JetBrains Mono''', monospace,
   titleSize: 30,
   titleWeight: 800,
   roleConfigs: {
@@ -247,10 +247,8 @@ function getStatValue(stat) {
 
 export default function App() {
   const [isDark, setIsDark] = useState(true);
-  const [search, setSearch] = useState("");
   const [hoveredRow, setHoveredRow] = useState(null);
   const [activeNav, setActiveNav] = useState("Parties");
-  const [activeChip, setActiveChip] = useState("All");
   const [columnFilters, setColumnFilters] = useState({
     id: "", name: "", type: "", role: "", email: "",
   });
@@ -258,13 +256,6 @@ export default function App() {
   const t = isDark ? darkTheme : lightTheme;
 
   const filtered = parties.filter(p => {
-    const matchSearch =
-      p.name.toLowerCase().includes(search.toLowerCase()) ||
-      p.id.toLowerCase().includes(search.toLowerCase());
-    if (!matchSearch) return false;
-    if (activeChip === "Investors" && p.role !== "Investor") return false;
-    if (activeChip === "Borrowers" && p.role !== "Borrower") return false;
-    if (activeChip === "Companies" && p.type !== "Company") return false;
     if (columnFilters.id && !p.id.toLowerCase().includes(columnFilters.id.toLowerCase())) return false;
     if (columnFilters.name && !p.name.toLowerCase().includes(columnFilters.name.toLowerCase())) return false;
     if (columnFilters.type && !p.type.toLowerCase().includes(columnFilters.type.toLowerCase())) return false;
@@ -333,7 +324,7 @@ export default function App() {
             }}>A</div>
             <div>
               <div style={{
-                fontFamily: isDark ? "'''Syne''', sans-serif" : "'''Cormorant Garamond''', serif",
+                fontFamily: isDark ? '''Syne''', sans-serif : '''Cormorant Garamond''', serif,
                 fontWeight: isDark ? 800 : 700,
                 fontSize: isDark ? 14 : 17,
                 color: isDark ? "#fff" : "#1C1917",
@@ -540,58 +531,6 @@ export default function App() {
                 </div>
               </div>
             ))}
-          </div>
-
-          {/* Table Toolbar */}
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-            {/* Filter chips */}
-            <div style={{ display: "flex", gap: 8 }}>
-              {["All", "Investors", "Borrowers", "Companies"].map((chip) => {
-                const isChipActive = activeChip === chip;
-                return (
-                  <span
-                    key={chip}
-                    className="filter-chip"
-                    onClick={() => setActiveChip(chip)}
-                    style={{
-                      fontSize: 12, fontWeight: isChipActive ? 600 : 500,
-                      padding: "5px 14px", borderRadius: 20,
-                      background: isChipActive ? t.chipActiveBg : t.chipBg,
-                      color: isChipActive ? (isDark ? "#050c15" : "#fff") : t.chipText,
-                      border: `1px solid ${isChipActive ? t.chipActiveBorder : t.chipBorder}`,
-                      cursor: "pointer",
-                    }}
-                  >
-                    {chip}
-                  </span>
-                );
-              })}
-            </div>
-
-            {/* Search */}
-            <div style={{ position: "relative" }}>
-              <span style={{
-                position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)",
-                color: t.searchIcon, fontSize: 15, lineHeight: 1, pointerEvents: "none",
-              }}>⌕</span>
-              <input
-                className="search-input"
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-                placeholder="Search parties..."
-                style={{
-                  background: t.searchBg,
-                  border: `1px solid ${t.searchBorder}`,
-                  borderRadius: 10,
-                  padding: "9px 14px 9px 34px",
-                  color: t.searchText,
-                  fontSize: 13,
-                  width: 240,
-                  transition: "all 0.2s ease",
-                  boxShadow: isDark ? "none" : "0 1px 3px rgba(0,0,0,0.04)",
-                }}
-              />
-            </div>
           </div>
 
           {/* Table */}

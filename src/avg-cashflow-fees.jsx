@@ -83,14 +83,8 @@ const methodCfg = (method, isDark) => ({
 export default function App() {
   const [isDark, setIsDark] = useState(true);
   const [activeNav, setActiveNav] = useState("Fees");
-  const [search, setSearch] = useState("");
   const [hoveredRow, setHoveredRow] = useState(null);
   const t = isDark ? dark : light;
-
-  const filtered = fees.filter(f =>
-    f.name.toLowerCase().includes(search.toLowerCase()) ||
-    f.id.toLowerCase().includes(search.toLowerCase())
-  );
 
   const statData = [
     { label: "Total Fees", value: fees.length, accent: isDark ? "#60A5FA" : "#3B82F6", bg: isDark ? "rgba(96,165,250,0.08)" : "#EFF6FF", border: isDark ? "rgba(96,165,250,0.15)" : "#BFDBFE" },
@@ -199,14 +193,6 @@ export default function App() {
             ))}
           </div>
 
-          {/* Toolbar */}
-          <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 16 }}>
-            <div style={{ position: "relative" }}>
-              <span style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: t.searchIcon, fontSize: 15, pointerEvents: "none" }}>⌕</span>
-              <input className="search-input" value={search} onChange={e => setSearch(e.target.value)} placeholder="Search fees..." style={{ background: t.searchBg, border: `1px solid ${t.searchBorder}`, borderRadius: 10, padding: "9px 14px 9px 34px", color: t.searchText, fontSize: 13, width: 240 }} />
-            </div>
-          </div>
-
           {/* Table */}
           <div style={{ background: t.surface, borderRadius: 16, border: `1px solid ${t.surfaceBorder}`, overflow: "hidden", backdropFilter: t.glass ? "blur(20px)" : "none", boxShadow: t.tableShadow }}>
             <div style={{ display: "grid", gridTemplateColumns: "100px 1fr 130px 120px 140px 1fr 90px", padding: "12px 22px", background: t.tableHeader, borderBottom: `1px solid ${t.surfaceBorder}` }}>
@@ -215,12 +201,12 @@ export default function App() {
               ))}
             </div>
 
-            {filtered.map((f, i) => {
+            {fees.map((f, i) => {
               const mc = methodCfg(f.method, isDark);
               const isHov = hoveredRow === f.id;
               return (
                 <div key={f.id} className="data-row" onMouseEnter={() => setHoveredRow(f.id)} onMouseLeave={() => setHoveredRow(null)}
-                  style={{ display: "grid", gridTemplateColumns: "100px 1fr 130px 120px 140px 1fr 90px", padding: "12px 22px", borderBottom: i < filtered.length - 1 ? `1px solid ${t.rowDivider}` : "none", alignItems: "center", background: isHov ? t.rowHover : "transparent", transition: "all 0.15s ease" }}>
+                  style={{ display: "grid", gridTemplateColumns: "100px 1fr 130px 120px 140px 1fr 90px", padding: "12px 22px", borderBottom: i < fees.length - 1 ? `1px solid ${t.rowDivider}` : "none", alignItems: "center", background: isHov ? t.rowHover : "transparent", transition: "all 0.15s ease" }}>
                   <div style={{ fontFamily: t.monoFont, fontSize: 11, color: t.idText }}>{f.id}</div>
                   <div style={{ fontSize: 13.5, fontWeight: 500, color: isDark ? "rgba(255,255,255,0.85)" : (isHov ? "#1C1917" : "#44403C") }}>{f.name}</div>
                   <div><span style={{ fontSize: 11.5, fontWeight: 600, padding: "4px 11px", borderRadius: 20, background: mc.bg, color: mc.color, border: `1px solid ${mc.border}` }}>{f.method}</span></div>
@@ -234,13 +220,13 @@ export default function App() {
                 </div>
               );
             })}
-            {filtered.length === 0 && <div style={{ padding: "48px", textAlign: "center", color: t.textMuted, fontSize: 13 }}>No fees found.</div>}
+            {fees.length === 0 && <div style={{ padding: "48px", textAlign: "center", color: t.textMuted, fontSize: 13 }}>No fees found.</div>}
           </div>
 
           {/* Footer */}
           <div style={{ marginTop: 16, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <span style={{ fontSize: 12, color: t.textSubtle }}>
-              Showing <strong style={{ color: t.textSecondary }}>{filtered.length}</strong> of <strong style={{ color: t.textSecondary }}>{fees.length}</strong> fees
+              Showing <strong style={{ color: t.textSecondary }}>{fees.length}</strong> of <strong style={{ color: t.textSecondary }}>{fees.length}</strong> fees
             </span>
             <div style={{ display: "flex", gap: 6 }}>
               {["‹", "1", "›"].map((p, i) => (

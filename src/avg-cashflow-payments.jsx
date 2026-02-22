@@ -85,23 +85,11 @@ const typeCfg = (type, isDark) => ({
   Disbursement: { bg: isDark ? "rgba(248,113,113,0.15)" : "#FEF2F2", color: isDark ? "#F87171" : "#DC2626", border: isDark ? "rgba(248,113,113,0.3)" : "#FECACA" },
 })[type] || { bg: "transparent", color: "#888", border: "#ccc" };
 
-const filters = ["All", "Received", "Disbursed"];
-
 export default function App() {
   const [isDark, setIsDark] = useState(true);
   const [activeNav, setActiveNav] = useState("Payments");
-  const [search, setSearch] = useState("");
   const [hoveredRow, setHoveredRow] = useState(null);
-  const [activeFilter, setActiveFilter] = useState("All");
   const t = isDark ? dark : light;
-
-  const filtered = payments.filter(p => {
-    const matchSearch = p.id.toLowerCase().includes(search.toLowerCase()) ||
-      p.party.toLowerCase().includes(search.toLowerCase()) ||
-      p.contract.toLowerCase().includes(search.toLowerCase());
-    const matchFilter = activeFilter === "All" || p.direction === activeFilter;
-    return matchSearch && matchFilter;
-  });
 
   const totalReceived = payments.filter(p => p.direction === "Received").reduce((sum, p) => sum + parseFloat(p.amount.replace(/[$,]/g, "")), 0);
   const totalDisbursed = payments.filter(p => p.direction === "Disbursed").reduce((sum, p) => sum + parseFloat(p.amount.replace(/[$,]/g, "")), 0);
@@ -214,27 +202,6 @@ export default function App() {
             ))}
           </div>
 
-          {/* Toolbar */}
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-            <div style={{ display: "flex", gap: 8 }}>
-              {filters.map(f => {
-                const isActive = activeFilter === f;
-                const color = f === "Received" ? (isDark ? "#34D399" : "#059669") : f === "Disbursed" ? (isDark ? "#F87171" : "#DC2626") : t.accent;
-                const bg = f === "Received" ? (isDark ? "rgba(52,211,153,0.15)" : "#ECFDF5") : f === "Disbursed" ? (isDark ? "rgba(248,113,113,0.15)" : "#FEF2F2") : (isDark ? "rgba(52,211,153,0.15)" : t.accent);
-                const border = f === "Received" ? (isDark ? "rgba(52,211,153,0.3)" : "#A7F3D0") : f === "Disbursed" ? (isDark ? "rgba(248,113,113,0.3)" : "#FECACA") : (isDark ? "rgba(52,211,153,0.3)" : t.accent);
-                return (
-                  <span key={f} className="filter-chip" onClick={() => setActiveFilter(f)} style={{ fontSize: 12, fontWeight: isActive ? 600 : 500, padding: "5px 14px", borderRadius: 20, background: isActive ? bg : (isDark ? "rgba(255,255,255,0.04)" : "#FFFFFF"), color: isActive ? (f === "All" ? (isDark ? "#34D399" : "#fff") : color) : t.textSecondary, border: `1px solid ${isActive ? border : (isDark ? "rgba(255,255,255,0.08)" : "#E5E3DF")}`, cursor: "pointer" }}>
-                    {f}
-                  </span>
-                );
-              })}
-            </div>
-            <div style={{ position: "relative" }}>
-              <span style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: t.searchIcon, fontSize: 15, pointerEvents: "none" }}>⌕</span>
-              <input className="search-input" value={search} onChange={e => setSearch(e.target.value)} placeholder="Search payments..." style={{ background: t.searchBg, border: `1px solid ${t.searchBorder}`, borderRadius: 10, padding: "9px 14px 9px 34px", color: t.searchText, fontSize: 13, width: 240 }} />
-            </div>
-          </div>
-
           {/* Table */}
           <div style={{ background: t.surface, borderRadius: 16, border: `1px solid ${t.surfaceBorder}`, overflow: "hidden", backdropFilter: t.glass ? "blur(20px)" : "none", boxShadow: t.tableShadow }}>
             <div style={{ display: "grid", gridTemplateColumns: "110px 90px 90px 1fr 110px 120px 100px 100px 1fr 80px", padding: "12px 22px", background: t.tableHeader, borderBottom: `1px solid ${t.surfaceBorder}` }}>
@@ -243,13 +210,13 @@ export default function App() {
               ))}
             </div>
 
-            {filtered.map((p, i) => {
+            {payments.map((p, i) => {
               const tc = typeCfg(p.type, isDark);
               const isHov = hoveredRow === p.id;
               const isIncoming = p.direction === "Received";
               return (
                 <div key={p.id} className="data-row" onMouseEnter={() => setHoveredRow(p.id)} onMouseLeave={() => setHoveredRow(null)}
-                  style={{ display: "grid", gridTemplateColumns: "110px 90px 90px 1fr 110px 120px 100px 100px 1fr 80px", padding: "12px 22px", borderBottom: i < filtered.length - 1 ? `1px solid ${t.rowDivider}` : "none", alignItems: "center", background: isHov ? t.rowHover : "transparent", transition: "all 0.15s ease" }}>
+                  style={{ display: "grid", gridTemplateColumns: "110px 90px 90px 1fr 110px 120px 100px 100px 1fr 80px", padding: "12px 22px", borderBottom: i < payments.length - 1 ? `1px solid ${t.rowDivider}` : "none", alignItems: "center", background: isHov ? t.rowHover : "transparent", transition: "all 0.15s ease" }}>
                   <div style={{ fontFamily: t.monoFont, fontSize: 10.5, color: t.idText }}>{p.id}</div>
                   <div style={{ fontFamily: t.monoFont, fontSize: 10.5, color: isDark ? "rgba(255,255,255,0.4)" : "#A8A29E" }}>{p.schedule || <span style={{ color: isDark ? "rgba(255,255,255,0.15)" : "#D4D0CB" }}>—</span>}</div>
                   <div style={{ fontFamily: t.monoFont, fontSize: 11.5, color: isDark ? "#60A5FA" : "#4F46E5", fontWeight: 500 }}>{p.contract || <span style={{ color: isDark ? "rgba(255,255,255,0.15)" : "#D4D0CB" }}>—</span>}</div>
@@ -268,13 +235,13 @@ export default function App() {
                 </div>
               );
             })}
-            {filtered.length === 0 && <div style={{ padding: "48px", textAlign: "center", color: t.textMuted, fontSize: 13 }}>No payments found.</div>}
+            {payments.length === 0 && <div style={{ padding: "48px", textAlign: "center", color: t.textMuted, fontSize: 13 }}>No payments found.</div>}
           </div>
 
           {/* Footer */}
           <div style={{ marginTop: 16, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <span style={{ fontSize: 12, color: t.textSubtle }}>
-              Showing <strong style={{ color: t.textSecondary }}>{filtered.length}</strong> of <strong style={{ color: t.textSecondary }}>{payments.length}</strong> payments
+              Showing <strong style={{ color: t.textSecondary }}>{payments.length}</strong> of <strong style={{ color: t.textSecondary }}>{payments.length}</strong> payments
             </span>
             <div style={{ display: "flex", gap: 6 }}>
               {["‹", "1", "2", "›"].map((p, i) => (
