@@ -555,7 +555,7 @@ function PageParties({ t, isDark, PARTIES = [], collectionPath = "" }) {
   </>);
 }
 
-function PageContracts({ t, isDark, CONTRACTS = [], PROJECTS = [], PARTIES = [] }) {
+function PageContracts({ t, isDark, CONTRACTS = [], PROJECTS = [], PARTIES = [], DIMENSIONS = [] }) {
   const [hov, setHov] = useState(null); const [sel, setSel] = useState(new Set());
   const [modal, setModal] = useState({ open: false, mode: "add", data: {} });
   const [delT, setDelT] = useState(null);
@@ -565,7 +565,40 @@ function PageContracts({ t, isDark, CONTRACTS = [], PROJECTS = [], PARTIES = [] 
   const openAdd = () => setModal({ open: true, mode: "add", data: { project: "Palm Springs Villas", party: "Pao Fu Chen", type: "Loan", amount: "", rate: "", freq: "Monthly", status: "Active" } });
   const openEdit = r => setModal({ open: true, mode: "edit", data: { ...r } });
   const close = () => setModal(m => ({ ...m, open: false }));
-  const setF = (k, v) => setModal(m => ({ ...m, data: { ...m.data, [k]: v } }));
+  const setF = (k, v) => setModal(m => {
+    const next = { ...m, data: { ...m.data, [k]: v } };
+    // Auto-calculate maturity_date when term_months changes
+    if (k === "term_months" && v && next.data.start_date) {
+      const sd = new Date(next.data.start_date);
+      if (!isNaN(sd)) { sd.setMonth(sd.getMonth() + parseInt(v, 10)); next.data.maturity_date = sd.toISOString().slice(0, 10); }
+    }
+    // Auto-calculate maturity_date when start_date changes and term_months exists
+    if (k === "start_date" && v && next.data.term_months) {
+      const sd = new Date(v);
+      if (!isNaN(sd)) { sd.setMonth(sd.getMonth() + parseInt(next.data.term_months, 10)); next.data.maturity_date = sd.toISOString().slice(0, 10); }
+    }
+    // Auto-calculate term_months when maturity_date changes
+    if (k === "maturity_date" && v && next.data.start_date) {
+      const sd = new Date(next.data.start_date); const md = new Date(v);
+      if (!isNaN(sd) && !isNaN(md)) { next.data.term_months = String((md.getFullYear() - sd.getFullYear()) * 12 + md.getMonth() - sd.getMonth()); }
+    }
+    return next;
+  });
+  const calculatorOpts = (DIMENSIONS.find(d => d.name === "Calculator") || {}).items || [];
+  const investorTypeOpts = (DIMENSIONS.find(d => d.name === "InvestorContractEditType") || {}).items || [];
+  const borrowerTypeOpts = (DIMENSIONS.find(d => d.name === "BorrowerContractEditType") || {}).items || [];
+  const selectedParty = PARTIES.find(p => p.name === modal.data.party);
+  const partyRole = selectedParty ? selectedParty.role : "";
+  const partyInvType = selectedParty ? selectedParty.investor_type : "";
+  const getTypeOpts = () => {
+    let opts = [];
+    if (partyRole === "Investor" || partyInvType === "Both") opts = [...investorTypeOpts];
+    else if (partyRole === "Borrower") opts = [...borrowerTypeOpts];
+    else opts = [...investorTypeOpts, ...borrowerTypeOpts.filter(o => !investorTypeOpts.includes(o))];
+    const cur = modal.data.type;
+    if (cur && !opts.includes(cur)) opts = [cur, ...opts];
+    return opts.length > 0 ? opts : ["Loan", "Mortgage", "Equity"];
+  };
   const toggleRow = id => { const n = new Set(sel); n.has(id) ? n.delete(id) : n.add(id); setSel(n); };
   const cols = [{ l: "", w: "36px" }, { l: "CONTRACT ID", w: "78px", k: "id" }, { l: "PROJECT ID", w: "78px", k: "project_id" }, { l: "PROJECT", w: "minmax(0,1fr)", k: "project" }, { l: "PARTY", w: "minmax(0,1fr)", k: "party" }, { l: "TYPE", w: "80px", k: "type" }, { l: "AMOUNT", w: "100px", k: "amount" }, { l: "RATE", w: "60px", k: "rate" }, { l: "FREQ", w: "80px", k: "freq" }, { l: "TERM", w: "52px", k: "term_months" }, { l: "CALCULATOR", w: "106px", k: "calculator" }, { l: "START", w: "84px", k: "start_date" }, { l: "MATURITY", w: "84px", k: "maturity_date" }, { l: "STATUS", w: "72px", k: "status" }, { l: "CREATED", w: "84px", k: "created_at" }, { l: "UPDATED", w: "84px", k: "updated_at" }, { l: "ACTIONS", w: "72px" }];
   const { gridTemplate, headerRef, onResizeStart } = useResizableColumns(cols);
@@ -630,7 +663,7 @@ function PageContracts({ t, isDark, CONTRACTS = [], PROJECTS = [], PARTIES = [] 
       <FF label="Project" t={t}><FSel value={modal.data.project} onChange={e => setF("project", e.target.value)} options={PROJECTS.map(p => p.name)} t={t} /></FF>
       <FF label="Party" t={t}><FSel value={modal.data.party} onChange={e => setF("party", e.target.value)} options={PARTIES.map(p => p.name)} t={t} /></FF>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14 }}>
-        <FF label="Type" t={t}><FSel value={modal.data.type} onChange={e => setF("type", e.target.value)} options={["Loan", "Mortgage", "Equity", "Bridge Loan", "Mezzanine", "DEPOSIT"]} t={t} /></FF>
+        <FF label="Type" t={t}><FSel value={modal.data.type} onChange={e => setF("type", e.target.value)} options={getTypeOpts()} t={t} /></FF>
         <FF label="Amount" t={t}><FIn value={modal.data.amount} onChange={e => setF("amount", e.target.value)} placeholder="$0" t={t} /></FF>
         <FF label="Rate" t={t}><FIn value={modal.data.rate} onChange={e => setF("rate", e.target.value)} placeholder="10%" t={t} /></FF>
       </div>
@@ -639,7 +672,7 @@ function PageContracts({ t, isDark, CONTRACTS = [], PROJECTS = [], PARTIES = [] 
         <FF label="Term (months)" t={t}><FIn value={modal.data.term_months || ""} onChange={e => setF("term_months", e.target.value)} placeholder="e.g. 24" t={t} /></FF>
         <FF label="Status" t={t}><FSel value={modal.data.status} onChange={e => setF("status", e.target.value)} options={["Open", "Active", "Closed"]} t={t} /></FF>
       </div>
-      <FF label="Calculator" t={t}><FIn value={modal.data.calculator || ""} onChange={e => setF("calculator", e.target.value)} placeholder="e.g. ACT/360+30/360" t={t} /></FF>
+      <FF label="Calculator" t={t}><FSel value={modal.data.calculator || ""} onChange={e => setF("calculator", e.target.value)} options={calculatorOpts} t={t} /></FF>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
         <FF label="Start Date" t={t}><FIn value={modal.data.start_date || ""} onChange={e => setF("start_date", e.target.value)} t={t} type="date" /></FF>
         <FF label="Maturity Date" t={t}><FIn value={modal.data.maturity_date || ""} onChange={e => setF("maturity_date", e.target.value)} t={t} type="date" /></FF>
@@ -1088,7 +1121,7 @@ export default function App() {
     "Dashboard": <PageDashboard t={t} isDark={isDark} PROJECTS={PROJECTS} CONTRACTS={CONTRACTS} PARTIES={PARTIES} SCHEDULES={SCHEDULES} MONTHLY={MONTHLY} />,
     "Projects": <PageProjects t={t} isDark={isDark} PROJECTS={PROJECTS} FEES_DATA={FEES_DATA} collectionPath={COLLECTION_PATHS.projects} />,
     "Parties": <PageParties t={t} isDark={isDark} PARTIES={PARTIES} collectionPath={COLLECTION_PATHS.parties} />,
-    "Contracts": <PageContracts t={t} isDark={isDark} CONTRACTS={CONTRACTS} PROJECTS={PROJECTS} PARTIES={PARTIES} />,
+    "Contracts": <PageContracts t={t} isDark={isDark} CONTRACTS={CONTRACTS} PROJECTS={PROJECTS} PARTIES={PARTIES} DIMENSIONS={DIMENSIONS} />,
     "Payment Schedule": <PageSchedule t={t} isDark={isDark} SCHEDULES={SCHEDULES} CONTRACTS={CONTRACTS} DIMENSIONS={DIMENSIONS} FEES_DATA={FEES_DATA} collectionPath={COLLECTION_PATHS.paymentSchedules} />,
     "Payments": <PagePayments t={t} isDark={isDark} PAYMENTS={PAYMENTS} />,
     "Fees": <PageFees t={t} isDark={isDark} FEES_DATA={FEES_DATA} DIMENSIONS={DIMENSIONS} collectionPath={COLLECTION_PATHS.fees} />,
