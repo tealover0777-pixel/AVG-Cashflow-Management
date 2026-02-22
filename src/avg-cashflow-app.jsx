@@ -610,14 +610,14 @@ function PageContracts({ t, isDark, CONTRACTS = [], PROJECTS = [], PARTIES = [],
   const borrowerNewTypeOpts = (DIMENSIONS.find(d => d.name === "BorrowerContractNewType") || {}).items || [];
   const selectedParty = PARTIES.find(p => p.name === modal.data.party);
   const partyRole = selectedParty ? selectedParty.role : "";
-  const partyInvType = selectedParty ? selectedParty.investor_type : "";
   const getTypeOpts = () => {
     const isNew = modal.mode === "add";
     const invOpts = isNew ? investorNewTypeOpts : investorEditTypeOpts;
     const borOpts = isNew ? borrowerNewTypeOpts : borrowerEditTypeOpts;
     let opts = [];
-    if (partyRole === "Investor" || partyInvType === "Both") opts = [...invOpts];
+    if (partyRole === "Investor") opts = [...invOpts];
     else if (partyRole === "Borrower") opts = [...borOpts];
+    else if (partyRole === "Both") opts = [...invOpts, ...borOpts.filter(o => !invOpts.includes(o))];
     else opts = [...invOpts, ...borOpts.filter(o => !invOpts.includes(o))];
     const cur = modal.data.type;
     if (cur && !opts.includes(cur)) opts = [cur, ...opts];
