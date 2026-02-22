@@ -125,9 +125,6 @@ export default function App() {
         .primary-btn:hover { transform: translateY(-1px); box-shadow: 0 8px 24px ${t.accentShadow} !important; }
         .stat-card { transition: all 0.2s ease; }
         .stat-card:hover { transform: translateY(-3px); }
-        .filter-chip { transition: all 0.15s ease; cursor: pointer; }
-        .search-input:focus { outline: none; border-color: ${t.searchFocusBorder} !important; box-shadow: 0 0 0 3px ${t.searchFocusShadow} !important; }
-        .search-input::placeholder { color: ${t.searchPlaceholder}; }
         .theme-toggle { transition: all 0.2s ease; cursor: pointer; border: none; }
         .theme-toggle:hover { opacity: 0.85; transform: scale(1.05); }
       `}</style>

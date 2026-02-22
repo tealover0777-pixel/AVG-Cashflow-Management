@@ -97,23 +97,16 @@ const typeCfg = (type, isDark) => ({
 export default function App() {
   const [isDark, setIsDark] = useState(true);
   const [activeNav, setActiveNav] = useState("Contracts");
-  const [search, setSearch] = useState("");
   const [hoveredRow, setHoveredRow] = useState(null);
   const [selected, setSelected] = useState(new Set());
   const t = isDark ? dark : light;
-
-  const filtered = contracts.filter(c =>
-    c.id.toLowerCase().includes(search.toLowerCase()) ||
-    c.project.toLowerCase().includes(search.toLowerCase()) ||
-    c.party.toLowerCase().includes(search.toLowerCase())
-  );
 
   const toggleRow = (id) => {
     const n = new Set(selected);
     n.has(id) ? n.delete(id) : n.add(id);
     setSelected(n);
   };
-  const toggleAll = () => setSelected(selected.size === filtered.length ? new Set() : new Set(filtered.map(c => c.id)));
+  const toggleAll = () => setSelected(selected.size === contracts.length ? new Set() : new Set(contracts.map(c => c.id)));
 
   const statData = [
     { label: "Total Contracts", value: contracts.length, accent: isDark ? "#60A5FA" : "#3B82F6", bg: isDark ? "rgba(96,165,250,0.08)" : "#EFF6FF", border: isDark ? "rgba(96,165,250,0.15)" : "#BFDBFE" },
@@ -143,8 +136,6 @@ export default function App() {
         .success-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
         .stat-card { transition: all 0.2s ease; }
         .stat-card:hover { transform: translateY(-3px); }
-        .search-input:focus { outline: none; border-color: ${t.searchFocusBorder} !important; box-shadow: 0 0 0 3px ${t.searchFocusShadow} !important; }
-        .search-input::placeholder { color: ${t.searchPlaceholder}; }
         .theme-toggle { transition: all 0.2s ease; cursor: pointer; border: none; }
         .theme-toggle:hover { opacity: 0.85; transform: scale(1.05); }
       `}</style>
@@ -230,33 +221,25 @@ export default function App() {
             ))}
           </div>
 
-          {/* Toolbar */}
-          <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 16 }}>
-            <div style={{ position: "relative" }}>
-              <span style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: t.searchIcon, fontSize: 15, pointerEvents: "none" }}>⌕</span>
-              <input className="search-input" value={search} onChange={e => setSearch(e.target.value)} placeholder="Search contracts..." style={{ background: t.searchBg, border: `1px solid ${t.searchBorder}`, borderRadius: 10, padding: "9px 14px 9px 34px", color: t.searchText, fontSize: 13, width: 240 }} />
-            </div>
-          </div>
-
           {/* Table */}
           <div style={{ background: t.surface, borderRadius: 16, border: `1px solid ${t.surfaceBorder}`, overflow: "hidden", backdropFilter: t.glass ? "blur(20px)" : "none", boxShadow: t.tableShadow }}>
             {/* Header */}
             <div style={{ display: "grid", gridTemplateColumns: "40px 110px 1fr 1fr 110px 110px 90px 90px 100px 80px", padding: "12px 22px", background: t.tableHeader, borderBottom: `1px solid ${t.surfaceBorder}`, alignItems: "center" }}>
-              <input type="checkbox" checked={selected.size === filtered.length && filtered.length > 0} onChange={toggleAll} style={{ accentColor: t.checkActive, width: 14, height: 14 }} />
+              <input type="checkbox" checked={selected.size === contracts.length && contracts.length > 0} onChange={toggleAll} style={{ accentColor: t.checkActive, width: 14, height: 14 }} />
               {["ID", "PROJECT", "PARTY", "TYPE", "AMOUNT", "RATE", "FREQ", "STATUS", "ACTIONS"].map(col => (
                 <div key={col} style={{ fontSize: 10.5, fontWeight: 600, letterSpacing: "1px", color: isDark ? "rgba(255,255,255,0.3)" : "#C4C0BA", textTransform: "uppercase", fontFamily: t.monoFont }}>{col}</div>
               ))}
             </div>
 
             {/* Rows */}
-            {filtered.map((c, i) => {
+            {contracts.map((c, i) => {
               const sc = statusCfg(c.status, isDark);
               const tc = typeCfg(c.type, isDark);
               const isHov = hoveredRow === c.id;
               const isSel = selected.has(c.id);
               return (
                 <div key={c.id} className="data-row" onMouseEnter={() => setHoveredRow(c.id)} onMouseLeave={() => setHoveredRow(null)}
-                  style={{ display: "grid", gridTemplateColumns: "40px 110px 1fr 1fr 110px 110px 90px 90px 100px 80px", padding: "12px 22px", borderBottom: i < filtered.length - 1 ? `1px solid ${t.rowDivider}` : "none", alignItems: "center", background: isSel ? (isDark ? "rgba(52,211,153,0.05)" : "#F0FDF4") : isHov ? t.rowHover : "transparent", transition: "all 0.15s ease" }}>
+                  style={{ display: "grid", gridTemplateColumns: "40px 110px 1fr 1fr 110px 110px 90px 90px 100px 80px", padding: "12px 22px", borderBottom: i < contracts.length - 1 ? `1px solid ${t.rowDivider}` : "none", alignItems: "center", background: isSel ? (isDark ? "rgba(52,211,153,0.05)" : "#F0FDF4") : isHov ? t.rowHover : "transparent", transition: "all 0.15s ease" }}>
                   <input type="checkbox" checked={isSel} onChange={() => toggleRow(c.id)} style={{ accentColor: t.checkActive, width: 14, height: 14 }} onClick={e => e.stopPropagation()} />
                   <div style={{ fontFamily: t.monoFont, fontSize: 11, color: t.idText }}>{c.id}</div>
                   <div style={{ fontSize: 12.5, color: isDark ? "rgba(255,255,255,0.7)" : "#44403C", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", paddingRight: 8 }}>{c.project}</div>
@@ -273,13 +256,13 @@ export default function App() {
                 </div>
               );
             })}
-            {filtered.length === 0 && <div style={{ padding: "48px", textAlign: "center", color: t.textMuted, fontSize: 13 }}>No contracts found.</div>}
+            {contracts.length === 0 && <div style={{ padding: "48px", textAlign: "center", color: t.textMuted, fontSize: 13 }}>No contracts found.</div>}
           </div>
 
           {/* Footer */}
           <div style={{ marginTop: 16, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <span style={{ fontSize: 12, color: t.textSubtle }}>
-              Showing <strong style={{ color: t.textSecondary }}>{filtered.length}</strong> of <strong style={{ color: t.textSecondary }}>{contracts.length}</strong> contracts
+              Showing <strong style={{ color: t.textSecondary }}>{contracts.length}</strong> of <strong style={{ color: t.textSecondary }}>{contracts.length}</strong> contracts
               {selected.size > 0 && <span style={{ color: t.accent, marginLeft: 8 }}>· {selected.size} selected</span>}
             </span>
             <div style={{ display: "flex", gap: 6 }}>
