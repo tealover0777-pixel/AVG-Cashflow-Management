@@ -679,9 +679,9 @@ function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = [], DIMENSIONS = 
           <div style={{ fontFamily: t.mono, fontSize: 11.5, color: t.textMuted, textAlign: "center" }}>{s.period_number || dash}</div>
           <div style={{ fontFamily: t.mono, fontSize: 11, color: isDark ? "rgba(255,255,255,0.7)" : "#44403C" }}>{s.dueDate}</div>
           <div style={{ fontSize: 11.5, color: t.textMuted, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{s.type}</div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 1 }}>
+          <div style={{ fontSize: 10.5, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
             {s.fee_id
-              ? <><span style={{ fontFamily: t.mono, fontSize: 10.5, color: t.idText }}>{s.fee_id}</span><span style={{ fontSize: 10.5, color: t.textMuted, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{(FEES_DATA.find(f => f.id === s.fee_id) || {}).name || ""}</span></>
+              ? <><span style={{ fontFamily: t.mono, color: t.idText }}>{s.fee_id}</span><span style={{ color: t.textMuted }}> - {(FEES_DATA.find(f => f.id === s.fee_id) || {}).name || ""}</span></>
               : dash}
           </div>
           <div style={{ fontSize: 11, fontWeight: 700, color: s.direction === "IN" ? (isDark ? "#34D399" : "#059669") : s.direction === "OUT" ? (isDark ? "#F87171" : "#DC2626") : t.textMuted }}>{s.direction || dash}</div>
