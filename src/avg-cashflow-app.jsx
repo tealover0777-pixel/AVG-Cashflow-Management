@@ -691,16 +691,36 @@ function PagePayments({ t, isDark, PAYMENTS = [] }) {
   </>);
 }
 
-function PageFees({ t, isDark, FEES_DATA = [], DIMENSIONS = [] }) {
+function PageFees({ t, isDark, FEES_DATA = [], DIMENSIONS = [], collectionPath = "" }) {
   const feeFrequencyOpts = (DIMENSIONS.find(d => d.name === "FeeFrequency") || {}).items || [];
   const feeTypeOpts = (DIMENSIONS.find(d => d.name === "FeeType") || {}).items || [];
   const [hov, setHov] = useState(null);
   const [modal, setModal] = useState({ open: false, mode: "add", data: {} });
   const [delT, setDelT] = useState(null);
-  const openAdd = () => setModal({ open: true, mode: "add", data: { name: "", fee_type: "", method: "% of Amount", rate: "", frequency: "One-time", description: "" } });
+  const openAdd = () => setModal({ open: true, mode: "add", data: { name: "", fee_type: "", method: "% of Amount", rate: "", frequency: "", description: "" } });
   const openEdit = r => setModal({ open: true, mode: "edit", data: { ...r } });
   const close = () => setModal(m => ({ ...m, open: false }));
   const setF = (k, v) => setModal(m => ({ ...m, data: { ...m.data, [k]: v } }));
+  const handleSaveFee = async () => {
+    const d = modal.data;
+    const payload = {
+      fee_name: d.name || "",
+      fee_type: d.fee_type || "",
+      calculation_method: d.method || "",
+      default_rate: d.rate || "",
+      fee_frequency: d.frequency || "",
+      description: d.description || "",
+      updated_at: serverTimestamp(),
+    };
+    try {
+      if (modal.mode === "edit" && d.docId) {
+        await updateDoc(doc(db, collectionPath, d.docId), payload);
+      } else {
+        await addDoc(collection(db, collectionPath), { ...payload, created_at: serverTimestamp() });
+      }
+    } catch (err) { console.error("Save fee error:", err); }
+    close();
+  };
   const cols = [{ l: "ID", w: "100px" }, { l: "NAME", w: "1fr" }, { l: "FEE TYPE", w: "130px" }, { l: "METHOD", w: "130px" }, { l: "RATE", w: "110px" }, { l: "FREQUENCY", w: "140px" }, { l: "DESCRIPTION", w: "1fr" }, { l: "ACTIONS", w: "90px" }];
   const mCfg = { "% of Amount": [isDark ? "rgba(96,165,250,0.15)" : "#EFF6FF", isDark ? "#60A5FA" : "#2563EB", isDark ? "rgba(96,165,250,0.3)" : "#BFDBFE"], "Fixed Amount": [isDark ? "rgba(167,139,250,0.15)" : "#F5F3FF", isDark ? "#A78BFA" : "#7C3AED", isDark ? "rgba(167,139,250,0.3)" : "#DDD6FE"] };
   return (<>
@@ -724,7 +744,7 @@ function PageFees({ t, isDark, FEES_DATA = [], DIMENSIONS = [] }) {
       })}
     </div>
     <div style={{ marginTop: 16, display: "flex", justifyContent: "space-between", alignItems: "center" }}><span style={{ fontSize: 12, color: t.textSubtle }}>Showing <strong style={{ color: t.textSecondary }}>{FEES_DATA.length}</strong> of <strong style={{ color: t.textSecondary }}>{FEES_DATA.length}</strong> fees</span><Pagination pages={["‹", "1", "›"]} t={t} /></div>
-    <Modal open={modal.open} onClose={close} title={modal.mode === "add" ? "New Fee" : "Edit Fee"} onSave={close} t={t} isDark={isDark}>
+    <Modal open={modal.open} onClose={close} title={modal.mode === "add" ? "New Fee" : "Edit Fee"} onSave={handleSaveFee} t={t} isDark={isDark}>
       <FF label="Fee Name" t={t}><FIn value={modal.data.name} onChange={e => setF("name", e.target.value)} placeholder="e.g. Origination Fee" t={t} /></FF>
       <FF label="Fee Type" t={t}><FSel value={modal.data.fee_type || ""} onChange={e => setF("fee_type", e.target.value)} options={feeTypeOpts} t={t} /></FF>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
@@ -880,7 +900,7 @@ export default function App() {
   }));
 
   const FEES_DATA = rawFees.map(d => ({
-    id: d.id, name: d.fee_name || "", fee_type: d.fee_type || "", method: d.calculation_method || "",
+    id: d.id, docId: d.id, name: d.fee_name || "", fee_type: d.fee_type || "", method: d.calculation_method || "",
     rate: d.default_rate || "", frequency: d.fee_frequency || "",
     description: d.description || "",
   }));
@@ -899,7 +919,7 @@ export default function App() {
     "Contracts": <PageContracts t={t} isDark={isDark} CONTRACTS={CONTRACTS} PROJECTS={PROJECTS} PARTIES={PARTIES} />,
     "Payment Schedule": <PageSchedule t={t} isDark={isDark} SCHEDULES={SCHEDULES} CONTRACTS={CONTRACTS} DIMENSIONS={DIMENSIONS} FEES_DATA={FEES_DATA} collectionPath={COLLECTION_PATHS.paymentSchedules} />,
     "Payments": <PagePayments t={t} isDark={isDark} PAYMENTS={PAYMENTS} />,
-    "Fees": <PageFees t={t} isDark={isDark} FEES_DATA={FEES_DATA} DIMENSIONS={DIMENSIONS} />,
+    "Fees": <PageFees t={t} isDark={isDark} FEES_DATA={FEES_DATA} DIMENSIONS={DIMENSIONS} collectionPath={COLLECTION_PATHS.fees} />,
     "Dimensions": <PageDimensions t={t} isDark={isDark} DIMENSIONS={DIMENSIONS} />,
     "Reports": <PageReports t={t} isDark={isDark} MONTHLY={MONTHLY} />,
   };
