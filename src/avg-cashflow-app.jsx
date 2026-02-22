@@ -562,11 +562,30 @@ function PageContracts({ t, isDark, CONTRACTS = [], PROJECTS = [], PARTIES = [],
   const [sort, setSort] = useState({ key: null, direction: "asc" });
   const [page, setPage] = useState(1);
   const onSort = k => { setSort(s => ({ key: k, direction: s.key === k && s.direction === "asc" ? "desc" : "asc" })); setPage(1); };
-  const openAdd = () => setModal({ open: true, mode: "add", data: { project: "Palm Springs Villas", party: "Pao Fu Chen", type: "Loan", amount: "", rate: "", freq: "Monthly", status: "Active" } });
+  const openAdd = () => {
+    const firstProj = PROJECTS[0];
+    const sd = firstProj ? firstProj.startDate : "";
+    const ed = firstProj ? firstProj.endDate : "";
+    let termM = "";
+    if (sd && ed) { const s = new Date(sd); const e = new Date(ed); if (!isNaN(s) && !isNaN(e)) termM = String((e.getFullYear() - s.getFullYear()) * 12 + e.getMonth() - s.getMonth()); }
+    setModal({ open: true, mode: "add", data: { project: firstProj ? firstProj.name : "", party: "", type: "", amount: "", rate: "", freq: "Quarterly", status: "Open", start_date: sd, maturity_date: ed, term_months: termM, calculator: "" } });
+  };
   const openEdit = r => setModal({ open: true, mode: "edit", data: { ...r } });
   const close = () => setModal(m => ({ ...m, open: false }));
   const setF = (k, v) => setModal(m => {
     const next = { ...m, data: { ...m.data, [k]: v } };
+    // When project changes in "add" mode, default start/maturity to project dates
+    if (k === "project" && m.mode === "add") {
+      const proj = PROJECTS.find(p => p.name === v);
+      if (proj) {
+        next.data.start_date = proj.startDate || next.data.start_date;
+        next.data.maturity_date = proj.endDate || next.data.maturity_date;
+        if (proj.startDate && proj.endDate) {
+          const s = new Date(proj.startDate); const e = new Date(proj.endDate);
+          if (!isNaN(s) && !isNaN(e)) next.data.term_months = String((e.getFullYear() - s.getFullYear()) * 12 + e.getMonth() - s.getMonth());
+        }
+      }
+    }
     // Auto-calculate maturity_date when term_months changes
     if (k === "term_months" && v && next.data.start_date) {
       const sd = new Date(next.data.start_date);
@@ -585,16 +604,21 @@ function PageContracts({ t, isDark, CONTRACTS = [], PROJECTS = [], PARTIES = [],
     return next;
   });
   const calculatorOpts = (DIMENSIONS.find(d => d.name === "Calculator") || {}).items || [];
-  const investorTypeOpts = (DIMENSIONS.find(d => d.name === "InvestorContractEditType") || {}).items || [];
-  const borrowerTypeOpts = (DIMENSIONS.find(d => d.name === "BorrowerContractEditType") || {}).items || [];
+  const investorEditTypeOpts = (DIMENSIONS.find(d => d.name === "InvestorContractEditType") || {}).items || [];
+  const borrowerEditTypeOpts = (DIMENSIONS.find(d => d.name === "BorrowerContractEditType") || {}).items || [];
+  const investorNewTypeOpts = (DIMENSIONS.find(d => d.name === "InvestorContractNewType") || {}).items || [];
+  const borrowerNewTypeOpts = (DIMENSIONS.find(d => d.name === "BorrowerContractNewType") || {}).items || [];
   const selectedParty = PARTIES.find(p => p.name === modal.data.party);
   const partyRole = selectedParty ? selectedParty.role : "";
   const partyInvType = selectedParty ? selectedParty.investor_type : "";
   const getTypeOpts = () => {
+    const isNew = modal.mode === "add";
+    const invOpts = isNew ? investorNewTypeOpts : investorEditTypeOpts;
+    const borOpts = isNew ? borrowerNewTypeOpts : borrowerEditTypeOpts;
     let opts = [];
-    if (partyRole === "Investor" || partyInvType === "Both") opts = [...investorTypeOpts];
-    else if (partyRole === "Borrower") opts = [...borrowerTypeOpts];
-    else opts = [...investorTypeOpts, ...borrowerTypeOpts.filter(o => !investorTypeOpts.includes(o))];
+    if (partyRole === "Investor" || partyInvType === "Both") opts = [...invOpts];
+    else if (partyRole === "Borrower") opts = [...borOpts];
+    else opts = [...invOpts, ...borOpts.filter(o => !invOpts.includes(o))];
     const cur = modal.data.type;
     if (cur && !opts.includes(cur)) opts = [cur, ...opts];
     return opts.length > 0 ? opts : ["Loan", "Mortgage", "Equity"];
