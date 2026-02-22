@@ -716,7 +716,7 @@ function PageFees({ t, isDark, FEES_DATA = [], DIMENSIONS = [] }) {
           <div style={{ fontSize: 13.5, fontWeight: 500, color: isDark ? "rgba(255,255,255,0.85)" : (isHov ? "#1C1917" : "#44403C") }}>{f.name}</div>
           <div style={{ fontSize: 12.5, color: t.textMuted }}>{f.fee_type}</div>
           <div><span style={{ fontSize: 11.5, fontWeight: 600, padding: "4px 11px", borderRadius: 20, background: mb, color: mc, border: `1px solid ${mbr}` }}>{f.method}</span></div>
-          <div style={{ fontFamily: t.mono, fontSize: 12.5, fontWeight: 700, color: isDark ? "#60A5FA" : "#4F46E5" }}>{f.method === "Fixed Amount" ? (f.rate && !String(f.rate).startsWith("$") ? `$${f.rate}` : f.rate) : (f.rate && !String(f.rate).endsWith("%") ? `${f.rate}%` : f.rate)}</div>
+          <div style={{ fontFamily: t.mono, fontSize: 12.5, fontWeight: 700, color: isDark ? "#60A5FA" : "#4F46E5" }}>{(f.method === "Fixed Amount" || f.method === "Flat") ? (f.rate && !String(f.rate).startsWith("$") ? `$${f.rate}` : f.rate) : (f.rate && !String(f.rate).endsWith("%") ? `${f.rate}%` : f.rate)}</div>
           <div style={{ fontSize: 12.5, color: t.textMuted }}>{f.frequency}</div>
           <div style={{ fontSize: 12.5, color: t.textMuted, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", paddingRight: 8 }}>{f.description}</div>
           <ActBtns show={isHov} t={t} onEdit={() => openEdit(f)} onDel={() => setDelT({ id: f.id, name: f.name })} />
