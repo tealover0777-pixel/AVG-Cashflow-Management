@@ -691,15 +691,17 @@ function PagePayments({ t, isDark, PAYMENTS = [] }) {
   </>);
 }
 
-function PageFees({ t, isDark, FEES_DATA = [] }) {
+function PageFees({ t, isDark, FEES_DATA = [], DIMENSIONS = [] }) {
+  const feeFrequencyOpts = (DIMENSIONS.find(d => d.name === "FeeFrequency") || {}).items || [];
+  const feeTypeOpts = (DIMENSIONS.find(d => d.name === "FeeType") || {}).items || [];
   const [hov, setHov] = useState(null);
   const [modal, setModal] = useState({ open: false, mode: "add", data: {} });
   const [delT, setDelT] = useState(null);
-  const openAdd = () => setModal({ open: true, mode: "add", data: { name: "", method: "Percentage", rate: "", frequency: "One-time", description: "" } });
+  const openAdd = () => setModal({ open: true, mode: "add", data: { name: "", fee_type: "", method: "Percentage", rate: "", frequency: "One-time", description: "" } });
   const openEdit = r => setModal({ open: true, mode: "edit", data: { ...r } });
   const close = () => setModal(m => ({ ...m, open: false }));
   const setF = (k, v) => setModal(m => ({ ...m, data: { ...m.data, [k]: v } }));
-  const cols = [{ l: "ID", w: "100px" }, { l: "NAME", w: "1fr" }, { l: "METHOD", w: "130px" }, { l: "RATE", w: "110px" }, { l: "FREQUENCY", w: "140px" }, { l: "DESCRIPTION", w: "1fr" }, { l: "ACTIONS", w: "90px" }];
+  const cols = [{ l: "ID", w: "100px" }, { l: "NAME", w: "1fr" }, { l: "FEE TYPE", w: "130px" }, { l: "METHOD", w: "130px" }, { l: "RATE", w: "110px" }, { l: "FREQUENCY", w: "140px" }, { l: "DESCRIPTION", w: "1fr" }, { l: "ACTIONS", w: "90px" }];
   const mCfg = { Percentage: [isDark ? "rgba(96,165,250,0.15)" : "#EFF6FF", isDark ? "#60A5FA" : "#2563EB", isDark ? "rgba(96,165,250,0.3)" : "#BFDBFE"], Flat: [isDark ? "rgba(167,139,250,0.15)" : "#F5F3FF", isDark ? "#A78BFA" : "#7C3AED", isDark ? "rgba(167,139,250,0.3)" : "#DDD6FE"] };
   return (<>
     <div style={{ marginBottom: 28, display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}><div><h1 style={{ fontFamily: t.titleFont, fontWeight: t.titleWeight, fontSize: t.titleSize, color: isDark ? "#fff" : "#1C1917", letterSpacing: t.titleTracking, lineHeight: 1, marginBottom: 6 }}>Fees</h1><p style={{ fontSize: 13.5, color: t.textMuted }}>Define and manage fee structures</p></div><button className="primary-btn" onClick={openAdd} style={{ background: t.accentGrad, color: "#fff", padding: "11px 22px", borderRadius: 11, fontSize: 13.5, fontWeight: 600, boxShadow: `0 4px 16px ${t.accentShadow}`, display: "flex", alignItems: "center", gap: 7 }}><span style={{ fontSize: 18, lineHeight: 1 }}>+</span> New Fee</button></div>
@@ -712,6 +714,7 @@ function PageFees({ t, isDark, FEES_DATA = [] }) {
         const isHov = hov === f.id; const [mb, mc, mbr] = mCfg[f.method] || ["transparent", "#888", "#ccc"]; return (<div key={f.id} className="data-row" onMouseEnter={() => setHov(f.id)} onMouseLeave={() => setHov(null)} style={{ display: "grid", gridTemplateColumns: cols.map(c => c.w).join(" "), padding: "12px 22px", borderBottom: i < FEES_DATA.length - 1 ? `1px solid ${t.rowDivider}` : "none", alignItems: "center", background: isHov ? t.rowHover : "transparent", transition: "all 0.15s ease" }}>
           <div style={{ fontFamily: t.mono, fontSize: 11, color: t.idText }}>{f.id}</div>
           <div style={{ fontSize: 13.5, fontWeight: 500, color: isDark ? "rgba(255,255,255,0.85)" : (isHov ? "#1C1917" : "#44403C") }}>{f.name}</div>
+          <div style={{ fontSize: 12.5, color: t.textMuted }}>{f.fee_type}</div>
           <div><span style={{ fontSize: 11.5, fontWeight: 600, padding: "4px 11px", borderRadius: 20, background: mb, color: mc, border: `1px solid ${mbr}` }}>{f.method}</span></div>
           <div style={{ fontFamily: t.mono, fontSize: 12.5, fontWeight: 700, color: isDark ? "#60A5FA" : "#4F46E5" }}>{f.rate}</div>
           <div style={{ fontSize: 12.5, color: t.textMuted }}>{f.frequency}</div>
@@ -723,11 +726,12 @@ function PageFees({ t, isDark, FEES_DATA = [] }) {
     <div style={{ marginTop: 16, display: "flex", justifyContent: "space-between", alignItems: "center" }}><span style={{ fontSize: 12, color: t.textSubtle }}>Showing <strong style={{ color: t.textSecondary }}>{FEES_DATA.length}</strong> of <strong style={{ color: t.textSecondary }}>{FEES_DATA.length}</strong> fees</span><Pagination pages={["‹", "1", "›"]} t={t} /></div>
     <Modal open={modal.open} onClose={close} title={modal.mode === "add" ? "New Fee" : "Edit Fee"} onSave={close} t={t} isDark={isDark}>
       <FF label="Fee Name" t={t}><FIn value={modal.data.name} onChange={e => setF("name", e.target.value)} placeholder="e.g. Origination Fee" t={t} /></FF>
+      <FF label="Fee Type" t={t}><FSel value={modal.data.fee_type || ""} onChange={e => setF("fee_type", e.target.value)} options={feeTypeOpts} t={t} /></FF>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
         <FF label="Method" t={t}><FSel value={modal.data.method} onChange={e => setF("method", e.target.value)} options={["Percentage", "Flat"]} t={t} /></FF>
         <FF label="Rate / Amount" t={t}><FIn value={modal.data.rate} onChange={e => setF("rate", e.target.value)} placeholder={modal.data.method === "Flat" ? "$500" : "1.50%"} t={t} /></FF>
       </div>
-      <FF label="Frequency" t={t}><FSel value={modal.data.frequency} onChange={e => setF("frequency", e.target.value)} options={["One-time", "Monthly", "Quarterly", "Annual", "Per occurrence"]} t={t} /></FF>
+      <FF label="Frequency" t={t}><FSel value={modal.data.frequency} onChange={e => setF("frequency", e.target.value)} options={feeFrequencyOpts} t={t} /></FF>
       <FF label="Description" t={t}><FIn value={modal.data.description} onChange={e => setF("description", e.target.value)} placeholder="Brief description..." t={t} /></FF>
     </Modal>
     <DelModal target={delT} onClose={() => setDelT(null)} label="This fee definition" t={t} isDark={isDark} />
@@ -876,7 +880,7 @@ export default function App() {
   }));
 
   const FEES_DATA = rawFees.map(d => ({
-    id: d.id, name: d.fee_name || "", method: d.calculation_method || "",
+    id: d.id, name: d.fee_name || "", fee_type: d.fee_type || "", method: d.calculation_method || "",
     rate: d.default_rate || "", frequency: d.fee_frequency || "",
     description: d.description || "",
   }));
@@ -895,7 +899,7 @@ export default function App() {
     "Contracts": <PageContracts t={t} isDark={isDark} CONTRACTS={CONTRACTS} PROJECTS={PROJECTS} PARTIES={PARTIES} />,
     "Payment Schedule": <PageSchedule t={t} isDark={isDark} SCHEDULES={SCHEDULES} CONTRACTS={CONTRACTS} DIMENSIONS={DIMENSIONS} FEES_DATA={FEES_DATA} collectionPath={COLLECTION_PATHS.paymentSchedules} />,
     "Payments": <PagePayments t={t} isDark={isDark} PAYMENTS={PAYMENTS} />,
-    "Fees": <PageFees t={t} isDark={isDark} FEES_DATA={FEES_DATA} />,
+    "Fees": <PageFees t={t} isDark={isDark} FEES_DATA={FEES_DATA} DIMENSIONS={DIMENSIONS} />,
     "Dimensions": <PageDimensions t={t} isDark={isDark} DIMENSIONS={DIMENSIONS} />,
     "Reports": <PageReports t={t} isDark={isDark} MONTHLY={MONTHLY} />,
   };

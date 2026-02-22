@@ -19,6 +19,7 @@
     "vite-plugin-singlefile": "^2.3.0"
   },
   "dependencies": {
+    "@dataconnect/generated": "file:src/dataconnect-generated",
     "firebase": "^12.9.0",
     "react": "^19.2.4",
     "react-dom": "^19.2.4"
