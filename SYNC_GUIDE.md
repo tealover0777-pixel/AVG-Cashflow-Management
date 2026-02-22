@@ -17,6 +17,7 @@ or
 
 # Commit
   git commit -m "Update from Firebase Studio"
+  git commit -m "Update from Google Antigravity"
 
 # push to Github (First fime only)
   git push origin main
