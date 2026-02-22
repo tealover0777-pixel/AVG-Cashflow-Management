@@ -383,9 +383,16 @@ function PageParties({ t, isDark, PARTIES = [] }) {
   const openEdit = r => setModal({ open: true, mode: "edit", data: { ...r } });
   const close = () => setModal(m => ({ ...m, open: false }));
   const setF = (k, v) => setModal(m => ({ ...m, data: { ...m.data, [k]: v } }));
+  const [colFilters, setColFilters] = useState({});
+  const setColFilter = (key, val) => setColFilters(f => ({ ...f, [key]: val }));
   const chips = ["All", "Investors", "Borrowers", "Companies"];
-  const filtered = PARTIES.filter(p => { if (chip === "Investors" && p.role !== "Investor") return false; if (chip === "Borrowers" && p.role !== "Borrower") return false; if (chip === "Companies" && p.type !== "Company") return false; return true; });
-  const cols = [{ l: "ID", w: "90px" }, { l: "NAME", w: "1fr" }, { l: "TYPE", w: "100px" }, { l: "ROLE", w: "90px" }, { l: "INV TYPE", w: "80px" }, { l: "EMAIL", w: "1fr" }, { l: "PHONE", w: "120px" }, { l: "ADDRESS", w: "1fr" }, { l: "TAX ID", w: "110px" }, { l: "BANK INFO", w: "1fr" }, { l: "CREATED", w: "95px" }, { l: "UPDATED", w: "95px" }, { l: "ACTIONS", w: "80px" }];
+  const cols = [{ l: "ID", w: "90px", k: "id" }, { l: "NAME", w: "1fr", k: "name" }, { l: "TYPE", w: "100px", k: "type" }, { l: "ROLE", w: "90px", k: "role" }, { l: "INV TYPE", w: "80px", k: "investor_type" }, { l: "EMAIL", w: "1fr", k: "email" }, { l: "PHONE", w: "120px", k: "phone" }, { l: "ADDRESS", w: "1fr", k: "address" }, { l: "TAX ID", w: "110px", k: "tax_id" }, { l: "BANK INFO", w: "1fr", k: "bank_information" }, { l: "CREATED", w: "95px", k: "created_at" }, { l: "UPDATED", w: "95px", k: "updated_at" }, { l: "ACTIONS", w: "80px" }];
+  const filtered = PARTIES.filter(p => {
+    if (chip === "Investors" && p.role !== "Investor") return false;
+    if (chip === "Borrowers" && p.role !== "Borrower") return false;
+    if (chip === "Companies" && p.type !== "Company") return false;
+    return cols.every(c => { if (!c.k || !colFilters[c.k]) return true; return String(p[c.k] || "").toLowerCase().includes(colFilters[c.k].toLowerCase()); });
+  });
   return (<>
     <div style={{ marginBottom: 28, display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}><div><h1 style={{ fontFamily: t.titleFont, fontWeight: t.titleWeight, fontSize: t.titleSize, color: isDark ? "#fff" : "#1C1917", letterSpacing: t.titleTracking, lineHeight: 1, marginBottom: 6 }}>Parties</h1><p style={{ fontSize: 13.5, color: t.textMuted }}>Manage Investors, Borrowers, and Companies</p></div><button className="primary-btn" onClick={openAdd} style={{ background: t.accentGrad, color: "#fff", padding: "11px 22px", borderRadius: 11, fontSize: 13.5, fontWeight: 600, boxShadow: `0 4px 16px ${t.accentShadow}`, display: "flex", alignItems: "center", gap: 7 }}><span style={{ fontSize: 18, lineHeight: 1 }}>+</span> New Party</button></div>
     <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 16, marginBottom: 28 }}>
@@ -396,6 +403,9 @@ function PageParties({ t, isDark, PARTIES = [] }) {
     </div>
     <div style={{ background: t.surface, borderRadius: 16, border: `1px solid ${t.surfaceBorder}`, overflow: "hidden", backdropFilter: isDark ? "blur(20px)" : "none", boxShadow: t.tableShadow }}>
       <TblHead cols={cols} t={t} isDark={isDark} />
+      <div style={{ display: "grid", gridTemplateColumns: cols.map(c => c.w).join(" "), padding: "6px 22px", borderBottom: `1px solid ${t.rowDivider}`, background: isDark ? "rgba(255,255,255,0.02)" : "#FAFAF9" }}>
+        {cols.map(c => c.k ? <input key={c.k} value={colFilters[c.k] || ""} onChange={e => setColFilter(c.k, e.target.value)} placeholder="Filter..." style={{ fontSize: 11, padding: "4px 8px", borderRadius: 6, border: `1px solid ${t.surfaceBorder}`, background: isDark ? "rgba(255,255,255,0.05)" : "#fff", color: isDark ? "rgba(255,255,255,0.8)" : "#44403C", outline: "none", width: "100%", boxSizing: "border-box", fontFamily: "inherit" }} /> : <div key="actions" />)}
+      </div>
       {filtered.map((p, i) => {
         const isHov = hov === p.id; const a = av(p.name, isDark); const [rb, rc, rbr] = badge(p.role, isDark); return (<div key={p.id} className="data-row" onMouseEnter={() => setHov(p.id)} onMouseLeave={() => setHov(null)} style={{ display: "grid", gridTemplateColumns: cols.map(c => c.w).join(" "), padding: "12px 22px", borderBottom: i < filtered.length - 1 ? `1px solid ${t.rowDivider}` : "none", alignItems: "center", background: isHov ? t.rowHover : "transparent", transition: "all 0.15s ease" }}>
           <div style={{ fontFamily: t.mono, fontSize: 11, color: t.idText }}>{p.id}</div>
