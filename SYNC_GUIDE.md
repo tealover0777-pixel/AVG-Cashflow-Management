@@ -7,9 +7,27 @@ This guide covers how to keep your **Source Code** and **Firebase State** in syn
 ## ☁️ From Firebase Studio → 🏠 To Antigravity
 
 ## Inside Firebas Studio Terminal
-git add .
-git commit -m "Update from Firebase Studio"
-git push origin main
+# Every time you start the work
+  git pull
+
+# Stage file
+  git add .
+or 
+  git add [file name]
+
+# Commit
+  git commit -m "Update from Firebase Studio"
+
+# push to Github (First fime only)
+  git push origin main
+
+## get the latest from github
+  git pull origin main
+or
+  git pull
+
+
+
 
 ### 1. Sync Source Code (Git)
 Use Git to fetch the latest changes made in the cloud.
