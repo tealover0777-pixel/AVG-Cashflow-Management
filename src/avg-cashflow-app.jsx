@@ -303,7 +303,10 @@ function PageProjects({ t, isDark, PROJECTS = [], FEES_DATA = [], collectionPath
     }
     close();
   };
-  const cols = [{ l: "ID", w: "110px" }, { l: "NAME", w: "1fr" }, { l: "STATUS", w: "100px" }, { l: "CCY", w: "60px" }, { l: "START DATE", w: "104px" }, { l: "END DATE", w: "104px" }, { l: "VALUATION", w: "120px" }, { l: "DESCRIPTION", w: "1fr" }, { l: "FEES", w: "minmax(120px,1.2fr)" }, { l: "ACTIONS", w: "80px" }];
+  const cols = [{ l: "ID", w: "110px", k: "id" }, { l: "NAME", w: "1fr", k: "name" }, { l: "STATUS", w: "100px", k: "status" }, { l: "CCY", w: "60px", k: "currency" }, { l: "START DATE", w: "104px", k: "startDate" }, { l: "END DATE", w: "104px", k: "endDate" }, { l: "VALUATION", w: "120px", k: "valuation" }, { l: "DESCRIPTION", w: "1fr", k: "description" }, { l: "FEES", w: "minmax(120px,1.2fr)" }, { l: "ACTIONS", w: "80px" }];
+  const [colFilters, setColFilters] = useState({});
+  const setColFilter = (key, val) => setColFilters(f => ({ ...f, [key]: val }));
+  const filtered = PROJECTS.filter(p => cols.every(c => { if (!c.k || !colFilters[c.k]) return true; return String(p[c.k] || "").toLowerCase().includes(colFilters[c.k].toLowerCase()); }));
   return (<>
     <div style={{ marginBottom: 28, display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}><div><h1 style={{ fontFamily: t.titleFont, fontWeight: t.titleWeight, fontSize: t.titleSize, color: isDark ? "#fff" : "#1C1917", letterSpacing: t.titleTracking, lineHeight: 1, marginBottom: 6 }}>Projects</h1><p style={{ fontSize: 13.5, color: t.textMuted }}>Manage your investment projects</p></div><button className="primary-btn" onClick={openAdd} style={{ background: t.accentGrad, color: "#fff", padding: "11px 22px", borderRadius: 11, fontSize: 13.5, fontWeight: 600, boxShadow: `0 4px 16px ${t.accentShadow}`, display: "flex", alignItems: "center", gap: 7 }}><span style={{ fontSize: 18, lineHeight: 1 }}>+</span> New Project</button></div>
     <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 16, marginBottom: 28 }}>
@@ -311,10 +314,13 @@ function PageProjects({ t, isDark, PROJECTS = [], FEES_DATA = [], collectionPath
     </div>
     <div style={{ background: t.surface, borderRadius: 16, border: `1px solid ${t.surfaceBorder}`, overflow: "hidden", backdropFilter: isDark ? "blur(20px)" : "none", boxShadow: t.tableShadow }}>
       <TblHead cols={cols} t={t} isDark={isDark} />
-      {PROJECTS.map((p, i) => {
+      <div style={{ display: "grid", gridTemplateColumns: cols.map(c => c.w).join(" "), padding: "6px 22px", borderBottom: `1px solid ${t.rowDivider}`, background: isDark ? "rgba(255,255,255,0.015)" : "#FDFDFC" }}>
+        {cols.map(c => c.k ? <input key={c.k} value={colFilters[c.k] || ""} onChange={e => setColFilter(c.k, e.target.value)} placeholder="Filter..." style={{ fontSize: 11, padding: "4px 8px", borderRadius: 6, border: `1px solid ${t.surfaceBorder}`, background: isDark ? "rgba(255,255,255,0.03)" : "#fff", color: isDark ? "rgba(255,255,255,0.8)" : "#44403C", outline: "none", width: "100%", boxSizing: "border-box", fontFamily: "inherit" }} /> : <div key={c.l || "nofilter"} />)}
+      </div>
+      {filtered.map((p, i) => {
         const isHov = hov === p.id;
         const appliedFees = (p.feeIds || []).map(fid => FEES_DATA.find(f => f.id === fid)).filter(Boolean);
-        return (<div key={p.id} className="data-row" onMouseEnter={() => setHov(p.id)} onMouseLeave={() => setHov(null)} style={{ display: "grid", gridTemplateColumns: cols.map(c => c.w).join(" "), padding: "12px 22px", borderBottom: i < PROJECTS.length - 1 ? `1px solid ${t.rowDivider}` : "none", alignItems: "center", background: isHov ? t.rowHover : "transparent", transition: "all 0.15s ease" }}>
+        return (<div key={p.id} className="data-row" onMouseEnter={() => setHov(p.id)} onMouseLeave={() => setHov(null)} style={{ display: "grid", gridTemplateColumns: cols.map(c => c.w).join(" "), padding: "12px 22px", borderBottom: i < filtered.length - 1 ? `1px solid ${t.rowDivider}` : "none", alignItems: "center", background: isHov ? t.rowHover : "transparent", transition: "all 0.15s ease" }}>
           <div style={{ fontFamily: t.mono, fontSize: 11, color: t.idText }}>{p.id}</div>
           <div style={{ fontSize: 13.5, fontWeight: 500, color: isDark ? "rgba(255,255,255,0.85)" : (isHov ? "#1C1917" : "#44403C"), overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", paddingRight: 8 }}>{p.name}</div>
           <div><Bdg status={p.status} isDark={isDark} /></div>
@@ -332,7 +338,7 @@ function PageProjects({ t, isDark, PROJECTS = [], FEES_DATA = [], collectionPath
         </div>);
       })}
     </div>
-    <div style={{ marginTop: 16, display: "flex", justifyContent: "space-between", alignItems: "center" }}><span style={{ fontSize: 12, color: t.textSubtle }}>Showing <strong style={{ color: t.textSecondary }}>{PROJECTS.length}</strong> of <strong style={{ color: t.textSecondary }}>{PROJECTS.length}</strong> projects</span><Pagination pages={["‹", "1", "›"]} t={t} /></div>
+    <div style={{ marginTop: 16, display: "flex", justifyContent: "space-between", alignItems: "center" }}><span style={{ fontSize: 12, color: t.textSubtle }}>Showing <strong style={{ color: t.textSecondary }}>{filtered.length}</strong> of <strong style={{ color: t.textSecondary }}>{PROJECTS.length}</strong> projects</span><Pagination pages={["‹", "1", "›"]} t={t} /></div>
     <Modal open={modal.open} onClose={close} title={modal.mode === "add" ? "New Project" : "Edit Project"} onSave={handleSaveProject} width={580} t={t} isDark={isDark}>
       {modal.mode === "edit" && (
         <FF label="Project ID" t={t}>
@@ -403,8 +409,8 @@ function PageParties({ t, isDark, PARTIES = [] }) {
     </div>
     <div style={{ background: t.surface, borderRadius: 16, border: `1px solid ${t.surfaceBorder}`, overflow: "hidden", backdropFilter: isDark ? "blur(20px)" : "none", boxShadow: t.tableShadow }}>
       <TblHead cols={cols} t={t} isDark={isDark} />
-      <div style={{ display: "grid", gridTemplateColumns: cols.map(c => c.w).join(" "), padding: "6px 22px", borderBottom: `1px solid ${t.rowDivider}`, background: isDark ? "rgba(255,255,255,0.02)" : "#FAFAF9" }}>
-        {cols.map(c => c.k ? <input key={c.k} value={colFilters[c.k] || ""} onChange={e => setColFilter(c.k, e.target.value)} placeholder="Filter..." style={{ fontSize: 11, padding: "4px 8px", borderRadius: 6, border: `1px solid ${t.surfaceBorder}`, background: isDark ? "rgba(255,255,255,0.05)" : "#fff", color: isDark ? "rgba(255,255,255,0.8)" : "#44403C", outline: "none", width: "100%", boxSizing: "border-box", fontFamily: "inherit" }} /> : <div key="actions" />)}
+      <div style={{ display: "grid", gridTemplateColumns: cols.map(c => c.w).join(" "), padding: "6px 22px", borderBottom: `1px solid ${t.rowDivider}`, background: isDark ? "rgba(255,255,255,0.015)" : "#FDFDFC" }}>
+        {cols.map(c => c.k ? <input key={c.k} value={colFilters[c.k] || ""} onChange={e => setColFilter(c.k, e.target.value)} placeholder="Filter..." style={{ fontSize: 11, padding: "4px 8px", borderRadius: 6, border: `1px solid ${t.surfaceBorder}`, background: isDark ? "rgba(255,255,255,0.03)" : "#fff", color: isDark ? "rgba(255,255,255,0.8)" : "#44403C", outline: "none", width: "100%", boxSizing: "border-box", fontFamily: "inherit" }} /> : <div key={c.l || "nofilter"} />)}
       </div>
       {filtered.map((p, i) => {
         const isHov = hov === p.id; const a = av(p.name, isDark); const [rb, rc, rbr] = badge(p.role, isDark); return (<div key={p.id} className="data-row" onMouseEnter={() => setHov(p.id)} onMouseLeave={() => setHov(null)} style={{ display: "grid", gridTemplateColumns: cols.map(c => c.w).join(" "), padding: "12px 22px", borderBottom: i < filtered.length - 1 ? `1px solid ${t.rowDivider}` : "none", alignItems: "center", background: isHov ? t.rowHover : "transparent", transition: "all 0.15s ease" }}>
@@ -460,7 +466,10 @@ function PageContracts({ t, isDark, CONTRACTS = [], PROJECTS = [], PARTIES = [] 
   const close = () => setModal(m => ({ ...m, open: false }));
   const setF = (k, v) => setModal(m => ({ ...m, data: { ...m.data, [k]: v } }));
   const toggleRow = id => { const n = new Set(sel); n.has(id) ? n.delete(id) : n.add(id); setSel(n); };
-  const cols = [{ l: "", w: "36px" }, { l: "CONTRACT ID", w: "78px" }, { l: "PROJECT ID", w: "78px" }, { l: "PROJECT", w: "minmax(0,1fr)" }, { l: "PARTY", w: "minmax(0,1fr)" }, { l: "TYPE", w: "80px" }, { l: "AMOUNT", w: "100px" }, { l: "RATE", w: "60px" }, { l: "FREQ", w: "80px" }, { l: "TERM", w: "52px" }, { l: "CALCULATOR", w: "106px" }, { l: "START", w: "84px" }, { l: "MATURITY", w: "84px" }, { l: "STATUS", w: "72px" }, { l: "CREATED", w: "84px" }, { l: "UPDATED", w: "84px" }, { l: "ACTIONS", w: "72px" }];
+  const cols = [{ l: "", w: "36px" }, { l: "CONTRACT ID", w: "78px", k: "id" }, { l: "PROJECT ID", w: "78px", k: "project_id" }, { l: "PROJECT", w: "minmax(0,1fr)", k: "project" }, { l: "PARTY", w: "minmax(0,1fr)", k: "party" }, { l: "TYPE", w: "80px", k: "type" }, { l: "AMOUNT", w: "100px", k: "amount" }, { l: "RATE", w: "60px", k: "rate" }, { l: "FREQ", w: "80px", k: "freq" }, { l: "TERM", w: "52px", k: "term_months" }, { l: "CALCULATOR", w: "106px", k: "calculator" }, { l: "START", w: "84px", k: "start_date" }, { l: "MATURITY", w: "84px", k: "maturity_date" }, { l: "STATUS", w: "72px", k: "status" }, { l: "CREATED", w: "84px", k: "created_at" }, { l: "UPDATED", w: "84px", k: "updated_at" }, { l: "ACTIONS", w: "72px" }];
+  const [colFilters, setColFilters] = useState({});
+  const setColFilter = (key, val) => setColFilters(f => ({ ...f, [key]: val }));
+  const filtered = CONTRACTS.filter(c => cols.every(col => { if (!col.k || !colFilters[col.k]) return true; return String(c[col.k] || "").toLowerCase().includes(colFilters[col.k].toLowerCase()); }));
   const typC = { Loan: isDark ? "#60A5FA" : "#2563EB", Mortgage: isDark ? "#A78BFA" : "#7C3AED", Equity: isDark ? "#FBBF24" : "#D97706" };
   return (<>
     <div style={{ marginBottom: 28, display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}><div><h1 style={{ fontFamily: t.titleFont, fontWeight: t.titleWeight, fontSize: t.titleSize, color: isDark ? "#fff" : "#1C1917", letterSpacing: t.titleTracking, lineHeight: 1, marginBottom: 6 }}>Contracts</h1><p style={{ fontSize: 13.5, color: t.textMuted }}>Manage investment contracts</p></div>
@@ -477,8 +486,11 @@ function PageContracts({ t, isDark, CONTRACTS = [], PROJECTS = [], PARTIES = [] 
         <input type="checkbox" checked={sel.size === CONTRACTS.length && CONTRACTS.length > 0} onChange={() => setSel(sel.size === CONTRACTS.length ? new Set() : new Set(CONTRACTS.map(c => c.id)))} style={{ accentColor: t.checkActive, width: 14, height: 14 }} />
         {cols.slice(1).map(c => <div key={c.l} style={{ fontSize: 10.5, fontWeight: 600, letterSpacing: "1px", color: isDark ? "rgba(255,255,255,0.3)" : "#C4C0BA", textTransform: "uppercase", fontFamily: t.mono }}>{c.l}</div>)}
       </div>
-      {CONTRACTS.map((c, i) => {
-        const isHov = hov === c.id; const isSel = sel.has(c.id); return (<div key={c.id} className="data-row" onMouseEnter={() => setHov(c.id)} onMouseLeave={() => setHov(null)} style={{ display: "grid", gridTemplateColumns: cols.map(c => c.w).join(" "), padding: "12px 22px", borderBottom: i < CONTRACTS.length - 1 ? `1px solid ${t.rowDivider}` : "none", alignItems: "center", background: isSel ? (isDark ? "rgba(52,211,153,0.05)" : "#F0FDF4") : isHov ? t.rowHover : "transparent", transition: "all 0.15s ease" }}>
+      <div style={{ display: "grid", gridTemplateColumns: cols.map(c => c.w).join(" "), padding: "6px 22px", borderBottom: `1px solid ${t.rowDivider}`, background: isDark ? "rgba(255,255,255,0.015)" : "#FDFDFC" }}>
+        {cols.map(c => c.k ? <input key={c.k} value={colFilters[c.k] || ""} onChange={e => setColFilter(c.k, e.target.value)} placeholder="Filter..." style={{ fontSize: 11, padding: "4px 8px", borderRadius: 6, border: `1px solid ${t.surfaceBorder}`, background: isDark ? "rgba(255,255,255,0.03)" : "#fff", color: isDark ? "rgba(255,255,255,0.8)" : "#44403C", outline: "none", width: "100%", boxSizing: "border-box", fontFamily: "inherit" }} /> : <div key={c.l || "nofilter"} />)}
+      </div>
+      {filtered.map((c, i) => {
+        const isHov = hov === c.id; const isSel = sel.has(c.id); return (<div key={c.id} className="data-row" onMouseEnter={() => setHov(c.id)} onMouseLeave={() => setHov(null)} style={{ display: "grid", gridTemplateColumns: cols.map(c => c.w).join(" "), padding: "12px 22px", borderBottom: i < filtered.length - 1 ? `1px solid ${t.rowDivider}` : "none", alignItems: "center", background: isSel ? (isDark ? "rgba(52,211,153,0.05)" : "#F0FDF4") : isHov ? t.rowHover : "transparent", transition: "all 0.15s ease" }}>
           <input type="checkbox" checked={isSel} onChange={() => toggleRow(c.id)} style={{ accentColor: t.checkActive, width: 14, height: 14 }} onClick={e => e.stopPropagation()} />
           <div style={{ fontFamily: t.mono, fontSize: 11, color: t.idText }}>{c.id}</div>
           <div style={{ fontFamily: t.mono, fontSize: 11, color: t.idText }}>{c.project_id || <span style={{ color: isDark ? "rgba(255,255,255,0.12)" : "#D4D0CB" }}>—</span>}</div>
@@ -499,7 +511,7 @@ function PageContracts({ t, isDark, CONTRACTS = [], PROJECTS = [], PARTIES = [] 
         </div>);
       })}
     </div>
-    <div style={{ marginTop: 16, display: "flex", justifyContent: "space-between", alignItems: "center" }}><span style={{ fontSize: 12, color: t.textSubtle }}>Showing <strong style={{ color: t.textSecondary }}>{CONTRACTS.length}</strong> of <strong style={{ color: t.textSecondary }}>{CONTRACTS.length}</strong> contracts{sel.size > 0 && <span style={{ color: t.accent, marginLeft: 8 }}>· {sel.size} selected</span>}</span><Pagination pages={["‹", "1", "2", "›"]} t={t} /></div>
+    <div style={{ marginTop: 16, display: "flex", justifyContent: "space-between", alignItems: "center" }}><span style={{ fontSize: 12, color: t.textSubtle }}>Showing <strong style={{ color: t.textSecondary }}>{filtered.length}</strong> of <strong style={{ color: t.textSecondary }}>{CONTRACTS.length}</strong> contracts{sel.size > 0 && <span style={{ color: t.accent, marginLeft: 8 }}>· {sel.size} selected</span>}</span><Pagination pages={["‹", "1", "2", "›"]} t={t} /></div>
     <Modal open={modal.open} onClose={close} title={modal.mode === "add" ? "New Contract" : "Edit Contract"} onSave={close} width={620} t={t} isDark={isDark}>
       {modal.mode === "edit" && (
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
@@ -571,8 +583,10 @@ function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = [], DIMENSIONS = 
     }
     close();
   };
-  const filtered = SCHEDULES.filter(s => chip === "All" || s.status === chip);
-  const cols = [{ l: "", w: "36px" }, { l: "ID", w: "80px" }, { l: "LINKED", w: "80px" }, { l: "CONTRACT", w: "85px" }, { l: "PROJECT ID", w: "85px" }, { l: "PARTY ID", w: "80px" }, { l: "PERIOD", w: "58px" }, { l: "DUE DATE", w: "98px" }, { l: "TYPE", w: "minmax(60px, 0.33fr)" }, { l: "FEE", w: "260px" }, { l: "DIR", w: "50px" }, { l: "SIGNED AMT", w: "110px" }, { l: "PRINCIPAL", w: "110px" }, { l: "STATUS", w: "90px" }, { l: "ACTIONS", w: "76px" }];
+  const cols = [{ l: "", w: "36px" }, { l: "ID", w: "80px", k: "id" }, { l: "LINKED", w: "80px", k: "linked" }, { l: "CONTRACT", w: "85px", k: "contract" }, { l: "PROJECT ID", w: "85px", k: "project_id" }, { l: "PARTY ID", w: "80px", k: "party_id" }, { l: "PERIOD", w: "58px", k: "period_number" }, { l: "DUE DATE", w: "98px", k: "dueDate" }, { l: "TYPE", w: "minmax(60px, 0.33fr)", k: "type" }, { l: "FEE", w: "260px", k: "fee_id" }, { l: "DIR", w: "50px", k: "direction" }, { l: "SIGNED AMT", w: "110px", k: "signed_payment_amount" }, { l: "PRINCIPAL", w: "110px", k: "principal_amount" }, { l: "STATUS", w: "90px", k: "status" }, { l: "ACTIONS", w: "76px" }];
+  const [colFilters, setColFilters] = useState({});
+  const setColFilter = (key, val) => setColFilters(f => ({ ...f, [key]: val }));
+  const filtered = SCHEDULES.filter(s => chip === "All" || s.status === chip).filter(s => cols.every(c => { if (!c.k || !colFilters[c.k]) return true; return String(s[c.k] || "").toLowerCase().includes(colFilters[c.k].toLowerCase()); }));
   const statsData = [{ label: "Total", value: SCHEDULES.length, accent: isDark ? "#60A5FA" : "#3B82F6", bg: isDark ? "rgba(96,165,250,0.08)" : "#EFF6FF", border: isDark ? "rgba(96,165,250,0.15)" : "#BFDBFE" }, { label: "Due", value: SCHEDULES.filter(s => s.status === "Due").length, accent: isDark ? "#FBBF24" : "#D97706", bg: isDark ? "rgba(251,191,36,0.08)" : "#FFFBEB", border: isDark ? "rgba(251,191,36,0.15)" : "#FDE68A" }, { label: "Paid", value: SCHEDULES.filter(s => s.status === "Paid").length, accent: isDark ? "#34D399" : "#059669", bg: isDark ? "rgba(52,211,153,0.08)" : "#ECFDF5", border: isDark ? "rgba(52,211,153,0.15)" : "#A7F3D0" }, { label: "Missed", value: SCHEDULES.filter(s => s.status === "Missed").length, accent: isDark ? "#F87171" : "#DC2626", bg: isDark ? "rgba(248,113,113,0.08)" : "#FEF2F2", border: isDark ? "rgba(248,113,113,0.15)" : "#FECACA" }];
   return (<>
     <div style={{ marginBottom: 28, display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}><div><h1 style={{ fontFamily: t.titleFont, fontWeight: t.titleWeight, fontSize: t.titleSize, color: isDark ? "#fff" : "#1C1917", letterSpacing: t.titleTracking, lineHeight: 1, marginBottom: 6 }}>Payment Schedule</h1><p style={{ fontSize: 13.5, color: t.textMuted }}>Manage payment schedules and statuses</p></div>
@@ -589,6 +603,9 @@ function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = [], DIMENSIONS = 
       <div style={{ display: "grid", gridTemplateColumns: cols.map(c => c.w).join(" "), padding: "12px 22px", background: t.tableHeader, borderBottom: `1px solid ${t.surfaceBorder}`, alignItems: "center" }}>
         <input type="checkbox" checked={sel.size === filtered.length && filtered.length > 0} onChange={() => setSel(sel.size === filtered.length ? new Set() : new Set(filtered.map(s => s.id)))} style={{ accentColor: t.checkActive, width: 14, height: 14 }} />
         {cols.slice(1).map(c => <div key={c.l} style={{ fontSize: 10.5, fontWeight: 600, letterSpacing: "1px", color: isDark ? "rgba(255,255,255,0.3)" : "#C4C0BA", textTransform: "uppercase", fontFamily: t.mono }}>{c.l}</div>)}
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: cols.map(c => c.w).join(" "), padding: "6px 22px", borderBottom: `1px solid ${t.rowDivider}`, background: isDark ? "rgba(255,255,255,0.015)" : "#FDFDFC" }}>
+        {cols.map(c => c.k ? <input key={c.k} value={colFilters[c.k] || ""} onChange={e => setColFilter(c.k, e.target.value)} placeholder="Filter..." style={{ fontSize: 11, padding: "4px 8px", borderRadius: 6, border: `1px solid ${t.surfaceBorder}`, background: isDark ? "rgba(255,255,255,0.03)" : "#fff", color: isDark ? "rgba(255,255,255,0.8)" : "#44403C", outline: "none", width: "100%", boxSizing: "border-box", fontFamily: "inherit" }} /> : <div key={c.l || "nofilter"} />)}
       </div>
       {filtered.map((s, i) => {
         const isHov = hov === s.id; const isSel = sel.has(s.id); const [bg, color, border] = badge(s.status, isDark);
@@ -658,8 +675,10 @@ function PagePayments({ t, isDark, PAYMENTS = [] }) {
   const openEdit = r => setModal({ open: true, mode: "edit", data: { ...r } });
   const close = () => setModal(m => ({ ...m, open: false }));
   const setF = (k, v) => setModal(m => ({ ...m, data: { ...m.data, [k]: v } }));
-  const filtered = PAYMENTS.filter(p => chip === "All" || p.direction === chip);
-  const cols = [{ l: "PAY ID", w: "110px" }, { l: "CONTRACT", w: "90px" }, { l: "PARTY", w: "1fr" }, { l: "TYPE", w: "110px" }, { l: "AMOUNT", w: "120px" }, { l: "DATE", w: "110px" }, { l: "METHOD", w: "90px" }, { l: "ACTIONS", w: "80px" }];
+  const cols = [{ l: "PAY ID", w: "110px", k: "id" }, { l: "CONTRACT", w: "90px", k: "contract" }, { l: "PARTY", w: "1fr", k: "party" }, { l: "TYPE", w: "110px", k: "type" }, { l: "AMOUNT", w: "120px", k: "amount" }, { l: "DATE", w: "110px", k: "date" }, { l: "METHOD", w: "90px", k: "method" }, { l: "ACTIONS", w: "80px" }];
+  const [colFilters, setColFilters] = useState({});
+  const setColFilter = (key, val) => setColFilters(f => ({ ...f, [key]: val }));
+  const filtered = PAYMENTS.filter(p => chip === "All" || p.direction === chip).filter(p => cols.every(c => { if (!c.k || !colFilters[c.k]) return true; return String(p[c.k] || "").toLowerCase().includes(colFilters[c.k].toLowerCase()); }));
   return (<>
     <div style={{ marginBottom: 28, display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}><div><h1 style={{ fontFamily: t.titleFont, fontWeight: t.titleWeight, fontSize: t.titleSize, color: isDark ? "#fff" : "#1C1917", letterSpacing: t.titleTracking, lineHeight: 1, marginBottom: 6 }}>Payments</h1><p style={{ fontSize: 13.5, color: t.textMuted }}>Track actual cash receipts and disbursements</p></div><button className="primary-btn" onClick={openAdd} style={{ background: t.accentGrad, color: "#fff", padding: "11px 22px", borderRadius: 11, fontSize: 13.5, fontWeight: 600, boxShadow: `0 4px 16px ${t.accentShadow}`, display: "flex", alignItems: "center", gap: 7 }}><span style={{ fontSize: 18, lineHeight: 1 }}>+</span> Record Payment</button></div>
     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
@@ -667,6 +686,9 @@ function PagePayments({ t, isDark, PAYMENTS = [] }) {
     </div>
     <div style={{ background: t.surface, borderRadius: 16, border: `1px solid ${t.surfaceBorder}`, overflow: "hidden", backdropFilter: isDark ? "blur(20px)" : "none", boxShadow: t.tableShadow }}>
       <TblHead cols={cols} t={t} isDark={isDark} />
+      <div style={{ display: "grid", gridTemplateColumns: cols.map(c => c.w).join(" "), padding: "6px 22px", borderBottom: `1px solid ${t.rowDivider}`, background: isDark ? "rgba(255,255,255,0.015)" : "#FDFDFC" }}>
+        {cols.map(c => c.k ? <input key={c.k} value={colFilters[c.k] || ""} onChange={e => setColFilter(c.k, e.target.value)} placeholder="Filter..." style={{ fontSize: 11, padding: "4px 8px", borderRadius: 6, border: `1px solid ${t.surfaceBorder}`, background: isDark ? "rgba(255,255,255,0.03)" : "#fff", color: isDark ? "rgba(255,255,255,0.8)" : "#44403C", outline: "none", width: "100%", boxSizing: "border-box", fontFamily: "inherit" }} /> : <div key={c.l || "nofilter"} />)}
+      </div>
       {filtered.map((p, i) => {
         const isHov = hov === p.id; const isIn = p.direction === "Received"; return (<div key={p.id} className="data-row" onMouseEnter={() => setHov(p.id)} onMouseLeave={() => setHov(null)} style={{ display: "grid", gridTemplateColumns: cols.map(c => c.w).join(" "), padding: "12px 22px", borderBottom: i < filtered.length - 1 ? `1px solid ${t.rowDivider}` : "none", alignItems: "center", background: isHov ? t.rowHover : "transparent", transition: "all 0.15s ease" }}>
           <div style={{ fontFamily: t.mono, fontSize: 10.5, color: t.idText }}>{p.id}</div>
@@ -731,7 +753,10 @@ function PageFees({ t, isDark, FEES_DATA = [], DIMENSIONS = [], collectionPath =
     } catch (err) { console.error("Save fee error:", err); }
     close();
   };
-  const cols = [{ l: "ID", w: "100px" }, { l: "NAME", w: "1fr" }, { l: "FEE TYPE", w: "130px" }, { l: "METHOD", w: "130px" }, { l: "RATE", w: "110px" }, { l: "FREQUENCY", w: "140px" }, { l: "DESCRIPTION", w: "1fr" }, { l: "ACTIONS", w: "90px" }];
+  const cols = [{ l: "ID", w: "100px", k: "id" }, { l: "NAME", w: "1fr", k: "name" }, { l: "FEE TYPE", w: "130px", k: "fee_type" }, { l: "METHOD", w: "130px", k: "method" }, { l: "RATE", w: "110px", k: "rate" }, { l: "FREQUENCY", w: "140px", k: "frequency" }, { l: "DESCRIPTION", w: "1fr", k: "description" }, { l: "ACTIONS", w: "90px" }];
+  const [colFilters, setColFilters] = useState({});
+  const setColFilter = (key, val) => setColFilters(f => ({ ...f, [key]: val }));
+  const filtered = FEES_DATA.filter(f => cols.every(c => { if (!c.k || !colFilters[c.k]) return true; return String(f[c.k] || "").toLowerCase().includes(colFilters[c.k].toLowerCase()); }));
   const mCfg = { "% of Amount": [isDark ? "rgba(96,165,250,0.15)" : "#EFF6FF", isDark ? "#60A5FA" : "#2563EB", isDark ? "rgba(96,165,250,0.3)" : "#BFDBFE"], "Fixed Amount": [isDark ? "rgba(167,139,250,0.15)" : "#F5F3FF", isDark ? "#A78BFA" : "#7C3AED", isDark ? "rgba(167,139,250,0.3)" : "#DDD6FE"] };
   return (<>
     <div style={{ marginBottom: 28, display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}><div><h1 style={{ fontFamily: t.titleFont, fontWeight: t.titleWeight, fontSize: t.titleSize, color: isDark ? "#fff" : "#1C1917", letterSpacing: t.titleTracking, lineHeight: 1, marginBottom: 6 }}>Fees</h1><p style={{ fontSize: 13.5, color: t.textMuted }}>Define and manage fee structures</p></div><button className="primary-btn" onClick={openAdd} style={{ background: t.accentGrad, color: "#fff", padding: "11px 22px", borderRadius: 11, fontSize: 13.5, fontWeight: 600, boxShadow: `0 4px 16px ${t.accentShadow}`, display: "flex", alignItems: "center", gap: 7 }}><span style={{ fontSize: 18, lineHeight: 1 }}>+</span> New Fee</button></div>
@@ -740,8 +765,11 @@ function PageFees({ t, isDark, FEES_DATA = [], DIMENSIONS = [], collectionPath =
     </div>
     <div style={{ background: t.surface, borderRadius: 16, border: `1px solid ${t.surfaceBorder}`, overflow: "hidden", backdropFilter: isDark ? "blur(20px)" : "none", boxShadow: t.tableShadow }}>
       <TblHead cols={cols} t={t} isDark={isDark} />
-      {FEES_DATA.map((f, i) => {
-        const isHov = hov === f.id; const [mb, mc, mbr] = mCfg[f.method] || ["transparent", "#888", "#ccc"]; return (<div key={f.id} className="data-row" onMouseEnter={() => setHov(f.id)} onMouseLeave={() => setHov(null)} style={{ display: "grid", gridTemplateColumns: cols.map(c => c.w).join(" "), padding: "12px 22px", borderBottom: i < FEES_DATA.length - 1 ? `1px solid ${t.rowDivider}` : "none", alignItems: "center", background: isHov ? t.rowHover : "transparent", transition: "all 0.15s ease" }}>
+      <div style={{ display: "grid", gridTemplateColumns: cols.map(c => c.w).join(" "), padding: "6px 22px", borderBottom: `1px solid ${t.rowDivider}`, background: isDark ? "rgba(255,255,255,0.015)" : "#FDFDFC" }}>
+        {cols.map(c => c.k ? <input key={c.k} value={colFilters[c.k] || ""} onChange={e => setColFilter(c.k, e.target.value)} placeholder="Filter..." style={{ fontSize: 11, padding: "4px 8px", borderRadius: 6, border: `1px solid ${t.surfaceBorder}`, background: isDark ? "rgba(255,255,255,0.03)" : "#fff", color: isDark ? "rgba(255,255,255,0.8)" : "#44403C", outline: "none", width: "100%", boxSizing: "border-box", fontFamily: "inherit" }} /> : <div key={c.l || "nofilter"} />)}
+      </div>
+      {filtered.map((f, i) => {
+        const isHov = hov === f.id; const [mb, mc, mbr] = mCfg[f.method] || ["transparent", "#888", "#ccc"]; return (<div key={f.id} className="data-row" onMouseEnter={() => setHov(f.id)} onMouseLeave={() => setHov(null)} style={{ display: "grid", gridTemplateColumns: cols.map(c => c.w).join(" "), padding: "12px 22px", borderBottom: i < filtered.length - 1 ? `1px solid ${t.rowDivider}` : "none", alignItems: "center", background: isHov ? t.rowHover : "transparent", transition: "all 0.15s ease" }}>
           <div style={{ fontFamily: t.mono, fontSize: 11, color: t.idText }}>{f.id}</div>
           <div style={{ fontSize: 13.5, fontWeight: 500, color: isDark ? "rgba(255,255,255,0.85)" : (isHov ? "#1C1917" : "#44403C") }}>{f.name}</div>
           <div style={{ fontSize: 12.5, color: t.textMuted }}>{f.fee_type}</div>
@@ -753,7 +781,7 @@ function PageFees({ t, isDark, FEES_DATA = [], DIMENSIONS = [], collectionPath =
         </div>);
       })}
     </div>
-    <div style={{ marginTop: 16, display: "flex", justifyContent: "space-between", alignItems: "center" }}><span style={{ fontSize: 12, color: t.textSubtle }}>Showing <strong style={{ color: t.textSecondary }}>{FEES_DATA.length}</strong> of <strong style={{ color: t.textSecondary }}>{FEES_DATA.length}</strong> fees</span><Pagination pages={["‹", "1", "›"]} t={t} /></div>
+    <div style={{ marginTop: 16, display: "flex", justifyContent: "space-between", alignItems: "center" }}><span style={{ fontSize: 12, color: t.textSubtle }}>Showing <strong style={{ color: t.textSecondary }}>{filtered.length}</strong> of <strong style={{ color: t.textSecondary }}>{FEES_DATA.length}</strong> fees</span><Pagination pages={["‹", "1", "›"]} t={t} /></div>
     <Modal open={modal.open} onClose={close} title={modal.mode === "add" ? "New Fee" : "Edit Fee"} onSave={handleSaveFee} t={t} isDark={isDark}>
       <FF label="Fee Name" t={t}><FIn value={modal.data.name} onChange={e => setF("name", e.target.value)} placeholder="e.g. Origination Fee" t={t} /></FF>
       <FF label="Fee Type" t={t}><FSel value={modal.data.fee_type || ""} onChange={e => setF("fee_type", e.target.value)} options={feeTypeOpts} t={t} /></FF>
