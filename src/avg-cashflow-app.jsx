@@ -395,7 +395,7 @@ function PageProjects({ t, isDark, PROJECTS = [], FEES_DATA = [], collectionPath
           <div style={{ fontFamily: t.mono, fontSize: 11.5, color: t.textMuted }}>{p.currency}</div>
           <div style={{ fontFamily: t.mono, fontSize: 11, color: t.idText }}>{p.startDate || <span style={{ color: isDark ? "rgba(255,255,255,0.15)" : "#D4D0CB" }}>—</span>}</div>
           <div style={{ fontFamily: t.mono, fontSize: 11, color: t.idText }}>{p.endDate || <span style={{ color: isDark ? "rgba(255,255,255,0.15)" : "#D4D0CB" }}>—</span>}</div>
-          <div style={{ fontFamily: t.mono, fontSize: 12, fontWeight: 600, color: isDark ? "#60A5FA" : "#4F46E5" }}>{p.valuation ? `$${p.valuation}` : <span style={{ color: isDark ? "rgba(255,255,255,0.15)" : "#D4D0CB" }}>—</span>}</div>
+          <div style={{ fontFamily: t.mono, fontSize: 12, fontWeight: 600, color: isDark ? "#60A5FA" : "#4F46E5" }}>{p.valuation ? `$${Number(String(p.valuation).replace(/[^0-9.]/g, "")).toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 2 })}` : <span style={{ color: isDark ? "rgba(255,255,255,0.15)" : "#D4D0CB" }}>—</span>}</div>
           <div style={{ fontSize: 12, color: t.textMuted, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", paddingRight: 8 }}>{p.description || <span style={{ color: isDark ? "rgba(255,255,255,0.15)" : "#D4D0CB" }}>—</span>}</div>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
             {appliedFees.length > 0
@@ -449,7 +449,7 @@ function PageProjects({ t, isDark, PROJECTS = [], FEES_DATA = [], collectionPath
   </>);
 }
 
-function PageParties({ t, isDark, PARTIES = [] }) {
+function PageParties({ t, isDark, PARTIES = [], collectionPath = "" }) {
   const [hov, setHov] = useState(null); const [chip, setChip] = useState("All");
   const [modal, setModal] = useState({ open: false, mode: "add", data: {} });
   const [delT, setDelT] = useState(null);
@@ -460,6 +460,29 @@ function PageParties({ t, isDark, PARTIES = [] }) {
   const openEdit = r => setModal({ open: true, mode: "edit", data: { ...r } });
   const close = () => setModal(m => ({ ...m, open: false }));
   const setF = (k, v) => setModal(m => ({ ...m, data: { ...m.data, [k]: v } }));
+  const handleSaveParty = async () => {
+    const d = modal.data;
+    const payload = {
+      party_name: d.name || "",
+      party_type: d.type || "",
+      role_type: d.role || "",
+      investor_type: d.investor_type || "",
+      email: d.email || "",
+      phone: d.phone || "",
+      address: d.address || "",
+      tax_id: d.tax_id || "",
+      bank_information: d.bank_information || "",
+      updated_at: serverTimestamp(),
+    };
+    try {
+      if (modal.mode === "edit" && d.docId) {
+        await updateDoc(doc(db, collectionPath, d.docId), payload);
+      } else {
+        await addDoc(collection(db, collectionPath), { ...payload, created_at: serverTimestamp() });
+      }
+    } catch (err) { console.error("Save party error:", err); }
+    close();
+  };
   const [colFilters, setColFilters] = useState({});
   const setColFilter = (key, val) => { setColFilters(f => ({ ...f, [key]: val })); setPage(1); };
   const chips = ["All", "Investors", "Borrowers", "Companies"];
@@ -506,7 +529,7 @@ function PageParties({ t, isDark, PARTIES = [] }) {
       })}
     </div>
     <div style={{ marginTop: 16, display: "flex", justifyContent: "space-between", alignItems: "center" }}><span style={{ fontSize: 12, color: t.textSubtle }}>Showing <strong style={{ color: t.textSecondary }}>{paginated.length}</strong> of <strong style={{ color: t.textSecondary }}>{sorted.length}</strong> parties</span><Pagination totalPages={totalPages} currentPage={page} onPageChange={setPage} t={t} /></div>
-    <Modal open={modal.open} onClose={close} title={modal.mode === "add" ? "New Party" : "Edit Party"} onSave={close} width={600} t={t} isDark={isDark}>
+    <Modal open={modal.open} onClose={close} title={modal.mode === "add" ? "New Party" : "Edit Party"} onSave={handleSaveParty} width={600} t={t} isDark={isDark}>
       {modal.mode === "edit" && (
         <FF label="Party ID" t={t}>
           <div style={{ fontFamily: t.mono, fontSize: 13, color: t.idText, background: isDark ? "rgba(255,255,255,0.04)" : "#F5F4F1", border: `1px solid ${t.surfaceBorder}`, borderRadius: 9, padding: "10px 13px", letterSpacing: "0.5px" }}>{modal.data.id}</div>
@@ -1064,7 +1087,7 @@ export default function App() {
   const pageMap = {
     "Dashboard": <PageDashboard t={t} isDark={isDark} PROJECTS={PROJECTS} CONTRACTS={CONTRACTS} PARTIES={PARTIES} SCHEDULES={SCHEDULES} MONTHLY={MONTHLY} />,
     "Projects": <PageProjects t={t} isDark={isDark} PROJECTS={PROJECTS} FEES_DATA={FEES_DATA} collectionPath={COLLECTION_PATHS.projects} />,
-    "Parties": <PageParties t={t} isDark={isDark} PARTIES={PARTIES} />,
+    "Parties": <PageParties t={t} isDark={isDark} PARTIES={PARTIES} collectionPath={COLLECTION_PATHS.parties} />,
     "Contracts": <PageContracts t={t} isDark={isDark} CONTRACTS={CONTRACTS} PROJECTS={PROJECTS} PARTIES={PARTIES} />,
     "Payment Schedule": <PageSchedule t={t} isDark={isDark} SCHEDULES={SCHEDULES} CONTRACTS={CONTRACTS} DIMENSIONS={DIMENSIONS} FEES_DATA={FEES_DATA} collectionPath={COLLECTION_PATHS.paymentSchedules} />,
     "Payments": <PagePayments t={t} isDark={isDark} PAYMENTS={PAYMENTS} />,
