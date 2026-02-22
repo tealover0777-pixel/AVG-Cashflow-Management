@@ -22,7 +22,9 @@ or
   git push origin main
 
 ## get the latest from github
-  git push
+  git pull origin main
+or
+  git pull
 
 
 
