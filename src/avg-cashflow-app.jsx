@@ -822,6 +822,7 @@ function PagePayments({ t, isDark, PAYMENTS = [] }) {
 }
 
 function PageFees({ t, isDark, FEES_DATA = [], DIMENSIONS = [], collectionPath = "" }) {
+  const feeChargeAtOpts = (DIMENSIONS.find(d => d.name === "FeeChargeAt") || {}).items || [];
   const feeFrequencyOpts = (DIMENSIONS.find(d => d.name === "FeeFrequency") || {}).items || [];
   const feeTypeOpts = (DIMENSIONS.find(d => d.name === "FeeType") || {}).items || [];
   const [hov, setHov] = useState(null);
@@ -830,7 +831,7 @@ function PageFees({ t, isDark, FEES_DATA = [], DIMENSIONS = [], collectionPath =
   const [sort, setSort] = useState({ key: null, direction: "asc" });
   const [page, setPage] = useState(1);
   const onSort = k => { setSort(s => ({ key: k, direction: s.key === k && s.direction === "asc" ? "desc" : "asc" })); setPage(1); };
-  const openAdd = () => setModal({ open: true, mode: "add", data: { name: "", fee_type: "", method: "% of Amount", rate: "", frequency: "", description: "" } });
+  const openAdd = () => setModal({ open: true, mode: "add", data: { name: "", fee_type: "", method: "% of Amount", rate: "", fee_charge_at: "", fee_frequency: "", description: "" } });
   const openEdit = r => setModal({ open: true, mode: "edit", data: { ...r } });
   const close = () => setModal(m => ({ ...m, open: false }));
   const setF = (k, v) => setModal(m => ({ ...m, data: { ...m.data, [k]: v } }));
@@ -841,7 +842,8 @@ function PageFees({ t, isDark, FEES_DATA = [], DIMENSIONS = [], collectionPath =
       fee_type: d.fee_type || "",
       calculation_method: d.method || "",
       default_rate: d.rate || "",
-      fee_frequency: d.frequency || "",
+      fee_charge_at: d.fee_charge_at || "",
+      fee_frequency: d.fee_frequency || "",
       description: d.description || "",
       updated_at: serverTimestamp(),
     };
@@ -854,7 +856,7 @@ function PageFees({ t, isDark, FEES_DATA = [], DIMENSIONS = [], collectionPath =
     } catch (err) { console.error("Save fee error:", err); }
     close();
   };
-  const cols = [{ l: "ID", w: "100px", k: "id" }, { l: "NAME", w: "1fr", k: "name" }, { l: "FEE TYPE", w: "130px", k: "fee_type" }, { l: "METHOD", w: "130px", k: "method" }, { l: "RATE", w: "110px", k: "rate" }, { l: "FREQUENCY", w: "140px", k: "frequency" }, { l: "DESCRIPTION", w: "1fr", k: "description" }, { l: "ACTIONS", w: "90px" }];
+  const cols = [{ l: "ID", w: "100px", k: "id" }, { l: "NAME", w: "1fr", k: "name" }, { l: "FEE TYPE", w: "130px", k: "fee_type" }, { l: "METHOD", w: "130px", k: "method" }, { l: "RATE", w: "110px", k: "rate" }, { l: "CHARGE AT", w: "120px", k: "fee_charge_at" }, { l: "FREQUENCY", w: "120px", k: "fee_frequency" }, { l: "DESCRIPTION", w: "1fr", k: "description" }, { l: "ACTIONS", w: "90px" }];
   const { gridTemplate, headerRef, onResizeStart } = useResizableColumns(cols);
   const [colFilters, setColFilters] = useState({});
   const setColFilter = (key, val) => { setColFilters(f => ({ ...f, [key]: val })); setPage(1); };
@@ -880,7 +882,8 @@ function PageFees({ t, isDark, FEES_DATA = [], DIMENSIONS = [], collectionPath =
           <div style={{ fontSize: 12.5, color: t.textMuted }}>{f.fee_type}</div>
           <div><span style={{ fontSize: 11.5, fontWeight: 600, padding: "4px 11px", borderRadius: 20, background: mb, color: mc, border: `1px solid ${mbr}` }}>{f.method}</span></div>
           <div style={{ fontFamily: t.mono, fontSize: 12.5, fontWeight: 700, color: isDark ? "#60A5FA" : "#4F46E5" }}>{(f.method === "Fixed Amount" || f.method === "Flat") ? (f.rate && !String(f.rate).startsWith("$") ? `$${f.rate}` : f.rate) : (f.rate && !String(f.rate).endsWith("%") ? `${f.rate}%` : f.rate)}</div>
-          <div style={{ fontSize: 12.5, color: t.textMuted }}>{f.frequency}</div>
+          <div style={{ fontSize: 12.5, color: t.textMuted }}>{f.fee_charge_at}</div>
+          <div style={{ fontSize: 12.5, color: t.textMuted }}>{f.fee_frequency}</div>
           <div style={{ fontSize: 12.5, color: t.textMuted, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", paddingRight: 8 }}>{f.description}</div>
           <ActBtns show={isHov} t={t} onEdit={() => openEdit(f)} onDel={() => setDelT({ id: f.id, name: f.name })} />
         </div>);
@@ -894,7 +897,10 @@ function PageFees({ t, isDark, FEES_DATA = [], DIMENSIONS = [], collectionPath =
         <FF label="Method" t={t}><FSel value={modal.data.method} onChange={e => setF("method", e.target.value)} options={["% of Amount", "Fixed Amount"]} t={t} /></FF>
         <FF label="Rate / Amount" t={t}><FIn value={modal.data.rate} onChange={e => setF("rate", e.target.value)} placeholder={modal.data.method === "Fixed Amount" ? "$500" : "1.50%"} t={t} /></FF>
       </div>
-      <FF label="Frequency" t={t}><FSel value={modal.data.frequency} onChange={e => setF("frequency", e.target.value)} options={feeFrequencyOpts} t={t} /></FF>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+        <FF label="Charge At" t={t}><FSel value={modal.data.fee_charge_at || ""} onChange={e => setF("fee_charge_at", e.target.value)} options={feeChargeAtOpts} t={t} /></FF>
+        <FF label="Frequency" t={t}><FSel value={modal.data.fee_frequency || ""} onChange={e => setF("fee_frequency", e.target.value)} options={feeFrequencyOpts} t={t} /></FF>
+      </div>
       <FF label="Description" t={t}><FIn value={modal.data.description} onChange={e => setF("description", e.target.value)} placeholder="Brief description..." t={t} /></FF>
     </Modal>
     <DelModal target={delT} onClose={() => setDelT(null)} label="This fee definition" t={t} isDark={isDark} />
