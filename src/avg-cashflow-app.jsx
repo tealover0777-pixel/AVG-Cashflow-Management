@@ -139,15 +139,8 @@ const Bdg = ({ status, isDark }) => {
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-// SHARED: search input, stat card, pagination, action buttons
+// SHARED: stat card, pagination, action buttons
 // ─────────────────────────────────────────────────────────────────────────────
-const SearchBox = ({ value, onChange, placeholder, t }) => (
-  <div style={{ position: "relative" }}>
-    <span style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: t.searchIcon, fontSize: 15, pointerEvents: "none" }}>⌕</span>
-    <input className="search-input" value={value} onChange={onChange} placeholder={placeholder}
-      style={{ background: t.searchBg, border: `1px solid ${t.searchBorder}`, borderRadius: 10, padding: "9px 14px 9px 34px", color: t.searchText, fontSize: 13, width: 240 }} />
-  </div>
-);
 
 const StatCard = ({ label, value, accent, bg, border, titleFont, isDark, icon, large }) => (
   <div className="stat-card" style={{ background: bg, borderRadius: 14, padding: "20px 22px", border: `1px solid ${border}`, backdropFilter: isDark ? "blur(10px)" : "none", display: "flex", flexDirection: "column", gap: 12 }}>
@@ -278,7 +271,7 @@ function PageDashboard({ t, isDark, PROJECTS = [], CONTRACTS = [], PARTIES = [],
 }
 
 function PageProjects({ t, isDark, PROJECTS = [], FEES_DATA = [], collectionPath = "" }) {
-  const [search, setSearch] = useState(""); const [hov, setHov] = useState(null);
+  const [hov, setHov] = useState(null);
   const [modal, setModal] = useState({ open: false, mode: "add", data: {} });
   const [delT, setDelT] = useState(null);
   const openAdd = () => setModal({ open: true, mode: "add", data: { name: "", status: "Active", currency: "USD", description: "", startDate: "", endDate: "", valuation: "", feeIds: [] } });
@@ -310,20 +303,18 @@ function PageProjects({ t, isDark, PROJECTS = [], FEES_DATA = [], collectionPath
     }
     close();
   };
-  const filtered = PROJECTS.filter(p => p.name.toLowerCase().includes(search.toLowerCase()) || p.id.toLowerCase().includes(search.toLowerCase()));
   const cols = [{ l: "ID", w: "110px" }, { l: "NAME", w: "1fr" }, { l: "STATUS", w: "100px" }, { l: "CCY", w: "60px" }, { l: "START DATE", w: "104px" }, { l: "END DATE", w: "104px" }, { l: "VALUATION", w: "120px" }, { l: "DESCRIPTION", w: "1fr" }, { l: "FEES", w: "minmax(120px,1.2fr)" }, { l: "ACTIONS", w: "80px" }];
   return (<>
     <div style={{ marginBottom: 28, display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}><div><h1 style={{ fontFamily: t.titleFont, fontWeight: t.titleWeight, fontSize: t.titleSize, color: isDark ? "#fff" : "#1C1917", letterSpacing: t.titleTracking, lineHeight: 1, marginBottom: 6 }}>Projects</h1><p style={{ fontSize: 13.5, color: t.textMuted }}>Manage your investment projects</p></div><button className="primary-btn" onClick={openAdd} style={{ background: t.accentGrad, color: "#fff", padding: "11px 22px", borderRadius: 11, fontSize: 13.5, fontWeight: 600, boxShadow: `0 4px 16px ${t.accentShadow}`, display: "flex", alignItems: "center", gap: 7 }}><span style={{ fontSize: 18, lineHeight: 1 }}>+</span> New Project</button></div>
     <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 16, marginBottom: 28 }}>
       {[{ label: "Total", value: PROJECTS.length, accent: isDark ? "#60A5FA" : "#3B82F6", bg: isDark ? "rgba(96,165,250,0.08)" : "#EFF6FF", border: isDark ? "rgba(96,165,250,0.15)" : "#BFDBFE" }, { label: "Active", value: PROJECTS.filter(p => p.status === "Active").length, accent: isDark ? "#34D399" : "#059669", bg: isDark ? "rgba(52,211,153,0.08)" : "#ECFDF5", border: isDark ? "rgba(52,211,153,0.15)" : "#A7F3D0" }, { label: "Closed", value: PROJECTS.filter(p => p.status === "Closed").length, accent: isDark ? "rgba(255,255,255,0.4)" : "#6B7280", bg: isDark ? "rgba(255,255,255,0.05)" : "#F9FAFB", border: isDark ? "rgba(255,255,255,0.1)" : "#E5E7EB" }, { label: "USD", value: PROJECTS.filter(p => p.currency === "USD").length, accent: isDark ? "#A78BFA" : "#7C3AED", bg: isDark ? "rgba(167,139,250,0.08)" : "#F5F3FF", border: isDark ? "rgba(167,139,250,0.15)" : "#DDD6FE" }].map(s => <StatCard key={s.label} {...s} titleFont={t.titleFont} isDark={isDark} />)}
     </div>
-    <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 16 }}><SearchBox value={search} onChange={e => setSearch(e.target.value)} placeholder="Search projects..." t={t} /></div>
     <div style={{ background: t.surface, borderRadius: 16, border: `1px solid ${t.surfaceBorder}`, overflow: "hidden", backdropFilter: isDark ? "blur(20px)" : "none", boxShadow: t.tableShadow }}>
       <TblHead cols={cols} t={t} isDark={isDark} />
-      {filtered.map((p, i) => {
+      {PROJECTS.map((p, i) => {
         const isHov = hov === p.id;
         const appliedFees = (p.feeIds || []).map(fid => FEES_DATA.find(f => f.id === fid)).filter(Boolean);
-        return (<div key={p.id} className="data-row" onMouseEnter={() => setHov(p.id)} onMouseLeave={() => setHov(null)} style={{ display: "grid", gridTemplateColumns: cols.map(c => c.w).join(" "), padding: "12px 22px", borderBottom: i < filtered.length - 1 ? `1px solid ${t.rowDivider}` : "none", alignItems: "center", background: isHov ? t.rowHover : "transparent", transition: "all 0.15s ease" }}>
+        return (<div key={p.id} className="data-row" onMouseEnter={() => setHov(p.id)} onMouseLeave={() => setHov(null)} style={{ display: "grid", gridTemplateColumns: cols.map(c => c.w).join(" "), padding: "12px 22px", borderBottom: i < PROJECTS.length - 1 ? `1px solid ${t.rowDivider}` : "none", alignItems: "center", background: isHov ? t.rowHover : "transparent", transition: "all 0.15s ease" }}>
           <div style={{ fontFamily: t.mono, fontSize: 11, color: t.idText }}>{p.id}</div>
           <div style={{ fontSize: 13.5, fontWeight: 500, color: isDark ? "rgba(255,255,255,0.85)" : (isHov ? "#1C1917" : "#44403C"), overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", paddingRight: 8 }}>{p.name}</div>
           <div><Bdg status={p.status} isDark={isDark} /></div>
@@ -341,7 +332,7 @@ function PageProjects({ t, isDark, PROJECTS = [], FEES_DATA = [], collectionPath
         </div>);
       })}
     </div>
-    <div style={{ marginTop: 16, display: "flex", justifyContent: "space-between", alignItems: "center" }}><span style={{ fontSize: 12, color: t.textSubtle }}>Showing <strong style={{ color: t.textSecondary }}>{filtered.length}</strong> of <strong style={{ color: t.textSecondary }}>{PROJECTS.length}</strong> projects</span><Pagination pages={["‹", "1", "›"]} t={t} /></div>
+    <div style={{ marginTop: 16, display: "flex", justifyContent: "space-between", alignItems: "center" }}><span style={{ fontSize: 12, color: t.textSubtle }}>Showing <strong style={{ color: t.textSecondary }}>{PROJECTS.length}</strong> of <strong style={{ color: t.textSecondary }}>{PROJECTS.length}</strong> projects</span><Pagination pages={["‹", "1", "›"]} t={t} /></div>
     <Modal open={modal.open} onClose={close} title={modal.mode === "add" ? "New Project" : "Edit Project"} onSave={handleSaveProject} width={580} t={t} isDark={isDark}>
       {modal.mode === "edit" && (
         <FF label="Project ID" t={t}>
@@ -385,7 +376,7 @@ function PageProjects({ t, isDark, PROJECTS = [], FEES_DATA = [], collectionPath
 }
 
 function PageParties({ t, isDark, PARTIES = [] }) {
-  const [search, setSearch] = useState(""); const [hov, setHov] = useState(null); const [chip, setChip] = useState("All");
+  const [hov, setHov] = useState(null); const [chip, setChip] = useState("All");
   const [modal, setModal] = useState({ open: false, mode: "add", data: {} });
   const [delT, setDelT] = useState(null);
   const openAdd = () => setModal({ open: true, mode: "add", data: { name: "", type: "Individual", role: "Investor", email: "" } });
@@ -393,7 +384,7 @@ function PageParties({ t, isDark, PARTIES = [] }) {
   const close = () => setModal(m => ({ ...m, open: false }));
   const setF = (k, v) => setModal(m => ({ ...m, data: { ...m.data, [k]: v } }));
   const chips = ["All", "Investors", "Borrowers", "Companies"];
-  const filtered = PARTIES.filter(p => { const ms = p.name.toLowerCase().includes(search.toLowerCase()) || p.id.toLowerCase().includes(search.toLowerCase()); const mf = chip === "All" || (chip === "Investors" && p.role === "Investor") || (chip === "Borrowers" && p.role === "Borrower") || (chip === "Companies" && p.type === "Company"); return ms && mf; });
+  const filtered = PARTIES.filter(p => { if (chip === "Investors" && p.role !== "Investor") return false; if (chip === "Borrowers" && p.role !== "Borrower") return false; if (chip === "Companies" && p.type !== "Company") return false; return true; });
   const cols = [{ l: "ID", w: "90px" }, { l: "NAME", w: "1fr" }, { l: "TYPE", w: "100px" }, { l: "ROLE", w: "90px" }, { l: "INV TYPE", w: "80px" }, { l: "EMAIL", w: "1fr" }, { l: "PHONE", w: "120px" }, { l: "ADDRESS", w: "1fr" }, { l: "TAX ID", w: "110px" }, { l: "BANK INFO", w: "1fr" }, { l: "CREATED", w: "95px" }, { l: "UPDATED", w: "95px" }, { l: "ACTIONS", w: "80px" }];
   return (<>
     <div style={{ marginBottom: 28, display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}><div><h1 style={{ fontFamily: t.titleFont, fontWeight: t.titleWeight, fontSize: t.titleSize, color: isDark ? "#fff" : "#1C1917", letterSpacing: t.titleTracking, lineHeight: 1, marginBottom: 6 }}>Parties</h1><p style={{ fontSize: 13.5, color: t.textMuted }}>Manage Investors, Borrowers, and Companies</p></div><button className="primary-btn" onClick={openAdd} style={{ background: t.accentGrad, color: "#fff", padding: "11px 22px", borderRadius: 11, fontSize: 13.5, fontWeight: 600, boxShadow: `0 4px 16px ${t.accentShadow}`, display: "flex", alignItems: "center", gap: 7 }}><span style={{ fontSize: 18, lineHeight: 1 }}>+</span> New Party</button></div>
@@ -402,7 +393,6 @@ function PageParties({ t, isDark, PARTIES = [] }) {
     </div>
     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
       <div style={{ display: "flex", gap: 8 }}>{chips.map((c, i) => { const isA = chip === c; return (<span key={c} className="filter-chip" onClick={() => setChip(c)} style={{ fontSize: 12, fontWeight: isA ? 600 : 500, padding: "5px 14px", borderRadius: 20, background: isA ? t.accent : t.chipBg, color: isA ? "#fff" : t.textSecondary, border: `1px solid ${isA ? t.accent : t.chipBorder}`, cursor: "pointer" }}>{c}</span>); })}</div>
-      <SearchBox value={search} onChange={e => setSearch(e.target.value)} placeholder="Search parties..." t={t} />
     </div>
     <div style={{ background: t.surface, borderRadius: 16, border: `1px solid ${t.surfaceBorder}`, overflow: "hidden", backdropFilter: isDark ? "blur(20px)" : "none", boxShadow: t.tableShadow }}>
       <TblHead cols={cols} t={t} isDark={isDark} />
@@ -452,14 +442,13 @@ function PageParties({ t, isDark, PARTIES = [] }) {
 }
 
 function PageContracts({ t, isDark, CONTRACTS = [], PROJECTS = [], PARTIES = [] }) {
-  const [search, setSearch] = useState(""); const [hov, setHov] = useState(null); const [sel, setSel] = useState(new Set());
+  const [hov, setHov] = useState(null); const [sel, setSel] = useState(new Set());
   const [modal, setModal] = useState({ open: false, mode: "add", data: {} });
   const [delT, setDelT] = useState(null);
   const openAdd = () => setModal({ open: true, mode: "add", data: { project: "Palm Springs Villas", party: "Pao Fu Chen", type: "Loan", amount: "", rate: "", freq: "Monthly", status: "Active" } });
   const openEdit = r => setModal({ open: true, mode: "edit", data: { ...r } });
   const close = () => setModal(m => ({ ...m, open: false }));
   const setF = (k, v) => setModal(m => ({ ...m, data: { ...m.data, [k]: v } }));
-  const filtered = CONTRACTS.filter(c => c.id.toLowerCase().includes(search.toLowerCase()) || c.project.toLowerCase().includes(search.toLowerCase()) || c.party.toLowerCase().includes(search.toLowerCase()));
   const toggleRow = id => { const n = new Set(sel); n.has(id) ? n.delete(id) : n.add(id); setSel(n); };
   const cols = [{ l: "", w: "40px" }, { l: "ID", w: "80px" }, { l: "PROJECT ID", w: "85px" }, { l: "PROJECT", w: "1fr" }, { l: "PARTY", w: "1fr" }, { l: "TYPE", w: "90px" }, { l: "AMOUNT", w: "110px" }, { l: "RATE", w: "70px" }, { l: "FREQ", w: "90px" }, { l: "TERM", w: "60px" }, { l: "CALCULATOR", w: "120px" }, { l: "START", w: "95px" }, { l: "MATURITY", w: "95px" }, { l: "STATUS", w: "80px" }, { l: "CREATED", w: "95px" }, { l: "UPDATED", w: "95px" }, { l: "ACTIONS", w: "80px" }];
   const typC = { Loan: isDark ? "#60A5FA" : "#2563EB", Mortgage: isDark ? "#A78BFA" : "#7C3AED", Equity: isDark ? "#FBBF24" : "#D97706" };
@@ -473,14 +462,13 @@ function PageContracts({ t, isDark, CONTRACTS = [], PROJECTS = [], PARTIES = [] 
     <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 16, marginBottom: 28 }}>
       {[{ label: "Total", value: CONTRACTS.length, accent: isDark ? "#60A5FA" : "#3B82F6", bg: isDark ? "rgba(96,165,250,0.08)" : "#EFF6FF", border: isDark ? "rgba(96,165,250,0.15)" : "#BFDBFE" }, { label: "Active", value: CONTRACTS.filter(c => c.status === "Active").length, accent: isDark ? "#34D399" : "#059669", bg: isDark ? "rgba(52,211,153,0.08)" : "#ECFDF5", border: isDark ? "rgba(52,211,153,0.15)" : "#A7F3D0" }, { label: "Loans", value: CONTRACTS.filter(c => c.type === "Loan").length, accent: isDark ? "#FBBF24" : "#D97706", bg: isDark ? "rgba(251,191,36,0.08)" : "#FFFBEB", border: isDark ? "rgba(251,191,36,0.15)" : "#FDE68A" }, { label: "Selected", value: sel.size, accent: isDark ? "#A78BFA" : "#7C3AED", bg: isDark ? "rgba(167,139,250,0.08)" : "#F5F3FF", border: isDark ? "rgba(167,139,250,0.15)" : "#DDD6FE" }].map(s => <StatCard key={s.label} {...s} titleFont={t.titleFont} isDark={isDark} />)}
     </div>
-    <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 16 }}><SearchBox value={search} onChange={e => setSearch(e.target.value)} placeholder="Search contracts..." t={t} /></div>
     <div style={{ background: t.surface, borderRadius: 16, border: `1px solid ${t.surfaceBorder}`, overflow: "hidden", backdropFilter: isDark ? "blur(20px)" : "none", boxShadow: t.tableShadow }}>
       <div style={{ display: "grid", gridTemplateColumns: cols.map(c => c.w).join(" "), padding: "12px 22px", background: t.tableHeader, borderBottom: `1px solid ${t.surfaceBorder}`, alignItems: "center" }}>
-        <input type="checkbox" checked={sel.size === filtered.length && filtered.length > 0} onChange={() => setSel(sel.size === filtered.length ? new Set() : new Set(filtered.map(c => c.id)))} style={{ accentColor: t.checkActive, width: 14, height: 14 }} />
+        <input type="checkbox" checked={sel.size === CONTRACTS.length && CONTRACTS.length > 0} onChange={() => setSel(sel.size === CONTRACTS.length ? new Set() : new Set(CONTRACTS.map(c => c.id)))} style={{ accentColor: t.checkActive, width: 14, height: 14 }} />
         {cols.slice(1).map(c => <div key={c.l} style={{ fontSize: 10.5, fontWeight: 600, letterSpacing: "1px", color: isDark ? "rgba(255,255,255,0.3)" : "#C4C0BA", textTransform: "uppercase", fontFamily: t.mono }}>{c.l}</div>)}
       </div>
-      {filtered.map((c, i) => {
-        const isHov = hov === c.id; const isSel = sel.has(c.id); return (<div key={c.id} className="data-row" onMouseEnter={() => setHov(c.id)} onMouseLeave={() => setHov(null)} style={{ display: "grid", gridTemplateColumns: cols.map(c => c.w).join(" "), padding: "12px 22px", borderBottom: i < filtered.length - 1 ? `1px solid ${t.rowDivider}` : "none", alignItems: "center", background: isSel ? (isDark ? "rgba(52,211,153,0.05)" : "#F0FDF4") : isHov ? t.rowHover : "transparent", transition: "all 0.15s ease" }}>
+      {CONTRACTS.map((c, i) => {
+        const isHov = hov === c.id; const isSel = sel.has(c.id); return (<div key={c.id} className="data-row" onMouseEnter={() => setHov(c.id)} onMouseLeave={() => setHov(null)} style={{ display: "grid", gridTemplateColumns: cols.map(c => c.w).join(" "), padding: "12px 22px", borderBottom: i < CONTRACTS.length - 1 ? `1px solid ${t.rowDivider}` : "none", alignItems: "center", background: isSel ? (isDark ? "rgba(52,211,153,0.05)" : "#F0FDF4") : isHov ? t.rowHover : "transparent", transition: "all 0.15s ease" }}>
           <input type="checkbox" checked={isSel} onChange={() => toggleRow(c.id)} style={{ accentColor: t.checkActive, width: 14, height: 14 }} onClick={e => e.stopPropagation()} />
           <div style={{ fontFamily: t.mono, fontSize: 11, color: t.idText }}>{c.id}</div>
           <div style={{ fontFamily: t.mono, fontSize: 11, color: t.idText }}>{c.project_id || <span style={{ color: isDark ? "rgba(255,255,255,0.12)" : "#D4D0CB" }}>—</span>}</div>
@@ -501,7 +489,7 @@ function PageContracts({ t, isDark, CONTRACTS = [], PROJECTS = [], PARTIES = [] 
         </div>);
       })}
     </div>
-    <div style={{ marginTop: 16, display: "flex", justifyContent: "space-between", alignItems: "center" }}><span style={{ fontSize: 12, color: t.textSubtle }}>Showing <strong style={{ color: t.textSecondary }}>{filtered.length}</strong> of <strong style={{ color: t.textSecondary }}>{CONTRACTS.length}</strong> contracts{sel.size > 0 && <span style={{ color: t.accent, marginLeft: 8 }}>· {sel.size} selected</span>}</span><Pagination pages={["‹", "1", "2", "›"]} t={t} /></div>
+    <div style={{ marginTop: 16, display: "flex", justifyContent: "space-between", alignItems: "center" }}><span style={{ fontSize: 12, color: t.textSubtle }}>Showing <strong style={{ color: t.textSecondary }}>{CONTRACTS.length}</strong> of <strong style={{ color: t.textSecondary }}>{CONTRACTS.length}</strong> contracts{sel.size > 0 && <span style={{ color: t.accent, marginLeft: 8 }}>· {sel.size} selected</span>}</span><Pagination pages={["‹", "1", "2", "›"]} t={t} /></div>
     <Modal open={modal.open} onClose={close} title={modal.mode === "add" ? "New Contract" : "Edit Contract"} onSave={close} width={620} t={t} isDark={isDark}>
       {modal.mode === "edit" && (
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
@@ -537,7 +525,7 @@ function PageContracts({ t, isDark, CONTRACTS = [], PROJECTS = [], PARTIES = [] 
 
 function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = [], DIMENSIONS = [], FEES_DATA = [], collectionPath = "" }) {
   const paymentStatusOpts = (DIMENSIONS.find(d => d.name === "PaymentStatus") || {}).items || ["Due", "Paid", "Missed"];
-  const [search, setSearch] = useState(""); const [hov, setHov] = useState(null); const [sel, setSel] = useState(new Set()); const [chip, setChip] = useState("All");
+  const [hov, setHov] = useState(null); const [sel, setSel] = useState(new Set()); const [chip, setChip] = useState("All");
   const [modal, setModal] = useState({ open: false, mode: "add", data: {} });
   const [delT, setDelT] = useState(null);
   const openAdd = () => setModal({ open: true, mode: "add", data: { contract: "C10000", dueDate: "", type: "Interest", payment: "", status: "Due", notes: "" } });
@@ -573,7 +561,7 @@ function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = [], DIMENSIONS = 
     }
     close();
   };
-  const filtered = SCHEDULES.filter(s => { const ms = s.id.toLowerCase().includes(search.toLowerCase()) || s.contract.toLowerCase().includes(search.toLowerCase()); const mf = chip === "All" || s.status === chip; return ms && mf; });
+  const filtered = SCHEDULES.filter(s => chip === "All" || s.status === chip);
   const cols = [{ l: "", w: "36px" }, { l: "ID", w: "80px" }, { l: "LINKED", w: "80px" }, { l: "CONTRACT", w: "85px" }, { l: "PROJECT ID", w: "85px" }, { l: "PARTY ID", w: "80px" }, { l: "PERIOD", w: "58px" }, { l: "DUE DATE", w: "98px" }, { l: "TYPE", w: "minmax(60px, 0.33fr)" }, { l: "FEE", w: "260px" }, { l: "DIR", w: "50px" }, { l: "SIGNED AMT", w: "110px" }, { l: "PRINCIPAL", w: "110px" }, { l: "STATUS", w: "90px" }, { l: "ACTIONS", w: "76px" }];
   const statsData = [{ label: "Total", value: SCHEDULES.length, accent: isDark ? "#60A5FA" : "#3B82F6", bg: isDark ? "rgba(96,165,250,0.08)" : "#EFF6FF", border: isDark ? "rgba(96,165,250,0.15)" : "#BFDBFE" }, { label: "Due", value: SCHEDULES.filter(s => s.status === "Due").length, accent: isDark ? "#FBBF24" : "#D97706", bg: isDark ? "rgba(251,191,36,0.08)" : "#FFFBEB", border: isDark ? "rgba(251,191,36,0.15)" : "#FDE68A" }, { label: "Paid", value: SCHEDULES.filter(s => s.status === "Paid").length, accent: isDark ? "#34D399" : "#059669", bg: isDark ? "rgba(52,211,153,0.08)" : "#ECFDF5", border: isDark ? "rgba(52,211,153,0.15)" : "#A7F3D0" }, { label: "Missed", value: SCHEDULES.filter(s => s.status === "Missed").length, accent: isDark ? "#F87171" : "#DC2626", bg: isDark ? "rgba(248,113,113,0.08)" : "#FEF2F2", border: isDark ? "rgba(248,113,113,0.15)" : "#FECACA" }];
   return (<>
@@ -586,7 +574,6 @@ function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = [], DIMENSIONS = 
     <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 16, marginBottom: 28 }}>{statsData.map(s => <StatCard key={s.label} {...s} titleFont={t.titleFont} isDark={isDark} />)}</div>
     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
       <div style={{ display: "flex", gap: 8 }}>{["All", "Due", "Paid", "Missed"].map(f => { const isA = chip === f; return <span key={f} className="filter-chip" onClick={() => setChip(f)} style={{ fontSize: 12, fontWeight: isA ? 600 : 500, padding: "5px 14px", borderRadius: 20, background: isA ? t.accent : t.chipBg, color: isA ? "#fff" : t.textSecondary, border: `1px solid ${isA ? t.accent : t.chipBorder}`, cursor: "pointer" }}>{f}</span>; })}</div>
-      <SearchBox value={search} onChange={e => setSearch(e.target.value)} placeholder="Search schedules..." t={t} />
     </div>
     <div style={{ background: t.surface, borderRadius: 16, border: `1px solid ${t.surfaceBorder}`, overflow: "hidden", backdropFilter: isDark ? "blur(20px)" : "none", boxShadow: t.tableShadow }}>
       <div style={{ display: "grid", gridTemplateColumns: cols.map(c => c.w).join(" "), padding: "12px 22px", background: t.tableHeader, borderBottom: `1px solid ${t.surfaceBorder}`, alignItems: "center" }}>
@@ -654,20 +641,19 @@ function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = [], DIMENSIONS = 
 }
 
 function PagePayments({ t, isDark, PAYMENTS = [] }) {
-  const [search, setSearch] = useState(""); const [hov, setHov] = useState(null); const [chip, setChip] = useState("All");
+  const [hov, setHov] = useState(null); const [chip, setChip] = useState("All");
   const [modal, setModal] = useState({ open: false, mode: "add", data: {} });
   const [delT, setDelT] = useState(null);
   const openAdd = () => setModal({ open: true, mode: "add", data: { contract: "", party: "", type: "Interest", amount: "", date: "", method: "Wire", direction: "Received", note: "" } });
   const openEdit = r => setModal({ open: true, mode: "edit", data: { ...r } });
   const close = () => setModal(m => ({ ...m, open: false }));
   const setF = (k, v) => setModal(m => ({ ...m, data: { ...m.data, [k]: v } }));
-  const filtered = PAYMENTS.filter(p => { const ms = p.id.toLowerCase().includes(search.toLowerCase()) || p.party.toLowerCase().includes(search.toLowerCase()); const mf = chip === "All" || p.direction === chip; return ms && mf; });
+  const filtered = PAYMENTS.filter(p => chip === "All" || p.direction === chip);
   const cols = [{ l: "PAY ID", w: "110px" }, { l: "CONTRACT", w: "90px" }, { l: "PARTY", w: "1fr" }, { l: "TYPE", w: "110px" }, { l: "AMOUNT", w: "120px" }, { l: "DATE", w: "110px" }, { l: "METHOD", w: "90px" }, { l: "ACTIONS", w: "80px" }];
   return (<>
     <div style={{ marginBottom: 28, display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}><div><h1 style={{ fontFamily: t.titleFont, fontWeight: t.titleWeight, fontSize: t.titleSize, color: isDark ? "#fff" : "#1C1917", letterSpacing: t.titleTracking, lineHeight: 1, marginBottom: 6 }}>Payments</h1><p style={{ fontSize: 13.5, color: t.textMuted }}>Track actual cash receipts and disbursements</p></div><button className="primary-btn" onClick={openAdd} style={{ background: t.accentGrad, color: "#fff", padding: "11px 22px", borderRadius: 11, fontSize: 13.5, fontWeight: 600, boxShadow: `0 4px 16px ${t.accentShadow}`, display: "flex", alignItems: "center", gap: 7 }}><span style={{ fontSize: 18, lineHeight: 1 }}>+</span> Record Payment</button></div>
     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
       <div style={{ display: "flex", gap: 8 }}>{["All", "Received", "Disbursed"].map(f => { const isA = chip === f; return <span key={f} className="filter-chip" onClick={() => setChip(f)} style={{ fontSize: 12, fontWeight: isA ? 600 : 500, padding: "5px 14px", borderRadius: 20, background: isA ? t.accent : t.chipBg, color: isA ? "#fff" : t.textSecondary, border: `1px solid ${isA ? t.accent : t.chipBorder}`, cursor: "pointer" }}>{f}</span>; })}</div>
-      <SearchBox value={search} onChange={e => setSearch(e.target.value)} placeholder="Search payments..." t={t} />
     </div>
     <div style={{ background: t.surface, borderRadius: 16, border: `1px solid ${t.surfaceBorder}`, overflow: "hidden", backdropFilter: isDark ? "blur(20px)" : "none", boxShadow: t.tableShadow }}>
       <TblHead cols={cols} t={t} isDark={isDark} />
@@ -706,14 +692,13 @@ function PagePayments({ t, isDark, PAYMENTS = [] }) {
 }
 
 function PageFees({ t, isDark, FEES_DATA = [] }) {
-  const [search, setSearch] = useState(""); const [hov, setHov] = useState(null);
+  const [hov, setHov] = useState(null);
   const [modal, setModal] = useState({ open: false, mode: "add", data: {} });
   const [delT, setDelT] = useState(null);
   const openAdd = () => setModal({ open: true, mode: "add", data: { name: "", method: "Percentage", rate: "", frequency: "One-time", description: "" } });
   const openEdit = r => setModal({ open: true, mode: "edit", data: { ...r } });
   const close = () => setModal(m => ({ ...m, open: false }));
   const setF = (k, v) => setModal(m => ({ ...m, data: { ...m.data, [k]: v } }));
-  const filtered = FEES_DATA.filter(f => f.name.toLowerCase().includes(search.toLowerCase()) || f.id.toLowerCase().includes(search.toLowerCase()));
   const cols = [{ l: "ID", w: "100px" }, { l: "NAME", w: "1fr" }, { l: "METHOD", w: "130px" }, { l: "RATE", w: "110px" }, { l: "FREQUENCY", w: "140px" }, { l: "DESCRIPTION", w: "1fr" }, { l: "ACTIONS", w: "90px" }];
   const mCfg = { Percentage: [isDark ? "rgba(96,165,250,0.15)" : "#EFF6FF", isDark ? "#60A5FA" : "#2563EB", isDark ? "rgba(96,165,250,0.3)" : "#BFDBFE"], Flat: [isDark ? "rgba(167,139,250,0.15)" : "#F5F3FF", isDark ? "#A78BFA" : "#7C3AED", isDark ? "rgba(167,139,250,0.3)" : "#DDD6FE"] };
   return (<>
@@ -721,11 +706,10 @@ function PageFees({ t, isDark, FEES_DATA = [] }) {
     <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 16, marginBottom: 28 }}>
       {[{ label: "Total Fees", value: FEES_DATA.length, accent: isDark ? "#60A5FA" : "#3B82F6", bg: isDark ? "rgba(96,165,250,0.08)" : "#EFF6FF", border: isDark ? "rgba(96,165,250,0.15)" : "#BFDBFE" }, { label: "Percentage", value: FEES_DATA.filter(f => f.method === "Percentage").length, accent: isDark ? "#34D399" : "#059669", bg: isDark ? "rgba(52,211,153,0.08)" : "#ECFDF5", border: isDark ? "rgba(52,211,153,0.15)" : "#A7F3D0" }, { label: "Flat", value: FEES_DATA.filter(f => f.method === "Flat").length, accent: isDark ? "#A78BFA" : "#7C3AED", bg: isDark ? "rgba(167,139,250,0.08)" : "#F5F3FF", border: isDark ? "rgba(167,139,250,0.15)" : "#DDD6FE" }, { label: "Recurring", value: FEES_DATA.filter(f => f.frequency !== "One-time" && f.frequency !== "Per occurrence").length, accent: isDark ? "#FBBF24" : "#D97706", bg: isDark ? "rgba(251,191,36,0.08)" : "#FFFBEB", border: isDark ? "rgba(251,191,36,0.15)" : "#FDE68A" }].map(s => <StatCard key={s.label} {...s} titleFont={t.titleFont} isDark={isDark} />)}
     </div>
-    <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 16 }}><SearchBox value={search} onChange={e => setSearch(e.target.value)} placeholder="Search fees..." t={t} /></div>
     <div style={{ background: t.surface, borderRadius: 16, border: `1px solid ${t.surfaceBorder}`, overflow: "hidden", backdropFilter: isDark ? "blur(20px)" : "none", boxShadow: t.tableShadow }}>
       <TblHead cols={cols} t={t} isDark={isDark} />
-      {filtered.map((f, i) => {
-        const isHov = hov === f.id; const [mb, mc, mbr] = mCfg[f.method] || ["transparent", "#888", "#ccc"]; return (<div key={f.id} className="data-row" onMouseEnter={() => setHov(f.id)} onMouseLeave={() => setHov(null)} style={{ display: "grid", gridTemplateColumns: cols.map(c => c.w).join(" "), padding: "12px 22px", borderBottom: i < filtered.length - 1 ? `1px solid ${t.rowDivider}` : "none", alignItems: "center", background: isHov ? t.rowHover : "transparent", transition: "all 0.15s ease" }}>
+      {FEES_DATA.map((f, i) => {
+        const isHov = hov === f.id; const [mb, mc, mbr] = mCfg[f.method] || ["transparent", "#888", "#ccc"]; return (<div key={f.id} className="data-row" onMouseEnter={() => setHov(f.id)} onMouseLeave={() => setHov(null)} style={{ display: "grid", gridTemplateColumns: cols.map(c => c.w).join(" "), padding: "12px 22px", borderBottom: i < FEES_DATA.length - 1 ? `1px solid ${t.rowDivider}` : "none", alignItems: "center", background: isHov ? t.rowHover : "transparent", transition: "all 0.15s ease" }}>
           <div style={{ fontFamily: t.mono, fontSize: 11, color: t.idText }}>{f.id}</div>
           <div style={{ fontSize: 13.5, fontWeight: 500, color: isDark ? "rgba(255,255,255,0.85)" : (isHov ? "#1C1917" : "#44403C") }}>{f.name}</div>
           <div><span style={{ fontSize: 11.5, fontWeight: 600, padding: "4px 11px", borderRadius: 20, background: mb, color: mc, border: `1px solid ${mbr}` }}>{f.method}</span></div>
@@ -736,7 +720,7 @@ function PageFees({ t, isDark, FEES_DATA = [] }) {
         </div>);
       })}
     </div>
-    <div style={{ marginTop: 16, display: "flex", justifyContent: "space-between", alignItems: "center" }}><span style={{ fontSize: 12, color: t.textSubtle }}>Showing <strong style={{ color: t.textSecondary }}>{filtered.length}</strong> of <strong style={{ color: t.textSecondary }}>{FEES_DATA.length}</strong> fees</span><Pagination pages={["‹", "1", "›"]} t={t} /></div>
+    <div style={{ marginTop: 16, display: "flex", justifyContent: "space-between", alignItems: "center" }}><span style={{ fontSize: 12, color: t.textSubtle }}>Showing <strong style={{ color: t.textSecondary }}>{FEES_DATA.length}</strong> of <strong style={{ color: t.textSecondary }}>{FEES_DATA.length}</strong> fees</span><Pagination pages={["‹", "1", "›"]} t={t} /></div>
     <Modal open={modal.open} onClose={close} title={modal.mode === "add" ? "New Fee" : "Edit Fee"} onSave={close} t={t} isDark={isDark}>
       <FF label="Fee Name" t={t}><FIn value={modal.data.name} onChange={e => setF("name", e.target.value)} placeholder="e.g. Origination Fee" t={t} /></FF>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
@@ -945,8 +929,6 @@ export default function App() {
         .report-tab { transition: all 0.15s ease; cursor: pointer; }
         .export-btn { transition: all 0.15s ease; }
         .export-btn:hover { opacity: 0.85; transform: translateY(-1px); }
-        .search-input:focus { outline: none; border-color: ${t.searchFocus} !important; box-shadow: 0 0 0 3px ${t.searchShadow} !important; }
-        .search-input::placeholder { color: ${t.searchPh}; }
         .theme-toggle { transition: all 0.2s ease; cursor: pointer; border: none; }
         .theme-toggle:hover { opacity: 0.85; transform: scale(1.05); }
       `}</style>
