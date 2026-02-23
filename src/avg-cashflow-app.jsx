@@ -677,14 +677,15 @@ function PageContracts({ t, isDark, CONTRACTS = [], PROJECTS = [], PARTIES = [],
   const [page, setPage] = useState(1);
   const onSort = k => { setSort(s => ({ key: k, direction: s.key === k && s.direction === "asc" ? "desc" : "asc" })); setPage(1); };
   const openAdd = () => {
-    let maxId = 9999;
+    let maxIdNum = 9999;
     CONTRACTS.forEach(c => {
-      if (c.id && c.id.startsWith("C")) {
-        const num = parseInt(c.id.substring(1), 10);
-        if (!isNaN(num) && num > maxId) maxId = num;
+      const cid = c.contract_id || c.id;
+      if (cid && cid.startsWith("C")) {
+        const num = parseInt(cid.substring(1), 10);
+        if (!isNaN(num) && num > maxIdNum) maxIdNum = num;
       }
     });
-    const nextId = `C${maxId + 1}`;
+    const nextId = `C${maxIdNum + 1}`;
 
     const firstProj = PROJECTS[0];
     const sd = firstProj ? firstProj.startDate : "";
@@ -697,7 +698,7 @@ function PageContracts({ t, isDark, CONTRACTS = [], PROJECTS = [], PARTIES = [],
       data: {
         id: nextId,
         project: firstProj ? firstProj.name : "",
-        project_id: firstProj ? firstProj.id : "",
+        project_id: firstProj ? (firstProj.project_id || firstProj.id) : "",
         party: "",
         type: "",
         amount: "",
@@ -737,7 +738,7 @@ function PageContracts({ t, isDark, CONTRACTS = [], PROJECTS = [], PARTIES = [],
       if (modal.mode === "edit" && d.docId) {
         await updateDoc(doc(db, collectionPath, d.docId), payload);
       } else {
-        await addDoc(collection(db, collectionPath), { ...payload, id: d.id || "", created_at: serverTimestamp() });
+        await addDoc(collection(db, collectionPath), { ...payload, contract_id: d.id || "", created_at: serverTimestamp() });
       }
     } catch (err) { console.error("Save contract error:", err); }
     close();
@@ -1531,14 +1532,24 @@ export default function App() {
   }));
 
   const CONTRACTS = rawContracts.map(d => ({
-    id: d.id, docId: d.doc_id || d.id, project: d.project_name || d.project_id || "", project_id: d.project_id || "",
+    id: d.contract_id || d.id,
+    docId: d.doc_id || d.id,
+    contract_id: d.contract_id || "",
+    project: d.project_name || d.project_id || "",
+    project_id: d.project_id || "",
     party: d.counterparty_name || d.counterparty_id || "",
     party_id: d.counterparty_id || "",
-    type: d.contract_type || "", amount: fmtCurr(d.amount),
-    rate: d.interest_rate ? `${d.interest_rate}%` : "", freq: d.payment_frequency || "",
-    status: d.status || "", calculator: d.calculator || "", term_months: d.term_months != null ? String(d.term_months) : "",
-    start_date: fmtDate(d.start_date), maturity_date: fmtDate(d.maturity_date),
-    created_at: fmtDate(d.created_at), updated_at: fmtDate(d.updated_at),
+    type: d.contract_type || "",
+    amount: fmtCurr(d.amount),
+    rate: d.interest_rate ? `${d.interest_rate}%` : "",
+    freq: d.payment_frequency || "",
+    status: d.status || "",
+    calculator: d.calculator || "",
+    term_months: d.term_months != null ? String(d.term_months) : "",
+    start_date: fmtDate(d.start_date),
+    maturity_date: fmtDate(d.maturity_date),
+    created_at: fmtDate(d.created_at),
+    updated_at: fmtDate(d.updated_at),
   }));
 
   const SCHEDULES = rawSchedules.map(d => ({
