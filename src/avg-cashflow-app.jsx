@@ -753,6 +753,7 @@ function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = [], DIMENSIONS = 
   const [bulkStatus, setBulkStatus] = useState("");
   const handleBulkStatus = async (status) => {
     if (!status || sel.size === 0) return;
+    if (!window.confirm(`Are you sure you want to update status to "${status}" for ${sel.size} schedule(s)?`)) return;
     try {
       await Promise.all([...sel].map(id => {
         const s = SCHEDULES.find(s => s.id === id);
@@ -764,6 +765,7 @@ function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = [], DIMENSIONS = 
   };
   const handleBulkDelete = async () => {
     if (sel.size === 0) return;
+    if (!window.confirm(`Are you sure you want to delete ${sel.size} schedule(s)? This action cannot be undone.`)) return;
     try {
       await Promise.all([...sel].map(id => {
         const s = SCHEDULES.find(s => s.id === id);
