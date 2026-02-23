@@ -1481,7 +1481,7 @@ export default function App() {
 
   const PROJECTS = rawProjects.map(d => ({
     id: d.id,
-    docId: d.id,
+    docId: d.doc_id || d.id,
     name: d.project_name || "",
     status: d.status || "",
     currency: d.currency || "",
@@ -1494,14 +1494,14 @@ export default function App() {
   }));
 
   const PARTIES = rawParties.map(d => ({
-    id: d.id, docId: d.id, name: d.party_name || "", type: d.party_type || "", role: d.role_type || "",
+    id: d.id, docId: d.doc_id || d.id, name: d.party_name || "", type: d.party_type || "", role: d.role_type || "",
     email: d.email || "", phone: d.phone || "", investor_type: d.investor_type || "",
     address: d.address || "", bank_information: d.bank_information || "", tax_id: d.tax_id || "",
     created_at: fmtDate(d.created_at), updated_at: fmtDate(d.updated_at),
   }));
 
   const CONTRACTS = rawContracts.map(d => ({
-    id: d.id, docId: d.id, project: d.project_name || d.project_id || "", project_id: d.project_id || "",
+    id: d.id, docId: d.doc_id || d.id, project: d.project_name || d.project_id || "", project_id: d.project_id || "",
     party: d.counterparty_name || d.counterparty_id || "",
     type: d.contract_type || "", amount: fmtCurr(d.amount),
     rate: d.interest_rate ? `${d.interest_rate}%` : "", freq: d.payment_frequency || "",
@@ -1511,7 +1511,7 @@ export default function App() {
   }));
 
   const SCHEDULES = rawSchedules.map(d => ({
-    id: d.id, docId: d.id, contract: d.contract_id || "", dueDate: fmtDate(d.due_date),
+    id: d.id, docId: d.doc_id || d.id, contract: d.contract_id || "", dueDate: fmtDate(d.due_date),
     type: d.payment_type || "", payment: fmtCurr(d.payment_amount),
     status: d.status || "", direction: d.direction_from_company || "", fee_id: d.fee_id || "",
     party_id: d.party_id || "", period_number: d.period_number != null ? String(d.period_number) : "",
@@ -1522,7 +1522,7 @@ export default function App() {
   }));
 
   const FEES_DATA = rawFees.map(d => ({
-    id: d.id, docId: d.id, name: d.fee_name || "", fee_type: d.fee_type || "", method: d.calculation_method || "",
+    id: d.id, docId: d.doc_id || d.id, name: d.fee_name || "", fee_type: d.fee_type || "", method: d.calculation_method || "",
     rate: d.default_rate || "", fee_charge_at: d.fee_charge_at || "", fee_frequency: d.fee_frequency || "",
     description: d.description || "",
   }));

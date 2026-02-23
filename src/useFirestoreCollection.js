@@ -23,6 +23,7 @@ export function useFirestoreCollection(collectionPath) {
       ref,
       (snapshot) => {
         const docs = snapshot.docs.map((doc) => ({
+          doc_id: doc.id,
           id: doc.id,
           ...doc.data(),
         }));
