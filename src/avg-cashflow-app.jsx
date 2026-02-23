@@ -140,13 +140,20 @@ const av = (name, isDark) => isDark
 
 const badge = (status, isDark) => ({
   Active: [isDark ? "rgba(52,211,153,0.15)" : "#ECFDF5", isDark ? "#34D399" : "#059669", isDark ? "rgba(52,211,153,0.3)" : "#A7F3D0"],
+  Open: [isDark ? "rgba(96,165,250,0.15)" : "#EFF6FF", isDark ? "#60A5FA" : "#2563EB", isDark ? "rgba(96,165,250,0.3)" : "#BFDBFE"],
   Closed: [isDark ? "rgba(255,255,255,0.07)" : "#F9FAFB", isDark ? "rgba(255,255,255,0.4)" : "#6B7280", isDark ? "rgba(255,255,255,0.12)" : "#E5E7EB"],
   Due: [isDark ? "rgba(251,191,36,0.15)" : "#FFFBEB", isDark ? "#FBBF24" : "#D97706", isDark ? "rgba(251,191,36,0.3)" : "#FDE68A"],
   Paid: [isDark ? "rgba(52,211,153,0.15)" : "#ECFDF5", isDark ? "#34D399" : "#059669", isDark ? "rgba(52,211,153,0.3)" : "#A7F3D0"],
   Missed: [isDark ? "rgba(248,113,113,0.15)" : "#FEF2F2", isDark ? "#F87171" : "#DC2626", isDark ? "rgba(248,113,113,0.3)" : "#FECACA"],
+  Overdue: [isDark ? "rgba(249,115,22,0.15)" : "#FFF7ED", isDark ? "#FB923C" : "#C2410C", isDark ? "rgba(249,115,22,0.3)" : "#FED7AA"],
+  Pending: [isDark ? "rgba(167,139,250,0.15)" : "#F5F3FF", isDark ? "#A78BFA" : "#7C3AED", isDark ? "rgba(167,139,250,0.3)" : "#DDD6FE"],
+  Partial: [isDark ? "rgba(56,189,248,0.15)" : "#F0F9FF", isDark ? "#38BDF8" : "#0284C7", isDark ? "rgba(56,189,248,0.3)" : "#BAE6FD"],
+  Cancelled: [isDark ? "rgba(244,114,182,0.15)" : "#FDF2F8", isDark ? "#F472B6" : "#DB2777", isDark ? "rgba(244,114,182,0.3)" : "#FBCFE8"],
+  Waived: [isDark ? "rgba(148,163,184,0.15)" : "#F8FAFC", isDark ? "#94A3B8" : "#475569", isDark ? "rgba(148,163,184,0.3)" : "#CBD5E1"],
+  Scheduled: [isDark ? "rgba(45,212,191,0.15)" : "#F0FDFA", isDark ? "#2DD4BF" : "#0D9488", isDark ? "rgba(45,212,191,0.3)" : "#99F6E4"],
   Investor: [isDark ? "rgba(52,211,153,0.15)" : "#ECFDF5", isDark ? "#34D399" : "#059669", isDark ? "rgba(52,211,153,0.3)" : "#A7F3D0"],
   Borrower: [isDark ? "rgba(251,146,60,0.15)" : "#FFF7ED", isDark ? "#FB923C" : "#C2410C", isDark ? "rgba(251,146,60,0.3)" : "#FED7AA"],
-})[status] || ["transparent", "#888", "#ccc"];
+})[status] || [isDark ? "rgba(148,163,184,0.1)" : "#F1F5F9", isDark ? "#94A3B8" : "#64748B", isDark ? "rgba(148,163,184,0.2)" : "#CBD5E1"];
 
 const Bdg = ({ status, isDark }) => {
   const [bg, color, border] = badge(status, isDark);
