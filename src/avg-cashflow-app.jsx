@@ -565,7 +565,7 @@ function PageParties({ t, isDark, PARTIES = [], collectionPath = "", DIMENSIONS 
   </>);
 }
 
-function PageContracts({ t, isDark, CONTRACTS = [], PROJECTS = [], PARTIES = [], DIMENSIONS = [], collectionPath = "" }) {
+function PageContracts({ t, isDark, CONTRACTS = [], PROJECTS = [], PARTIES = [], DIMENSIONS = [], collectionPath = "", schedulePath = "" }) {
   const [hov, setHov] = useState(null); const [sel, setSel] = useState(new Set());
   const [modal, setModal] = useState({ open: false, mode: "add", data: {} });
   const [delT, setDelT] = useState(null);
@@ -607,6 +607,55 @@ function PageContracts({ t, isDark, CONTRACTS = [], PROJECTS = [], PARTIES = [],
       }
     } catch (err) { console.error("Save contract error:", err); }
     close();
+  };
+  const handleGenerate = async () => {
+    if (sel.size === 0) return;
+    const selected = CONTRACTS.filter(c => sel.has(c.id));
+    const parseNum = v => Number(String(v).replace(/[^0-9.-]/g, "")) || 0;
+    const freqMonths = { Monthly: 1, Quarterly: 3, "Semi-Annual": 6, Annual: 12, "At Maturity": 0 };
+    const count = selected.reduce((total, c) => {
+      const months = freqMonths[c.freq] || 0;
+      const term = parseInt(c.term_months, 10) || 0;
+      return total + (months > 0 && term > 0 ? Math.ceil(term / months) : (c.freq === "At Maturity" ? 1 : 0));
+    }, 0);
+    if (!window.confirm(`Generate ${count} payment schedule(s) for ${selected.length} contract(s)?`)) return;
+    try {
+      const entries = [];
+      for (const c of selected) {
+        const sd = c.start_date ? new Date(c.start_date) : null;
+        if (!sd || isNaN(sd)) continue;
+        const months = freqMonths[c.freq] || 0;
+        const term = parseInt(c.term_months, 10) || 0;
+        const amt = parseNum(c.amount);
+        const rate = parseNum(c.rate);
+        const periods = months > 0 && term > 0 ? Math.ceil(term / months) : (c.freq === "At Maturity" ? 1 : 0);
+        for (let i = 0; i < periods; i++) {
+          const due = new Date(sd);
+          if (c.freq === "At Maturity" && c.maturity_date) { const md = new Date(c.maturity_date); due.setTime(md.getTime()); }
+          else { due.setMonth(due.getMonth() + months * (i + 1)); }
+          const interestAmt = months > 0 ? (amt * (rate / 100) * months / 12) : (amt * (rate / 100) * term / 12);
+          entries.push({
+            contract_id: c.id,
+            project_id: c.project_id || "",
+            party_id: "",
+            due_date: due.toISOString().slice(0, 10),
+            payment_type: "Interest",
+            direction_from_company: c.type === "DEPOSIT" ? "OUT" : "IN",
+            period_number: i + 1,
+            principal_amount: null,
+            signed_payment_amount: Math.round(interestAmt * 100) / 100,
+            fee_id: null,
+            linked_schedule_id: null,
+            status: "Due",
+            notes: `Auto-generated from ${c.id}`,
+            created_at: serverTimestamp(),
+          });
+        }
+      }
+      await Promise.all(entries.map(e => addDoc(collection(db, schedulePath), e)));
+      setSel(new Set());
+      window.alert(`Successfully generated ${entries.length} payment schedule(s).`);
+    } catch (err) { console.error("Generate schedules error:", err); window.alert("Error generating schedules. Check console."); }
   };
   const setF = (k, v) => setModal(m => {
     const next = { ...m, data: { ...m.data, [k]: v } };
@@ -672,7 +721,7 @@ function PageContracts({ t, isDark, CONTRACTS = [], PROJECTS = [], PARTIES = [],
   return (<>
     <div style={{ marginBottom: 28, display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}><div><h1 style={{ fontFamily: t.titleFont, fontWeight: t.titleWeight, fontSize: t.titleSize, color: isDark ? "#fff" : "#1C1917", letterSpacing: t.titleTracking, lineHeight: 1, marginBottom: 6 }}>Contracts</h1><p style={{ fontSize: 13.5, color: t.textMuted }}>Manage investment contracts</p></div>
       <div style={{ display: "flex", gap: 10 }}>
-        <button className="success-btn" disabled={sel.size === 0} style={{ background: t.successGrad, color: "#fff", padding: "11px 20px", borderRadius: 11, fontSize: 13, fontWeight: 600, boxShadow: `0 4px 16px ${t.successShadow}`, display: "flex", alignItems: "center", gap: 6, opacity: sel.size === 0 ? 0.45 : 1 }}>▤ Generate{sel.size > 0 ? ` (${sel.size})` : ""}</button>
+        <button className="success-btn" onClick={handleGenerate} disabled={sel.size === 0} style={{ background: t.successGrad, color: "#fff", padding: "11px 20px", borderRadius: 11, fontSize: 13, fontWeight: 600, boxShadow: `0 4px 16px ${t.successShadow}`, display: "flex", alignItems: "center", gap: 6, opacity: sel.size === 0 ? 0.45 : 1 }}>▤ Generate{sel.size > 0 ? ` (${sel.size})` : ""}</button>
         <button className="primary-btn" onClick={openAdd} style={{ background: t.accentGrad, color: "#fff", padding: "11px 22px", borderRadius: 11, fontSize: 13.5, fontWeight: 600, boxShadow: `0 4px 16px ${t.accentShadow}`, display: "flex", alignItems: "center", gap: 7 }}><span style={{ fontSize: 18, lineHeight: 1 }}>+</span> New Contract</button>
       </div>
     </div>
@@ -1215,7 +1264,7 @@ export default function App() {
     "Dashboard": <PageDashboard t={t} isDark={isDark} PROJECTS={PROJECTS} CONTRACTS={CONTRACTS} PARTIES={PARTIES} SCHEDULES={SCHEDULES} MONTHLY={MONTHLY} />,
     "Projects": <PageProjects t={t} isDark={isDark} PROJECTS={PROJECTS} FEES_DATA={FEES_DATA} collectionPath={COLLECTION_PATHS.projects} />,
     "Parties": <PageParties t={t} isDark={isDark} PARTIES={PARTIES} collectionPath={COLLECTION_PATHS.parties} DIMENSIONS={DIMENSIONS} />,
-    "Contracts": <PageContracts t={t} isDark={isDark} CONTRACTS={CONTRACTS} PROJECTS={PROJECTS} PARTIES={PARTIES} DIMENSIONS={DIMENSIONS} collectionPath={COLLECTION_PATHS.contracts} />,
+    "Contracts": <PageContracts t={t} isDark={isDark} CONTRACTS={CONTRACTS} PROJECTS={PROJECTS} PARTIES={PARTIES} DIMENSIONS={DIMENSIONS} collectionPath={COLLECTION_PATHS.contracts} schedulePath={COLLECTION_PATHS.paymentSchedules} />,
     "Payment Schedule": <PageSchedule t={t} isDark={isDark} SCHEDULES={SCHEDULES} CONTRACTS={CONTRACTS} DIMENSIONS={DIMENSIONS} FEES_DATA={FEES_DATA} collectionPath={COLLECTION_PATHS.paymentSchedules} />,
     "Payments": <PagePayments t={t} isDark={isDark} PAYMENTS={PAYMENTS} />,
     "Fees": <PageFees t={t} isDark={isDark} FEES_DATA={FEES_DATA} DIMENSIONS={DIMENSIONS} collectionPath={COLLECTION_PATHS.fees} />,
