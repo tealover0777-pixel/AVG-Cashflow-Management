@@ -565,7 +565,7 @@ function PageParties({ t, isDark, PARTIES = [], collectionPath = "", DIMENSIONS 
   </>);
 }
 
-function PageContracts({ t, isDark, CONTRACTS = [], PROJECTS = [], PARTIES = [], DIMENSIONS = [] }) {
+function PageContracts({ t, isDark, CONTRACTS = [], PROJECTS = [], PARTIES = [], DIMENSIONS = [], collectionPath = "" }) {
   const [hov, setHov] = useState(null); const [sel, setSel] = useState(new Set());
   const [modal, setModal] = useState({ open: false, mode: "add", data: {} });
   const [delT, setDelT] = useState(null);
@@ -582,6 +582,32 @@ function PageContracts({ t, isDark, CONTRACTS = [], PROJECTS = [], PARTIES = [],
   };
   const openEdit = r => setModal({ open: true, mode: "edit", data: { ...r } });
   const close = () => setModal(m => ({ ...m, open: false }));
+  const handleSaveContract = async () => {
+    const d = modal.data;
+    const payload = {
+      project_name: d.project || "",
+      project_id: d.project_id || "",
+      counterparty_name: d.party || "",
+      contract_type: d.type || "",
+      amount: d.amount ? Number(String(d.amount).replace(/[^0-9.-]/g, "")) || null : null,
+      interest_rate: d.rate ? Number(String(d.rate).replace(/[^0-9.-]/g, "")) || null : null,
+      payment_frequency: d.freq || "",
+      term_months: d.term_months ? Number(d.term_months) : null,
+      calculator: d.calculator || "",
+      start_date: d.start_date || null,
+      maturity_date: d.maturity_date || null,
+      status: d.status || "",
+      updated_at: serverTimestamp(),
+    };
+    try {
+      if (modal.mode === "edit" && d.docId) {
+        await updateDoc(doc(db, collectionPath, d.docId), payload);
+      } else {
+        await addDoc(collection(db, collectionPath), { ...payload, created_at: serverTimestamp() });
+      }
+    } catch (err) { console.error("Save contract error:", err); }
+    close();
+  };
   const setF = (k, v) => setModal(m => {
     const next = { ...m, data: { ...m.data, [k]: v } };
     // When project changes in "add" mode, default start/maturity to project dates
@@ -683,7 +709,7 @@ function PageContracts({ t, isDark, CONTRACTS = [], PROJECTS = [], PARTIES = [],
       })}
     </div>
     <div style={{ marginTop: 16, display: "flex", justifyContent: "space-between", alignItems: "center" }}><span style={{ fontSize: 12, color: t.textMuted }}>Showing <strong style={{ color: t.textSecondary }}>{paginated.length}</strong> of <strong style={{ color: t.textSecondary }}>{sorted.length}</strong> contracts{sel.size > 0 && <span style={{ color: t.accent, marginLeft: 8 }}>· {sel.size} selected</span>}</span><Pagination totalPages={totalPages} currentPage={page} onPageChange={setPage} t={t} /></div>
-    <Modal open={modal.open} onClose={close} title={modal.mode === "add" ? "New Contract" : "Edit Contract"} onSave={close} width={620} t={t} isDark={isDark}>
+    <Modal open={modal.open} onClose={close} title={modal.mode === "add" ? "New Contract" : "Edit Contract"} onSave={handleSaveContract} width={620} t={t} isDark={isDark}>
       {modal.mode === "edit" && (
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
           <FF label="Contract ID" t={t}>
@@ -1189,7 +1215,7 @@ export default function App() {
     "Dashboard": <PageDashboard t={t} isDark={isDark} PROJECTS={PROJECTS} CONTRACTS={CONTRACTS} PARTIES={PARTIES} SCHEDULES={SCHEDULES} MONTHLY={MONTHLY} />,
     "Projects": <PageProjects t={t} isDark={isDark} PROJECTS={PROJECTS} FEES_DATA={FEES_DATA} collectionPath={COLLECTION_PATHS.projects} />,
     "Parties": <PageParties t={t} isDark={isDark} PARTIES={PARTIES} collectionPath={COLLECTION_PATHS.parties} DIMENSIONS={DIMENSIONS} />,
-    "Contracts": <PageContracts t={t} isDark={isDark} CONTRACTS={CONTRACTS} PROJECTS={PROJECTS} PARTIES={PARTIES} DIMENSIONS={DIMENSIONS} />,
+    "Contracts": <PageContracts t={t} isDark={isDark} CONTRACTS={CONTRACTS} PROJECTS={PROJECTS} PARTIES={PARTIES} DIMENSIONS={DIMENSIONS} collectionPath={COLLECTION_PATHS.contracts} />,
     "Payment Schedule": <PageSchedule t={t} isDark={isDark} SCHEDULES={SCHEDULES} CONTRACTS={CONTRACTS} DIMENSIONS={DIMENSIONS} FEES_DATA={FEES_DATA} collectionPath={COLLECTION_PATHS.paymentSchedules} />,
     "Payments": <PagePayments t={t} isDark={isDark} PAYMENTS={PAYMENTS} />,
     "Fees": <PageFees t={t} isDark={isDark} FEES_DATA={FEES_DATA} DIMENSIONS={DIMENSIONS} collectionPath={COLLECTION_PATHS.fees} />,
