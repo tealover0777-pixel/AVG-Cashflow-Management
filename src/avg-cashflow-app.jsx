@@ -449,7 +449,10 @@ function PageProjects({ t, isDark, PROJECTS = [], FEES_DATA = [], collectionPath
   </>);
 }
 
-function PageParties({ t, isDark, PARTIES = [], collectionPath = "" }) {
+function PageParties({ t, isDark, PARTIES = [], collectionPath = "", DIMENSIONS = [] }) {
+  const roleOpts = (DIMENSIONS.find(d => d.name === "Role") || {}).items || ["Investor", "Borrower"];
+  const partyTypeOpts = (DIMENSIONS.find(d => d.name === "PartyType") || {}).items || ["Individual", "Company", "Trust", "Partnership"];
+  const investorTypeOpts = (DIMENSIONS.find(d => d.name === "InvestorType") || {}).items || ["Fixed", "Equity", "Both"];
   const [hov, setHov] = useState(null); const [chip, setChip] = useState("All");
   const [modal, setModal] = useState({ open: false, mode: "add", data: {} });
   const [delT, setDelT] = useState(null);
@@ -537,11 +540,11 @@ function PageParties({ t, isDark, PARTIES = [], collectionPath = "" }) {
       )}
       <FF label="Full Name" t={t}><FIn value={modal.data.name || ""} onChange={e => setF("name", e.target.value)} placeholder="e.g. Pao Fu Chen" t={t} /></FF>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
-        <FF label="Party Type" t={t}><FSel value={modal.data.type} onChange={e => setF("type", e.target.value)} options={["Individual", "Company", "Trust", "Partnership"]} t={t} /></FF>
-        <FF label="Role" t={t}><FSel value={modal.data.role} onChange={e => setF("role", e.target.value)} options={["Investor", "Borrower"]} t={t} /></FF>
+        <FF label="Party Type" t={t}><FSel value={modal.data.type || "Individual"} onChange={e => setF("type", e.target.value)} options={partyTypeOpts} t={t} /></FF>
+        <FF label="Role" t={t}><FSel value={modal.data.role || "Investor"} onChange={e => setF("role", e.target.value)} options={roleOpts} t={t} /></FF>
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
-        <FF label="Investor Type" t={t}><FSel value={modal.data.investor_type} onChange={e => setF("investor_type", e.target.value)} options={["Fixed", "Equity", "Both"]} t={t} /></FF>
+        <FF label="Investor Type" t={t}><FSel value={modal.data.investor_type || "Fixed"} onChange={e => setF("investor_type", e.target.value)} options={investorTypeOpts} t={t} /></FF>
         <FF label="Tax ID" t={t}><FIn value={modal.data.tax_id || ""} onChange={e => setF("tax_id", e.target.value)} placeholder="e.g. 123-45-6789" t={t} /></FF>
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
@@ -1144,7 +1147,7 @@ export default function App() {
   const pageMap = {
     "Dashboard": <PageDashboard t={t} isDark={isDark} PROJECTS={PROJECTS} CONTRACTS={CONTRACTS} PARTIES={PARTIES} SCHEDULES={SCHEDULES} MONTHLY={MONTHLY} />,
     "Projects": <PageProjects t={t} isDark={isDark} PROJECTS={PROJECTS} FEES_DATA={FEES_DATA} collectionPath={COLLECTION_PATHS.projects} />,
-    "Parties": <PageParties t={t} isDark={isDark} PARTIES={PARTIES} collectionPath={COLLECTION_PATHS.parties} />,
+    "Parties": <PageParties t={t} isDark={isDark} PARTIES={PARTIES} collectionPath={COLLECTION_PATHS.parties} DIMENSIONS={DIMENSIONS} />,
     "Contracts": <PageContracts t={t} isDark={isDark} CONTRACTS={CONTRACTS} PROJECTS={PROJECTS} PARTIES={PARTIES} DIMENSIONS={DIMENSIONS} />,
     "Payment Schedule": <PageSchedule t={t} isDark={isDark} SCHEDULES={SCHEDULES} CONTRACTS={CONTRACTS} DIMENSIONS={DIMENSIONS} FEES_DATA={FEES_DATA} collectionPath={COLLECTION_PATHS.paymentSchedules} />,
     "Payments": <PagePayments t={t} isDark={isDark} PAYMENTS={PAYMENTS} />,
