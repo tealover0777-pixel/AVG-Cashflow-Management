@@ -746,7 +746,7 @@ function PageContracts({ t, isDark, CONTRACTS = [], PROJECTS = [], PARTIES = [],
     if (!window.confirm(`Generate payment schedules for ${selected.length} contract(s)?`)) return;
 
     // --- ID Generation Logic ---
-    let maxIdNum = 10000;
+    let maxIdNum = 9999;
     SCHEDULES.forEach(s => {
       if (s.id && s.id.startsWith("S")) {
         const num = parseInt(s.id.substring(1), 10);
@@ -1063,7 +1063,7 @@ function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = [], DIMENSIONS = 
   const [hov, setHov] = useState(null); const [sel, setSel] = useState(new Set()); const [chip, setChip] = useState("All");
   const [modal, setModal] = useState({ open: false, mode: "add", data: {} });
   const [delT, setDelT] = useState(null);
-  const [sort, setSort] = useState({ key: null, direction: "asc" });
+  const [sort, setSort] = useState({ key: "id", direction: "asc" });
   const [page, setPage] = useState(1);
   const onSort = k => { setSort(s => ({ key: k, direction: s.key === k && s.direction === "asc" ? "desc" : "asc" })); setPage(1); };
   const openAdd = () => setModal({ open: true, mode: "add", data: { contract: "C10000", dueDate: "", type: "Interest", payment: "", status: "Due", notes: "" } });
@@ -1466,6 +1466,13 @@ export default function App() {
   const firstError = e1 || e2 || e3 || e4 || e5 || e6 || e7;
 
   // ── Normalize Firestore field names → what UI components expect ──
+  const fmtCurr = v => {
+    if (v == null || v === "") return "";
+    const n = Number(String(v).replace(/[^0-9.-]/g, ""));
+    if (isNaN(n)) return String(v);
+    return "$" + n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  };
+
   const fmtDate = v => {
     if (!v) return "";
     if (v.seconds) return new Date(v.seconds * 1000).toISOString().slice(0, 10);
@@ -1482,7 +1489,7 @@ export default function App() {
     created: fmtDate(d.created_at),
     startDate: fmtDate(d.start_date),
     endDate: fmtDate(d.end_date),
-    valuation: d.valuation_amount != null ? String(d.valuation_amount) : "",
+    valuation: fmtCurr(d.valuation_amount),
     feeIds: typeof d.fees === "string" && d.fees ? d.fees.split(",").map(s => s.trim()) : [],
   }));
 
@@ -1496,7 +1503,7 @@ export default function App() {
   const CONTRACTS = rawContracts.map(d => ({
     id: d.id, docId: d.id, project: d.project_name || d.project_id || "", project_id: d.project_id || "",
     party: d.counterparty_name || d.counterparty_id || "",
-    type: d.contract_type || "", amount: d.amount ? `$${Number(d.amount).toLocaleString()}` : "",
+    type: d.contract_type || "", amount: fmtCurr(d.amount),
     rate: d.interest_rate ? `${d.interest_rate}%` : "", freq: d.payment_frequency || "",
     status: d.status || "", calculator: d.calculator || "", term_months: d.term_months != null ? String(d.term_months) : "",
     start_date: fmtDate(d.start_date), maturity_date: fmtDate(d.maturity_date),
@@ -1505,12 +1512,12 @@ export default function App() {
 
   const SCHEDULES = rawSchedules.map(d => ({
     id: d.id, docId: d.id, contract: d.contract_id || "", dueDate: fmtDate(d.due_date),
-    type: d.payment_type || "", payment: d.payment_amount ? `$${Number(d.payment_amount).toLocaleString()}` : "",
+    type: d.payment_type || "", payment: fmtCurr(d.payment_amount),
     status: d.status || "", direction: d.direction_from_company || "", fee_id: d.fee_id || "",
     party_id: d.party_id || "", period_number: d.period_number != null ? String(d.period_number) : "",
-    principal_amount: d.principal_amount != null ? `$${Number(d.principal_amount).toLocaleString()}` : "",
+    principal_amount: fmtCurr(d.principal_amount),
     project_id: d.project_id || "",
-    signed_payment_amount: d.signed_payment_amount != null ? `$${Number(d.signed_payment_amount).toLocaleString()}` : "",
+    signed_payment_amount: fmtCurr(d.signed_payment_amount),
     linked: d.linked_schedule_id || "", notes: d.notes || "",
   }));
 
