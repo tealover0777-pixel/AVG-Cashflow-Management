@@ -669,7 +669,7 @@ function PageParties({ t, isDark, PARTIES = [], collectionPath = "", DIMENSIONS 
   </>);
 }
 
-function PageContracts({ t, isDark, CONTRACTS = [], PROJECTS = [], PARTIES = [], DIMENSIONS = [], FEES_DATA = [], collectionPath = "", schedulePath = "" }) {
+function PageContracts({ t, isDark, CONTRACTS = [], PROJECTS = [], PARTIES = [], DIMENSIONS = [], FEES_DATA = [], SCHEDULES = [], collectionPath = "", schedulePath = "" }) {
   const [hov, setHov] = useState(null); const [sel, setSel] = useState(new Set());
   const [modal, setModal] = useState({ open: false, mode: "add", data: {} });
   const [delT, setDelT] = useState(null);
@@ -745,6 +745,16 @@ function PageContracts({ t, isDark, CONTRACTS = [], PROJECTS = [], PARTIES = [],
 
     if (!window.confirm(`Generate payment schedules for ${selected.length} contract(s)?`)) return;
 
+    // --- ID Generation Logic ---
+    let maxIdNum = 10000;
+    SCHEDULES.forEach(s => {
+      if (s.id && s.id.startsWith("S")) {
+        const num = parseInt(s.id.substring(1), 10);
+        if (!isNaN(num) && num > maxIdNum) maxIdNum = num;
+      }
+    });
+    let currentIdNum = maxIdNum + 1;
+
     try {
       const entries = [];
       const parseNum = v => Number(String(v).replace(/[^0-9.-]/g, "")) || 0;
@@ -763,7 +773,9 @@ function PageContracts({ t, isDark, CONTRACTS = [], PROJECTS = [], PARTIES = [],
         // --- 1. Initial Deposit/Received ---
         const initialPaymentType = isDisbursement ? PT_BOR_RECEIVED : PT_DEPOSIT;
         const ds1 = getDirectionAndSigned(initialPaymentType, principal);
+        const id1 = `S${currentIdNum++}`;
         entries.push({
+          id: id1,
           contract_id: c.id, project_id: c.project_id || "", party_id: "",
           due_date: c.start_date, payment_type: initialPaymentType, fee_id: "",
           period_number: 1, principal_amount: principal, payment_amount: principal,
@@ -794,7 +806,9 @@ function PageContracts({ t, isDark, CONTRACTS = [], PROJECTS = [], PARTIES = [],
           if (fInfo && (!fInfo.frequency || fInfo.frequency === "None")) {
             const feeAmt = feeCalculator_ACT360_30360(fInfo, principal, startDate, startDate, startDate);
             const dsf = getDirectionAndSigned(PT_FEE, feeAmt);
+            const idF = `S${currentIdNum++}`;
             entries.push({
+              id: idF,
               contract_id: c.id, project_id: c.project_id || "", party_id: "",
               due_date: c.start_date, payment_type: PT_FEE, fee_id: fid,
               period_number: 1, principal_amount: principal, payment_amount: feeAmt,
@@ -841,7 +855,9 @@ function PageContracts({ t, isDark, CONTRACTS = [], PROJECTS = [], PARTIES = [],
 
           const interestPT = isDisbursement ? PT_BOR_INTEREST : PT_INTEREST;
           const ds2 = getDirectionAndSigned(interestPT, interest);
+          const idI = `S${currentIdNum++}`;
           entries.push({
+            id: idI,
             contract_id: c.id, project_id: c.project_id || "", party_id: "",
             due_date: pEnd.toISOString().slice(0, 10), payment_type: interestPT, fee_id: "",
             period_number: periodNum, principal_amount: principal, payment_amount: Math.round(interest * 100) / 100,
@@ -865,7 +881,9 @@ function PageContracts({ t, isDark, CONTRACTS = [], PROJECTS = [], PARTIES = [],
               if (should) {
                 const feeAmt = feeCalculator_ACT360_30360(fInfo, principal, pStart, calcEnd, startDate);
                 const dsf2 = getDirectionAndSigned(PT_FEE, feeAmt);
+                const idRF = `S${currentIdNum++}`;
                 entries.push({
+                  id: idRF,
                   contract_id: c.id, project_id: c.project_id || "", party_id: "",
                   due_date: pEnd.toISOString().slice(0, 10), payment_type: PT_FEE, fee_id: fid,
                   period_number: periodNum, principal_amount: principal, payment_amount: Math.round(feeAmt * 100) / 100,
@@ -883,7 +901,9 @@ function PageContracts({ t, isDark, CONTRACTS = [], PROJECTS = [], PARTIES = [],
         // --- 3. Principal Repayment ---
         const repaymentPT = isDisbursement ? PT_BOR_PAYMENT : PT_INV_REPAYMENT;
         const ds3 = getDirectionAndSigned(repaymentPT, principal);
+        const idR = `S${currentIdNum++}`;
         entries.push({
+          id: idR,
           contract_id: c.id, project_id: c.project_id || "", party_id: "",
           due_date: c.maturity_date, payment_type: repaymentPT, fee_id: "",
           period_number: periodNum, principal_amount: principal, payment_amount: principal,
@@ -1511,7 +1531,7 @@ export default function App() {
     "Dashboard": <PageDashboard t={t} isDark={isDark} PROJECTS={PROJECTS} CONTRACTS={CONTRACTS} PARTIES={PARTIES} SCHEDULES={SCHEDULES} MONTHLY={MONTHLY} />,
     "Projects": <PageProjects t={t} isDark={isDark} PROJECTS={PROJECTS} FEES_DATA={FEES_DATA} collectionPath={COLLECTION_PATHS.projects} />,
     "Parties": <PageParties t={t} isDark={isDark} PARTIES={PARTIES} collectionPath={COLLECTION_PATHS.parties} DIMENSIONS={DIMENSIONS} />,
-    "Contracts": <PageContracts t={t} isDark={isDark} CONTRACTS={CONTRACTS} PROJECTS={PROJECTS} PARTIES={PARTIES} DIMENSIONS={DIMENSIONS} FEES_DATA={FEES_DATA} collectionPath={COLLECTION_PATHS.contracts} schedulePath={COLLECTION_PATHS.paymentSchedules} />,
+    "Contracts": <PageContracts t={t} isDark={isDark} CONTRACTS={CONTRACTS} PROJECTS={PROJECTS} PARTIES={PARTIES} DIMENSIONS={DIMENSIONS} FEES_DATA={FEES_DATA} SCHEDULES={SCHEDULES} collectionPath={COLLECTION_PATHS.contracts} schedulePath={COLLECTION_PATHS.paymentSchedules} />,
     "Payment Schedule": <PageSchedule t={t} isDark={isDark} SCHEDULES={SCHEDULES} CONTRACTS={CONTRACTS} DIMENSIONS={DIMENSIONS} FEES_DATA={FEES_DATA} collectionPath={COLLECTION_PATHS.paymentSchedules} />,
     "Payments": <PagePayments t={t} isDark={isDark} PAYMENTS={PAYMENTS} />,
     "Fees": <PageFees t={t} isDark={isDark} FEES_DATA={FEES_DATA} DIMENSIONS={DIMENSIONS} collectionPath={COLLECTION_PATHS.fees} />,
