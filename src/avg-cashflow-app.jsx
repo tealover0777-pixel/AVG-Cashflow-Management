@@ -5,7 +5,7 @@
 import { useState, useRef } from "react";
 import { createRoot } from "react-dom/client";
 import { db, TENANT_ID } from "./firebase";
-import { collection, doc, addDoc, updateDoc, serverTimestamp } from "firebase/firestore";
+import { collection, doc, addDoc, updateDoc, deleteDoc, serverTimestamp } from "firebase/firestore";
 import { useFirestoreCollection } from "./useFirestoreCollection";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -750,6 +750,29 @@ function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = [], DIMENSIONS = 
     }
     close();
   };
+  const [bulkStatus, setBulkStatus] = useState("");
+  const handleBulkStatus = async (status) => {
+    if (!status || sel.size === 0) return;
+    try {
+      await Promise.all([...sel].map(id => {
+        const s = SCHEDULES.find(s => s.id === id);
+        if (s && s.docId) return updateDoc(doc(db, collectionPath, s.docId), { status, updated_at: serverTimestamp() });
+        return Promise.resolve();
+      }));
+      setSel(new Set()); setBulkStatus("");
+    } catch (err) { console.error("Bulk status update error:", err); }
+  };
+  const handleBulkDelete = async () => {
+    if (sel.size === 0) return;
+    try {
+      await Promise.all([...sel].map(id => {
+        const s = SCHEDULES.find(s => s.id === id);
+        if (s && s.docId) return deleteDoc(doc(db, collectionPath, s.docId));
+        return Promise.resolve();
+      }));
+      setSel(new Set());
+    } catch (err) { console.error("Bulk delete error:", err); }
+  };
   const cols = [{ l: "", w: "36px" }, { l: "ID", w: "80px", k: "id" }, { l: "LINKED", w: "80px", k: "linked" }, { l: "CONTRACT", w: "85px", k: "contract" }, { l: "PROJECT ID", w: "85px", k: "project_id" }, { l: "PARTY ID", w: "80px", k: "party_id" }, { l: "PERIOD", w: "58px", k: "period_number" }, { l: "DUE DATE", w: "98px", k: "dueDate" }, { l: "TYPE", w: "minmax(60px, 0.33fr)", k: "type" }, { l: "FEE", w: "260px", k: "fee_id" }, { l: "DIR", w: "50px", k: "direction" }, { l: "SIGNED AMT", w: "110px", k: "signed_payment_amount" }, { l: "PRINCIPAL", w: "110px", k: "principal_amount" }, { l: "STATUS", w: "90px", k: "status" }, { l: "ACTIONS", w: "76px" }];
   const { gridTemplate, headerRef, onResizeStart } = useResizableColumns(cols);
   const [colFilters, setColFilters] = useState({});
@@ -762,7 +785,16 @@ function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = [], DIMENSIONS = 
   return (<>
     <div style={{ marginBottom: 28, display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}><div><h1 style={{ fontFamily: t.titleFont, fontWeight: t.titleWeight, fontSize: t.titleSize, color: isDark ? "#fff" : "#1C1917", letterSpacing: t.titleTracking, lineHeight: 1, marginBottom: 6 }}>Payment Schedule</h1><p style={{ fontSize: 13.5, color: t.textMuted }}>Manage payment schedules and statuses</p></div>
       <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-        {sel.size > 0 && <div style={{ display: "flex", gap: 8, alignItems: "center", background: t.bulkBg, padding: "8px 14px", borderRadius: 10, border: `1px solid ${t.bulkBorder}` }}><span style={{ fontSize: 12, fontWeight: 600, color: t.textSecondary }}>{sel.size} selected · Mark as:</span>{["Paid", "Missed"].map(s => { const [bg, color, border] = badge(s, isDark); return <span key={s} style={{ fontSize: 11.5, fontWeight: 600, padding: "3px 10px", borderRadius: 20, background: bg, color, border: `1px solid ${border}`, cursor: "pointer" }}>{s}</span>; })}</div>}
+        {sel.size > 0 && <div style={{ display: "flex", gap: 8, alignItems: "center", background: isDark ? "rgba(255,255,255,0.04)" : "#F9FAFB", padding: "8px 14px", borderRadius: 10, border: `1px solid ${t.surfaceBorder}` }}>
+          <span style={{ fontSize: 12, fontWeight: 600, color: t.textSecondary }}>{sel.size} selected</span>
+          <select value={bulkStatus} onChange={e => setBulkStatus(e.target.value)} style={{ fontSize: 12, padding: "4px 8px", borderRadius: 7, border: `1px solid ${t.surfaceBorder}`, background: t.searchBg, color: t.searchText, cursor: "pointer" }}>
+            <option value="">Update status...</option>
+            {paymentStatusOpts.map(s => <option key={s} value={s}>{s}</option>)}
+          </select>
+          <button onClick={() => handleBulkStatus(bulkStatus)} disabled={!bulkStatus} style={{ fontSize: 12, fontWeight: 600, padding: "5px 12px", borderRadius: 8, background: bulkStatus ? t.accentGrad : (isDark ? "rgba(255,255,255,0.06)" : "#E5E7EB"), color: bulkStatus ? "#fff" : t.textMuted, border: "none", cursor: bulkStatus ? "pointer" : "default" }}>Apply</button>
+          <div style={{ width: 1, height: 20, background: t.surfaceBorder }} />
+          <button onClick={handleBulkDelete} style={{ fontSize: 12, fontWeight: 600, padding: "5px 12px", borderRadius: 8, background: isDark ? "rgba(248,113,113,0.15)" : "#FEF2F2", color: isDark ? "#F87171" : "#DC2626", border: `1px solid ${isDark ? "rgba(248,113,113,0.3)" : "#FECACA"}`, cursor: "pointer" }}>Delete ({sel.size})</button>
+        </div>}
         <button className="primary-btn" onClick={openAdd} style={{ background: t.accentGrad, color: "#fff", padding: "11px 22px", borderRadius: 11, fontSize: 13.5, fontWeight: 600, boxShadow: `0 4px 16px ${t.accentShadow}`, display: "flex", alignItems: "center", gap: 7 }}><span style={{ fontSize: 18, lineHeight: 1 }}>+</span> New Schedule</button>
       </div>
     </div>
