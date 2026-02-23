@@ -387,8 +387,8 @@ const FSel = ({ value, onChange, options, t }) => (
   </select>
 );
 
-const DelModal = ({ target, onClose, label, t, isDark }) => (
-  <Modal open={!!target} onClose={onClose} title="Confirm Delete" onSave={onClose} saveLabel="Delete" danger t={t} isDark={isDark}>
+const DelModal = ({ target, onClose, onConfirm, label, t, isDark }) => (
+  <Modal open={!!target} onClose={onClose} title="Confirm Delete" onSave={onConfirm} saveLabel="Delete" danger t={t} isDark={isDark}>
     <div style={{ display: "flex", flexDirection: "column", gap: 16, alignItems: "center", textAlign: "center", padding: "8px 0" }}>
       <div style={{ width: 52, height: 52, borderRadius: 14, background: isDark ? "rgba(248,113,113,0.15)" : "#FEF2F2", border: `1px solid ${isDark ? "rgba(248,113,113,0.25)" : "#FECACA"}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, color: isDark ? "#F87171" : "#DC2626" }}>⊗</div>
       <div>
@@ -486,6 +486,14 @@ function PageProjects({ t, isDark, PROJECTS = [], FEES_DATA = [], collectionPath
   const sorted = sortData(filtered, sort);
   const paginated = sorted.slice((page - 1) * 20, page * 20);
   const totalPages = Math.ceil(sorted.length / 20);
+  const handleDeleteProject = async () => {
+    if (!delT || !delT.docId) return;
+    try {
+      await deleteDoc(doc(db, COLLECTION_PATHS.projects, delT.docId));
+      setDelT(null);
+    } catch (err) { console.error("Delete project error:", err); }
+  };
+
   return (<>
     <div style={{ marginBottom: 28, display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}><div><h1 style={{ fontFamily: t.titleFont, fontWeight: t.titleWeight, fontSize: t.titleSize, color: isDark ? "#fff" : "#1C1917", letterSpacing: t.titleTracking, lineHeight: 1, marginBottom: 6 }}>Projects</h1><p style={{ fontSize: 13.5, color: t.textMuted }}>Manage your investment projects</p></div><button className="primary-btn" onClick={openAdd} style={{ background: t.accentGrad, color: "#fff", padding: "11px 22px", borderRadius: 11, fontSize: 13.5, fontWeight: 600, boxShadow: `0 4px 16px ${t.accentShadow}`, display: "flex", alignItems: "center", gap: 7 }}><span style={{ fontSize: 18, lineHeight: 1 }}>+</span> New Project</button></div>
     <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 16, marginBottom: 28 }}>
@@ -513,7 +521,7 @@ function PageProjects({ t, isDark, PROJECTS = [], FEES_DATA = [], collectionPath
               ? appliedFees.map(f => <span key={f.id} style={{ fontSize: 10.5, fontWeight: 600, padding: "2px 8px", borderRadius: 20, background: isDark ? "rgba(52,211,153,0.12)" : "#ECFDF5", color: isDark ? "#34D399" : "#059669", border: `1px solid ${isDark ? "rgba(52,211,153,0.25)" : "#A7F3D0"}`, whiteSpace: "nowrap" }}>{f.name}</span>)
               : <span style={{ color: isDark ? "rgba(255,255,255,0.15)" : "#D4D0CB", fontSize: 12 }}>—</span>}
           </div>
-          <ActBtns show={isHov} t={t} onEdit={() => openEdit(p)} onDel={() => setDelT({ id: p.id, name: p.name })} />
+          <ActBtns show={isHov} t={t} onEdit={() => openEdit(p)} onDel={() => setDelT({ id: p.id, name: p.name, docId: p.docId })} />
         </div>);
       })}
     </div>
@@ -556,7 +564,7 @@ function PageProjects({ t, isDark, PROJECTS = [], FEES_DATA = [], collectionPath
         </FF>
       )}
     </Modal>
-    <DelModal target={delT} onClose={() => setDelT(null)} label="This project" t={t} isDark={isDark} />
+    <DelModal target={delT} onClose={() => setDelT(null)} onConfirm={handleDeleteProject} label="This project" t={t} isDark={isDark} />
   </>);
 }
 
@@ -596,6 +604,14 @@ function PageParties({ t, isDark, PARTIES = [], collectionPath = "", DIMENSIONS 
       }
     } catch (err) { console.error("Save party error:", err); }
     close();
+  };
+
+  const handleDeleteParty = async () => {
+    if (!delT || !delT.docId) return;
+    try {
+      await deleteDoc(doc(db, collectionPath, delT.docId));
+      setDelT(null);
+    } catch (err) { console.error("Delete party error:", err); }
   };
   const [colFilters, setColFilters] = useState({});
   const setColFilter = (key, val) => { setColFilters(f => ({ ...f, [key]: val })); setPage(1); };
@@ -638,7 +654,7 @@ function PageParties({ t, isDark, PARTIES = [], collectionPath = "", DIMENSIONS 
           <div style={{ fontSize: 12, color: t.textMuted, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0 }}>{p.bank_information || <span style={{ color: isDark ? "rgba(255,255,255,0.12)" : "#D4D0CB" }}>—</span>}</div>
           <div style={{ fontFamily: t.mono, fontSize: 10.5, color: t.idText }}>{p.created_at || <span style={{ color: isDark ? "rgba(255,255,255,0.12)" : "#D4D0CB" }}>—</span>}</div>
           <div style={{ fontFamily: t.mono, fontSize: 10.5, color: t.idText }}>{p.updated_at || <span style={{ color: isDark ? "rgba(255,255,255,0.12)" : "#D4D0CB" }}>—</span>}</div>
-          <ActBtns show={isHov} t={t} onEdit={() => openEdit(p)} onDel={() => setDelT({ id: p.id, name: p.name })} />
+          <ActBtns show={isHov} t={t} onEdit={() => openEdit(p)} onDel={() => setDelT({ id: p.id, name: p.name, docId: p.docId })} />
         </div>);
       })}
     </div>
@@ -665,7 +681,7 @@ function PageParties({ t, isDark, PARTIES = [], collectionPath = "", DIMENSIONS 
       <FF label="Address" t={t}><FIn value={modal.data.address || ""} onChange={e => setF("address", e.target.value)} placeholder="Full address" t={t} /></FF>
       <FF label="Bank Information" t={t}><FIn value={modal.data.bank_information || ""} onChange={e => setF("bank_information", e.target.value)} placeholder="e.g. Citibank" t={t} /></FF>
     </Modal>
-    <DelModal target={delT} onClose={() => setDelT(null)} label="This party" t={t} isDark={isDark} />
+    <DelModal target={delT} onClose={() => setDelT(null)} onConfirm={handleDeleteParty} label="This party" t={t} isDark={isDark} />
   </>);
 }
 
@@ -742,6 +758,14 @@ function PageContracts({ t, isDark, CONTRACTS = [], PROJECTS = [], PARTIES = [],
       }
     } catch (err) { console.error("Save contract error:", err); }
     close();
+  };
+
+  const handleDeleteContract = async () => {
+    if (!delT || !delT.docId) return;
+    try {
+      await deleteDoc(doc(db, collectionPath, delT.docId));
+      setDelT(null);
+    } catch (err) { console.error("Delete contract error:", err); }
   };
   const handleGenerate = async () => {
     if (sel.size === 0) return;
@@ -1051,7 +1075,7 @@ function PageContracts({ t, isDark, CONTRACTS = [], PROJECTS = [], PARTIES = [],
           <div><Bdg status={c.status} isDark={isDark} /></div>
           <div style={{ fontFamily: t.mono, fontSize: 10.5, color: t.idText }}>{c.created_at || <span style={{ color: isDark ? "rgba(255,255,255,0.12)" : "#D4D0CB" }}>—</span>}</div>
           <div style={{ fontFamily: t.mono, fontSize: 10.5, color: t.idText }}>{c.updated_at || <span style={{ color: isDark ? "rgba(255,255,255,0.12)" : "#D4D0CB" }}>—</span>}</div>
-          <ActBtns show={isHov} t={t} onEdit={() => openEdit(c)} onDel={() => setDelT({ id: c.id, name: c.id })} />
+          <ActBtns show={isHov} t={t} onEdit={() => openEdit(c)} onDel={() => setDelT({ id: c.id, name: c.id, docId: c.docId })} />
         </div>);
       })}
     </div>
@@ -1085,7 +1109,7 @@ function PageContracts({ t, isDark, CONTRACTS = [], PROJECTS = [], PARTIES = [],
         <FF label="Maturity Date" t={t}><FIn value={modal.data.maturity_date || ""} onChange={e => setF("maturity_date", e.target.value)} t={t} type="date" /></FF>
       </div>
     </Modal>
-    <DelModal target={delT} onClose={() => setDelT(null)} label="This contract" t={t} isDark={isDark} />
+    <DelModal target={delT} onClose={() => setDelT(null)} onConfirm={handleDeleteContract} label="This contract" t={t} isDark={isDark} />
   </>);
 }
 
@@ -1129,6 +1153,14 @@ function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = [], DIMENSIONS = 
       console.error("Failed to save schedule:", err);
     }
     close();
+  };
+
+  const handleDeleteSchedule = async () => {
+    if (!delT || !delT.docId) return;
+    try {
+      await deleteDoc(doc(db, collectionPath, delT.docId));
+      setDelT(null);
+    } catch (err) { console.error("Delete schedule error:", err); }
   };
   const [bulkStatus, setBulkStatus] = useState("");
   const handleBulkStatus = async (status) => {
@@ -1217,7 +1249,7 @@ function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = [], DIMENSIONS = 
           </div>
           <div style={{ fontFamily: t.mono, fontSize: 11.5, color: t.textMuted }}>{s.principal_amount || dash}</div>
           <div><span style={{ fontSize: 11.5, fontWeight: 600, padding: "4px 11px", borderRadius: 20, background: bg, color, border: `1px solid ${border}` }}>{s.status}</span></div>
-          <ActBtns show={isHov} t={t} onEdit={() => openEdit(s)} onDel={() => setDelT({ id: s.id, name: s.id })} />
+          <ActBtns show={isHov} t={t} onEdit={() => openEdit(s)} onDel={() => setDelT({ id: s.id, name: s.id, docId: s.docId })} />
         </div>);
       })}
     </div>
@@ -1251,7 +1283,7 @@ function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = [], DIMENSIONS = 
       </div>
       <FF label="Notes" t={t}><FIn value={modal.data.notes || ""} onChange={e => setF("notes", e.target.value)} placeholder="Any remarks..." t={t} /></FF>
     </Modal>
-    <DelModal target={delT} onClose={() => setDelT(null)} label="This schedule entry" t={t} isDark={isDark} />
+    <DelModal target={delT} onClose={() => setDelT(null)} onConfirm={handleDeleteSchedule} label="This schedule entry" t={t} isDark={isDark} />
   </>);
 }
 
@@ -1266,6 +1298,37 @@ function PagePayments({ t, isDark, PAYMENTS = [] }) {
   const openEdit = r => setModal({ open: true, mode: "edit", data: { ...r } });
   const close = () => setModal(m => ({ ...m, open: false }));
   const setF = (k, v) => setModal(m => ({ ...m, data: { ...m.data, [k]: v } }));
+
+  const handleDeletePayment = async () => {
+    if (!delT || !delT.docId) return;
+    try {
+      await deleteDoc(doc(db, COLLECTION_PATHS.payments, delT.docId));
+      setDelT(null);
+    } catch (err) { console.error("Delete payment error:", err); }
+  };
+
+  const handleSavePayment = async () => {
+    const d = modal.data;
+    const payload = {
+      contract_id: d.contract || "",
+      party_name: d.party || "",
+      payment_type: d.type || "",
+      amount: d.amount ? Number(String(d.amount).replace(/[^0-9.-]/g, "")) || null : null,
+      payment_date: d.date || null,
+      payment_method: d.method || "",
+      direction: d.direction || "",
+      notes: d.note || "",
+      updated_at: serverTimestamp(),
+    };
+    try {
+      if (modal.mode === "edit" && d.docId) {
+        await updateDoc(doc(db, COLLECTION_PATHS.payments, d.docId), payload);
+      } else {
+        await addDoc(collection(db, COLLECTION_PATHS.payments), { ...payload, created_at: serverTimestamp() });
+      }
+    } catch (err) { console.error("Save payment error:", err); }
+    close();
+  };
   const cols = [{ l: "PAY ID", w: "110px", k: "id" }, { l: "CONTRACT", w: "90px", k: "contract" }, { l: "PARTY", w: "1fr", k: "party" }, { l: "TYPE", w: "110px", k: "type" }, { l: "AMOUNT", w: "120px", k: "amount" }, { l: "DATE", w: "110px", k: "date" }, { l: "METHOD", w: "90px", k: "method" }, { l: "ACTIONS", w: "80px" }];
   const { gridTemplate, headerRef, onResizeStart } = useResizableColumns(cols);
   const [colFilters, setColFilters] = useState({});
@@ -1293,12 +1356,12 @@ function PagePayments({ t, isDark, PAYMENTS = [] }) {
           <div style={{ fontFamily: t.mono, fontSize: 12.5, fontWeight: 700, color: isIn ? (isDark ? "#34D399" : "#059669") : (isDark ? "#F87171" : "#DC2626") }}>{isIn ? "+" : "−"}{p.amount}</div>
           <div style={{ fontFamily: t.mono, fontSize: 11, color: t.textMuted }}>{p.date}</div>
           <div style={{ fontSize: 12, color: t.textMuted }}>{p.method}</div>
-          <ActBtns show={isHov} t={t} onEdit={() => openEdit(p)} onDel={() => setDelT({ id: p.id, name: p.id })} />
+          <ActBtns show={isHov} t={t} onEdit={() => openEdit(p)} onDel={() => setDelT({ id: p.id, name: p.id, docId: p.docId })} />
         </div>);
       })}
     </div>
     <div style={{ marginTop: 16, display: "flex", justifyContent: "space-between", alignItems: "center" }}><span style={{ fontSize: 12, color: t.textSubtle }}>Showing <strong style={{ color: t.textSecondary }}>{paginated.length}</strong> of <strong style={{ color: t.textSecondary }}>{sorted.length}</strong> payments</span><Pagination totalPages={totalPages} currentPage={page} onPageChange={setPage} t={t} /></div>
-    <Modal open={modal.open} onClose={close} title={modal.mode === "add" ? "Record Payment" : "Edit Payment"} onSave={close} width={520} t={t} isDark={isDark}>
+    <Modal open={modal.open} onClose={close} title={modal.mode === "add" ? "Record Payment" : "Edit Payment"} onSave={handleSavePayment} width={520} t={t} isDark={isDark}>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
         <FF label="Direction" t={t}><FSel value={modal.data.direction} onChange={e => setF("direction", e.target.value)} options={["Received", "Disbursed"]} t={t} /></FF>
         <FF label="Payment Type" t={t}><FSel value={modal.data.type} onChange={e => setF("type", e.target.value)} options={["Interest", "Principal", "Interest + Principal", "Disbursement", "Fee"]} t={t} /></FF>
@@ -1314,7 +1377,7 @@ function PagePayments({ t, isDark, PAYMENTS = [] }) {
       <FF label="Method" t={t}><FSel value={modal.data.method} onChange={e => setF("method", e.target.value)} options={["Wire", "Check", "ACH", "Cash"]} t={t} /></FF>
       <FF label="Note (optional)" t={t}><FIn value={modal.data.note} onChange={e => setF("note", e.target.value)} placeholder="Any remarks..." t={t} /></FF>
     </Modal>
-    <DelModal target={delT} onClose={() => setDelT(null)} label="This payment record" t={t} isDark={isDark} />
+    <DelModal target={delT} onClose={() => setDelT(null)} onConfirm={handleDeletePayment} label="This payment record" t={t} isDark={isDark} />
   </>);
 }
 
@@ -1353,6 +1416,14 @@ function PageFees({ t, isDark, FEES_DATA = [], DIMENSIONS = [], collectionPath =
     } catch (err) { console.error("Save fee error:", err); }
     close();
   };
+
+  const handleDeleteFee = async () => {
+    if (!delT || !delT.docId) return;
+    try {
+      await deleteDoc(doc(db, collectionPath, delT.docId));
+      setDelT(null);
+    } catch (err) { console.error("Delete fee error:", err); }
+  };
   const cols = [{ l: "ID", w: "100px", k: "id" }, { l: "NAME", w: "1fr", k: "name" }, { l: "FEE TYPE", w: "130px", k: "fee_type" }, { l: "METHOD", w: "130px", k: "method" }, { l: "RATE", w: "110px", k: "rate" }, { l: "CHARGE AT", w: "120px", k: "fee_charge_at" }, { l: "FREQUENCY", w: "120px", k: "fee_frequency" }, { l: "DESCRIPTION", w: "1fr", k: "description" }, { l: "ACTIONS", w: "90px" }];
   const { gridTemplate, headerRef, onResizeStart } = useResizableColumns(cols);
   const [colFilters, setColFilters] = useState({});
@@ -1382,7 +1453,7 @@ function PageFees({ t, isDark, FEES_DATA = [], DIMENSIONS = [], collectionPath =
           <div style={{ fontSize: 12.5, color: t.textMuted }}>{f.fee_charge_at}</div>
           <div style={{ fontSize: 12.5, color: t.textMuted }}>{f.fee_frequency}</div>
           <div style={{ fontSize: 12.5, color: t.textMuted, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", paddingRight: 8 }}>{f.description}</div>
-          <ActBtns show={isHov} t={t} onEdit={() => openEdit(f)} onDel={() => setDelT({ id: f.id, name: f.name })} />
+          <ActBtns show={isHov} t={t} onEdit={() => openEdit(f)} onDel={() => setDelT({ id: f.id, name: f.name, docId: f.docId })} />
         </div>);
       })}
     </div>
@@ -1400,7 +1471,7 @@ function PageFees({ t, isDark, FEES_DATA = [], DIMENSIONS = [], collectionPath =
       </div>
       <FF label="Description" t={t}><FIn value={modal.data.description} onChange={e => setF("description", e.target.value)} placeholder="Brief description..." t={t} /></FF>
     </Modal>
-    <DelModal target={delT} onClose={() => setDelT(null)} label="This fee definition" t={t} isDark={isDark} />
+    <DelModal target={delT} onClose={() => setDelT(null)} onConfirm={handleDeleteFee} label="This fee definition" t={t} isDark={isDark} />
   </>);
 }
 
