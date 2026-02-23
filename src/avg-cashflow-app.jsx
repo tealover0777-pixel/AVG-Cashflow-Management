@@ -688,10 +688,13 @@ function PageContracts({ t, isDark, CONTRACTS = [], PROJECTS = [], PARTIES = [],
   const close = () => setModal(m => ({ ...m, open: false }));
   const handleSaveContract = async () => {
     const d = modal.data;
+    const pObj = PROJECTS.find(p => p.name === d.project);
+    const parObj = PARTIES.find(p => p.name === d.party);
     const payload = {
       project_name: d.project || "",
-      project_id: d.project_id || "",
+      project_id: pObj ? pObj.id : (d.project_id || ""),
       counterparty_name: d.party || "",
+      counterparty_id: parObj ? parObj.id : (d.party_id || d.counterparty_id || ""),
       contract_type: d.type || "",
       amount: d.amount ? Number(String(d.amount).replace(/[^0-9.-]/g, "")) || null : null,
       interest_rate: d.rate ? Number(String(d.rate).replace(/[^0-9.-]/g, "")) || null : null,
@@ -776,7 +779,7 @@ function PageContracts({ t, isDark, CONTRACTS = [], PROJECTS = [], PARTIES = [],
         const id1 = `S${currentIdNum++}`;
         entries.push({
           id: id1,
-          contract_id: c.id, project_id: c.project_id || "", party_id: "",
+          contract_id: c.id, project_id: c.project_id || "", party_id: c.party_id || "",
           due_date: c.start_date, payment_type: initialPaymentType, fee_id: "",
           period_number: 1, principal_amount: principal, payment_amount: principal,
           signed_payment_amount: ds1.signed, direction_from_company: ds1.direction,
@@ -809,7 +812,7 @@ function PageContracts({ t, isDark, CONTRACTS = [], PROJECTS = [], PARTIES = [],
             const idF = `S${currentIdNum++}`;
             entries.push({
               id: idF,
-              contract_id: c.id, project_id: c.project_id || "", party_id: "",
+              contract_id: c.id, project_id: c.project_id || "", party_id: c.party_id || "",
               due_date: c.start_date, payment_type: PT_FEE, fee_id: fid,
               period_number: 1, principal_amount: principal, payment_amount: feeAmt,
               signed_payment_amount: dsf.signed, direction_from_company: dsf.direction,
@@ -858,7 +861,7 @@ function PageContracts({ t, isDark, CONTRACTS = [], PROJECTS = [], PARTIES = [],
           const idI = `S${currentIdNum++}`;
           entries.push({
             id: idI,
-            contract_id: c.id, project_id: c.project_id || "", party_id: "",
+            contract_id: c.id, project_id: c.project_id || "", party_id: c.party_id || "",
             due_date: pEnd.toISOString().slice(0, 10), payment_type: interestPT, fee_id: "",
             period_number: periodNum, principal_amount: principal, payment_amount: Math.round(interest * 100) / 100,
             signed_payment_amount: ds2.signed, direction_from_company: ds2.direction,
@@ -884,7 +887,7 @@ function PageContracts({ t, isDark, CONTRACTS = [], PROJECTS = [], PARTIES = [],
                 const idRF = `S${currentIdNum++}`;
                 entries.push({
                   id: idRF,
-                  contract_id: c.id, project_id: c.project_id || "", party_id: "",
+                  contract_id: c.id, project_id: c.project_id || "", party_id: c.party_id || "",
                   due_date: pEnd.toISOString().slice(0, 10), payment_type: PT_FEE, fee_id: fid,
                   period_number: periodNum, principal_amount: principal, payment_amount: Math.round(feeAmt * 100) / 100,
                   signed_payment_amount: dsf2.signed, direction_from_company: dsf2.direction,
@@ -904,7 +907,7 @@ function PageContracts({ t, isDark, CONTRACTS = [], PROJECTS = [], PARTIES = [],
         const idR = `S${currentIdNum++}`;
         entries.push({
           id: idR,
-          contract_id: c.id, project_id: c.project_id || "", party_id: "",
+          contract_id: c.id, project_id: c.project_id || "", party_id: c.party_id || "",
           due_date: c.maturity_date, payment_type: repaymentPT, fee_id: "",
           period_number: periodNum, principal_amount: principal, payment_amount: principal,
           signed_payment_amount: ds3.signed, direction_from_company: ds3.direction,
@@ -1503,6 +1506,7 @@ export default function App() {
   const CONTRACTS = rawContracts.map(d => ({
     id: d.id, docId: d.doc_id || d.id, project: d.project_name || d.project_id || "", project_id: d.project_id || "",
     party: d.counterparty_name || d.counterparty_id || "",
+    party_id: d.counterparty_id || "",
     type: d.contract_type || "", amount: fmtCurr(d.amount),
     rate: d.interest_rate ? `${d.interest_rate}%` : "", freq: d.payment_frequency || "",
     status: d.status || "", calculator: d.calculator || "", term_months: d.term_months != null ? String(d.term_months) : "",
