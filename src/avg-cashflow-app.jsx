@@ -197,14 +197,26 @@ const pmtCalculator_ACT360_30360 = (periodStart, periodEnd, investDate, investAm
   }
 };
 
+const getFeeFrequencyString = (ca) => {
+  const l = (ca || "").toLowerCase();
+  if (l.includes("month")) return "Monthly";
+  if (l.includes("quart")) return "Quarterly";
+  if (l.includes("semi")) return "Semi-Annual";
+  if (l.includes("year")) return "Annual";
+  return "Monthly";
+};
+
 const feeCalculator_ACT360_30360 = (fee, principal, startDate, endDate, investDate) => {
   if (!fee) return 0;
-  const { method, rate, frequency } = fee;
+  const { method, rate, frequency, fee_charge_at } = fee;
   const defaultRate = parseFloat(String(rate).replace(/[^0-9.\-]/g, ""));
   if (isNaN(defaultRate)) return 0;
   if (method === "% of Amount") {
-    if (!frequency || frequency === "None") return (defaultRate / 100) * principal;
-    else return pmtCalculator_ACT360_30360(startDate, endDate, investDate, principal, defaultRate / 100, frequency);
+    if (frequency === "One_Time") return (defaultRate / 100) * principal;
+    else {
+      const freqStr = getFeeFrequencyString(fee_charge_at);
+      return pmtCalculator_ACT360_30360(startDate, endDate, investDate, principal, defaultRate / 100, freqStr);
+    }
   } else if (method === "Fixed Amount") return defaultRate;
   return 0;
 };
@@ -748,6 +760,7 @@ function PageContracts({ t, isDark, CONTRACTS = [], PROJECTS = [], PARTIES = [],
       start_date: d.start_date || null,
       maturity_date: d.maturity_date || null,
       status: d.status || "",
+      fees: (d.feeIds || []).join(","),
       updated_at: serverTimestamp(),
     };
     try {
@@ -795,7 +808,7 @@ function PageContracts({ t, isDark, CONTRACTS = [], PROJECTS = [], PARTIES = [],
 
     const feeInfoMap = {};
     FEES_DATA.forEach(f => {
-      feeInfoMap[f.id] = { name: f.name, method: f.method, rate: f.rate, frequency: f.fee_frequency };
+      feeInfoMap[f.id] = { name: f.name, method: f.method, rate: f.rate, frequency: f.fee_frequency, fee_charge_at: f.fee_charge_at };
     });
 
     if (!window.confirm(`Generate payment schedules for ${selected.length} contract(s)?`)) return;
@@ -855,20 +868,22 @@ function PageContracts({ t, isDark, CONTRACTS = [], PROJECTS = [], PARTIES = [],
         let pStart = normalizeDateAtNoon(new Date(startYear, theoreticalStartMonth, 1));
         const cFeeIds = (c.fees || "").split(",").map(f => f.trim()).filter(Boolean);
 
-        // One-time fees (None frequency)
+        // One-time fees
         cFeeIds.forEach(fid => {
           const fInfo = feeInfoMap[fid];
-          if (fInfo && (!fInfo.frequency || fInfo.frequency === "None")) {
+          if (fInfo && fInfo.frequency === "One_Time") {
             const feeAmt = feeCalculator_ACT360_30360(fInfo, principal, startDate, startDate, startDate);
+            let dDate = startDate;
+            if (fInfo.fee_charge_at === "Contract_End") dDate = matDate;
             const dsf = getDirectionAndSigned(PT_FEE, feeAmt);
             const idF = `S${currentIdNum++}`;
             entries.push({
               id: idF,
               contract_id: c.id, project_id: c.project_id || "", party_id: c.party_id || "",
-              due_date: c.start_date, payment_type: PT_FEE, fee_id: fid,
+              due_date: dDate.toISOString().slice(0, 10), payment_type: PT_FEE, fee_id: fid,
               period_number: 1, principal_amount: principal, payment_amount: feeAmt,
               signed_payment_amount: dsf.signed, direction_from_company: dsf.direction,
-              status: "Due", notes: `Fee ${fid} for ${c.id}`, created_at: serverTimestamp(),
+              status: "Due", notes: `One-time Fee ${fid} for ${c.id}`, created_at: serverTimestamp(),
             });
           }
         });
@@ -923,13 +938,14 @@ function PageContracts({ t, isDark, CONTRACTS = [], PROJECTS = [], PARTIES = [],
           // Recurring Fees
           cFeeIds.forEach(fid => {
             const fInfo = feeInfoMap[fid];
-            if (fInfo && fInfo.frequency && fInfo.frequency !== "None") {
-              const ffLow = fInfo.frequency.toLowerCase();
+            if (fInfo && fInfo.frequency === "Recurring") {
+              const ca = (fInfo.fee_charge_at || "").toLowerCase();
               let should = false;
-              if (ffLow.includes("month")) should = true;
-              else if (ffLow.includes("quart") && [2, 5, 8, 11].includes(pEnd.getMonth())) should = true;
-              else if (ffLow.includes("semi") && [5, 11].includes(pEnd.getMonth())) should = true;
-              else if (ffLow.includes("annu") && pEnd.getMonth() === 11) should = true;
+              if (ca.includes("term_start") || ca.includes("term_end")) should = true;
+              else if (ca.includes("month")) should = true;
+              else if (ca.includes("quart") && [2, 5, 8, 11].includes(pEnd.getMonth())) should = true;
+              else if (ca.includes("semi") && [5, 11].includes(pEnd.getMonth())) should = true;
+              else if (ca.includes("annu") && pEnd.getMonth() === 11) should = true;
 
               if (isLast) should = true;
 
@@ -937,10 +953,11 @@ function PageContracts({ t, isDark, CONTRACTS = [], PROJECTS = [], PARTIES = [],
                 const feeAmt = feeCalculator_ACT360_30360(fInfo, principal, pStart, calcEnd, startDate);
                 const dsf2 = getDirectionAndSigned(PT_FEE, feeAmt);
                 const idRF = `S${currentIdNum++}`;
+                const feeDueDate = ca.includes("start") ? pStart : pEnd;
                 entries.push({
                   id: idRF,
                   contract_id: c.id, project_id: c.project_id || "", party_id: c.party_id || "",
-                  due_date: pEnd.toISOString().slice(0, 10), payment_type: PT_FEE, fee_id: fid,
+                  due_date: feeDueDate.toISOString().slice(0, 10), payment_type: PT_FEE, fee_id: fid,
                   period_number: periodNum, principal_amount: principal, payment_amount: Math.round(feeAmt * 100) / 100,
                   signed_payment_amount: dsf2.signed, direction_from_company: dsf2.direction,
                   status: "Due", notes: `Recurring Fee ${fid} P${periodNum} for ${c.id}`, created_at: serverTimestamp(),
@@ -1031,7 +1048,7 @@ function PageContracts({ t, isDark, CONTRACTS = [], PROJECTS = [], PARTIES = [],
     return opts.length > 0 ? opts : ["Loan", "Mortgage", "Equity"];
   };
   const toggleRow = id => { const n = new Set(sel); n.has(id) ? n.delete(id) : n.add(id); setSel(n); };
-  const cols = [{ l: "", w: "36px" }, { l: "CONTRACT ID", w: "78px", k: "id" }, { l: "PROJECT ID", w: "78px", k: "project_id" }, { l: "PROJECT", w: "minmax(0,1fr)", k: "project" }, { l: "PARTY", w: "minmax(0,1fr)", k: "party" }, { l: "TYPE", w: "80px", k: "type" }, { l: "AMOUNT", w: "100px", k: "amount" }, { l: "RATE", w: "60px", k: "rate" }, { l: "FREQ", w: "80px", k: "freq" }, { l: "TERM", w: "52px", k: "term_months" }, { l: "CALCULATOR", w: "106px", k: "calculator" }, { l: "START", w: "84px", k: "start_date" }, { l: "MATURITY", w: "84px", k: "maturity_date" }, { l: "STATUS", w: "72px", k: "status" }, { l: "CREATED", w: "84px", k: "created_at" }, { l: "UPDATED", w: "84px", k: "updated_at" }, { l: "ACTIONS", w: "72px" }];
+  const cols = [{ l: "", w: "36px" }, { l: "CONTRACT ID", w: "78px", k: "id" }, { l: "PROJECT ID", w: "78px", k: "project_id" }, { l: "PROJECT", w: "minmax(0,1fr)", k: "project" }, { l: "PARTY", w: "minmax(0,1fr)", k: "party" }, { l: "TYPE", w: "80px", k: "type" }, { l: "AMOUNT", w: "100px", k: "amount" }, { l: "RATE", w: "60px", k: "rate" }, { l: "FREQ", w: "80px", k: "freq" }, { l: "TERM", w: "52px", k: "term_months" }, { l: "FEES", w: "minmax(120px, 1.2fr)" }, { l: "START", w: "84px", k: "start_date" }, { l: "MATURITY", w: "84px", k: "maturity_date" }, { l: "STATUS", w: "72px", k: "status" }, { l: "CREATED", w: "84px", k: "created_at" }, { l: "UPDATED", w: "84px", k: "updated_at" }, { l: "ACTIONS", w: "72px" }];
   const { gridTemplate, headerRef, onResizeStart } = useResizableColumns(cols);
   const [colFilters, setColFilters] = useState({});
   const setColFilter = (key, val) => { setColFilters(f => ({ ...f, [key]: val })); setPage(1); };
@@ -1069,7 +1086,14 @@ function PageContracts({ t, isDark, CONTRACTS = [], PROJECTS = [], PARTIES = [],
           <div style={{ fontFamily: t.mono, fontSize: 12, color: t.textMuted }}>{c.rate}</div>
           <div style={{ fontSize: 11.5, color: t.textMuted }}>{c.freq}</div>
           <div style={{ fontFamily: t.mono, fontSize: 11.5, color: t.term_months ? t.textMuted : (isDark ? "rgba(255,255,255,0.12)" : "#D4D0CB") }}>{c.term_months ? `${c.term_months}mo` : <span style={{ color: isDark ? "rgba(255,255,255,0.12)" : "#D4D0CB" }}>—</span>}</div>
-          <div style={{ fontSize: 11, color: t.textMuted, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.calculator || <span style={{ color: isDark ? "rgba(255,255,255,0.12)" : "#D4D0CB" }}>—</span>}</div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
+            {(() => {
+              const appliedFees = (c.feeIds || []).map(fid => FEES_DATA.find(f => f.id === fid)).filter(Boolean);
+              return appliedFees.length > 0
+                ? appliedFees.map(f => <span key={f.id} style={{ fontSize: 10.5, fontWeight: 600, padding: "2px 8px", borderRadius: 20, background: isDark ? "rgba(52,211,153,0.12)" : "#ECFDF5", color: isDark ? "#34D399" : "#059669", border: `1px solid ${isDark ? "rgba(52,211,153,0.25)" : "#A7F3D0"}`, whiteSpace: "nowrap" }}>{f.name}</span>)
+                : <span style={{ color: isDark ? "rgba(255,255,255,0.15)" : "#D4D0CB", fontSize: 12 }}>—</span>;
+            })()}
+          </div>
           <div style={{ fontFamily: t.mono, fontSize: 10.5, color: t.idText }}>{c.start_date || <span style={{ color: isDark ? "rgba(255,255,255,0.12)" : "#D4D0CB" }}>—</span>}</div>
           <div style={{ fontFamily: t.mono, fontSize: 10.5, color: t.idText }}>{c.maturity_date || <span style={{ color: isDark ? "rgba(255,255,255,0.12)" : "#D4D0CB" }}>—</span>}</div>
           <div><Bdg status={c.status} isDark={isDark} /></div>
@@ -1108,12 +1132,42 @@ function PageContracts({ t, isDark, CONTRACTS = [], PROJECTS = [], PARTIES = [],
         <FF label="Start Date" t={t}><FIn value={modal.data.start_date || ""} onChange={e => setF("start_date", e.target.value)} t={t} type="date" /></FF>
         <FF label="Maturity Date" t={t}><FIn value={modal.data.maturity_date || ""} onChange={e => setF("maturity_date", e.target.value)} t={t} type="date" /></FF>
       </div>
+      {FEES_DATA.filter(f => f.name !== "Late Fee").length > 0 && (
+        <FF label="Applicable Fees" t={t}>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+            {FEES_DATA.filter(f => f.name !== "Late Fee").map(f => {
+              const selected = (modal.data.feeIds || []).includes(f.id);
+              const toggleFee = () => {
+                const cur = modal.data.feeIds || [];
+                setF("feeIds", selected ? cur.filter(x => x !== f.id) : [...cur, f.id]);
+              };
+              return (
+                <div key={f.id} onClick={toggleFee} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12.5, fontWeight: selected ? 600 : 400, padding: "5px 12px", borderRadius: 20, cursor: "pointer", transition: "all 0.15s ease", background: selected ? (isDark ? "rgba(52,211,153,0.15)" : "#ECFDF5") : t.chipBg, color: selected ? (isDark ? "#34D399" : "#059669") : t.textSecondary, border: `1px solid ${selected ? (isDark ? "rgba(52,211,153,0.4)" : "#A7F3D0") : t.chipBorder}` }}>
+                  <span style={{ fontSize: 11, fontWeight: 700, lineHeight: 1 }}>{selected ? "✓" : "+"}</span>
+                  {f.name}
+                  <span style={{ fontFamily: t.mono, fontSize: 10.5, opacity: 0.7 }}>({f.rate})</span>
+                </div>
+              );
+            })}
+          </div>
+        </FF>
+      )}
     </Modal>
     <DelModal target={delT} onClose={() => setDelT(null)} onConfirm={handleDeleteContract} label="This contract" t={t} isDark={isDark} />
   </>);
 }
 
 function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = [], DIMENSIONS = [], FEES_DATA = [], collectionPath = "" }) {
+  const getNextScheduleId = () => {
+    let maxNum = 9999;
+    SCHEDULES.forEach(s => {
+      if (s.id && s.id.startsWith("S")) {
+        const num = parseInt(s.id.substring(1), 10);
+        if (!isNaN(num) && num > maxNum) maxNum = num;
+      }
+    });
+    return `S${maxNum + 1}`;
+  };
   const paymentStatusOpts = (DIMENSIONS.find(d => d.name === "PaymentStatus") || {}).items || ["Due", "Paid", "Missed"];
   const [hov, setHov] = useState(null); const [sel, setSel] = useState(new Set()); const [chip, setChip] = useState("All");
   const [modal, setModal] = useState({ open: false, mode: "add", data: {} });
@@ -1121,14 +1175,15 @@ function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = [], DIMENSIONS = 
   const [sort, setSort] = useState({ key: "id", direction: "asc" });
   const [page, setPage] = useState(1);
   const onSort = k => { setSort(s => ({ key: k, direction: s.key === k && s.direction === "asc" ? "desc" : "asc" })); setPage(1); };
-  const openAdd = () => setModal({ open: true, mode: "add", data: { contract: "C10000", dueDate: "", type: "Interest", payment: "", status: "Due", notes: "" } });
-  const openEdit = r => setModal({ open: true, mode: "edit", data: { ...r } });
+  const openAdd = () => setModal({ open: true, mode: "add", data: { id: getNextScheduleId(), contract: "C10000", dueDate: "", type: "Interest", payment: "", status: "Due", notes: "" } });
+  const openEdit = r => setModal({ open: true, mode: "edit", data: { ...r, originalStatus: r.status } });
   const close = () => setModal(m => ({ ...m, open: false }));
   const setF = (k, v) => setModal(m => ({ ...m, data: { ...m.data, [k]: v } }));
 
   const handleSaveSchedule = async () => {
     const d = modal.data;
     const payload = {
+      id: d.id || "",
       contract_id: d.contract || "",
       project_id: d.project_id || "",
       party_id: d.party_id || "",
@@ -1142,12 +1197,44 @@ function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = [], DIMENSIONS = 
       linked_schedule_id: d.linked || null,
       status: d.status || "Due",
       notes: d.notes || "",
+      updated_at: serverTimestamp(),
     };
+
+    // Missed Payment Workflow
+    if (modal.mode === "edit" && d.status === "Missed" && d.status !== d.originalStatus) {
+      if (window.confirm(`Do you want to set "Missed" payment and book a replacement schedule?`)) {
+        try {
+          await updateDoc(doc(db, collectionPath, d.docId), payload);
+          // Pre-populate late payment
+          const lateId = getNextScheduleId();
+          setModal({
+            open: true,
+            mode: "add_late",
+            originalDocId: d.docId, // Carry over to update later
+            data: {
+              ...d,
+              id: lateId,
+              linked: d.id,
+              status: "Due",
+              notes: `Late payment replacement for ${d.id}`,
+            }
+          });
+          return; // Stay open in add_late mode
+        } catch (err) { console.error("Update missed error:", err); return; }
+      } else {
+        return; // Cancel the edit
+      }
+    }
+
     try {
       if (modal.mode === "edit" && d.docId) {
         await updateDoc(doc(db, collectionPath, d.docId), payload);
       } else {
-        await addDoc(collection(db, collectionPath), payload);
+        const docRef = await addDoc(collection(db, collectionPath), { ...payload, created_at: serverTimestamp() });
+        // If this was a late payment, link back to original
+        if (modal.mode === "add_late" && modal.originalDocId) {
+          await updateDoc(doc(db, collectionPath, modal.originalDocId), { linked_schedule_id: payload.id, updated_at: serverTimestamp() });
+        }
       }
     } catch (err) {
       console.error("Failed to save schedule:", err);
@@ -1254,7 +1341,7 @@ function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = [], DIMENSIONS = 
       })}
     </div>
     <div style={{ marginTop: 16, display: "flex", justifyContent: "space-between", alignItems: "center" }}><span style={{ fontSize: 12, color: t.textSubtle }}>Showing <strong style={{ color: t.textSecondary }}>{paginated.length}</strong> of <strong style={{ color: t.textSecondary }}>{sorted.length}</strong> schedules{sel.size > 0 && <span style={{ color: t.accent, marginLeft: 8 }}>· {sel.size} selected</span>}</span><Pagination totalPages={totalPages} currentPage={page} onPageChange={setPage} t={t} /></div>
-    <Modal open={modal.open} onClose={close} title={modal.mode === "add" ? "New Schedule Entry" : "Edit Schedule Entry"} onSave={handleSaveSchedule} width={620} t={t} isDark={isDark}>
+    <Modal open={modal.open} onClose={close} title={modal.mode === "add" ? "New Schedule Entry" : modal.mode === "add_late" ? "Late Payment Schedule" : "Edit Schedule Entry"} onSave={handleSaveSchedule} width={620} t={t} isDark={isDark}>
       {modal.mode === "edit" && (
         <FF label="Schedule ID" t={t}>
           <div style={{ fontFamily: t.mono, fontSize: 13, color: t.idText, background: isDark ? "rgba(255,255,255,0.04)" : "#F5F4F1", border: `1px solid ${t.surfaceBorder}`, borderRadius: 9, padding: "10px 13px" }}>{modal.data.id}</div>
@@ -1619,6 +1706,8 @@ export default function App() {
     term_months: d.term_months != null ? String(d.term_months) : "",
     start_date: fmtDate(d.start_date),
     maturity_date: fmtDate(d.maturity_date),
+    fees: d.fees || "",
+    feeIds: typeof d.fees === "string" && d.fees ? d.fees.split(",").map(s => s.trim()) : [],
     created_at: fmtDate(d.created_at),
     updated_at: fmtDate(d.updated_at),
   }));
