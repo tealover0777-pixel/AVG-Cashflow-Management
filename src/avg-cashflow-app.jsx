@@ -677,12 +677,39 @@ function PageContracts({ t, isDark, CONTRACTS = [], PROJECTS = [], PARTIES = [],
   const [page, setPage] = useState(1);
   const onSort = k => { setSort(s => ({ key: k, direction: s.key === k && s.direction === "asc" ? "desc" : "asc" })); setPage(1); };
   const openAdd = () => {
+    let maxId = 9999;
+    CONTRACTS.forEach(c => {
+      if (c.id && c.id.startsWith("C")) {
+        const num = parseInt(c.id.substring(1), 10);
+        if (!isNaN(num) && num > maxId) maxId = num;
+      }
+    });
+    const nextId = `C${maxId + 1}`;
+
     const firstProj = PROJECTS[0];
     const sd = firstProj ? firstProj.startDate : "";
     const ed = firstProj ? firstProj.endDate : "";
     let termM = "";
     if (sd && ed) { const s = new Date(sd); const e = new Date(ed); if (!isNaN(s) && !isNaN(e)) termM = String((e.getFullYear() - s.getFullYear()) * 12 + e.getMonth() - s.getMonth()); }
-    setModal({ open: true, mode: "add", data: { project: firstProj ? firstProj.name : "", party: "", type: "", amount: "", rate: "", freq: "Quarterly", status: "Open", start_date: sd, maturity_date: ed, term_months: termM, calculator: "" } });
+    setModal({
+      open: true,
+      mode: "add",
+      data: {
+        id: nextId,
+        project: firstProj ? firstProj.name : "",
+        project_id: firstProj ? firstProj.id : "",
+        party: "",
+        type: "",
+        amount: "",
+        rate: "",
+        freq: "Quarterly",
+        status: "Open",
+        start_date: sd,
+        maturity_date: ed,
+        term_months: termM,
+        calculator: ""
+      }
+    });
   };
   const openEdit = r => setModal({ open: true, mode: "edit", data: { ...r } });
   const close = () => setModal(m => ({ ...m, open: false }));
@@ -710,7 +737,7 @@ function PageContracts({ t, isDark, CONTRACTS = [], PROJECTS = [], PARTIES = [],
       if (modal.mode === "edit" && d.docId) {
         await updateDoc(doc(db, collectionPath, d.docId), payload);
       } else {
-        await addDoc(collection(db, collectionPath), { ...payload, created_at: serverTimestamp() });
+        await addDoc(collection(db, collectionPath), { ...payload, id: d.id || "", created_at: serverTimestamp() });
       }
     } catch (err) { console.error("Save contract error:", err); }
     close();
@@ -1029,7 +1056,7 @@ function PageContracts({ t, isDark, CONTRACTS = [], PROJECTS = [], PARTIES = [],
     </div>
     <div style={{ marginTop: 16, display: "flex", justifyContent: "space-between", alignItems: "center" }}><span style={{ fontSize: 12, color: t.textMuted }}>Showing <strong style={{ color: t.textSecondary }}>{paginated.length}</strong> of <strong style={{ color: t.textSecondary }}>{sorted.length}</strong> contracts{sel.size > 0 && <span style={{ color: t.accent, marginLeft: 8 }}>· {sel.size} selected</span>}</span><Pagination totalPages={totalPages} currentPage={page} onPageChange={setPage} t={t} /></div>
     <Modal open={modal.open} onClose={close} title={modal.mode === "add" ? "New Contract" : "Edit Contract"} onSave={handleSaveContract} width={620} t={t} isDark={isDark}>
-      {modal.mode === "edit" && (
+      {(modal.mode === "edit" || (modal.mode === "add" && modal.data.id)) && (
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
           <FF label="Contract ID" t={t}>
             <div style={{ fontFamily: t.mono, fontSize: 13, color: t.idText, background: isDark ? "rgba(255,255,255,0.04)" : "#F5F4F1", border: `1px solid ${t.surfaceBorder}`, borderRadius: 9, padding: "10px 13px" }}>{modal.data.id}</div>
