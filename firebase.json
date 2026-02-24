@@ -19,6 +19,9 @@
       }
     ]
   },
+  "functions": {
+    "source": "functions"
+  },
   "auth": {
     "providers": {
       "anonymous": true,
