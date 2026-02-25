@@ -5,7 +5,7 @@ import { normalizeDateAtNoon, hybridDays, pmtCalculator_ACT360_30360, feeCalcula
 import { Bdg, StatCard, Pagination, ActBtns, useResizableColumns, TblHead, Modal, FF, FIn, FSel, DelModal } from "../components";
 
 export default function PageContracts({ t, isDark, CONTRACTS = [], PROJECTS = [], PARTIES = [], DIMENSIONS = [], FEES_DATA = [], SCHEDULES = [], collectionPath = "", schedulePath = "" }) {
-  const [hov, setHov] = useState(null); const [sel, setSel] = useState(new Set());
+  const [hov, setHov] = useState(null); const [sel, setSel] = useState(new Set()); const [chip, setChip] = useState("All");
   const [modal, setModal] = useState({ open: false, mode: "add", data: {} });
   const [delT, setDelT] = useState(null);
   const [sort, setSort] = useState({ key: null, direction: "asc" });
@@ -385,7 +385,12 @@ export default function PageContracts({ t, isDark, CONTRACTS = [], PROJECTS = []
   const { gridTemplate, headerRef, onResizeStart } = useResizableColumns(cols);
   const [colFilters, setColFilters] = useState({});
   const setColFilter = (key, val) => { setColFilters(f => ({ ...f, [key]: val })); setPage(1); };
-  const filtered = CONTRACTS.filter(c => cols.every(col => { if (!col.k || !colFilters[col.k]) return true; return String(c[col.k] || "").toLowerCase().includes(colFilters[col.k].toLowerCase()); }));
+  const filtered = CONTRACTS.filter(c => {
+    if (chip === "Deposit" && (c.type || "").toUpperCase() !== "DEPOSIT") return false;
+    if (chip === "Disbursement" && (c.type || "").toUpperCase() !== "DISBURSEMENT") return false;
+    if (chip === "Selected" && !sel.has(c.id)) return false;
+    return cols.every(col => { if (!col.k || !colFilters[col.k]) return true; return String(c[col.k] || "").toLowerCase().includes(colFilters[col.k].toLowerCase()); });
+  });
   const sorted = sortData(filtered, sort);
   const paginated = sorted.slice((page - 1) * 20, page * 20);
   const totalPages = Math.ceil(sorted.length / 20);
@@ -409,6 +414,11 @@ export default function PageContracts({ t, isDark, CONTRACTS = [], PROJECTS = []
     </div>
     <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 16, marginBottom: 28 }}>
       {(() => { const scope = sel.size > 0 ? filtered.filter(c => sel.has(c.id)) : filtered; const parseAmt = a => Number(String(a).replace(/[^0-9.-]/g, "")) || 0; const fmtAmt = v => `$${v.toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`; const depositTotal = fmtAmt(scope.filter(c => c.type === "DEPOSIT").reduce((s, c) => s + parseAmt(c.amount), 0)); const disbTotal = fmtAmt(scope.filter(c => c.type === "DISBURSEMENT").reduce((s, c) => s + parseAmt(c.amount), 0)); return [{ label: "Total", value: filtered.length, accent: isDark ? "#60A5FA" : "#3B82F6", bg: isDark ? "rgba(96,165,250,0.08)" : "#EFF6FF", border: isDark ? "rgba(96,165,250,0.15)" : "#BFDBFE" }, { label: "Deposit", value: depositTotal, accent: isDark ? "#34D399" : "#059669", bg: isDark ? "rgba(52,211,153,0.08)" : "#ECFDF5", border: isDark ? "rgba(52,211,153,0.15)" : "#A7F3D0" }, { label: "Disbursement", value: disbTotal, accent: isDark ? "#FBBF24" : "#D97706", bg: isDark ? "rgba(251,191,36,0.08)" : "#FFFBEB", border: isDark ? "rgba(251,191,36,0.15)" : "#FDE68A" }, { label: "Selected", value: sel.size, accent: isDark ? "#A78BFA" : "#7C3AED", bg: isDark ? "rgba(167,139,250,0.08)" : "#F5F3FF", border: isDark ? "rgba(167,139,250,0.15)" : "#DDD6FE" }]; })().map(s => <StatCard key={s.label} {...s} titleFont={t.titleFont} isDark={isDark} />)}
+    </div>
+    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+      <div style={{ display: "flex", gap: 8, alignItems: "center" }}>{["All", "Deposit", "Disbursement", "Selected"].map(f => { const isA = chip === f; return <span key={f} className="filter-chip" onClick={() => { setChip(f); setPage(1); }} style={{ fontSize: 12, fontWeight: isA ? 600 : 500, padding: "5px 14px", borderRadius: 20, background: isA ? t.accent : t.chipBg, color: isA ? "#fff" : t.textSecondary, border: `1px solid ${isA ? t.accent : t.chipBorder}`, cursor: "pointer" }}>{f}</span>; })}
+        {sel.size > 0 && <><div style={{ width: 1, height: 18, background: t.surfaceBorder, marginLeft: 4 }} /><span onClick={() => setSel(new Set())} style={{ fontSize: 12, fontWeight: 500, padding: "5px 14px", borderRadius: 20, background: isDark ? "rgba(248,113,113,0.12)" : "#FEF2F2", color: isDark ? "#F87171" : "#DC2626", border: `1px solid ${isDark ? "rgba(248,113,113,0.25)" : "#FECACA"}`, cursor: "pointer" }}>Clear</span></>}
+      </div>
     </div>
     <div style={{ background: t.surface, borderRadius: 16, border: `1px solid ${t.surfaceBorder}`, overflow: "auto", backdropFilter: isDark ? "blur(20px)" : "none", boxShadow: t.tableShadow }}>
       <TblHead cols={cols} t={t} isDark={isDark} sortConfig={sort} onSort={onSort} gridTemplate={gridTemplate} headerRef={headerRef} onResizeStart={onResizeStart}>
