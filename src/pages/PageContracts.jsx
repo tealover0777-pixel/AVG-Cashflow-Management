@@ -440,7 +440,7 @@ export default function PageContracts({ t, isDark, CONTRACTS = [], PROJECTS = []
           <div style={{ fontFamily: t.mono, fontSize: 12, fontWeight: 600, color: isDark ? "#60A5FA" : "#4F46E5" }}>{c.amount}</div>
           <div style={{ fontFamily: t.mono, fontSize: 12, color: t.textMuted }}>{c.rate}</div>
           <div style={{ fontSize: 11.5, color: t.textMuted }}>{c.freq}</div>
-          <div style={{ fontFamily: t.mono, fontSize: 11.5, color: t.term_months ? t.textMuted : (isDark ? "rgba(255,255,255,0.12)" : "#D4D0CB") }}>{c.term_months ? `${c.term_months}mo` : <span style={{ color: isDark ? "rgba(255,255,255,0.12)" : "#D4D0CB" }}>—</span>}</div>
+          <div style={{ fontFamily: t.mono, fontSize: 11.5, color: c.term_months ? (isDark ? "#FFFFFF" : "#292524") : (isDark ? "rgba(255,255,255,0.12)" : "#D4D0CB") }}>{c.term_months ? `${c.term_months}mo` : <span style={{ color: isDark ? "rgba(255,255,255,0.12)" : "#D4D0CB" }}>—</span>}</div>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
             {(() => {
               const appliedFees = (c.feeIds || []).map(fid => FEES_DATA.find(f => f.id === fid)).filter(Boolean);

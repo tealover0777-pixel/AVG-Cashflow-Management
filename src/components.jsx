@@ -81,7 +81,7 @@ export const TblHead = ({ cols, t, isDark, sortConfig, onSort, children, gridTem
       const isS = !!c.k, isSorted = sortConfig?.key === c.k;
       return (
         <div key={c.l || i} onClick={() => isS && onSort && onSort(c.k)}
-          style={{ fontSize: 10.5, fontWeight: 600, letterSpacing: "1px", color: isSorted ? t.accent : (isDark ? "rgba(255,255,255,0.3)" : "#C4C0BA"), textTransform: "uppercase", fontFamily: t.mono, cursor: isS ? "pointer" : "default", display: "flex", alignItems: "center", gap: 4, userSelect: "none", position: "relative" }}>
+          style={{ fontSize: 10.5, fontWeight: 600, letterSpacing: "1px", color: isSorted ? t.accent : (isDark ? "#FFFFFF" : "#1C1917"), textTransform: "uppercase", fontFamily: t.mono, cursor: isS ? "pointer" : "default", display: "flex", alignItems: "center", gap: 4, userSelect: "none", position: "relative" }}>
           {c.l}
           {isS && isSorted && <span style={{ fontSize: 10 }}>{sortConfig.direction === "asc" ? "▲" : "▼"}</span>}
           {onResizeStart && i < cols.length - 1 && <div onMouseDown={e => { e.stopPropagation(); onResizeStart(i, e); }} style={{ position: "absolute", right: -3, top: 0, bottom: 0, width: 6, cursor: "col-resize", zIndex: 2 }} />}
