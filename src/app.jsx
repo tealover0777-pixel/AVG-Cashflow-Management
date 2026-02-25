@@ -14,6 +14,7 @@ import PageContracts from "./pages/PageContracts";
 import PageSchedule from "./pages/PageSchedule";
 import PagePayments from "./pages/PagePayments";
 import PageFees from "./pages/PageFees";
+import PageTenants from "./pages/PageTenants";
 import PageDimensions from "./pages/PageDimensions";
 import PageReports from "./pages/PageReports";
 
@@ -32,10 +33,11 @@ export default function App() {
   const { data: rawSchedules, loading: l4, error: e4 } = useFirestoreCollection(COLLECTION_PATHS.paymentSchedules);
   const { data: PAYMENTS, loading: l5, error: e5 } = useFirestoreCollection(COLLECTION_PATHS.payments);
   const { data: rawFees, loading: l6, error: e6 } = useFirestoreCollection(COLLECTION_PATHS.fees);
+  const { data: rawTenants, loading: l8, error: e8 } = useFirestoreCollection(COLLECTION_PATHS.tenants);
   const { data: rawDimensions, loading: l7, error: e7 } = useFirestoreCollection(COLLECTION_PATHS.dimensions);
 
-  const loading = l1 || l2 || l3 || l4 || l5 || l6 || l7;
-  const firstError = e1 || e2 || e3 || e4 || e5 || e6 || e7;
+  const loading = l1 || l2 || l3 || l4 || l5 || l6 || l7 || l8;
+  const firstError = e1 || e2 || e3 || e4 || e5 || e6 || e7 || e8;
 
   // ── Normalize Firestore field names → what UI components expect ──
   const fmtCurr = v => {
@@ -112,6 +114,19 @@ export default function App() {
     description: d.description || "",
   }));
 
+  const TENANTS = rawTenants.map(d => ({
+    id: d.id || d.tenant_id || "",
+    docId: d.doc_id || d.id,
+    name: d.tenant_name || "",
+    logo: d.tenant_logo || "",
+    owner_id: d.owner_id || "",
+    email: d.tenant_email || "",
+    phone: d.tenant_phone || "",
+    notes: d.Notes || "",
+    created_at: fmtDate(d.created_at),
+    updated_at: fmtDate(d.updated_at),
+  }));
+
   // Merge Firestore dimensions with local styling
   const DIMENSIONS = rawDimensions.map(d => {
     const style = DIM_STYLES[d.category || d.name] || DEFAULT_DIM_STYLE;
@@ -127,6 +142,7 @@ export default function App() {
     "Payment Schedule": <PageSchedule t={t} isDark={isDark} SCHEDULES={SCHEDULES} CONTRACTS={CONTRACTS} DIMENSIONS={DIMENSIONS} FEES_DATA={FEES_DATA} collectionPath={COLLECTION_PATHS.paymentSchedules} />,
     "Payments": <PagePayments t={t} isDark={isDark} PAYMENTS={PAYMENTS} />,
     "Fees": <PageFees t={t} isDark={isDark} FEES_DATA={FEES_DATA} DIMENSIONS={DIMENSIONS} collectionPath={COLLECTION_PATHS.fees} />,
+    "Tenants": <PageTenants t={t} isDark={isDark} TENANTS={TENANTS} collectionPath={COLLECTION_PATHS.tenants} />,
     "Dimensions": <PageDimensions t={t} isDark={isDark} DIMENSIONS={DIMENSIONS} />,
     "Reports": <PageReports t={t} isDark={isDark} MONTHLY={MONTHLY} />,
   };

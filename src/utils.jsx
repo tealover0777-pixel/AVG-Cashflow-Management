@@ -71,6 +71,7 @@ export const NAV = [
   { label: "Payment Schedule", icon: "▤" },
   { label: "Payments", icon: "◇" },
   { label: "Fees", icon: "◉" },
+  { label: "Tenants", icon: "♜" },
   { label: "Dimensions", icon: "⊞" },
   { label: "Reports", icon: "╱╲" },
 ];
@@ -86,6 +87,7 @@ export const COLLECTION_PATHS = {
   paymentSchedules: `${TENANT_PATH}/paymentSchedules`,
   payments: `${TENANT_PATH}/payments`,
   fees: `${TENANT_PATH}/fees`,
+  tenants: "tenants",
   dimensions: "dimensions",
 };
 // Dimension styling config — items come from Firestore, colors are local
