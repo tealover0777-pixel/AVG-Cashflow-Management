@@ -40,7 +40,7 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
       period_number: d.period_number ? Number(d.period_number) : null,
       principal_amount: d.principal_amount ? Number(String(d.principal_amount).replace(/[^0-9.-]/g, "")) || null : null,
       signed_payment_amount: d.signed_payment_amount ? Number(String(d.signed_payment_amount).replace(/[^0-9.-]/g, "")) || null : null,
-      fee_id: d.fee_id || null,
+      fee_id: Array.isArray(d.fee_ids) ? d.fee_ids.join(",") : (d.fee_id || null),
       linked_schedule_id: d.linked || null,
       status: d.status || "Due",
       notes: d.notes || "",
@@ -62,6 +62,7 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
               ...d,
               id: lateId,
               linked: d.id,
+              fee_ids: [],
               status: "Due",
               notes: `Late payment replacement for ${d.id}`,
             }
@@ -213,11 +214,37 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
         <FF label="Principal Amount" t={t}><FIn value={modal.data.principal_amount || ""} onChange={e => setF("principal_amount", e.target.value)} placeholder="$0" t={t} /></FF>
         <FF label="Signed Amount" t={t}><FIn value={modal.data.signed_payment_amount || ""} onChange={e => setF("signed_payment_amount", e.target.value)} placeholder="$0" t={t} /></FF>
       </div>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14 }}>
-        <FF label="Fee ID" t={t}><FIn value={modal.data.fee_id || ""} onChange={e => setF("fee_id", e.target.value)} placeholder="F10001" t={t} /></FF>
-        <FF label="Linked Schedule" t={t}><FIn value={modal.data.linked || ""} onChange={e => setF("linked", e.target.value)} placeholder="S00001" t={t} /></FF>
-        <FF label="Status" t={t}><FSel value={modal.data.status} onChange={e => setF("status", e.target.value)} options={paymentStatusOpts} t={t} /></FF>
-      </div>
+      {modal.mode === "add_late" ? (<>
+        <FF label="Late Fees" t={t}>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+            {FEES_DATA.filter(f => f.fee_type === "Late Fee").map(f => {
+              const selected = (modal.data.fee_ids || []).includes(f.id);
+              const toggle = () => {
+                const cur = modal.data.fee_ids || [];
+                setF("fee_ids", selected ? cur.filter(x => x !== f.id) : [...cur, f.id]);
+              };
+              return (
+                <div key={f.id} onClick={toggle} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12.5, fontWeight: selected ? 600 : 400, padding: "5px 12px", borderRadius: 20, cursor: "pointer", transition: "all 0.15s ease", background: selected ? (isDark ? "rgba(248,113,113,0.15)" : "#FEF2F2") : t.chipBg, color: selected ? (isDark ? "#F87171" : "#DC2626") : t.textSecondary, border: `1px solid ${selected ? (isDark ? "rgba(248,113,113,0.4)" : "#FECACA") : t.chipBorder}` }}>
+                  <span style={{ fontSize: 11, fontWeight: 700, lineHeight: 1 }}>{selected ? "✓" : "+"}</span>
+                  {f.name}
+                  <span style={{ fontFamily: t.mono, fontSize: 10.5, opacity: 0.7 }}>({f.rate})</span>
+                </div>
+              );
+            })}
+            {FEES_DATA.filter(f => f.fee_type === "Late Fee").length === 0 && <span style={{ fontSize: 12, color: t.textMuted }}>No Late Fee types defined in Fees</span>}
+          </div>
+        </FF>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+          <FF label="Linked Schedule" t={t}><FIn value={modal.data.linked || ""} onChange={e => setF("linked", e.target.value)} placeholder="S00001" t={t} /></FF>
+          <FF label="Status" t={t}><FSel value={modal.data.status} onChange={e => setF("status", e.target.value)} options={paymentStatusOpts} t={t} /></FF>
+        </div>
+      </>) : (
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14 }}>
+          <FF label="Fee ID" t={t}><FIn value={modal.data.fee_id || ""} onChange={e => setF("fee_id", e.target.value)} placeholder="F10001" t={t} /></FF>
+          <FF label="Linked Schedule" t={t}><FIn value={modal.data.linked || ""} onChange={e => setF("linked", e.target.value)} placeholder="S00001" t={t} /></FF>
+          <FF label="Status" t={t}><FSel value={modal.data.status} onChange={e => setF("status", e.target.value)} options={paymentStatusOpts} t={t} /></FF>
+        </div>
+      )}
       <FF label="Notes" t={t}><FIn value={modal.data.notes || ""} onChange={e => setF("notes", e.target.value)} placeholder="Any remarks..." t={t} /></FF>
     </Modal>
     <DelModal target={delT} onClose={() => setDelT(null)} onConfirm={handleDeleteSchedule} label="This schedule entry" t={t} isDark={isDark} />
