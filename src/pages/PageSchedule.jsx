@@ -47,6 +47,21 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
       updated_at: serverTimestamp(),
     };
 
+    // Calculate next term due date based on contract frequency
+    const getNextTermDate = (currentDueDate, contractId) => {
+      if (!currentDueDate) return "";
+      const contract = CONTRACTS.find(c => c.id === contractId);
+      const freq = contract ? (contract.freq || "").toLowerCase() : "";
+      let monthsToAdd = 1;
+      if (freq.includes("quart")) monthsToAdd = 3;
+      else if (freq.includes("semi")) monthsToAdd = 6;
+      else if (freq.includes("annu") || freq.includes("year")) monthsToAdd = 12;
+      const dt = new Date(currentDueDate + "T12:00:00");
+      if (isNaN(dt.getTime())) return "";
+      dt.setMonth(dt.getMonth() + monthsToAdd);
+      return dt.toISOString().split("T")[0];
+    };
+
     // Missed Payment Workflow
     if (modal.mode === "edit" && d.status === "Missed" && d.status !== d.originalStatus) {
       if (window.confirm(`Do you want to set "Missed" payment and book a replacement schedule?`)) {
@@ -54,6 +69,7 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
           await updateDoc(doc(db, collectionPath, d.docId), payload);
           // Pre-populate late payment
           const lateId = getNextScheduleId();
+          const nextDueDate = getNextTermDate(d.dueDate, d.contract);
           setModal({
             open: true,
             mode: "add_late",
@@ -64,6 +80,7 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
               linked: d.id,
               fee_ids: [],
               status: "Due",
+              dueDate: nextDueDate,
               basePayment: Math.abs(Number(String(d.payment || d.signed_payment_amount || 0).replace(/[^0-9.-]/g, "")) || 0),
               notes: `Late payment replacement for ${d.id}`,
             }
@@ -81,6 +98,7 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
         try {
           await updateDoc(doc(db, collectionPath, d.docId), payload);
           const partialId = getNextScheduleId();
+          const nextDueDatePartial = getNextTermDate(d.dueDate, d.contract);
           setModal({
             open: true,
             mode: "add_partial",
@@ -91,6 +109,7 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
               linked: d.id,
               fee_ids: [],
               status: "Due",
+              dueDate: nextDueDatePartial,
               partialPaid: "",
               basePayment: Math.abs(Number(String(d.payment || d.signed_payment_amount || 0).replace(/[^0-9.-]/g, "")) || 0),
               notes: `Partial payment replacement for ${d.id}`,
@@ -362,7 +381,7 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
           <FF label="Status" t={t}><FSel value={modal.data.status} onChange={e => setF("status", e.target.value)} options={paymentStatusOpts} t={t} /></FF>
         </div>
       )}
-      <FF label="Notes" t={t}><FIn value={modal.data.notes || ""} onChange={e => setF("notes", e.target.value)} placeholder="Any remarks..." t={t} /></FF>
+      <FF label="Notes" t={t}><textarea value={modal.data.notes || ""} onChange={e => setF("notes", e.target.value)} placeholder="Any remarks..." rows={2} style={{ width: "100%", background: t.searchBg, border: `1px solid ${t.searchBorder}`, borderRadius: 9, padding: "10px 13px", color: t.searchText, fontSize: 13.5, fontFamily: "inherit", outline: "none", resize: "vertical", boxSizing: "border-box" }} /></FF>
     </Modal>
     <DelModal target={delT} onClose={() => setDelT(null)} onConfirm={handleDeleteSchedule} label="This schedule entry" t={t} isDark={isDark} />
   </>);
