@@ -60,10 +60,7 @@ export const mkTheme = (isDark) => isDark ? {
   titleSize: 38, titleWeight: 700, titleTracking: "-1.5px",
 };
 
-// ─────────────────────────────────────────────────────────────────────────────
-// NAV
-// ─────────────────────────────────────────────────────────────────────────────
-export const NAV = [
+const NAV_ITEMS = [
   { label: "Dashboard", icon: "⬡" },
   { label: "Projects", icon: "▦" },
   { label: "Parties", icon: "◎" },
@@ -71,24 +68,39 @@ export const NAV = [
   { label: "Payment Schedule", icon: "▤" },
   { label: "Payments", icon: "◇" },
   { label: "Fees", icon: "◉" },
-  { label: "Tenants", icon: "♜" },
+  { label: "Tenants", icon: "♜", superOnly: true },
+  { label: "Users", icon: "👥", adminOnly: true },
+  { label: "Super Admin", icon: "⚡", superOnly: true },
   { label: "Dimensions", icon: "⊞" },
   { label: "Reports", icon: "╱╲" },
+  { label: "Profile", icon: "👤", hidden: true },
 ];
+
+export const getNav = (isSuper, isAdmin) => {
+  return NAV_ITEMS.filter(item => {
+    if (item.hidden) return false;
+    if (item.superOnly && !isSuper) return false;
+    if (item.adminOnly && !isAdmin && !isSuper) return false;
+    return true;
+  });
+};
 
 // ─────────────────────────────────────────────────────────────────────────────
 // FIRESTORE COLLECTION PATHS
 // ─────────────────────────────────────────────────────────────────────────────
-export const TENANT_PATH = `tenants/${TENANT_ID}`;
-export const COLLECTION_PATHS = {
-  projects: `${TENANT_PATH}/projects`,
-  parties: `${TENANT_PATH}/parties`,
-  contracts: `${TENANT_PATH}/contracts`,
-  paymentSchedules: `${TENANT_PATH}/paymentSchedules`,
-  payments: `${TENANT_PATH}/payments`,
-  fees: `${TENANT_PATH}/fees`,
-  tenants: "tenants",
-  dimensions: "dimensions",
+export const getCollectionPaths = (tenantId) => {
+  const tenantPath = `tenants/${tenantId}`;
+  return {
+    projects: `${tenantPath}/projects`,
+    parties: `${tenantPath}/parties`,
+    contracts: `${tenantPath}/contracts`,
+    paymentSchedules: `${tenantPath}/paymentSchedules`,
+    payments: `${tenantPath}/payments`,
+    fees: `${tenantPath}/fees`,
+    users: `${tenantPath}/users`,
+    tenants: "tenants",
+    dimensions: "dimensions",
+  };
 };
 // Dimension styling config — items come from Firestore, colors are local
 export const DIM_STYLES = {

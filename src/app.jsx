@@ -2,11 +2,12 @@
  * AVG Cashflow Management — Root App
  * State management, Firestore hooks, data transforms, layout, CSS.
  */
-import { useState } from "react";
+import { useState, useMemo } from "react";
+import { AuthProvider, useAuth } from "./AuthContext";
 import { createRoot } from "react-dom/client";
 import { db, TENANT_ID } from "./firebase";
 import { useFirestoreCollection } from "./useFirestoreCollection";
-import { mkTheme, NAV, COLLECTION_PATHS, DIM_STYLES, DEFAULT_DIM_STYLE, MONTHLY, initials, av } from "./utils";
+import { mkTheme, getNav, getCollectionPaths, DIM_STYLES, DEFAULT_DIM_STYLE, MONTHLY, initials, av } from "./utils";
 import PageDashboard from "./pages/PageDashboard";
 import PageProjects from "./pages/PageProjects";
 import PageParties from "./pages/PageParties";
@@ -15,29 +16,36 @@ import PageSchedule from "./pages/PageSchedule";
 import PagePayments from "./pages/PagePayments";
 import PageFees from "./pages/PageFees";
 import PageTenants from "./pages/PageTenants";
+import PageUsers from "./pages/PageUsers";
+import PageSuperAdmin from "./pages/PageSuperAdmin";
+import PageProfile from "./pages/PageProfile";
 import PageDimensions from "./pages/PageDimensions";
 import PageReports from "./pages/PageReports";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // ROOT APP
 // ─────────────────────────────────────────────────────────────────────────────
-export default function App() {
+function AppContent() {
+  const { user, profile, loading: authLoading, login, logout, isSuperAdmin, isTenantAdmin, tenantId } = useAuth();
   const [isDark, setIsDark] = useState(true);
   const [activePage, setActivePage] = useState("Dashboard");
   const t = mkTheme(isDark);
 
+  const COLLECTION_PATHS = useMemo(() => getCollectionPaths(tenantId), [tenantId]);
+
   // ── Firestore real-time data ──
-  const { data: rawProjects, loading: l1, error: e1 } = useFirestoreCollection(COLLECTION_PATHS.projects);
-  const { data: rawParties, loading: l2, error: e2 } = useFirestoreCollection(COLLECTION_PATHS.parties);
-  const { data: rawContracts, loading: l3, error: e3 } = useFirestoreCollection(COLLECTION_PATHS.contracts);
-  const { data: rawSchedules, loading: l4, error: e4 } = useFirestoreCollection(COLLECTION_PATHS.paymentSchedules);
-  const { data: PAYMENTS, loading: l5, error: e5 } = useFirestoreCollection(COLLECTION_PATHS.payments);
-  const { data: rawFees, loading: l6, error: e6 } = useFirestoreCollection(COLLECTION_PATHS.fees);
-  const { data: rawTenants, loading: l8, error: e8 } = useFirestoreCollection(COLLECTION_PATHS.tenants);
+  const { data: rawProjects, loading: l1, error: e1 } = useFirestoreCollection(tenantId ? COLLECTION_PATHS.projects : null);
+  const { data: rawParties, loading: l2, error: e2 } = useFirestoreCollection(tenantId ? COLLECTION_PATHS.parties : null);
+  const { data: rawContracts, loading: l3, error: e3 } = useFirestoreCollection(tenantId ? COLLECTION_PATHS.contracts : null);
+  const { data: rawSchedules, loading: l4, error: e4 } = useFirestoreCollection(tenantId ? COLLECTION_PATHS.paymentSchedules : null);
+  const { data: PAYMENTS, loading: l5, error: e5 } = useFirestoreCollection(tenantId ? COLLECTION_PATHS.payments : null);
+  const { data: rawFees, loading: l6, error: e6 } = useFirestoreCollection(tenantId ? COLLECTION_PATHS.fees : null);
+  const { data: rawTenants, loading: l8, error: e8 } = useFirestoreCollection(isSuperAdmin ? COLLECTION_PATHS.tenants : null);
+  const { data: rawUsers, loading: l9, error: e9 } = useFirestoreCollection((isSuperAdmin || isTenantAdmin) ? COLLECTION_PATHS.users : null);
   const { data: rawDimensions, loading: l7, error: e7 } = useFirestoreCollection(COLLECTION_PATHS.dimensions);
 
-  const loading = l1 || l2 || l3 || l4 || l5 || l6 || l7 || l8;
-  const firstError = e1 || e2 || e3 || e4 || e5 || e6 || e7 || e8;
+  const loading = authLoading || l1 || l2 || l3 || l4 || l5 || l6 || l7 || l8 || l9;
+  const firstError = e1 || e2 || e3 || e4 || e5 || e6 || e7 || e8 || e9;
 
   // ── Normalize Firestore field names → what UI components expect ──
   const fmtCurr = v => {
@@ -143,9 +151,18 @@ export default function App() {
     "Payments": <PagePayments t={t} isDark={isDark} PAYMENTS={PAYMENTS} />,
     "Fees": <PageFees t={t} isDark={isDark} FEES_DATA={FEES_DATA} DIMENSIONS={DIMENSIONS} collectionPath={COLLECTION_PATHS.fees} />,
     "Tenants": <PageTenants t={t} isDark={isDark} TENANTS={TENANTS} collectionPath={COLLECTION_PATHS.tenants} />,
+    "Users": <PageUsers t={t} isDark={isDark} USERS={rawUsers} collectionPath={COLLECTION_PATHS.users} />,
+    "Super Admin": <PageSuperAdmin t={t} isDark={isDark} />,
+    "Profile": <PageProfile t={t} isDark={isDark} />,
     "Dimensions": <PageDimensions t={t} isDark={isDark} DIMENSIONS={DIMENSIONS} />,
     "Reports": <PageReports t={t} isDark={isDark} MONTHLY={MONTHLY} />,
   };
+
+  const nav = getNav(isSuperAdmin, isTenantAdmin);
+
+  if (!user) {
+    return <LoginScreen login={login} t={t} isDark={isDark} />;
+  }
 
   return (
     <div style={{ display: "flex", height: "100vh", background: t.body, fontFamily: t.font, color: t.text, overflow: "hidden" }}>
@@ -198,7 +215,7 @@ export default function App() {
 
         {/* Nav items */}
         <nav style={{ padding: isDark ? "16px 12px" : "0 12px", flex: 1, display: "flex", flexDirection: "column", gap: isDark ? 2 : 1, marginTop: isDark ? 0 : 12, overflowY: "auto" }}>
-          {NAV.map(item => {
+          {nav.map(item => {
             const isActive = activePage === item.label;
             return (
               <div key={item.label} className="nav-item" onClick={() => setActivePage(item.label)}
@@ -214,12 +231,14 @@ export default function App() {
         {/* User */}
         <div style={{ padding: "16px", borderTop: `1px solid ${t.sidebarBorder}` }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <div style={{ width: isDark ? 32 : 34, height: isDark ? 32 : 34, borderRadius: isDark ? 8 : 9, background: isDark ? "linear-gradient(135deg,#60A5FA,#3B82F6)" : "linear-gradient(135deg,#F472B6,#EC4899)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700, color: "#fff" }}>AD</div>
-            <div>
-              <div style={{ fontSize: isDark ? 12 : 13, fontWeight: isDark ? 500 : 600, color: isDark ? "rgba(255,255,255,0.8)" : "#292524" }}>Admin</div>
-              <div style={{ fontSize: isDark ? 10 : 11, color: t.textMuted }}>Super User</div>
+            <div onClick={() => setActivePage("Profile")} style={{ cursor: "pointer", width: isDark ? 32 : 34, height: isDark ? 32 : 34, borderRadius: isDark ? 8 : 9, background: isDark ? "linear-gradient(135deg,#60A5FA,#3B82F6)" : "linear-gradient(135deg,#F472B6,#EC4899)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700, color: "#fff" }}>
+              {(profile?.name || user.email || "A").charAt(0).toUpperCase()}
             </div>
-            {!isDark && <div style={{ marginLeft: "auto", fontSize: 16, color: t.textSubtle, cursor: "pointer" }}>⋯</div>}
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: isDark ? 12 : 13, fontWeight: isDark ? 500 : 600, color: isDark ? "rgba(255,255,255,0.8)" : "#292524", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{profile?.name || user.email}</div>
+              <div style={{ fontSize: 10, color: t.textMuted }}>{profile?.role?.replace(/_/g, " ")}</div>
+            </div>
+            <div onClick={logout} style={{ fontSize: 16, color: "#F87171", cursor: "pointer" }}>⎋</div>
           </div>
         </div>
       </div>
@@ -234,13 +253,12 @@ export default function App() {
             <span style={{ color: t.breadcrumbActive, fontWeight: 500 }}>{activePage}</span>
           </div>
           <div style={{ display: "flex", gap: 16, fontSize: 12.5, alignItems: "center" }}>
-            <span style={{ color: t.textSecondary, cursor: "pointer" }}>Profile</span>
-            <span style={{ color: t.textSecondary, cursor: "pointer" }}>Settings</span>
+            <span style={{ color: t.textSecondary, cursor: "pointer" }} onClick={() => setActivePage("Profile")}>Profile</span>
             <button className="theme-toggle" onClick={() => setIsDark(!isDark)}
               style={{ background: isDark ? "rgba(52,211,153,0.1)" : "#EEF2FF", color: isDark ? "#34D399" : "#4F46E5", border: `1px solid ${isDark ? "rgba(52,211,153,0.25)" : "#C7D2FE"}`, padding: "4px 12px", borderRadius: 6, fontSize: 12, fontWeight: 500, display: "flex", alignItems: "center", gap: 5 }}>
               {isDark ? "☀ Light" : "☽ Dark"}
             </button>
-            <span style={{ color: t.logoutText, cursor: "pointer", fontWeight: 500, background: t.logoutBg, padding: "4px 12px", borderRadius: 6, border: `1px solid ${t.logoutBorder}`, fontSize: 12 }}>Logout</span>
+            <span onClick={logout} style={{ color: t.logoutText, cursor: "pointer", fontWeight: 500, background: t.logoutBg, padding: "4px 12px", borderRadius: 6, border: `1px solid ${t.logoutBorder}`, fontSize: 12 }}>Logout</span>
           </div>
         </div>
 
@@ -258,6 +276,46 @@ export default function App() {
         </div>
       </div>
     </div>
+  );
+}
+
+function LoginScreen({ login, t, isDark }) {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      await login(email, password);
+    } catch (err) {
+      setError("Invalid credentials");
+    }
+  };
+
+  return (
+    <div style={{ height: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: isDark ? "#0C0A09" : "#F5F4F1" }}>
+      <form onSubmit={handleSubmit} style={{ background: t.surface, padding: 32, borderRadius: 20, width: 360, border: `1px solid ${t.surfaceBorder}`, boxShadow: t.tableShadow }}>
+        <h2 style={{ fontSize: 24, fontWeight: 800, marginBottom: 8, color: isDark ? "#fff" : "#1C1917" }}>Welcome Back</h2>
+        <p style={{ fontSize: 13.5, color: t.textMuted, marginBottom: 24 }}>Login to manage your cashflow</p>
+
+        {error && <div style={{ background: "rgba(239, 68, 68, 0.1)", color: "#EF4444", padding: 12, borderRadius: 8, fontSize: 13, marginBottom: 16 }}>{error}</div>}
+
+        <div style={{ display: "grid", gap: 16 }}>
+          <input type="email" placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} style={{ padding: 12, borderRadius: 10, border: `1px solid ${t.surfaceBorder}`, background: isDark ? "rgba(255,255,255,0.03)" : "#fff", color: t.textPrimary, outline: "none" }} />
+          <input type="password" placeholder="Password" value={password} onChange={e => setPassword(e.target.value)} style={{ padding: 12, borderRadius: 10, border: `1px solid ${t.surfaceBorder}`, background: isDark ? "rgba(255,255,255,0.03)" : "#fff", color: t.textPrimary, outline: "none" }} />
+          <button type="submit" style={{ background: t.accentGrad, color: "#fff", padding: 12, borderRadius: 10, fontWeight: 700, border: "none", cursor: "pointer", marginTop: 8 }}>Sign In</button>
+        </div>
+      </form>
+    </div>
+  );
+}
+
+export default function App() {
+  return (
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
   );
 }
 
