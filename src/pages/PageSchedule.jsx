@@ -75,13 +75,41 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
       }
     }
 
+    // Partial Payment Workflow
+    if (modal.mode === "edit" && d.status === "Partial" && d.status !== d.originalStatus) {
+      if (window.confirm(`Do you want to set "Partial" payment and book a partial replacement schedule?`)) {
+        try {
+          await updateDoc(doc(db, collectionPath, d.docId), payload);
+          const partialId = getNextScheduleId();
+          setModal({
+            open: true,
+            mode: "add_partial",
+            originalDocId: d.docId,
+            data: {
+              ...d,
+              id: partialId,
+              linked: d.id,
+              fee_ids: [],
+              status: "Due",
+              partialPaid: "",
+              basePayment: Math.abs(Number(String(d.payment || d.signed_payment_amount || 0).replace(/[^0-9.-]/g, "")) || 0),
+              notes: `Partial payment replacement for ${d.id}`,
+            }
+          });
+          return;
+        } catch (err) { console.error("Update partial error:", err); return; }
+      } else {
+        return;
+      }
+    }
+
     try {
       if (modal.mode === "edit" && d.docId) {
         await updateDoc(doc(db, collectionPath, d.docId), payload);
       } else {
         const docRef = await addDoc(collection(db, collectionPath), { ...payload, created_at: serverTimestamp() });
         // If this was a late payment, link back to original
-        if (modal.mode === "add_late" && modal.originalDocId) {
+        if ((modal.mode === "add_late" || modal.mode === "add_partial") && modal.originalDocId) {
           await updateDoc(doc(db, collectionPath, modal.originalDocId), { linked_schedule_id: payload.id, updated_at: serverTimestamp() });
         }
       }
@@ -193,7 +221,7 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
       })}
     </div>
     <div style={{ marginTop: 16, display: "flex", justifyContent: "space-between", alignItems: "center" }}><span style={{ fontSize: 12, color: t.textSubtle }}>Showing <strong style={{ color: t.textSecondary }}>{paginated.length}</strong> of <strong style={{ color: t.textSecondary }}>{sorted.length}</strong> schedules{sel.size > 0 && <span style={{ color: t.accent, marginLeft: 8 }}>· {sel.size} selected</span>}</span><Pagination totalPages={totalPages} currentPage={page} onPageChange={setPage} t={t} /></div>
-    <Modal open={modal.open} onClose={close} title={modal.mode === "add" ? "New Schedule Entry" : modal.mode === "add_late" ? "Late Payment Schedule" : "Edit Schedule Entry"} onSave={handleSaveSchedule} width={620} t={t} isDark={isDark}>
+    <Modal open={modal.open} onClose={close} title={modal.mode === "add" ? "New Schedule Entry" : modal.mode === "add_late" ? "Late Payment Schedule" : modal.mode === "add_partial" ? "Partial Payment Schedule" : "Edit Schedule Entry"} onSave={handleSaveSchedule} width={620} t={t} isDark={isDark}>
       {modal.mode === "edit" && (
         <FF label="Schedule ID" t={t}>
           <div style={{ fontFamily: t.mono, fontSize: 13, color: t.idText, background: isDark ? "rgba(255,255,255,0.04)" : "#F5F4F1", border: `1px solid ${t.surfaceBorder}`, borderRadius: 9, padding: "10px 13px" }}>{modal.data.id}</div>
@@ -259,6 +287,74 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
           <FF label="Linked Schedule" t={t}><FIn value={modal.data.linked || ""} onChange={e => setF("linked", e.target.value)} placeholder="S00001" t={t} /></FF>
           <FF label="Status" t={t}><FSel value={modal.data.status} onChange={e => setF("status", e.target.value)} options={paymentStatusOpts} t={t} /></FF>
         </div>
+      </>) : modal.mode === "add_partial" ? (<>
+        {(() => {
+          const baseAmt = modal.data.basePayment || 0;
+          const paidNum = Number(String(modal.data.partialPaid || 0).replace(/[^0-9.]/g, "")) || 0;
+          const partialUnpaid = Math.max(baseAmt - paidNum, 0);
+          const recalcPartial = (newPaid, newFeeIds) => {
+            const pv = Number(String(newPaid || 0).replace(/[^0-9.]/g, "")) || 0;
+            const unpaid = Math.max(baseAmt - pv, 0);
+            const linkedId = modal.data.linked || "";
+            const feeAmts = newFeeIds.map(fid => {
+              const fee = FEES_DATA.find(ff => ff.id === fid);
+              if (!fee) return 0;
+              const rateNum = Number(String(fee.rate).replace(/[^0-9.]/g, "")) || 0;
+              return fee.method === "Fixed Amount" ? rateNum : unpaid * rateNum / 100;
+            });
+            const totalFees = feeAmts.reduce((a, b) => a + b, 0);
+            const finalAmt = unpaid + totalFees;
+            const dir = modal.data.direction;
+            const signedAmt = dir === "OUT" ? -finalAmt : finalAmt;
+            let notes;
+            if (newFeeIds.length === 0) {
+              notes = `Partial payment replacement for ${linkedId}. Unpaid: $${unpaid}`;
+            } else {
+              const parts = [`$${unpaid}`, ...feeAmts.map(a => `$${a}`)].join(" + ");
+              notes = `Partial payment replacement for ${linkedId} with penalty selected. ${parts} = $${finalAmt}`;
+            }
+            return { notes, payment: finalAmt, signed_payment_amount: signedAmt };
+          };
+          return (<>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+              <FF label="Partial Amount Paid" t={t}>
+                <FIn value={modal.data.partialPaid || ""} onChange={e => {
+                  const val = e.target.value;
+                  const updates = recalcPartial(val, modal.data.fee_ids || []);
+                  setModal(m => ({ ...m, data: { ...m.data, partialPaid: val, ...updates } }));
+                }} placeholder="$0" t={t} />
+              </FF>
+              <FF label="Partial Unpaid" t={t}>
+                <div style={{ fontFamily: t.mono, fontSize: 13, fontWeight: 600, color: isDark ? "#FBBF24" : "#D97706", background: isDark ? "rgba(251,191,36,0.08)" : "#FFFBEB", border: `1px solid ${isDark ? "rgba(251,191,36,0.2)" : "#FDE68A"}`, borderRadius: 9, padding: "10px 13px" }}>${partialUnpaid}</div>
+              </FF>
+            </div>
+            <FF label="Partial-Pay Penalty Fees" t={t}>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                {FEES_DATA.filter(f => f.fee_type === "Partial-Pay Penalty").map(f => {
+                  const selected = (modal.data.fee_ids || []).includes(f.id);
+                  const toggle = () => {
+                    const cur = modal.data.fee_ids || [];
+                    const newFeeIds = selected ? cur.filter(x => x !== f.id) : [...cur, f.id];
+                    const updates = recalcPartial(modal.data.partialPaid, newFeeIds);
+                    setModal(m => ({ ...m, data: { ...m.data, fee_ids: newFeeIds, ...updates } }));
+                  };
+                  return (
+                    <div key={f.id} onClick={toggle} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12.5, fontWeight: selected ? 600 : 400, padding: "5px 12px", borderRadius: 20, cursor: "pointer", transition: "all 0.15s ease", background: selected ? (isDark ? "rgba(251,191,36,0.15)" : "#FFFBEB") : t.chipBg, color: selected ? (isDark ? "#FBBF24" : "#D97706") : t.textSecondary, border: `1px solid ${selected ? (isDark ? "rgba(251,191,36,0.4)" : "#FDE68A") : t.chipBorder}` }}>
+                      <span style={{ fontSize: 11, fontWeight: 700, lineHeight: 1 }}>{selected ? "✓" : "+"}</span>
+                      {f.name}
+                      <span style={{ fontFamily: t.mono, fontSize: 10.5, opacity: 0.7 }}>({f.rate})</span>
+                    </div>
+                  );
+                })}
+                {FEES_DATA.filter(f => f.fee_type === "Partial-Pay Penalty").length === 0 && <span style={{ fontSize: 12, color: t.textMuted }}>No Partial-Pay Penalty types defined in Fees</span>}
+              </div>
+            </FF>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+              <FF label="Linked Schedule" t={t}><FIn value={modal.data.linked || ""} onChange={e => setF("linked", e.target.value)} placeholder="S00001" t={t} /></FF>
+              <FF label="Status" t={t}><FSel value={modal.data.status} onChange={e => setF("status", e.target.value)} options={paymentStatusOpts} t={t} /></FF>
+            </div>
+          </>);
+        })()}
       </>) : (
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14 }}>
           <FF label="Fee ID" t={t}><FIn value={modal.data.fee_id || ""} onChange={e => setF("fee_id", e.target.value)} placeholder="F10001" t={t} /></FF>
