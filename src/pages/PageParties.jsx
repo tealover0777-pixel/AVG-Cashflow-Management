@@ -57,7 +57,7 @@ export default function PageParties({ t, isDark, PARTIES = [], collectionPath = 
   const [colFilters, setColFilters] = useState({});
   const setColFilter = (key, val) => { setColFilters(f => ({ ...f, [key]: val })); setPage(1); };
   const chips = ["All", "Investors", "Borrowers", "Companies"];
-  const cols = [{ l: "ID", w: "90px", k: "id" }, { l: "NAME", w: "1fr", k: "name" }, { l: "TYPE", w: "100px", k: "type" }, { l: "ROLE", w: "90px", k: "role" }, { l: "INV TYPE", w: "80px", k: "investor_type" }, { l: "EMAIL", w: "1fr", k: "email" }, { l: "PHONE", w: "120px", k: "phone" }, { l: "ADDRESS", w: "1fr", k: "address" }, { l: "TAX ID", w: "110px", k: "tax_id" }, { l: "BANK INFO", w: "1fr", k: "bank_information" }, { l: "CREATED", w: "95px", k: "created_at" }, { l: "UPDATED", w: "95px", k: "updated_at" }, { l: "ACTIONS", w: "80px" }];
+  const cols = [{ l: "PARTY ID", w: "90px", k: "id" }, { l: "NAME", w: "1fr", k: "name" }, { l: "TYPE", w: "100px", k: "type" }, { l: "ROLE", w: "90px", k: "role" }, { l: "INV TYPE", w: "80px", k: "investor_type" }, { l: "EMAIL", w: "1fr", k: "email" }, { l: "PHONE", w: "120px", k: "phone" }, { l: "ADDRESS", w: "1fr", k: "address" }, { l: "TAX ID", w: "110px", k: "tax_id" }, { l: "BANK INFO", w: "1fr", k: "bank_information" }, { l: "CREATED", w: "95px", k: "created_at" }, { l: "UPDATED", w: "95px", k: "updated_at" }, { l: "ACTIONS", w: "80px" }];
   const { gridTemplate, headerRef, onResizeStart } = useResizableColumns(cols);
   const filtered = PARTIES.filter(p => {
     if (chip === "Investors" && p.role !== "Investor") return false;

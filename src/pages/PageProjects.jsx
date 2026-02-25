@@ -45,7 +45,7 @@ export default function PageProjects({ t, isDark, PROJECTS = [], FEES_DATA = [],
     }
     close();
   };
-  const cols = [{ l: "ID", w: "110px", k: "id" }, { l: "NAME", w: "1fr", k: "name" }, { l: "STATUS", w: "100px", k: "status" }, { l: "CCY", w: "60px", k: "currency" }, { l: "START DATE", w: "104px", k: "startDate" }, { l: "END DATE", w: "104px", k: "endDate" }, { l: "VALUATION", w: "120px", k: "valuation" }, { l: "DESCRIPTION", w: "1fr", k: "description" }, { l: "FEES", w: "minmax(120px,1.2fr)", k: "feeIds" }, { l: "ACTIONS", w: "80px" }];
+  const cols = [{ l: "PROJECT ID", w: "110px", k: "id" }, { l: "NAME", w: "1fr", k: "name" }, { l: "STATUS", w: "100px", k: "status" }, { l: "CCY", w: "60px", k: "currency" }, { l: "START DATE", w: "104px", k: "startDate" }, { l: "END DATE", w: "104px", k: "endDate" }, { l: "VALUATION", w: "120px", k: "valuation" }, { l: "DESCRIPTION", w: "1fr", k: "description" }, { l: "FEES", w: "minmax(120px,1.2fr)", k: "feeIds" }, { l: "ACTIONS", w: "80px" }];
   const { gridTemplate, headerRef, onResizeStart } = useResizableColumns(cols);
   const [colFilters, setColFilters] = useState({});
   const setColFilter = (key, val) => { setColFilters(f => ({ ...f, [key]: val })); setPage(1); };

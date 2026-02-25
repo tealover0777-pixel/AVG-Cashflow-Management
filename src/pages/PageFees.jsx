@@ -47,7 +47,7 @@ export default function PageFees({ t, isDark, FEES_DATA = [], DIMENSIONS = [], c
       setDelT(null);
     } catch (err) { console.error("Delete fee error:", err); }
   };
-  const cols = [{ l: "ID", w: "100px", k: "id" }, { l: "NAME", w: "1fr", k: "name" }, { l: "FEE TYPE", w: "130px", k: "fee_type" }, { l: "METHOD", w: "130px", k: "method" }, { l: "RATE", w: "110px", k: "rate" }, { l: "CHARGE AT", w: "120px", k: "fee_charge_at" }, { l: "FREQUENCY", w: "120px", k: "fee_frequency" }, { l: "DESCRIPTION", w: "1fr", k: "description" }, { l: "ACTIONS", w: "90px" }];
+  const cols = [{ l: "FEE ID", w: "100px", k: "id" }, { l: "NAME", w: "1fr", k: "name" }, { l: "FEE TYPE", w: "130px", k: "fee_type" }, { l: "METHOD", w: "130px", k: "method" }, { l: "RATE", w: "110px", k: "rate" }, { l: "CHARGE AT", w: "120px", k: "fee_charge_at" }, { l: "FREQUENCY", w: "120px", k: "fee_frequency" }, { l: "DESCRIPTION", w: "1fr", k: "description" }, { l: "ACTIONS", w: "90px" }];
   const { gridTemplate, headerRef, onResizeStart } = useResizableColumns(cols);
   const [colFilters, setColFilters] = useState({});
   const setColFilter = (key, val) => { setColFilters(f => ({ ...f, [key]: val })); setPage(1); };

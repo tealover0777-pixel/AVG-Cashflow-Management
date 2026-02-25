@@ -121,7 +121,7 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
       setSel(new Set());
     } catch (err) { console.error("Bulk delete error:", err); }
   };
-  const cols = [{ l: "", w: "36px" }, { l: "ID", w: "80px", k: "id" }, { l: "LINKED", w: "80px", k: "linked" }, { l: "CONTRACT", w: "85px", k: "contract" }, { l: "PROJECT ID", w: "85px", k: "project_id" }, { l: "PARTY ID", w: "80px", k: "party_id" }, { l: "PERIOD", w: "58px", k: "period_number" }, { l: "DUE DATE", w: "98px", k: "dueDate" }, { l: "TYPE", w: "minmax(60px, 0.33fr)", k: "type" }, { l: "FEE", w: "260px", k: "fee_id" }, { l: "DIR", w: "50px", k: "direction" }, { l: "SIGNED AMT", w: "110px", k: "signed_payment_amount" }, { l: "PRINCIPAL", w: "110px", k: "principal_amount" }, { l: "STATUS", w: "90px", k: "status" }, { l: "ACTIONS", w: "76px" }];
+  const cols = [{ l: "", w: "36px" }, { l: "SCHEDULE ID", w: "80px", k: "id" }, { l: "LINKED", w: "80px", k: "linked" }, { l: "CONTRACT", w: "85px", k: "contract" }, { l: "PROJECT ID", w: "85px", k: "project_id" }, { l: "PARTY ID", w: "80px", k: "party_id" }, { l: "PERIOD", w: "58px", k: "period_number" }, { l: "DUE DATE", w: "98px", k: "dueDate" }, { l: "TYPE", w: "minmax(60px, 0.33fr)", k: "type" }, { l: "FEE", w: "260px", k: "fee_id" }, { l: "DIR", w: "50px", k: "direction" }, { l: "SIGNED AMT", w: "110px", k: "signed_payment_amount" }, { l: "PRINCIPAL", w: "110px", k: "principal_amount" }, { l: "STATUS", w: "90px", k: "status" }, { l: "ACTIONS", w: "76px" }];
   const { gridTemplate, headerRef, onResizeStart } = useResizableColumns(cols);
   const [colFilters, setColFilters] = useState({});
   const setColFilter = (key, val) => { setColFilters(f => ({ ...f, [key]: val })); setPage(1); };
