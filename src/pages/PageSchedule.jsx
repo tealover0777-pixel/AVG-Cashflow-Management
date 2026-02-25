@@ -64,6 +64,7 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
               linked: d.id,
               fee_ids: [],
               status: "Due",
+              basePayment: Math.abs(Number(String(d.payment || d.signed_payment_amount || 0).replace(/[^0-9.-]/g, "")) || 0),
               notes: `Late payment replacement for ${d.id}`,
             }
           });
@@ -221,7 +222,27 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
               const selected = (modal.data.fee_ids || []).includes(f.id);
               const toggle = () => {
                 const cur = modal.data.fee_ids || [];
-                setF("fee_ids", selected ? cur.filter(x => x !== f.id) : [...cur, f.id]);
+                const newFeeIds = selected ? cur.filter(x => x !== f.id) : [...cur, f.id];
+                const baseAmt = modal.data.basePayment || 0;
+                const linkedId = modal.data.linked || "";
+                const feeAmts = newFeeIds.map(fid => {
+                  const fee = FEES_DATA.find(ff => ff.id === fid);
+                  if (!fee) return 0;
+                  const rateNum = Number(String(fee.rate).replace(/[^0-9.]/g, "")) || 0;
+                  return fee.method === "Fixed Amount" ? rateNum : baseAmt * rateNum / 100;
+                });
+                const totalFees = feeAmts.reduce((a, b) => a + b, 0);
+                const finalAmt = baseAmt + totalFees;
+                const dir = modal.data.direction;
+                const signedAmt = dir === "OUT" ? -finalAmt : finalAmt;
+                let notes;
+                if (newFeeIds.length === 0) {
+                  notes = `Late payment replacement for ${linkedId}`;
+                } else {
+                  const parts = [`$${baseAmt}`, ...feeAmts.map(a => `$${a}`)].join(" + ");
+                  notes = `Late payment replacement for ${linkedId} with penalty selected. ${parts} = $${finalAmt}`;
+                }
+                setModal(m => ({ ...m, data: { ...m.data, fee_ids: newFeeIds, notes, payment: finalAmt, signed_payment_amount: signedAmt } }));
               };
               return (
                 <div key={f.id} onClick={toggle} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12.5, fontWeight: selected ? 600 : 400, padding: "5px 12px", borderRadius: 20, cursor: "pointer", transition: "all 0.15s ease", background: selected ? (isDark ? "rgba(248,113,113,0.15)" : "#FEF2F2") : t.chipBg, color: selected ? (isDark ? "#F87171" : "#DC2626") : t.textSecondary, border: `1px solid ${selected ? (isDark ? "rgba(248,113,113,0.4)" : "#FECACA") : t.chipBorder}` }}>
