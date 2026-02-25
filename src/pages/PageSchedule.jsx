@@ -4,6 +4,8 @@ import { collection, doc, addDoc, updateDoc, deleteDoc, serverTimestamp } from "
 import { sortData, badge } from "../utils";
 import { StatCard, Pagination, ActBtns, useResizableColumns, TblHead, Modal, FF, FIn, FSel, DelModal } from "../components";
 
+const fmtCurr = v => { if (v == null || v === "") return ""; const n = Number(String(v).replace(/[^0-9.-]/g, "")); if (isNaN(n)) return String(v); return "$" + n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }); };
+
 export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = [], DIMENSIONS = [], FEES_DATA = [], collectionPath = "" }) {
   const getNextScheduleId = () => {
     let maxNum = 9999;
@@ -289,7 +291,7 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
                   const parts = [`$${baseAmt}`, ...feeAmts.map(a => `$${a}`)].join(" + ");
                   notes = `Late payment replacement for ${linkedId} with penalty selected. ${parts} = $${finalAmt}`;
                 }
-                setModal(m => ({ ...m, data: { ...m.data, fee_ids: newFeeIds, notes, payment: finalAmt, signed_payment_amount: signedAmt } }));
+                setModal(m => ({ ...m, data: { ...m.data, fee_ids: newFeeIds, notes, payment: fmtCurr(finalAmt), signed_payment_amount: fmtCurr(signedAmt) } }));
               };
               return (
                 <div key={f.id} onClick={toggle} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12.5, fontWeight: selected ? 600 : 400, padding: "5px 12px", borderRadius: 20, cursor: "pointer", transition: "all 0.15s ease", background: selected ? (isDark ? "rgba(248,113,113,0.15)" : "#FEF2F2") : t.chipBg, color: selected ? (isDark ? "#F87171" : "#DC2626") : t.textSecondary, border: `1px solid ${selected ? (isDark ? "rgba(248,113,113,0.4)" : "#FECACA") : t.chipBorder}` }}>
@@ -332,7 +334,7 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
               const parts = [`$${unpaid}`, ...feeAmts.map(a => `$${a}`)].join(" + ");
               notes = `Partial payment replacement for ${linkedId} with penalty selected. ${parts} = $${finalAmt}`;
             }
-            return { notes, payment: finalAmt, signed_payment_amount: signedAmt };
+            return { notes, payment: fmtCurr(finalAmt), signed_payment_amount: fmtCurr(signedAmt) };
           };
           return (<>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
