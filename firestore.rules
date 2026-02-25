@@ -1,0 +1,89 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // --- Helper Functions ---
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function getRole() {
+      return request.auth.token.role;
+    }
+
+    function getTenant() {
+      return request.auth.token.tenantId;
+    }
+
+    function isRole(role) {
+      return isSignedIn() && getRole() == role;
+    }
+
+    function isTenantMember(tenantId) {
+      return isSignedIn() && getTenant() == tenantId;
+    }
+
+    // --- Role-based access check functions ---
+    function isSecretAdmin() {
+      return isRole('secret_admin_read_write');
+    }
+
+    function isCompanySuperAdmin() {
+      return isRole('company_super_admin_read_write');
+    }
+
+    function isCompanySupport() {
+        return isRole('company_tech_support_read_only') || isRole('company_customer_support_read_only');
+    }
+
+    function isTenantSuperUser(tenantId) {
+        return isTenantMember(tenantId) && isRole('tenant_admin_super_user');
+    }
+
+    function isTenantAdminWrite(tenantId) {
+        return isTenantMember(tenantId) && isRole('tenant_admin_read_write');
+    }
+
+    function isTenantAdminRead(tenantId) {
+        return isTenantMember(tenantId) && isRole('tenant_admin_read_only');
+    }
+
+    function isTenantUser(tenantId) {
+        return isTenantMember(tenantId) && isRole('tenant_user');
+    }
+
+
+    // --- Rules ---
+
+    // Secret admin has global read/write access.
+    match /{path=**} {
+      allow read, write: if isSecretAdmin();
+    }
+
+    // Rules for data within a tenant.
+    match /tenants/{tenantId}/{document=**} {
+      allow read, write: if isCompanySuperAdmin();
+      allow read: if isCompanySupport();
+      allow read, write: if isTenantSuperUser(tenantId) || isTenantAdminWrite(tenantId);
+      allow read: if isTenantAdminRead(tenantId);
+    }
+
+    // Rules for specific collections for a tenant_user.
+    match /tenants/{tenantId}/users/{userId} {
+        allow read: if isTenantUser(tenantId) && request.auth.uid == userId;
+    }
+
+    match /tenants/{tenantId}/projects/{projectId} {
+        allow read: if isTenantUser(tenantId);
+    }
+
+    match /tenants/{tenantId}/contracts/{contractId} {
+        allow read: if isTenantUser(tenantId);
+    }
+
+    match /tenants/{tenantId}/reports/{reportId} {
+        allow read: if isTenantUser(tenantId);
+    }
+  }
+}
