@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { db } from "../firebase";
-import { collection, doc, addDoc, updateDoc, deleteDoc, serverTimestamp } from "firebase/firestore";
+import { doc, setDoc, updateDoc, deleteDoc, serverTimestamp } from "firebase/firestore";
 import { initials, av, badge, sortData } from "../utils";
 import { StatCard, Pagination, ActBtns, useResizableColumns, TblHead, Modal, FF, FIn, FSel, DelModal } from "../components";
 
@@ -14,7 +14,12 @@ export default function PageParties({ t, isDark, PARTIES = [], collectionPath = 
   const [sort, setSort] = useState({ key: null, direction: "asc" });
   const [page, setPage] = useState(1);
   const onSort = k => { setSort(s => ({ key: k, direction: s.key === k && s.direction === "asc" ? "desc" : "asc" })); setPage(1); };
-  const openAdd = () => setModal({ open: true, mode: "add", data: { name: "", type: "Individual", role: "Investor", email: "" } });
+  const nextPartyId = (() => {
+    if (PARTIES.length === 0) return "M10001";
+    const maxNum = Math.max(...PARTIES.map(p => { const m = String(p.id).match(/^M(\d+)$/); return m ? Number(m[1]) : 0; }));
+    return "M" + (maxNum + 1);
+  })();
+  const openAdd = () => setModal({ open: true, mode: "add", data: { id: nextPartyId, name: "", type: "Individual", role: "Investor", email: "" } });
   const openEdit = r => setModal({ open: true, mode: "edit", data: { ...r } });
   const close = () => setModal(m => ({ ...m, open: false }));
   const setF = (k, v) => setModal(m => ({ ...m, data: { ...m.data, [k]: v } }));
@@ -36,7 +41,7 @@ export default function PageParties({ t, isDark, PARTIES = [], collectionPath = 
       if (modal.mode === "edit" && d.docId) {
         await updateDoc(doc(db, collectionPath, d.docId), payload);
       } else {
-        await addDoc(collection(db, collectionPath), { ...payload, created_at: serverTimestamp() });
+        await setDoc(doc(db, collectionPath, d.id), { ...payload, created_at: serverTimestamp() });
       }
     } catch (err) { console.error("Save party error:", err); }
     close();
@@ -96,11 +101,9 @@ export default function PageParties({ t, isDark, PARTIES = [], collectionPath = 
     </div>
     <div style={{ marginTop: 16, display: "flex", justifyContent: "space-between", alignItems: "center" }}><span style={{ fontSize: 12, color: t.textSubtle }}>Showing <strong style={{ color: t.textSecondary }}>{paginated.length}</strong> of <strong style={{ color: t.textSecondary }}>{sorted.length}</strong> parties</span><Pagination totalPages={totalPages} currentPage={page} onPageChange={setPage} t={t} /></div>
     <Modal open={modal.open} onClose={close} title={modal.mode === "add" ? "New Party" : "Edit Party"} onSave={handleSaveParty} width={600} t={t} isDark={isDark}>
-      {modal.mode === "edit" && (
-        <FF label="Party ID" t={t}>
-          <div style={{ fontFamily: t.mono, fontSize: 13, color: t.idText, background: isDark ? "rgba(255,255,255,0.04)" : "#F5F4F1", border: `1px solid ${t.surfaceBorder}`, borderRadius: 9, padding: "10px 13px", letterSpacing: "0.5px" }}>{modal.data.id}</div>
-        </FF>
-      )}
+      <FF label="Party ID" t={t}>
+        <div style={{ fontFamily: t.mono, fontSize: 13, color: t.idText, background: isDark ? "rgba(255,255,255,0.04)" : "#F5F4F1", border: `1px solid ${t.surfaceBorder}`, borderRadius: 9, padding: "10px 13px", letterSpacing: "0.5px" }}>{modal.data.id}</div>
+      </FF>
       <FF label="Full Name" t={t}><FIn value={modal.data.name || ""} onChange={e => setF("name", e.target.value)} placeholder="e.g. Pao Fu Chen" t={t} /></FF>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
         <FF label="Party Type" t={t}><FSel value={modal.data.type || "Individual"} onChange={e => setF("type", e.target.value)} options={partyTypeOpts} t={t} /></FF>

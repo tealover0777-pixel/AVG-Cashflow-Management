@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { db } from "../firebase";
-import { collection, doc, addDoc, updateDoc, deleteDoc, serverTimestamp } from "firebase/firestore";
+import { doc, setDoc, updateDoc, deleteDoc, serverTimestamp } from "firebase/firestore";
 import { COLLECTION_PATHS, sortData } from "../utils";
 import { Bdg, StatCard, Pagination, ActBtns, useResizableColumns, TblHead, Modal, FF, FIn, FSel, DelModal } from "../components";
 
@@ -11,7 +11,12 @@ export default function PageProjects({ t, isDark, PROJECTS = [], FEES_DATA = [],
   const [sort, setSort] = useState({ key: null, direction: "asc" });
   const [page, setPage] = useState(1);
   const onSort = k => { setSort(s => ({ key: k, direction: s.key === k && s.direction === "asc" ? "desc" : "asc" })); setPage(1); };
-  const openAdd = () => setModal({ open: true, mode: "add", data: { name: "", status: "Active", currency: "USD", startDate: "", endDate: "", valuation: "", description: "" } });
+  const nextProjectId = (() => {
+    if (PROJECTS.length === 0) return "P10001";
+    const maxNum = Math.max(...PROJECTS.map(p => { const m = String(p.id).match(/^P(\d+)$/); return m ? Number(m[1]) : 0; }));
+    return "P" + (maxNum + 1);
+  })();
+  const openAdd = () => setModal({ open: true, mode: "add", data: { id: nextProjectId, name: "", status: "Active", currency: "USD", startDate: "", endDate: "", valuation: "", description: "" } });
   const openEdit = r => setModal({ open: true, mode: "edit", data: { ...r } });
   const close = () => setModal(m => ({ ...m, open: false }));
   const setF = (k, v) => setModal(m => ({ ...m, data: { ...m.data, [k]: v } }));
@@ -33,7 +38,7 @@ export default function PageProjects({ t, isDark, PROJECTS = [], FEES_DATA = [],
       if (modal.mode === "edit" && d.docId) {
         await updateDoc(doc(db, collectionPath, d.docId), payload);
       } else {
-        await addDoc(collection(db, collectionPath), { ...payload, created_at: serverTimestamp() });
+        await setDoc(doc(db, collectionPath, d.id), { ...payload, created_at: serverTimestamp() });
       }
     } catch (err) {
       console.error("Failed to save project:", err);
@@ -89,11 +94,9 @@ export default function PageProjects({ t, isDark, PROJECTS = [], FEES_DATA = [],
     </div>
     <div style={{ marginTop: 16, display: "flex", justifyContent: "space-between", alignItems: "center" }}><span style={{ fontSize: 12, color: t.textSubtle }}>Showing <strong style={{ color: t.textSecondary }}>{paginated.length}</strong> of <strong style={{ color: t.textSecondary }}>{sorted.length}</strong> projects</span><Pagination totalPages={totalPages} currentPage={page} onPageChange={setPage} t={t} /></div>
     <Modal open={modal.open} onClose={close} title={modal.mode === "add" ? "New Project" : "Edit Project"} onSave={handleSaveProject} width={580} t={t} isDark={isDark}>
-      {modal.mode === "edit" && (
-        <FF label="Project ID" t={t}>
-          <div style={{ fontFamily: t.mono, fontSize: 13, color: t.idText, background: isDark ? "rgba(255,255,255,0.04)" : "#F5F4F1", border: `1px solid ${t.surfaceBorder}`, borderRadius: 9, padding: "10px 13px", letterSpacing: "0.5px" }}>{modal.data.id}</div>
-        </FF>
-      )}
+      <FF label="Project ID" t={t}>
+        <div style={{ fontFamily: t.mono, fontSize: 13, color: t.idText, background: isDark ? "rgba(255,255,255,0.04)" : "#F5F4F1", border: `1px solid ${t.surfaceBorder}`, borderRadius: 9, padding: "10px 13px", letterSpacing: "0.5px" }}>{modal.data.id}</div>
+      </FF>
       <FF label="Project Name" t={t}><FIn value={modal.data.name} onChange={e => setF("name", e.target.value)} placeholder="e.g. Palm Springs Villas" t={t} /></FF>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
         <FF label="Status" t={t}><FSel value={modal.data.status} onChange={e => setF("status", e.target.value)} options={["Active", "Closed"]} t={t} /></FF>
