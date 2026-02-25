@@ -126,9 +126,10 @@ export const FIn = ({ value, onChange, placeholder, t, type }) => (
     style={{ width: "100%", background: t.searchBg, border: `1px solid ${t.searchBorder}`, borderRadius: 9, padding: "10px 13px", color: t.searchText, fontSize: 13.5, fontFamily: "inherit", outline: "none" }} />
 );
 
-export const FSel = ({ value, onChange, options, t }) => (
-  <select value={value || options[0] || ""} onChange={onChange}
-    style={{ width: "100%", background: t.searchBg, border: `1px solid ${t.searchBorder}`, borderRadius: 9, padding: "10px 13px", color: t.searchText, fontSize: 13.5, fontFamily: "inherit", outline: "none", cursor: "pointer" }}>
+export const FSel = ({ value, onChange, options, t, placeholder }) => (
+  <select value={value} onChange={onChange}
+    style={{ width: "100%", background: t.searchBg, border: `1px solid ${t.searchBorder}`, borderRadius: 9, padding: "10px 13px", color: value ? t.searchText : (t.textMuted), fontSize: 13.5, fontFamily: "inherit", outline: "none", cursor: "pointer" }}>
+    {!value && <option value="">{placeholder || "Select..."}</option>}
     {options.map(o => <option key={o} value={o}>{o}</option>)}
   </select>
 );
