@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { db } from "../firebase";
 import { doc, setDoc, updateDoc, deleteDoc, serverTimestamp } from "firebase/firestore";
-import { COLLECTION_PATHS, sortData } from "../utils";
+import { sortData } from "../utils";
 import { Bdg, StatCard, Pagination, ActBtns, useResizableColumns, TblHead, Modal, FF, FIn, FSel, DelModal } from "../components";
 
 export default function PageProjects({ t, isDark, PROJECTS = [], FEES_DATA = [], collectionPath = "" }) {
@@ -56,7 +56,7 @@ export default function PageProjects({ t, isDark, PROJECTS = [], FEES_DATA = [],
   const handleDeleteProject = async () => {
     if (!delT || !delT.docId) return;
     try {
-      await deleteDoc(doc(db, COLLECTION_PATHS.projects, delT.docId));
+      await deleteDoc(doc(db, collectionPath, delT.docId));
       setDelT(null);
     } catch (err) { console.error("Delete project error:", err); }
   };

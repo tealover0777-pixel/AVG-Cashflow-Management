@@ -1,10 +1,10 @@
 import { useState } from "react";
 import { db } from "../firebase";
 import { collection, doc, addDoc, updateDoc, deleteDoc, serverTimestamp } from "firebase/firestore";
-import { COLLECTION_PATHS, sortData } from "../utils";
+import { sortData } from "../utils";
 import { Pagination, ActBtns, useResizableColumns, TblHead, Modal, FF, FIn, FSel, DelModal } from "../components";
 
-export default function PagePayments({ t, isDark, PAYMENTS = [] }) {
+export default function PagePayments({ t, isDark, PAYMENTS = [], collectionPath = "" }) {
   const [hov, setHov] = useState(null); const [chip, setChip] = useState("All");
   const [modal, setModal] = useState({ open: false, mode: "add", data: {} });
   const [delT, setDelT] = useState(null);
@@ -19,7 +19,7 @@ export default function PagePayments({ t, isDark, PAYMENTS = [] }) {
   const handleDeletePayment = async () => {
     if (!delT || !delT.docId) return;
     try {
-      await deleteDoc(doc(db, COLLECTION_PATHS.payments, delT.docId));
+      await deleteDoc(doc(db, collectionPath, delT.docId));
       setDelT(null);
     } catch (err) { console.error("Delete payment error:", err); }
   };
@@ -39,9 +39,9 @@ export default function PagePayments({ t, isDark, PAYMENTS = [] }) {
     };
     try {
       if (modal.mode === "edit" && d.docId) {
-        await updateDoc(doc(db, COLLECTION_PATHS.payments, d.docId), payload);
+        await updateDoc(doc(db, collectionPath, d.docId), payload);
       } else {
-        await addDoc(collection(db, COLLECTION_PATHS.payments), { ...payload, created_at: serverTimestamp() });
+        await addDoc(collection(db, collectionPath), { ...payload, created_at: serverTimestamp() });
       }
     } catch (err) { console.error("Save payment error:", err); }
     close();
@@ -61,7 +61,7 @@ export default function PagePayments({ t, isDark, PAYMENTS = [] }) {
     </div>
     <div style={{ background: t.surface, borderRadius: 16, border: `1px solid ${t.surfaceBorder}`, overflow: "auto", backdropFilter: isDark ? "blur(20px)" : "none", boxShadow: t.tableShadow }}>
       <TblHead cols={cols} t={t} isDark={isDark} sortConfig={sort} onSort={onSort} gridTemplate={gridTemplate} headerRef={headerRef} onResizeStart={onResizeStart} />
-      <div style={{ display: "grid", gridTemplateColumns: gridTemplate, padding: "6px 22px", borderBottom: `1px solid ${t.rowDivider}`, background: isDark ? "rgba(255,255,255,0.015)" : "#FDFDFC" }}>
+      <div style={{ display: "grid", gridTemplateColumns: gridTemplate, padding: "6px 22px", borderBottom: `1px solid ${t.rowDivider}`, background: isDarek ? "rgba(255,255,255,0.015)" : "#FDFDFC" }}>
         {cols.map(c => c.k ? <input key={c.k} value={colFilters[c.k] || ""} onChange={e => setColFilter(c.k, e.target.value)} placeholder="Filter..." style={{ fontSize: 11, padding: "4px 8px", borderRadius: 6, border: `1px solid ${t.surfaceBorder}`, background: isDark ? "rgba(30, 58, 138, 0.3)" : "rgba(219, 234, 254, 0.7)", color: isDark ? "rgba(255,255,255,0.8)" : "#44403C", outline: "none", width: "100%", boxSizing: "border-box", fontFamily: "inherit" }} /> : <div key={c.l || "nofilter"} />)}
       </div>
       {paginated.map((p, i) => {
