@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { db } from "../firebase";
-import { collection, doc, addDoc, updateDoc, deleteDoc, serverTimestamp } from "firebase/firestore";
+import { doc, setDoc, updateDoc, deleteDoc, serverTimestamp } from "firebase/firestore";
 import { sortData } from "../utils";
 import { StatCard, Pagination, ActBtns, useResizableColumns, TblHead, Modal, FF, FIn, FSel, DelModal } from "../components";
 
@@ -14,7 +14,12 @@ export default function PageFees({ t, isDark, FEES_DATA = [], DIMENSIONS = [], c
   const [sort, setSort] = useState({ key: null, direction: "asc" });
   const [page, setPage] = useState(1);
   const onSort = k => { setSort(s => ({ key: k, direction: s.key === k && s.direction === "asc" ? "desc" : "asc" })); setPage(1); };
-  const openAdd = () => setModal({ open: true, mode: "add", data: { name: "", fee_type: "", method: "% of Amount", rate: "", fee_charge_at: "", fee_frequency: "", description: "" } });
+  const nextFeeId = (() => {
+    if (FEES_DATA.length === 0) return "F10001";
+    const maxNum = Math.max(...FEES_DATA.map(f => { const m = String(f.id).match(/^F(\d+)$/); return m ? Number(m[1]) : 0; }));
+    return "F" + (maxNum + 1);
+  })();
+  const openAdd = () => setModal({ open: true, mode: "add", data: { id: nextFeeId, name: "", fee_type: "", method: "% of Amount", rate: "", fee_charge_at: "", fee_frequency: "", description: "" } });
   const openEdit = r => setModal({ open: true, mode: "edit", data: { ...r } });
   const close = () => setModal(m => ({ ...m, open: false }));
   const setF = (k, v) => setModal(m => ({ ...m, data: { ...m.data, [k]: v } }));
@@ -34,7 +39,7 @@ export default function PageFees({ t, isDark, FEES_DATA = [], DIMENSIONS = [], c
       if (modal.mode === "edit" && d.docId) {
         await updateDoc(doc(db, collectionPath, d.docId), payload);
       } else {
-        await addDoc(collection(db, collectionPath), { ...payload, created_at: serverTimestamp() });
+        await setDoc(doc(db, collectionPath, d.id), { ...payload, created_at: serverTimestamp() });
       }
     } catch (err) { console.error("Save fee error:", err); }
     close();
@@ -82,6 +87,9 @@ export default function PageFees({ t, isDark, FEES_DATA = [], DIMENSIONS = [], c
     </div>
     <div style={{ marginTop: 16, display: "flex", justifyContent: "space-between", alignItems: "center" }}><span style={{ fontSize: 12, color: t.textSubtle }}>Showing <strong style={{ color: t.textSecondary }}>{filtered.length}</strong> of <strong style={{ color: t.textSecondary }}>{FEES_DATA.length}</strong> fees</span><Pagination pages={["‹", "1", "›"]} t={t} /></div>
     <Modal open={modal.open} onClose={close} title={modal.mode === "add" ? "New Fee" : "Edit Fee"} onSave={handleSaveFee} t={t} isDark={isDark}>
+      <FF label="Fee ID" t={t}>
+        <div style={{ fontFamily: t.mono, fontSize: 13, color: t.idText, background: isDark ? "rgba(255,255,255,0.04)" : "#F5F4F1", border: `1px solid ${t.surfaceBorder}`, borderRadius: 9, padding: "10px 13px", letterSpacing: "0.5px" }}>{modal.data.id}</div>
+      </FF>
       <FF label="Fee Name" t={t}><FIn value={modal.data.name} onChange={e => setF("name", e.target.value)} placeholder="e.g. Origination Fee" t={t} /></FF>
       <FF label="Fee Type" t={t}><FSel value={modal.data.fee_type || ""} onChange={e => setF("fee_type", e.target.value)} options={feeTypeOpts} t={t} /></FF>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
