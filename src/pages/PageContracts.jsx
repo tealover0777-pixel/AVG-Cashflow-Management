@@ -87,6 +87,32 @@ export default function PageContracts({ t, isDark, CONTRACTS = [], PROJECTS = []
       setDelT(null);
     } catch (err) { console.error("Delete contract error:", err); }
   };
+  const contractStatusOpts = ["Open", "Active", "Closed"];
+  const [bulkStatus, setBulkStatus] = useState("");
+  const handleBulkStatus = async (status) => {
+    if (!status || sel.size === 0) return;
+    if (!window.confirm(`Are you sure you want to update status to "${status}" for ${sel.size} contract(s)?`)) return;
+    try {
+      await Promise.all([...sel].map(id => {
+        const c = CONTRACTS.find(c => c.id === id);
+        if (c && c.docId) return updateDoc(doc(db, collectionPath, c.docId), { status, updated_at: serverTimestamp() });
+        return Promise.resolve();
+      }));
+      setSel(new Set()); setBulkStatus("");
+    } catch (err) { console.error("Bulk status update error:", err); }
+  };
+  const handleBulkDelete = async () => {
+    if (sel.size === 0) return;
+    if (!window.confirm(`Are you sure you want to delete ${sel.size} contract(s)? This action cannot be undone.`)) return;
+    try {
+      await Promise.all([...sel].map(id => {
+        const c = CONTRACTS.find(c => c.id === id);
+        if (c && c.docId) return deleteDoc(doc(db, collectionPath, c.docId));
+        return Promise.resolve();
+      }));
+      setSel(new Set());
+    } catch (err) { console.error("Bulk delete error:", err); }
+  };
   const handleGenerate = async () => {
     if (sel.size === 0) return;
     const selected = CONTRACTS.filter(c => sel.has(c.id));
@@ -366,7 +392,17 @@ export default function PageContracts({ t, isDark, CONTRACTS = [], PROJECTS = []
   const typC = { Loan: isDark ? "#60A5FA" : "#2563EB", Mortgage: isDark ? "#A78BFA" : "#7C3AED", Equity: isDark ? "#FBBF24" : "#D97706" };
   return (<>
     <div style={{ marginBottom: 28, display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}><div><h1 style={{ fontFamily: t.titleFont, fontWeight: t.titleWeight, fontSize: t.titleSize, color: isDark ? "#fff" : "#1C1917", letterSpacing: t.titleTracking, lineHeight: 1, marginBottom: 6 }}>Contracts</h1><p style={{ fontSize: 13.5, color: t.textMuted }}>Manage investment contracts</p></div>
-      <div style={{ display: "flex", gap: 10 }}>
+      <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+        {sel.size > 0 && <div style={{ display: "flex", gap: 8, alignItems: "center", background: isDark ? "rgba(255,255,255,0.04)" : "#F9FAFB", padding: "8px 14px", borderRadius: 10, border: `1px solid ${t.surfaceBorder}` }}>
+          <span style={{ fontSize: 12, fontWeight: 600, color: t.textSecondary }}>{sel.size} selected</span>
+          <select value={bulkStatus} onChange={e => setBulkStatus(e.target.value)} style={{ fontSize: 12, padding: "4px 8px", borderRadius: 7, border: `1px solid ${t.surfaceBorder}`, background: t.searchBg, color: t.searchText, cursor: "pointer" }}>
+            <option value="">Update status...</option>
+            {contractStatusOpts.map(s => <option key={s} value={s}>{s}</option>)}
+          </select>
+          <button onClick={() => handleBulkStatus(bulkStatus)} disabled={!bulkStatus} style={{ fontSize: 12, fontWeight: 600, padding: "5px 12px", borderRadius: 8, background: bulkStatus ? t.accentGrad : (isDark ? "rgba(255,255,255,0.06)" : "#E5E7EB"), color: bulkStatus ? "#fff" : t.textMuted, border: "none", cursor: bulkStatus ? "pointer" : "default" }}>Apply</button>
+          <div style={{ width: 1, height: 20, background: t.surfaceBorder }} />
+          <button onClick={handleBulkDelete} style={{ fontSize: 12, fontWeight: 600, padding: "5px 12px", borderRadius: 8, background: isDark ? "rgba(248,113,113,0.15)" : "#FEF2F2", color: isDark ? "#F87171" : "#DC2626", border: `1px solid ${isDark ? "rgba(248,113,113,0.3)" : "#FECACA"}`, cursor: "pointer" }}>Delete ({sel.size})</button>
+        </div>}
         <button className="success-btn" onClick={handleGenerate} disabled={sel.size === 0} style={{ background: t.successGrad, color: "#fff", padding: "11px 20px", borderRadius: 11, fontSize: 13, fontWeight: 600, boxShadow: `0 4px 16px ${t.successShadow}`, display: "flex", alignItems: "center", gap: 6, opacity: sel.size === 0 ? 0.45 : 1 }}>▤ Generate{sel.size > 0 ? ` (${sel.size})` : ""}</button>
         <button className="primary-btn" onClick={openAdd} style={{ background: t.accentGrad, color: "#fff", padding: "11px 22px", borderRadius: 11, fontSize: 13.5, fontWeight: 600, boxShadow: `0 4px 16px ${t.accentShadow}`, display: "flex", alignItems: "center", gap: 7 }}><span style={{ fontSize: 18, lineHeight: 1 }}>+</span> New Contract</button>
       </div>
