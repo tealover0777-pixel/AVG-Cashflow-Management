@@ -5,7 +5,7 @@ import { normalizeDateAtNoon, hybridDays, pmtCalculator_ACT360_30360, feeCalcula
 import { Bdg, StatCard, Pagination, ActBtns, useResizableColumns, TblHead, Modal, FF, FIn, FSel, DelModal } from "../components";
 
 export default function PageContracts({ t, isDark, CONTRACTS = [], PROJECTS = [], PARTIES = [], DIMENSIONS = [], FEES_DATA = [], SCHEDULES = [], collectionPath = "", schedulePath = "" }) {
-  const [hov, setHov] = useState(null); const [sel, setSel] = useState(new Set()); const [chip, setChip] = useState("All");
+  const [hov, setHov] = useState(null); const [sel, setSel] = useState(new Set()); const [chip, setChip] = useState("All"); const [generating, setGenerating] = useState(false);
   const [modal, setModal] = useState({ open: false, mode: "add", data: {} });
   const [delT, setDelT] = useState(null);
   const [sort, setSort] = useState({ key: null, direction: "asc" });
@@ -145,6 +145,8 @@ export default function PageContracts({ t, isDark, CONTRACTS = [], PROJECTS = []
     });
 
     if (!window.confirm(`Generate payment schedules for ${selected.length} contract(s)?`)) return;
+    setGenerating(true);
+    try {
 
     // --- ID Generation Logic ---
     let maxIdNum = 9999;
@@ -156,7 +158,6 @@ export default function PageContracts({ t, isDark, CONTRACTS = [], PROJECTS = []
     });
     let currentIdNum = maxIdNum + 1;
 
-    try {
       const entries = [];
       const parseNum = v => Number(String(v).replace(/[^0-9.-]/g, "")) || 0;
 
@@ -323,10 +324,11 @@ export default function PageContracts({ t, isDark, CONTRACTS = [], PROJECTS = []
       }
 
       setSel(new Set());
-      window.alert(`Successfully generated ${entries.length} payment schedule rows.`);
     } catch (err) {
       console.error("Generate schedules error:", err);
       window.alert("Error generating schedules. Check console.");
+    } finally {
+      setGenerating(false);
     }
   };
   const setF = (k, v) => setModal(m => {
@@ -507,5 +509,15 @@ export default function PageContracts({ t, isDark, CONTRACTS = [], PROJECTS = []
       )}
     </Modal>
     <DelModal target={delT} onClose={() => setDelT(null)} onConfirm={handleDeleteContract} label="This contract" t={t} isDark={isDark} />
+    {generating && <>
+      <style>{`@keyframes cfm-spin { to { transform: rotate(360deg); } }`}</style>
+      <div style={{ position: "fixed", inset: 0, zIndex: 99999, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.55)", backdropFilter: "blur(6px)" }}>
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 20, background: isDark ? "rgba(30,30,40,0.95)" : "#fff", padding: "40px 52px", borderRadius: 18, boxShadow: "0 8px 40px rgba(0,0,0,0.3)", border: `1px solid ${isDark ? "rgba(255,255,255,0.1)" : "#E5E7EB"}` }}>
+          <div style={{ width: 44, height: 44, border: `4px solid ${isDark ? "rgba(255,255,255,0.1)" : "#E5E7EB"}`, borderTopColor: isDark ? "#60A5FA" : "#3B82F6", borderRadius: "50%", animation: "cfm-spin 0.8s linear infinite" }} />
+          <span style={{ fontSize: 15, fontWeight: 600, color: isDark ? "rgba(255,255,255,0.85)" : "#1C1917", letterSpacing: "0.2px" }}>Payment Schedule Generation In Progress...</span>
+          <span style={{ fontSize: 12, color: isDark ? "rgba(255,255,255,0.4)" : "#9CA3AF" }}>Please wait while schedules are being created</span>
+        </div>
+      </div>
+    </>}
   </>);
 }
