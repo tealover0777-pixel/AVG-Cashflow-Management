@@ -5,7 +5,7 @@ import { useFirestoreCollection } from "../useFirestoreCollection";
 import { sortData } from "../utils";
 import { Bdg, Pagination, ActBtns, useResizableColumns, TblHead, Modal, FF, FIn, FSel, DelModal } from "../components";
 
-export default function PageSuperAdmin({ t, isDark }) {
+export default function PageSuperAdmin({ t, isDark, DIMENSIONS = [] }) {
     const { data: rawUsers = [], loading, error } = useFirestoreCollection("user_roles");
 
     const [hov, setHov] = useState(null);
@@ -14,6 +14,8 @@ export default function PageSuperAdmin({ t, isDark }) {
     const [sort, setSort] = useState({ key: null, direction: "asc" });
     const [page, setPage] = useState(1);
     const onSort = k => { setSort(s => ({ key: k, direction: s.key === k && s.direction === "asc" ? "desc" : "asc" })); setPage(1); };
+
+    const roleDim = DIMENSIONS.find(d => d.name === "Role")?.items || ["tenant_user", "tenant_admin_read_only", "tenant_admin_read_write", "tenant_admin_super_user", "company_super_admin_read_write"];
 
     const openAdd = () => setModal({ open: true, mode: "add", data: { uid: "", email: "", role: "tenant_user", tenantId: "" } });
     const openEdit = r => setModal({ open: true, mode: "edit", data: { ...r, uid: r.id } });
@@ -101,7 +103,7 @@ export default function PageSuperAdmin({ t, isDark }) {
                     <FIn value={modal.data.email} onChange={e => setF("email", e.target.value)} placeholder="user@company.com" t={t} />
                 </FF>
                 <FF label="Global Role" t={t}>
-                    <FSel value={modal.data.role} onChange={e => setF("role", e.target.value)} options={["tenant_user", "tenant_admin_read_only", "tenant_admin_read_write", "tenant_admin_super_user", "company_super_admin_read_write"]} t={t} />
+                    <FSel value={modal.data.role} onChange={e => setF("role", e.target.value)} options={roleDim} t={t} />
                 </FF>
                 <FF label="Assigned Tenant ID" t={t}>
                     <FIn value={modal.data.tenantId} onChange={e => setF("tenantId", e.target.value)} placeholder="Leave blank for super admins, e.g. T10001" t={t} />
