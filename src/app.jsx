@@ -75,11 +75,11 @@ function AppContent() {
   const { data: PAYMENTS, loading: l5, error: e5 } = useFirestoreCollection(shouldFetch ? COLLECTION_PATHS.payments : null);
   const { data: rawFees, loading: l6, error: e6 } = useFirestoreCollection(shouldFetch ? COLLECTION_PATHS.fees : null);
   const { data: rawTenants, loading: l8, error: e8 } = useFirestoreCollection(isSuperAdmin ? COLLECTION_PATHS.tenants : null);
-  const { data: rawUsers, loading: l9, error: e9 } = useFirestoreCollection((isSuperAdmin || isTenantAdmin) ? COLLECTION_PATHS.users : null);
+  const { data: rawUsers, loading: l9, error: e9 } = useFirestoreCollection((shouldFetch && (isSuperAdmin || isTenantAdmin)) ? COLLECTION_PATHS.users : null);
   const { data: rawDimensions, loading: l7, error: e7 } = useFirestoreCollection(user ? COLLECTION_PATHS.dimensions : null);
 
-  const loading = authLoading || (shouldFetch && (l1 || l2 || l3 || l4 || l5 || l6)) || ((isSuperAdmin) && l8) || ((isSuperAdmin || isTenantAdmin) && l9) || (user && l7);
-  
+  const loading = authLoading || (shouldFetch && (l1 || l2 || l3 || l4 || l5 || l6)) || ((isSuperAdmin) && l8) || (shouldFetch && (isSuperAdmin || isTenantAdmin) && l9) || (user && l7);
+
   const firstError = e1 || e2 || e3 || e4 || e5 || e6 || e7 || e8 || e9;
 
   // ── Normalize Firestore field names → what UI components expect ──
