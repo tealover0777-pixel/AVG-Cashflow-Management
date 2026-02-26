@@ -57,7 +57,7 @@ class ErrorBoundary extends React.Component {
 // ROOT APP
 // ─────────────────────────────────────────────────────────────────────────────
 function AppContent() {
-  const { user, profile, loading: authLoading, login, logout, isSuperAdmin, isTenantAdmin, tenantId } = useAuth();
+  const { user, profile, loading: authLoading, login, logout, isSuperAdmin, isTenantAdmin, tenantId, hasPermission } = useAuth();
   const [isDark, setIsDark] = useState(true);
   const [activePage, setActivePage] = useState("Dashboard");
   const [activeTenantId, setActiveTenantId] = useState("");
@@ -207,7 +207,7 @@ function AppContent() {
     "Reports": <PageReports t={t} isDark={isDark} MONTHLY={MONTHLY} />,
   };
 
-  const nav = getNav(isSuperAdmin, isTenantAdmin);
+  const nav = getNav(isSuperAdmin, isTenantAdmin, hasPermission);
 
   if (!user) {
     return <LoginScreen login={login} t={t} isDark={isDark} />;

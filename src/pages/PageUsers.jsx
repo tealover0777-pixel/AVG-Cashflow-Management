@@ -16,8 +16,14 @@ const PERMISSIONS_LIST = [
     "REPORT_CREATE", "REPORT_VIEW", "REPORT_EXPORT", "REPORT_UPDATE", "REPORT_DELETE",
     "PLATFORM_TENANT_CREATE", "PLATFORM_TENANT_DELETE", "PLATFORM_TENANT_VIEW", "PLATFORM_TENANT_UPDATE"
 ];
+import { useAuth } from "../AuthContext";
 
 export default function PageUsers({ t, isDark, USERS = [], ROLES = [], collectionPath = "", DIMENSIONS = [] }) {
+    const { hasPermission, isSuperAdmin } = useAuth();
+    // Only super admins or properly permissioned users can edit Users
+    const canCreate = isSuperAdmin || hasPermission("USER_CREATE");
+    const canUpdate = isSuperAdmin || hasPermission("USER_UPDATE");
+    const canDelete = isSuperAdmin || hasPermission("USER_DELETE");
     const [hov, setHov] = useState(null);
     const [modal, setModal] = useState({ open: false, mode: "add", data: {} });
     const [delT, setDelT] = useState(null);
@@ -94,7 +100,7 @@ export default function PageUsers({ t, isDark, USERS = [], ROLES = [], collectio
                 <h1 style={{ fontFamily: t.titleFont, fontWeight: t.titleWeight, fontSize: t.titleSize, color: isDark ? "#fff" : "#1C1917", letterSpacing: t.titleTracking, lineHeight: 1, marginBottom: 6 }}>Users</h1>
                 <p style={{ fontSize: 13.5, color: t.textMuted }}>Manage members of your tenant</p>
             </div>
-            <button className="primary-btn" onClick={openAdd} style={{ background: t.accentGrad, color: "#fff", padding: "11px 22px", borderRadius: 11, fontSize: 13.5, fontWeight: 600, boxShadow: `0 4px 16px ${t.accentShadow}` }}>+ New User</button>
+            {canCreate && <button className="primary-btn" onClick={openAdd} style={{ background: t.accentGrad, color: "#fff", padding: "11px 22px", borderRadius: 11, fontSize: 13.5, fontWeight: 600, boxShadow: `0 4px 16px ${t.accentShadow}` }}>+ New User</button>}
         </div>
 
         <div style={{ background: t.surface, borderRadius: 16, border: `1px solid ${t.surfaceBorder}`, overflow: "auto", backdropFilter: isDark ? "blur(20px)" : "none" }}>
@@ -114,7 +120,7 @@ export default function PageUsers({ t, isDark, USERS = [], ROLES = [], collectio
                         )) : "—"}
                     </div>
                     <div style={{ fontFamily: t.mono, fontSize: 11, color: t.textMuted }}>{p.phone || "—"}</div>
-                    <ActBtns show={isHov} t={t} onEdit={() => openEdit(p)} onDel={() => setDelT(p)} />
+                    <ActBtns show={isHov && (canUpdate || canDelete)} t={t} onEdit={canUpdate ? () => openEdit(p) : null} onDel={canDelete ? () => setDelT(p) : null} />
                 </div>);
             })}
         </div>

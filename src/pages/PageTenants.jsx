@@ -3,8 +3,14 @@ import { db } from "../firebase";
 import { doc, setDoc, updateDoc, deleteDoc, serverTimestamp } from "firebase/firestore";
 import { sortData } from "../utils";
 import { Bdg, StatCard, Pagination, ActBtns, useResizableColumns, TblHead, Modal, FF, FIn, DelModal } from "../components";
+import { useAuth } from "../AuthContext";
 
 export default function PageTenants({ t, isDark, TENANTS = [], collectionPath = "" }) {
+    const { hasPermission, isSuperAdmin } = useAuth();
+    // Usually only SUPER ADMIN can create/delete tenants, or users with explicit permissions
+    const canCreate = isSuperAdmin || hasPermission("PLATFORM_TENANT_CREATE");
+    const canUpdate = isSuperAdmin || hasPermission("PLATFORM_TENANT_UPDATE");
+    const canDelete = isSuperAdmin || hasPermission("PLATFORM_TENANT_DELETE");
     const [hov, setHov] = useState(null);
     const [modal, setModal] = useState({ open: false, mode: "add", data: {} });
     const [delT, setDelT] = useState(null);
@@ -94,9 +100,11 @@ export default function PageTenants({ t, isDark, TENANTS = [], collectionPath = 
                 <h1 style={{ fontFamily: t.titleFont, fontWeight: t.titleWeight, fontSize: t.titleSize, color: isDark ? "#fff" : "#1C1917", letterSpacing: t.titleTracking, lineHeight: 1, marginBottom: 6 }}>Tenants</h1>
                 <p style={{ fontSize: 13.5, color: t.textMuted }}>Manage platform tenants and owners</p>
             </div>
-            <button className="primary-btn" onClick={openAdd} style={{ background: t.accentGrad, color: "#fff", padding: "11px 22px", borderRadius: 11, fontSize: 13.5, fontWeight: 600, boxShadow: `0 4px 16px ${t.accentShadow}`, display: "flex", alignItems: "center", gap: 7 }}>
-                <span style={{ fontSize: 18, lineHeight: 1 }}>+</span> New Tenant
-            </button>
+            {canCreate && (
+                <button className="primary-btn" onClick={openAdd} style={{ background: t.accentGrad, color: "#fff", padding: "11px 22px", borderRadius: 11, fontSize: 13.5, fontWeight: 600, boxShadow: `0 4px 16px ${t.accentShadow}`, display: "flex", alignItems: "center", gap: 7 }}>
+                    <span style={{ fontSize: 18, lineHeight: 1 }}>+</span> New Tenant
+                </button>
+            )}
         </div>
 
         <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 16, marginBottom: 28 }}>
@@ -127,7 +135,7 @@ export default function PageTenants({ t, isDark, TENANTS = [], collectionPath = 
                     <div style={{ fontSize: 12, color: t.textMuted, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", paddingRight: 8 }}>{p.notes || <span style={{ color: isDark ? "rgba(255,255,255,0.15)" : "#D4D0CB" }}>—</span>}</div>
                     <div style={{ fontFamily: t.mono, fontSize: 10.5, color: t.idText }}>{p.created_at || <span style={{ color: isDark ? "rgba(255,255,255,0.12)" : "#D4D0CB" }}>—</span>}</div>
                     <div style={{ fontFamily: t.mono, fontSize: 10.5, color: t.idText }}>{p.updated_at || <span style={{ color: isDark ? "rgba(255,255,255,0.12)" : "#D4D0CB" }}>—</span>}</div>
-                    <ActBtns show={isHov} t={t} onEdit={() => openEdit(p)} onDel={() => setDelT({ id: p.id, name: p.name, docId: p.docId })} />
+                    <ActBtns show={isHov && (canUpdate || canDelete)} t={t} onEdit={canUpdate ? () => openEdit(p) : null} onDel={canDelete ? () => setDelT({ id: p.id, name: p.name, docId: p.docId }) : null} />
                 </div>);
             })}
         </div>

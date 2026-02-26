@@ -1,7 +1,8 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import { auth, db } from "./firebase";
 import { onAuthStateChanged, signInWithEmailAndPassword, signOut } from "firebase/auth";
-import { doc, getDoc } from "firebase/firestore";
+import { doc, getDoc, collection, getDocs } from "firebase/firestore";
+import { DEFAULT_ROLE_PERMISSIONS } from "./permissions";
 
 const AuthContext = createContext();
 
@@ -10,6 +11,7 @@ export const useAuth = () => useContext(AuthContext);
 export function AuthProvider({ children }) {
     const [user, setUser] = useState(null);
     const [profile, setProfile] = useState(null);
+    const [permissions, setPermissions] = useState([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -49,15 +51,47 @@ export function AuthProvider({ children }) {
                         }
                     }
 
+                    // 4. Determine applied permissions
+                    let userPermissions = [];
+                    // Check if role exists in DB overrides (tenants/{tenant}/roles)
+                    if (tenantId && role) {
+                        try {
+                            // Convert standard string to ID format used in PageRoles.jsx
+                            const roleDbId = role.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/(^_|_$)/g, '');
+                            const roleDoc = await getDoc(doc(db, `tenants/${tenantId}/roles`, roleDbId));
+
+                            // Note: older roles might use their exact name as ID, or we check the collection
+                            // Check precise match first
+                            const exactRoleDoc = await getDoc(doc(db, `tenants/${tenantId}/roles`, role));
+
+                            if (exactRoleDoc.exists()) {
+                                userPermissions = exactRoleDoc.data().permissions || [];
+                            } else if (roleDoc.exists()) {
+                                userPermissions = roleDoc.data().permissions || [];
+                            } else {
+                                // Fallback to hardcoded defaults
+                                userPermissions = DEFAULT_ROLE_PERMISSIONS[role] || [];
+                            }
+                        } catch (err) {
+                            console.error("Failed to fetch custom role profile:", err);
+                            userPermissions = DEFAULT_ROLE_PERMISSIONS[role] || [];
+                        }
+                    } else if (role) {
+                        userPermissions = DEFAULT_ROLE_PERMISSIONS[role] || [];
+                    }
+
                     setProfile(fetchedProfile);
+                    setPermissions(userPermissions);
                 } else {
                     setUser(null);
                     setProfile(null);
+                    setPermissions([]);
                 }
             } catch (err) {
                 console.error("Auth state change error:", err);
                 setUser(null);
                 setProfile(null);
+                setPermissions([]);
             } finally {
                 setLoading(false);
             }
@@ -68,14 +102,18 @@ export function AuthProvider({ children }) {
     const login = (email, password) => signInWithEmailAndPassword(auth, email, password);
     const logout = () => signOut(auth);
 
+    const hasPermission = (perm) => permissions.includes(perm);
+
     const value = {
         user,
         profile,
+        permissions,
+        hasPermission,
         loading,
         login,
         logout,
-        isSuperAdmin: profile?.role === "company_super_admin_read_write" || profile?.role === "secret_admin_read_write",
-        isTenantAdmin: profile?.role === "tenant_admin_super_user" || profile?.role === "tenant_admin_read_write",
+        isSuperAdmin: profile?.role === "Super Admin" || profile?.role === "Platform Admin" || profile?.role === "company_super_admin_read_write" || profile?.role === "L2 Admin",
+        isTenantAdmin: profile?.role === "Tenant Admin" || profile?.role === "Tenant Owner" || profile?.role === "tenant_admin_super_user" || profile?.role === "tenant_admin_read_write",
         tenantId: profile?.tenantId || ""
     };
 

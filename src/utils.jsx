@@ -76,11 +76,27 @@ const NAV_ITEMS = [
   { label: "Profile", icon: "👤", hidden: true },
 ];
 
-export const getNav = (isSuper, isAdmin) => {
+export const getNav = (isSuper, isAdmin, hasPermission) => {
   return NAV_ITEMS.filter(item => {
     if (item.hidden) return false;
     if (item.superOnly && !isSuper) return false;
     if (item.adminOnly && !isAdmin && !isSuper) return false;
+
+    // Apply granular RBAC per section if not a super admin
+    if (!isSuper && hasPermission) {
+      if (item.label === "Projects" && !hasPermission("PROJECT_VIEW")) return false;
+      if (item.label === "Parties" && !hasPermission("TENANT_VIEW")) return false;
+      if (item.label === "Contracts" && !hasPermission("CONTRACT_VIEW")) return false;
+      if (item.label === "Payment Schedule" && !hasPermission("PAYMENT_SCHEDULE_VIEW")) return false;
+      if (item.label === "Payments" && !hasPermission("PAYMENT_SCHEDULE_VIEW")) return false;
+      if (item.label === "Fees" && !hasPermission("FEE_VIEW")) return false;
+      if (item.label === "Users" && !hasPermission("USER_VIEW")) return false;
+      if (item.label === "Roles" && !hasPermission("ROLE_VIEW")) return false;
+      if (item.label === "Tenants" && !hasPermission("PLATFORM_TENANT_VIEW")) return false;
+      if (item.label === "Dimensions" && !hasPermission("DIMENTION_VIEW")) return false;
+      if (item.label === "Reports" && !hasPermission("REPORT_VIEW")) return false;
+    }
+
     return true;
   });
 };

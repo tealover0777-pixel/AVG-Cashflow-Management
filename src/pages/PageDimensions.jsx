@@ -1,6 +1,9 @@
 import { useState } from "react";
+import { useAuth } from "../AuthContext";
 
 export default function PageDimensions({ t, isDark, DIMENSIONS = [] }) {
+  const { hasPermission } = useAuth();
+  const canUpdate = hasPermission("DIMENTION_UPDATE");
   const [editing, setEditing] = useState(null);
   return (<>
     <div style={{ marginBottom: 28 }}><h1 style={{ fontFamily: t.titleFont, fontWeight: t.titleWeight, fontSize: t.titleSize, color: isDark ? "#fff" : "#1C1917", letterSpacing: t.titleTracking, lineHeight: 1, marginBottom: 6 }}>Dimensions</h1><p style={{ fontSize: 13.5, color: t.textMuted }}>Reference data · <strong style={{ color: t.textSecondary }}>{DIMENSIONS.length}</strong> groups · <strong style={{ color: t.textSecondary }}>{DIMENSIONS.reduce((s, g) => s + g.items.length, 0)}</strong> values</p></div>
@@ -12,9 +15,11 @@ export default function PageDimensions({ t, isDark, DIMENSIONS = [] }) {
               <div><div style={{ fontSize: 13.5, fontWeight: 700, color: accent }}>{g.name}</div></div>
               <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
                 <span style={{ fontFamily: t.mono, fontSize: 11, color: accent, background: isDark ? "rgba(255,255,255,0.08)" : "#fff", padding: "2px 8px", borderRadius: 20, border: `1px solid ${border}` }}>{g.items.length} values</span>
-                <button onClick={() => setEditing(isEd ? null : g.name)} style={{ width: 28, height: 28, borderRadius: 7, background: isEd ? accent : t.editBtn[0], color: isEd ? (isDark ? "#050c15" : "#fff") : t.editBtn[1], display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, border: "none", cursor: "pointer" }}>
-                  {isEd ? "✓" : "✎"}
-                </button>
+                {canUpdate && (
+                  <button onClick={() => setEditing(isEd ? null : g.name)} style={{ width: 28, height: 28, borderRadius: 7, background: isEd ? accent : t.editBtn[0], color: isEd ? (isDark ? "#050c15" : "#fff") : t.editBtn[1], display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, border: "none", cursor: "pointer" }}>
+                    {isEd ? "✓" : "✎"}
+                  </button>
+                )}
               </div>
             </div>
             <div style={{ padding: "16px 20px", display: "flex", flexWrap: "wrap", gap: 8 }}>

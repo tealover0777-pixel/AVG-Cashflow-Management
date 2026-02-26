@@ -3,8 +3,14 @@ import { db } from "../firebase";
 import { collection, doc, addDoc, updateDoc, deleteDoc, serverTimestamp } from "firebase/firestore";
 import { normalizeDateAtNoon, hybridDays, pmtCalculator_ACT360_30360, feeCalculator_ACT360_30360, getFrequencyValue, sortData } from "../utils";
 import { Bdg, StatCard, Pagination, ActBtns, useResizableColumns, TblHead, Modal, FF, FIn, FSel, DelModal } from "../components";
+import { useAuth } from "../AuthContext";
 
 export default function PageContracts({ t, isDark, CONTRACTS = [], PROJECTS = [], PARTIES = [], DIMENSIONS = [], FEES_DATA = [], SCHEDULES = [], collectionPath = "", schedulePath = "" }) {
+  const { hasPermission } = useAuth();
+  const canCreate = hasPermission("CONTRACT_CREATE");
+  const canUpdate = hasPermission("CONTRACT_UPDATE");
+  const canDelete = hasPermission("CONTRACT_DELETE") || hasPermission("CONTRACTS_DELETE"); // User provided "CONTRACTS_DELETE"
+  const canGenerate = hasPermission("PAYMENT_SCHEDULE_CREATE");
   const [hov, setHov] = useState(null); const [sel, setSel] = useState(new Set()); const [chip, setChip] = useState("All"); const [generating, setGenerating] = useState(false);
   const [modal, setModal] = useState({ open: false, mode: "add", data: {} });
   const [delT, setDelT] = useState(null);
@@ -148,15 +154,15 @@ export default function PageContracts({ t, isDark, CONTRACTS = [], PROJECTS = []
     setGenerating(true);
     try {
 
-    // --- ID Generation Logic ---
-    let maxIdNum = 9999;
-    SCHEDULES.forEach(s => {
-      if (s.id && s.id.startsWith("S")) {
-        const num = parseInt(s.id.substring(1), 10);
-        if (!isNaN(num) && num > maxIdNum) maxIdNum = num;
-      }
-    });
-    let currentIdNum = maxIdNum + 1;
+      // --- ID Generation Logic ---
+      let maxIdNum = 9999;
+      SCHEDULES.forEach(s => {
+        if (s.id && s.id.startsWith("S")) {
+          const num = parseInt(s.id.substring(1), 10);
+          if (!isNaN(num) && num > maxIdNum) maxIdNum = num;
+        }
+      });
+      let currentIdNum = maxIdNum + 1;
 
       const entries = [];
       const parseNum = v => Number(String(v).replace(/[^0-9.-]/g, "")) || 0;
@@ -402,16 +408,21 @@ export default function PageContracts({ t, isDark, CONTRACTS = [], PROJECTS = []
       <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
         {sel.size > 0 && <div style={{ display: "flex", gap: 8, alignItems: "center", background: isDark ? "rgba(255,255,255,0.04)" : "#F9FAFB", padding: "8px 14px", borderRadius: 10, border: `1px solid ${t.surfaceBorder}` }}>
           <span style={{ fontSize: 12, fontWeight: 600, color: t.textSecondary }}>{sel.size} selected</span>
-          <select value={bulkStatus} onChange={e => setBulkStatus(e.target.value)} style={{ fontSize: 12, padding: "4px 8px", borderRadius: 7, border: `1px solid ${t.surfaceBorder}`, background: t.searchBg, color: t.searchText, cursor: "pointer" }}>
-            <option value="">Update status...</option>
-            {contractStatusOpts.map(s => <option key={s} value={s}>{s}</option>)}
-          </select>
-          <button onClick={() => handleBulkStatus(bulkStatus)} disabled={!bulkStatus} style={{ fontSize: 12, fontWeight: 600, padding: "5px 12px", borderRadius: 8, background: bulkStatus ? t.accentGrad : (isDark ? "rgba(255,255,255,0.06)" : "#E5E7EB"), color: bulkStatus ? "#fff" : t.textMuted, border: "none", cursor: bulkStatus ? "pointer" : "default" }}>Apply</button>
-          <div style={{ width: 1, height: 20, background: t.surfaceBorder }} />
-          <button onClick={handleBulkDelete} style={{ fontSize: 12, fontWeight: 600, padding: "5px 12px", borderRadius: 8, background: isDark ? "rgba(248,113,113,0.15)" : "#FEF2F2", color: isDark ? "#F87171" : "#DC2626", border: `1px solid ${isDark ? "rgba(248,113,113,0.3)" : "#FECACA"}`, cursor: "pointer" }}>Delete ({sel.size})</button>
+
+          {canUpdate && <>
+            <select value={bulkStatus} onChange={e => setBulkStatus(e.target.value)} style={{ fontSize: 12, padding: "4px 8px", borderRadius: 7, border: `1px solid ${t.surfaceBorder}`, background: t.searchBg, color: t.searchText, cursor: "pointer" }}>
+              <option value="">Update status...</option>
+              {contractStatusOpts.map(s => <option key={s} value={s}>{s}</option>)}
+            </select>
+            <button onClick={() => handleBulkStatus(bulkStatus)} disabled={!bulkStatus} style={{ fontSize: 12, fontWeight: 600, padding: "5px 12px", borderRadius: 8, background: bulkStatus ? t.accentGrad : (isDark ? "rgba(255,255,255,0.06)" : "#E5E7EB"), color: bulkStatus ? "#fff" : t.textMuted, border: "none", cursor: bulkStatus ? "pointer" : "default" }}>Apply</button>
+          </>}
+
+          {canUpdate && canDelete && <div style={{ width: 1, height: 20, background: t.surfaceBorder }} />}
+
+          {canDelete && <button onClick={handleBulkDelete} style={{ fontSize: 12, fontWeight: 600, padding: "5px 12px", borderRadius: 8, background: isDark ? "rgba(248,113,113,0.15)" : "#FEF2F2", color: isDark ? "#F87171" : "#DC2626", border: `1px solid ${isDark ? "rgba(248,113,113,0.3)" : "#FECACA"}`, cursor: "pointer" }}>Delete ({sel.size})</button>}
         </div>}
-        <button className="success-btn" onClick={handleGenerate} disabled={sel.size === 0} style={{ background: t.successGrad, color: "#fff", padding: "11px 20px", borderRadius: 11, fontSize: 13, fontWeight: 600, boxShadow: `0 4px 16px ${t.successShadow}`, display: "flex", alignItems: "center", gap: 6, opacity: sel.size === 0 ? 0.45 : 1 }}>▤ Generate{sel.size > 0 ? ` (${sel.size})` : ""}</button>
-        <button className="primary-btn" onClick={openAdd} style={{ background: t.accentGrad, color: "#fff", padding: "11px 22px", borderRadius: 11, fontSize: 13.5, fontWeight: 600, boxShadow: `0 4px 16px ${t.accentShadow}`, display: "flex", alignItems: "center", gap: 7 }}><span style={{ fontSize: 18, lineHeight: 1 }}>+</span> New Contract</button>
+        {canGenerate && <button className="success-btn" onClick={handleGenerate} disabled={sel.size === 0} style={{ background: t.successGrad, color: "#fff", padding: "11px 20px", borderRadius: 11, fontSize: 13, fontWeight: 600, boxShadow: `0 4px 16px ${t.successShadow}`, display: "flex", alignItems: "center", gap: 6, opacity: sel.size === 0 ? 0.45 : 1 }}>▤ Generate{sel.size > 0 ? ` (${sel.size})` : ""}</button>}
+        {canCreate && <button className="primary-btn" onClick={openAdd} style={{ background: t.accentGrad, color: "#fff", padding: "11px 22px", borderRadius: 11, fontSize: 13.5, fontWeight: 600, boxShadow: `0 4px 16px ${t.accentShadow}`, display: "flex", alignItems: "center", gap: 7 }}><span style={{ fontSize: 18, lineHeight: 1 }}>+</span> New Contract</button>}
       </div>
     </div>
     <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 16, marginBottom: 28 }}>
@@ -454,7 +465,7 @@ export default function PageContracts({ t, isDark, CONTRACTS = [], PROJECTS = []
           <div><Bdg status={c.status} isDark={isDark} /></div>
           <div style={{ fontFamily: t.mono, fontSize: 10.5, color: t.idText }}>{c.created_at || <span style={{ color: isDark ? "rgba(255,255,255,0.12)" : "#D4D0CB" }}>—</span>}</div>
           <div style={{ fontFamily: t.mono, fontSize: 10.5, color: t.idText }}>{c.updated_at || <span style={{ color: isDark ? "rgba(255,255,255,0.12)" : "#D4D0CB" }}>—</span>}</div>
-          <ActBtns show={isHov} t={t} onEdit={() => openEdit(c)} onDel={() => setDelT({ id: c.id, name: c.id, docId: c.docId })} />
+          <ActBtns show={isHov && (canUpdate || canDelete)} t={t} onEdit={canUpdate ? () => openEdit(c) : null} onDel={canDelete ? () => setDelT({ id: c.id, name: c.id, docId: c.docId }) : null} />
         </div>);
       })}
     </div>
