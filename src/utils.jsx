@@ -2,7 +2,6 @@
  * AVG Cashflow Management — Utilities
  * Theme tokens, constants, helper functions, avatar/badge utilities.
  */
-import { TENANT_ID } from "./firebase";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // THEME TOKENS

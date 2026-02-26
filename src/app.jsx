@@ -2,10 +2,10 @@
  * AVG Cashflow Management — Root App
  * State management, Firestore hooks, data transforms, layout, CSS.
  */
-import { useState, useMemo } from "react";
+import React, { useState, useMemo } from "react";
 import { AuthProvider, useAuth } from "./AuthContext";
 import { createRoot } from "react-dom/client";
-import { db, TENANT_ID } from "./firebase";
+import { db } from "./firebase";
 import { useFirestoreCollection } from "./useFirestoreCollection";
 import { mkTheme, getNav, getCollectionPaths, DIM_STYLES, DEFAULT_DIM_STYLE, MONTHLY, initials, av } from "./utils";
 import PageDashboard from "./pages/PageDashboard";
@@ -23,6 +23,36 @@ import PageDimensions from "./pages/PageDimensions";
 import PageReports from "./pages/PageReports";
 
 // ─────────────────────────────────────────────────────────────────────────────
+// ERROR BOUNDARY
+// ─────────────────────────────────────────────────────────────────────────────
+class ErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error, errorInfo) {
+    console.error("Uncaught error:", error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div style={{ padding: 20, color: "red", fontFamily: "sans-serif" }}>
+          <h1>Something went wrong.</h1>
+          <pre>{this.state.error && this.state.error.toString()}</pre>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // ROOT APP
 // ─────────────────────────────────────────────────────────────────────────────
 function AppContent() {
@@ -34,17 +64,22 @@ function AppContent() {
   const COLLECTION_PATHS = useMemo(() => getCollectionPaths(tenantId), [tenantId]);
 
   // ── Firestore real-time data ──
-  const { data: rawProjects, loading: l1, error: e1 } = useFirestoreCollection(tenantId ? COLLECTION_PATHS.projects : null);
-  const { data: rawParties, loading: l2, error: e2 } = useFirestoreCollection(tenantId ? COLLECTION_PATHS.parties : null);
-  const { data: rawContracts, loading: l3, error: e3 } = useFirestoreCollection(tenantId ? COLLECTION_PATHS.contracts : null);
-  const { data: rawSchedules, loading: l4, error: e4 } = useFirestoreCollection(tenantId ? COLLECTION_PATHS.paymentSchedules : null);
-  const { data: PAYMENTS, loading: l5, error: e5 } = useFirestoreCollection(tenantId ? COLLECTION_PATHS.payments : null);
-  const { data: rawFees, loading: l6, error: e6 } = useFirestoreCollection(tenantId ? COLLECTION_PATHS.fees : null);
+  // Only fetch if tenantId is available (for tenant-specific collections)
+  // or if user is super/tenant admin (for shared collections)
+  const shouldFetch = !!tenantId;
+
+  const { data: rawProjects, loading: l1, error: e1 } = useFirestoreCollection(shouldFetch ? COLLECTION_PATHS.projects : null);
+  const { data: rawParties, loading: l2, error: e2 } = useFirestoreCollection(shouldFetch ? COLLECTION_PATHS.parties : null);
+  const { data: rawContracts, loading: l3, error: e3 } = useFirestoreCollection(shouldFetch ? COLLECTION_PATHS.contracts : null);
+  const { data: rawSchedules, loading: l4, error: e4 } = useFirestoreCollection(shouldFetch ? COLLECTION_PATHS.paymentSchedules : null);
+  const { data: PAYMENTS, loading: l5, error: e5 } = useFirestoreCollection(shouldFetch ? COLLECTION_PATHS.payments : null);
+  const { data: rawFees, loading: l6, error: e6 } = useFirestoreCollection(shouldFetch ? COLLECTION_PATHS.fees : null);
   const { data: rawTenants, loading: l8, error: e8 } = useFirestoreCollection(isSuperAdmin ? COLLECTION_PATHS.tenants : null);
   const { data: rawUsers, loading: l9, error: e9 } = useFirestoreCollection((isSuperAdmin || isTenantAdmin) ? COLLECTION_PATHS.users : null);
-  const { data: rawDimensions, loading: l7, error: e7 } = useFirestoreCollection(COLLECTION_PATHS.dimensions);
+  const { data: rawDimensions, loading: l7, error: e7 } = useFirestoreCollection(user ? COLLECTION_PATHS.dimensions : null);
 
-  const loading = authLoading || l1 || l2 || l3 || l4 || l5 || l6 || l7 || l8 || l9;
+  const loading = authLoading || (shouldFetch && (l1 || l2 || l3 || l4 || l5 || l6)) || ((isSuperAdmin) && l8) || ((isSuperAdmin || isTenantAdmin) && l9) || (user && l7);
+  
   const firstError = e1 || e2 || e3 || e4 || e5 || e6 || e7 || e8 || e9;
 
   // ── Normalize Firestore field names → what UI components expect ──
@@ -148,7 +183,7 @@ function AppContent() {
     "Parties": <PageParties t={t} isDark={isDark} PARTIES={PARTIES} collectionPath={COLLECTION_PATHS.parties} DIMENSIONS={DIMENSIONS} />,
     "Contracts": <PageContracts t={t} isDark={isDark} CONTRACTS={CONTRACTS} PROJECTS={PROJECTS} PARTIES={PARTIES} DIMENSIONS={DIMENSIONS} FEES_DATA={FEES_DATA} SCHEDULES={SCHEDULES} collectionPath={COLLECTION_PATHS.contracts} schedulePath={COLLECTION_PATHS.paymentSchedules} />,
     "Payment Schedule": <PageSchedule t={t} isDark={isDark} SCHEDULES={SCHEDULES} CONTRACTS={CONTRACTS} DIMENSIONS={DIMENSIONS} FEES_DATA={FEES_DATA} collectionPath={COLLECTION_PATHS.paymentSchedules} />,
-    "Payments": <PagePayments t={t} isDark={isDark} PAYMENTS={PAYMENTS} />,
+    "Payments": <PagePayments t={t} isDark={isDark} PAYMENTS={PAYMENTS} collectionPath={COLLECTION_PATHS.payments} />,
     "Fees": <PageFees t={t} isDark={isDark} FEES_DATA={FEES_DATA} DIMENSIONS={DIMENSIONS} collectionPath={COLLECTION_PATHS.fees} />,
     "Tenants": <PageTenants t={t} isDark={isDark} TENANTS={TENANTS} collectionPath={COLLECTION_PATHS.tenants} />,
     "Users": <PageUsers t={t} isDark={isDark} USERS={rawUsers} collectionPath={COLLECTION_PATHS.users} />,
@@ -313,9 +348,11 @@ function LoginScreen({ login, t, isDark }) {
 
 export default function App() {
   return (
-    <AuthProvider>
-      <AppContent />
-    </AuthProvider>
+    <ErrorBoundary>
+      <AuthProvider>
+        <AppContent />
+      </AuthProvider>
+    </ErrorBoundary>
   );
 }
 
