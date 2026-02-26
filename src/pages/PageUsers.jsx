@@ -138,14 +138,14 @@ export default function PageUsers({ t, isDark, USERS = [], ROLES = [], collectio
                 <select
                     value={modal.data.role_id || ""}
                     onChange={e => setF("role_id", e.target.value)}
-                    style={{ background: isDark ? "rgba(255,255,255,0.04)" : "#fff", color: t.text, border: `1px solid ${t.border}`, borderRadius: 9, padding: "10px 13px", fontSize: 13.5, outline: "none", width: "100%", fontFamily: t.font, appearance: "none" }}
+                    style={{ background: isDark ? "rgba(255,255,255,0.04)" : "#fff", color: isDark ? "#fff" : "#000", border: `1px solid ${t.border}`, borderRadius: 9, padding: "10px 13px", fontSize: 13.5, outline: "none", width: "100%", fontFamily: t.font, appearance: "none" }}
                 >
-                    <option value="" disabled>Select a role...</option>
+                    <option value="" disabled style={{ color: isDark ? "#fff" : "#000" }}>Select a role...</option>
                     {ROLES.map(r => (
-                        <option key={r.id} value={r.id} style={{ color: "#000" }}>{r.name}</option>
+                        <option key={r.id || r.role_id} value={r.id || r.role_id} style={{ color: isDark ? "#fff" : "#000" }}>{r.role_name || r.name || r.id}</option>
                     ))}
                     {/* Fallback for legacy roles just in case some aren't in ROLES collection yet */}
-                    {modal.data.role_id && !ROLES.some(r => r.id === modal.data.role_id) && <option value={modal.data.role_id} style={{ color: "#000" }}>{modal.data.role_id} (Legacy)</option>}
+                    {modal.data.role_id && !ROLES.some(r => r.id === modal.data.role_id || r.role_id === modal.data.role_id) && <option value={modal.data.role_id} style={{ color: isDark ? "#fff" : "#000" }}>{modal.data.role_id} (Legacy)</option>}
                 </select>
             </FF>
             <FF label="Phone" t={t}><FIn value={modal.data.phone} onChange={e => setF("phone", e.target.value)} t={t} /></FF>
