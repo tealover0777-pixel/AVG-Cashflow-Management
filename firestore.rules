@@ -26,7 +26,7 @@ service cloud.firestore {
 
     // --- Role-based access check functions ---
     function isSecretAdmin() {
-      return isRole('secret_admin_read_write');
+      return isRole('L2 Admin');
     }
 
     function isCompanySuperAdmin() {
