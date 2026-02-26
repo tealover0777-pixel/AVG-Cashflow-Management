@@ -5,7 +5,7 @@ import { useFirestoreCollection } from "../useFirestoreCollection";
 import { sortData } from "../utils";
 import { Bdg, Pagination, ActBtns, useResizableColumns, TblHead, Modal, FF, FIn, DelModal, FMultiSel } from "../components";
 
-export default function PageRoles({ t, isDark, collectionPath = "", DIMENSIONS = [] }) {
+export default function PageRoles({ t, isDark, collectionPath = "", DIMENSIONS = [], USERS = [] }) {
     const { data: rawRoles = [], loading, error } = useFirestoreCollection(collectionPath);
     const [hov, setHov] = useState(null);
     const [modal, setModal] = useState({ open: false, mode: "add", data: {} });
