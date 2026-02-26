@@ -107,15 +107,18 @@ export default function PageUsers({ t, isDark, USERS = [], ROLES = [], collectio
             <TblHead cols={cols} t={t} isDark={isDark} sortConfig={sort} onSort={onSort} gridTemplate={gridTemplate} headerRef={headerRef} onResizeStart={onResizeStart} />
             {paginated.map((p, i) => {
                 const isHov = hov === p.docId;
-                const mappedRole = ROLES.find(r => r.id === p.role_id) || { name: p.role_id || p.role || "Unknown", permissions: p.permissions || [] };
+                const mappedRole = ROLES.find(r => r.id === p.role_id) || { role_name: p.role_id || p.role || "Unknown", permissions: p.permissions || [] };
+                const roleName = String(mappedRole.role_name || mappedRole.name || "Unknown");
+
+                const rawPerms = mappedRole.Permission ? mappedRole.Permission.split(",").map(x => x.trim()) : (mappedRole.permissions || []);
 
                 return (<div key={p.docId || p.user_id} className="data-row" onMouseEnter={() => setHov(p.docId)} onMouseLeave={() => setHov(null)} style={{ display: "grid", gridTemplateColumns: gridTemplate, padding: "12px 22px", borderBottom: i < paginated.length - 1 ? `1px solid ${t.rowDivider}` : "none", alignItems: "center", background: isHov ? t.rowHover : "transparent" }}>
                     <div style={{ fontSize: 13.5, color: t.textSecondary, fontFamily: t.mono }}>{p.user_id || "—"}</div>
                     <div style={{ fontSize: 13.5, fontWeight: 500, color: isDark ? "rgba(255,255,255,0.85)" : (isHov ? "#1C1917" : "#44403C") }}>{p.user_name || p.name || "—"}</div>
                     <div style={{ fontSize: 12.5, color: t.accent }}>{p.email}</div>
-                    <div><Bdg status={mappedRole.name.replace(/_/g, " ").toUpperCase()} isDark={isDark} /></div>
+                    <div><Bdg status={roleName.replace(/_/g, " ").toUpperCase()} isDark={isDark} /></div>
                     <div style={{ fontSize: 11, color: t.textSubtle, display: "flex", flexWrap: "wrap", gap: 4 }}>
-                        {mappedRole.permissions && mappedRole.permissions.length > 0 ? mappedRole.permissions.map(pm => (
+                        {rawPerms && rawPerms.length > 0 ? rawPerms.map(pm => (
                             <span key={pm} style={{ background: t.chipBg, border: `1px solid ${t.chipBorder}`, padding: "2px 6px", borderRadius: 4 }}>{pm}</span>
                         )) : "—"}
                     </div>
