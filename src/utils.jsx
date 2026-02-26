@@ -114,7 +114,7 @@ export const getCollectionPaths = (tenantId) => {
     payments: `${tenantPath}/payments`,
     fees: `${tenantPath}/fees`,
     users: `${tenantPath}/users`,
-    roles: `${tenantPath}/roles`,
+    roles: "userRoles",
     tenants: "tenants",
     dimensions: "dimensions",
   };

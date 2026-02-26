@@ -22,43 +22,35 @@ export default function PageRoles({ t, isDark, collectionPath = "", DIMENSIONS =
 
     const permDim = DIMENSIONS.find(d => d.name === "Permissions")?.items || [];
 
-    const userRoleNames = DIMENSIONS.find(d => d.name === "UserRoles" || d.category === "UserRoles")?.items || [];
-
     const nextRoleId = (() => {
         if (rawRoles.length === 0) return "R10001";
         const maxNum = Math.max(...rawRoles.map(r => { const m = String(r.role_id || "").match(/^R(\d+)$/); return m ? Number(m[1]) : 0; }));
         return "R" + (maxNum + 1);
     })();
 
-    const displayRoles = [...rawRoles];
-    userRoleNames.forEach(name => {
-        if (!displayRoles.find(r => r.role_name === name || r.name === name)) {
-            displayRoles.push({ id: name, role_id: "Auto-Sync", role_name: name, permissions: [], isFromDimension: true });
-        }
-    });
-
-    const openAdd = () => setModal({ open: true, mode: "add", data: { role_id: nextRoleId, role_name: "", permissions: [] } });
-    const openEdit = r => setModal({ open: true, mode: "edit", data: { ...r, permissions: r.permissions || [] } });
+    const openAdd = () => setModal({ open: true, mode: "add", data: { role_id: nextRoleId, role_name: "", selectedPerms: [] } });
+    const openEdit = r => {
+        const pArr = typeof r.Permission === "string" && r.Permission ? r.Permission.split(",").map(s => s.trim()).filter(Boolean) : [];
+        setModal({ open: true, mode: "edit", data: { ...r, selectedPerms: pArr } });
+    };
     const close = () => setModal(m => ({ ...m, open: false }));
     const setF = (k, v) => setModal(m => ({ ...m, data: { ...m.data, [k]: v } }));
 
     const handleSaveRole = async () => {
         const d = modal.data;
         if (!d.role_name) return;
-        const isDim = d.isFromDimension;
-        const rid = d.role_id === "Auto-Sync" ? nextRoleId : (d.role_id || "");
 
         const payload = {
-            role_id: rid,
+            role_id: d.role_id || "",
             role_name: d.role_name,
-            permissions: d.permissions || [],
+            Permission: (d.selectedPerms || []).join(", "),
             updated_at: serverTimestamp(),
         };
         try {
-            if (modal.mode === "edit" && d.id && !isDim) {
+            if (modal.mode === "edit" && d.id) {
                 await setDoc(doc(db, collectionPath, d.id), payload, { merge: true });
             } else {
-                await setDoc(doc(db, collectionPath, rid || d.id || d.role_name), { ...payload, created_at: serverTimestamp() });
+                await setDoc(doc(db, collectionPath, d.role_id || d.id || d.role_name), { ...payload, created_at: serverTimestamp() });
             }
         } catch (err) { console.error("Save role error:", err); }
         close();
@@ -67,7 +59,7 @@ export default function PageRoles({ t, isDark, collectionPath = "", DIMENSIONS =
     const cols = [
         { l: "ROLE ID", w: "120px", k: "role_id" },
         { l: "ROLE NAME", w: "200px", k: "role_name" },
-        { l: "PERMISSIONS", w: "1fr", k: "permissions" },
+        { l: "PERMISSIONS", w: "1fr", k: "Permission" },
         { l: "ACTIONS", w: "80px" }
     ];
     const { gridTemplate, headerRef, onResizeStart } = useResizableColumns(cols);
@@ -85,7 +77,7 @@ export default function PageRoles({ t, isDark, collectionPath = "", DIMENSIONS =
     if (loading) return <div style={{ padding: 40, color: t.textMuted }}>Loading roles...</div>;
     if (error) return <div style={{ padding: 40, color: "red" }}>Error loading roles: {error.message}</div>;
 
-    const filtered = displayRoles.filter(p => cols.every(c => { if (!c.k || !colFilters[c.k]) return true; return String(p[c.k] || "").toLowerCase().includes(colFilters[c.k].toLowerCase()); }));
+    const filtered = rawRoles.filter(p => cols.every(c => { if (!c.k || !colFilters[c.k]) return true; return String(p[c.k] || "").toLowerCase().includes(colFilters[c.k].toLowerCase()); }));
     const sorted = sortData(filtered, sort);
     const paginated = sorted.slice((page - 1) * 20, page * 20);
     const totalPages = Math.ceil(sorted.length / 20);
@@ -107,11 +99,11 @@ export default function PageRoles({ t, isDark, collectionPath = "", DIMENSIONS =
                     <div style={{ fontSize: 13.5, color: t.textSecondary, fontFamily: t.mono }}>{p.role_id || p.id || "—"}</div>
                     <div style={{ fontSize: 13.5, fontWeight: 600, color: isDark ? "#fff" : (isHov ? t.accent : "#1C1917") }}>{p.role_name || p.name || "—"}</div>
                     <div style={{ fontSize: 11, color: t.textSubtle, display: "flex", flexWrap: "wrap", gap: 4 }}>
-                        {p.permissions && p.permissions.length > 0 ? p.permissions.map(pm => (
-                            <span key={pm} style={{ background: t.chipBg, border: `1px solid ${t.chipBorder}`, padding: "2px 6px", borderRadius: 4 }}>{pm}</span>
+                        {p.Permission ? p.Permission.split(",").map(pm => (
+                            <span key={pm.trim()} style={{ background: t.chipBg, border: `1px solid ${t.chipBorder}`, padding: "2px 6px", borderRadius: 4 }}>{pm.trim()}</span>
                         )) : <span style={{ fontStyle: "italic", opacity: 0.5 }}>No permissions assigned.</span>}
                     </div>
-                    <ActBtns show={isHov && (canUpdate || canDelete)} t={t} onEdit={canUpdate ? () => openEdit(p) : null} onDel={(canDelete && !p.isFromDimension) ? () => setDelT(p) : null} />
+                    <ActBtns show={isHov && (canUpdate || canDelete)} t={t} onEdit={canUpdate ? () => openEdit(p) : null} onDel={canDelete ? () => setDelT(p) : null} />
                 </div>);
             })}
         </div>
@@ -123,7 +115,7 @@ export default function PageRoles({ t, isDark, collectionPath = "", DIMENSIONS =
                 <div style={{ fontFamily: t.mono, fontSize: 13, color: t.idText, background: isDark ? "rgba(255,255,255,0.04)" : "#F5F4F1", border: `1px solid ${t.surfaceBorder}`, borderRadius: 9, padding: "10px 13px", letterSpacing: "0.5px" }}>{modal.data.role_id}</div>
             </FF>
             <FF label="Role Name" t={t}><FIn value={modal.data.role_name || modal.data.name} onChange={e => setF("role_name", e.target.value)} placeholder="e.g. Project Manager" t={t} /></FF>
-            <FF label="Permissions" t={t}><FMultiSel value={modal.data.permissions || []} onChange={v => setF("permissions", v)} options={permDim} t={t} /></FF>
+            <FF label="Permissions" t={t}><FMultiSel value={modal.data.selectedPerms || []} onChange={v => setF("selectedPerms", v)} options={permDim} t={t} /></FF>
         </Modal>
 
         <DelModal target={delT} onClose={() => setDelT(null)} onConfirm={async () => { await deleteDoc(doc(db, collectionPath, delT.id)); setDelT(null); }} label="role" t={t} isDark={isDark} />

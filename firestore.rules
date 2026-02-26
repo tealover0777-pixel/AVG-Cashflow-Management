@@ -67,6 +67,11 @@ service cloud.firestore {
       allow write: if isCompanySuperAdmin() || isTenantSuperUser(request.auth.token.tenantId);
     }
 
+    match /userRoles/{roleId} {
+      allow read: if request.auth != null;
+      allow write: if isSecretAdmin() || isCompanySuperAdmin();
+    }
+
     // Global dimensions mapping
     match /dimensions/{dimensionId} {
       allow read: if request.auth != null;
