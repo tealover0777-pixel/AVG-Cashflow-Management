@@ -15,34 +15,40 @@ export function AuthProvider({ children }) {
     useEffect(() => {
         const unsub = onAuthStateChanged(auth, async (u) => {
             setLoading(true);
-            if (u) {
-                setUser(u);
-                // Try to fetch profile from any tenant (since we don't know the tenantId yet)
-                // In a real app, you might use custom claims or a global users collection.
-                // For now, let's assume we store global user-to-tenant mapping or check custom claims.
-                // We'll primarily look for user profile in Firestore.
+            try {
+                if (u) {
+                    setUser(u);
+                    // Check for custom claims first (most efficient)
+                    const idToken = await u.getIdTokenResult();
+                    const role = idToken.claims.role || "tenant_user";
+                    const tenantId = idToken.claims.tenantId || "";
 
-                // Check for custom claims first (most efficient)
-                const idToken = await u.getIdTokenResult();
-                const role = idToken.claims.role || "tenant_user";
-                const tenantId = idToken.claims.tenantId || "";
+                    let fetchedProfile = { role, tenantId };
 
-                let fetchedProfile = { role, tenantId };
-
-                // If no tenantId in claims, we might need to search for the user in tenants
-                if (tenantId) {
-                    const profDoc = await getDoc(doc(db, `tenants/${tenantId}/users`, u.uid));
-                    if (profDoc.exists()) {
-                        fetchedProfile = { ...fetchedProfile, ...profDoc.data() };
+                    // If we have a tenantId, try to fetch the profile from Firestore
+                    if (tenantId) {
+                        try {
+                            const profDoc = await getDoc(doc(db, `tenants/${tenantId}/users`, u.uid));
+                            if (profDoc.exists()) {
+                                fetchedProfile = { ...fetchedProfile, ...profDoc.data() };
+                            }
+                        } catch (err) {
+                            console.error("Failed to fetch user profile document:", err);
+                        }
                     }
-                }
 
-                setProfile(fetchedProfile);
-            } else {
+                    setProfile(fetchedProfile);
+                } else {
+                    setUser(null);
+                    setProfile(null);
+                }
+            } catch (err) {
+                console.error("Auth state change error:", err);
                 setUser(null);
                 setProfile(null);
+            } finally {
+                setLoading(false);
             }
-            setLoading(false);
         });
         return unsub;
     }, []);
