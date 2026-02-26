@@ -8,7 +8,8 @@
       "Bash(firebase apps:list:*)",
       "Bash(firebase apps:create:*)",
       "Bash(node -e:*)",
-      "Bash(npx vite build)"
+      "Bash(npx vite build)",
+      "Bash(timeout 10 npx vite:*)"
     ]
   }
 }

@@ -5,7 +5,7 @@ import { Bdg, FF, FIn } from "../components";
 export default function PageProfile({ t, isDark }) {
     const { user, profile } = useAuth();
     const [data, setData] = useState({
-        name: profile?.name || u.displayName || "",
+        name: profile?.name || user?.displayName || "",
         email: user?.email || "",
         phone: profile?.phone || "",
         role: profile?.role || "",
