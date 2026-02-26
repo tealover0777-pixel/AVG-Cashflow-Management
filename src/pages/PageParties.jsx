@@ -5,7 +5,7 @@ import { initials, av, badge, sortData } from "../utils";
 import { StatCard, Pagination, ActBtns, useResizableColumns, TblHead, Modal, FF, FIn, FSel, DelModal } from "../components";
 
 export default function PageParties({ t, isDark, PARTIES = [], collectionPath = "", DIMENSIONS = [] }) {
-  const roleOpts = (DIMENSIONS.find(d => d.name === "Role") || {}).items || ["Investor", "Borrower"];
+  const roleOpts = (DIMENSIONS.find(d => d.name === "PartyRole") || {}).items || ["Investor", "Borrower"];
   const partyTypeOpts = (DIMENSIONS.find(d => d.name === "PartyType") || {}).items || ["Individual", "Company", "Trust", "Partnership"];
   const investorTypeOpts = (DIMENSIONS.find(d => d.name === "InvestorType") || {}).items || ["Fixed", "Equity", "Both"];
   const [hov, setHov] = useState(null); const [chip, setChip] = useState("All");

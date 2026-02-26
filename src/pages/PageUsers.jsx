@@ -35,7 +35,13 @@ export default function PageUsers({ t, isDark, USERS = [], collectionPath = "", 
         }
     }, [DIMENSIONS]);
 
-    const openAdd = () => setModal({ open: true, mode: "add", data: { name: "", email: "", role: "tenant_user", phone: "", permissions: [] } });
+    const nextUserId = (() => {
+        if (USERS.length === 0) return "U10001";
+        const maxNum = Math.max(...USERS.map(u => { const m = String(u.user_id || "").match(/^U(\d+)$/); return m ? Number(m[1]) : 0; }));
+        return "U" + (maxNum + 1);
+    })();
+
+    const openAdd = () => setModal({ open: true, mode: "add", data: { user_id: nextUserId, user_name: "", email: "", role: "tenant_user", phone: "", permissions: [] } });
     const openEdit = r => setModal({ open: true, mode: "edit", data: { ...r, permissions: r.permissions || [] } });
     const close = () => setModal(m => ({ ...m, open: false }));
     const setF = (k, v) => setModal(m => ({ ...m, data: { ...m.data, [k]: v } }));
@@ -43,7 +49,8 @@ export default function PageUsers({ t, isDark, USERS = [], collectionPath = "", 
     const handleSaveUser = async () => {
         const d = modal.data;
         const payload = {
-            name: d.name || "",
+            user_id: d.user_id || "",
+            user_name: d.user_name || "",
             email: d.email || "",
             role: d.role || "tenant_user",
             phone: d.phone || "",
@@ -63,7 +70,8 @@ export default function PageUsers({ t, isDark, USERS = [], collectionPath = "", 
     };
 
     const cols = [
-        { l: "NAME", w: "1fr", k: "name" },
+        { l: "USER ID", w: "120px", k: "user_id" },
+        { l: "NAME", w: "1fr", k: "user_name" },
         { l: "EMAIL", w: "1.2fr", k: "email" },
         { l: "ROLE", w: "140px", k: "role" },
         { l: "PERMISSIONS", w: "2fr", k: "permissions" },
@@ -91,8 +99,9 @@ export default function PageUsers({ t, isDark, USERS = [], collectionPath = "", 
             <TblHead cols={cols} t={t} isDark={isDark} sortConfig={sort} onSort={onSort} gridTemplate={gridTemplate} headerRef={headerRef} onResizeStart={onResizeStart} />
             {paginated.map((p, i) => {
                 const isHov = hov === p.docId;
-                return (<div key={p.docId} className="data-row" onMouseEnter={() => setHov(p.docId)} onMouseLeave={() => setHov(null)} style={{ display: "grid", gridTemplateColumns: gridTemplate, padding: "12px 22px", borderBottom: i < paginated.length - 1 ? `1px solid ${t.rowDivider}` : "none", alignItems: "center", background: isHov ? t.rowHover : "transparent" }}>
-                    <div style={{ fontSize: 13.5, fontWeight: 500, color: isDark ? "rgba(255,255,255,0.85)" : (isHov ? "#1C1917" : "#44403C") }}>{p.name}</div>
+                return (<div key={p.docId || p.user_id} className="data-row" onMouseEnter={() => setHov(p.docId)} onMouseLeave={() => setHov(null)} style={{ display: "grid", gridTemplateColumns: gridTemplate, padding: "12px 22px", borderBottom: i < paginated.length - 1 ? `1px solid ${t.rowDivider}` : "none", alignItems: "center", background: isHov ? t.rowHover : "transparent" }}>
+                    <div style={{ fontSize: 13.5, color: t.textSecondary, fontFamily: t.mono }}>{p.user_id || "—"}</div>
+                    <div style={{ fontSize: 13.5, fontWeight: 500, color: isDark ? "rgba(255,255,255,0.85)" : (isHov ? "#1C1917" : "#44403C") }}>{p.user_name || p.name || "—"}</div>
                     <div style={{ fontSize: 12.5, color: t.accent }}>{p.email}</div>
                     <div><Bdg status={p.role ? p.role.replace(/_/g, " ").toUpperCase() : "TENANT USER"} isDark={isDark} /></div>
                     <div style={{ fontSize: 11, color: t.textSubtle, display: "flex", flexWrap: "wrap", gap: 4 }}>
@@ -107,7 +116,10 @@ export default function PageUsers({ t, isDark, USERS = [], collectionPath = "", 
         </div>
 
         <Modal open={modal.open} onClose={close} title={modal.mode === "add" ? "New User" : "Edit User"} onSave={handleSaveUser} width={600} t={t} isDark={isDark}>
-            <FF label="Full Name" t={t}><FIn value={modal.data.name} onChange={e => setF("name", e.target.value)} t={t} /></FF>
+            <FF label="User ID" t={t}>
+                <div style={{ fontFamily: t.mono, fontSize: 13, color: t.idText, background: isDark ? "rgba(255,255,255,0.04)" : "#F5F4F1", border: `1px solid ${t.surfaceBorder}`, borderRadius: 9, padding: "10px 13px", letterSpacing: "0.5px" }}>{modal.data.user_id}</div>
+            </FF>
+            <FF label="Full Name" t={t}><FIn value={modal.data.user_name || modal.data.name} onChange={e => setF("user_name", e.target.value)} t={t} /></FF>
             <FF label="Email Address" t={t}><FIn value={modal.data.email} onChange={e => setF("email", e.target.value)} t={t} disabled={modal.mode === "edit"} /></FF>
             <FF label="Role" t={t}><FSel value={modal.data.role} onChange={e => setF("role", e.target.value)} options={roleDim} t={t} /></FF>
             <FF label="Permissions" t={t}><FMultiSel value={modal.data.permissions || []} onChange={v => setF("permissions", v)} options={permDim} t={t} /></FF>
