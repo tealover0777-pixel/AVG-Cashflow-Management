@@ -2,7 +2,7 @@
  * AVG Cashflow Management — Root App
  * State management, Firestore hooks, data transforms, layout, CSS.
  */
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { AuthProvider, useAuth } from "./AuthContext";
 import { createRoot } from "react-dom/client";
 import { db } from "./firebase";
@@ -59,14 +59,18 @@ function AppContent() {
   const { user, profile, loading: authLoading, login, logout, isSuperAdmin, isTenantAdmin, tenantId } = useAuth();
   const [isDark, setIsDark] = useState(true);
   const [activePage, setActivePage] = useState("Dashboard");
+  const [activeTenantId, setActiveTenantId] = useState("");
   const t = mkTheme(isDark);
 
-  const COLLECTION_PATHS = useMemo(() => getCollectionPaths(tenantId), [tenantId]);
+  useEffect(() => {
+    if (tenantId && !activeTenantId) setActiveTenantId(tenantId);
+  }, [tenantId]);
+
+  const COLLECTION_PATHS = useMemo(() => getCollectionPaths(activeTenantId), [activeTenantId]);
 
   // ── Firestore real-time data ──
-  // Only fetch if tenantId is available (for tenant-specific collections)
-  // or if user is super/tenant admin (for shared collections)
-  const shouldFetch = !!tenantId;
+  // Only fetch if activeTenantId is available
+  const shouldFetch = !!activeTenantId;
 
   const { data: rawProjects, loading: l1, error: e1 } = useFirestoreCollection(shouldFetch ? COLLECTION_PATHS.projects : null);
   const { data: rawParties, loading: l2, error: e2 } = useFirestoreCollection(shouldFetch ? COLLECTION_PATHS.parties : null);
@@ -74,13 +78,21 @@ function AppContent() {
   const { data: rawSchedules, loading: l4, error: e4 } = useFirestoreCollection(shouldFetch ? COLLECTION_PATHS.paymentSchedules : null);
   const { data: PAYMENTS, loading: l5, error: e5 } = useFirestoreCollection(shouldFetch ? COLLECTION_PATHS.payments : null);
   const { data: rawFees, loading: l6, error: e6 } = useFirestoreCollection(shouldFetch ? COLLECTION_PATHS.fees : null);
-  const { data: rawTenants, loading: l8, error: e8 } = useFirestoreCollection(isSuperAdmin ? COLLECTION_PATHS.tenants : null);
+  // Tenants collection doesn't depend on tenantId, so we can always request it if super admin
+  const { data: rawTenants, loading: l8, error: e8 } = useFirestoreCollection(isSuperAdmin ? getCollectionPaths("").tenants : null);
   const { data: rawUsers, loading: l9, error: e9 } = useFirestoreCollection((shouldFetch && (isSuperAdmin || isTenantAdmin)) ? COLLECTION_PATHS.users : null);
   const { data: rawDimensions, loading: l7, error: e7 } = useFirestoreCollection(user ? COLLECTION_PATHS.dimensions : null);
 
   const loading = authLoading || (shouldFetch && (l1 || l2 || l3 || l4 || l5 || l6)) || ((isSuperAdmin) && l8) || (shouldFetch && (isSuperAdmin || isTenantAdmin) && l9) || (user && l7);
 
   const firstError = e1 || e2 || e3 || e4 || e5 || e6 || e7 || e8 || e9;
+
+  // Auto-select first tenant for Super Admins if none selected
+  useEffect(() => {
+    if (isSuperAdmin && !activeTenantId && rawTenants.length > 0) {
+      setActiveTenantId(rawTenants[0].id || rawTenants[0].tenant_id || "");
+    }
+  }, [isSuperAdmin, activeTenantId, rawTenants]);
 
   // ── Normalize Firestore field names → what UI components expect ──
   const fmtCurr = v => {
@@ -286,6 +298,30 @@ function AppContent() {
             <span>AVG Cashflow</span>
             <span style={{ color: isDark ? "rgba(255,255,255,0.2)" : "#D4D0CB" }}>›</span>
             <span style={{ color: t.breadcrumbActive, fontWeight: 500 }}>{activePage}</span>
+            {isSuperAdmin && (
+              <div style={{ marginLeft: 20, paddingLeft: 20, borderLeft: `1px solid ${t.surfaceBorder}`, display: "flex", alignItems: "center", gap: 8 }}>
+                <span style={{ color: t.textMuted }}>Viewing Tenant:</span>
+                <select
+                  value={activeTenantId}
+                  onChange={e => setActiveTenantId(e.target.value)}
+                  style={{
+                    background: isDark ? "rgba(255,255,255,0.05)" : "#FDFDFC",
+                    border: `1px solid ${t.surfaceBorder}`,
+                    color: t.text,
+                    padding: "4px 10px",
+                    borderRadius: 6,
+                    fontSize: 12.5,
+                    fontWeight: 500,
+                    outline: "none",
+                    cursor: "pointer",
+                    fontFamily: "inherit"
+                  }}
+                >
+                  <option value="" disabled>Select Tenant</option>
+                  {TENANTS.map(ten => <option key={ten.id} value={ten.id}>{ten.name} ({ten.id})</option>)}
+                </select>
+              </div>
+            )}
           </div>
           <div style={{ display: "flex", gap: 16, fontSize: 12.5, alignItems: "center" }}>
             <span style={{ color: t.textSecondary, cursor: "pointer" }} onClick={() => setActivePage("Profile")}>Profile</span>

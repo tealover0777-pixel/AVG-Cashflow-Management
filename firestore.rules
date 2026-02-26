@@ -61,6 +61,12 @@ service cloud.firestore {
       allow read, write: if isSecretAdmin();
     }
 
+    // Global user roles mapping
+    match /user_roles/{userId} {
+      allow read: if request.auth != null && request.auth.uid == userId;
+      allow write: if isCompanySuperAdmin() || isTenantSuperUser(request.auth.token.tenantId);
+    }
+
     // Rules for data within a tenant.
     match /tenants/{tenantId}/{document=**} {
       allow read, write: if isCompanySuperAdmin();

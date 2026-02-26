@@ -18,14 +18,26 @@ export function AuthProvider({ children }) {
             try {
                 if (u) {
                     setUser(u);
-                    // Check for custom claims first (most efficient)
+                    // 1. Check custom claims first (fastest, but might not be set immediately)
                     const idToken = await u.getIdTokenResult();
-                    const role = idToken.claims.role || "tenant_user";
-                    const tenantId = idToken.claims.tenantId || "";
+                    let role = idToken.claims.role || "tenant_user";
+                    let tenantId = idToken.claims.tenantId || "";
+
+                    // 2. Fetch authoritative mapping from global user_roles collection
+                    try {
+                        const globalRoleDoc = await getDoc(doc(db, `user_roles`, u.uid));
+                        if (globalRoleDoc.exists()) {
+                            const data = globalRoleDoc.data();
+                            role = data.role || role;
+                            tenantId = data.tenantId || tenantId;
+                        }
+                    } catch (err) {
+                        console.error("Failed to fetch global user_roles:", err);
+                    }
 
                     let fetchedProfile = { role, tenantId };
 
-                    // If we have a tenantId, try to fetch the profile from Firestore
+                    // 3. Optional: fetch extra profile info from tenant collection
                     if (tenantId) {
                         try {
                             const profDoc = await getDoc(doc(db, `tenants/${tenantId}/users`, u.uid));
@@ -33,7 +45,7 @@ export function AuthProvider({ children }) {
                                 fetchedProfile = { ...fetchedProfile, ...profDoc.data() };
                             }
                         } catch (err) {
-                            console.error("Failed to fetch user profile document:", err);
+                            console.error("Failed to fetch tenant profile:", err);
                         }
                     }
 
