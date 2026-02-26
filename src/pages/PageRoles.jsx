@@ -16,16 +16,23 @@ export default function PageRoles({ t, isDark, collectionPath = "", DIMENSIONS =
 
     const permDim = DIMENSIONS.find(d => d.name === "Permissions")?.items || [];
 
-    const openAdd = () => setModal({ open: true, mode: "add", data: { name: "", permissions: [] } });
+    const nextRoleId = (() => {
+        if (rawRoles.length === 0) return "R10001";
+        const maxNum = Math.max(...rawRoles.map(r => { const m = String(r.role_id || "").match(/^R(\d+)$/); return m ? Number(m[1]) : 0; }));
+        return "R" + (maxNum + 1);
+    })();
+
+    const openAdd = () => setModal({ open: true, mode: "add", data: { role_id: nextRoleId, role_name: "", permissions: [] } });
     const openEdit = r => setModal({ open: true, mode: "edit", data: { ...r, permissions: r.permissions || [] } });
     const close = () => setModal(m => ({ ...m, open: false }));
     const setF = (k, v) => setModal(m => ({ ...m, data: { ...m.data, [k]: v } }));
 
     const handleSaveRole = async () => {
         const d = modal.data;
-        if (!d.name) return;
+        if (!d.role_name) return;
         const payload = {
-            name: d.name,
+            role_id: d.role_id || "",
+            role_name: d.role_name,
             permissions: d.permissions || [],
             updated_at: serverTimestamp(),
         };
@@ -33,16 +40,15 @@ export default function PageRoles({ t, isDark, collectionPath = "", DIMENSIONS =
             if (modal.mode === "edit" && d.id) {
                 await setDoc(doc(db, collectionPath, d.id), payload, { merge: true });
             } else {
-                // Generate a clean ID from the name (e.g. "Project Manager" -> "project_manager")
-                const roleId = d.name.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/(^_|_$)/g, '');
-                await setDoc(doc(db, collectionPath, roleId), { ...payload, created_at: serverTimestamp() });
+                await setDoc(doc(db, collectionPath, d.role_id), { ...payload, created_at: serverTimestamp() });
             }
         } catch (err) { console.error("Save role error:", err); }
         close();
     };
 
     const cols = [
-        { l: "ROLE NAME", w: "200px", k: "name" },
+        { l: "ROLE ID", w: "120px", k: "role_id" },
+        { l: "ROLE NAME", w: "200px", k: "role_name" },
         { l: "PERMISSIONS", w: "1fr", k: "permissions" },
         { l: "ACTIONS", w: "80px" }
     ];
@@ -52,7 +58,7 @@ export default function PageRoles({ t, isDark, collectionPath = "", DIMENSIONS =
     // Auto-sync Roles to Dimensions so "Role" dropdowns have access to them!
     useEffect(() => {
         if (!loading && rawRoles.length > 0) {
-            const roleNames = rawRoles.map(r => r.name);
+            const roleNames = rawRoles.map(r => r.role_name || r.name);
             setDoc(doc(db, "dimensions", "Role"), { name: "Role", category: "Role", items: roleNames }, { merge: true })
                 .catch(e => console.error("Failed syncing roles to dimension", e));
         }
@@ -80,7 +86,8 @@ export default function PageRoles({ t, isDark, collectionPath = "", DIMENSIONS =
             {paginated.map((p, i) => {
                 const isHov = hov === p.id;
                 return (<div key={p.id} className="data-row" onMouseEnter={() => setHov(p.id)} onMouseLeave={() => setHov(null)} style={{ display: "grid", gridTemplateColumns: gridTemplate, padding: "12px 22px", borderBottom: i < paginated.length - 1 ? `1px solid ${t.rowDivider}` : "none", alignItems: "center", background: isHov ? t.rowHover : "transparent" }}>
-                    <div style={{ fontSize: 13.5, fontWeight: 600, color: isDark ? "#fff" : (isHov ? t.accent : "#1C1917") }}>{p.name}</div>
+                    <div style={{ fontSize: 13.5, color: t.textSecondary, fontFamily: t.mono }}>{p.role_id || p.id || "—"}</div>
+                    <div style={{ fontSize: 13.5, fontWeight: 600, color: isDark ? "#fff" : (isHov ? t.accent : "#1C1917") }}>{p.role_name || p.name || "—"}</div>
                     <div style={{ fontSize: 11, color: t.textSubtle, display: "flex", flexWrap: "wrap", gap: 4 }}>
                         {p.permissions && p.permissions.length > 0 ? p.permissions.map(pm => (
                             <span key={pm} style={{ background: t.chipBg, border: `1px solid ${t.chipBorder}`, padding: "2px 6px", borderRadius: 4 }}>{pm}</span>
@@ -94,7 +101,10 @@ export default function PageRoles({ t, isDark, collectionPath = "", DIMENSIONS =
         {totalPages > 1 && <div style={{ marginTop: 24, display: "flex", justifyContent: "flex-end" }}><Pagination totalPages={totalPages} currentPage={page} onPageChange={setPage} t={t} /></div>}
 
         <Modal open={modal.open} onClose={close} title={modal.mode === "add" ? "New Role" : "Edit Role"} onSave={handleSaveRole} width={600} t={t} isDark={isDark}>
-            <FF label="Role Name" t={t}><FIn value={modal.data.name} onChange={e => setF("name", e.target.value)} placeholder="e.g. Project Manager" t={t} disabled={modal.mode === "edit"} /></FF>
+            <FF label="Role ID" t={t}>
+                <div style={{ fontFamily: t.mono, fontSize: 13, color: t.idText, background: isDark ? "rgba(255,255,255,0.04)" : "#F5F4F1", border: `1px solid ${t.surfaceBorder}`, borderRadius: 9, padding: "10px 13px", letterSpacing: "0.5px" }}>{modal.data.role_id}</div>
+            </FF>
+            <FF label="Role Name" t={t}><FIn value={modal.data.role_name || modal.data.name} onChange={e => setF("role_name", e.target.value)} placeholder="e.g. Project Manager" t={t} /></FF>
             <FF label="Permissions" t={t}><FMultiSel value={modal.data.permissions || []} onChange={v => setF("permissions", v)} options={permDim} t={t} /></FF>
         </Modal>
 

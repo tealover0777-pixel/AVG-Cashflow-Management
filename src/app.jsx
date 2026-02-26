@@ -79,14 +79,14 @@ function AppContent() {
   const { data: rawSchedules, loading: l4, error: e4 } = useFirestoreCollection(shouldFetch ? COLLECTION_PATHS.paymentSchedules : null);
   const { data: PAYMENTS, loading: l5, error: e5 } = useFirestoreCollection(shouldFetch ? COLLECTION_PATHS.payments : null);
   const { data: rawFees, loading: l6, error: e6 } = useFirestoreCollection(shouldFetch ? COLLECTION_PATHS.fees : null);
-  // Tenants collection doesn't depend on tenantId, so we can always request it if super admin
   const { data: rawTenants, loading: l8, error: e8 } = useFirestoreCollection(isSuperAdmin ? getCollectionPaths("").tenants : null);
   const { data: rawUsers, loading: l9, error: e9 } = useFirestoreCollection((shouldFetch && (isSuperAdmin || isTenantAdmin)) ? COLLECTION_PATHS.users : null);
+  const { data: rawRoles, loading: l10, error: e10 } = useFirestoreCollection((shouldFetch && (isSuperAdmin || isTenantAdmin)) ? COLLECTION_PATHS.roles : null);
   const { data: rawDimensions, loading: l7, error: e7 } = useFirestoreCollection(user ? COLLECTION_PATHS.dimensions : null);
 
-  const loading = authLoading || (shouldFetch && (l1 || l2 || l3 || l4 || l5 || l6)) || ((isSuperAdmin) && l8) || (shouldFetch && (isSuperAdmin || isTenantAdmin) && l9) || (user && l7);
+  const loading = authLoading || (shouldFetch && (l1 || l2 || l3 || l4 || l5 || l6)) || ((isSuperAdmin) && l8) || (shouldFetch && (isSuperAdmin || isTenantAdmin) && (l9 || l10)) || (user && l7);
 
-  const firstError = e1 || e2 || e3 || e4 || e5 || e6 || e7 || e8 || e9;
+  const firstError = e1 || e2 || e3 || e4 || e5 || e6 || e7 || e8 || e9 || e10;
 
   // Auto-select first tenant for Super Admins if none selected
   useEffect(() => {
@@ -199,7 +199,7 @@ function AppContent() {
     "Payments": <PagePayments t={t} isDark={isDark} PAYMENTS={PAYMENTS} collectionPath={COLLECTION_PATHS.payments} />,
     "Fees": <PageFees t={t} isDark={isDark} FEES_DATA={FEES_DATA} DIMENSIONS={DIMENSIONS} collectionPath={COLLECTION_PATHS.fees} />,
     "Tenants": <PageTenants t={t} isDark={isDark} TENANTS={TENANTS} collectionPath={COLLECTION_PATHS.tenants} />,
-    "Users": <PageUsers t={t} isDark={isDark} USERS={rawUsers} collectionPath={COLLECTION_PATHS.users} DIMENSIONS={DIMENSIONS} />,
+    "Users": <PageUsers t={t} isDark={isDark} USERS={rawUsers} ROLES={rawRoles} collectionPath={COLLECTION_PATHS.users} DIMENSIONS={DIMENSIONS} />,
     "Roles": <PageRoles t={t} isDark={isDark} collectionPath={COLLECTION_PATHS.roles} DIMENSIONS={DIMENSIONS} />,
     "Super Admin": <PageSuperAdmin t={t} isDark={isDark} DIMENSIONS={DIMENSIONS} />,
     "Profile": <PageProfile t={t} isDark={isDark} />,

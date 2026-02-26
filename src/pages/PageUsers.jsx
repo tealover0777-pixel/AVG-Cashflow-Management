@@ -17,7 +17,7 @@ const PERMISSIONS_LIST = [
     "PLATFORM_TENANT_CREATE", "PLATFORM_TENANT_DELETE", "PLATFORM_TENANT_VIEW", "PLATFORM_TENANT_UPDATE"
 ];
 
-export default function PageUsers({ t, isDark, USERS = [], collectionPath = "", DIMENSIONS = [] }) {
+export default function PageUsers({ t, isDark, USERS = [], ROLES = [], collectionPath = "", DIMENSIONS = [] }) {
     const [hov, setHov] = useState(null);
     const [modal, setModal] = useState({ open: false, mode: "add", data: {} });
     const [delT, setDelT] = useState(null);
@@ -25,8 +25,11 @@ export default function PageUsers({ t, isDark, USERS = [], collectionPath = "", 
     const [page, setPage] = useState(1);
     const onSort = k => { setSort(s => ({ key: k, direction: s.key === k && s.direction === "asc" ? "desc" : "asc" })); setPage(1); };
 
-    const roleDim = DIMENSIONS.find(d => d.name === "Role")?.items || ["tenant_user", "tenant_admin_read_only", "tenant_admin_read_write", "tenant_admin_super_user"];
-    const permDim = DIMENSIONS.find(d => d.name === "Permissions")?.items || PERMISSIONS_LIST;
+    // Format roles for the select dropdown
+    const roleOpts = [{ name: "Role", items: ROLES.map(r => ({ label: r.name, value: r.id })) }];
+
+    // Fallback dimension (used previously, keep for migrating old data if needed)
+    const legacyRoleDim = DIMENSIONS.find(d => d.name === "Role")?.items || [];
 
     useEffect(() => {
         if (DIMENSIONS && !DIMENSIONS.some(d => d.name === "Permissions")) {
@@ -41,8 +44,8 @@ export default function PageUsers({ t, isDark, USERS = [], collectionPath = "", 
         return "U" + (maxNum + 1);
     })();
 
-    const openAdd = () => setModal({ open: true, mode: "add", data: { user_id: nextUserId, user_name: "", email: "", role: "tenant_user", phone: "", permissions: [] } });
-    const openEdit = r => setModal({ open: true, mode: "edit", data: { ...r, permissions: r.permissions || [] } });
+    const openAdd = () => setModal({ open: true, mode: "add", data: { user_id: nextUserId, user_name: "", email: "", role_id: "", phone: "" } });
+    const openEdit = r => setModal({ open: true, mode: "edit", data: { ...r, role_id: r.role_id || "" } });
     const close = () => setModal(m => ({ ...m, open: false }));
     const setF = (k, v) => setModal(m => ({ ...m, data: { ...m.data, [k]: v } }));
 
@@ -52,9 +55,8 @@ export default function PageUsers({ t, isDark, USERS = [], collectionPath = "", 
             user_id: d.user_id || "",
             user_name: d.user_name || "",
             email: d.email || "",
-            role: d.role || "tenant_user",
+            role_id: d.role_id || "",
             phone: d.phone || "",
-            permissions: d.permissions || [],
             updated_at: serverTimestamp(),
         };
         try {
@@ -99,13 +101,15 @@ export default function PageUsers({ t, isDark, USERS = [], collectionPath = "", 
             <TblHead cols={cols} t={t} isDark={isDark} sortConfig={sort} onSort={onSort} gridTemplate={gridTemplate} headerRef={headerRef} onResizeStart={onResizeStart} />
             {paginated.map((p, i) => {
                 const isHov = hov === p.docId;
+                const mappedRole = ROLES.find(r => r.id === p.role_id) || { name: p.role_id || p.role || "Unknown", permissions: p.permissions || [] };
+
                 return (<div key={p.docId || p.user_id} className="data-row" onMouseEnter={() => setHov(p.docId)} onMouseLeave={() => setHov(null)} style={{ display: "grid", gridTemplateColumns: gridTemplate, padding: "12px 22px", borderBottom: i < paginated.length - 1 ? `1px solid ${t.rowDivider}` : "none", alignItems: "center", background: isHov ? t.rowHover : "transparent" }}>
                     <div style={{ fontSize: 13.5, color: t.textSecondary, fontFamily: t.mono }}>{p.user_id || "—"}</div>
                     <div style={{ fontSize: 13.5, fontWeight: 500, color: isDark ? "rgba(255,255,255,0.85)" : (isHov ? "#1C1917" : "#44403C") }}>{p.user_name || p.name || "—"}</div>
                     <div style={{ fontSize: 12.5, color: t.accent }}>{p.email}</div>
-                    <div><Bdg status={p.role ? p.role.replace(/_/g, " ").toUpperCase() : "TENANT USER"} isDark={isDark} /></div>
+                    <div><Bdg status={mappedRole.name.replace(/_/g, " ").toUpperCase()} isDark={isDark} /></div>
                     <div style={{ fontSize: 11, color: t.textSubtle, display: "flex", flexWrap: "wrap", gap: 4 }}>
-                        {p.permissions && p.permissions.length > 0 ? p.permissions.map(pm => (
+                        {mappedRole.permissions && mappedRole.permissions.length > 0 ? mappedRole.permissions.map(pm => (
                             <span key={pm} style={{ background: t.chipBg, border: `1px solid ${t.chipBorder}`, padding: "2px 6px", borderRadius: 4 }}>{pm}</span>
                         )) : "—"}
                     </div>
@@ -121,8 +125,20 @@ export default function PageUsers({ t, isDark, USERS = [], collectionPath = "", 
             </FF>
             <FF label="Full Name" t={t}><FIn value={modal.data.user_name || modal.data.name} onChange={e => setF("user_name", e.target.value)} t={t} /></FF>
             <FF label="Email Address" t={t}><FIn value={modal.data.email} onChange={e => setF("email", e.target.value)} t={t} disabled={modal.mode === "edit"} /></FF>
-            <FF label="Role" t={t}><FSel value={modal.data.role} onChange={e => setF("role", e.target.value)} options={roleDim} t={t} /></FF>
-            <FF label="Permissions" t={t}><FMultiSel value={modal.data.permissions || []} onChange={v => setF("permissions", v)} options={permDim} t={t} /></FF>
+            <FF label="Role" t={t}>
+                <select
+                    value={modal.data.role_id || ""}
+                    onChange={e => setF("role_id", e.target.value)}
+                    style={{ background: isDark ? "rgba(255,255,255,0.04)" : "#fff", color: t.text, border: `1px solid ${t.border}`, borderRadius: 9, padding: "10px 13px", fontSize: 13.5, outline: "none", width: "100%", fontFamily: t.font, appearance: "none" }}
+                >
+                    <option value="" disabled>Select a role...</option>
+                    {ROLES.map(r => (
+                        <option key={r.id} value={r.id} style={{ color: "#000" }}>{r.name}</option>
+                    ))}
+                    {/* Fallback for legacy roles just in case some aren't in ROLES collection yet */}
+                    {modal.data.role_id && !ROLES.some(r => r.id === modal.data.role_id) && <option value={modal.data.role_id} style={{ color: "#000" }}>{modal.data.role_id} (Legacy)</option>}
+                </select>
+            </FF>
             <FF label="Phone" t={t}><FIn value={modal.data.phone} onChange={e => setF("phone", e.target.value)} t={t} /></FF>
         </Modal>
         <DelModal target={delT} onClose={() => setDelT(null)} onConfirm={async () => { await deleteDoc(doc(db, collectionPath, delT.docId)); setDelT(null); }} label="user" t={t} isDark={isDark} />
