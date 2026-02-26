@@ -17,6 +17,7 @@ import PagePayments from "./pages/PagePayments";
 import PageFees from "./pages/PageFees";
 import PageTenants from "./pages/PageTenants";
 import PageUsers from "./pages/PageUsers";
+import PageRoles from "./pages/PageRoles";
 import PageSuperAdmin from "./pages/PageSuperAdmin";
 import PageProfile from "./pages/PageProfile";
 import PageDimensions from "./pages/PageDimensions";
@@ -199,6 +200,7 @@ function AppContent() {
     "Fees": <PageFees t={t} isDark={isDark} FEES_DATA={FEES_DATA} DIMENSIONS={DIMENSIONS} collectionPath={COLLECTION_PATHS.fees} />,
     "Tenants": <PageTenants t={t} isDark={isDark} TENANTS={TENANTS} collectionPath={COLLECTION_PATHS.tenants} />,
     "Users": <PageUsers t={t} isDark={isDark} USERS={rawUsers} collectionPath={COLLECTION_PATHS.users} DIMENSIONS={DIMENSIONS} />,
+    "Roles": <PageRoles t={t} isDark={isDark} collectionPath={COLLECTION_PATHS.roles} DIMENSIONS={DIMENSIONS} />,
     "Super Admin": <PageSuperAdmin t={t} isDark={isDark} DIMENSIONS={DIMENSIONS} />,
     "Profile": <PageProfile t={t} isDark={isDark} />,
     "Dimensions": <PageDimensions t={t} isDark={isDark} DIMENSIONS={DIMENSIONS} />,

@@ -67,8 +67,9 @@ const NAV_ITEMS = [
   { label: "Payment Schedule", icon: "▤" },
   { label: "Payments", icon: "◇" },
   { label: "Fees", icon: "◉" },
-  { label: "Tenants", icon: "♜", superOnly: true },
+  { label: "Tenants", icon: "🏢", superOnly: true },
   { label: "Users", icon: "👥", adminOnly: true },
+  { label: "Roles", icon: "🛡️", adminOnly: true },
   { label: "Super Admin", icon: "⚡", superOnly: true },
   { label: "Dimensions", icon: "⊞" },
   { label: "Reports", icon: "╱╲" },
@@ -97,6 +98,7 @@ export const getCollectionPaths = (tenantId) => {
     payments: `${tenantPath}/payments`,
     fees: `${tenantPath}/fees`,
     users: `${tenantPath}/users`,
+    roles: `${tenantPath}/roles`,
     tenants: "tenants",
     dimensions: "dimensions",
   };
