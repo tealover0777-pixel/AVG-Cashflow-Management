@@ -22,11 +22,20 @@ export default function PageRoles({ t, isDark, collectionPath = "", DIMENSIONS =
 
     const permDim = DIMENSIONS.find(d => d.name === "Permissions")?.items || [];
 
+    const userRoleNames = DIMENSIONS.find(d => d.name === "UserRoles" || d.category === "UserRoles")?.items || [];
+
     const nextRoleId = (() => {
         if (rawRoles.length === 0) return "R10001";
         const maxNum = Math.max(...rawRoles.map(r => { const m = String(r.role_id || "").match(/^R(\d+)$/); return m ? Number(m[1]) : 0; }));
         return "R" + (maxNum + 1);
     })();
+
+    const displayRoles = [...rawRoles];
+    userRoleNames.forEach(name => {
+        if (!displayRoles.find(r => r.role_name === name || r.name === name)) {
+            displayRoles.push({ id: name, role_id: "Auto-Sync", role_name: name, permissions: [], isFromDimension: true });
+        }
+    });
 
     const openAdd = () => setModal({ open: true, mode: "add", data: { role_id: nextRoleId, role_name: "", permissions: [] } });
     const openEdit = r => setModal({ open: true, mode: "edit", data: { ...r, permissions: r.permissions || [] } });
@@ -36,17 +45,20 @@ export default function PageRoles({ t, isDark, collectionPath = "", DIMENSIONS =
     const handleSaveRole = async () => {
         const d = modal.data;
         if (!d.role_name) return;
+        const isDim = d.isFromDimension;
+        const rid = d.role_id === "Auto-Sync" ? nextRoleId : (d.role_id || "");
+
         const payload = {
-            role_id: d.role_id || "",
+            role_id: rid,
             role_name: d.role_name,
             permissions: d.permissions || [],
             updated_at: serverTimestamp(),
         };
         try {
-            if (modal.mode === "edit" && d.id) {
+            if (modal.mode === "edit" && d.id && !isDim) {
                 await setDoc(doc(db, collectionPath, d.id), payload, { merge: true });
             } else {
-                await setDoc(doc(db, collectionPath, d.role_id), { ...payload, created_at: serverTimestamp() });
+                await setDoc(doc(db, collectionPath, rid || d.id || d.role_name), { ...payload, created_at: serverTimestamp() });
             }
         } catch (err) { console.error("Save role error:", err); }
         close();
@@ -73,7 +85,7 @@ export default function PageRoles({ t, isDark, collectionPath = "", DIMENSIONS =
     if (loading) return <div style={{ padding: 40, color: t.textMuted }}>Loading roles...</div>;
     if (error) return <div style={{ padding: 40, color: "red" }}>Error loading roles: {error.message}</div>;
 
-    const filtered = rawRoles.filter(p => cols.every(c => { if (!c.k || !colFilters[c.k]) return true; return String(p[c.k] || "").toLowerCase().includes(colFilters[c.k].toLowerCase()); }));
+    const filtered = displayRoles.filter(p => cols.every(c => { if (!c.k || !colFilters[c.k]) return true; return String(p[c.k] || "").toLowerCase().includes(colFilters[c.k].toLowerCase()); }));
     const sorted = sortData(filtered, sort);
     const paginated = sorted.slice((page - 1) * 20, page * 20);
     const totalPages = Math.ceil(sorted.length / 20);
@@ -99,7 +111,7 @@ export default function PageRoles({ t, isDark, collectionPath = "", DIMENSIONS =
                             <span key={pm} style={{ background: t.chipBg, border: `1px solid ${t.chipBorder}`, padding: "2px 6px", borderRadius: 4 }}>{pm}</span>
                         )) : <span style={{ fontStyle: "italic", opacity: 0.5 }}>No permissions assigned.</span>}
                     </div>
-                    <ActBtns show={isHov && (canUpdate || canDelete)} t={t} onEdit={canUpdate ? () => openEdit(p) : null} onDel={canDelete ? () => setDelT(p) : null} />
+                    <ActBtns show={isHov && (canUpdate || canDelete)} t={t} onEdit={canUpdate ? () => openEdit(p) : null} onDel={(canDelete && !p.isFromDimension) ? () => setDelT(p) : null} />
                 </div>);
             })}
         </div>
