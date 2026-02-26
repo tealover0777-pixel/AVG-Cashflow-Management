@@ -134,6 +134,25 @@ export const FSel = ({ value, onChange, options, t, placeholder }) => (
   </select>
 );
 
+export const FMultiSel = ({ value = [], onChange, options, t }) => (
+  <div style={{ display: "flex", flexDirection: "column", gap: 6, maxHeight: 180, overflowY: "auto", background: t.searchBg, border: `1px solid ${t.searchBorder}`, borderRadius: 9, padding: "10px 12px" }}>
+    {options.map(o => (
+      <label key={o} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12.5, color: t.searchText, cursor: "pointer", fontFamily: t.mono }}>
+        <input
+          type="checkbox"
+          checked={value.includes(o)}
+          onChange={(e) => {
+            if (e.target.checked) onChange([...value, o]);
+            else onChange(value.filter(v => v !== o));
+          }}
+          style={{ accentColor: t.accent, cursor: "pointer" }}
+        />
+        {o}
+      </label>
+    ))}
+  </div>
+);
+
 export const DelModal = ({ target, onClose, onConfirm, label, t, isDark }) => (
   <Modal open={!!target} onClose={onClose} title="Confirm Delete" onSave={onConfirm} saveLabel="Delete" danger t={t} isDark={isDark}>
     <div style={{ display: "flex", flexDirection: "column", gap: 16, alignItems: "center", textAlign: "center", padding: "8px 0" }}>

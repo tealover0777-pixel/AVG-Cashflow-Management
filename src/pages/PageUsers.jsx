@@ -1,8 +1,21 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { db } from "../firebase";
 import { doc, setDoc, updateDoc, deleteDoc, serverTimestamp } from "firebase/firestore";
 import { sortData } from "../utils";
-import { Bdg, Pagination, ActBtns, useResizableColumns, TblHead, Modal, FF, FIn, FSel, DelModal } from "../components";
+import { Bdg, Pagination, ActBtns, useResizableColumns, TblHead, Modal, FF, FIn, FSel, DelModal, FMultiSel } from "../components";
+
+const PERMISSIONS_LIST = [
+    "TENANT_CREATE", "TENANT_VIEW", "TENANT_UPDATE", "TENANT_DELETE",
+    "USER_CREATE", "USER_INVITE", "USER_VIEW", "USER_UPDATE", "USER_DELETE",
+    "PROJECT_CREATE", "PROJECT_VIEW", "PROJECT_UPDATE", "PROJECT_DELETE",
+    "MEMBER_CREATE", "MEMBER_VIEW", "MEMBER_UPDATE", "MEMBER_DELETE",
+    "CONTRACT_CREATE", "CONTRACT_VIEW", "CONTRACT_UPDATE", "CONTRACTS_DELETE",
+    "PAYMENT_SCHEDULE_CREATE", "PAYMENT_SCHEDULE_VIEW", "PAYMENT_SCHEDULE_UPDATE", "PAYMENT_SCHEDULE_DELETE",
+    "FEE_CREATE", "FEE_VIEW", "FEE_UPDATE", "FEE_DELETE",
+    "DIMENTION_CREATE", "DIMENTION_VIEW", "DIMENTION_UPDATE", "DIMENTION_DELETE",
+    "REPORT_CREATE", "REPORT_VIEW", "REPORT_EXPORT", "REPORT_UPDATE", "REPORT_DELETE",
+    "PLATFORM_TENANT_CREATE", "PLATFORM_TENANT_DELETE", "PLATFORM_TENANT_VIEW", "PLATFORM_TENANT_UPDATE"
+];
 
 export default function PageUsers({ t, isDark, USERS = [], collectionPath = "", DIMENSIONS = [] }) {
     const [hov, setHov] = useState(null);
@@ -13,9 +26,17 @@ export default function PageUsers({ t, isDark, USERS = [], collectionPath = "", 
     const onSort = k => { setSort(s => ({ key: k, direction: s.key === k && s.direction === "asc" ? "desc" : "asc" })); setPage(1); };
 
     const roleDim = DIMENSIONS.find(d => d.name === "Role")?.items || ["tenant_user", "tenant_admin_read_only", "tenant_admin_read_write", "tenant_admin_super_user"];
+    const permDim = DIMENSIONS.find(d => d.name === "Permissions")?.items || PERMISSIONS_LIST;
 
-    const openAdd = () => setModal({ open: true, mode: "add", data: { name: "", email: "", role: "tenant_user", phone: "" } });
-    const openEdit = r => setModal({ open: true, mode: "edit", data: { ...r } });
+    useEffect(() => {
+        if (DIMENSIONS && !DIMENSIONS.some(d => d.name === "Permissions")) {
+            setDoc(doc(db, "dimensions", "Permissions"), { name: "Permissions", items: PERMISSIONS_LIST, category: "Permissions" })
+                .catch(e => console.error("Auto-seed permissions failed. User likely missing write access to 'dimensions'."));
+        }
+    }, [DIMENSIONS]);
+
+    const openAdd = () => setModal({ open: true, mode: "add", data: { name: "", email: "", role: "tenant_user", phone: "", permissions: [] } });
+    const openEdit = r => setModal({ open: true, mode: "edit", data: { ...r, permissions: r.permissions || [] } });
     const close = () => setModal(m => ({ ...m, open: false }));
     const setF = (k, v) => setModal(m => ({ ...m, data: { ...m.data, [k]: v } }));
 
@@ -26,6 +47,7 @@ export default function PageUsers({ t, isDark, USERS = [], collectionPath = "", 
             email: d.email || "",
             role: d.role || "tenant_user",
             phone: d.phone || "",
+            permissions: d.permissions || [],
             updated_at: serverTimestamp(),
         };
         try {
@@ -44,6 +66,7 @@ export default function PageUsers({ t, isDark, USERS = [], collectionPath = "", 
         { l: "NAME", w: "1fr", k: "name" },
         { l: "EMAIL", w: "1.2fr", k: "email" },
         { l: "ROLE", w: "140px", k: "role" },
+        { l: "PERMISSIONS", w: "2fr", k: "permissions" },
         { l: "PHONE", w: "120px", k: "phone" },
         { l: "ACTIONS", w: "80px" }
     ];
@@ -72,16 +95,22 @@ export default function PageUsers({ t, isDark, USERS = [], collectionPath = "", 
                     <div style={{ fontSize: 13.5, fontWeight: 500, color: isDark ? "rgba(255,255,255,0.85)" : (isHov ? "#1C1917" : "#44403C") }}>{p.name}</div>
                     <div style={{ fontSize: 12.5, color: t.accent }}>{p.email}</div>
                     <div><Bdg status={p.role ? p.role.replace(/_/g, " ").toUpperCase() : "TENANT USER"} isDark={isDark} /></div>
+                    <div style={{ fontSize: 11, color: t.textSubtle, display: "flex", flexWrap: "wrap", gap: 4 }}>
+                        {p.permissions && p.permissions.length > 0 ? p.permissions.map(pm => (
+                            <span key={pm} style={{ background: t.chipBg, border: `1px solid ${t.chipBorder}`, padding: "2px 6px", borderRadius: 4 }}>{pm}</span>
+                        )) : "—"}
+                    </div>
                     <div style={{ fontFamily: t.mono, fontSize: 11, color: t.textMuted }}>{p.phone || "—"}</div>
                     <ActBtns show={isHov} t={t} onEdit={() => openEdit(p)} onDel={() => setDelT(p)} />
                 </div>);
             })}
         </div>
 
-        <Modal open={modal.open} onClose={close} title={modal.mode === "add" ? "New User" : "Edit User"} onSave={handleSaveUser} width={500} t={t} isDark={isDark}>
+        <Modal open={modal.open} onClose={close} title={modal.mode === "add" ? "New User" : "Edit User"} onSave={handleSaveUser} width={600} t={t} isDark={isDark}>
             <FF label="Full Name" t={t}><FIn value={modal.data.name} onChange={e => setF("name", e.target.value)} t={t} /></FF>
             <FF label="Email Address" t={t}><FIn value={modal.data.email} onChange={e => setF("email", e.target.value)} t={t} disabled={modal.mode === "edit"} /></FF>
             <FF label="Role" t={t}><FSel value={modal.data.role} onChange={e => setF("role", e.target.value)} options={roleDim} t={t} /></FF>
+            <FF label="Permissions" t={t}><FMultiSel value={modal.data.permissions || []} onChange={v => setF("permissions", v)} options={permDim} t={t} /></FF>
             <FF label="Phone" t={t}><FIn value={modal.data.phone} onChange={e => setF("phone", e.target.value)} t={t} /></FF>
         </Modal>
         <DelModal target={delT} onClose={() => setDelT(null)} onConfirm={async () => { await deleteDoc(doc(db, collectionPath, delT.docId)); setDelT(null); }} label="user" t={t} isDark={isDark} />
