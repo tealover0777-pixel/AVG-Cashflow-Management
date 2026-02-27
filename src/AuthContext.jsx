@@ -31,7 +31,7 @@ export function AuthProvider({ children }) {
                         if (globalRoleDoc.exists()) {
                             const data = globalRoleDoc.data();
                             role = data.role || role;
-                            tenantId = data.tenantId || tenantId;
+                            tenantId = data.tenantId || data.tenant_id || data.Tenant_ID || tenantId;
                         }
                     } catch (err) {
                         console.error("Failed to fetch global user_roles:", err);

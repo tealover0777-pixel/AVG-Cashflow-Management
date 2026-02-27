@@ -198,7 +198,11 @@ export default function PageUsers({ t, isDark, USERS = [], ROLES = [], collectio
                         <div style={{ fontSize: 12 }}>{roleName}</div>
                         <div><StatusBadge status={p.status} t={t} isDark={isDark} /></div>
                         <div style={{ fontFamily: t.mono, fontSize: 10, color: t.textMuted, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={p.auth_uid || p.id}>{p.auth_uid || p.id || "—"}</div>
-                        {isSuperAdmin && <div style={{ fontFamily: t.mono, fontSize: 12, fontWeight: 600, color: t.text }}>{p.tenantId || <span style={{ color: t.textMuted }}>—</span>}</div>}
+                        {isSuperAdmin && (
+                            <div style={{ fontFamily: t.mono, fontSize: 12, fontWeight: 600, color: t.text }}>
+                                {p.tenantId || p.tenant_id || p.Tenant_ID || tenantId || <span style={{ color: t.textMuted }}>—</span>}
+                            </div>
+                        )}
                         <div style={{ fontFamily: t.mono, fontSize: 11, color: t.textMuted }}>{p.phone || "—"}</div>
                         <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
                             <ActBtns show={isHov && (canUpdate || canDelete)} t={t} onEdit={canUpdate ? () => openEdit(p) : null} onDel={canDelete ? () => setDelT(p) : null} />
@@ -262,7 +266,7 @@ export default function PageUsers({ t, isDark, USERS = [], ROLES = [], collectio
             {isSuperAdmin && (
                 <FF label="Tenant ID" t={t}>
                     <div style={{ fontFamily: t.mono, fontSize: 13, fontWeight: 600, color: t.text, background: isDark ? "rgba(255,255,255,0.04)" : "#F5F4F1", border: `1px solid ${t.surfaceBorder}`, borderRadius: 9, padding: "10px 13px" }}>
-                        {modal.data.tenantId || <span style={{ color: t.textMuted }}>— (no tenant assigned)</span>}
+                        {modal.data.tenantId || modal.data.tenant_id || modal.data.Tenant_ID || tenantId || <span style={{ color: t.textMuted }}>— (no tenant assigned)</span>}
                     </div>
                 </FF>
             )}

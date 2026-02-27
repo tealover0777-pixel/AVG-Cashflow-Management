@@ -144,7 +144,7 @@ export default function PageSuperAdmin({ t, isDark, DIMENSIONS = [] }) {
                             <div style={{ fontFamily: t.mono, fontSize: 11, color: t.idText }}>{p.id}</div>
                             <div style={{ fontSize: 12.5, color: t.accent }}>{p.email || "—"}</div>
                             <div><Bdg status={p.role ? p.role.replace(/_/g, " ").toUpperCase() : "NONE"} isDark={isDark} /></div>
-                            <div style={{ fontFamily: t.mono, fontSize: 12, fontWeight: 600, color: t.text }}>{p.tenantId || <span style={{ color: t.textMuted }}>Global</span>}</div>
+                            <div style={{ fontFamily: t.mono, fontSize: 12, fontWeight: 600, color: t.text }}>{p.tenantId || p.tenant_id || p.Tenant_ID || <span style={{ color: t.textMuted }}>Global</span>}</div>
                             <div><StatusBadge status={p.status} t={t} isDark={isDark} /></div>
                             <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
                                 <ActBtns show={isHov} t={t} onEdit={() => openEdit(p)} onDel={() => setDelT(p)} />

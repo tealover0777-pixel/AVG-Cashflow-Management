@@ -122,6 +122,7 @@ exports.inviteUser = functions.https.onCall(async (data, context) => {
         status: 'Pending',
         phone: phone || userRecord.phoneNumber || '',
         notes: notes || '',
+        tenantId,
         auth_uid: uid,
         created_at: admin.firestore.FieldValue.serverTimestamp()
       }, { merge: true });
