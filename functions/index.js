@@ -132,15 +132,44 @@ exports.inviteUser = functions.https.onCall(async (data, context) => {
       }, { merge: true });
     }
 
-    // 6. Generate password-setup link
-    const link = await admin.auth().generatePasswordResetLink(email);
+    // 6. Send email verification using Firebase's built-in template
+    const API_KEY = 'AIzaSyAD8G1WvI0SniOw5qvt_RrYIy5PkhF01Js';
+
+    // Create a custom token, exchange it for an ID token, then trigger verification email
+    const customToken = await admin.auth().createCustomToken(uid);
+
+    const signInRes = await fetch(
+      `https://identitytoolkit.googleapis.com/v1/accounts:signInWithCustomToken?key=${API_KEY}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: customToken, returnSecureToken: true })
+      }
+    );
+    const signInData = await signInRes.json();
+    if (!signInData.idToken) {
+      throw new Error('Failed to exchange custom token for ID token');
+    }
+
+    const sendRes = await fetch(
+      `https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode?key=${API_KEY}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ requestType: 'VERIFY_EMAIL', idToken: signInData.idToken })
+      }
+    );
+    const sendData = await sendRes.json();
+    if (sendData.error) {
+      console.warn('Verification email send warning:', sendData.error.message);
+    }
 
     return {
       success: true,
-      link,
+      emailSent: !sendData.error,
       isNewUser,
       user_id,
-      message: `User ${isNewUser ? 'created' : 'updated'} and invited.`
+      message: `User ${isNewUser ? 'created' : 'updated'}. Verification email sent to ${email}.`
     };
 
   } catch (error) {
