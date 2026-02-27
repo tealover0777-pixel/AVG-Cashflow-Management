@@ -62,7 +62,7 @@ exports.inviteUser = functions.https.onCall(async (data, context) => {
     throw new functions.https.HttpsError('unauthenticated', 'The function must be called while authenticated.');
   }
 
-  const { email, role, tenantId, user_name, phone, notes } = data;
+  const { email, role, tenantId, user_name, phone, notes, user_id: providedUserId } = data;
   const db = admin.firestore();
 
   try {
@@ -100,20 +100,24 @@ exports.inviteUser = functions.https.onCall(async (data, context) => {
       last_updated: admin.firestore.FieldValue.serverTimestamp()
     }, { merge: true });
 
-    // 4. Generate sequential U1000X user_id for tenant profile
-    let user_id = 'U10001';
-    if (tenantId) {
+    // 4. Determine user_id (prefer provided, fallback to auto-gen)
+    let user_id = providedUserId;
+    if (!user_id && tenantId) {
       const usersSnap = await db.collection(`tenants/${tenantId}/users`).get();
       if (!usersSnap.empty) {
         const maxNum = Math.max(...usersSnap.docs.map(d => {
           const m = (d.data().user_id || '').match(/^U(\d+)$/);
           return m ? Number(m[1]) : 0;
         }));
-        if (maxNum > 0) {
-          user_id = 'U' + String(maxNum + 1).padStart(5, '0');
-        }
+        user_id = 'U' + String(maxNum + 1).padStart(5, '0');
+      } else {
+        user_id = 'U10001';
       }
+    }
+    if (!user_id) user_id = 'U' + Date.now(); // Final fallback
 
+    // 5. Create Tenant Profile
+    if (tenantId) {
       await db.doc(`tenants/${tenantId}/users/${user_id}`).set({
         user_id,
         user_name: user_name || userRecord.displayName || email.split('@')[0],
@@ -128,7 +132,7 @@ exports.inviteUser = functions.https.onCall(async (data, context) => {
       }, { merge: true });
     }
 
-    // 5. Generate password-setup link
+    // 6. Generate password-setup link
     const link = await admin.auth().generatePasswordResetLink(email);
 
     return {
