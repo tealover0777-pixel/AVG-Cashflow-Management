@@ -31,7 +31,7 @@ const StatusBadge = ({ status, t, isDark }) => {
     );
 };
 
-export default function PageUsers({ t, isDark, USERS = [], ROLES = [], collectionPath = "", DIMENSIONS = [], tenantId = "" }) {
+export default function PageUsers({ t, isDark, USERS = [], ROLES = [], collectionPath = "", DIMENSIONS = [], tenantId = "", TENANTS = [] }) {
     const { hasPermission, isSuperAdmin } = useAuth();
     const canCreate = isSuperAdmin || hasPermission("USER_CREATE");
     const canInvite = isSuperAdmin || hasPermission("USER_INVITE");
@@ -74,7 +74,7 @@ export default function PageUsers({ t, isDark, USERS = [], ROLES = [], collectio
         setInviting(true);
         try {
             const inviteUserFn = httpsCallable(functions, "inviteUser");
-            const result = await inviteUserFn({ email: d.email, role: d.role_id, tenantId, user_name: d.user_name || "", phone: d.phone || "" });
+            const result = await inviteUserFn({ email: d.email, role: d.role_id, tenantId: d.inviteTenantId || tenantId, user_name: d.user_name || "", phone: d.phone || "" });
             close();
             setInviteResult({ link: result.data.link, email: d.email, user_id: result.data.user_id });
         } catch (err) {
@@ -124,11 +124,12 @@ export default function PageUsers({ t, isDark, USERS = [], ROLES = [], collectio
 
     const cols = [
         { l: "USER ID", w: "100px", k: "user_id" },
-        { l: "NAME", w: "1fr", k: "user_name" },
-        { l: "EMAIL", w: "1.5fr", k: "email" },
+        { l: "NAME", w: "0.5fr", k: "user_name" },
+        { l: "EMAIL", w: "0.6fr", k: "email" },
         { l: "ROLE", w: "160px", k: "role_id" },
         { l: "STATUS", w: "110px", k: "status" },
         { l: "AUTH UID", w: "160px", k: "auth_uid" },
+        ...(isSuperAdmin ? [{ l: "TENANT ID", w: "120px", k: "tenantId" }] : []),
         { l: "PHONE", w: "120px", k: "phone" },
         { l: "ACTIONS", w: "100px" }
     ];
@@ -196,6 +197,7 @@ export default function PageUsers({ t, isDark, USERS = [], ROLES = [], collectio
                         <div style={{ fontSize: 12 }}>{roleName}</div>
                         <div><StatusBadge status={p.status} t={t} isDark={isDark} /></div>
                         <div style={{ fontFamily: t.mono, fontSize: 10, color: t.textMuted, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={p.auth_uid || p.id}>{p.auth_uid || p.id || "—"}</div>
+                        {isSuperAdmin && <div style={{ fontFamily: t.mono, fontSize: 12, fontWeight: 600, color: t.text }}>{p.tenantId || <span style={{ color: t.textMuted }}>—</span>}</div>}
                         <div style={{ fontFamily: t.mono, fontSize: 11, color: t.textMuted }}>{p.phone || "—"}</div>
                         <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
                             <ActBtns show={isHov && (canUpdate || canDelete)} t={t} onEdit={canUpdate ? () => openEdit(p) : null} onDel={canDelete ? () => setDelT(p) : null} />
@@ -219,17 +221,19 @@ export default function PageUsers({ t, isDark, USERS = [], ROLES = [], collectio
             <FF label="Full Name (optional)" t={t}><FIn value={modal.data.user_name} onChange={e => setF("user_name", e.target.value)} placeholder="Jane Doe" t={t} /></FF>
             <FF label="Phone (optional)" t={t}><FIn value={modal.data.phone || ""} onChange={e => setF("phone", e.target.value)} placeholder="+1 555 000 0000" t={t} /></FF>
             <FF label="Role" t={t}>
-                <select
-                    value={modal.data.role_id || ""}
-                    onChange={e => setF("role_id", e.target.value)}
-                    style={{ background: isDark ? "rgba(255,255,255,0.04)" : "#fff", color: isDark ? "#fff" : "#000", border: `1px solid ${t.border}`, borderRadius: 9, padding: "10px 13px", fontSize: 13.5, outline: "none", width: "100%", fontFamily: t.font, appearance: "none" }}
-                >
+                <select value={modal.data.role_id || ""} onChange={e => setF("role_id", e.target.value)} style={{ background: isDark ? "rgba(255,255,255,0.04)" : "#fff", color: isDark ? "#fff" : "#000", border: `1px solid ${t.border}`, borderRadius: 9, padding: "10px 13px", fontSize: 13.5, outline: "none", width: "100%", fontFamily: t.font, appearance: "none" }}>
                     <option value="" disabled style={{ color: "#000" }}>Select a role...</option>
-                    {ROLES.map(r => (
-                        <option key={r.id || r.role_id} value={r.id || r.role_id} style={{ color: "#000" }}>{r.role_name || r.name || r.id}</option>
-                    ))}
+                    {ROLES.map(r => <option key={r.id || r.role_id} value={r.id || r.role_id} style={{ color: "#000" }}>{r.role_name || r.name || r.id}</option>)}
                 </select>
             </FF>
+            {isSuperAdmin && (
+                <FF label="Tenant ID" t={t}>
+                    <select value={modal.data.inviteTenantId || tenantId || ""} onChange={e => setF("inviteTenantId", e.target.value)} style={{ background: isDark ? "rgba(255,255,255,0.04)" : "#fff", color: isDark ? "#fff" : "#000", border: `1px solid ${t.border}`, borderRadius: 9, padding: "10px 13px", fontSize: 13.5, outline: "none", width: "100%", fontFamily: t.font, appearance: "none" }}>
+                        <option value="">— No tenant (global admin) —</option>
+                        {TENANTS.map(ten => <option key={ten.id} value={ten.id} style={{ color: "#000" }}>{ten.id}{ten.name ? ` — ${ten.name}` : ""}</option>)}
+                    </select>
+                </FF>
+            )}
         </Modal>
 
         {/* Edit Modal */}
@@ -245,18 +249,19 @@ export default function PageUsers({ t, isDark, USERS = [], ROLES = [], collectio
                         : (modal.data.id && !/^U\d+$/.test(modal.data.id) ? modal.data.id : "— (not linked to Firebase Auth)")}
                 </div>
             </FF>
+            {isSuperAdmin && (
+                <FF label="Tenant ID" t={t}>
+                    <div style={{ fontFamily: t.mono, fontSize: 13, fontWeight: 600, color: t.text, background: isDark ? "rgba(255,255,255,0.04)" : "#F5F4F1", border: `1px solid ${t.surfaceBorder}`, borderRadius: 9, padding: "10px 13px" }}>
+                        {modal.data.tenantId || <span style={{ color: t.textMuted }}>— (no tenant assigned)</span>}
+                    </div>
+                </FF>
+            )}
             <FF label="Full Name" t={t}><FIn value={modal.data.user_name || modal.data.name} onChange={e => setF("user_name", e.target.value)} t={t} /></FF>
             <FF label="Email Address" t={t}><FIn value={modal.data.email} onChange={e => setF("email", e.target.value)} t={t} disabled /></FF>
             <FF label="Role" t={t}>
-                <select
-                    value={modal.data.role_id || ""}
-                    onChange={e => setF("role_id", e.target.value)}
-                    style={{ background: isDark ? "rgba(255,255,255,0.04)" : "#fff", color: isDark ? "#fff" : "#000", border: `1px solid ${t.border}`, borderRadius: 9, padding: "10px 13px", fontSize: 13.5, outline: "none", width: "100%", fontFamily: t.font, appearance: "none" }}
-                >
+                <select value={modal.data.role_id || ""} onChange={e => setF("role_id", e.target.value)} style={{ background: isDark ? "rgba(255,255,255,0.04)" : "#fff", color: isDark ? "#fff" : "#000", border: `1px solid ${t.border}`, borderRadius: 9, padding: "10px 13px", fontSize: 13.5, outline: "none", width: "100%", fontFamily: t.font, appearance: "none" }}>
                     <option value="" disabled style={{ color: "#000" }}>Select a role...</option>
-                    {ROLES.map(r => (
-                        <option key={r.id || r.role_id} value={r.id || r.role_id} style={{ color: "#000" }}>{r.role_name || r.name || r.id}</option>
-                    ))}
+                    {ROLES.map(r => <option key={r.id || r.role_id} value={r.id || r.role_id} style={{ color: "#000" }}>{r.role_name || r.name || r.id}</option>)}
                 </select>
             </FF>
             <FF label="Phone" t={t}><FIn value={modal.data.phone} onChange={e => setF("phone", e.target.value)} t={t} /></FF>
