@@ -1,9 +1,22 @@
 import { useState } from "react";
-import { db } from "../firebase";
+import { db, functions } from "../firebase";
 import { doc, setDoc, deleteDoc, serverTimestamp } from "firebase/firestore";
+import { httpsCallable } from "firebase/functions";
 import { useFirestoreCollection } from "../useFirestoreCollection";
 import { sortData } from "../utils";
 import { Bdg, Pagination, ActBtns, useResizableColumns, TblHead, Modal, FF, FIn, FSel, DelModal } from "../components";
+
+const StatusBadge = ({ status, t, isDark }) => {
+    const isPending = !status || status === "Pending";
+    const bg = isPending ? (isDark ? "rgba(251,191,36,0.15)" : "#FFFBEB") : (isDark ? "rgba(34,197,94,0.15)" : "#F0FDF4");
+    const color = isPending ? "#F59E0B" : "#22C55E";
+    const border = isPending ? "1px solid rgba(245,158,11,0.35)" : "1px solid rgba(34,197,94,0.35)";
+    return (
+        <span style={{ display: "inline-block", padding: "3px 10px", borderRadius: 20, fontSize: 11, fontWeight: 600, background: bg, color, border, letterSpacing: "0.04em", whiteSpace: "nowrap" }}>
+            {isPending ? "⏳ Pending" : "✓ Active"}
+        </span>
+    );
+};
 
 export default function PageSuperAdmin({ t, isDark, DIMENSIONS = [] }) {
     const { data: rawUsers = [], loading, error } = useFirestoreCollection("user_roles");
@@ -13,26 +26,49 @@ export default function PageSuperAdmin({ t, isDark, DIMENSIONS = [] }) {
     const [delT, setDelT] = useState(null);
     const [sort, setSort] = useState({ key: null, direction: "asc" });
     const [page, setPage] = useState(1);
+    const [inviting, setInviting] = useState(false);
+    const [inviteResult, setInviteResult] = useState(null);
     const onSort = k => { setSort(s => ({ key: k, direction: s.key === k && s.direction === "asc" ? "desc" : "asc" })); setPage(1); };
 
-    const roleDim = DIMENSIONS.find(d => d.name === "Role")?.items || ["tenant_user", "tenant_admin_read_only", "tenant_admin_read_write", "tenant_admin_super_user", "company_super_admin_read_write"];
+    const roleDim = DIMENSIONS.find(d => d.name === "Role")?.items || [
+        "Tenant Member", "Tenant Viewer", "Tenant Manager", "Tenant Admin", "Tenant Owner",
+        "Support Admin", "Auditor", "Platform_Operator", "Platform Admin", "Super Admin", "L2 Admin"
+    ];
 
-    const openAdd = () => setModal({ open: true, mode: "add", data: { uid: "", email: "", role: "tenant_user", tenantId: "" } });
+    const openInvite = () => setModal({ open: true, mode: "invite", data: { email: "", role: "", tenantId: "" } });
     const openEdit = r => setModal({ open: true, mode: "edit", data: { ...r, uid: r.id } });
+    const openResendInvite = r => setModal({ open: true, mode: "invite", data: { email: r.email || "", role: r.role || "", tenantId: r.tenantId || "" } });
     const close = () => setModal(m => ({ ...m, open: false }));
     const setF = (k, v) => setModal(m => ({ ...m, data: { ...m.data, [k]: v } }));
 
+    // Invite user via Cloud Function
+    const handleInviteUser = async () => {
+        const d = modal.data;
+        if (!d.email || !d.role) return;
+        setInviting(true);
+        try {
+            const inviteUserFn = httpsCallable(functions, "inviteUser");
+            const result = await inviteUserFn({ email: d.email, role: d.role, tenantId: d.tenantId || "" });
+            close();
+            setInviteResult({ link: result.data.link, email: d.email });
+        } catch (err) {
+            console.error("Invite error:", err);
+            alert("Invite failed: " + (err.message || "Unknown error"));
+        } finally {
+            setInviting(false);
+        }
+    };
+
+    // Edit existing role/tenant mapping in user_roles
     const handleSaveUser = async () => {
         const d = modal.data;
         if (!d.uid) return;
-
         const payload = {
             email: d.email || "",
-            role: d.role || "tenant_user",
+            role: d.role || "",
             tenantId: d.tenantId || "",
             updated_at: serverTimestamp(),
         };
-
         try {
             await setDoc(doc(db, "user_roles", d.uid), payload, { merge: true });
         } catch (err) {
@@ -44,9 +80,10 @@ export default function PageSuperAdmin({ t, isDark, DIMENSIONS = [] }) {
     const cols = [
         { l: "USER UID", w: "220px", k: "id" },
         { l: "EMAIL", w: "1.5fr", k: "email" },
-        { l: "GLOBAL ROLE", w: "250px", k: "role" },
-        { l: "ASSIGNED TENANT", w: "140px", k: "tenantId" },
-        { l: "ACTIONS", w: "80px" }
+        { l: "GLOBAL ROLE", w: "200px", k: "role" },
+        { l: "TENANT", w: "130px", k: "tenantId" },
+        { l: "STATUS", w: "110px", k: "status" },
+        { l: "ACTIONS", w: "110px" }
     ];
     const { gridTemplate, headerRef, onResizeStart } = useResizableColumns(cols);
     const [colFilters, setColFilters] = useState({});
@@ -59,14 +96,36 @@ export default function PageSuperAdmin({ t, isDark, DIMENSIONS = [] }) {
 
     return (
         <>
+            {/* Invite result popup */}
+            {inviteResult && (
+                <div style={{ position: "fixed", inset: 0, zIndex: 1100, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <div style={{ background: isDark ? "#1C1917" : "#fff", borderRadius: 16, padding: 28, maxWidth: 540, width: "90%", boxShadow: "0 24px 60px rgba(0,0,0,0.3)" }}>
+                        <h3 style={{ fontFamily: t.titleFont, fontSize: 18, marginBottom: 8, color: isDark ? "#fff" : "#1C1917" }}>✅ Invite Created!</h3>
+                        <p style={{ fontSize: 13, color: t.textMuted, marginBottom: 16 }}>Share this link with <strong>{inviteResult.email}</strong> so they can set their password and activate their account:</p>
+                        <div style={{ background: isDark ? "rgba(255,255,255,0.05)" : "#F5F4F1", border: `1px solid ${t.surfaceBorder}`, borderRadius: 9, padding: "10px 14px", fontFamily: t.mono, fontSize: 12, wordBreak: "break-all", color: t.accent, marginBottom: 20 }}>
+                            {inviteResult.link}
+                        </div>
+                        <div style={{ display: "flex", gap: 10 }}>
+                            <button onClick={() => navigator.clipboard.writeText(inviteResult.link)} style={{ flex: 1, background: t.accentGrad, color: "#fff", border: "none", borderRadius: 9, padding: "10px 18px", fontSize: 13.5, fontWeight: 600, cursor: "pointer" }}>📋 Copy Link</button>
+                            <button onClick={() => setInviteResult(null)} style={{ flex: 1, background: isDark ? "rgba(255,255,255,0.08)" : "#F5F4F1", color: t.text, border: `1px solid ${t.border}`, borderRadius: 9, padding: "10px 18px", fontSize: 13.5, cursor: "pointer" }}>Close</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             <div style={{ marginBottom: 28, display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
                 <div>
                     <h1 style={{ fontFamily: t.titleFont, fontWeight: t.titleWeight, fontSize: t.titleSize, color: isDark ? "#fff" : "#1C1917", letterSpacing: t.titleTracking, lineHeight: 1, marginBottom: 6 }}>Super Admin</h1>
                     <p style={{ fontSize: 13.5, color: t.textMuted }}>Global system management and cross-tenant user assignment</p>
                 </div>
-                <button className="primary-btn" onClick={openAdd} style={{ background: t.accentGrad, color: "#fff", padding: "11px 22px", borderRadius: 11, fontSize: 13.5, fontWeight: 600, boxShadow: `0 4px 16px ${t.accentShadow}` }}>
-                    + Assign User Role
-                </button>
+                <div style={{ display: "flex", gap: 10 }}>
+                    <button className="primary-btn" onClick={openInvite} style={{ background: t.accentGrad, color: "#fff", padding: "11px 22px", borderRadius: 11, fontSize: 13.5, fontWeight: 600, boxShadow: `0 4px 16px ${t.accentShadow}` }}>
+                        ✉️ Invite User
+                    </button>
+                    <button className="primary-btn" onClick={() => setModal({ open: true, mode: "add", data: { uid: "", email: "", role: "Tenant Member", tenantId: "" } })} style={{ background: isDark ? "rgba(255,255,255,0.08)" : "#F5F4F1", color: t.text, border: `1px solid ${t.border}`, padding: "11px 22px", borderRadius: 11, fontSize: 13.5, fontWeight: 600 }}>
+                        + Assign Role
+                    </button>
+                </div>
             </div>
 
             {loading ? (
@@ -85,14 +144,31 @@ export default function PageSuperAdmin({ t, isDark, DIMENSIONS = [] }) {
                             <div style={{ fontFamily: t.mono, fontSize: 11, color: t.idText }}>{p.id}</div>
                             <div style={{ fontSize: 12.5, color: t.accent }}>{p.email || "—"}</div>
                             <div><Bdg status={p.role ? p.role.replace(/_/g, " ").toUpperCase() : "NONE"} isDark={isDark} /></div>
-                            <div style={{ fontFamily: t.mono, fontSize: 12, fontWeight: 600, color: t.text }}>{p.tenantId || <span style={{ color: t.textMuted }}>Global Access</span>}</div>
-                            <ActBtns show={isHov} t={t} onEdit={() => openEdit(p)} onDel={() => setDelT(p)} />
+                            <div style={{ fontFamily: t.mono, fontSize: 12, fontWeight: 600, color: t.text }}>{p.tenantId || <span style={{ color: t.textMuted }}>Global</span>}</div>
+                            <div><StatusBadge status={p.status} t={t} isDark={isDark} /></div>
+                            <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                                <ActBtns show={isHov} t={t} onEdit={() => openEdit(p)} onDel={() => setDelT(p)} />
+                                {isHov && (!p.status || p.status === "Pending") && (
+                                    <button onClick={() => openResendInvite(p)} title="Re-send invite" style={{ background: "none", border: `1px solid ${t.border}`, borderRadius: 7, padding: "5px 8px", cursor: "pointer", fontSize: 13, color: t.textMuted }}>✉️</button>
+                                )}
+                            </div>
                         </div>);
                     })}
                 </div>
             )}
 
-            <Modal open={modal.open} onClose={close} title={modal.mode === "add" ? "Assign Global Role" : "Edit Global Role"} onSave={handleSaveUser} width={500} t={t} isDark={isDark}>
+            <Pagination page={page} totalPages={totalPages} setPage={setPage} t={t} isDark={isDark} />
+
+            {/* Invite Modal */}
+            <Modal open={modal.open && modal.mode === "invite"} onClose={close} title="Invite User" onSave={handleInviteUser} saveLabel={inviting ? "Sending..." : "Send Invite ✉️"} width={500} t={t} isDark={isDark}>
+                <p style={{ fontSize: 12.5, color: t.textMuted, marginBottom: 16, lineHeight: 1.6 }}>Creates a Firebase Auth account, sets their role and tenant, and generates a secure password-setup link to share with them.</p>
+                <FF label="Email Address" t={t}><FIn value={modal.data.email} onChange={e => setF("email", e.target.value)} placeholder="user@company.com" t={t} /></FF>
+                <FF label="Global Role" t={t}><FSel value={modal.data.role} onChange={e => setF("role", e.target.value)} options={roleDim} t={t} /></FF>
+                <FF label="Assigned Tenant ID" t={t}><FIn value={modal.data.tenantId} onChange={e => setF("tenantId", e.target.value)} placeholder="Leave blank for global admins, e.g. T10001" t={t} /></FF>
+            </Modal>
+
+            {/* Assign / Edit Role Modal */}
+            <Modal open={modal.open && (modal.mode === "add" || modal.mode === "edit")} onClose={close} title={modal.mode === "add" ? "Assign Global Role" : "Edit Global Role"} onSave={handleSaveUser} width={500} t={t} isDark={isDark}>
                 <div style={{ marginBottom: 16, fontSize: 12, color: t.textMuted, lineHeight: 1.5 }}>
                     This writes directly to the global `user_roles` collection. Users will read their role and tenant from here when they log in.
                 </div>
@@ -102,13 +178,12 @@ export default function PageSuperAdmin({ t, isDark, DIMENSIONS = [] }) {
                 <FF label="Email (Optional logging)" t={t}>
                     <FIn value={modal.data.email} onChange={e => setF("email", e.target.value)} placeholder="user@company.com" t={t} />
                 </FF>
-                <FF label="Global Role" t={t}>
-                    <FSel value={modal.data.role} onChange={e => setF("role", e.target.value)} options={roleDim} t={t} />
-                </FF>
+                <FF label="Global Role" t={t}><FSel value={modal.data.role} onChange={e => setF("role", e.target.value)} options={roleDim} t={t} /></FF>
                 <FF label="Assigned Tenant ID" t={t}>
                     <FIn value={modal.data.tenantId} onChange={e => setF("tenantId", e.target.value)} placeholder="Leave blank for super admins, e.g. T10001" t={t} />
                 </FF>
             </Modal>
+
             <DelModal target={delT} onClose={() => setDelT(null)} onConfirm={async () => { await deleteDoc(doc(db, "user_roles", delT.id)); setDelT(null); }} label="global role mapping" t={t} isDark={isDark} />
         </>
     );

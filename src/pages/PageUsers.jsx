@@ -1,8 +1,10 @@
 import { useState, useEffect } from "react";
-import { db } from "../firebase";
+import { db, functions } from "../firebase";
 import { doc, setDoc, updateDoc, deleteDoc, serverTimestamp } from "firebase/firestore";
+import { httpsCallable } from "firebase/functions";
 import { sortData } from "../utils";
-import { Bdg, Pagination, ActBtns, useResizableColumns, TblHead, Modal, FF, FIn, FSel, DelModal, FMultiSel } from "../components";
+import { Bdg, Pagination, ActBtns, useResizableColumns, TblHead, Modal, FF, FIn, DelModal } from "../components";
+import { useAuth } from "../AuthContext";
 
 const PERMISSIONS_LIST = [
     "TENANT_CREATE", "TENANT_VIEW", "TENANT_UPDATE", "TENANT_DELETE",
@@ -16,45 +18,74 @@ const PERMISSIONS_LIST = [
     "REPORT_CREATE", "REPORT_VIEW", "REPORT_EXPORT", "REPORT_UPDATE", "REPORT_DELETE",
     "PLATFORM_TENANT_CREATE", "PLATFORM_TENANT_DELETE", "PLATFORM_TENANT_VIEW", "PLATFORM_TENANT_UPDATE"
 ];
-import { useAuth } from "../AuthContext";
 
-export default function PageUsers({ t, isDark, USERS = [], ROLES = [], collectionPath = "", DIMENSIONS = [] }) {
+const StatusBadge = ({ status, t, isDark }) => {
+    const isPending = !status || status === "Pending";
+    const bg = isPending ? (isDark ? "rgba(251,191,36,0.15)" : "#FFFBEB") : (isDark ? "rgba(34,197,94,0.15)" : "#F0FDF4");
+    const color = isPending ? "#F59E0B" : "#22C55E";
+    const border = isPending ? "1px solid rgba(245,158,11,0.35)" : "1px solid rgba(34,197,94,0.35)";
+    return (
+        <span style={{ display: "inline-block", padding: "3px 10px", borderRadius: 20, fontSize: 11, fontWeight: 600, background: bg, color, border, letterSpacing: "0.04em", whiteSpace: "nowrap" }}>
+            {isPending ? "⏳ Pending" : "✓ Active"}
+        </span>
+    );
+};
+
+export default function PageUsers({ t, isDark, USERS = [], ROLES = [], collectionPath = "", DIMENSIONS = [], tenantId = "" }) {
     const { hasPermission, isSuperAdmin } = useAuth();
-    // Only super admins or properly permissioned users can edit Users
     const canCreate = isSuperAdmin || hasPermission("USER_CREATE");
+    const canInvite = isSuperAdmin || hasPermission("USER_INVITE");
     const canUpdate = isSuperAdmin || hasPermission("USER_UPDATE");
     const canDelete = isSuperAdmin || hasPermission("USER_DELETE");
+
     const [hov, setHov] = useState(null);
+    // mode: "add" | "edit" | "invite" (invite = new user invite form)
     const [modal, setModal] = useState({ open: false, mode: "add", data: {} });
     const [delT, setDelT] = useState(null);
     const [sort, setSort] = useState({ key: null, direction: "asc" });
     const [page, setPage] = useState(1);
+    const [inviting, setInviting] = useState(false);
+    const [inviteResult, setInviteResult] = useState(null); // { link, email } or null
     const onSort = k => { setSort(s => ({ key: k, direction: s.key === k && s.direction === "asc" ? "desc" : "asc" })); setPage(1); };
-
-    // Format roles for the select dropdown
-    const roleOpts = [{ name: "Role", items: ROLES.map(r => ({ label: r.name, value: r.id })) }];
-
-    // Fallback dimension (used previously, keep for migrating old data if needed)
-    const legacyRoleDim = DIMENSIONS.find(d => d.name === "Role")?.items || [];
 
     useEffect(() => {
         if (DIMENSIONS && !DIMENSIONS.some(d => d.name === "Permissions")) {
             setDoc(doc(db, "dimensions", "Permissions"), { name: "Permissions", items: PERMISSIONS_LIST, category: "Permissions" })
-                .catch(e => console.error("Auto-seed permissions failed. User likely missing write access to 'dimensions'."));
+                .catch(e => console.error("Auto-seed permissions failed.", e));
         }
     }, [DIMENSIONS]);
 
     const nextUserId = (() => {
         if (USERS.length === 0) return "U10001";
         const maxNum = Math.max(...USERS.map(u => { const m = String(u.user_id || "").match(/^U(\d+)$/); return m ? Number(m[1]) : 0; }));
-        return "U" + (maxNum + 1);
+        return "U" + String(maxNum + 1).padStart(5, "0");
     })();
 
-    const openAdd = () => setModal({ open: true, mode: "add", data: { user_id: nextUserId, user_name: "", email: "", role_id: "", phone: "" } });
+    const openInvite = () => setModal({ open: true, mode: "invite", data: { email: "", role_id: "", user_name: "" } });
     const openEdit = r => setModal({ open: true, mode: "edit", data: { ...r, role_id: r.role_id || "" } });
+    const openResendInvite = r => setModal({ open: true, mode: "invite", data: { email: r.email, role_id: r.role_id || "", user_name: r.user_name || "" } });
     const close = () => setModal(m => ({ ...m, open: false }));
     const setF = (k, v) => setModal(m => ({ ...m, data: { ...m.data, [k]: v } }));
 
+    // Invite user via Cloud Function (creates Auth user, sets claims, writes profile)
+    const handleInviteUser = async () => {
+        const d = modal.data;
+        if (!d.email || !d.role_id) return;
+        setInviting(true);
+        try {
+            const inviteUserFn = httpsCallable(functions, "inviteUser");
+            const result = await inviteUserFn({ email: d.email, role: d.role_id, tenantId });
+            close();
+            setInviteResult({ link: result.data.link, email: d.email });
+        } catch (err) {
+            console.error("Invite error:", err);
+            alert("Invite failed: " + (err.message || "Unknown error"));
+        } finally {
+            setInviting(false);
+        }
+    };
+
+    // Edit = update the Firestore profile document only (no Auth changes)
     const handleSaveUser = async () => {
         const d = modal.data;
         const payload = {
@@ -68,23 +99,19 @@ export default function PageUsers({ t, isDark, USERS = [], ROLES = [], collectio
         try {
             if (modal.mode === "edit" && d.id) {
                 await updateDoc(doc(db, collectionPath, d.id), payload);
-            } else {
-                // Note: Creating auth user requires admin SDK or client-side signup flow.
-                // Here we just save the profile document.
-                await setDoc(doc(db, collectionPath, d.user_id), { ...payload, created_at: serverTimestamp() });
             }
         } catch (err) { console.error("Save user error:", err); }
         close();
     };
 
     const cols = [
-        { l: "USER ID", w: "120px", k: "user_id" },
+        { l: "USER ID", w: "100px", k: "user_id" },
         { l: "NAME", w: "1fr", k: "user_name" },
-        { l: "EMAIL", w: "1.2fr", k: "email" },
-        { l: "ROLE", w: "140px", k: "role" },
-        { l: "PERMISSIONS", w: "2fr", k: "permissions" },
+        { l: "EMAIL", w: "1.5fr", k: "email" },
+        { l: "ROLE", w: "160px", k: "role_id" },
+        { l: "STATUS", w: "110px", k: "status" },
         { l: "PHONE", w: "120px", k: "phone" },
-        { l: "ACTIONS", w: "80px" }
+        { l: "ACTIONS", w: "100px" }
     ];
     const { gridTemplate, headerRef, onResizeStart } = useResizableColumns(cols);
     const [colFilters, setColFilters] = useState({});
@@ -94,62 +121,113 @@ export default function PageUsers({ t, isDark, USERS = [], ROLES = [], collectio
     const paginated = sorted.slice((page - 1) * 20, page * 20);
     const totalPages = Math.ceil(sorted.length / 20);
 
+    // Resolve role display name from ROLES collection
+    const getRoleName = (role_id) => {
+        const found = ROLES.find(r => r.id === role_id || r.role_id === role_id);
+        return found ? (found.role_name || found.name || role_id) : (role_id || "—");
+    };
+
     return (<>
+        {/* Invite result link sheet */}
+        {inviteResult && (
+            <div style={{ position: "fixed", inset: 0, zIndex: 1100, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <div style={{ background: isDark ? "#1C1917" : "#fff", borderRadius: 16, padding: 28, maxWidth: 540, width: "90%", boxShadow: "0 24px 60px rgba(0,0,0,0.3)" }}>
+                    <h3 style={{ fontFamily: t.titleFont, fontSize: 18, marginBottom: 8, color: isDark ? "#fff" : "#1C1917" }}>✅ Invite Sent!</h3>
+                    <p style={{ fontSize: 13, color: t.textMuted, marginBottom: 16 }}>An invitation was created for <strong>{inviteResult.email}</strong>. Share this link so they can set their password and log in:</p>
+                    <div style={{ background: isDark ? "rgba(255,255,255,0.05)" : "#F5F4F1", border: `1px solid ${t.surfaceBorder}`, borderRadius: 9, padding: "10px 14px", fontFamily: t.mono, fontSize: 12, wordBreak: "break-all", color: t.accent, marginBottom: 20 }}>
+                        {inviteResult.link}
+                    </div>
+                    <div style={{ display: "flex", gap: 10 }}>
+                        <button onClick={() => { navigator.clipboard.writeText(inviteResult.link); }} style={{ flex: 1, background: t.accentGrad, color: "#fff", border: "none", borderRadius: 9, padding: "10px 18px", fontSize: 13.5, fontWeight: 600, cursor: "pointer" }}>📋 Copy Link</button>
+                        <button onClick={() => setInviteResult(null)} style={{ flex: 1, background: isDark ? "rgba(255,255,255,0.08)" : "#F5F4F1", color: t.text, border: `1px solid ${t.border}`, borderRadius: 9, padding: "10px 18px", fontSize: 13.5, cursor: "pointer" }}>Close</button>
+                    </div>
+                </div>
+            </div>
+        )}
+
         <div style={{ marginBottom: 28, display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
             <div>
                 <h1 style={{ fontFamily: t.titleFont, fontWeight: t.titleWeight, fontSize: t.titleSize, color: isDark ? "#fff" : "#1C1917", letterSpacing: t.titleTracking, lineHeight: 1, marginBottom: 6 }}>Users</h1>
                 <p style={{ fontSize: 13.5, color: t.textMuted }}>Manage members of your tenant</p>
             </div>
-            {canCreate && <button className="primary-btn" onClick={openAdd} style={{ background: t.accentGrad, color: "#fff", padding: "11px 22px", borderRadius: 11, fontSize: 13.5, fontWeight: 600, boxShadow: `0 4px 16px ${t.accentShadow}` }}>+ New User</button>}
+            {(canCreate || canInvite) && <button className="primary-btn" onClick={openInvite} style={{ background: t.accentGrad, color: "#fff", padding: "11px 22px", borderRadius: 11, fontSize: 13.5, fontWeight: 600, boxShadow: `0 4px 16px ${t.accentShadow}` }}>✉️ Invite User</button>}
         </div>
 
         <div style={{ background: t.surface, borderRadius: 16, border: `1px solid ${t.surfaceBorder}`, overflow: "auto", backdropFilter: isDark ? "blur(20px)" : "none" }}>
             <TblHead cols={cols} t={t} isDark={isDark} sortConfig={sort} onSort={onSort} gridTemplate={gridTemplate} headerRef={headerRef} onResizeStart={onResizeStart} />
+            {/* Filter row */}
+            <div style={{ display: "grid", gridTemplateColumns: gridTemplate, padding: "6px 22px", borderBottom: `1px solid ${t.rowDivider}`, background: isDark ? "rgba(255,255,255,0.015)" : "#FDFDFC" }}>
+                {cols.map(c => c.k ? <input key={c.k} value={colFilters[c.k] || ""} onChange={e => setColFilter(c.k, e.target.value)} placeholder="Filter..." style={{ fontSize: 11, padding: "4px 8px", borderRadius: 6, border: `1px solid ${t.surfaceBorder}`, background: isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.04)", color: t.text, outline: "none", width: "100%", boxSizing: "border-box" }} /> : <div key={c.l || "nofilter"} />)}
+            </div>
+
             {paginated.map((p, i) => {
                 const isHov = hov === p.id;
-                const mappedRole = ROLES.find(r => r.id === p.role_id) || { role_name: p.role_id || p.role || "Unknown", permissions: p.permissions || [] };
-                const roleName = String(mappedRole.role_name || mappedRole.name || "Unknown");
-
-                const rawPerms = mappedRole.Permission ? mappedRole.Permission.split(",").map(x => x.trim()) : (mappedRole.permissions || []);
-
-                return (<div key={p.id || p.user_id} className="data-row" onMouseEnter={() => setHov(p.id)} onMouseLeave={() => setHov(null)} style={{ display: "grid", gridTemplateColumns: gridTemplate, padding: "12px 22px", borderBottom: i < paginated.length - 1 ? `1px solid ${t.rowDivider}` : "none", alignItems: "center", background: isHov ? t.rowHover : "transparent" }}>
-                    <div style={{ fontSize: 13.5, color: t.textSecondary, fontFamily: t.mono }}>{p.user_id || "—"}</div>
-                    <div style={{ fontSize: 13.5, fontWeight: 500, color: isDark ? "rgba(255,255,255,0.85)" : (isHov ? "#1C1917" : "#44403C") }}>{p.user_name || p.name || "—"}</div>
-                    <div style={{ fontSize: 12.5, color: t.accent }}>{p.email}</div>
-                    <div><Bdg status={roleName.replace(/_/g, " ").toUpperCase()} isDark={isDark} /></div>
-                    <div style={{ fontSize: 11, color: t.textSubtle, display: "flex", flexWrap: "wrap", gap: 4 }}>
-                        {rawPerms && rawPerms.length > 0 ? rawPerms.map(pm => (
-                            <span key={pm} style={{ background: t.chipBg, border: `1px solid ${t.chipBorder}`, padding: "2px 6px", borderRadius: 4 }}>{pm}</span>
-                        )) : "—"}
+                const roleName = getRoleName(p.role_id);
+                return (
+                    <div key={p.id || p.user_id} className="data-row" onMouseEnter={() => setHov(p.id)} onMouseLeave={() => setHov(null)} style={{ display: "grid", gridTemplateColumns: gridTemplate, padding: "12px 22px", borderBottom: i < paginated.length - 1 ? `1px solid ${t.rowDivider}` : "none", alignItems: "center", background: isHov ? t.rowHover : "transparent" }}>
+                        <div style={{ fontSize: 13, color: t.textSecondary, fontFamily: t.mono }}>{p.user_id || "—"}</div>
+                        <div style={{ fontSize: 13.5, fontWeight: 500, color: isDark ? "rgba(255,255,255,0.85)" : "#44403C" }}>{p.user_name || p.name || "—"}</div>
+                        <div style={{ fontSize: 12.5, color: t.accent }}>{p.email}</div>
+                        <div style={{ fontSize: 12 }}>{roleName}</div>
+                        <div><StatusBadge status={p.status} t={t} isDark={isDark} /></div>
+                        <div style={{ fontFamily: t.mono, fontSize: 11, color: t.textMuted }}>{p.phone || "—"}</div>
+                        <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                            <ActBtns show={isHov && (canUpdate || canDelete)} t={t} onEdit={canUpdate ? () => openEdit(p) : null} onDel={canDelete ? () => setDelT(p) : null} />
+                            {isHov && canInvite && (!p.status || p.status === "Pending") && (
+                                <button onClick={() => openResendInvite(p)} title="Re-send invite link" style={{ background: "none", border: `1px solid ${t.border}`, borderRadius: 7, padding: "5px 8px", cursor: "pointer", fontSize: 13, color: t.textMuted }}>✉️</button>
+                            )}
+                        </div>
                     </div>
-                    <div style={{ fontFamily: t.mono, fontSize: 11, color: t.textMuted }}>{p.phone || "—"}</div>
-                    <ActBtns show={isHov && (canUpdate || canDelete)} t={t} onEdit={canUpdate ? () => openEdit(p) : null} onDel={canDelete ? () => setDelT(p) : null} />
-                </div>);
+                );
             })}
         </div>
 
-        <Modal open={modal.open} onClose={close} title={modal.mode === "add" ? "New User" : "Edit User"} onSave={handleSaveUser} width={600} t={t} isDark={isDark}>
-            <FF label="User ID" t={t}>
-                <div style={{ fontFamily: t.mono, fontSize: 13, color: t.idText, background: isDark ? "rgba(255,255,255,0.04)" : "#F5F4F1", border: `1px solid ${t.surfaceBorder}`, borderRadius: 9, padding: "10px 13px", letterSpacing: "0.5px" }}>{modal.data.user_id}</div>
-            </FF>
-            <FF label="Full Name" t={t}><FIn value={modal.data.user_name || modal.data.name} onChange={e => setF("user_name", e.target.value)} t={t} /></FF>
-            <FF label="Email Address" t={t}><FIn value={modal.data.email} onChange={e => setF("email", e.target.value)} t={t} disabled={modal.mode === "edit"} /></FF>
+        <Pagination page={page} totalPages={totalPages} setPage={setPage} t={t} isDark={isDark} />
+
+        {/* Invite Modal */}
+        <Modal open={modal.open && modal.mode === "invite"} onClose={close} title="Invite New User" onSave={handleInviteUser} saveLabel={inviting ? "Sending..." : "Send Invite ✉️"} width={520} t={t} isDark={isDark}>
+            <p style={{ fontSize: 12.5, color: t.textMuted, marginBottom: 16, lineHeight: 1.6 }}>
+                This will create a Firebase Auth account for the user (if they don't already have one), set their role/tenant permissions, and generate a secure invite link to share with them.
+            </p>
+            <FF label="Email Address" t={t}><FIn value={modal.data.email} onChange={e => setF("email", e.target.value)} placeholder="user@company.com" t={t} /></FF>
+            <FF label="Full Name (optional)" t={t}><FIn value={modal.data.user_name} onChange={e => setF("user_name", e.target.value)} placeholder="Jane Doe" t={t} /></FF>
             <FF label="Role" t={t}>
                 <select
                     value={modal.data.role_id || ""}
                     onChange={e => setF("role_id", e.target.value)}
                     style={{ background: isDark ? "rgba(255,255,255,0.04)" : "#fff", color: isDark ? "#fff" : "#000", border: `1px solid ${t.border}`, borderRadius: 9, padding: "10px 13px", fontSize: 13.5, outline: "none", width: "100%", fontFamily: t.font, appearance: "none" }}
                 >
-                    <option value="" disabled style={{ color: isDark ? "#fff" : "#000" }}>Select a role...</option>
+                    <option value="" disabled style={{ color: "#000" }}>Select a role...</option>
                     {ROLES.map(r => (
-                        <option key={r.id || r.role_id} value={r.id || r.role_id} style={{ color: isDark ? "#fff" : "#000" }}>{r.role_name || r.name || r.id}</option>
+                        <option key={r.id || r.role_id} value={r.id || r.role_id} style={{ color: "#000" }}>{r.role_name || r.name || r.id}</option>
                     ))}
-                    {/* Fallback for legacy roles just in case some aren't in ROLES collection yet */}
-                    {modal.data.role_id && !ROLES.some(r => r.id === modal.data.role_id || r.role_id === modal.data.role_id) && <option value={modal.data.role_id} style={{ color: isDark ? "#fff" : "#000" }}>{modal.data.role_id} (Legacy)</option>}
+                </select>
+            </FF>
+        </Modal>
+
+        {/* Edit Modal */}
+        <Modal open={modal.open && modal.mode === "edit"} onClose={close} title="Edit User" onSave={handleSaveUser} width={600} t={t} isDark={isDark}>
+            <p style={{ fontSize: 12, color: t.textMuted, marginBottom: 14 }}>Updates the Firestore profile. To change role/permissions in Firebase Auth, use "Re-invite" to re-send a new invite link with updated claims.</p>
+            <FF label="User ID" t={t}>
+                <div style={{ fontFamily: t.mono, fontSize: 13, color: t.idText, background: isDark ? "rgba(255,255,255,0.04)" : "#F5F4F1", border: `1px solid ${t.surfaceBorder}`, borderRadius: 9, padding: "10px 13px" }}>{modal.data.user_id}</div>
+            </FF>
+            <FF label="Full Name" t={t}><FIn value={modal.data.user_name || modal.data.name} onChange={e => setF("user_name", e.target.value)} t={t} /></FF>
+            <FF label="Email Address" t={t}><FIn value={modal.data.email} onChange={e => setF("email", e.target.value)} t={t} disabled /></FF>
+            <FF label="Role" t={t}>
+                <select
+                    value={modal.data.role_id || ""}
+                    onChange={e => setF("role_id", e.target.value)}
+                    style={{ background: isDark ? "rgba(255,255,255,0.04)" : "#fff", color: isDark ? "#fff" : "#000", border: `1px solid ${t.border}`, borderRadius: 9, padding: "10px 13px", fontSize: 13.5, outline: "none", width: "100%", fontFamily: t.font, appearance: "none" }}
+                >
+                    <option value="" disabled style={{ color: "#000" }}>Select a role...</option>
+                    {ROLES.map(r => (
+                        <option key={r.id || r.role_id} value={r.id || r.role_id} style={{ color: "#000" }}>{r.role_name || r.name || r.id}</option>
+                    ))}
                 </select>
             </FF>
             <FF label="Phone" t={t}><FIn value={modal.data.phone} onChange={e => setF("phone", e.target.value)} t={t} /></FF>
         </Modal>
+
         <DelModal target={delT} onClose={() => setDelT(null)} onConfirm={async () => { await deleteDoc(doc(db, collectionPath, delT.id)); setDelT(null); }} label="user" t={t} isDark={isDark} />
     </>);
 }
