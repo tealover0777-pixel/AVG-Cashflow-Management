@@ -133,13 +133,14 @@ export default function PageUserProfiles({ t, isDark, USERS = [], ROLES = [], co
 
     const cols = [
         { l: "USER ID", w: "100px", k: "user_id" },
-        { l: "NAME", w: "0.25fr", k: "user_name" },
-        { l: "EMAIL", w: "0.3fr", k: "email" },
+        { l: "NAME", w: "0.125fr", k: "user_name" },
+        { l: "EMAIL", w: "0.15fr", k: "email" },
         { l: "ROLE", w: "160px", k: "role_id" },
         { l: "STATUS", w: "110px", k: "status" },
         { l: "AUTH UID", w: "240px", k: "auth_uid" },
         ...(isSuperAdmin ? [{ l: "TENANT ID", w: "120px", k: "tenantId" }] : []),
         { l: "PHONE", w: "120px", k: "phone" },
+        { l: "NOTES", w: "0.3fr", k: "notes" },
         { l: "ACTIONS", w: "100px" }
     ];
     const { gridTemplate, headerRef, onResizeStart } = useResizableColumns(cols);
@@ -212,6 +213,7 @@ export default function PageUserProfiles({ t, isDark, USERS = [], ROLES = [], co
                             </div>
                         )}
                         <div style={{ fontFamily: t.mono, fontSize: 11, color: t.textMuted }}>{p.phone || "—"}</div>
+                        <div style={{ fontSize: 12, color: t.textMuted, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={p.notes || ""}>{p.notes || "—"}</div>
                         <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
                             <ActBtns show={isHov && (canUpdate || canDelete)} t={t} onEdit={canUpdate ? () => openEdit(p) : null} onDel={canDelete ? () => setDelT(p) : null} />
                             {isHov && canInvite && (!p.status || p.status === "Pending") && (
