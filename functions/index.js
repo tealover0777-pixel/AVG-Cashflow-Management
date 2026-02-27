@@ -119,11 +119,11 @@ exports.inviteUser = functions.https.onCall(async (data, context) => {
     // We use generatePasswordResetLink because it allows setting a password, which is perfect for new users.
     const link = await admin.auth().generatePasswordResetLink(email);
 
-    return { 
-      success: true, 
-      link, 
+    return {
+      success: true,
+      link,
       isNewUser,
-      message: `User ${isNewUser ? 'created' : 'updated'} and invited.` 
+      message: `User ${isNewUser ? 'created' : 'updated'} and invited.`
     };
 
   } catch (error) {
@@ -135,36 +135,26 @@ exports.inviteUser = functions.https.onCall(async (data, context) => {
 /**
  * Triggered when a new user is created in Firebase Auth.
  * Automatically creates a document in the global 'user_roles' collection if it doesn't exist.
+ * Uses firebase-functions v1 auth trigger syntax (compatible with v4 package).
  */
-exports.onUserCreate = functions.auth.user().onCreate(async (user) => {
+const { user: authUser } = require('firebase-functions/v1/auth');
+exports.onUserCreate = authUser().onCreate(async (user) => {
   const db = admin.firestore();
   try {
-    // Use merge: true to avoid overwriting if inviteUser already created it
-    await db.collection('user_roles').doc(user.uid).set({
-      email: user.email,
-      // We only set defaults if they are missing. 
-      // Firestore set with merge doesn't support "set if missing" for individual fields easily.
-      // But we can assume if this runs, and doc exists, we might just update metadata.
-      // If doc doesn't exist, these values are used.
-      created_at: admin.firestore.FieldValue.serverTimestamp()
-    }, { merge: true });
-    
-    // If the doc didn't exist, we need to ensure at least a role exists.
-    // We can do a read-check-write or just rely on manual syncing for edge cases.
-    // Ideally, we set a default 'Viewer' role if one isn't set.
-    // But we can't do that blindly with merge without overwriting 'Admin'.
-    
     const docRef = db.collection('user_roles').doc(user.uid);
     const docSnap = await docRef.get();
     if (!docSnap.exists || !docSnap.data().role) {
-       await docRef.set({
-         email: user.email,
-         role: 'Viewer',
-         tenantId: '',
-         status: 'Pending'
-       }, { merge: true });
+      await docRef.set({
+        email: user.email,
+        role: 'Viewer',
+        tenantId: '',
+        status: 'Pending',
+        created_at: admin.firestore.FieldValue.serverTimestamp()
+      }, { merge: true });
+    } else {
+      // Just update created_at if doc already exists (from inviteUser)
+      await docRef.set({ created_at: admin.firestore.FieldValue.serverTimestamp() }, { merge: true });
     }
-
     console.log(`Synced user_roles for ${user.email}`);
   } catch (error) {
     console.error('Error in onUserCreate:', error);

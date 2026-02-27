@@ -27,5 +27,6 @@
       "anonymous": true,
       "emailPassword": true
     }
-  }
+  },
+  "extensions": {}
 }
