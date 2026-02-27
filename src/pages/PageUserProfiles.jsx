@@ -63,7 +63,7 @@ export default function PageUserProfiles({ t, isDark, USERS = [], ROLES = [], co
 
     const openInvite = () => setModal({ open: true, mode: "invite", data: { email: "", role_id: "", user_name: "" } });
     const openEdit = r => setModal({ open: true, mode: "edit", data: { ...r, role_id: r.role_id || "" } });
-    const openResendInvite = r => setModal({ open: true, mode: "resend", data: { email: r.email, role_id: r.role_id || "", user_name: r.user_name || "", phone: r.phone || "", notes: r.notes || "" } });
+    const openResendInvite = r => setModal({ open: true, mode: "resend", data: { email: r.email, role_id: r.role_id || "", user_name: r.user_name || "", phone: r.phone || "", notes: r.notes || "", user_id: r.user_id || "" } });
     const close = () => setModal(m => ({ ...m, open: false }));
     const setF = (k, v) => setModal(m => ({ ...m, data: { ...m.data, [k]: v } }));
 
@@ -78,7 +78,7 @@ export default function PageUserProfiles({ t, isDark, USERS = [], ROLES = [], co
                 email: d.email,
                 role: d.role_id,
                 tenantId: d.inviteTenantId || tenantId,
-                user_id: nextUserId,
+                user_id: modal.mode === "resend" ? d.user_id : nextUserId,
                 user_name: d.user_name || "",
                 phone: d.phone || "",
                 notes: d.notes || ""
