@@ -63,3 +63,28 @@ Push your local configuration to the cloud.
 
 > [!TIP]
 > Always check `git status` before pushing to ensure you aren't overwriting someone else's work.
+
+### Build Steps
+To build your project, authenticate with Firebase, and deploy (publish) it, you would typically run the following commands in your terminal:
+
+Build the project (creates the dist folder):
+
+npm run build
+
+
+
+Authenticate with Firebase (opens a browser window to log in):
+
+firebase login
+
+
+
+(If you are already logged in, you can skip this step.)
+
+Deploy to Firebase Hosting:
+
+firebase deploy --only hosting
+
+
+
+(To deploy everything including functions and rules, just use firebase deploy)
