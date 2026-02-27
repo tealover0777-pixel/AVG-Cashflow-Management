@@ -74,7 +74,15 @@ export default function PageUsers({ t, isDark, USERS = [], ROLES = [], collectio
         setInviting(true);
         try {
             const inviteUserFn = httpsCallable(functions, "inviteUser");
-            const result = await inviteUserFn({ email: d.email, role: d.role_id, tenantId: d.inviteTenantId || tenantId, user_name: d.user_name || "", phone: d.phone || "", notes: d.notes || "" });
+            const result = await inviteUserFn({
+                email: d.email,
+                role: d.role_id,
+                tenantId: d.inviteTenantId || tenantId,
+                user_id: nextUserId,
+                user_name: d.user_name || "",
+                phone: d.phone || "",
+                notes: d.notes || ""
+            });
             close();
             setInviteResult({ link: result.data.link, email: d.email, user_id: result.data.user_id });
         } catch (err) {
@@ -125,11 +133,11 @@ export default function PageUsers({ t, isDark, USERS = [], ROLES = [], collectio
 
     const cols = [
         { l: "USER ID", w: "100px", k: "user_id" },
-        { l: "NAME", w: "0.5fr", k: "user_name" },
-        { l: "EMAIL", w: "0.6fr", k: "email" },
+        { l: "NAME", w: "0.25fr", k: "user_name" },
+        { l: "EMAIL", w: "0.3fr", k: "email" },
         { l: "ROLE", w: "160px", k: "role_id" },
         { l: "STATUS", w: "110px", k: "status" },
-        { l: "AUTH UID", w: "160px", k: "auth_uid" },
+        { l: "AUTH UID", w: "240px", k: "auth_uid" },
         ...(isSuperAdmin ? [{ l: "TENANT ID", w: "120px", k: "tenantId" }] : []),
         { l: "PHONE", w: "120px", k: "phone" },
         { l: "ACTIONS", w: "100px" }
@@ -222,6 +230,9 @@ export default function PageUsers({ t, isDark, USERS = [], ROLES = [], collectio
             <p style={{ fontSize: 12.5, color: t.textMuted, marginBottom: 16, lineHeight: 1.6 }}>
                 This will create a Firebase Auth account for the user (if they don't already have one), set their role/tenant permissions, and generate a secure invite link to share with them.
             </p>
+            <FF label="Upcoming User ID" t={t}>
+                <div style={{ fontFamily: t.mono, fontSize: 13, color: t.idText, background: isDark ? "rgba(255,255,255,0.04)" : "#F5F4F1", border: `1px solid ${t.surfaceBorder}`, borderRadius: 9, padding: "10px 13px" }}>{nextUserId}</div>
+            </FF>
             <FF label="Email Address" t={t}><FIn value={modal.data.email} onChange={e => setF("email", e.target.value)} placeholder="user@company.com" t={t} /></FF>
             <FF label="Full Name (optional)" t={t}><FIn value={modal.data.user_name} onChange={e => setF("user_name", e.target.value)} placeholder="Jane Doe" t={t} /></FF>
             <FF label="Phone (optional)" t={t}><FIn value={modal.data.phone || ""} onChange={e => setF("phone", e.target.value)} placeholder="+1 555 000 0000" t={t} /></FF>
