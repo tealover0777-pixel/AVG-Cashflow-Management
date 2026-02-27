@@ -66,12 +66,12 @@ export default function PageUsers({ t, isDark, USERS = [], ROLES = [], collectio
             updated_at: serverTimestamp(),
         };
         try {
-            if (modal.mode === "edit" && d.docId) {
-                await updateDoc(doc(db, collectionPath, d.docId), payload);
+            if (modal.mode === "edit" && d.id) {
+                await updateDoc(doc(db, collectionPath, d.id), payload);
             } else {
                 // Note: Creating auth user requires admin SDK or client-side signup flow.
                 // Here we just save the profile document.
-                await setDoc(doc(db, collectionPath, d.email), { ...payload, created_at: serverTimestamp() });
+                await setDoc(doc(db, collectionPath, d.user_id), { ...payload, created_at: serverTimestamp() });
             }
         } catch (err) { console.error("Save user error:", err); }
         close();
@@ -106,13 +106,13 @@ export default function PageUsers({ t, isDark, USERS = [], ROLES = [], collectio
         <div style={{ background: t.surface, borderRadius: 16, border: `1px solid ${t.surfaceBorder}`, overflow: "auto", backdropFilter: isDark ? "blur(20px)" : "none" }}>
             <TblHead cols={cols} t={t} isDark={isDark} sortConfig={sort} onSort={onSort} gridTemplate={gridTemplate} headerRef={headerRef} onResizeStart={onResizeStart} />
             {paginated.map((p, i) => {
-                const isHov = hov === p.docId;
+                const isHov = hov === p.id;
                 const mappedRole = ROLES.find(r => r.id === p.role_id) || { role_name: p.role_id || p.role || "Unknown", permissions: p.permissions || [] };
                 const roleName = String(mappedRole.role_name || mappedRole.name || "Unknown");
 
                 const rawPerms = mappedRole.Permission ? mappedRole.Permission.split(",").map(x => x.trim()) : (mappedRole.permissions || []);
 
-                return (<div key={p.docId || p.user_id} className="data-row" onMouseEnter={() => setHov(p.docId)} onMouseLeave={() => setHov(null)} style={{ display: "grid", gridTemplateColumns: gridTemplate, padding: "12px 22px", borderBottom: i < paginated.length - 1 ? `1px solid ${t.rowDivider}` : "none", alignItems: "center", background: isHov ? t.rowHover : "transparent" }}>
+                return (<div key={p.id || p.user_id} className="data-row" onMouseEnter={() => setHov(p.id)} onMouseLeave={() => setHov(null)} style={{ display: "grid", gridTemplateColumns: gridTemplate, padding: "12px 22px", borderBottom: i < paginated.length - 1 ? `1px solid ${t.rowDivider}` : "none", alignItems: "center", background: isHov ? t.rowHover : "transparent" }}>
                     <div style={{ fontSize: 13.5, color: t.textSecondary, fontFamily: t.mono }}>{p.user_id || "—"}</div>
                     <div style={{ fontSize: 13.5, fontWeight: 500, color: isDark ? "rgba(255,255,255,0.85)" : (isHov ? "#1C1917" : "#44403C") }}>{p.user_name || p.name || "—"}</div>
                     <div style={{ fontSize: 12.5, color: t.accent }}>{p.email}</div>
@@ -150,6 +150,6 @@ export default function PageUsers({ t, isDark, USERS = [], ROLES = [], collectio
             </FF>
             <FF label="Phone" t={t}><FIn value={modal.data.phone} onChange={e => setF("phone", e.target.value)} t={t} /></FF>
         </Modal>
-        <DelModal target={delT} onClose={() => setDelT(null)} onConfirm={async () => { await deleteDoc(doc(db, collectionPath, delT.docId)); setDelT(null); }} label="user" t={t} isDark={isDark} />
+        <DelModal target={delT} onClose={() => setDelT(null)} onConfirm={async () => { await deleteDoc(doc(db, collectionPath, delT.id)); setDelT(null); }} label="user" t={t} isDark={isDark} />
     </>);
 }
