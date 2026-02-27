@@ -74,14 +74,32 @@ export default function PageUsers({ t, isDark, USERS = [], ROLES = [], collectio
         setInviting(true);
         try {
             const inviteUserFn = httpsCallable(functions, "inviteUser");
-            const result = await inviteUserFn({ email: d.email, role: d.role_id, tenantId });
+            const result = await inviteUserFn({ email: d.email, role: d.role_id, tenantId, user_name: d.user_name || "", phone: d.phone || "" });
             close();
-            setInviteResult({ link: result.data.link, email: d.email });
+            setInviteResult({ link: result.data.link, email: d.email, user_id: result.data.user_id });
         } catch (err) {
             console.error("Invite error:", err);
             alert("Invite failed: " + (err.message || "Unknown error"));
         } finally {
             setInviting(false);
+        }
+    };
+
+    // Delete = remove from Firestore AND Firebase Auth via Cloud Function
+    const [deleting, setDeleting] = useState(false);
+    const handleDeleteUser = async () => {
+        if (!delT) return;
+        setDeleting(true);
+        try {
+            const deleteUserFn = httpsCallable(functions, "deleteUser");
+            await deleteUserFn({ email: delT.email, docId: delT.id, tenantId });
+        } catch (err) {
+            console.error("Delete user error:", err);
+            // Fallback: delete Firestore doc directly if function fails
+            await deleteDoc(doc(db, collectionPath, delT.id));
+        } finally {
+            setDeleting(false);
+            setDelT(null);
         }
     };
 
@@ -110,6 +128,7 @@ export default function PageUsers({ t, isDark, USERS = [], ROLES = [], collectio
         { l: "EMAIL", w: "1.5fr", k: "email" },
         { l: "ROLE", w: "160px", k: "role_id" },
         { l: "STATUS", w: "110px", k: "status" },
+        { l: "AUTH UID", w: "160px", k: "auth_uid" },
         { l: "PHONE", w: "120px", k: "phone" },
         { l: "ACTIONS", w: "100px" }
     ];
@@ -133,7 +152,13 @@ export default function PageUsers({ t, isDark, USERS = [], ROLES = [], collectio
             <div style={{ position: "fixed", inset: 0, zIndex: 1100, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center" }}>
                 <div style={{ background: isDark ? "#1C1917" : "#fff", borderRadius: 16, padding: 28, maxWidth: 540, width: "90%", boxShadow: "0 24px 60px rgba(0,0,0,0.3)" }}>
                     <h3 style={{ fontFamily: t.titleFont, fontSize: 18, marginBottom: 8, color: isDark ? "#fff" : "#1C1917" }}>✅ Invite Sent!</h3>
-                    <p style={{ fontSize: 13, color: t.textMuted, marginBottom: 16 }}>An invitation was created for <strong>{inviteResult.email}</strong>. Share this link so they can set their password and log in:</p>
+                    <p style={{ fontSize: 13, color: t.textMuted, marginBottom: 12 }}>An invitation was created for <strong>{inviteResult.email}</strong>. Share this link so they can set their password and log in:</p>
+                    {inviteResult.user_id && (
+                        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+                            <span style={{ fontSize: 12, color: t.textMuted }}>Generated User ID:</span>
+                            <span style={{ fontFamily: t.mono, fontSize: 13, fontWeight: 700, color: t.accent, background: isDark ? "rgba(255,255,255,0.08)" : "#F0F9FF", padding: "3px 10px", borderRadius: 6 }}>{inviteResult.user_id}</span>
+                        </div>
+                    )}
                     <div style={{ background: isDark ? "rgba(255,255,255,0.05)" : "#F5F4F1", border: `1px solid ${t.surfaceBorder}`, borderRadius: 9, padding: "10px 14px", fontFamily: t.mono, fontSize: 12, wordBreak: "break-all", color: t.accent, marginBottom: 20 }}>
                         {inviteResult.link}
                     </div>
@@ -170,6 +195,7 @@ export default function PageUsers({ t, isDark, USERS = [], ROLES = [], collectio
                         <div style={{ fontSize: 12.5, color: t.accent }}>{p.email}</div>
                         <div style={{ fontSize: 12 }}>{roleName}</div>
                         <div><StatusBadge status={p.status} t={t} isDark={isDark} /></div>
+                        <div style={{ fontFamily: t.mono, fontSize: 10, color: t.textMuted, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={p.auth_uid || p.id}>{p.auth_uid || p.id || "—"}</div>
                         <div style={{ fontFamily: t.mono, fontSize: 11, color: t.textMuted }}>{p.phone || "—"}</div>
                         <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
                             <ActBtns show={isHov && (canUpdate || canDelete)} t={t} onEdit={canUpdate ? () => openEdit(p) : null} onDel={canDelete ? () => setDelT(p) : null} />
@@ -191,6 +217,7 @@ export default function PageUsers({ t, isDark, USERS = [], ROLES = [], collectio
             </p>
             <FF label="Email Address" t={t}><FIn value={modal.data.email} onChange={e => setF("email", e.target.value)} placeholder="user@company.com" t={t} /></FF>
             <FF label="Full Name (optional)" t={t}><FIn value={modal.data.user_name} onChange={e => setF("user_name", e.target.value)} placeholder="Jane Doe" t={t} /></FF>
+            <FF label="Phone (optional)" t={t}><FIn value={modal.data.phone || ""} onChange={e => setF("phone", e.target.value)} placeholder="+1 555 000 0000" t={t} /></FF>
             <FF label="Role" t={t}>
                 <select
                     value={modal.data.role_id || ""}
@@ -211,6 +238,9 @@ export default function PageUsers({ t, isDark, USERS = [], ROLES = [], collectio
             <FF label="User ID" t={t}>
                 <div style={{ fontFamily: t.mono, fontSize: 13, color: t.idText, background: isDark ? "rgba(255,255,255,0.04)" : "#F5F4F1", border: `1px solid ${t.surfaceBorder}`, borderRadius: 9, padding: "10px 13px" }}>{modal.data.user_id}</div>
             </FF>
+            <FF label="Auth UID (Firebase)" t={t}>
+                <div style={{ fontFamily: t.mono, fontSize: 11, color: t.textMuted, background: isDark ? "rgba(255,255,255,0.04)" : "#F5F4F1", border: `1px solid ${t.surfaceBorder}`, borderRadius: 9, padding: "10px 13px", wordBreak: "break-all" }}>{modal.data.auth_uid || modal.data.id || "—"}</div>
+            </FF>
             <FF label="Full Name" t={t}><FIn value={modal.data.user_name || modal.data.name} onChange={e => setF("user_name", e.target.value)} t={t} /></FF>
             <FF label="Email Address" t={t}><FIn value={modal.data.email} onChange={e => setF("email", e.target.value)} t={t} disabled /></FF>
             <FF label="Role" t={t}>
@@ -228,6 +258,6 @@ export default function PageUsers({ t, isDark, USERS = [], ROLES = [], collectio
             <FF label="Phone" t={t}><FIn value={modal.data.phone} onChange={e => setF("phone", e.target.value)} t={t} /></FF>
         </Modal>
 
-        <DelModal target={delT} onClose={() => setDelT(null)} onConfirm={async () => { await deleteDoc(doc(db, collectionPath, delT.id)); setDelT(null); }} label="user" t={t} isDark={isDark} />
+        <DelModal target={delT} onClose={() => setDelT(null)} onConfirm={handleDeleteUser} label="user" t={t} isDark={isDark} />
     </>);
 }

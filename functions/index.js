@@ -58,12 +58,11 @@ exports.fixL2Admin = functions.https.onRequest(async (req, res) => {
  * 4. Generates a Password Reset Link for onboarding.
  */
 exports.inviteUser = functions.https.onCall(async (data, context) => {
-  // Ensure the requester is authenticated (RBAC should be handled by caller or here)
   if (!context.auth) {
     throw new functions.https.HttpsError('unauthenticated', 'The function must be called while authenticated.');
   }
 
-  const { email, role, tenantId } = data;
+  const { email, role, tenantId, user_name, phone } = data;
   const db = admin.firestore();
 
   try {
@@ -77,6 +76,7 @@ exports.inviteUser = functions.https.onCall(async (data, context) => {
       if (e.code === 'auth/user-not-found') {
         userRecord = await admin.auth().createUser({
           email: email,
+          displayName: user_name || '',
           emailVerified: false,
           disabled: false
         });
@@ -88,9 +88,7 @@ exports.inviteUser = functions.https.onCall(async (data, context) => {
 
     const uid = userRecord.uid;
 
-    // 2. Set Custom Claims (Critical for Rules)
-    // Note: This overwrites existing claims. Be careful if user belongs to multiple tenants (requires array logic).
-    // For this app's logic (single tenant per user context), this is fine.
+    // 2. Set Custom Claims
     await admin.auth().setCustomUserClaims(uid, { role, tenantId });
 
     // 3. Create/Update Firestore Global Profile
@@ -98,31 +96,44 @@ exports.inviteUser = functions.https.onCall(async (data, context) => {
       email,
       role,
       tenantId,
-      status: 'Pending', // Mark as Pending until they login
+      status: 'Pending',
       last_updated: admin.firestore.FieldValue.serverTimestamp()
     }, { merge: true });
 
-    // 4. Create/Update Tenant User Profile
+    // 4. Generate sequential U1000X user_id for tenant profile
+    let user_id = 'U10001';
     if (tenantId) {
+      const usersSnap = await db.collection(`tenants/${tenantId}/users`).get();
+      if (!usersSnap.empty) {
+        const maxNum = Math.max(...usersSnap.docs.map(d => {
+          const m = (d.data().user_id || '').match(/^U(\d+)$/);
+          return m ? Number(m[1]) : 0;
+        }));
+        if (maxNum > 0) {
+          user_id = 'U' + String(maxNum + 1).padStart(5, '0');
+        }
+      }
+
       await db.doc(`tenants/${tenantId}/users/${uid}`).set({
-        user_id: uid,
-        user_name: userRecord.displayName || email.split('@')[0],
+        user_id,
+        user_name: user_name || userRecord.displayName || email.split('@')[0],
         email,
         role_id: role,
         status: 'Pending',
-        phone: userRecord.phoneNumber || '',
+        phone: phone || userRecord.phoneNumber || '',
+        auth_uid: uid,
         created_at: admin.firestore.FieldValue.serverTimestamp()
       }, { merge: true });
     }
 
-    // 5. Generate Link
-    // We use generatePasswordResetLink because it allows setting a password, which is perfect for new users.
+    // 5. Generate password-setup link
     const link = await admin.auth().generatePasswordResetLink(email);
 
     return {
       success: true,
       link,
       isNewUser,
+      user_id,
       message: `User ${isNewUser ? 'created' : 'updated'} and invited.`
     };
 
@@ -131,6 +142,48 @@ exports.inviteUser = functions.https.onCall(async (data, context) => {
     throw new functions.https.HttpsError('internal', error.message);
   }
 });
+
+/**
+ * Deletes a user from both Firebase Authentication and Firestore.
+ * Accepts { email, docId, tenantId } — looks up the Auth user by email.
+ */
+exports.deleteUser = functions.https.onCall(async (data, context) => {
+  if (!context.auth) {
+    throw new functions.https.HttpsError('unauthenticated', 'Must be authenticated.');
+  }
+
+  const { email, docId, tenantId } = data;
+  const db = admin.firestore();
+
+  try {
+    // 1. Find user in Firebase Auth by email and delete
+    if (email) {
+      try {
+        const userRecord = await admin.auth().getUserByEmail(email);
+        const uid = userRecord.uid;
+        await admin.auth().deleteUser(uid);
+        // Also remove global user_roles entry
+        await db.collection('user_roles').doc(uid).delete();
+      } catch (e) {
+        if (e.code !== 'auth/user-not-found') {
+          console.warn('Auth delete failed (non-critical):', e.message);
+        }
+        // If not found in Auth, continue to delete Firestore doc anyway
+      }
+    }
+
+    // 2. Delete tenant Firestore profile (by document ID — which is the auth UID)
+    if (tenantId && docId) {
+      await db.doc(`tenants/${tenantId}/users/${docId}`).delete();
+    }
+
+    return { success: true };
+  } catch (error) {
+    console.error("Delete User Error:", error);
+    throw new functions.https.HttpsError('internal', error.message);
+  }
+});
+
 
 /**
  * Triggered when a new user is created in Firebase Auth.
