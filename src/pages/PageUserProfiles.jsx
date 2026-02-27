@@ -31,7 +31,7 @@ const StatusBadge = ({ status, t, isDark }) => {
     );
 };
 
-export default function PageUsers({ t, isDark, USERS = [], ROLES = [], collectionPath = "", DIMENSIONS = [], tenantId = "", TENANTS = [] }) {
+export default function PageUserProfiles({ t, isDark, USERS = [], ROLES = [], collectionPath = "", DIMENSIONS = [], tenantId = "", TENANTS = [] }) {
     const { hasPermission, isSuperAdmin } = useAuth();
     const canCreate = isSuperAdmin || hasPermission("USER_CREATE");
     const canInvite = isSuperAdmin || hasPermission("USER_INVITE");
