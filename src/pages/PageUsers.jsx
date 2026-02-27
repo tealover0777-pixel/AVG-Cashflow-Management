@@ -239,7 +239,11 @@ export default function PageUsers({ t, isDark, USERS = [], ROLES = [], collectio
                 <div style={{ fontFamily: t.mono, fontSize: 13, color: t.idText, background: isDark ? "rgba(255,255,255,0.04)" : "#F5F4F1", border: `1px solid ${t.surfaceBorder}`, borderRadius: 9, padding: "10px 13px" }}>{modal.data.user_id}</div>
             </FF>
             <FF label="Auth UID (Firebase)" t={t}>
-                <div style={{ fontFamily: t.mono, fontSize: 11, color: t.textMuted, background: isDark ? "rgba(255,255,255,0.04)" : "#F5F4F1", border: `1px solid ${t.surfaceBorder}`, borderRadius: 9, padding: "10px 13px", wordBreak: "break-all" }}>{modal.data.auth_uid || modal.data.id || "—"}</div>
+                <div style={{ fontFamily: t.mono, fontSize: 11, color: t.textMuted, background: isDark ? "rgba(255,255,255,0.04)" : "#F5F4F1", border: `1px solid ${t.surfaceBorder}`, borderRadius: 9, padding: "10px 13px", wordBreak: "break-all" }}>
+                    {modal.data.auth_uid
+                        ? modal.data.auth_uid
+                        : (modal.data.id && !/^U\d+$/.test(modal.data.id) ? modal.data.id : "— (not linked to Firebase Auth)")}
+                </div>
             </FF>
             <FF label="Full Name" t={t}><FIn value={modal.data.user_name || modal.data.name} onChange={e => setF("user_name", e.target.value)} t={t} /></FF>
             <FF label="Email Address" t={t}><FIn value={modal.data.email} onChange={e => setF("email", e.target.value)} t={t} disabled /></FF>
