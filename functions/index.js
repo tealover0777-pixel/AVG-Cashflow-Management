@@ -62,7 +62,7 @@ exports.inviteUser = functions.https.onCall(async (data, context) => {
     throw new functions.https.HttpsError('unauthenticated', 'The function must be called while authenticated.');
   }
 
-  const { email, role, tenantId, user_name, phone } = data;
+  const { email, role, tenantId, user_name, phone, notes } = data;
   const db = admin.firestore();
 
   try {
@@ -114,13 +114,14 @@ exports.inviteUser = functions.https.onCall(async (data, context) => {
         }
       }
 
-      await db.doc(`tenants/${tenantId}/users/${uid}`).set({
+      await db.doc(`tenants/${tenantId}/users/${user_id}`).set({
         user_id,
         user_name: user_name || userRecord.displayName || email.split('@')[0],
         email,
         role_id: role,
         status: 'Pending',
         phone: phone || userRecord.phoneNumber || '',
+        notes: notes || '',
         auth_uid: uid,
         created_at: admin.firestore.FieldValue.serverTimestamp()
       }, { merge: true });

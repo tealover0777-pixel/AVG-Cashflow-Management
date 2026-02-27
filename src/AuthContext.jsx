@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import { auth, db } from "./firebase";
 import { onAuthStateChanged, signInWithEmailAndPassword, signOut } from "firebase/auth";
-import { doc, getDoc, collection, getDocs } from "firebase/firestore";
+import { doc, getDoc, collection, getDocs, query, where } from "firebase/firestore";
 import { DEFAULT_ROLE_PERMISSIONS } from "./permissions";
 
 const AuthContext = createContext();
@@ -39,12 +39,23 @@ export function AuthProvider({ children }) {
 
                     let fetchedProfile = { role, tenantId };
 
-                    // 3. Optional: fetch extra profile info from tenant collection
+                    // 3. Fetch extra profile info from tenant collection
+                    // Docs are now named by user_id (U10001), so we query by auth_uid field
                     if (tenantId) {
                         try {
-                            const profDoc = await getDoc(doc(db, `tenants/${tenantId}/users`, u.uid));
-                            if (profDoc.exists()) {
-                                fetchedProfile = { ...fetchedProfile, ...profDoc.data() };
+                            const q = query(
+                                collection(db, `tenants/${tenantId}/users`),
+                                where("auth_uid", "==", u.uid)
+                            );
+                            const snap = await getDocs(q);
+                            if (!snap.empty) {
+                                fetchedProfile = { ...fetchedProfile, ...snap.docs[0].data() };
+                            } else {
+                                // Fallback: try direct fetch by uid (legacy docs stored with auth uid as doc id)
+                                const profDoc = await getDoc(doc(db, `tenants/${tenantId}/users`, u.uid));
+                                if (profDoc.exists()) {
+                                    fetchedProfile = { ...fetchedProfile, ...profDoc.data() };
+                                }
                             }
                         } catch (err) {
                             console.error("Failed to fetch tenant profile:", err);

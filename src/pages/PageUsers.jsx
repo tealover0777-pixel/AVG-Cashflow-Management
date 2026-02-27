@@ -74,7 +74,7 @@ export default function PageUsers({ t, isDark, USERS = [], ROLES = [], collectio
         setInviting(true);
         try {
             const inviteUserFn = httpsCallable(functions, "inviteUser");
-            const result = await inviteUserFn({ email: d.email, role: d.role_id, tenantId: d.inviteTenantId || tenantId, user_name: d.user_name || "", phone: d.phone || "" });
+            const result = await inviteUserFn({ email: d.email, role: d.role_id, tenantId: d.inviteTenantId || tenantId, user_name: d.user_name || "", phone: d.phone || "", notes: d.notes || "" });
             close();
             setInviteResult({ link: result.data.link, email: d.email, user_id: result.data.user_id });
         } catch (err) {
@@ -112,6 +112,7 @@ export default function PageUsers({ t, isDark, USERS = [], ROLES = [], collectio
             email: d.email || "",
             role_id: d.role_id || "",
             phone: d.phone || "",
+            notes: d.notes || "",
             updated_at: serverTimestamp(),
         };
         try {
@@ -234,6 +235,15 @@ export default function PageUsers({ t, isDark, USERS = [], ROLES = [], collectio
                     </select>
                 </FF>
             )}
+            <FF label="Notes" t={t}>
+                <textarea
+                    value={modal.data.notes || ""}
+                    onChange={e => setF("notes", e.target.value)}
+                    placeholder="Optional notes about this user..."
+                    rows={3}
+                    style={{ background: isDark ? "rgba(255,255,255,0.04)" : "#fff", color: isDark ? "#fff" : "#000", border: `1px solid ${t.border}`, borderRadius: 9, padding: "10px 13px", fontSize: 13.5, outline: "none", width: "100%", fontFamily: t.font, resize: "vertical", boxSizing: "border-box" }}
+                />
+            </FF>
         </Modal>
 
         {/* Edit Modal */}
@@ -265,6 +275,15 @@ export default function PageUsers({ t, isDark, USERS = [], ROLES = [], collectio
                 </select>
             </FF>
             <FF label="Phone" t={t}><FIn value={modal.data.phone} onChange={e => setF("phone", e.target.value)} t={t} /></FF>
+            <FF label="Notes" t={t}>
+                <textarea
+                    value={modal.data.notes || ""}
+                    onChange={e => setF("notes", e.target.value)}
+                    placeholder="Optional notes about this user..."
+                    rows={3}
+                    style={{ background: isDark ? "rgba(255,255,255,0.04)" : "#fff", color: isDark ? "#fff" : "#000", border: `1px solid ${t.border}`, borderRadius: 9, padding: "10px 13px", fontSize: 13.5, outline: "none", width: "100%", fontFamily: t.font, resize: "vertical", boxSizing: "border-box" }}
+                />
+            </FF>
         </Modal>
 
         <DelModal target={delT} onClose={() => setDelT(null)} onConfirm={handleDeleteUser} label="user" t={t} isDark={isDark} />
