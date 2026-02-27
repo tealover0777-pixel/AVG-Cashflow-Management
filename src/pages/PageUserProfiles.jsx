@@ -63,7 +63,7 @@ export default function PageUserProfiles({ t, isDark, USERS = [], ROLES = [], co
 
     const openInvite = () => setModal({ open: true, mode: "invite", data: { email: "", role_id: "", user_name: "" } });
     const openEdit = r => setModal({ open: true, mode: "edit", data: { ...r, role_id: r.role_id || "" } });
-    const openResendInvite = r => setModal({ open: true, mode: "invite", data: { email: r.email, role_id: r.role_id || "", user_name: r.user_name || "" } });
+    const openResendInvite = r => setModal({ open: true, mode: "resend", data: { email: r.email, role_id: r.role_id || "", user_name: r.user_name || "", phone: r.phone || "", notes: r.notes || "" } });
     const close = () => setModal(m => ({ ...m, open: false }));
     const setF = (k, v) => setModal(m => ({ ...m, data: { ...m.data, [k]: v } }));
 
@@ -260,6 +260,25 @@ export default function PageUserProfiles({ t, isDark, USERS = [], ROLES = [], co
                     rows={3}
                     style={{ background: isDark ? "rgba(255,255,255,0.04)" : "#fff", color: isDark ? "#fff" : "#000", border: `1px solid ${t.border}`, borderRadius: 9, padding: "10px 13px", fontSize: 13.5, outline: "none", width: "100%", fontFamily: t.font, resize: "vertical", boxSizing: "border-box" }}
                 />
+            </FF>
+        </Modal>
+
+        {/* Re-send Invite Modal */}
+        <Modal open={modal.open && modal.mode === "resend"} onClose={close} title="Re-send Invite Link" onSave={handleInviteUser} saveLabel={inviting ? "Sending..." : "Re-send Invite ✉️"} width={520} t={t} isDark={isDark}>
+            <p style={{ fontSize: 12.5, color: t.textMuted, marginBottom: 16, lineHeight: 1.6 }}>
+                This will generate a new invite link for the existing user. Their current account and profile will be preserved, and a fresh password reset link will be created for them to log in.
+            </p>
+            <FF label="Email Address" t={t}>
+                <div style={{ fontFamily: t.mono, fontSize: 13, color: t.idText, background: isDark ? "rgba(255,255,255,0.04)" : "#F5F4F1", border: `1px solid ${t.surfaceBorder}`, borderRadius: 9, padding: "10px 13px" }}>{modal.data.email}</div>
+            </FF>
+            <FF label="Full Name" t={t}>
+                <div style={{ fontSize: 13, color: t.text, background: isDark ? "rgba(255,255,255,0.04)" : "#F5F4F1", border: `1px solid ${t.surfaceBorder}`, borderRadius: 9, padding: "10px 13px" }}>{modal.data.user_name || "—"}</div>
+            </FF>
+            <FF label="Role" t={t}>
+                <select value={modal.data.role_id || ""} onChange={e => setF("role_id", e.target.value)} style={{ background: isDark ? "rgba(255,255,255,0.04)" : "#fff", color: isDark ? "#fff" : "#000", border: `1px solid ${t.border}`, borderRadius: 9, padding: "10px 13px", fontSize: 13.5, outline: "none", width: "100%", fontFamily: t.font, appearance: "none" }}>
+                    <option value="" disabled style={{ color: "#000" }}>Select a role...</option>
+                    {ROLES.map(r => <option key={r.id || r.role_id} value={r.id || r.role_id} style={{ color: "#000" }}>{r.role_name || r.name || r.id}</option>)}
+                </select>
             </FF>
         </Modal>
 
