@@ -67,7 +67,7 @@ export default function PageUserProfiles({ t, isDark, USERS = [], ROLES = [], co
     const close = () => setModal(m => ({ ...m, open: false }));
     const setF = (k, v) => setModal(m => ({ ...m, data: { ...m.data, [k]: v } }));
 
-    // Invite user via Cloud Function (creates Auth user, sets claims, writes profile)
+    // Invite NEW user via Cloud Function (creates Auth user, sets claims, writes profile)
     const handleInviteUser = async () => {
         const d = modal.data;
         if (!d.email || !d.role_id) return;
@@ -78,7 +78,7 @@ export default function PageUserProfiles({ t, isDark, USERS = [], ROLES = [], co
                 email: d.email,
                 role: d.role_id,
                 tenantId: d.inviteTenantId || tenantId,
-                user_id: modal.mode === "resend" ? d.user_id : nextUserId,
+                user_id: nextUserId,
                 user_name: d.user_name || "",
                 phone: d.phone || "",
                 notes: d.notes || ""
@@ -88,6 +88,24 @@ export default function PageUserProfiles({ t, isDark, USERS = [], ROLES = [], co
         } catch (err) {
             console.error("Invite error:", err);
             alert("Invite failed: " + (err.message || "Unknown error"));
+        } finally {
+            setInviting(false);
+        }
+    };
+
+    // Re-send verification email only — no user data changes
+    const handleResendInvite = async () => {
+        const d = modal.data;
+        if (!d.email) return;
+        setInviting(true);
+        try {
+            const resendFn = httpsCallable(functions, "resendVerification");
+            const result = await resendFn({ email: d.email });
+            close();
+            setInviteResult({ email: d.email, user_id: d.user_id, emailSent: result.data.emailSent });
+        } catch (err) {
+            console.error("Resend error:", err);
+            alert("Re-send failed: " + (err.message || "Unknown error"));
         } finally {
             setInviting(false);
         }
@@ -267,7 +285,7 @@ export default function PageUserProfiles({ t, isDark, USERS = [], ROLES = [], co
         </Modal>
 
         {/* Re-send Invite Modal */}
-        <Modal open={modal.open && modal.mode === "resend"} onClose={close} title="Re-send Invite Link" onSave={handleInviteUser} saveLabel={inviting ? "Sending..." : "Re-send Invite ✉️"} width={520} t={t} isDark={isDark}>
+        <Modal open={modal.open && modal.mode === "resend"} onClose={close} title="Re-send Invite Link" onSave={handleResendInvite} saveLabel={inviting ? "Sending..." : "Re-send Invite ✉️"} width={520} t={t} isDark={isDark}>
             <p style={{ fontSize: 12.5, color: t.textMuted, marginBottom: 16, lineHeight: 1.6 }}>
                 This will generate a new invite link for the existing user. Their current account and profile will be preserved, and a fresh password reset link will be created for them to log in.
             </p>

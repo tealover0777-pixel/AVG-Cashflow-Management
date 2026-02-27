@@ -179,6 +179,60 @@ exports.inviteUser = functions.https.onCall(async (data, context) => {
 });
 
 /**
+ * Re-sends verification email to an existing user.
+ * Only sends the email — does NOT create or modify any user data.
+ */
+exports.resendVerification = functions.https.onCall(async (data, context) => {
+  if (!context.auth) {
+    throw new functions.https.HttpsError('unauthenticated', 'Must be authenticated.');
+  }
+
+  const { email } = data;
+  if (!email) {
+    throw new functions.https.HttpsError('invalid-argument', 'Email is required.');
+  }
+
+  try {
+    const userRecord = await admin.auth().getUserByEmail(email);
+    const uid = userRecord.uid;
+    const API_KEY = 'AIzaSyAD8G1WvI0SniOw5qvt_RrYIy5PkhF01Js';
+
+    const customToken = await admin.auth().createCustomToken(uid);
+
+    const signInRes = await fetch(
+      `https://identitytoolkit.googleapis.com/v1/accounts:signInWithCustomToken?key=${API_KEY}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: customToken, returnSecureToken: true })
+      }
+    );
+    const signInData = await signInRes.json();
+    if (!signInData.idToken) {
+      throw new Error('Failed to exchange custom token for ID token');
+    }
+
+    const sendRes = await fetch(
+      `https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode?key=${API_KEY}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ requestType: 'VERIFY_EMAIL', idToken: signInData.idToken })
+      }
+    );
+    const sendData = await sendRes.json();
+    if (sendData.error) {
+      console.warn('Resend verification warning:', sendData.error.message);
+    }
+
+    return { success: true, emailSent: !sendData.error };
+  } catch (error) {
+    console.error("Resend Verification Error:", error);
+    throw new functions.https.HttpsError('internal', error.message);
+  }
+});
+
+/**
  * Deletes a user from both Firebase Authentication and Firestore.
  * Accepts { email, docId, tenantId } — looks up the Auth user by email.
  */
