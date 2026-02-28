@@ -141,7 +141,10 @@ exports.inviteUser = functions.https.onCall(async (data, context) => {
     // Attempt to send verification email via REST API
     let emailSent = false;
     try {
+      console.log(`Generating custom token for ${uid}...`);
       const customToken = await admin.auth().createCustomToken(uid);
+
+      console.log(`Exchanging custom token for ID token...`);
       const signInRes = await fetch(
         `https://identitytoolkit.googleapis.com/v1/accounts:signInWithCustomToken?key=${API_KEY}`,
         {
@@ -153,6 +156,7 @@ exports.inviteUser = functions.https.onCall(async (data, context) => {
       const signInData = await signInRes.json();
 
       if (signInData.idToken) {
+        console.log(`Sending verification email for ${email}...`);
         const sendRes = await fetch(
           `https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode?key=${API_KEY}`,
           {
@@ -164,13 +168,15 @@ exports.inviteUser = functions.https.onCall(async (data, context) => {
         const sendData = await sendRes.json();
         emailSent = !sendData.error;
         if (sendData.error) {
-          console.warn('sendOobCode error:', JSON.stringify(sendData.error));
+          console.error('sendOobCode REST error:', JSON.stringify(sendData.error));
+        } else {
+          console.log(`Verification email sent successfully to ${email}`);
         }
       } else {
-        console.warn('Custom token exchange failed:', JSON.stringify(signInData));
+        console.error('Custom token exchange failed REST response:', JSON.stringify(signInData));
       }
     } catch (emailErr) {
-      console.warn('Email send attempt failed:', emailErr.message);
+      console.error('Email send attempt failed with exception:', emailErr);
     }
 
     return {
@@ -213,7 +219,10 @@ exports.resendVerification = functions.https.onCall(async (data, context) => {
 
     let emailSent = false;
     try {
+      console.log(`Generating custom token for ${uid}...`);
       const customToken = await admin.auth().createCustomToken(uid);
+
+      console.log(`Exchanging custom token for ID token...`);
       const signInRes = await fetch(
         `https://identitytoolkit.googleapis.com/v1/accounts:signInWithCustomToken?key=${API_KEY}`,
         {
@@ -225,6 +234,7 @@ exports.resendVerification = functions.https.onCall(async (data, context) => {
       const signInData = await signInRes.json();
 
       if (signInData.idToken) {
+        console.log(`Sending verification email for ${email}...`);
         const sendRes = await fetch(
           `https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode?key=${API_KEY}`,
           {
@@ -236,19 +246,24 @@ exports.resendVerification = functions.https.onCall(async (data, context) => {
         const sendData = await sendRes.json();
         emailSent = !sendData.error;
         if (sendData.error) {
-          console.warn('sendOobCode error:', JSON.stringify(sendData.error));
+          console.error('sendOobCode REST error:', JSON.stringify(sendData.error));
+        } else {
+          console.log(`Verification email sent successfully to ${email}`);
         }
       } else {
-        console.warn('Custom token exchange failed:', JSON.stringify(signInData));
+        console.error('Custom token exchange failed REST response:', JSON.stringify(signInData));
       }
     } catch (emailErr) {
-      console.warn('Email send attempt failed:', emailErr.message);
+      console.error('Email send attempt failed with exception:', emailErr);
     }
 
     return { success: true, link, emailSent };
   } catch (error) {
     console.error("Resend Verification Error:", error);
-    throw new functions.https.HttpsError('internal', error.message);
+    const msg = error.code === 'auth/user-not-found'
+      ? `User with email ${email} not found in Firebase Auth.`
+      : error.message;
+    throw new functions.https.HttpsError('internal', msg);
   }
 });
 
