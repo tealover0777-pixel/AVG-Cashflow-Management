@@ -1,11 +1,12 @@
 
-const functions = require('firebase-functions');
+const { onRequest } = require('firebase-functions/v2/https');
+const { onCall, HttpsError } = require('firebase-functions/v2/https');
 const admin = require('firebase-admin');
 admin.initializeApp();
 
 // Temporary function to generate a password reset link.
 // Remove this function after the password is set.
-exports.createFirstAdmin = functions.https.onRequest(async (req, res) => {
+exports.createFirstAdmin = onRequest(async (req, res) => {
   try {
     const email = 'tealover0777@gmail.com';
     const link = await admin.auth().generatePasswordResetLink(email);
@@ -15,7 +16,7 @@ exports.createFirstAdmin = functions.https.onRequest(async (req, res) => {
   }
 });
 
-exports.fixL2Admin = functions.https.onRequest(async (req, res) => {
+exports.fixL2Admin = onRequest(async (req, res) => {
   try {
     const db = admin.firestore();
     const userToUpdate = 'kyuahn@yahoo.com';
@@ -57,12 +58,12 @@ exports.fixL2Admin = functions.https.onRequest(async (req, res) => {
  * 3. Creates Firestore profiles (Global + Tenant).
  * 4. Generates a Password Reset Link for onboarding.
  */
-exports.inviteUser = functions.https.onCall(async (data, context) => {
-  if (!context.auth) {
-    throw new functions.https.HttpsError('unauthenticated', 'The function must be called while authenticated.');
+exports.inviteUser = onCall(async (request) => {
+  if (!request.auth) {
+    throw new HttpsError('unauthenticated', 'The function must be called while authenticated.');
   }
 
-  const { email, role, tenantId, user_name, phone, notes, user_id: providedUserId } = data;
+  const { email, role, tenantId, user_name, phone, notes, user_id: providedUserId } = request.data;
   const db = admin.firestore();
 
   try {
@@ -192,7 +193,7 @@ exports.inviteUser = functions.https.onCall(async (data, context) => {
 
   } catch (error) {
     console.error("Invite Error:", error);
-    throw new functions.https.HttpsError('internal', error.message);
+    throw new HttpsError('internal', error.message);
   }
 });
 
@@ -200,14 +201,14 @@ exports.inviteUser = functions.https.onCall(async (data, context) => {
  * Re-sends verification email to an existing user.
  * Only sends the email — does NOT create or modify any user data.
  */
-exports.resendVerification = functions.https.onCall(async (data, context) => {
-  if (!context.auth) {
-    throw new functions.https.HttpsError('unauthenticated', 'Must be authenticated.');
+exports.resendVerification = onCall(async (request) => {
+  if (!request.auth) {
+    throw new HttpsError('unauthenticated', 'Must be authenticated.');
   }
 
-  const { email } = data;
+  const { email } = request.data;
   if (!email) {
-    throw new functions.https.HttpsError('invalid-argument', 'Email is required.');
+    throw new HttpsError('invalid-argument', 'Email is required.');
   }
 
   try {
@@ -263,7 +264,7 @@ exports.resendVerification = functions.https.onCall(async (data, context) => {
     const msg = error.code === 'auth/user-not-found'
       ? `User with email ${email} not found in Firebase Auth.`
       : error.message;
-    throw new functions.https.HttpsError('internal', msg);
+    throw new HttpsError('internal', msg);
   }
 });
 
@@ -271,12 +272,12 @@ exports.resendVerification = functions.https.onCall(async (data, context) => {
  * Deletes a user from both Firebase Authentication and Firestore.
  * Accepts { email, docId, tenantId } — looks up the Auth user by email.
  */
-exports.deleteUser = functions.https.onCall(async (data, context) => {
-  if (!context.auth) {
-    throw new functions.https.HttpsError('unauthenticated', 'Must be authenticated.');
+exports.deleteUser = onCall(async (request) => {
+  if (!request.auth) {
+    throw new HttpsError('unauthenticated', 'Must be authenticated.');
   }
 
-  const { email, docId, tenantId } = data;
+  const { email, docId, tenantId } = request.data;
   const db = admin.firestore();
 
   try {
@@ -304,7 +305,7 @@ exports.deleteUser = functions.https.onCall(async (data, context) => {
     return { success: true };
   } catch (error) {
     console.error("Delete User Error:", error);
-    throw new functions.https.HttpsError('internal', error.message);
+    throw new HttpsError('internal', error.message);
   }
 });
 
@@ -312,10 +313,10 @@ exports.deleteUser = functions.https.onCall(async (data, context) => {
 /**
  * Triggered when a new user is created in Firebase Auth.
  * Automatically creates a document in the global 'user_roles' collection if it doesn't exist.
- * Uses firebase-functions v1 auth trigger syntax (compatible with v4 package).
  */
-const { user: authUser } = require('firebase-functions/v1/auth');
-exports.onUserCreate = authUser().onCreate(async (user) => {
+const { beforeUserCreated: beforeUserCreatedV2 } = require('firebase-functions/v2/identity');
+exports.onUserCreate = beforeUserCreatedV2(async (event) => {
+  const user = event.data;
   const db = admin.firestore();
   try {
     const docRef = db.collection('user_roles').doc(user.uid);
@@ -342,7 +343,7 @@ exports.onUserCreate = authUser().onCreate(async (user) => {
  * HTTP function to manually sync all Firebase Auth users to Firestore.
  * Usage: URL?tenantId=your-tenant-id
  */
-exports.syncAuthUsers = functions.https.onRequest(async (req, res) => {
+exports.syncAuthUsers = onRequest(async (req, res) => {
   const tenantId = req.query.tenantId;
 
   try {
