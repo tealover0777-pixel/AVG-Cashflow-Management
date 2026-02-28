@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import { auth, db } from "./firebase";
 import { onAuthStateChanged, signInWithEmailAndPassword, signOut } from "firebase/auth";
-import { doc, getDoc, collection, getDocs, query, where } from "firebase/firestore";
+import { doc, getDoc, collection, getDocs, query, where, updateDoc, serverTimestamp } from "firebase/firestore";
 import { DEFAULT_ROLE_PERMISSIONS } from "./permissions";
 
 const AuthContext = createContext();
@@ -89,6 +89,25 @@ export function AuthProvider({ children }) {
                         }
                     } else if (role) {
                         userPermissions = DEFAULT_ROLE_PERMISSIONS[role] || [];
+                    }
+
+                    // 5. Auto-activate "Pending" users on first login
+                    if (fetchedProfile.status === "Pending") {
+                        try {
+                            const updateData = { status: "Active", last_login: serverTimestamp() };
+                            // Update global profile
+                            await updateDoc(doc(db, "user_roles", u.uid), updateData);
+                            // Update tenant profile
+                            if (tenantId && fetchedProfile.user_id) {
+                                await updateDoc(doc(db, `tenants/${tenantId}/users`, fetchedProfile.user_id), updateData);
+                            } else if (tenantId && !fetchedProfile.user_id) {
+                                // Fallback if doc ID is the UID
+                                await updateDoc(doc(db, `tenants/${tenantId}/users`, u.uid), updateData).catch(() => { });
+                            }
+                            fetchedProfile.status = "Active";
+                        } catch (err) {
+                            console.error("Failed to auto-activate user:", err);
+                        }
                     }
 
                     setProfile(fetchedProfile);
