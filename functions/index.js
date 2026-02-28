@@ -302,13 +302,15 @@ exports.fixAllStatuses = functions.https.onCall(async (data, context) => {
 
     // 1. Update global user_roles
     const rolesSnap = await db.collection('user_roles').get();
-    console.log(`Found ${rolesSnap.size} global user roles.`);
+    console.log(`DEBUG: Found ${rolesSnap.size} global user roles.`);
     for (const docSnap of rolesSnap.docs) {
       const d = docSnap.data();
       const email = (d.email || "").toLowerCase();
+      const status = d.status || "MISSING";
+      console.log(`DEBUG GLOBAL: id=${docSnap.id}, email=${email}, status=${status}`);
       // Exclude L2 Admin and only fix non-Active users
-      if (email !== 'kyuahn@yahoo.com' && d.status !== 'Active') {
-        console.log(`Activating global role for ${email} (current status: ${d.status || "none"})`);
+      if (email !== 'kyuahn@yahoo.com' && status !== 'Active') {
+        console.log(`DEBUG: MATCHED global user ${email}! Updating to Active.`);
         batch.update(docSnap.ref, { status: 'Active', updated_at: admin.firestore.FieldValue.serverTimestamp() });
         count++;
       }
@@ -316,19 +318,19 @@ exports.fixAllStatuses = functions.https.onCall(async (data, context) => {
 
     // 2. Update tenant-specific users
     const tenantsSnap = await db.collection('tenants').get();
-    console.log(`Found ${tenantsSnap.size} tenants to check.`);
+    console.log(`DEBUG: Found ${tenantsSnap.size} tenants.`);
     for (const tenantDoc of tenantsSnap.docs) {
       const usersSnap = await db.collection(`tenants/${tenantDoc.id}/users`).get();
-      if (!usersSnap.empty) {
-        console.log(`Checking ${usersSnap.size} users in tenant ${tenantDoc.id}`);
-        for (const userDoc of usersSnap.docs) {
-          const d = userDoc.data();
-          const email = (d.email || "").toLowerCase();
-          if (email !== 'kyuahn@yahoo.com' && d.status !== 'Active') {
-            console.log(`Activating tenant user for ${email} in tenant ${tenantDoc.id}`);
-            batch.update(userDoc.ref, { status: 'Active', updated_at: admin.firestore.FieldValue.serverTimestamp() });
-            count++;
-          }
+      console.log(`DEBUG: Tenant ${tenantDoc.id} has ${usersSnap.size} users.`);
+      for (const userDoc of usersSnap.docs) {
+        const d = userDoc.data();
+        const email = (d.email || "").toLowerCase();
+        const status = d.status || "MISSING";
+        console.log(`DEBUG TENANT ${tenantDoc.id}: id=${userDoc.id}, email=${email}, status=${status}`);
+        if (email !== 'kyuahn@yahoo.com' && status !== 'Active') {
+          console.log(`DEBUG: MATCHED tenant user ${email}! Updating to Active.`);
+          batch.update(userDoc.ref, { status: 'Active', updated_at: admin.firestore.FieldValue.serverTimestamp() });
+          count++;
         }
       }
     }
