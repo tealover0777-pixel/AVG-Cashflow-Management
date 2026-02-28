@@ -132,44 +132,56 @@ exports.inviteUser = functions.https.onCall(async (data, context) => {
       }, { merge: true });
     }
 
-    // 6. Send email verification using Firebase's built-in template
+    // 6. Generate email verification link and attempt to send email
     const API_KEY = 'AIzaSyAD8G1WvI0SniOw5qvt_RrYIy5PkhF01Js';
 
-    // Create a custom token, exchange it for an ID token, then trigger verification email
-    const customToken = await admin.auth().createCustomToken(uid);
+    // Always generate the link (reliable fallback)
+    const link = await admin.auth().generateEmailVerificationLink(email);
 
-    const signInRes = await fetch(
-      `https://identitytoolkit.googleapis.com/v1/accounts:signInWithCustomToken?key=${API_KEY}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token: customToken, returnSecureToken: true })
-      }
-    );
-    const signInData = await signInRes.json();
-    if (!signInData.idToken) {
-      throw new Error('Failed to exchange custom token for ID token');
-    }
+    // Attempt to send verification email via REST API
+    let emailSent = false;
+    try {
+      const customToken = await admin.auth().createCustomToken(uid);
+      const signInRes = await fetch(
+        `https://identitytoolkit.googleapis.com/v1/accounts:signInWithCustomToken?key=${API_KEY}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token: customToken, returnSecureToken: true })
+        }
+      );
+      const signInData = await signInRes.json();
 
-    const sendRes = await fetch(
-      `https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode?key=${API_KEY}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ requestType: 'VERIFY_EMAIL', idToken: signInData.idToken })
+      if (signInData.idToken) {
+        const sendRes = await fetch(
+          `https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode?key=${API_KEY}`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ requestType: 'VERIFY_EMAIL', idToken: signInData.idToken })
+          }
+        );
+        const sendData = await sendRes.json();
+        emailSent = !sendData.error;
+        if (sendData.error) {
+          console.warn('sendOobCode error:', JSON.stringify(sendData.error));
+        }
+      } else {
+        console.warn('Custom token exchange failed:', JSON.stringify(signInData));
       }
-    );
-    const sendData = await sendRes.json();
-    if (sendData.error) {
-      console.warn('Verification email send warning:', sendData.error.message);
+    } catch (emailErr) {
+      console.warn('Email send attempt failed:', emailErr.message);
     }
 
     return {
       success: true,
-      emailSent: !sendData.error,
+      link,
+      emailSent,
       isNewUser,
       user_id,
-      message: `User ${isNewUser ? 'created' : 'updated'}. Verification email sent to ${email}.`
+      message: emailSent
+        ? `Verification email sent to ${email}.`
+        : `User created. Email could not be sent automatically — share the link manually.`
     };
 
   } catch (error) {
@@ -197,35 +209,43 @@ exports.resendVerification = functions.https.onCall(async (data, context) => {
     const uid = userRecord.uid;
     const API_KEY = 'AIzaSyAD8G1WvI0SniOw5qvt_RrYIy5PkhF01Js';
 
-    const customToken = await admin.auth().createCustomToken(uid);
+    const link = await admin.auth().generateEmailVerificationLink(email);
 
-    const signInRes = await fetch(
-      `https://identitytoolkit.googleapis.com/v1/accounts:signInWithCustomToken?key=${API_KEY}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token: customToken, returnSecureToken: true })
+    let emailSent = false;
+    try {
+      const customToken = await admin.auth().createCustomToken(uid);
+      const signInRes = await fetch(
+        `https://identitytoolkit.googleapis.com/v1/accounts:signInWithCustomToken?key=${API_KEY}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token: customToken, returnSecureToken: true })
+        }
+      );
+      const signInData = await signInRes.json();
+
+      if (signInData.idToken) {
+        const sendRes = await fetch(
+          `https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode?key=${API_KEY}`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ requestType: 'VERIFY_EMAIL', idToken: signInData.idToken })
+          }
+        );
+        const sendData = await sendRes.json();
+        emailSent = !sendData.error;
+        if (sendData.error) {
+          console.warn('sendOobCode error:', JSON.stringify(sendData.error));
+        }
+      } else {
+        console.warn('Custom token exchange failed:', JSON.stringify(signInData));
       }
-    );
-    const signInData = await signInRes.json();
-    if (!signInData.idToken) {
-      throw new Error('Failed to exchange custom token for ID token');
+    } catch (emailErr) {
+      console.warn('Email send attempt failed:', emailErr.message);
     }
 
-    const sendRes = await fetch(
-      `https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode?key=${API_KEY}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ requestType: 'VERIFY_EMAIL', idToken: signInData.idToken })
-      }
-    );
-    const sendData = await sendRes.json();
-    if (sendData.error) {
-      console.warn('Resend verification warning:', sendData.error.message);
-    }
-
-    return { success: true, emailSent: !sendData.error };
+    return { success: true, link, emailSent };
   } catch (error) {
     console.error("Resend Verification Error:", error);
     throw new functions.https.HttpsError('internal', error.message);

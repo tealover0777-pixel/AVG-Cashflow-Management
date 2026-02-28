@@ -84,7 +84,7 @@ export default function PageUserProfiles({ t, isDark, USERS = [], ROLES = [], co
                 notes: d.notes || ""
             });
             close();
-            setInviteResult({ email: d.email, user_id: result.data.user_id, emailSent: result.data.emailSent });
+            setInviteResult({ email: d.email, user_id: result.data.user_id, emailSent: result.data.emailSent, link: result.data.link });
         } catch (err) {
             console.error("Invite error:", err);
             alert("Invite failed: " + (err.message || "Unknown error"));
@@ -102,7 +102,7 @@ export default function PageUserProfiles({ t, isDark, USERS = [], ROLES = [], co
             const resendFn = httpsCallable(functions, "resendVerification");
             const result = await resendFn({ email: d.email });
             close();
-            setInviteResult({ email: d.email, user_id: d.user_id, emailSent: result.data.emailSent });
+            setInviteResult({ email: d.email, user_id: d.user_id, emailSent: result.data.emailSent, link: result.data.link });
         } catch (err) {
             console.error("Resend error:", err);
             alert("Re-send failed: " + (err.message || "Unknown error"));
@@ -180,23 +180,34 @@ export default function PageUserProfiles({ t, isDark, USERS = [], ROLES = [], co
         {inviteResult && (
             <div style={{ position: "fixed", inset: 0, zIndex: 1100, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center" }}>
                 <div style={{ background: isDark ? "#1C1917" : "#fff", borderRadius: 16, padding: 28, maxWidth: 540, width: "90%", boxShadow: "0 24px 60px rgba(0,0,0,0.3)" }}>
-                    <h3 style={{ fontFamily: t.titleFont, fontSize: 18, marginBottom: 8, color: isDark ? "#fff" : "#1C1917" }}>✅ Invite Sent!</h3>
+                    <h3 style={{ fontFamily: t.titleFont, fontSize: 18, marginBottom: 8, color: isDark ? "#fff" : "#1C1917" }}>
+                        {inviteResult.emailSent ? "✅ Invite Sent!" : "✅ User Created"}
+                    </h3>
                     <p style={{ fontSize: 13, color: t.textMuted, marginBottom: 12, lineHeight: 1.6 }}>
-                        A verification email has been sent to <strong>{inviteResult.email}</strong> using Firebase's email verification template. They will need to click the link in the email to verify their address.
+                        {inviteResult.emailSent
+                            ? <>A verification email has been sent to <strong>{inviteResult.email}</strong>. They will need to click the link in the email to verify their address.</>
+                            : <>User <strong>{inviteResult.email}</strong> has been created. Share the verification link below so they can verify their email and log in.</>
+                        }
                     </p>
                     {inviteResult.user_id && (
                         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
-                            <span style={{ fontSize: 12, color: t.textMuted }}>Generated User ID:</span>
+                            <span style={{ fontSize: 12, color: t.textMuted }}>User ID:</span>
                             <span style={{ fontFamily: t.mono, fontSize: 13, fontWeight: 700, color: t.accent, background: isDark ? "rgba(255,255,255,0.08)" : "#F0F9FF", padding: "3px 10px", borderRadius: 6 }}>{inviteResult.user_id}</span>
                         </div>
                     )}
-                    {!inviteResult.emailSent && (
-                        <p style={{ fontSize: 12, color: "#F59E0B", marginBottom: 16, lineHeight: 1.5 }}>
-                            ⚠️ The verification email may not have been delivered. Please ask the user to check their spam folder or try re-sending the invite.
-                        </p>
+                    {inviteResult.link && (
+                        <>
+                            <p style={{ fontSize: 12, color: t.textMuted, marginBottom: 6 }}>Verification link:</p>
+                            <div style={{ background: isDark ? "rgba(255,255,255,0.05)" : "#F5F4F1", border: `1px solid ${t.surfaceBorder}`, borderRadius: 9, padding: "10px 14px", fontFamily: t.mono, fontSize: 12, wordBreak: "break-all", color: t.accent, marginBottom: 16 }}>
+                                {inviteResult.link}
+                            </div>
+                        </>
                     )}
                     <div style={{ display: "flex", gap: 10 }}>
-                        <button onClick={() => setInviteResult(null)} style={{ flex: 1, background: t.accentGrad, color: "#fff", border: "none", borderRadius: 9, padding: "10px 18px", fontSize: 13.5, fontWeight: 600, cursor: "pointer" }}>OK</button>
+                        {inviteResult.link && (
+                            <button onClick={() => { navigator.clipboard.writeText(inviteResult.link); }} style={{ flex: 1, background: t.accentGrad, color: "#fff", border: "none", borderRadius: 9, padding: "10px 18px", fontSize: 13.5, fontWeight: 600, cursor: "pointer" }}>Copy Link</button>
+                        )}
+                        <button onClick={() => setInviteResult(null)} style={{ flex: 1, background: isDark ? "rgba(255,255,255,0.08)" : "#F5F4F1", color: t.text, border: `1px solid ${t.border}`, borderRadius: 9, padding: "10px 18px", fontSize: 13.5, cursor: "pointer" }}>Close</button>
                     </div>
                 </div>
             </div>
