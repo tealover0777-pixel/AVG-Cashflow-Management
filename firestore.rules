@@ -64,6 +64,8 @@ service cloud.firestore {
     // Global user roles mapping
     match /user_roles/{userId} {
       allow read: if request.auth != null && request.auth.uid == userId;
+      allow update: if request.auth != null && request.auth.uid == userId
+         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'last_login', 'last_updated']);
       allow write: if isCompanySuperAdmin() || isTenantSuperUser(request.auth.token.tenantId);
     }
 
@@ -88,7 +90,9 @@ service cloud.firestore {
 
     // Rules for specific collections for a tenant_user.
     match /tenants/{tenantId}/users/{userId} {
-        allow read: if isTenantUser(tenantId) && request.auth.uid == userId;
+        allow read: if isTenantUser(tenantId) && (request.auth.uid == userId || resource.data.auth_uid == request.auth.uid);
+        allow update: if isTenantUser(tenantId) && resource.data.auth_uid == request.auth.uid
+           && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'last_login', 'last_updated', 'updated_at']);
     }
 
     match /tenants/{tenantId}/projects/{projectId} {
