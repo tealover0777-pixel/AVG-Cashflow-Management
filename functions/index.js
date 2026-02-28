@@ -295,35 +295,52 @@ exports.fixAllStatuses = functions.https.onCall(async (data, context) => {
   }
 
   const db = admin.firestore();
+  console.log(`Starting fixAllStatuses cleanup called by ${context.auth.token.email}...`);
   try {
     const batch = db.batch();
     let count = 0;
 
     // 1. Update global user_roles
     const rolesSnap = await db.collection('user_roles').get();
+    console.log(`Found ${rolesSnap.size} global user roles.`);
     for (const docSnap of rolesSnap.docs) {
       const d = docSnap.data();
-      if (d.email !== 'kyuahn@yahoo.com' && d.status === 'Pending') {
-        batch.update(docSnap.ref, { status: 'Active' });
+      const email = (d.email || "").toLowerCase();
+      // Exclude L2 Admin and only fix non-Active users
+      if (email !== 'kyuahn@yahoo.com' && d.status !== 'Active') {
+        console.log(`Activating global role for ${email} (current status: ${d.status || "none"})`);
+        batch.update(docSnap.ref, { status: 'Active', updated_at: admin.firestore.FieldValue.serverTimestamp() });
         count++;
       }
     }
 
     // 2. Update tenant-specific users
     const tenantsSnap = await db.collection('tenants').get();
+    console.log(`Found ${tenantsSnap.size} tenants to check.`);
     for (const tenantDoc of tenantsSnap.docs) {
       const usersSnap = await db.collection(`tenants/${tenantDoc.id}/users`).get();
-      for (const userDoc of usersSnap.docs) {
-        const d = userDoc.data();
-        if (d.email !== 'kyuahn@yahoo.com' && d.status === 'Pending') {
-          batch.update(userDoc.ref, { status: 'Active' });
-          count++;
+      if (!usersSnap.empty) {
+        console.log(`Checking ${usersSnap.size} users in tenant ${tenantDoc.id}`);
+        for (const userDoc of usersSnap.docs) {
+          const d = userDoc.data();
+          const email = (d.email || "").toLowerCase();
+          if (email !== 'kyuahn@yahoo.com' && d.status !== 'Active') {
+            console.log(`Activating tenant user for ${email} in tenant ${tenantDoc.id}`);
+            batch.update(userDoc.ref, { status: 'Active', updated_at: admin.firestore.FieldValue.serverTimestamp() });
+            count++;
+          }
         }
       }
     }
 
-    if (count > 0) await batch.commit();
-    return { success: true, count, message: `Updated ${count} users to Active status.` };
+    if (count > 0) {
+      await batch.commit();
+      console.log(`Successfully updated ${count} total records to Active.`);
+    } else {
+      console.log("No pending users found to update.");
+    }
+
+    return { success: true, count, message: `Updated ${count} user records to Active status.` };
   } catch (error) {
     console.error("Cleanup Error:", error);
     throw new functions.https.HttpsError('internal', error.message);
