@@ -308,8 +308,8 @@ exports.fixAllStatuses = functions.https.onCall(async (data, context) => {
       const email = (d.email || "").toLowerCase();
       const status = d.status || "MISSING";
       console.log(`DEBUG GLOBAL: id=${docSnap.id}, email=${email}, status=${status}`);
-      // Exclude L2 Admin and only fix non-Active users
-      if (email !== 'kyuahn@yahoo.com' && status !== 'Active') {
+      // No more exclusions — fix everything that isn't Active
+      if (status !== 'Active') {
         console.log(`DEBUG: MATCHED global user ${email}! Updating to Active.`);
         batch.update(docSnap.ref, { status: 'Active', updated_at: admin.firestore.FieldValue.serverTimestamp() });
         count++;
@@ -327,7 +327,7 @@ exports.fixAllStatuses = functions.https.onCall(async (data, context) => {
         const email = (d.email || "").toLowerCase();
         const status = d.status || "MISSING";
         console.log(`DEBUG TENANT ${tenantDoc.id}: id=${userDoc.id}, email=${email}, status=${status}`);
-        if (email !== 'kyuahn@yahoo.com' && status !== 'Active') {
+        if (status !== 'Active') {
           console.log(`DEBUG: MATCHED tenant user ${email}! Updating to Active.`);
           batch.update(userDoc.ref, { status: 'Active', updated_at: admin.firestore.FieldValue.serverTimestamp() });
           count++;
