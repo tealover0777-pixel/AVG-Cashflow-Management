@@ -283,3 +283,49 @@ exports.syncAuthUsers = functions.https.onRequest(async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
+
+
+/**
+ * One-time cleanup: Sets all 'Pending' users to 'Active' 
+ * (except kyuahn@yahoo.com).
+ */
+exports.fixAllStatuses = functions.https.onCall(async (data, context) => {
+  if (!context.auth) {
+    throw new functions.https.HttpsError('unauthenticated', 'Must be authenticated.');
+  }
+
+  const db = admin.firestore();
+  try {
+    const batch = db.batch();
+    let count = 0;
+
+    // 1. Update global user_roles
+    const rolesSnap = await db.collection('user_roles').get();
+    for (const docSnap of rolesSnap.docs) {
+      const d = docSnap.data();
+      if (d.email !== 'kyuahn@yahoo.com' && d.status === 'Pending') {
+        batch.update(docSnap.ref, { status: 'Active' });
+        count++;
+      }
+    }
+
+    // 2. Update tenant-specific users
+    const tenantsSnap = await db.collection('tenants').get();
+    for (const tenantDoc of tenantsSnap.docs) {
+      const usersSnap = await db.collection(`tenants/${tenantDoc.id}/users`).get();
+      for (const userDoc of usersSnap.docs) {
+        const d = userDoc.data();
+        if (d.email !== 'kyuahn@yahoo.com' && d.status === 'Pending') {
+          batch.update(userDoc.ref, { status: 'Active' });
+          count++;
+        }
+      }
+    }
+
+    if (count > 0) await batch.commit();
+    return { success: true, count, message: `Updated ${count} users to Active status.` };
+  } catch (error) {
+    console.error("Cleanup Error:", error);
+    throw new functions.https.HttpsError('internal', error.message);
+  }
+});

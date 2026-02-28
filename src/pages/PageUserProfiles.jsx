@@ -45,6 +45,7 @@ export default function PageUserProfiles({ t, isDark, USERS = [], ROLES = [], co
     const [sort, setSort] = useState({ key: null, direction: "asc" });
     const [page, setPage] = useState(1);
     const [inviting, setInviting] = useState(false);
+    const [fixing, setFixing] = useState(false);
     const [inviteResult, setInviteResult] = useState(null); // { link, email } or null
     const onSort = k => { setSort(s => ({ key: k, direction: s.key === k && s.direction === "asc" ? "desc" : "asc" })); setPage(1); };
 
@@ -108,6 +109,21 @@ export default function PageUserProfiles({ t, isDark, USERS = [], ROLES = [], co
             alert("Re-send failed: " + (err.message || "Unknown error"));
         } finally {
             setInviting(false);
+        }
+    };
+
+    const handleFixStatuses = async () => {
+        if (!confirm("This will set all 'Pending' users to 'Active' (except L2 Admin). Proceed?")) return;
+        setFixing(true);
+        try {
+            const fixFn = httpsCallable(functions, "fixAllStatuses");
+            const res = await fixFn();
+            alert(res.data.message || "Updated statuses successfully.");
+        } catch (err) {
+            console.error("Fix statuses error:", err);
+            alert("Failed to fix statuses: " + (err.message || "Unknown error"));
+        } finally {
+            setFixing(false);
         }
     };
 
@@ -218,7 +234,14 @@ export default function PageUserProfiles({ t, isDark, USERS = [], ROLES = [], co
                 <h1 style={{ fontFamily: t.titleFont, fontWeight: t.titleWeight, fontSize: t.titleSize, color: isDark ? "#fff" : "#1C1917", letterSpacing: t.titleTracking, lineHeight: 1, marginBottom: 6 }}>User Profiles</h1>
                 <p style={{ fontSize: 13.5, color: t.textMuted }}>Manage members of your tenant</p>
             </div>
-            {(canCreate || canInvite) && <button className="primary-btn" onClick={openInvite} style={{ background: t.accentGrad, color: "#fff", padding: "11px 22px", borderRadius: 11, fontSize: 13.5, fontWeight: 600, boxShadow: `0 4px 16px ${t.accentShadow}` }}>✉️ Invite User</button>}
+            <div style={{ display: "flex", gap: 12 }}>
+                {isSuperAdmin && (
+                    <button className="nav-item" onClick={handleFixStatuses} disabled={fixing} style={{ background: "none", border: `1px solid ${t.border}`, color: t.textSecondary, padding: "10px 16px", borderRadius: 10, fontSize: 13, cursor: "pointer" }}>
+                        {fixing ? "⏳ Fixing..." : "🔧 Fix All Statuses"}
+                    </button>
+                )}
+                {(canCreate || canInvite) && <button className="primary-btn" onClick={openInvite} style={{ background: t.accentGrad, color: "#fff", padding: "11px 22px", borderRadius: 11, fontSize: 13.5, fontWeight: 600, boxShadow: `0 4px 16px ${t.accentShadow}` }}>✉️ Invite User</button>}
+            </div>
         </div>
 
         <div style={{ background: t.surface, borderRadius: 16, border: `1px solid ${t.surfaceBorder}`, overflow: "auto", backdropFilter: isDark ? "blur(20px)" : "none" }}>
