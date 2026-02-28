@@ -287,8 +287,8 @@ function AppContent() {
               <div style={{ fontSize: isDark ? 11 : 12, fontWeight: isDark ? 500 : 700, color: isDark ? "rgba(255,255,255,0.9)" : "#292524", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                 {(profile?.user_name || profile?.name) ? `${profile?.user_name || profile?.name} (${user.email})` : user.email}
               </div>
-              <div style={{ fontSize: 10, color: t.textMuted }}>
-                {profile?.role?.replace(/_/g, " ")}{profile?.roleName && profile?.roleName !== profile?.role ? ` - ${profile?.roleName}` : ""}
+              <div style={{ fontSize: 10, color: t.textMuted, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                {profile?.role}{profile?.roleName ? ` - ${profile?.roleName}` : ""}
               </div>
             </div>
             <div onClick={logout} style={{ fontSize: 16, color: "#F87171", cursor: "pointer" }}>⎋</div>
