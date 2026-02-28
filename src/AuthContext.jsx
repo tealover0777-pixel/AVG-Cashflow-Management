@@ -69,37 +69,42 @@ export function AuthProvider({ children }) {
 
                     // 4. Determine applied permissions
                     let userPermissions = [];
-                    // Check if role exists in DB overrides (tenants/{tenant}/roles)
-                    if (tenantId && role) {
+                    // Roles are stored in the global 'userRoles' collection (as per utils.jsx)
+                    if (role) {
                         try {
-                            // Check precise match first (e.g. "R10004")
-                            const exactRoleDoc = await getDoc(doc(db, `tenants/${tenantId}/roles`, role));
+                            // 4a. Check global roles first (e.g. "R10004")
+                            const globalRoleDoc = await getDoc(doc(db, "userRoles", role));
 
-                            if (exactRoleDoc.exists()) {
-                                const roleData = exactRoleDoc.data();
-                                // UNIFIED PARSING: handle string or array
-                                if (Array.isArray(roleData.permissions)) {
-                                    userPermissions = roleData.permissions;
-                                } else if (Array.isArray(roleData.Permission)) {
-                                    userPermissions = roleData.Permission;
-                                } else if (typeof roleData.Permission === "string") {
-                                    userPermissions = roleData.Permission.split(",").map(p => p.trim()).filter(Boolean);
-                                } else if (typeof roleData.permissions === "string") {
-                                    userPermissions = roleData.permissions.split(",").map(p => p.trim()).filter(Boolean);
+                            // 4b. Fallback: Check tenant-specific roles just in case
+                            let roleData = null;
+                            if (globalRoleDoc.exists()) {
+                                roleData = globalRoleDoc.data();
+                            } else if (tenantId) {
+                                const tenantRoleDoc = await getDoc(doc(db, `tenants/${tenantId}/roles`, role));
+                                if (tenantRoleDoc.exists()) {
+                                    roleData = tenantRoleDoc.data();
+                                }
+                            }
+
+                            if (roleData) {
+                                // UNIFIED PARSING: handle string or array from both legacy and new fields
+                                const rawPerms = roleData.Permission || roleData.permissions || [];
+                                if (Array.isArray(rawPerms)) {
+                                    userPermissions = rawPerms;
+                                } else if (typeof rawPerms === "string") {
+                                    userPermissions = rawPerms.split(",").map(p => p.trim()).filter(Boolean);
                                 }
                             } else {
-                                // Fallback to hardcoded defaults
+                                // 4c. Fallback to hardcoded defaults in permissions.js
                                 userPermissions = DEFAULT_ROLE_PERMISSIONS[role] || [];
                             }
                         } catch (err) {
                             console.error("Failed to fetch custom role profile:", err);
                             userPermissions = DEFAULT_ROLE_PERMISSIONS[role] || [];
                         }
-                    } else if (role) {
-                        userPermissions = DEFAULT_ROLE_PERMISSIONS[role] || [];
                     }
 
-                    // Special: L2 Admin gets full access if derived from email
+                    // 4d. Special: L2 Admin gets full access if derived from email (Hidden Super Admin)
                     if (role === "L2 Admin") {
                         userPermissions = [...DEFAULT_ROLE_PERMISSIONS["L2 Admin"]];
                     }
