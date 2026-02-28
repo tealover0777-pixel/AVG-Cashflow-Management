@@ -133,61 +133,16 @@ exports.inviteUser = functions.https.onCall(async (data, context) => {
     }
 
     // 6. Generate email verification link and attempt to send email
-    const API_KEY = 'AIzaSyAD8G1WvI0SniOw5qvt_RrYIy5PkhF01Js';
-
-    // Always generate the link (reliable fallback)
-    const link = await admin.auth().generateEmailVerificationLink(email);
-
-    // Attempt to send verification email via REST API
-    let emailSent = false;
-    try {
-      console.log(`Generating custom token for ${uid}...`);
-      const customToken = await admin.auth().createCustomToken(uid);
-
-      console.log(`Exchanging custom token for ID token...`);
-      const signInRes = await fetch(
-        `https://identitytoolkit.googleapis.com/v1/accounts:signInWithCustomToken?key=${API_KEY}`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ token: customToken, returnSecureToken: true })
-        }
-      );
-      const signInData = await signInRes.json();
-
-      if (signInData.idToken) {
-        console.log(`Sending verification email for ${email}...`);
-        const sendRes = await fetch(
-          `https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode?key=${API_KEY}`,
-          {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ requestType: 'VERIFY_EMAIL', idToken: signInData.idToken })
-          }
-        );
-        const sendData = await sendRes.json();
-        emailSent = !sendData.error;
-        if (sendData.error) {
-          console.error('sendOobCode REST error:', JSON.stringify(sendData.error));
-        } else {
-          console.log(`Verification email sent successfully to ${email}`);
-        }
-      } else {
-        console.error('Custom token exchange failed REST response:', JSON.stringify(signInData));
-      }
-    } catch (emailErr) {
-      console.error('Email send attempt failed with exception:', emailErr);
-    }
+    // 6. Generate password reset link (better for onboarding than verification)
+    const link = await admin.auth().generatePasswordResetLink(email);
 
     return {
       success: true,
       link,
-      emailSent,
+      emailSent: false, // We'll rely on the link display for now since API is rate-limited
       isNewUser,
       user_id,
-      message: emailSent
-        ? `Verification email sent to ${email}.`
-        : `User created. Email could not be sent automatically — share the link manually.`
+      message: `User created. Share the link below so they can set their password and log in.`
     };
 
   } catch (error) {
@@ -213,51 +168,8 @@ exports.resendVerification = functions.https.onCall(async (data, context) => {
   try {
     const userRecord = await admin.auth().getUserByEmail(email);
     const uid = userRecord.uid;
-    const API_KEY = 'AIzaSyAD8G1WvI0SniOw5qvt_RrYIy5PkhF01Js';
-
-    const link = await admin.auth().generateEmailVerificationLink(email);
-
-    let emailSent = false;
-    try {
-      console.log(`Generating custom token for ${uid}...`);
-      const customToken = await admin.auth().createCustomToken(uid);
-
-      console.log(`Exchanging custom token for ID token...`);
-      const signInRes = await fetch(
-        `https://identitytoolkit.googleapis.com/v1/accounts:signInWithCustomToken?key=${API_KEY}`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ token: customToken, returnSecureToken: true })
-        }
-      );
-      const signInData = await signInRes.json();
-
-      if (signInData.idToken) {
-        console.log(`Sending verification email for ${email}...`);
-        const sendRes = await fetch(
-          `https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode?key=${API_KEY}`,
-          {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ requestType: 'VERIFY_EMAIL', idToken: signInData.idToken })
-          }
-        );
-        const sendData = await sendRes.json();
-        emailSent = !sendData.error;
-        if (sendData.error) {
-          console.error('sendOobCode REST error:', JSON.stringify(sendData.error));
-        } else {
-          console.log(`Verification email sent successfully to ${email}`);
-        }
-      } else {
-        console.error('Custom token exchange failed REST response:', JSON.stringify(signInData));
-      }
-    } catch (emailErr) {
-      console.error('Email send attempt failed with exception:', emailErr);
-    }
-
-    return { success: true, link, emailSent };
+    const link = await admin.auth().generatePasswordResetLink(email);
+    return { success: true, link, emailSent: false };
   } catch (error) {
     console.error("Resend Verification Error:", error);
     const msg = error.code === 'auth/user-not-found'
