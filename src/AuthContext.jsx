@@ -87,6 +87,9 @@ export function AuthProvider({ children }) {
                             }
 
                             if (roleData) {
+                                // Store the display name of the role
+                                fetchedProfile.roleName = roleData.role_name || roleData.name || role;
+
                                 // UNIFIED PARSING: handle string or array from both legacy and new fields
                                 const rawPerms = roleData.Permission || roleData.permissions || [];
                                 if (Array.isArray(rawPerms)) {
@@ -97,16 +100,19 @@ export function AuthProvider({ children }) {
                             } else {
                                 // 4c. Fallback to hardcoded defaults in permissions.js
                                 userPermissions = DEFAULT_ROLE_PERMISSIONS[role] || [];
+                                fetchedProfile.roleName = role;
                             }
                         } catch (err) {
                             console.error("Failed to fetch custom role profile:", err);
                             userPermissions = DEFAULT_ROLE_PERMISSIONS[role] || [];
+                            fetchedProfile.roleName = role;
                         }
                     }
 
                     // 4d. Special: L2 Admin gets full access if derived from email (Hidden Super Admin)
                     if (role === "L2 Admin") {
                         userPermissions = [...DEFAULT_ROLE_PERMISSIONS["L2 Admin"]];
+                        fetchedProfile.roleName = "L2 Admin";
                     }
 
                     // 5. Auto-activate "Pending" users on first login

@@ -284,8 +284,12 @@ function AppContent() {
               {(profile?.name || user.email || "A").charAt(0).toUpperCase()}
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: isDark ? 12 : 13, fontWeight: isDark ? 500 : 600, color: isDark ? "rgba(255,255,255,0.8)" : "#292524", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{profile?.name || user.email}</div>
-              <div style={{ fontSize: 10, color: t.textMuted }}>{profile?.role?.replace(/_/g, " ")}</div>
+              <div style={{ fontSize: isDark ? 11 : 12, fontWeight: isDark ? 500 : 700, color: isDark ? "rgba(255,255,255,0.9)" : "#292524", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                {(profile?.user_name || profile?.name) ? `${profile?.user_name || profile?.name} (${user.email})` : user.email}
+              </div>
+              <div style={{ fontSize: 10, color: t.textMuted }}>
+                {profile?.role?.replace(/_/g, " ")}{profile?.roleName && profile?.roleName !== profile?.role ? ` - ${profile?.roleName}` : ""}
+              </div>
             </div>
             <div onClick={logout} style={{ fontSize: 16, color: "#F87171", cursor: "pointer" }}>⎋</div>
           </div>
@@ -326,7 +330,10 @@ function AppContent() {
             )}
           </div>
           <div style={{ display: "flex", gap: 16, fontSize: 12.5, alignItems: "center" }}>
-            <span style={{ color: t.textSecondary, cursor: "pointer" }} onClick={() => setActivePage("Profile")}>Profile</span>
+            <span style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer" }} onClick={() => setActivePage("Profile")}>
+              <span style={{ color: t.text, fontWeight: 500 }}>{profile?.user_name || profile?.name || user.email}</span>
+              <span style={{ color: t.textSecondary }}>Profile</span>
+            </span>
             <button className="theme-toggle" onClick={() => setIsDark(!isDark)}
               style={{ background: isDark ? "rgba(52,211,153,0.1)" : "#EEF2FF", color: isDark ? "#34D399" : "#4F46E5", border: `1px solid ${isDark ? "rgba(52,211,153,0.25)" : "#C7D2FE"}`, padding: "4px 12px", borderRadius: 6, fontSize: 12, fontWeight: 500, display: "flex", alignItems: "center", gap: 5 }}>
               {isDark ? "☀ Light" : "☽ Dark"}
