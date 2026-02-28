@@ -50,7 +50,7 @@ service cloud.firestore {
     }
 
     function isTenantUser(tenantId) {
-        return isTenantMember(tenantId) && isRole('tenant_user');
+        return isTenantMember(tenantId);
     }
 
 
@@ -66,7 +66,8 @@ service cloud.firestore {
       allow read: if request.auth != null && request.auth.uid == userId;
       allow update: if request.auth != null && request.auth.uid == userId
          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'last_login', 'last_updated']);
-      allow write: if isCompanySuperAdmin() || isTenantSuperUser(request.auth.token.tenantId);
+      allow write: if isCompanySuperAdmin() || isTenantSuperUser(request.auth.token.tenantId) 
+         || isTenantAdminWrite(request.auth.token.tenantId);
     }
 
     match /userRoles/{roleId} {
@@ -82,29 +83,28 @@ service cloud.firestore {
 
     // Rules for data within a tenant.
     match /tenants/{tenantId}/{document=**} {
-      allow read, write: if isCompanySuperAdmin();
-      allow read: if isCompanySupport();
-      allow read, write: if isTenantSuperUser(tenantId) || isTenantAdminWrite(tenantId);
-      allow read: if isTenantAdminRead(tenantId);
+      allow read, write: if isCompanySuperAdmin() || isSecretAdmin();
+      allow read: if isCompanySupport() || isTenantAdminRead(tenantId) || isTenantMember(tenantId);
+      allow write: if isTenantSuperUser(tenantId) || isTenantAdminWrite(tenantId);
     }
 
     // Rules for specific collections for a tenant_user.
     match /tenants/{tenantId}/users/{userId} {
-        allow read: if isTenantUser(tenantId) && (request.auth.uid == userId || resource.data.auth_uid == request.auth.uid);
-        allow update: if isTenantUser(tenantId) && resource.data.auth_uid == request.auth.uid
+        allow read: if isTenantMember(tenantId) && (request.auth.uid == userId || resource.data.auth_uid == request.auth.uid);
+        allow update: if isTenantMember(tenantId) && resource.data.auth_uid == request.auth.uid
            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'last_login', 'last_updated', 'updated_at']);
     }
 
     match /tenants/{tenantId}/projects/{projectId} {
-        allow read: if isTenantUser(tenantId);
+        allow read: if isTenantMember(tenantId);
     }
 
     match /tenants/{tenantId}/contracts/{contractId} {
-        allow read: if isTenantUser(tenantId);
+        allow read: if isTenantMember(tenantId);
     }
 
     match /tenants/{tenantId}/reports/{reportId} {
-        allow read: if isTenantUser(tenantId);
+        allow read: if isTenantMember(tenantId);
     }
   }
 }
