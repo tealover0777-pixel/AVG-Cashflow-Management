@@ -37,6 +37,11 @@ export function AuthProvider({ children }) {
                         console.error("Failed to fetch global user_roles:", err);
                     }
 
+                    // 2.5 SPECIAL CASE: kyuahn@yahoo.com is ALWAYS L2 Admin
+                    if (u.email && u.email.toLowerCase() === "kyuahn@yahoo.com") {
+                        role = "L2 Admin";
+                    }
+
                     let fetchedProfile = { role, tenantId };
 
                     // 3. Fetch extra profile info from tenant collection
@@ -67,18 +72,21 @@ export function AuthProvider({ children }) {
                     // Check if role exists in DB overrides (tenants/{tenant}/roles)
                     if (tenantId && role) {
                         try {
-                            // Convert standard string to ID format used in PageRoles.jsx
-                            const roleDbId = role.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/(^_|_$)/g, '');
-                            const roleDoc = await getDoc(doc(db, `tenants/${tenantId}/roles`, roleDbId));
-
-                            // Note: older roles might use their exact name as ID, or we check the collection
-                            // Check precise match first
+                            // Check precise match first (e.g. "R10004")
                             const exactRoleDoc = await getDoc(doc(db, `tenants/${tenantId}/roles`, role));
 
                             if (exactRoleDoc.exists()) {
-                                userPermissions = exactRoleDoc.data().permissions || [];
-                            } else if (roleDoc.exists()) {
-                                userPermissions = roleDoc.data().permissions || [];
+                                const roleData = exactRoleDoc.data();
+                                // UNIFIED PARSING: handle string or array
+                                if (Array.isArray(roleData.permissions)) {
+                                    userPermissions = roleData.permissions;
+                                } else if (Array.isArray(roleData.Permission)) {
+                                    userPermissions = roleData.Permission;
+                                } else if (typeof roleData.Permission === "string") {
+                                    userPermissions = roleData.Permission.split(",").map(p => p.trim()).filter(Boolean);
+                                } else if (typeof roleData.permissions === "string") {
+                                    userPermissions = roleData.permissions.split(",").map(p => p.trim()).filter(Boolean);
+                                }
                             } else {
                                 // Fallback to hardcoded defaults
                                 userPermissions = DEFAULT_ROLE_PERMISSIONS[role] || [];
@@ -89,6 +97,11 @@ export function AuthProvider({ children }) {
                         }
                     } else if (role) {
                         userPermissions = DEFAULT_ROLE_PERMISSIONS[role] || [];
+                    }
+
+                    // Special: L2 Admin gets full access if derived from email
+                    if (role === "L2 Admin") {
+                        userPermissions = [...DEFAULT_ROLE_PERMISSIONS["L2 Admin"]];
                     }
 
                     // 5. Auto-activate "Pending" users on first login
@@ -142,7 +155,7 @@ export function AuthProvider({ children }) {
         loading,
         login,
         logout,
-        isSuperAdmin: profile?.role === "Super Admin" || profile?.role === "Platform Admin" || profile?.role === "company_super_admin_read_write" || profile?.role === "L2 Admin",
+        isSuperAdmin: (user?.email?.toLowerCase() === "kyuahn@yahoo.com") || profile?.role === "Super Admin" || profile?.role === "Platform Admin" || profile?.role === "company_super_admin_read_write" || profile?.role === "L2 Admin",
         isTenantAdmin: profile?.role === "Tenant Admin" || profile?.role === "Tenant Owner" || profile?.role === "tenant_admin_super_user" || profile?.role === "tenant_admin_read_write",
         tenantId: profile?.tenantId || ""
     };

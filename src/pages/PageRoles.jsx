@@ -44,6 +44,7 @@ export default function PageRoles({ t, isDark, collectionPath = "", DIMENSIONS =
             role_id: d.role_id || "",
             role_name: d.role_name,
             Permission: (d.selectedPerms || []).join(", "),
+            permissions: d.selectedPerms || [], // Save as array too!
             updated_at: serverTimestamp(),
         };
         try {
