@@ -88,7 +88,7 @@ export function AuthProvider({ children }) {
 
                             if (roleData) {
                                 // Store the display name of the role
-                                fetchedProfile.roleName = roleData.role_name || roleData.name || role;
+                                fetchedProfile.roleName = roleData.role_name || roleData.name || fetchedProfile.role_name || role;
 
                                 // UNIFIED PARSING: handle string or array from both legacy and new fields
                                 const rawPerms = roleData.Permission || roleData.permissions || [];
@@ -100,12 +100,12 @@ export function AuthProvider({ children }) {
                             } else {
                                 // 4c. Fallback to hardcoded defaults in permissions.js
                                 userPermissions = DEFAULT_ROLE_PERMISSIONS[role] || [];
-                                fetchedProfile.roleName = role;
+                                fetchedProfile.roleName = fetchedProfile.role_name || role;
                             }
                         } catch (err) {
                             console.error("Failed to fetch custom role profile:", err);
                             userPermissions = DEFAULT_ROLE_PERMISSIONS[role] || [];
-                            fetchedProfile.roleName = role;
+                            fetchedProfile.roleName = fetchedProfile.role_name || role;
                         }
                     }
 
