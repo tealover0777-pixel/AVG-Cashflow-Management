@@ -75,7 +75,7 @@ service cloud.firestore {
     match /global_users/{docId} {
       allow read: if request.auth != null;
       allow update: if request.auth != null && request.auth.uid == docId
-         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'last_login', 'last_updated']);
+         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['user_name', 'phone', 'status', 'last_login', 'last_updated']);
       allow write: if isSecretAdmin() || isGlobalRole() || isCompanySuperAdmin() || isTenantSuperUser(request.auth.token.tenantId)
          || isTenantAdminWrite(request.auth.token.tenantId);
     }

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { db, auth } from "../firebase";
-import { updateDoc, serverTimestamp, collection, query, where, getDocs } from "firebase/firestore";
+import { doc, setDoc, updateDoc, serverTimestamp, collection, query, where, getDocs } from "firebase/firestore";
 import { sendPasswordResetEmail } from "firebase/auth";
 import { useAuth } from "../AuthContext";
 import { FF, FIn } from "../components";
@@ -40,9 +40,19 @@ export default function PageProfile({ t, isDark, setIsDark, ROLES = [], collecti
     const handleSave = async () => {
         setSaving(true);
         try {
-            const path = collectionPath || `tenants/${tenantId}/users`;
             const uid = user?.uid;
-            if (uid && path) {
+            if (!uid) return;
+
+            // 1. Update global_users record (Primary for all users)
+            await setDoc(doc(db, "global_users", uid), {
+                user_name: data.name || "",
+                phone: data.phone || "",
+                last_updated: serverTimestamp(),
+            }, { merge: true });
+
+            // 2. Update tenant-specific user doc (Sync if exists)
+            const path = collectionPath || (tenantId ? `tenants/${tenantId}/users` : null);
+            if (path) {
                 const q = query(collection(db, path), where("auth_uid", "==", uid));
                 const snap = await getDocs(q);
                 if (!snap.empty) {

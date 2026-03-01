@@ -16,144 +16,115 @@ export function AuthProvider({ children }) {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        const unsub = onAuthStateChanged(auth, async (u) => {
-            setLoading(true);
-            try {
-                if (u) {
-                    setUser(u);
-                    // 1. Force token refresh to pick up latest custom claims, then read them
-                    await u.getIdToken(true);
-                    const idToken = await u.getIdTokenResult();
-                    let role = idToken.claims.role || "tenant_user";
-                    let tenantId = idToken.claims.tenantId || "";
+        let profileUnsub = null;
+        let tenantUnsub = null;
 
-                    // 2. Fetch authoritative mapping from global global_users collection
+        const authUnsub = onAuthStateChanged(auth, async (u) => {
+            if (profileUnsub) profileUnsub();
+            if (tenantUnsub) tenantUnsub();
+
+            if (!u) {
+                setUser(null);
+                setProfile(null);
+                setPermissions([]);
+                setLoading(false);
+                return;
+            }
+
+            setUser(u);
+            setLoading(true);
+
+            try {
+                // 1. Force token refresh to pick up latest custom claims
+                await u.getIdToken(true);
+                const idToken = await u.getIdTokenResult();
+                let initialRole = idToken.claims.role || "tenant_user";
+                let initialTenantId = idToken.claims.tenantId || "";
+
+                // 2. Setup real-time listener for global_users profile
+                profileUnsub = onSnapshot(doc(db, "global_users", u.uid), async (snap) => {
+                    let fetchedProfile = { auth_uid: u.uid, email: u.email, role: initialRole, tenantId: initialTenantId };
                     let globalData = {};
+
+                    if (snap.exists()) {
+                        globalData = snap.data();
+                        fetchedProfile = { ...fetchedProfile, ...globalData };
+                    }
+
+                    // Kyuahn is always Super Admin
+                    if (u.email && u.email.toLowerCase() === "kyuahn@yahoo.com") {
+                        fetchedProfile.role = "L2 Admin";
+                    }
+
+                    const role = fetchedProfile.role;
+                    const tenantId = fetchedProfile.tenantId || fetchedProfile.tenant_id || "";
+
+                    // Fetch role permissions and display name
+                    let userPermissions = [];
                     try {
-                        const globalRoleDoc = await getDoc(doc(db, `global_users`, u.uid));
-                        if (globalRoleDoc.exists()) {
-                            globalData = globalRoleDoc.data();
-                            role = globalData.role || role;
-                            tenantId = globalData.tenantId || globalData.tenant_id || globalData.Tenant_ID || tenantId;
+                        const roleDoc = await getDoc(doc(db, "role_types", role));
+                        let roleData = roleDoc.exists() ? roleDoc.data() : null;
+
+                        if (!roleData && tenantId) {
+                            const tRoleDoc = await getDoc(doc(db, `tenants/${tenantId}/roles`, role));
+                            if (tRoleDoc.exists()) roleData = tRoleDoc.data();
+                        }
+
+                        if (roleData) {
+                            fetchedProfile.roleName = roleData.role_name || roleData.name || role;
+                            if (roleData.IsGlobal) fetchedProfile.isGlobalRole = true;
+                            const rawPerms = roleData.Permissions || roleData.Permission || roleData.permissions || [];
+                            userPermissions = Array.isArray(rawPerms) ? rawPerms : (typeof rawPerms === "string" ? rawPerms.split(",").map(p => p.trim()).filter(Boolean) : []);
+                        } else {
+                            userPermissions = DEFAULT_ROLE_PERMISSIONS[role] || [];
+                            fetchedProfile.roleName = role;
                         }
                     } catch (err) {
-                        console.error("Failed to fetch global_users:", err);
+                        console.error("Role fetch error:", err);
+                        userPermissions = DEFAULT_ROLE_PERMISSIONS[role] || [];
                     }
 
-                    // 2.5 SPECIAL CASE: kyuahn@yahoo.com is ALWAYS L2 Admin
-                    if (u.email && u.email.toLowerCase() === "kyuahn@yahoo.com") {
-                        role = "L2 Admin";
-                    }
-
-                    let fetchedProfile = { ...globalData, role, tenantId, status: globalData.status || "Pending" };
-
-                    // 3. Fetch extra profile info from tenant collection
-                    // Docs are now named by user_id (U10001), so we query by auth_uid field
-                    if (tenantId) {
-                        try {
-                            const q = query(
-                                collection(db, `tenants/${tenantId}/users`),
-                                where("auth_uid", "==", u.uid)
-                            );
-                            const snap = await getDocs(q);
-                            if (!snap.empty) {
-                                fetchedProfile = { ...fetchedProfile, ...snap.docs[0].data() };
-                            } else {
-                                // Fallback: try direct fetch by uid (legacy docs stored with auth uid as doc id)
-                                const profDoc = await getDoc(doc(db, `tenants/${tenantId}/users`, u.uid));
-                                if (profDoc.exists()) {
-                                    fetchedProfile = { ...fetchedProfile, ...profDoc.data() };
-                                }
-                            }
-                        } catch (err) {
-                            console.error("Failed to fetch tenant profile:", err);
-                        }
-                    }
-
-                    // 4. Determine applied permissions
-                    let userPermissions = [];
-                    // Role definitions are stored in the global 'role_types' collection
-                    if (role) {
-                        try {
-                            // 4a. Check global roles first (e.g. "R10004")
-                            const globalRoleDoc = await getDoc(doc(db, "role_types", role));
-
-                            // 4b. Fallback: Check tenant-specific roles just in case
-                            let roleData = null;
-                            if (globalRoleDoc.exists()) {
-                                roleData = globalRoleDoc.data();
-                            } else if (tenantId) {
-                                const tenantRoleDoc = await getDoc(doc(db, `tenants/${tenantId}/roles`, role));
-                                if (tenantRoleDoc.exists()) {
-                                    roleData = tenantRoleDoc.data();
-                                }
-                            }
-
-                            if (roleData) {
-                                // Store the display name of the role
-                                fetchedProfile.roleName = roleData.role_name || roleData.name || fetchedProfile.role_name || role;
-
-                                // Check if role has global access (IsGlobal flag in role_types)
-                                if (roleData.IsGlobal === true) {
-                                    fetchedProfile.isGlobalRole = true;
-                                }
-
-                                // UNIFIED PARSING: handle string or array from both legacy and new fields
-                                const rawPerms = roleData.Permissions || roleData.Permission || roleData.permissions || [];
-                                if (Array.isArray(rawPerms)) {
-                                    userPermissions = rawPerms;
-                                } else if (typeof rawPerms === "string") {
-                                    userPermissions = rawPerms.split(",").map(p => p.trim()).filter(Boolean);
-                                }
-                            } else {
-                                // 4c. Fallback to hardcoded defaults in permissions.js
-                                userPermissions = DEFAULT_ROLE_PERMISSIONS[role] || [];
-                                fetchedProfile.roleName = fetchedProfile.role_name || role;
-                            }
-                        } catch (err) {
-                            console.error("Failed to fetch custom role profile:", err);
-                            userPermissions = DEFAULT_ROLE_PERMISSIONS[role] || [];
-                            fetchedProfile.roleName = fetchedProfile.role_name || role;
-                        }
-                    }
-
-                    // 4d. Special: L2 Admin gets full access if derived from email (Hidden Super Admin)
                     if (role === "L2 Admin") {
                         userPermissions = [...DEFAULT_ROLE_PERMISSIONS["L2 Admin"]];
                         fetchedProfile.roleName = "L2 Admin";
                         fetchedProfile.isGlobalRole = true;
                     }
 
-                    // 5. Auto-activate "Pending" users on first login
-                    if (!fetchedProfile.status || fetchedProfile.status === "Pending") {
-                        console.log("[AuthContext] User status is Pending/missing, calling activateUser...");
+                    // Auto-activate if pending
+                    if (fetchedProfile.status === "Pending" || !fetchedProfile.status) {
                         try {
                             const activateFn = httpsCallable(functions, "activateUser");
                             await activateFn();
                             fetchedProfile.status = "Active";
-                            console.log("[AuthContext] User activated successfully.");
-                        } catch (err) {
-                            console.error("[AuthContext] activateUser failed:", err.code, err.message);
-                        }
+                        } catch (e) { console.error("Activation error:", e); }
+                    }
+
+                    // Sync with tenant-specific profile if it exists
+                    if (tenantId && !tenantUnsub) {
+                        const q = query(collection(db, `tenants/${tenantId}/users`), where("auth_uid", "==", u.uid));
+                        tenantUnsub = onSnapshot(q, (tSnap) => {
+                            if (!tSnap.empty) {
+                                setProfile(prev => ({ ...prev, ...tSnap.docs[0].data() }));
+                            }
+                        });
                     }
 
                     setProfile(fetchedProfile);
                     setPermissions(userPermissions);
-                } else {
-                    setUser(null);
-                    setProfile(null);
-                    setPermissions([]);
-                }
+                    setLoading(false);
+                });
+
             } catch (err) {
-                console.error("Auth state change error:", err);
-                setUser(null);
-                setProfile(null);
-                setPermissions([]);
-            } finally {
+                console.error("Auth initialization error:", err);
                 setLoading(false);
             }
         });
-        return unsub;
+
+        return () => {
+            authUnsub();
+            if (profileUnsub) profileUnsub();
+            if (tenantUnsub) tenantUnsub();
+        };
     }, []);
 
     const login = (email, password) => signInWithEmailAndPassword(auth, email, password);
