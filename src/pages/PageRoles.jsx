@@ -60,7 +60,7 @@ export default function PageRoles({ t, isDark, collectionPath = "", DIMENSIONS =
     const cols = [
         { l: "ROLE ID", w: "120px", k: "role_id" },
         { l: "ROLE NAME", w: "200px", k: "role_name" },
-        { l: "PERMISSIONS", w: "1fr", k: "Permission" },
+        { l: "PERMISSIONS", w: "0.15fr", k: "Permission" },
         { l: "ACTIONS", w: "80px" }
     ];
     const { gridTemplate, headerRef, onResizeStart } = useResizableColumns(cols);
