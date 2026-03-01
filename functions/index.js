@@ -348,3 +348,70 @@ exports.fixAllStatuses = functions.https.onCall(async (data, context) => {
     throw new functions.https.HttpsError('internal', error.message);
   }
 });
+
+/**
+ * Updates a user's tenant ID.
+ * 1. Checks if the caller is a Super Admin.
+ * 2. Updates Custom Claims in Firebase Auth.
+ * 3. Updates Global Profile (user_roles).
+ * 4. Moves the Tenant Profile to the new tenant's users collection.
+ */
+exports.updateUserTenant = functions.https.onCall(async (data, context) => {
+  if (!context.auth) {
+    throw new functions.https.HttpsError('unauthenticated', 'Must be authenticated.');
+  }
+
+  const { uid, email, newTenantId, oldTenantId, role, user_id, user_name, phone, notes } = data;
+  if (!uid || !email || !newTenantId) {
+    throw new functions.https.HttpsError('invalid-argument', 'Missing required fields: uid, email, newTenantId.');
+  }
+
+  const db = admin.firestore();
+
+  try {
+    // 1. Verify Super Admin status (caller)
+    const callerClaims = context.auth.token;
+    const isSuperAdmin = callerClaims.email === "kyuahn@yahoo.com" || callerClaims.role === "Super Admin" || callerClaims.role === "L2 Admin";
+    if (!isSuperAdmin) {
+      throw new functions.https.HttpsError('permission-denied', 'Only Super Admins can change user tenants.');
+    }
+
+    // 2. Set Custom Claims in Firebase Auth
+    await admin.auth().setCustomUserClaims(uid, { role, tenantId: newTenantId });
+
+    // 3. Update Global Profile (user_roles)
+    await db.collection('user_roles').doc(uid).set({
+      tenantId: newTenantId,
+      role: role,
+      last_updated: admin.firestore.FieldValue.serverTimestamp()
+    }, { merge: true });
+
+    // 4. Move Tenant Profile
+    if (user_id) {
+      // 4a. Read existing profile if not fully provided (though UI should provide it)
+      let profileData = { user_id, user_name, email, role_id: role, phone, notes, auth_uid: uid };
+
+      if (oldTenantId && oldTenantId !== newTenantId) {
+        // Optionally read from old location if data is missing
+        const oldDoc = await db.doc(`tenants/${oldTenantId}/users/${user_id}`).get();
+        if (oldDoc.exists()) {
+          profileData = { ...oldDoc.data(), ...profileData, tenantId: newTenantId };
+          // Delete from old location
+          await db.doc(`tenants/${oldTenantId}/users/${user_id}`).delete();
+        }
+      }
+
+      // 4b. Write to new location
+      await db.doc(`tenants/${newTenantId}/users/${user_id}`).set({
+        ...profileData,
+        tenantId: newTenantId,
+        updated_at: admin.firestore.FieldValue.serverTimestamp()
+      }, { merge: true });
+    }
+
+    return { success: true, message: `Successfully moved user ${email} to tenant ${newTenantId}.` };
+  } catch (error) {
+    console.error("Update User Tenant Error:", error);
+    throw new functions.https.HttpsError('internal', error.message);
+  }
+});

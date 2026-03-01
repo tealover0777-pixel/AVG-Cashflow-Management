@@ -45,6 +45,7 @@ export default function PageUserProfiles({ t, isDark, USERS = [], ROLES = [], co
     const [sort, setSort] = useState({ key: null, direction: "asc" });
     const [page, setPage] = useState(1);
     const [inviting, setInviting] = useState(false);
+    const [saving, setSaving] = useState(false);
     const [fixing, setFixing] = useState(false);
     const [inviteResult, setInviteResult] = useState(null); // { link, email } or null
     const onSort = k => { setSort(s => ({ key: k, direction: s.key === k && s.direction === "asc" ? "desc" : "asc" })); setPage(1); };
@@ -63,7 +64,10 @@ export default function PageUserProfiles({ t, isDark, USERS = [], ROLES = [], co
     })();
 
     const openInvite = () => setModal({ open: true, mode: "invite", data: { email: "", role_id: "", user_name: "" } });
-    const openEdit = r => setModal({ open: true, mode: "edit", data: { ...r, role_id: r.role_id || "" } });
+    const openEdit = r => {
+        const tid = r.tenantId || r.tenant_id || r.Tenant_ID || tenantId;
+        setModal({ open: true, mode: "edit", data: { ...r, role_id: r.role_id || "", tenantId: tid, _origTenantId: tid } });
+    };
     const openResendInvite = r => setModal({ open: true, mode: "resend", data: { email: r.email, role_id: r.role_id || "", user_name: r.user_name || "", phone: r.phone || "", notes: r.notes || "", user_id: r.user_id || "" } });
     const close = () => setModal(m => ({ ...m, open: false }));
     const setF = (k, v) => setModal(m => ({ ...m, data: { ...m.data, [k]: v } }));
@@ -146,23 +150,46 @@ export default function PageUserProfiles({ t, isDark, USERS = [], ROLES = [], co
     };
 
     // Edit = update the Firestore profile document only (no Auth changes)
+    // UNLESS tenantId has changed (Super Admin only)
     const handleSaveUser = async () => {
         const d = modal.data;
-        const payload = {
-            user_id: d.user_id || "",
-            user_name: d.user_name || "",
-            email: d.email || "",
-            role_id: d.role_id || "",
-            phone: d.phone || "",
-            notes: d.notes || "",
-            updated_at: serverTimestamp(),
-        };
+        const tid = d.tenantId || d.tenant_id || d.Tenant_ID || tenantId;
+        const isTenantChange = d._origTenantId && tid !== d._origTenantId;
+
+        setSaving(true);
         try {
-            if (modal.mode === "edit" && d.id) {
+            if (isTenantChange && isSuperAdmin) {
+                const updateTenantFn = httpsCallable(functions, "updateUserTenant");
+                await updateTenantFn({
+                    uid: d.auth_uid || d.id,
+                    email: d.email,
+                    newTenantId: tid,
+                    oldTenantId: d._origTenantId,
+                    role: d.role_id,
+                    user_id: d.user_id,
+                    user_name: d.user_name || d.name || "",
+                    phone: d.phone || "",
+                    notes: d.notes || ""
+                });
+            } else if (modal.mode === "edit" && d.id) {
+                const payload = {
+                    user_id: d.user_id || "",
+                    user_name: d.user_name || d.name || "",
+                    email: d.email || "",
+                    role_id: d.role_id || "",
+                    phone: d.phone || "",
+                    notes: d.notes || "",
+                    updated_at: serverTimestamp(),
+                };
                 await updateDoc(doc(db, collectionPath, d.id), payload);
             }
-        } catch (err) { console.error("Save user error:", err); }
-        close();
+            close();
+        } catch (err) {
+            console.error("Save user error:", err);
+            alert("Save failed: " + (err.message || "Unknown error"));
+        } finally {
+            setSaving(false);
+        }
     };
 
     const cols = [
@@ -259,7 +286,7 @@ export default function PageUserProfiles({ t, isDark, USERS = [], ROLES = [], co
                         <div style={{ fontSize: 13, color: t.textSecondary, fontFamily: t.mono }}>{p.user_id || "—"}</div>
                         <div style={{ fontSize: 13.5, fontWeight: 500, color: isDark ? "rgba(255,255,255,0.85)" : "#44403C" }}>{p.user_name || p.name || "—"}</div>
                         <div style={{ fontSize: 12.5, color: t.accent }}>{p.email}</div>
-                        <div style={{ fontSize: 12 }}>{roleName}</div>
+                        <div style={{ fontSize: 12 }}><span style={{ fontFamily: t.mono, fontSize: 11, color: t.textMuted }}>{p.role_id || "—"}</span>{" "}{roleName}</div>
                         <div><StatusBadge status={p.status} t={t} isDark={isDark} /></div>
                         <div style={{ fontFamily: t.mono, fontSize: 10, color: t.textMuted, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={p.auth_uid || p.id}>{p.auth_uid || p.id || "—"}</div>
                         {isSuperAdmin && (
@@ -338,8 +365,12 @@ export default function PageUserProfiles({ t, isDark, USERS = [], ROLES = [], co
         </Modal>
 
         {/* Edit Modal */}
-        <Modal open={modal.open && modal.mode === "edit"} onClose={close} title="Edit User" onSave={handleSaveUser} width={600} t={t} isDark={isDark}>
-            <p style={{ fontSize: 12, color: t.textMuted, marginBottom: 14 }}>Updates the Firestore profile. To change role/permissions in Firebase Auth, use "Re-invite" to re-send a new invite link with updated claims.</p>
+        <Modal open={modal.open && modal.mode === "edit"} onClose={close} title="Edit User" onSave={handleSaveUser} saveLabel={saving ? "Saving..." : "Save Changes"} width={600} t={t} isDark={isDark}>
+            <p style={{ fontSize: 12, color: t.textMuted, marginBottom: 14 }}>
+                {isSuperAdmin
+                    ? "Updates the Firestore profile. Changing Tenant ID will migrate all user data and update access permissions immediately."
+                    : "Updates the Firestore profile. To change role/permissions in Firebase Auth, use \"Re-invite\" to re-send a new invite link with updated claims."}
+            </p>
             <FF label="User ID" t={t}>
                 <div style={{ fontFamily: t.mono, fontSize: 13, color: t.idText, background: isDark ? "rgba(255,255,255,0.04)" : "#F5F4F1", border: `1px solid ${t.surfaceBorder}`, borderRadius: 9, padding: "10px 13px" }}>{modal.data.user_id}</div>
             </FF>
@@ -352,9 +383,10 @@ export default function PageUserProfiles({ t, isDark, USERS = [], ROLES = [], co
             </FF>
             {isSuperAdmin && (
                 <FF label="Tenant ID" t={t}>
-                    <div style={{ fontFamily: t.mono, fontSize: 13, fontWeight: 600, color: t.text, background: isDark ? "rgba(255,255,255,0.04)" : "#F5F4F1", border: `1px solid ${t.surfaceBorder}`, borderRadius: 9, padding: "10px 13px" }}>
-                        {modal.data.tenantId || modal.data.tenant_id || modal.data.Tenant_ID || tenantId || <span style={{ color: t.textMuted }}>— (no tenant assigned)</span>}
-                    </div>
+                    <select value={modal.data.tenantId || ""} onChange={e => setF("tenantId", e.target.value)} style={{ background: isDark ? "rgba(255,255,255,0.04)" : "#fff", color: isDark ? "#fff" : "#000", border: `1px solid ${t.border}`, borderRadius: 9, padding: "10px 13px", fontSize: 13.5, outline: "none", width: "100%", fontFamily: t.font, appearance: "none" }}>
+                        <option value="">— No tenant (global admin) —</option>
+                        {TENANTS.map(ten => <option key={ten.id} value={ten.id} style={{ color: "#000" }}>{ten.id}{ten.name ? ` — ${ten.name}` : ""}</option>)}
+                    </select>
                 </FF>
             )}
             <FF label="Full Name" t={t}><FIn value={modal.data.user_name || modal.data.name} onChange={e => setF("user_name", e.target.value)} t={t} /></FF>
