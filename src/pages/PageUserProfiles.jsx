@@ -196,7 +196,7 @@ export default function PageUserProfiles({ t, isDark, USERS = [], ROLES = [], co
         { l: "USER ID", w: "100px", k: "user_id" },
         { l: "NAME", w: "0.125fr", k: "user_name" },
         { l: "EMAIL", w: "0.15fr", k: "email" },
-        { l: "ROLE", w: "160px", k: "role_id" },
+        { l: "ROLE", w: "192px", k: "role_id" },
         { l: "STATUS", w: "110px", k: "status" },
         { l: "AUTH UID", w: "240px", k: "auth_uid" },
         ...(isSuperAdmin ? [{ l: "TENANT ID", w: "120px", k: "tenantId" }] : []),
@@ -394,7 +394,7 @@ export default function PageUserProfiles({ t, isDark, USERS = [], ROLES = [], co
             <FF label="Role" t={t}>
                 <select value={modal.data.role_id || ""} onChange={e => setF("role_id", e.target.value)} style={{ background: isDark ? "rgba(255,255,255,0.04)" : "#fff", color: isDark ? "#fff" : "#000", border: `1px solid ${t.border}`, borderRadius: 9, padding: "10px 13px", fontSize: 13.5, outline: "none", width: "100%", fontFamily: t.font, appearance: "none" }}>
                     <option value="" disabled style={{ color: "#000" }}>Select a role...</option>
-                    {ROLES.map(r => <option key={r.id || r.role_id} value={r.id || r.role_id} style={{ color: "#000" }}>{r.role_name || r.name || r.id}</option>)}
+                    {ROLES.map(r => <option key={r.id || r.role_id} value={r.id || r.role_id} style={{ color: "#000" }}>{(r.id || r.role_id)} — {r.role_name || r.name || r.id}</option>)}
                 </select>
             </FF>
             <FF label="Phone" t={t}><FIn value={modal.data.phone} onChange={e => setF("phone", e.target.value)} t={t} /></FF>
