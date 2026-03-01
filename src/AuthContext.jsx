@@ -25,16 +25,16 @@ export function AuthProvider({ children }) {
                     let role = idToken.claims.role || "tenant_user";
                     let tenantId = idToken.claims.tenantId || "";
 
-                    // 2. Fetch authoritative mapping from global user_roles collection
+                    // 2. Fetch authoritative mapping from global role_types collection
                     try {
-                        const globalRoleDoc = await getDoc(doc(db, `user_roles`, u.uid));
+                        const globalRoleDoc = await getDoc(doc(db, `role_types`, u.uid));
                         if (globalRoleDoc.exists()) {
                             const data = globalRoleDoc.data();
                             role = data.role || role;
                             tenantId = data.tenantId || data.tenant_id || data.Tenant_ID || tenantId;
                         }
                     } catch (err) {
-                        console.error("Failed to fetch global user_roles:", err);
+                        console.error("Failed to fetch global role_types:", err);
                     }
 
                     // 2.5 SPECIAL CASE: kyuahn@yahoo.com is ALWAYS L2 Admin
@@ -69,11 +69,11 @@ export function AuthProvider({ children }) {
 
                     // 4. Determine applied permissions
                     let userPermissions = [];
-                    // Roles are stored in the global 'userRoles' collection (as per utils.jsx)
+                    // Roles are stored in the global 'role_types' collection (as per utils.jsx)
                     if (role) {
                         try {
                             // 4a. Check global roles first (e.g. "R10004")
-                            const globalRoleDoc = await getDoc(doc(db, "userRoles", role));
+                            const globalRoleDoc = await getDoc(doc(db, "role_types", role));
 
                             // 4b. Fallback: Check tenant-specific roles just in case
                             let roleData = null;
@@ -120,7 +120,7 @@ export function AuthProvider({ children }) {
                         try {
                             const updateData = { status: "Active", last_login: serverTimestamp() };
                             // Update global profile
-                            await updateDoc(doc(db, "user_roles", u.uid), updateData);
+                            await updateDoc(doc(db, "role_types", u.uid), updateData);
                             // Update tenant profile
                             if (tenantId && fetchedProfile.user_id) {
                                 await updateDoc(doc(db, `tenants/${tenantId}/users`, fetchedProfile.user_id), updateData);

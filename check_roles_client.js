@@ -28,14 +28,14 @@ async function run() {
             });
         } catch (e) { console.log("UserRoles error:", e.message); }
 
-        // Check "userRoles" collection
+        // Check "role_types" collection
         try {
-            const snap2 = await getDocs(collection(db, 'userRoles'));
-            console.log(`Found ${snap2.size} docs in userRoles collection.`);
+            const snap2 = await getDocs(collection(db, 'role_types'));
+            console.log(`Found ${snap2.size} docs in role_types collection.`);
             snap2.forEach(doc => {
-                console.log("userRoles doc:", doc.id, "=>", JSON.stringify(doc.data()));
+                console.log("role_types doc:", doc.id, "=>", JSON.stringify(doc.data()));
             });
-        } catch (e) { console.log("userRoles error:", e.message); }
+        } catch (e) { console.log("role_types error:", e.message); }
 
         // Check "roles" collection
         try {
