@@ -200,7 +200,7 @@ function AppContent() {
     "Fees": <PageFees t={t} isDark={isDark} FEES_DATA={FEES_DATA} DIMENSIONS={DIMENSIONS} collectionPath={COLLECTION_PATHS.fees} />,
     "Tenants": <PageTenants t={t} isDark={isDark} TENANTS={TENANTS} collectionPath={COLLECTION_PATHS.tenants} />,
     "User Profiles": <PageUserProfiles t={t} isDark={isDark} USERS={rawUsers} ROLES={rawRoles} collectionPath={COLLECTION_PATHS.users} DIMENSIONS={DIMENSIONS} tenantId={activeTenantId} TENANTS={TENANTS} />,
-    "Roles": <PageRoles t={t} isDark={isDark} collectionPath={COLLECTION_PATHS.roles} DIMENSIONS={DIMENSIONS} USERS={rawUsers} />,
+    "Role Types": <PageRoles t={t} isDark={isDark} collectionPath={COLLECTION_PATHS.roles} DIMENSIONS={DIMENSIONS} USERS={rawUsers} />,
     "Super Admin": <PageSuperAdmin t={t} isDark={isDark} DIMENSIONS={DIMENSIONS} ROLES={rawRoles} TENANTS={TENANTS} />,
     "Profile": <PageProfile t={t} isDark={isDark} />,
     "Dimensions": <PageDimensions t={t} isDark={isDark} DIMENSIONS={DIMENSIONS} />,

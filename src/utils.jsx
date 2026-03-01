@@ -69,7 +69,7 @@ const NAV_ITEMS = [
   { label: "Fees", icon: "◉" },
   { label: "Tenants", icon: "🏢", superOnly: true },
   { label: "User Profiles", icon: "👥", adminOnly: true },
-  { label: "Roles", icon: "🛡️", adminOnly: true },
+  { label: "Role Types", icon: "🛡️", adminOnly: true },
   { label: "Super Admin", icon: "⚡", superOnly: true },
   { label: "Dimensions", icon: "⊞" },
   { label: "Reports", icon: "╱╲" },
@@ -91,7 +91,7 @@ export const getNav = (isSuper, isAdmin, hasPermission) => {
       if (item.label === "Payments" && !hasPermission("PAYMENT_SCHEDULE_VIEW")) return false;
       if (item.label === "Fees" && !hasPermission("FEE_VIEW")) return false;
       if (item.label === "User Profiles" && !hasPermission("USER_VIEW")) return false;
-      if (item.label === "Roles" && !hasPermission("ROLE_VIEW")) return false;
+      if (item.label === "Role Types" && !hasPermission("ROLE_VIEW")) return false;
       if (item.label === "Tenants" && !hasPermission("PLATFORM_TENANT_VIEW")) return false;
       if (item.label === "Dimensions" && !hasPermission("DIMENTION_VIEW")) return false;
       if (item.label === "Reports" && !hasPermission("REPORT_VIEW")) return false;
