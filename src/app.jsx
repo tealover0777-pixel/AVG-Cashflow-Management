@@ -58,10 +58,17 @@ class ErrorBoundary extends React.Component {
 // ─────────────────────────────────────────────────────────────────────────────
 function AppContent() {
   const { user, profile, loading: authLoading, login, logout, isSuperAdmin, isTenantAdmin, isGlobalRole, tenantId, hasPermission } = useAuth();
-  const [isDark, setIsDark] = useState(true);
+  const [isDark, setIsDark] = useState(() => {
+    const saved = localStorage.getItem("avg_theme");
+    return saved !== null ? saved === "dark" : true;
+  });
   const [activePage, setActivePage] = useState("Dashboard");
   const [activeTenantId, setActiveTenantId] = useState("");
   const t = mkTheme(isDark);
+
+  useEffect(() => {
+    localStorage.setItem("avg_theme", isDark ? "dark" : "light");
+  }, [isDark]);
 
   useEffect(() => {
     if (tenantId && !activeTenantId) setActiveTenantId(tenantId);
@@ -211,7 +218,7 @@ function AppContent() {
     "User Profiles": <PageUserProfiles t={t} isDark={isDark} USERS={rawUsers} ROLES={rawRoles} collectionPath={COLLECTION_PATHS.users} DIMENSIONS={DIMENSIONS} tenantId={activeTenantId} TENANTS={TENANTS} />,
     "Role Types": <PageRoles t={t} isDark={isDark} collectionPath={COLLECTION_PATHS.roles} DIMENSIONS={DIMENSIONS} USERS={rawUsers} />,
     "Super Admin": <PageSuperAdmin t={t} isDark={isDark} DIMENSIONS={DIMENSIONS} ROLES={rawRoles} TENANTS={TENANTS} />,
-    "Profile": <PageProfile t={t} isDark={isDark} ROLES={rawRoles} collectionPath={COLLECTION_PATHS.users} />,
+    "Profile": <PageProfile t={t} isDark={isDark} setIsDark={setIsDark} ROLES={rawRoles} collectionPath={COLLECTION_PATHS.users} />,
     "Dimensions": <PageDimensions t={t} isDark={isDark} DIMENSIONS={DIMENSIONS} />,
     "Reports": <PageReports t={t} isDark={isDark} MONTHLY={MONTHLY} />,
   };

@@ -5,7 +5,7 @@ import { sendPasswordResetEmail } from "firebase/auth";
 import { useAuth } from "../AuthContext";
 import { FF, FIn } from "../components";
 
-export default function PageProfile({ t, isDark, ROLES = [], collectionPath = "" }) {
+export default function PageProfile({ t, isDark, setIsDark, ROLES = [], collectionPath = "" }) {
     const { user, profile, tenantId } = useAuth();
     const [saving, setSaving] = useState(false);
     const [data, setData] = useState({
@@ -81,6 +81,22 @@ export default function PageProfile({ t, isDark, ROLES = [], collectionPath = ""
                 </div>
 
                 <div style={{ display: "grid", gap: 20 }}>
+                    <FF label="Theme Preference" t={t}>
+                        <div style={{ display: "flex", gap: 8 }}>
+                            {[
+                                { id: "light", label: "☀️ Light Mode", val: false },
+                                { id: "dark", label: "🌙 Dark Mode", val: true }
+                            ].map(m => {
+                                const active = isDark === m.val;
+                                return (
+                                    <div key={m.id} onClick={() => setIsDark(m.val)} style={{ flex: 1, padding: "10px 14px", borderRadius: 10, background: active ? t.accentGrad : (isDark ? "rgba(255,255,255,0.04)" : "#F5F4F1"), border: `1px solid ${active ? t.accent : t.border}`, color: active ? "#fff" : t.textSecondary, fontSize: 13, fontWeight: active ? 600 : 500, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.15s ease" }}>
+                                        {m.label}
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </FF>
+
                     <FF label="Full Name" t={t}><FIn value={data.name} onChange={e => setData(s => ({ ...s, name: e.target.value }))} t={t} /></FF>
                     <FF label="Email Address" t={t}><FIn value={data.email} disabled t={t} /></FF>
                     <FF label="Phone Number" t={t}><FIn value={data.phone} onChange={e => setData(s => ({ ...s, phone: e.target.value }))} t={t} /></FF>
