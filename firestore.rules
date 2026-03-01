@@ -103,7 +103,7 @@ service cloud.firestore {
     match /tenants/{tenantId}/users/{userId} {
         allow read: if isTenantMember(tenantId) && (request.auth.uid == userId || resource.data.auth_uid == request.auth.uid);
         allow update: if isTenantMember(tenantId) && resource.data.auth_uid == request.auth.uid
-           && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'last_login', 'last_updated', 'updated_at']);
+           && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['user_name', 'phone', 'status', 'last_login', 'last_updated', 'updated_at']);
     }
 
     match /tenants/{tenantId}/projects/{projectId} {
