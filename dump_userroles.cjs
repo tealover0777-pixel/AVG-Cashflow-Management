@@ -7,8 +7,8 @@ admin.initializeApp({
 async function run() {
   try {
     const db = admin.firestore();
-    const snap = await db.collection('role_types').get();
-    console.log(`Found ${snap.size} role_types.`);
+    const snap = await db.collection('global_users').get();
+    console.log(`Found ${snap.size} global_users.`);
     snap.forEach(doc => {
         console.log("UR:", doc.id, "=>", JSON.stringify(doc.data()));
     });

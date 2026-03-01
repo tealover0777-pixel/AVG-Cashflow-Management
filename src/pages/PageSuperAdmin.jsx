@@ -19,7 +19,7 @@ const StatusBadge = ({ status, t, isDark }) => {
 };
 
 export default function PageSuperAdmin({ t, isDark, DIMENSIONS = [], ROLES = [], TENANTS = [] }) {
-    const { data: rawUsers = [], loading, error } = useFirestoreCollection("role_types");
+    const { data: rawUsers = [], loading, error } = useFirestoreCollection("global_users");
 
     const [hov, setHov] = useState(null);
     const [modal, setModal] = useState({ open: false, mode: "add", data: {} });
@@ -68,7 +68,7 @@ export default function PageSuperAdmin({ t, isDark, DIMENSIONS = [], ROLES = [],
         }
     };
 
-    // Edit existing role/tenant mapping in role_types
+    // Edit existing role/tenant mapping in global_users
     const handleSaveUser = async () => {
         const d = modal.data;
         if (!d.uid) return;
@@ -79,7 +79,7 @@ export default function PageSuperAdmin({ t, isDark, DIMENSIONS = [], ROLES = [],
             updated_at: serverTimestamp(),
         };
         try {
-            await setDoc(doc(db, "role_types", d.uid), payload, { merge: true });
+            await setDoc(doc(db, "global_users", d.uid), payload, { merge: true });
         } catch (err) {
             console.error("Save global user error:", err);
         }
@@ -179,7 +179,7 @@ export default function PageSuperAdmin({ t, isDark, DIMENSIONS = [], ROLES = [],
             {/* Assign / Edit Role Modal */}
             <Modal open={modal.open && (modal.mode === "add" || modal.mode === "edit")} onClose={close} title={modal.mode === "add" ? "Assign Global Role" : "Edit Global Role"} onSave={handleSaveUser} width={500} t={t} isDark={isDark}>
                 <div style={{ marginBottom: 16, fontSize: 12, color: t.textMuted, lineHeight: 1.5 }}>
-                    This writes directly to the global `role_types` collection. Users will read their role and tenant from here when they log in.
+                    This writes directly to the global `global_users` collection. Users will read their role and tenant from here when they log in.
                 </div>
                 <FF label="User Firebase UID (Required)" t={t}>
                     <FIn value={modal.data.uid} onChange={e => setF("uid", e.target.value)} disabled={modal.mode === "edit"} placeholder="e.g. kH9z..." t={t} />
@@ -193,7 +193,7 @@ export default function PageSuperAdmin({ t, isDark, DIMENSIONS = [], ROLES = [],
                 </FF>
             </Modal>
 
-            <DelModal target={delT} onClose={() => setDelT(null)} onConfirm={async () => { await deleteDoc(doc(db, "role_types", delT.id)); setDelT(null); }} label="global role mapping" t={t} isDark={isDark} />
+            <DelModal target={delT} onClose={() => setDelT(null)} onConfirm={async () => { await deleteDoc(doc(db, "global_users", delT.id)); setDelT(null); }} label="global role mapping" t={t} isDark={isDark} />
         </>
     );
 }

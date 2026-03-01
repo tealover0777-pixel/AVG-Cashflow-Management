@@ -25,16 +25,16 @@ export function AuthProvider({ children }) {
                     let role = idToken.claims.role || "tenant_user";
                     let tenantId = idToken.claims.tenantId || "";
 
-                    // 2. Fetch authoritative mapping from global role_types collection
+                    // 2. Fetch authoritative mapping from global global_users collection
                     try {
-                        const globalRoleDoc = await getDoc(doc(db, `role_types`, u.uid));
+                        const globalRoleDoc = await getDoc(doc(db, `global_users`, u.uid));
                         if (globalRoleDoc.exists()) {
                             const data = globalRoleDoc.data();
                             role = data.role || role;
                             tenantId = data.tenantId || data.tenant_id || data.Tenant_ID || tenantId;
                         }
                     } catch (err) {
-                        console.error("Failed to fetch global role_types:", err);
+                        console.error("Failed to fetch global_users:", err);
                     }
 
                     // 2.5 SPECIAL CASE: kyuahn@yahoo.com is ALWAYS L2 Admin
@@ -69,7 +69,7 @@ export function AuthProvider({ children }) {
 
                     // 4. Determine applied permissions
                     let userPermissions = [];
-                    // Roles are stored in the global 'role_types' collection (as per utils.jsx)
+                    // Role definitions are stored in the global 'role_types' collection
                     if (role) {
                         try {
                             // 4a. Check global roles first (e.g. "R10004")
@@ -120,7 +120,7 @@ export function AuthProvider({ children }) {
                         try {
                             const updateData = { status: "Active", last_login: serverTimestamp() };
                             // Update global profile
-                            await updateDoc(doc(db, "role_types", u.uid), updateData);
+                            await updateDoc(doc(db, "global_users", u.uid), updateData);
                             // Update tenant profile
                             if (tenantId && fetchedProfile.user_id) {
                                 await updateDoc(doc(db, `tenants/${tenantId}/users`, fetchedProfile.user_id), updateData);

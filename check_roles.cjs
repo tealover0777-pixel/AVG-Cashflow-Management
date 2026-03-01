@@ -15,11 +15,11 @@ async function run() {
             console.log("UserRoles doc:", doc.id, "=>", JSON.stringify(doc.data()));
         });
 
-        // Check "role_types" collection
-        const snap2 = await db.collection('role_types').get();
-        console.log(`Found ${snap2.size} docs in role_types collection.`);
+        // Check "global_users" collection
+        const snap2 = await db.collection('global_users').get();
+        console.log(`Found ${snap2.size} docs in global_users collection.`);
         snap2.forEach(doc => {
-            console.log("role_types doc:", doc.id, "=>", JSON.stringify(doc.data()));
+            console.log("global_users doc:", doc.id, "=>", JSON.stringify(doc.data()));
         });
 
         // Check "Roles" collection

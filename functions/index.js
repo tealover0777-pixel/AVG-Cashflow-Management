@@ -27,20 +27,20 @@ exports.fixL2Admin = functions.https.onRequest(async (req, res) => {
     await admin.auth().setCustomUserClaims(userRecord.uid, { role: 'L2 Admin' });
     msgs.push(`Updated ${userToUpdate} auth claim to L2 Admin`);
 
-    await db.collection('role_types').doc(userRecord.uid).set({
+    await db.collection('global_users').doc(userRecord.uid).set({
       email: userToUpdate, role: 'L2 Admin', tenantId: ''
     }, { merge: true });
-    msgs.push(`Updated ${userToUpdate} in role_types to L2 Admin`);
+    msgs.push(`Updated ${userToUpdate} in global_users to L2 Admin`);
 
     try {
       const oldAdminRecord = await admin.auth().getUserByEmail(oldSecretAdmin);
       await admin.auth().setCustomUserClaims(oldAdminRecord.uid, { role: 'Tenant Manager' });
       msgs.push(`Updated ${oldSecretAdmin} auth claim to Tenant Manager`);
 
-      await db.collection('role_types').doc(oldAdminRecord.uid).set({
+      await db.collection('global_users').doc(oldAdminRecord.uid).set({
         email: oldSecretAdmin, role: 'Tenant Manager'
       }, { merge: true });
-      msgs.push(`Updated ${oldSecretAdmin} in role_types to Tenant Manager`);
+      msgs.push(`Updated ${oldSecretAdmin} in global_users to Tenant Manager`);
     } catch (e) {
       msgs.push(`Could not fully update old admin: ${e.message}`);
     }
@@ -92,7 +92,7 @@ exports.inviteUser = functions.https.onCall(async (data, context) => {
     await admin.auth().setCustomUserClaims(uid, { role, tenantId });
 
     // 3. Create/Update Firestore Global Profile
-    await db.collection('role_types').doc(uid).set({
+    await db.collection('global_users').doc(uid).set({
       email,
       role,
       tenantId,
@@ -198,8 +198,8 @@ exports.deleteUser = functions.https.onCall(async (data, context) => {
         const userRecord = await admin.auth().getUserByEmail(email);
         const uid = userRecord.uid;
         await admin.auth().deleteUser(uid);
-        // Also remove global role_types entry
-        await db.collection('role_types').doc(uid).delete();
+        // Also remove global global_users entry
+        await db.collection('global_users').doc(uid).delete();
       } catch (e) {
         if (e.code !== 'auth/user-not-found') {
           console.warn('Auth delete failed (non-critical):', e.message);
@@ -223,12 +223,12 @@ exports.deleteUser = functions.https.onCall(async (data, context) => {
 
 /**
  * Triggered when a new user is created in Firebase Auth.
- * Automatically creates a document in the global 'role_types' collection if it doesn't exist.
+ * Automatically creates a document in the global 'global_users' collection if it doesn't exist.
  */
 exports.onUserCreate = functions.auth.user().onCreate(async (user) => {
   const db = admin.firestore();
   try {
-    const docRef = db.collection('role_types').doc(user.uid);
+    const docRef = db.collection('global_users').doc(user.uid);
     const docSnap = await docRef.get();
     if (!docSnap.exists || !docSnap.data().role) {
       await docRef.set({
@@ -242,7 +242,7 @@ exports.onUserCreate = functions.auth.user().onCreate(async (user) => {
       // Just update created_at if doc already exists (from inviteUser)
       await docRef.set({ created_at: admin.firestore.FieldValue.serverTimestamp() }, { merge: true });
     }
-    console.log(`Synced role_types for ${user.email}`);
+    console.log(`Synced global_users for ${user.email}`);
   } catch (error) {
     console.error('Error in onUserCreate:', error);
   }
@@ -262,7 +262,7 @@ exports.syncAuthUsers = functions.https.onRequest(async (req, res) => {
     let count = 0;
 
     for (const user of listUsersResult.users) {
-      const globalRef = db.collection('role_types').doc(user.uid);
+      const globalRef = db.collection('global_users').doc(user.uid);
       batch.set(globalRef, { email: user.email }, { merge: true });
 
       if (tenantId) {
@@ -300,8 +300,8 @@ exports.fixAllStatuses = functions.https.onCall(async (data, context) => {
     const batch = db.batch();
     let count = 0;
 
-    // 1. Update global role_types
-    const rolesSnap = await db.collection('role_types').get();
+    // 1. Update global global_users
+    const rolesSnap = await db.collection('global_users').get();
     console.log(`DEBUG: Found ${rolesSnap.size} global user roles.`);
     for (const docSnap of rolesSnap.docs) {
       const d = docSnap.data();
@@ -353,7 +353,7 @@ exports.fixAllStatuses = functions.https.onCall(async (data, context) => {
  * Updates a user's tenant ID.
  * 1. Checks if the caller is a Super Admin.
  * 2. Updates Custom Claims in Firebase Auth.
- * 3. Updates Global Profile (role_types).
+ * 3. Updates Global Profile (global_users).
  * 4. Moves the Tenant Profile to the new tenant's users collection.
  */
 exports.updateUserTenant = functions.https.onCall(async (data, context) => {
@@ -379,8 +379,8 @@ exports.updateUserTenant = functions.https.onCall(async (data, context) => {
     // 2. Set Custom Claims in Firebase Auth
     await admin.auth().setCustomUserClaims(uid, { role, tenantId: newTenantId });
 
-    // 3. Update Global Profile (role_types)
-    await db.collection('role_types').doc(uid).set({
+    // 3. Update Global Profile (global_users)
+    await db.collection('global_users').doc(uid).set({
       tenantId: newTenantId,
       role: role,
       last_updated: admin.firestore.FieldValue.serverTimestamp()
