@@ -21,7 +21,8 @@ export function AuthProvider({ children }) {
             try {
                 if (u) {
                     setUser(u);
-                    // 1. Check custom claims first (fastest, but might not be set immediately)
+                    // 1. Force token refresh to pick up latest custom claims, then read them
+                    await u.getIdToken(true);
                     const idToken = await u.getIdTokenResult();
                     let role = idToken.claims.role || "tenant_user";
                     let tenantId = idToken.claims.tenantId || "";
