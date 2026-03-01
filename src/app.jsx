@@ -258,7 +258,7 @@ function AppContent() {
       {/* ── Sidebar ── */}
       <div style={{ width: 228, background: t.sidebar, backdropFilter: t.glass ? "blur(20px)" : "none", borderRight: `1px solid ${t.sidebarBorder}`, display: "flex", flexDirection: "column", flexShrink: 0, boxShadow: t.sidebarShadow }}>
         {/* Logo */}
-        <div style={{ padding: determinedLogo ? "24px 18px" : "26px 22px 24px", borderBottom: `1px solid ${t.sidebarBorder}`, display: "flex", justifyContent: "center" }}>
+        <div style={{ padding: determinedLogo ? "24px 0" : "26px 22px 24px", borderBottom: `1px solid ${t.sidebarBorder}`, display: "flex", justifyContent: "center" }}>
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8, width: "100%", justifyContent: "center" }}>
             {determinedLogo ? (<>
               <img src={determinedLogo} alt="Logo" style={{ width: "100%", maxHeight: 60, borderRadius: 6, objectFit: "contain" }} />
