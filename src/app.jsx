@@ -261,9 +261,9 @@ function AppContent() {
         <div style={{ padding: determinedLogo ? "24px 0" : "26px 22px 24px", borderBottom: `1px solid ${t.sidebarBorder}`, display: "flex", justifyContent: "center" }}>
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8, width: "100%", justifyContent: "center" }}>
             {determinedLogo ? (<>
-              <img src={determinedLogo} alt="Logo" style={{ width: "100%", maxHeight: 60, borderRadius: 6, objectFit: "contain" }} />
+              <img src={determinedLogo} alt="Logo" style={{ width: "100%", height: "auto", maxHeight: 120, objectFit: "contain" }} />
               {determinedTenantName && (
-                <div style={{ fontSize: 11, fontWeight: 600, color: t.textSecondary, fontFamily: "'DM Sans', sans-serif", letterSpacing: "0.5px", textAlign: "center", width: "100%", marginTop: 4 }}>
+                <div style={{ fontSize: 11, fontWeight: 600, color: t.textSecondary, fontFamily: "'DM Sans', sans-serif", letterSpacing: "0.5px", textAlign: "center", width: "100%", marginTop: 8 }}>
                   {determinedTenantName}
                 </div>
               )}
