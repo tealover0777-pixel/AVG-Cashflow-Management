@@ -15,48 +15,13 @@ exports.createFirstAdmin = functions.https.onRequest(async (req, res) => {
   }
 });
 
-exports.fixL2Admin = functions.https.onRequest(async (req, res) => {
-  try {
-    const db = admin.firestore();
-    const userToUpdate = 'kyuahn@yahoo.com';
-    const oldSecretAdmin = 'tealover0777@gmail.com';
-
-    let msgs = [];
-
-    const userRecord = await admin.auth().getUserByEmail(userToUpdate);
-    await admin.auth().setCustomUserClaims(userRecord.uid, { role: 'L2 Admin', tenantId: '', isGlobal: true });
-    msgs.push(`Updated ${userToUpdate} auth claim to L2 Admin + isGlobal: true`);
-
-    await db.collection('global_users').doc(userRecord.uid).set({
-      email: userToUpdate, role: 'L2 Admin', tenantId: '', isGlobal: true, status: 'Active'
-    }, { merge: true });
-    msgs.push(`Updated ${userToUpdate} in global_users to L2 Admin`);
-
-    try {
-      const oldAdminRecord = await admin.auth().getUserByEmail(oldSecretAdmin);
-      await admin.auth().setCustomUserClaims(oldAdminRecord.uid, { role: 'Tenant Manager' });
-      msgs.push(`Updated ${oldSecretAdmin} auth claim to Tenant Manager`);
-
-      await db.collection('global_users').doc(oldAdminRecord.uid).set({
-        email: oldSecretAdmin, role: 'Tenant Manager'
-      }, { merge: true });
-      msgs.push(`Updated ${oldSecretAdmin} in global_users to Tenant Manager`);
-    } catch (e) {
-      msgs.push(`Could not fully update old admin: ${e.message}`);
-    }
-    res.status(200).send({ success: true, msgs });
-  } catch (err) {
-    res.status(500).send({ success: false, error: err.message });
-  }
-});
-
 /**
- * Invites a new user to a tenant.
- * 1. Creates Firebase Auth user (if not exists).
- * 2. Sets Custom Claims (role, tenantId).
- * 3. Creates Firestore profiles (Global + Tenant).
- * 4. Generates a Password Reset Link for onboarding.
- */
+   * Invites a new user to a tenant.
+   * 1. Creates Firebase Auth user (if not exists).
+   * 2. Sets Custom Claims (role, tenantId).
+   * 3. Creates Firestore profiles (Global + Tenant).
+   * 4. Generates a Password Reset Link for onboarding.
+   */
 exports.inviteUser = functions.https.onCall(async (data, context) => {
   if (!context.auth) {
     throw new functions.https.HttpsError('unauthenticated', 'The function must be called while authenticated.');
@@ -112,18 +77,23 @@ exports.inviteUser = functions.https.onCall(async (data, context) => {
       last_updated: admin.firestore.FieldValue.serverTimestamp()
     }, { merge: true });
 
-    // 4. Determine user_id (prefer provided, fallback to auto-gen)
+    // 4. Determine user_id (Check if already in tenant)
     let user_id = providedUserId;
     if (!user_id && tenantId) {
-      const usersSnap = await db.collection(`tenants/${tenantId}/users`).get();
-      if (!usersSnap.empty) {
-        const maxNum = Math.max(...usersSnap.docs.map(d => {
-          const m = (d.data().user_id || '').match(/^U(\d+)$/);
-          return m ? Number(m[1]) : 0;
-        }));
-        user_id = 'U' + String(maxNum + 1).padStart(5, '0');
+      const existingUserSnap = await db.collection(`tenants/${tenantId}/users`).where('auth_uid', '==', uid).get();
+      if (!existingUserSnap.empty) {
+        user_id = existingUserSnap.docs[0].id;
       } else {
-        user_id = 'U10001';
+        const usersSnap = await db.collection(`tenants/${tenantId}/users`).get();
+        if (!usersSnap.empty) {
+          const maxNum = Math.max(...usersSnap.docs.map(d => {
+            const m = (d.data().user_id || '').match(/^U(\d+)$/);
+            return m ? Number(m[1]) : 0;
+          }));
+          user_id = 'U' + String(maxNum + 1).padStart(5, '0');
+        } else {
+          user_id = 'U10001';
+        }
       }
     }
     if (!user_id) user_id = 'U' + Date.now(); // Final fallback
