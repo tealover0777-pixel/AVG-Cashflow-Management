@@ -1,15 +1,17 @@
 import { useState } from "react";
-import { db } from "../firebase";
+import { db, functions } from "../firebase";
 import { doc, setDoc, updateDoc, deleteDoc, serverTimestamp } from "firebase/firestore";
+import { httpsCallable } from "firebase/functions";
 import { initials, av, badge, sortData } from "../utils";
 import { StatCard, Pagination, ActBtns, useResizableColumns, TblHead, Modal, FF, FIn, FSel, DelModal } from "../components";
 import { useAuth } from "../AuthContext";
 
-export default function PageParties({ t, isDark, PARTIES = [], collectionPath = "", DIMENSIONS = [] }) {
-  const { hasPermission } = useAuth();
+export default function PageParties({ t, isDark, PARTIES = [], collectionPath = "", DIMENSIONS = [], tenantId = "" }) {
+  const { hasPermission, isSuperAdmin } = useAuth();
   const canCreate = hasPermission("PARTY_CREATE");
   const canUpdate = hasPermission("PARTY_UPDATE");
   const canDelete = hasPermission("PARTY_DELETE");
+  const canInvite = isSuperAdmin || hasPermission("USER_INVITE") || hasPermission("USER_CREATE");
   const roleOpts = (DIMENSIONS.find(d => d.name === "PartyRole") || {}).items || ["Investor", "Borrower"];
   const partyTypeOpts = (DIMENSIONS.find(d => d.name === "PartyType") || {}).items || ["Individual", "Company", "Trust", "Partnership"];
   const investorTypeOpts = (DIMENSIONS.find(d => d.name === "InvestorType") || {}).items || ["Fixed", "Equity", "Both"];
@@ -59,10 +61,34 @@ export default function PageParties({ t, isDark, PARTIES = [], collectionPath = 
       setDelT(null);
     } catch (err) { console.error("Delete party error:", err); }
   };
+  const [invitingId, setInvitingId] = useState(null);
+  const [inviteResult, setInviteResult] = useState(null);
+  const handleInviteParty = async (party) => {
+    if (!party.email) { alert("This party has no email address."); return; }
+    if (!window.confirm(`Invite ${party.name} (${party.email}) as a Member (R10001)?`)) return;
+    setInvitingId(party.id);
+    try {
+      const inviteUserFn = httpsCallable(functions, "inviteUser");
+      const result = await inviteUserFn({
+        email: party.email,
+        role: "R10001",
+        tenantId: tenantId || "",
+        user_name: party.name || "",
+        phone: party.phone || "",
+        notes: `Invited from Parties page — ${party.id}`,
+      });
+      setInviteResult({ email: party.email, user_id: result.data.user_id, link: result.data.link });
+    } catch (err) {
+      console.error("Invite party error:", err);
+      alert("Invite failed: " + (err.message || "Unknown error"));
+    } finally {
+      setInvitingId(null);
+    }
+  };
   const [colFilters, setColFilters] = useState({});
   const setColFilter = (key, val) => { setColFilters(f => ({ ...f, [key]: val })); setPage(1); };
   const chips = ["All", "Investors", "Borrowers", "Companies"];
-  const cols = [{ l: "PARTY ID", w: "90px", k: "id" }, { l: "NAME", w: "1fr", k: "name" }, { l: "TYPE", w: "100px", k: "type" }, { l: "ROLE", w: "90px", k: "role" }, { l: "INV TYPE", w: "80px", k: "investor_type" }, { l: "EMAIL", w: "1fr", k: "email" }, { l: "PHONE", w: "120px", k: "phone" }, { l: "ADDRESS", w: "1fr", k: "address" }, { l: "TAX ID", w: "110px", k: "tax_id" }, { l: "BANK INFO", w: "1fr", k: "bank_information" }, { l: "CREATED", w: "95px", k: "created_at" }, { l: "UPDATED", w: "95px", k: "updated_at" }, { l: "ACTIONS", w: "80px" }];
+  const cols = [{ l: "PARTY ID", w: "90px", k: "id" }, { l: "NAME", w: "1fr", k: "name" }, { l: "TYPE", w: "100px", k: "type" }, { l: "ROLE", w: "90px", k: "role" }, { l: "INV TYPE", w: "80px", k: "investor_type" }, { l: "EMAIL", w: "1fr", k: "email" }, { l: "PHONE", w: "120px", k: "phone" }, { l: "ADDRESS", w: "1fr", k: "address" }, { l: "TAX ID", w: "110px", k: "tax_id" }, { l: "BANK INFO", w: "1fr", k: "bank_information" }, { l: "CREATED", w: "95px", k: "created_at" }, { l: "UPDATED", w: "95px", k: "updated_at" }, { l: "ACTIONS", w: "120px" }];
   const { gridTemplate, headerRef, onResizeStart } = useResizableColumns(cols);
   const filtered = PARTIES.filter(p => {
     if (chip === "Investors" && p.role !== "Investor") return false;
@@ -102,7 +128,12 @@ export default function PageParties({ t, isDark, PARTIES = [], collectionPath = 
           <div style={{ fontSize: 12, color: t.textMuted, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0 }}>{p.bank_information || <span style={{ color: isDark ? "rgba(255,255,255,0.12)" : "#D4D0CB" }}>—</span>}</div>
           <div style={{ fontFamily: t.mono, fontSize: 10.5, color: t.idText }}>{p.created_at || <span style={{ color: isDark ? "rgba(255,255,255,0.12)" : "#D4D0CB" }}>—</span>}</div>
           <div style={{ fontFamily: t.mono, fontSize: 10.5, color: t.idText }}>{p.updated_at || <span style={{ color: isDark ? "rgba(255,255,255,0.12)" : "#D4D0CB" }}>—</span>}</div>
-          <ActBtns show={isHov && (canUpdate || canDelete)} t={t} onEdit={canUpdate ? () => openEdit(p) : null} onDel={canDelete ? () => setDelT({ id: p.id, name: p.name, docId: p.docId }) : null} />
+          <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+            <ActBtns show={isHov && (canUpdate || canDelete)} t={t} onEdit={canUpdate ? () => openEdit(p) : null} onDel={canDelete ? () => setDelT({ id: p.id, name: p.name, docId: p.docId }) : null} />
+            {isHov && canInvite && p.email && (
+              <button onClick={() => handleInviteParty(p)} disabled={invitingId === p.id} title="Invite as Member (R10001)" style={{ background: "none", border: `1px solid ${t.border}`, borderRadius: 7, padding: "5px 8px", cursor: invitingId === p.id ? "default" : "pointer", fontSize: 13, color: t.textMuted, opacity: invitingId === p.id ? 0.5 : 1 }}>{invitingId === p.id ? "..." : "✉️"}</button>
+            )}
+          </div>
         </div>);
       })}
     </div>
@@ -128,5 +159,29 @@ export default function PageParties({ t, isDark, PARTIES = [], collectionPath = 
       <FF label="Bank Information" t={t}><FIn value={modal.data.bank_information || ""} onChange={e => setF("bank_information", e.target.value)} placeholder="e.g. Citibank" t={t} /></FF>
     </Modal>
     <DelModal target={delT} onClose={() => setDelT(null)} onConfirm={handleDeleteParty} label="This party" t={t} isDark={isDark} />
+    {inviteResult && (
+      <div style={{ position: "fixed", inset: 0, zIndex: 1100, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <div style={{ background: isDark ? "#1C1917" : "#fff", borderRadius: 16, padding: 28, maxWidth: 540, width: "90%", boxShadow: "0 24px 60px rgba(0,0,0,0.3)" }}>
+          <h3 style={{ fontFamily: t.titleFont, fontSize: 18, marginBottom: 8, color: isDark ? "#fff" : "#1C1917" }}>Member Invited</h3>
+          <p style={{ fontSize: 13, color: t.textMuted, marginBottom: 12, lineHeight: 1.6 }}>
+            <strong>{inviteResult.email}</strong> has been invited as a Member (R10001).
+          </p>
+          {inviteResult.user_id && (
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
+              <span style={{ fontSize: 12, color: t.textMuted }}>User ID:</span>
+              <span style={{ fontFamily: t.mono, fontSize: 13, fontWeight: 700, color: t.accent, background: isDark ? "rgba(255,255,255,0.08)" : "#F0F9FF", padding: "3px 10px", borderRadius: 6 }}>{inviteResult.user_id}</span>
+            </div>
+          )}
+          {inviteResult.link && (<>
+            <p style={{ fontSize: 12, color: t.textMuted, marginBottom: 6 }}>Verification link:</p>
+            <div style={{ background: isDark ? "rgba(255,255,255,0.05)" : "#F5F4F1", border: `1px solid ${t.surfaceBorder}`, borderRadius: 9, padding: "10px 14px", fontFamily: t.mono, fontSize: 12, wordBreak: "break-all", color: t.accent, marginBottom: 16 }}>{inviteResult.link}</div>
+          </>)}
+          <div style={{ display: "flex", gap: 10 }}>
+            {inviteResult.link && <button onClick={() => navigator.clipboard.writeText(inviteResult.link)} style={{ flex: 1, background: t.accentGrad, color: "#fff", border: "none", borderRadius: 9, padding: "10px 18px", fontSize: 13.5, fontWeight: 600, cursor: "pointer" }}>Copy Link</button>}
+            <button onClick={() => setInviteResult(null)} style={{ flex: 1, background: isDark ? "rgba(255,255,255,0.08)" : "#F5F4F1", color: t.text, border: `1px solid ${t.border}`, borderRadius: 9, padding: "10px 18px", fontSize: 13.5, cursor: "pointer" }}>Close</button>
+          </div>
+        </div>
+      </div>
+    )}
   </>);
 }
