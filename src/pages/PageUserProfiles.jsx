@@ -208,7 +208,7 @@ export default function PageUserProfiles({ t, isDark, USERS = [], ROLES = [], co
     const cols = [
         { l: "USER ID", w: "100px", k: "user_id" },
         { l: "NAME", w: "0.125fr", k: "user_name" },
-        { l: "EMAIL", w: "0.15fr", k: "email" },
+        { l: "EMAIL", w: "0.18fr", k: "email" },
         { l: "ROLE", w: "192px", k: "role_id" },
         { l: "STATUS", w: "110px", k: "status" },
         { l: "AUTH UID", w: "240px", k: "auth_uid" },

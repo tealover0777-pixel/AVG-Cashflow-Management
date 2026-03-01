@@ -24,11 +24,11 @@ exports.fixL2Admin = functions.https.onRequest(async (req, res) => {
     let msgs = [];
 
     const userRecord = await admin.auth().getUserByEmail(userToUpdate);
-    await admin.auth().setCustomUserClaims(userRecord.uid, { role: 'L2 Admin' });
-    msgs.push(`Updated ${userToUpdate} auth claim to L2 Admin`);
+    await admin.auth().setCustomUserClaims(userRecord.uid, { role: 'L2 Admin', tenantId: '', isGlobal: true });
+    msgs.push(`Updated ${userToUpdate} auth claim to L2 Admin + isGlobal: true`);
 
     await db.collection('global_users').doc(userRecord.uid).set({
-      email: userToUpdate, role: 'L2 Admin', tenantId: ''
+      email: userToUpdate, role: 'L2 Admin', tenantId: '', isGlobal: true, status: 'Active'
     }, { merge: true });
     msgs.push(`Updated ${userToUpdate} in global_users to L2 Admin`);
 
