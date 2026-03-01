@@ -183,16 +183,14 @@ function AppContent() {
     updated_at: fmtDate(d.updated_at),
   }));
 
-  const determinedLogo = useMemo(() => {
-    // 1. If global, show first tenant's logo
-    if (isGlobalRole && TENANTS.length > 0) return TENANTS[0].logo;
-    // 2. If active tenant has logo, use it
-    if (activeTenantId) {
-      const found = TENANTS.find(t2 => t2.id === activeTenantId);
-      if (found?.logo) return found.logo;
-    }
+  const activeTenant = useMemo(() => {
+    if (isGlobalRole && TENANTS.length > 0) return TENANTS[0];
+    if (activeTenantId) return TENANTS.find(t2 => t2.id === activeTenantId);
     return null;
   }, [isGlobalRole, activeTenantId, TENANTS]);
+
+  const determinedLogo = activeTenant?.logo || null;
+  const determinedTenantName = activeTenant?.name || "";
 
   // Merge Firestore dimensions with local styling
   const DIMENSIONS = rawDimensions.map(d => {
@@ -260,15 +258,22 @@ function AppContent() {
       {/* ── Sidebar ── */}
       <div style={{ width: 228, background: t.sidebar, backdropFilter: t.glass ? "blur(20px)" : "none", borderRight: `1px solid ${t.sidebarBorder}`, display: "flex", flexDirection: "column", flexShrink: 0, boxShadow: t.sidebarShadow }}>
         {/* Logo */}
-        <div style={{ padding: "26px 22px 24px", borderBottom: `1px solid ${t.sidebarBorder}` }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 11 }}>
-            {determinedLogo ? (
-              <img src={determinedLogo} alt="Logo" style={{ height: 38, maxWidth: "100%", borderRadius: 6, objectFit: "contain" }} />
-            ) : (<>
-              <div style={{ width: 38, height: 38, borderRadius: 11, background: t.logoGrad, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 17, fontWeight: 800, color: "#fff", boxShadow: t.logoShadow, letterSpacing: "-1px" }}>A</div>
-              <div>
-                <div style={{ fontFamily: isDark ? "'Syne',sans-serif" : "'Cormorant Garamond',serif", fontWeight: isDark ? 800 : 700, fontSize: isDark ? 14 : 17, color: isDark ? "#fff" : "#1C1917", lineHeight: 1 }}>AVG</div>
-                <div style={{ fontSize: 9.5, color: t.textMuted, letterSpacing: "0.8px", textTransform: "uppercase", marginTop: 2 }}>Cashflow Mgmt</div>
+        <div style={{ padding: determinedLogo ? "24px 18px" : "26px 22px 24px", borderBottom: `1px solid ${t.sidebarBorder}`, display: "flex", justifyContent: "center" }}>
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8, width: "100%", justifyContent: "center" }}>
+            {determinedLogo ? (<>
+              <img src={determinedLogo} alt="Logo" style={{ width: "100%", maxHeight: 60, borderRadius: 6, objectFit: "contain" }} />
+              {determinedTenantName && (
+                <div style={{ fontSize: 11, fontWeight: 600, color: t.textSecondary, fontFamily: "'DM Sans', sans-serif", letterSpacing: "0.5px", textAlign: "center", width: "100%", marginTop: 4 }}>
+                  {determinedTenantName}
+                </div>
+              )}
+            </>) : (<>
+              <div style={{ display: "flex", alignItems: "center", gap: 11, width: "100%", justifyContent: "flex-start" }}>
+                <div style={{ width: 38, height: 38, borderRadius: 11, background: t.logoGrad, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 17, fontWeight: 800, color: "#fff", boxShadow: t.logoShadow, letterSpacing: "-1px" }}>A</div>
+                <div>
+                  <div style={{ fontFamily: isDark ? "'Syne',sans-serif" : "'Cormorant Garamond',serif", fontWeight: isDark ? 800 : 700, fontSize: isDark ? 14 : 17, color: isDark ? "#fff" : "#1C1917", lineHeight: 1 }}>AVG</div>
+                  <div style={{ fontSize: 9.5, color: t.textMuted, letterSpacing: "0.8px", textTransform: "uppercase", marginTop: 2 }}>Cashflow Mgmt</div>
+                </div>
               </div>
             </>)}
           </div>
