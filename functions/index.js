@@ -415,3 +415,50 @@ exports.updateUserTenant = functions.https.onCall(async (data, context) => {
     throw new functions.https.HttpsError('internal', error.message);
   }
 });
+
+/**
+ * Auto-activates a user on first login.
+ * Called from the client when status is Pending.
+ * Uses Admin SDK so no Firestore security rules are needed.
+ */
+exports.activateUser = functions.https.onCall(async (data, context) => {
+  if (!context.auth) {
+    throw new functions.https.HttpsError('unauthenticated', 'Must be logged in.');
+  }
+
+  const uid = context.auth.uid;
+  const db = admin.firestore();
+  const now = admin.firestore.FieldValue.serverTimestamp();
+
+  try {
+    // 1. Update global_users
+    const globalRef = db.collection('global_users').doc(uid);
+    const globalSnap = await globalRef.get();
+    if (globalSnap.exists) {
+      const d = globalSnap.data();
+      if (!d.status || d.status === 'Pending') {
+        await globalRef.update({ status: 'Active', last_login: now });
+      }
+    }
+
+    // 2. Update tenant profile
+    const tenantId = (globalSnap.exists && globalSnap.data().tenantId) || context.auth.token.tenantId || '';
+    if (tenantId) {
+      const usersRef = db.collection(`tenants/${tenantId}/users`);
+      const q = usersRef.where('auth_uid', '==', uid);
+      const snap = await q.get();
+      if (!snap.empty) {
+        for (const docSnap of snap.docs) {
+          if (!docSnap.data().status || docSnap.data().status === 'Pending') {
+            await docSnap.ref.update({ status: 'Active', last_login: now });
+          }
+        }
+      }
+    }
+
+    return { success: true };
+  } catch (error) {
+    console.error('activateUser error:', error);
+    throw new functions.https.HttpsError('internal', error.message);
+  }
+});
