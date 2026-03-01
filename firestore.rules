@@ -74,10 +74,12 @@ service cloud.firestore {
     // Global user-role mappings
     match /global_users/{docId} {
       allow read: if request.auth != null;
+      allow create: if request.auth != null && request.auth.uid == docId
+         && request.resource.data.keys().hasAll(['email'])
+         && request.resource.data.keys().hasOnly(['email', 'user_name', 'phone', 'role', 'tenantId', 'status', 'last_login', 'last_updated', 'updated_at', 'isGlobal']);
       allow update: if request.auth != null && request.auth.uid == docId
-         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['user_name', 'phone', 'status', 'last_login', 'last_updated']);
-      allow write: if isSecretAdmin() || isGlobalRole() || isCompanySuperAdmin() || isTenantSuperUser(request.auth.token.tenantId)
-         || isTenantAdminWrite(request.auth.token.tenantId);
+         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['user_name', 'phone', 'status', 'last_login', 'last_updated', 'updated_at']);
+      allow write: if isSecretAdmin() || isGlobalRole() || isCompanySuperAdmin();
     }
 
     // Global role definitions (role_types)

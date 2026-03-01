@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import { auth, db, functions } from "./firebase";
 import { onAuthStateChanged, signInWithEmailAndPassword, signOut } from "firebase/auth";
-import { doc, getDoc, collection, getDocs, query, where, serverTimestamp } from "firebase/firestore";
+import { doc, getDoc, collection, getDocs, query, where, serverTimestamp, onSnapshot } from "firebase/firestore";
 import { httpsCallable } from "firebase/functions";
 import { DEFAULT_ROLE_PERMISSIONS } from "./permissions";
 
@@ -49,6 +49,7 @@ export function AuthProvider({ children }) {
                     if (snap.exists()) {
                         globalData = snap.data();
                         fetchedProfile = { ...fetchedProfile, ...globalData };
+                        if (globalData.isGlobal) fetchedProfile.isGlobalRole = true;
                     }
 
                     // Kyuahn is always Super Admin
@@ -86,7 +87,7 @@ export function AuthProvider({ children }) {
 
                     if (role === "L2 Admin") {
                         userPermissions = [...DEFAULT_ROLE_PERMISSIONS["L2 Admin"]];
-                        fetchedProfile.roleName = "L2 Admin";
+                        fetchedProfile.roleName = role;
                         fetchedProfile.isGlobalRole = true;
                     }
 
@@ -140,7 +141,7 @@ export function AuthProvider({ children }) {
         loading,
         login,
         logout,
-        isSuperAdmin: (user?.email?.toLowerCase() === "kyuahn@yahoo.com") || profile?.role === "Super Admin" || profile?.role === "Platform Admin" || profile?.role === "company_super_admin_read_write" || profile?.role === "L2 Admin",
+        isSuperAdmin: (user?.email?.toLowerCase() === "kyuahn@yahoo.com") || profile?.role === "Super Admin" || profile?.role === "Platform Admin" || profile?.role === "company_super_admin_read_write" || profile?.role === "L2 Admin" || profile?.isGlobalRole === true || profile?.isGlobal === true,
         isTenantAdmin: profile?.role === "Tenant Admin" || profile?.role === "Tenant Owner" || profile?.role === "tenant_admin_super_user" || profile?.role === "tenant_admin_read_write",
         isGlobalRole: profile?.isGlobalRole === true,
         tenantId: profile?.tenantId || ""

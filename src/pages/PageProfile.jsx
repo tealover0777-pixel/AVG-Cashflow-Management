@@ -14,6 +14,17 @@ export default function PageProfile({ t, isDark, setIsDark, ROLES = [], collecti
         phone: profile?.phone || "",
     });
 
+    // Update form data if profile updates in background
+    useEffect(() => {
+        if (profile) {
+            setData({
+                name: profile.user_name || profile.name || user?.displayName || "",
+                email: user?.email || "",
+                phone: profile.phone || "",
+            });
+        }
+    }, [profile, user]);
+
     const roleId = profile?.role_id || profile?.role || "";
     const roleName = (() => {
         if (profile?.roleName) return profile.roleName;
