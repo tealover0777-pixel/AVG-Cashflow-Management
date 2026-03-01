@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import { auth, db } from "./firebase";
 import { onAuthStateChanged, signInWithEmailAndPassword, signOut } from "firebase/auth";
-import { doc, getDoc, collection, getDocs, query, where, updateDoc, serverTimestamp } from "firebase/firestore";
+import { doc, getDoc, setDoc, collection, getDocs, query, where, updateDoc, serverTimestamp } from "firebase/firestore";
 import { DEFAULT_ROLE_PERMISSIONS } from "./permissions";
 
 const AuthContext = createContext();
@@ -117,21 +117,29 @@ export function AuthProvider({ children }) {
                     }
 
                     // 5. Auto-activate "Pending" users on first login
-                    if (fetchedProfile.status === "Pending") {
+                    if (!fetchedProfile.status || fetchedProfile.status === "Pending") {
+                        console.log("[AuthContext] User status is Pending/missing, attempting auto-activate...");
                         try {
+                            // Force token refresh so custom claims are available for Firestore rules
+                            await u.getIdToken(true);
+
                             const updateData = { status: "Active", last_login: serverTimestamp() };
-                            // Update global profile
-                            await updateDoc(doc(db, "global_users", u.uid), updateData);
+                            // Update global profile using setDoc merge (works even if doc doesn't exist)
+                            await setDoc(doc(db, "global_users", u.uid), updateData, { merge: true });
+                            console.log("[AuthContext] Updated global_users to Active");
+
                             // Update tenant profile
                             if (tenantId && fetchedProfile.user_id) {
-                                await updateDoc(doc(db, `tenants/${tenantId}/users`, fetchedProfile.user_id), updateData);
-                            } else if (tenantId && !fetchedProfile.user_id) {
-                                // Fallback if doc ID is the UID
-                                await updateDoc(doc(db, `tenants/${tenantId}/users`, u.uid), updateData).catch(() => { });
+                                await setDoc(doc(db, `tenants/${tenantId}/users`, fetchedProfile.user_id), updateData, { merge: true });
+                                console.log("[AuthContext] Updated tenant profile to Active");
+                            } else if (tenantId) {
+                                await setDoc(doc(db, `tenants/${tenantId}/users`, u.uid), updateData, { merge: true }).catch((e) => {
+                                    console.warn("[AuthContext] Tenant profile fallback update failed:", e.message);
+                                });
                             }
                             fetchedProfile.status = "Active";
                         } catch (err) {
-                            console.error("Failed to auto-activate user:", err);
+                            console.error("[AuthContext] Failed to auto-activate user:", err.code, err.message);
                         }
                     }
 
