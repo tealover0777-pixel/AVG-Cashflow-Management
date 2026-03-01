@@ -84,7 +84,7 @@ export default function PageUserProfiles({ t, isDark, USERS = [], ROLES = [], co
         if (!d.email || !d.role_id) return;
         setInviting(true);
         try {
-            const resolvedTenantId = d.inviteTenantId || tenantId || "";
+            const resolvedTenantId = isSelectedRoleGlobal(d.role_id) ? "" : (d.inviteTenantId || tenantId || "");
             console.log("[Invite] Sending invite with tenantId:", resolvedTenantId, "role:", d.role_id);
             const inviteUserFn = httpsCallable(functions, "inviteUser");
             const result = await inviteUserFn({
@@ -299,7 +299,9 @@ export default function PageUserProfiles({ t, isDark, USERS = [], ROLES = [], co
                         <div style={{ fontFamily: t.mono, fontSize: 10, color: t.textMuted, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={p.auth_uid || p.id}>{p.auth_uid || p.id || "—"}</div>
                         {isSuperAdmin && (
                             <div style={{ fontFamily: t.mono, fontSize: 12, fontWeight: 600, color: t.text }}>
-                                {p.tenantId || p.tenant_id || p.Tenant_ID || tenantId || <span style={{ color: t.textMuted }}>—</span>}
+                                {isSelectedRoleGlobal(p.role_id)
+                                    ? <span style={{ color: "#22C55E", fontWeight: 600 }}>🌐 Global</span>
+                                    : (p.tenantId || p.tenant_id || p.Tenant_ID || tenantId || <span style={{ color: t.textMuted }}>—</span>)}
                             </div>
                         )}
                         <div style={{ fontFamily: t.mono, fontSize: 11, color: t.textMuted }}>{p.phone || "—"}</div>
