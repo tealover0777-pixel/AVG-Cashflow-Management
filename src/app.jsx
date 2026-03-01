@@ -202,7 +202,7 @@ function AppContent() {
     "User Profiles": <PageUserProfiles t={t} isDark={isDark} USERS={rawUsers} ROLES={rawRoles} collectionPath={COLLECTION_PATHS.users} DIMENSIONS={DIMENSIONS} tenantId={activeTenantId} TENANTS={TENANTS} />,
     "Role Types": <PageRoles t={t} isDark={isDark} collectionPath={COLLECTION_PATHS.roles} DIMENSIONS={DIMENSIONS} USERS={rawUsers} />,
     "Super Admin": <PageSuperAdmin t={t} isDark={isDark} DIMENSIONS={DIMENSIONS} ROLES={rawRoles} TENANTS={TENANTS} />,
-    "Profile": <PageProfile t={t} isDark={isDark} />,
+    "Profile": <PageProfile t={t} isDark={isDark} ROLES={rawRoles} collectionPath={COLLECTION_PATHS.users} />,
     "Dimensions": <PageDimensions t={t} isDark={isDark} DIMENSIONS={DIMENSIONS} />,
     "Reports": <PageReports t={t} isDark={isDark} MONTHLY={MONTHLY} />,
   };
