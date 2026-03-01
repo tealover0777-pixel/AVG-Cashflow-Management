@@ -190,6 +190,11 @@ export default function PageUserProfiles({ t, isDark, USERS = [], ROLES = [], co
                     updated_at: serverTimestamp(),
                 };
                 await updateDoc(doc(db, collectionPath, d.id), payload);
+                // Sync role to global_users collection
+                const authUid = d.auth_uid || d.id;
+                if (authUid && !/^U\d+$/.test(authUid)) {
+                    await setDoc(doc(db, "global_users", authUid), { role: d.role_id || "", last_updated: serverTimestamp() }, { merge: true });
+                }
             }
             close();
         } catch (err) {

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { db, functions } from "../firebase";
-import { doc, setDoc, deleteDoc, serverTimestamp } from "firebase/firestore";
+import { doc, setDoc, deleteDoc, serverTimestamp, collection, query, where, getDocs, updateDoc } from "firebase/firestore";
 import { httpsCallable } from "firebase/functions";
 import { useFirestoreCollection } from "../useFirestoreCollection";
 import { sortData } from "../utils";
@@ -72,7 +72,7 @@ export default function PageSuperAdmin({ t, isDark, DIMENSIONS = [], ROLES = [],
         }
     };
 
-    // Edit existing role/tenant mapping in global_users
+    // Edit existing role/tenant mapping in global_users + sync to tenant user doc
     const handleSaveUser = async () => {
         const d = modal.data;
         if (!d.uid) return;
@@ -84,6 +84,16 @@ export default function PageSuperAdmin({ t, isDark, DIMENSIONS = [], ROLES = [],
         };
         try {
             await setDoc(doc(db, "global_users", d.uid), payload, { merge: true });
+            // Sync role to tenant user doc
+            const tid = d.tenantId || "";
+            if (tid) {
+                const usersRef = collection(db, `tenants/${tid}/users`);
+                const q = query(usersRef, where("auth_uid", "==", d.uid));
+                const snap = await getDocs(q);
+                if (!snap.empty) {
+                    await updateDoc(snap.docs[0].ref, { role_id: d.role || "", updated_at: serverTimestamp() });
+                }
+            }
         } catch (err) {
             console.error("Save global user error:", err);
         }
