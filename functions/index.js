@@ -88,14 +88,26 @@ exports.inviteUser = functions.https.onCall(async (data, context) => {
 
     const uid = userRecord.uid;
 
-    // 2. Set Custom Claims
-    await admin.auth().setCustomUserClaims(uid, { role, tenantId });
+    // 2. Look up if role is global from role_types
+    let isGlobal = false;
+    try {
+      const roleDoc = await db.collection('role_types').doc(role).get();
+      if (roleDoc.exists && roleDoc.data().IsGlobal === true) {
+        isGlobal = true;
+      }
+    } catch (e) {
+      console.warn('Could not check IsGlobal for role:', role, e.message);
+    }
 
-    // 3. Create/Update Firestore Global Profile
+    // 3. Set Custom Claims (include isGlobal for Firestore rules)
+    await admin.auth().setCustomUserClaims(uid, { role, tenantId, isGlobal });
+
+    // 4. Create/Update Firestore Global Profile
     await db.collection('global_users').doc(uid).set({
       email,
       role,
       tenantId,
+      isGlobal,
       status: 'Pending',
       last_updated: admin.firestore.FieldValue.serverTimestamp()
     }, { merge: true });

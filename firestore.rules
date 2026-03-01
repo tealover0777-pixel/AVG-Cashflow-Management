@@ -37,6 +37,11 @@ service cloud.firestore {
         return isRole('company_tech_support_read_only') || isRole('company_customer_support_read_only');
     }
 
+    // Global role: IsGlobal flag set in custom claims by inviteUser
+    function isGlobalRole() {
+        return isSignedIn() && request.auth.token.isGlobal == true;
+    }
+
     function isTenantSuperUser(tenantId) {
         return isTenantMember(tenantId) && isRole('tenant_admin_super_user');
     }
@@ -61,30 +66,35 @@ service cloud.firestore {
       allow read, write: if isSecretAdmin();
     }
 
+    // Global roles (IsGlobal) have read/write access to everything
+    match /{path=**} {
+      allow read, write: if isGlobalRole();
+    }
+
     // Global user-role mappings
     match /global_users/{docId} {
       allow read: if request.auth != null;
       allow update: if request.auth != null && request.auth.uid == docId
          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'last_login', 'last_updated']);
-      allow write: if isSecretAdmin() || isCompanySuperAdmin() || isTenantSuperUser(request.auth.token.tenantId)
+      allow write: if isSecretAdmin() || isGlobalRole() || isCompanySuperAdmin() || isTenantSuperUser(request.auth.token.tenantId)
          || isTenantAdminWrite(request.auth.token.tenantId);
     }
 
     // Global role definitions (role_types)
     match /role_types/{roleId} {
       allow read: if request.auth != null;
-      allow write: if isSecretAdmin() || isCompanySuperAdmin() || isTenantSuperUser(request.auth.token.tenantId);
+      allow write: if isSecretAdmin() || isGlobalRole() || isCompanySuperAdmin() || isTenantSuperUser(request.auth.token.tenantId);
     }
 
     // Global dimensions mapping
     match /dimensions/{dimensionId} {
       allow read: if request.auth != null;
-      allow write: if isCompanySuperAdmin() || isTenantSuperUser(request.auth.token.tenantId);
+      allow write: if isGlobalRole() || isCompanySuperAdmin() || isTenantSuperUser(request.auth.token.tenantId);
     }
 
     // Rules for data within a tenant.
     match /tenants/{tenantId}/{document=**} {
-      allow read, write: if isCompanySuperAdmin() || isSecretAdmin();
+      allow read, write: if isCompanySuperAdmin() || isSecretAdmin() || isGlobalRole();
       allow read: if isCompanySupport() || isTenantAdminRead(tenantId) || isTenantMember(tenantId);
       allow write: if isTenantSuperUser(tenantId) || isTenantAdminWrite(tenantId);
     }

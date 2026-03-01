@@ -84,11 +84,13 @@ export default function PageUserProfiles({ t, isDark, USERS = [], ROLES = [], co
         if (!d.email || !d.role_id) return;
         setInviting(true);
         try {
+            const resolvedTenantId = d.inviteTenantId || tenantId || "";
+            console.log("[Invite] Sending invite with tenantId:", resolvedTenantId, "role:", d.role_id);
             const inviteUserFn = httpsCallable(functions, "inviteUser");
             const result = await inviteUserFn({
                 email: d.email,
                 role: d.role_id,
-                tenantId: d.inviteTenantId || tenantId,
+                tenantId: resolvedTenantId,
                 user_id: nextUserId,
                 user_name: d.user_name || "",
                 phone: d.phone || "",
