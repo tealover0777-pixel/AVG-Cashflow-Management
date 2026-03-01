@@ -64,7 +64,16 @@ export default function PageParties({ t, isDark, PARTIES = [], collectionPath = 
   const [invitingId, setInvitingId] = useState(null);
   const [inviteResult, setInviteResult] = useState(null);
   const handleInviteParty = async (party) => {
-    if (!party.email) { alert("This party has no email address."); return; }
+    if (!party.email) {
+      alert("This party has no email address. Please add a valid email first.");
+      return;
+    }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(party.email)) {
+      alert("The email address provided is not in a valid format. Please correct it first.");
+      return;
+    }
+
     if (!window.confirm(`Invite ${party.name} (${party.email}) as a Member (R10001)?`)) return;
     setInvitingId(party.id);
     try {
@@ -130,8 +139,24 @@ export default function PageParties({ t, isDark, PARTIES = [], collectionPath = 
           <div style={{ fontFamily: t.mono, fontSize: 10.5, color: t.idText }}>{p.updated_at || <span style={{ color: isDark ? "rgba(255,255,255,0.12)" : "#D4D0CB" }}>—</span>}</div>
           <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
             <ActBtns show={isHov && (canUpdate || canDelete)} t={t} onEdit={canUpdate ? () => openEdit(p) : null} onDel={canDelete ? () => setDelT({ id: p.id, name: p.name, docId: p.docId }) : null} />
-            {isHov && canInvite && p.email && (
-              <button onClick={() => handleInviteParty(p)} disabled={invitingId === p.id} title="Invite as Member (R10001)" style={{ background: "none", border: `1px solid ${t.border}`, borderRadius: 7, padding: "5px 8px", cursor: invitingId === p.id ? "default" : "pointer", fontSize: 13, color: t.textMuted, opacity: invitingId === p.id ? 0.5 : 1 }}>{invitingId === p.id ? "..." : "✉️"}</button>
+            {isHov && canInvite && (
+              <button
+                onClick={() => handleInviteParty(p)}
+                disabled={invitingId === p.id}
+                title="Invite as Member (R10001)"
+                style={{
+                  background: "none",
+                  border: `1px solid ${t.border}`,
+                  borderRadius: 7,
+                  padding: "5px 8px",
+                  cursor: invitingId === p.id ? "default" : "pointer",
+                  fontSize: 13,
+                  color: t.textMuted,
+                  opacity: (invitingId === p.id || !p.email) ? 0.5 : 1
+                }}
+              >
+                {invitingId === p.id ? "..." : "✉️"}
+              </button>
             )}
           </div>
         </div>);
