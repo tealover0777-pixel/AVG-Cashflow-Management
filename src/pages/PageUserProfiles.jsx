@@ -88,7 +88,7 @@ export default function PageUserProfiles({ t, isDark, USERS = [], ROLES = [], co
             const result = await inviteUserFn({
                 email: d.email,
                 role: d.role_id,
-                tenantId: isSelectedRoleGlobal(d.role_id) ? "" : (d.inviteTenantId || tenantId),
+                tenantId: d.inviteTenantId || tenantId,
                 user_id: nextUserId,
                 user_name: d.user_name || "",
                 phone: d.phone || "",
