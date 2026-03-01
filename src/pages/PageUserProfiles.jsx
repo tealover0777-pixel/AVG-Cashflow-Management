@@ -63,6 +63,12 @@ export default function PageUserProfiles({ t, isDark, USERS = [], ROLES = [], co
         return "U" + String(maxNum + 1).padStart(5, "0");
     })();
 
+    // Check if selected role is a Global role (IsGlobal flag in role_types)
+    const isSelectedRoleGlobal = (roleId) => {
+        const found = ROLES.find(r => (r.id || r.role_id) === roleId);
+        return found && found.IsGlobal === true;
+    };
+
     const openInvite = () => setModal({ open: true, mode: "invite", data: { email: "", role_id: "", user_name: "" } });
     const openEdit = r => {
         const tid = r.tenantId || r.tenant_id || r.Tenant_ID || tenantId;
@@ -82,7 +88,7 @@ export default function PageUserProfiles({ t, isDark, USERS = [], ROLES = [], co
             const result = await inviteUserFn({
                 email: d.email,
                 role: d.role_id,
-                tenantId: d.inviteTenantId || tenantId,
+                tenantId: isSelectedRoleGlobal(d.role_id) ? "" : (d.inviteTenantId || tenantId),
                 user_id: nextUserId,
                 user_name: d.user_name || "",
                 phone: d.phone || "",
@@ -326,12 +332,17 @@ export default function PageUserProfiles({ t, isDark, USERS = [], ROLES = [], co
                     {ROLES.map(r => <option key={r.id || r.role_id} value={r.id || r.role_id} style={{ color: "#000" }}>{r.role_name || r.name || r.id}</option>)}
                 </select>
             </FF>
-            {isSuperAdmin && (
+            {isSuperAdmin && !isSelectedRoleGlobal(modal.data.role_id) && (
                 <FF label="Tenant ID" t={t}>
                     <select value={modal.data.inviteTenantId || tenantId || ""} onChange={e => setF("inviteTenantId", e.target.value)} style={{ background: isDark ? "rgba(255,255,255,0.04)" : "#fff", color: isDark ? "#fff" : "#000", border: `1px solid ${t.border}`, borderRadius: 9, padding: "10px 13px", fontSize: 13.5, outline: "none", width: "100%", fontFamily: t.font, appearance: "none" }}>
                         <option value="">— No tenant (global admin) —</option>
                         {TENANTS.map(ten => <option key={ten.id} value={ten.id} style={{ color: "#000" }}>{ten.id}{ten.name ? ` — ${ten.name}` : ""}</option>)}
                     </select>
+                </FF>
+            )}
+            {isSelectedRoleGlobal(modal.data.role_id) && (
+                <FF label="Tenant ID" t={t}>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: "#22C55E", background: isDark ? "rgba(34,197,94,0.1)" : "#F0FDF4", border: "1px solid rgba(34,197,94,0.35)", borderRadius: 9, padding: "10px 13px" }}>🌐 Global — Access to all tenants</div>
                 </FF>
             )}
             <FF label="Notes" t={t}>
@@ -381,12 +392,17 @@ export default function PageUserProfiles({ t, isDark, USERS = [], ROLES = [], co
                         : (modal.data.id && !/^U\d+$/.test(modal.data.id) ? modal.data.id : "— (not linked to Firebase Auth)")}
                 </div>
             </FF>
-            {isSuperAdmin && (
+            {isSuperAdmin && !isSelectedRoleGlobal(modal.data.role_id) && (
                 <FF label="Tenant ID" t={t}>
                     <select value={modal.data.tenantId || ""} onChange={e => setF("tenantId", e.target.value)} style={{ background: isDark ? "rgba(255,255,255,0.04)" : "#fff", color: isDark ? "#fff" : "#000", border: `1px solid ${t.border}`, borderRadius: 9, padding: "10px 13px", fontSize: 13.5, outline: "none", width: "100%", fontFamily: t.font, appearance: "none" }}>
                         <option value="">— No tenant (global admin) —</option>
                         {TENANTS.map(ten => <option key={ten.id} value={ten.id} style={{ color: "#000" }}>{ten.id}{ten.name ? ` — ${ten.name}` : ""}</option>)}
                     </select>
+                </FF>
+            )}
+            {isSelectedRoleGlobal(modal.data.role_id) && (
+                <FF label="Tenant ID" t={t}>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: "#22C55E", background: isDark ? "rgba(34,197,94,0.1)" : "#F0FDF4", border: "1px solid rgba(34,197,94,0.35)", borderRadius: 9, padding: "10px 13px" }}>🌐 Global — Access to all tenants</div>
                 </FF>
             )}
             <FF label="Full Name" t={t}><FIn value={modal.data.user_name || modal.data.name} onChange={e => setF("user_name", e.target.value)} t={t} /></FF>

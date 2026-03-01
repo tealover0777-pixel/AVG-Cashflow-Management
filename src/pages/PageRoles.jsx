@@ -28,7 +28,7 @@ export default function PageRoles({ t, isDark, collectionPath = "", DIMENSIONS =
         return "R" + (maxNum + 1);
     })();
 
-    const openAdd = () => setModal({ open: true, mode: "add", data: { role_id: nextRoleId, role_name: "", selectedPerms: [] } });
+    const openAdd = () => setModal({ open: true, mode: "add", data: { role_id: nextRoleId, role_name: "", selectedPerms: [], IsGlobal: false } });
     const openEdit = r => {
         const permStr = r.Permissions || r.Permission || "";
         const pArr = typeof permStr === "string" && permStr ? permStr.split(",").map(s => s.trim()).filter(Boolean) : [];
@@ -44,6 +44,7 @@ export default function PageRoles({ t, isDark, collectionPath = "", DIMENSIONS =
         const payload = {
             role_id: d.role_id || "",
             role_name: d.role_name,
+            IsGlobal: d.IsGlobal === true,
             Permissions: (d.selectedPerms || []).join(", "),
             permissions: d.selectedPerms || [], // Save as array too!
             updated_at: serverTimestamp(),
@@ -99,7 +100,10 @@ export default function PageRoles({ t, isDark, collectionPath = "", DIMENSIONS =
                 const isHov = hov === p.id;
                 return (<div key={p.id} className="data-row" onMouseEnter={() => setHov(p.id)} onMouseLeave={() => setHov(null)} style={{ display: "grid", gridTemplateColumns: gridTemplate, padding: "12px 22px", borderBottom: i < paginated.length - 1 ? `1px solid ${t.rowDivider}` : "none", alignItems: "center", background: isHov ? t.rowHover : "transparent" }}>
                     <div style={{ fontSize: 13.5, color: t.textSecondary, fontFamily: t.mono }}>{p.role_id || p.id || "—"}</div>
-                    <div style={{ fontSize: 13.5, fontWeight: 600, color: isDark ? "#fff" : (isHov ? t.accent : "#1C1917") }}>{p.role_name || p.name || "—"}</div>
+                    <div style={{ fontSize: 13.5, fontWeight: 600, color: isDark ? "#fff" : (isHov ? t.accent : "#1C1917") }}>
+                        {p.role_name || p.name || "—"}
+                        {p.IsGlobal && <span style={{ marginLeft: 8, fontSize: 10, fontWeight: 600, color: "#22C55E", background: isDark ? "rgba(34,197,94,0.15)" : "#F0FDF4", border: "1px solid rgba(34,197,94,0.35)", borderRadius: 10, padding: "2px 7px" }}>🌐 Global</span>}
+                    </div>
                     <div style={{ fontSize: 11, color: t.textSubtle, display: "flex", flexWrap: "wrap", gap: 4 }}>
                         {(p.Permissions || p.Permission) ? (p.Permissions || p.Permission).split(",").map(pm => (
                             <span key={pm.trim()} style={{ background: t.chipBg, border: `1px solid ${t.chipBorder}`, padding: "2px 6px", borderRadius: 4 }}>{pm.trim()}</span>
@@ -117,6 +121,12 @@ export default function PageRoles({ t, isDark, collectionPath = "", DIMENSIONS =
                 <div style={{ fontFamily: t.mono, fontSize: 13, color: t.idText, background: isDark ? "rgba(255,255,255,0.04)" : "#F5F4F1", border: `1px solid ${t.surfaceBorder}`, borderRadius: 9, padding: "10px 13px", letterSpacing: "0.5px" }}>{modal.data.role_id}</div>
             </FF>
             <FF label="Role Name" t={t}><FIn value={modal.data.role_name || modal.data.name} onChange={e => setF("role_name", e.target.value)} placeholder="e.g. Project Manager" t={t} /></FF>
+            <FF label="Global Role" t={t}>
+                <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer", fontSize: 13.5, color: t.text }}>
+                    <input type="checkbox" checked={modal.data.IsGlobal === true} onChange={e => setF("IsGlobal", e.target.checked)} style={{ width: 18, height: 18, accentColor: "#22C55E" }} />
+                    <span>This role has access to <strong>all tenants</strong> (no tenant assignment needed)</span>
+                </label>
+            </FF>
             <FF label="Permissions" t={t}><FMultiSel value={modal.data.selectedPerms || []} onChange={v => setF("selectedPerms", v)} options={permDim} t={t} /></FF>
         </Modal>
 

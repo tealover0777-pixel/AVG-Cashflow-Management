@@ -38,6 +38,10 @@ export default function PageSuperAdmin({ t, isDark, DIMENSIONS = [], ROLES = [],
         const found = TENANTS.find(t2 => t2.id === tenantId);
         return found ? (found.name || tenantId) : null;
     };
+    const isRoleGlobal = (roleId) => {
+        const found = ROLES.find(r => (r.id || r.role_id) === roleId);
+        return found && found.IsGlobal === true;
+    };
 
     const roleDim = DIMENSIONS.find(d => d.name === "Role")?.items || [
         "Tenant Member", "Tenant Viewer", "Tenant Manager", "Tenant Admin", "Tenant Owner",
@@ -153,7 +157,12 @@ export default function PageSuperAdmin({ t, isDark, DIMENSIONS = [], ROLES = [],
                             <div style={{ fontFamily: t.mono, fontSize: 11, color: t.idText }}>{p.id}</div>
                             <div style={{ fontSize: 12.5, color: t.accent }}>{p.email || "—"}</div>
                             <div style={{ fontSize: 12 }}><span style={{ fontFamily: t.mono, fontSize: 11, color: t.textMuted }}>{p.role || "—"}</span>{" "}{getRoleName(p.role) || <Bdg status={p.role ? p.role.replace(/_/g, " ").toUpperCase() : "NONE"} isDark={isDark} />}</div>
-                            <div style={{ fontFamily: t.mono, fontSize: 12, fontWeight: 600, color: t.text }}>{p.tenantId || p.tenant_id || p.Tenant_ID || <span style={{ color: t.textMuted }}>Global</span>}{getTenantName(p.tenantId || p.tenant_id || p.Tenant_ID) && <span style={{ fontFamily: t.font, fontWeight: 400, fontSize: 11, color: t.textMuted }}>{" "}{getTenantName(p.tenantId || p.tenant_id || p.Tenant_ID)}</span>}</div>
+                            <div style={{ fontFamily: t.mono, fontSize: 12, fontWeight: 600, color: t.text }}>
+                                {isRoleGlobal(p.role)
+                                    ? <span style={{ color: "#22C55E", fontWeight: 600 }}>🌐 Global</span>
+                                    : (p.tenantId || p.tenant_id || p.Tenant_ID || <span style={{ color: t.textMuted }}>—</span>)}
+                                {!isRoleGlobal(p.role) && getTenantName(p.tenantId || p.tenant_id || p.Tenant_ID) && <span style={{ fontFamily: t.font, fontWeight: 400, fontSize: 11, color: t.textMuted }}>{" "}{getTenantName(p.tenantId || p.tenant_id || p.Tenant_ID)}</span>}
+                            </div>
                             <div><StatusBadge status={p.status} t={t} isDark={isDark} /></div>
                             <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
                                 <ActBtns show={isHov} t={t} onEdit={() => openEdit(p)} onDel={() => setDelT(p)} />
@@ -173,7 +182,11 @@ export default function PageSuperAdmin({ t, isDark, DIMENSIONS = [], ROLES = [],
                 <p style={{ fontSize: 12.5, color: t.textMuted, marginBottom: 16, lineHeight: 1.6 }}>Creates a Firebase Auth account, sets their role and tenant, and generates a secure password-setup link to share with them.</p>
                 <FF label="Email Address" t={t}><FIn value={modal.data.email} onChange={e => setF("email", e.target.value)} placeholder="user@company.com" t={t} /></FF>
                 <FF label="Global Role" t={t}><FSel value={modal.data.role} onChange={e => setF("role", e.target.value)} options={roleDim} t={t} /></FF>
-                <FF label="Assigned Tenant ID" t={t}><FIn value={modal.data.tenantId} onChange={e => setF("tenantId", e.target.value)} placeholder="Leave blank for global admins, e.g. T10001" t={t} /></FF>
+                <FF label="Assigned Tenant ID" t={t}>
+                    {isRoleGlobal(modal.data.role)
+                        ? <div style={{ fontSize: 13, fontWeight: 600, color: "#22C55E", background: isDark ? "rgba(34,197,94,0.1)" : "#F0FDF4", border: "1px solid rgba(34,197,94,0.35)", borderRadius: 9, padding: "10px 13px" }}>🌐 Global — Access to all tenants</div>
+                        : <FIn value={modal.data.tenantId} onChange={e => setF("tenantId", e.target.value)} placeholder="Leave blank for global admins, e.g. T10001" t={t} />}
+                </FF>
             </Modal>
 
             {/* Assign / Edit Role Modal */}
@@ -189,7 +202,9 @@ export default function PageSuperAdmin({ t, isDark, DIMENSIONS = [], ROLES = [],
                 </FF>
                 <FF label="Global Role" t={t}><FSel value={modal.data.role} onChange={e => setF("role", e.target.value)} options={roleDim} t={t} /></FF>
                 <FF label="Assigned Tenant ID" t={t}>
-                    <FIn value={modal.data.tenantId} onChange={e => setF("tenantId", e.target.value)} placeholder="Leave blank for super admins, e.g. T10001" t={t} />
+                    {isRoleGlobal(modal.data.role)
+                        ? <div style={{ fontSize: 13, fontWeight: 600, color: "#22C55E", background: isDark ? "rgba(34,197,94,0.1)" : "#F0FDF4", border: "1px solid rgba(34,197,94,0.35)", borderRadius: 9, padding: "10px 13px" }}>🌐 Global — Access to all tenants</div>
+                        : <FIn value={modal.data.tenantId} onChange={e => setF("tenantId", e.target.value)} placeholder="Leave blank for super admins, e.g. T10001" t={t} />}
                 </FF>
             </Modal>
 

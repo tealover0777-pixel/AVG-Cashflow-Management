@@ -92,6 +92,11 @@ export function AuthProvider({ children }) {
                                 // Store the display name of the role
                                 fetchedProfile.roleName = roleData.role_name || roleData.name || fetchedProfile.role_name || role;
 
+                                // Check if role has global access (IsGlobal flag in role_types)
+                                if (roleData.IsGlobal === true) {
+                                    fetchedProfile.isGlobalRole = true;
+                                }
+
                                 // UNIFIED PARSING: handle string or array from both legacy and new fields
                                 const rawPerms = roleData.Permissions || roleData.Permission || roleData.permissions || [];
                                 if (Array.isArray(rawPerms)) {
@@ -115,6 +120,7 @@ export function AuthProvider({ children }) {
                     if (role === "L2 Admin") {
                         userPermissions = [...DEFAULT_ROLE_PERMISSIONS["L2 Admin"]];
                         fetchedProfile.roleName = "L2 Admin";
+                        fetchedProfile.isGlobalRole = true;
                     }
 
                     // 5. Auto-activate "Pending" users on first login
@@ -164,6 +170,7 @@ export function AuthProvider({ children }) {
         logout,
         isSuperAdmin: (user?.email?.toLowerCase() === "kyuahn@yahoo.com") || profile?.role === "Super Admin" || profile?.role === "Platform Admin" || profile?.role === "company_super_admin_read_write" || profile?.role === "L2 Admin",
         isTenantAdmin: profile?.role === "Tenant Admin" || profile?.role === "Tenant Owner" || profile?.role === "tenant_admin_super_user" || profile?.role === "tenant_admin_read_write",
+        isGlobalRole: profile?.isGlobalRole === true,
         tenantId: profile?.tenantId || ""
     };
 
