@@ -18,7 +18,7 @@ const StatusBadge = ({ status, t, isDark }) => {
     );
 };
 
-export default function PageSuperAdmin({ t, isDark, DIMENSIONS = [] }) {
+export default function PageSuperAdmin({ t, isDark, DIMENSIONS = [], ROLES = [], TENANTS = [] }) {
     const { data: rawUsers = [], loading, error } = useFirestoreCollection("user_roles");
 
     const [hov, setHov] = useState(null);
@@ -29,6 +29,15 @@ export default function PageSuperAdmin({ t, isDark, DIMENSIONS = [] }) {
     const [inviting, setInviting] = useState(false);
     const [inviteResult, setInviteResult] = useState(null);
     const onSort = k => { setSort(s => ({ key: k, direction: s.key === k && s.direction === "asc" ? "desc" : "asc" })); setPage(1); };
+
+    const getRoleName = (role_id) => {
+        const found = ROLES.find(r => r.id === role_id || r.role_id === role_id);
+        return found ? (found.role_name || found.name || role_id) : null;
+    };
+    const getTenantName = (tenantId) => {
+        const found = TENANTS.find(t2 => t2.id === tenantId);
+        return found ? (found.name || tenantId) : null;
+    };
 
     const roleDim = DIMENSIONS.find(d => d.name === "Role")?.items || [
         "Tenant Member", "Tenant Viewer", "Tenant Manager", "Tenant Admin", "Tenant Owner",
@@ -143,8 +152,8 @@ export default function PageSuperAdmin({ t, isDark, DIMENSIONS = [] }) {
                         return (<div key={p.id} className="data-row" onMouseEnter={() => setHov(p.id)} onMouseLeave={() => setHov(null)} style={{ display: "grid", gridTemplateColumns: gridTemplate, padding: "12px 22px", borderBottom: i < paginated.length - 1 ? `1px solid ${t.rowDivider}` : "none", alignItems: "center", background: isHov ? t.rowHover : "transparent" }}>
                             <div style={{ fontFamily: t.mono, fontSize: 11, color: t.idText }}>{p.id}</div>
                             <div style={{ fontSize: 12.5, color: t.accent }}>{p.email || "—"}</div>
-                            <div><Bdg status={p.role ? p.role.replace(/_/g, " ").toUpperCase() : "NONE"} isDark={isDark} /></div>
-                            <div style={{ fontFamily: t.mono, fontSize: 12, fontWeight: 600, color: t.text }}>{p.tenantId || p.tenant_id || p.Tenant_ID || <span style={{ color: t.textMuted }}>Global</span>}</div>
+                            <div style={{ fontSize: 12 }}><span style={{ fontFamily: t.mono, fontSize: 11, color: t.textMuted }}>{p.role || "—"}</span>{" "}{getRoleName(p.role) || <Bdg status={p.role ? p.role.replace(/_/g, " ").toUpperCase() : "NONE"} isDark={isDark} />}</div>
+                            <div style={{ fontFamily: t.mono, fontSize: 12, fontWeight: 600, color: t.text }}>{p.tenantId || p.tenant_id || p.Tenant_ID || <span style={{ color: t.textMuted }}>Global</span>}{getTenantName(p.tenantId || p.tenant_id || p.Tenant_ID) && <span style={{ fontFamily: t.font, fontWeight: 400, fontSize: 11, color: t.textMuted }}>{" "}{getTenantName(p.tenantId || p.tenant_id || p.Tenant_ID)}</span>}</div>
                             <div><StatusBadge status={p.status} t={t} isDark={isDark} /></div>
                             <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
                                 <ActBtns show={isHov} t={t} onEdit={() => openEdit(p)} onDel={() => setDelT(p)} />
