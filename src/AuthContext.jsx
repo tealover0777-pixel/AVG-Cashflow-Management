@@ -26,12 +26,13 @@ export function AuthProvider({ children }) {
                     let tenantId = idToken.claims.tenantId || "";
 
                     // 2. Fetch authoritative mapping from global global_users collection
+                    let globalData = {};
                     try {
                         const globalRoleDoc = await getDoc(doc(db, `global_users`, u.uid));
                         if (globalRoleDoc.exists()) {
-                            const data = globalRoleDoc.data();
-                            role = data.role || role;
-                            tenantId = data.tenantId || data.tenant_id || data.Tenant_ID || tenantId;
+                            globalData = globalRoleDoc.data();
+                            role = globalData.role || role;
+                            tenantId = globalData.tenantId || globalData.tenant_id || globalData.Tenant_ID || tenantId;
                         }
                     } catch (err) {
                         console.error("Failed to fetch global_users:", err);
@@ -42,7 +43,7 @@ export function AuthProvider({ children }) {
                         role = "L2 Admin";
                     }
 
-                    let fetchedProfile = { role, tenantId };
+                    let fetchedProfile = { ...globalData, role, tenantId, status: globalData.status || "Pending" };
 
                     // 3. Fetch extra profile info from tenant collection
                     // Docs are now named by user_id (U10001), so we query by auth_uid field
