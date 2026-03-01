@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { db } from "../firebase";
+import { db, auth } from "../firebase";
 import { updateDoc, serverTimestamp, collection, query, where, getDocs } from "firebase/firestore";
+import { sendPasswordResetEmail } from "firebase/auth";
 import { useAuth } from "../AuthContext";
 import { FF, FIn } from "../components";
 
@@ -20,6 +21,21 @@ export default function PageProfile({ t, isDark, ROLES = [], collectionPath = ""
         return found ? (found.role_name || found.name || roleId) : roleId;
     })();
     const roleDisplay = roleId && roleName && roleName !== roleId ? `${roleId} — ${roleName}` : (roleName || roleId || "—");
+
+    const [resetting, setResetting] = useState(false);
+    const handleChangePassword = async () => {
+        if (!user?.email) return;
+        setResetting(true);
+        try {
+            await sendPasswordResetEmail(auth, user.email);
+            alert("Password reset email sent to " + user.email + ". Check your inbox.");
+        } catch (err) {
+            console.error("Password reset error:", err);
+            alert("Failed to send reset email: " + (err.message || "Unknown error"));
+        } finally {
+            setResetting(false);
+        }
+    };
 
     const handleSave = async () => {
         setSaving(true);
@@ -78,7 +94,7 @@ export default function PageProfile({ t, isDark, ROLES = [], collectionPath = ""
 
                     <div style={{ marginTop: 12, padding: "16px 20px", borderRadius: 12, background: isDark ? "rgba(255,255,255,0.03)" : "#FAFAF9", border: `1px solid ${t.surfaceBorder}` }}>
                         <div style={{ fontSize: 12, fontWeight: 600, color: t.textSecondary, marginBottom: 8 }}>Account Security</div>
-                        <button className="primary-btn" style={{ background: t.chipBg, color: t.textSecondary, border: `1px solid ${t.chipBorder}`, padding: "8px 16px", borderRadius: 8, fontSize: 12.5, fontWeight: 600 }}>Change Password</button>
+                        <button onClick={handleChangePassword} disabled={resetting} className="primary-btn" style={{ background: t.chipBg, color: t.textSecondary, border: `1px solid ${t.chipBorder}`, padding: "8px 16px", borderRadius: 8, fontSize: 12.5, fontWeight: 600, cursor: resetting ? "default" : "pointer", opacity: resetting ? 0.6 : 1 }}>{resetting ? "Sending..." : "Change Password"}</button>
                     </div>
                 </div>
             </div>
