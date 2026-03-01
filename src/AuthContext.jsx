@@ -91,7 +91,7 @@ export function AuthProvider({ children }) {
                                 fetchedProfile.roleName = roleData.role_name || roleData.name || fetchedProfile.role_name || role;
 
                                 // UNIFIED PARSING: handle string or array from both legacy and new fields
-                                const rawPerms = roleData.Permission || roleData.permissions || [];
+                                const rawPerms = roleData.Permissions || roleData.Permission || roleData.permissions || [];
                                 if (Array.isArray(rawPerms)) {
                                     userPermissions = rawPerms;
                                 } else if (typeof rawPerms === "string") {

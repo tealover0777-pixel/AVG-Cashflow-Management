@@ -30,7 +30,8 @@ export default function PageRoles({ t, isDark, collectionPath = "", DIMENSIONS =
 
     const openAdd = () => setModal({ open: true, mode: "add", data: { role_id: nextRoleId, role_name: "", selectedPerms: [] } });
     const openEdit = r => {
-        const pArr = typeof r.Permission === "string" && r.Permission ? r.Permission.split(",").map(s => s.trim()).filter(Boolean) : [];
+        const permStr = r.Permissions || r.Permission || "";
+        const pArr = typeof permStr === "string" && permStr ? permStr.split(",").map(s => s.trim()).filter(Boolean) : [];
         setModal({ open: true, mode: "edit", data: { ...r, selectedPerms: pArr } });
     };
     const close = () => setModal(m => ({ ...m, open: false }));
@@ -43,7 +44,7 @@ export default function PageRoles({ t, isDark, collectionPath = "", DIMENSIONS =
         const payload = {
             role_id: d.role_id || "",
             role_name: d.role_name,
-            Permission: (d.selectedPerms || []).join(", "),
+            Permissions: (d.selectedPerms || []).join(", "),
             permissions: d.selectedPerms || [], // Save as array too!
             updated_at: serverTimestamp(),
         };
@@ -60,7 +61,7 @@ export default function PageRoles({ t, isDark, collectionPath = "", DIMENSIONS =
     const cols = [
         { l: "ROLE ID", w: "120px", k: "role_id" },
         { l: "ROLE NAME", w: "200px", k: "role_name" },
-        { l: "PERMISSIONS", w: "0.15fr", k: "Permission" },
+        { l: "PERMISSIONS", w: "0.15fr", k: "Permissions" },
         { l: "ACTIONS", w: "80px" }
     ];
     const { gridTemplate, headerRef, onResizeStart } = useResizableColumns(cols);
@@ -100,7 +101,7 @@ export default function PageRoles({ t, isDark, collectionPath = "", DIMENSIONS =
                     <div style={{ fontSize: 13.5, color: t.textSecondary, fontFamily: t.mono }}>{p.role_id || p.id || "—"}</div>
                     <div style={{ fontSize: 13.5, fontWeight: 600, color: isDark ? "#fff" : (isHov ? t.accent : "#1C1917") }}>{p.role_name || p.name || "—"}</div>
                     <div style={{ fontSize: 11, color: t.textSubtle, display: "flex", flexWrap: "wrap", gap: 4 }}>
-                        {p.Permission ? p.Permission.split(",").map(pm => (
+                        {(p.Permissions || p.Permission) ? (p.Permissions || p.Permission).split(",").map(pm => (
                             <span key={pm.trim()} style={{ background: t.chipBg, border: `1px solid ${t.chipBorder}`, padding: "2px 6px", borderRadius: 4 }}>{pm.trim()}</span>
                         )) : <span style={{ fontStyle: "italic", opacity: 0.5 }}>No permissions assigned.</span>}
                     </div>

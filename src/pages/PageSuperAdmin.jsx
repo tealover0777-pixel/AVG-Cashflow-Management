@@ -88,7 +88,7 @@ export default function PageSuperAdmin({ t, isDark, DIMENSIONS = [], ROLES = [],
 
     const cols = [
         { l: "USER UID", w: "220px", k: "id" },
-        { l: "EMAIL", w: "1.5fr", k: "email" },
+        { l: "EMAIL", w: "15%", k: "email" },
         { l: "GLOBAL ROLE", w: "200px", k: "role" },
         { l: "TENANT", w: "130px", k: "tenantId" },
         { l: "STATUS", w: "110px", k: "status" },
@@ -125,7 +125,7 @@ export default function PageSuperAdmin({ t, isDark, DIMENSIONS = [], ROLES = [],
             <div style={{ marginBottom: 28, display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
                 <div>
                     <h1 style={{ fontFamily: t.titleFont, fontWeight: t.titleWeight, fontSize: t.titleSize, color: isDark ? "#fff" : "#1C1917", letterSpacing: t.titleTracking, lineHeight: 1, marginBottom: 6 }}>Super Admin</h1>
-                    <p style={{ fontSize: 13.5, color: t.textMuted }}>Global system management and cross-tenant user assignment</p>
+                    <p style={{ fontSize: 13.5, color: t.textMuted }}>Global system management and cross-tenant user assignment - Use User Profiles to invite/add users in normal workflow. Use Super Admin only for troubleshooting or manually adjusting global role assignments.</p>
                 </div>
                 <div style={{ display: "flex", gap: 10 }}>
                     <button className="primary-btn" onClick={openInvite} style={{ background: t.accentGrad, color: "#fff", padding: "11px 22px", borderRadius: 11, fontSize: 13.5, fontWeight: 600, boxShadow: `0 4px 16px ${t.accentShadow}` }}>
