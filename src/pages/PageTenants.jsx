@@ -63,6 +63,20 @@ export default function PageTenants({ t, isDark, TENANTS = [], collectionPath = 
         close();
     };
 
+    const handleFileChange = (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        if (file.size > 1024 * 1024) {
+            alert("File is too large! Please choose an image under 1MB.");
+            return;
+        }
+        const reader = new FileReader();
+        reader.onloadend = () => {
+            setF("logo", reader.result);
+        };
+        reader.readAsDataURL(file);
+    };
+
     const cols = [
         { l: "TENANT ID", w: "110px", k: "id" },
         { l: "NAME", w: "1fr", k: "name" },
@@ -150,7 +164,19 @@ export default function PageTenants({ t, isDark, TENANTS = [], collectionPath = 
                 <div style={{ fontFamily: t.mono, fontSize: 13, color: t.idText, background: isDark ? "rgba(255,255,255,0.04)" : "#F5F4F1", border: `1px solid ${t.surfaceBorder}`, borderRadius: 9, padding: "10px 13px", letterSpacing: "0.5px" }}>{modal.data.id}</div>
             </FF>
             <FF label="Tenant Name" t={t}><FIn value={modal.data.name} onChange={e => setF("name", e.target.value)} placeholder="e.g. AVG Real Estate" t={t} /></FF>
-            <FF label="Logo URL / Base64" t={t}><FIn value={modal.data.logo} onChange={e => setF("logo", e.target.value)} placeholder="e.g. data:image/png;base64,..." t={t} /></FF>
+            <FF label="Tenant Logo" t={t}>
+                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                    {modal.data.logo && <img src={modal.data.logo} alt="Preview" style={{ width: 44, height: 44, borderRadius: 8, objectFit: "contain", background: isDark ? "rgba(255,255,255,0.05)" : "#F5F4F1", border: `1px solid ${t.surfaceBorder}` }} />}
+                    <div style={{ flex: 1 }}>
+                        <input type="file" accept="image/*" onChange={handleFileChange} style={{ display: "none" }} id="tenant-logo-upload" />
+                        <label htmlFor="tenant-logo-upload" style={{ display: "inline-block", background: isDark ? "rgba(255,255,255,0.08)" : "#F5F4F1", color: t.text, border: `1px solid ${t.border}`, borderRadius: 9, padding: "8px 16px", fontSize: 13, fontWeight: 500, cursor: "pointer" }}>
+                            {modal.data.logo ? "Change Photo" : "Upload Logo"}
+                        </label>
+                        <div style={{ fontSize: 11, color: t.textMuted, marginTop: 4 }}>Recommended: Square or horizontal image, PNG/JPG under 1MB.</div>
+                    </div>
+                    {modal.data.logo && <button onClick={() => setF("logo", "")} style={{ background: "none", border: "none", color: "#F87171", fontSize: 12, cursor: "pointer" }}>Remove</button>}
+                </div>
+            </FF>
             <FF label="Owner ID" t={t}><FIn value={modal.data.owner_id} onChange={e => setF("owner_id", e.target.value)} placeholder="e.g. O10001" t={t} /></FF>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
                 <FF label="Email" t={t}><FIn value={modal.data.email} onChange={e => setF("email", e.target.value)} placeholder="email@tenant.com" t={t} /></FF>
