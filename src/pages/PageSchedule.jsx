@@ -80,18 +80,18 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
       // Logic for Replacement Schedules
       const prefix = isP ? "Partial payment replacement for" : "Late payment replacement for";
       if (newFeeIds.length === 0) {
-        notes = `${prefix} ${linkedId}${isP ? `. Unpaid: $${unpaid}` : ""}`;
+        notes = `${prefix} ${linkedId}${isP ? `. Unpaid: ${fmtCurr(unpaid)}` : ""}`;
       } else {
-        const parts = [`$${unpaid}`, ...feeAmts.map(a => `$${a}`)].join(" + ");
-        notes = `${prefix} ${linkedId} with penalty selected. ${parts} = $${finalAmt}`;
+        const parts = [fmtCurr(unpaid), ...feeAmts.map(a => fmtCurr(a))].join(" + ");
+        notes = `${prefix} ${linkedId} with penalty selected. ${parts} = ${fmtCurr(finalAmt)}`;
       }
     } else {
       // Logic for Standard Schedules (General fee addition)
       // Strip old breakdown if exists to avoid doubling up
       const cleanNote = notes.split(" | Fee Breakdown:")[0];
       if (newFeeIds.length > 0) {
-        const parts = [`$${unpaid}`, ...feeAmts.map(a => `$${a}`)].join(" + ");
-        notes = `${cleanNote} | Fee Breakdown: ${parts} = $${finalAmt}`;
+        const parts = [fmtCurr(unpaid), ...feeAmts.map(a => fmtCurr(a))].join(" + ");
+        notes = `${cleanNote} | Fee Breakdown: ${parts} = ${fmtCurr(finalAmt)}`;
       } else {
         notes = cleanNote;
       }
