@@ -27,9 +27,7 @@ export function useDashboardData({ PROJECTS = [], CONTRACTS = [], PARTIES = [], 
             : SCHEDULES;
 
         // 2. Calculate Key Metrics
-        const totalAUM = filteredProjects
-            .filter(p => p.status === 'Active')
-            .reduce((sum, p) => sum + Number(String(p.valuation || 0).replace(/[^0-9.-]/g, '')), 0);
+        const totalAUM = PAYMENTS.reduce((sum, p) => sum + Number(String(p.amount || 0).replace(/[^0-9.-]/g, '')), 0);
 
         const totalIncome = filteredSchedules
             .filter(s => s.status === 'Paid')

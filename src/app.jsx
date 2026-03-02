@@ -74,22 +74,22 @@ function AppContent() {
     if (tenantId && !activeTenantId) setActiveTenantId(tenantId);
   }, [tenantId]);
 
-  const COLLECTION_PATHS = useMemo(() => getCollectionPaths(activeTenantId), [activeTenantId]);
+  const isGlobalConsolidated = activeTenantId === "GLOBAL";
+  const shouldFetch = !!activeTenantId || isGlobalRole;
 
-  // ── Firestore real-time data ──
-  // Only fetch if activeTenantId is available
-  const shouldFetch = !!activeTenantId;
+  // Paths for data fetching - if global consolidated, use base collection names for group queries
+  const fetchPaths = getCollectionPaths(isGlobalConsolidated ? "" : activeTenantId);
 
-  const { data: rawProjects, loading: l1, error: e1 } = useFirestoreCollection(shouldFetch ? COLLECTION_PATHS.projects : null);
-  const { data: rawParties, loading: l2, error: e2 } = useFirestoreCollection(shouldFetch ? COLLECTION_PATHS.parties : null);
-  const { data: rawContracts, loading: l3, error: e3 } = useFirestoreCollection(shouldFetch ? COLLECTION_PATHS.contracts : null);
-  const { data: rawSchedules, loading: l4, error: e4 } = useFirestoreCollection(shouldFetch ? COLLECTION_PATHS.paymentSchedules : null);
-  const { data: PAYMENTS, loading: l5, error: e5 } = useFirestoreCollection(shouldFetch ? COLLECTION_PATHS.payments : null);
-  const { data: rawFees, loading: l6, error: e6 } = useFirestoreCollection(shouldFetch ? COLLECTION_PATHS.fees : null);
+  const { data: rawProjects, loading: l1, error: e1 } = useFirestoreCollection(isGlobalConsolidated ? "projects" : (shouldFetch ? fetchPaths.projects : null), isGlobalConsolidated);
+  const { data: rawParties, loading: l2, error: e2 } = useFirestoreCollection(isGlobalConsolidated ? "parties" : (shouldFetch ? fetchPaths.parties : null), isGlobalConsolidated);
+  const { data: rawContracts, loading: l3, error: e3 } = useFirestoreCollection(isGlobalConsolidated ? "contracts" : (shouldFetch ? fetchPaths.contracts : null), isGlobalConsolidated);
+  const { data: rawSchedules, loading: l4, error: e4 } = useFirestoreCollection(isGlobalConsolidated ? "paymentSchedules" : (shouldFetch ? fetchPaths.paymentSchedules : null), isGlobalConsolidated);
+  const { data: rawPayments, loading: l5, error: e5 } = useFirestoreCollection(isGlobalConsolidated ? "payments" : (shouldFetch ? fetchPaths.payments : null), isGlobalConsolidated);
+  const { data: rawFees, loading: l6, error: e6 } = useFirestoreCollection(isGlobalConsolidated ? "fees" : (shouldFetch ? fetchPaths.fees : null), isGlobalConsolidated);
   const { data: rawTenants, loading: l8, error: e8 } = useFirestoreCollection(isSuperAdmin ? getCollectionPaths("").tenants : null);
-  const { data: rawUsers, loading: l9, error: e9 } = useFirestoreCollection((shouldFetch && (isSuperAdmin || isTenantAdmin)) ? COLLECTION_PATHS.users : null);
-  const { data: rawRoles, loading: l10, error: e10 } = useFirestoreCollection((shouldFetch && (isSuperAdmin || isTenantAdmin)) ? COLLECTION_PATHS.roles : null);
-  const { data: rawDimensions, loading: l7, error: e7 } = useFirestoreCollection(user ? COLLECTION_PATHS.dimensions : null);
+  const { data: rawUsers, loading: l9, error: e9 } = useFirestoreCollection((shouldFetch && (isSuperAdmin || isTenantAdmin) && !isGlobalConsolidated) ? fetchPaths.users : null);
+  const { data: rawRoles, loading: l10, error: e10 } = useFirestoreCollection((shouldFetch && (isSuperAdmin || isTenantAdmin) && !isGlobalConsolidated) ? fetchPaths.roles : null);
+  const { data: rawDimensions, loading: l7, error: e7 } = useFirestoreCollection(user ? fetchPaths.dimensions : null);
 
   const loading = authLoading || (shouldFetch && (l1 || l2 || l3 || l4 || l5 || l6)) || ((isSuperAdmin) && l8) || (shouldFetch && (isSuperAdmin || isTenantAdmin) && (l9 || l10)) || (user && l7);
 
@@ -190,6 +190,28 @@ function AppContent() {
       linked: d.linked_schedule_id || "", notes: d.notes || "",
     }));
 
+  const PAYMENTS = rawPayments
+    .filter(d => {
+      if (!memberPartyId) return true;
+      // Filter by counterparty_id or by linked contract's counterparty
+      if (d.counterparty_id === memberPartyId) return true;
+      if (d.contract_id) {
+        return rawContracts.some(c => (c.contract_id === d.contract_id || c.id === d.contract_id) && c.counterparty_id === memberPartyId);
+      }
+      return false;
+    })
+    .map(d => ({
+      id: d.id, docId: d.doc_id || d.id,
+      contract: d.contract_id || "",
+      party: d.party_name || "",
+      type: d.payment_type || "",
+      amount: fmtCurr(d.amount),
+      date: fmtDate(d.payment_date),
+      method: d.payment_method || "",
+      direction: d.direction || "Received",
+      note: d.notes || ""
+    }));
+
   const FEES_DATA = rawFees.map(d => ({
     id: d.id, docId: d.doc_id || d.id, name: d.fee_name || "", fee_type: d.fee_type || "", method: d.calculation_method || "",
     rate: d.default_rate || "", fee_charge_at: d.fee_charge_at || "", fee_frequency: d.fee_frequency || "",
@@ -227,17 +249,17 @@ function AppContent() {
 
   const pageMap = {
     "Dashboard": <PageDashboard t={t} isDark={isDark} PROJECTS={PROJECTS} CONTRACTS={CONTRACTS} PARTIES={PARTIES} SCHEDULES={SCHEDULES} PAYMENTS={PAYMENTS} MONTHLY={MONTHLY} />,
-    "Projects": <PageProjects t={t} isDark={isDark} PROJECTS={PROJECTS} FEES_DATA={FEES_DATA} collectionPath={COLLECTION_PATHS.projects} />,
-    "Parties": <PageParties t={t} isDark={isDark} PARTIES={PARTIES} collectionPath={COLLECTION_PATHS.parties} DIMENSIONS={DIMENSIONS} tenantId={activeTenantId} />,
-    "Contracts": <PageContracts t={t} isDark={isDark} CONTRACTS={CONTRACTS} PROJECTS={PROJECTS} PARTIES={PARTIES} DIMENSIONS={DIMENSIONS} FEES_DATA={FEES_DATA} SCHEDULES={SCHEDULES} collectionPath={COLLECTION_PATHS.contracts} schedulePath={COLLECTION_PATHS.paymentSchedules} />,
-    "Payment Schedule": <PageSchedule t={t} isDark={isDark} SCHEDULES={SCHEDULES} CONTRACTS={CONTRACTS} DIMENSIONS={DIMENSIONS} FEES_DATA={FEES_DATA} collectionPath={COLLECTION_PATHS.paymentSchedules} />,
-    "Payments": <PagePayments t={t} isDark={isDark} PAYMENTS={PAYMENTS} collectionPath={COLLECTION_PATHS.payments} />,
-    "Fees": <PageFees t={t} isDark={isDark} FEES_DATA={FEES_DATA} DIMENSIONS={DIMENSIONS} collectionPath={COLLECTION_PATHS.fees} />,
-    "Tenants": <PageTenants t={t} isDark={isDark} TENANTS={TENANTS} collectionPath={COLLECTION_PATHS.tenants} />,
-    "User Profiles": <PageUserProfiles t={t} isDark={isDark} USERS={rawUsers} ROLES={rawRoles} collectionPath={COLLECTION_PATHS.users} DIMENSIONS={DIMENSIONS} tenantId={activeTenantId} TENANTS={TENANTS} />,
-    "Role Types": <PageRoles t={t} isDark={isDark} collectionPath={COLLECTION_PATHS.roles} DIMENSIONS={DIMENSIONS} USERS={rawUsers} />,
+    "Projects": <PageProjects t={t} isDark={isDark} PROJECTS={PROJECTS} FEES_DATA={FEES_DATA} collectionPath={isGlobalConsolidated ? "GROUP:projects" : fetchPaths.projects} />,
+    "Parties": <PageParties t={t} isDark={isDark} PARTIES={PARTIES} collectionPath={isGlobalConsolidated ? "GROUP:parties" : fetchPaths.parties} DIMENSIONS={DIMENSIONS} tenantId={activeTenantId} />,
+    "Contracts": <PageContracts t={t} isDark={isDark} CONTRACTS={CONTRACTS} PROJECTS={PROJECTS} PARTIES={PARTIES} DIMENSIONS={DIMENSIONS} FEES_DATA={FEES_DATA} SCHEDULES={SCHEDULES} collectionPath={isGlobalConsolidated ? "GROUP:contracts" : fetchPaths.contracts} schedulePath={isGlobalConsolidated ? "GROUP:paymentSchedules" : fetchPaths.paymentSchedules} />,
+    "Payment Schedule": <PageSchedule t={t} isDark={isDark} SCHEDULES={SCHEDULES} CONTRACTS={CONTRACTS} DIMENSIONS={DIMENSIONS} FEES_DATA={FEES_DATA} collectionPath={isGlobalConsolidated ? "GROUP:paymentSchedules" : fetchPaths.paymentSchedules} />,
+    "Payments": <PagePayments t={t} isDark={isDark} PAYMENTS={PAYMENTS} collectionPath={isGlobalConsolidated ? "GROUP:payments" : fetchPaths.payments} />,
+    "Fees": <PageFees t={t} isDark={isDark} FEES_DATA={FEES_DATA} DIMENSIONS={DIMENSIONS} collectionPath={isGlobalConsolidated ? "GROUP:fees" : fetchPaths.fees} />,
+    "Tenants": <PageTenants t={t} isDark={isDark} TENANTS={TENANTS} collectionPath={fetchPaths.tenants} />,
+    "User Profiles": <PageUserProfiles t={t} isDark={isDark} USERS={rawUsers} ROLES={rawRoles} collectionPath={fetchPaths.users} DIMENSIONS={DIMENSIONS} tenantId={activeTenantId} TENANTS={TENANTS} />,
+    "Role Types": <PageRoles t={t} isDark={isDark} collectionPath={fetchPaths.roles} DIMENSIONS={DIMENSIONS} USERS={rawUsers} />,
     "Super Admin": <PageSuperAdmin t={t} isDark={isDark} DIMENSIONS={DIMENSIONS} ROLES={rawRoles} TENANTS={TENANTS} />,
-    "Profile": <PageProfile t={t} isDark={isDark} setIsDark={setIsDark} ROLES={rawRoles} collectionPath={COLLECTION_PATHS.users} />,
+    "Profile": <PageProfile t={t} isDark={isDark} setIsDark={setIsDark} ROLES={rawRoles} collectionPath={fetchPaths.users} />,
     "Dimensions": <PageDimensions t={t} isDark={isDark} DIMENSIONS={DIMENSIONS} />,
     "Reports": <PageReports t={t} isDark={isDark} MONTHLY={MONTHLY} />,
   };
@@ -365,6 +387,7 @@ function AppContent() {
                   }}
                 >
                   <option value="" disabled>Select Tenant</option>
+                  <option value="GLOBAL" style={{ fontWeight: "bold", color: isDark ? "#34D399" : "#059669" }}>Consolidated (All Tenants)</option>
                   {TENANTS.map(ten => <option key={ten.id} value={ten.id}>{ten.name} ({ten.id})</option>)}
                 </select>
               </div>

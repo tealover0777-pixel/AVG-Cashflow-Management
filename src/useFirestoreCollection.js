@@ -1,13 +1,14 @@
 import { useState, useEffect } from "react";
-import { collection, onSnapshot } from "firebase/firestore";
+import { collection, onSnapshot, collectionGroup } from "firebase/firestore";
 import { db } from "./firebase";
 
 /**
  * Real-time Firestore collection hook.
  * @param {string} collectionPath  e.g. "tenants/T10001/projects" or "dimensions"
+ * @param {boolean} isGroup        If true, uses collectionGroup query
  * @returns {{ data: Object[], loading: boolean, error: Error|null }}
  */
-export function useFirestoreCollection(collectionPath) {
+export function useFirestoreCollection(collectionPath, isGroup = false) {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -18,7 +19,7 @@ export function useFirestoreCollection(collectionPath) {
       return;
     }
 
-    const ref = collection(db, collectionPath);
+    const ref = isGroup ? collectionGroup(db, collectionPath) : collection(db, collectionPath);
     const unsubscribe = onSnapshot(
       ref,
       (snapshot) => {
