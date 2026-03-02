@@ -20,7 +20,7 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
     });
     return `S${maxNum + 1}`;
   };
-  const paymentStatusOpts = (DIMENSIONS.find(d => d.name === "Payment Status" || d.name === "PaymentStatus") || {}).items || ["Due", "Paid", "Partial", "Missed"];
+  const paymentStatusOpts = (DIMENSIONS.find(d => d.name === "Payment Status" || d.name === "PaymentStatus") || {}).items || ["Due", "Paid", "Partial", "Missed", "Cancelled"];
   const [hov, setHov] = useState(null); const [sel, setSel] = useState(new Set()); const [chip, setChip] = useState("All");
   const [modal, setModal] = useState({ open: false, mode: "add", data: {} });
   const [delT, setDelT] = useState(null);
@@ -67,9 +67,9 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
       return dt.toISOString().split("T")[0];
     };
 
-    // Missed Payment Workflow
-    if (modal.mode === "edit" && d.status === "Missed" && d.status !== d.originalStatus) {
-      if (window.confirm(`Do you want to set "Missed" payment and book a replacement schedule?`)) {
+    // Missed or Cancelled Payment Workflow
+    if (modal.mode === "edit" && (d.status === "Missed" || d.status === "Cancelled") && d.status !== d.originalStatus) {
+      if (window.confirm(`Do you want to set "${d.status}" payment and book a replacement schedule?`)) {
         try {
           const ref = d._path ? doc(db, d._path) : doc(db, collectionPath, d.docId);
           await updateDoc(ref, payload);
@@ -88,7 +88,7 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
               status: "Due",
               dueDate: nextDueDate,
               basePayment: Math.abs(Number(String(d.payment || d.signed_payment_amount || 0).replace(/[^0-9.-]/g, "")) || 0),
-              notes: `Late payment replacement for ${d.id}`,
+              notes: `${d.status} payment replacement for ${d.id}`,
             }
           });
           return; // Stay open in add_late mode

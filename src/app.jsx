@@ -128,6 +128,7 @@ function AppContent() {
     .map(d => ({
       id: d.id,
       docId: d.doc_id || d.id,
+      _path: d._path,
       name: d.project_name || "",
       status: d.status || "",
       currency: d.currency || "",
@@ -145,7 +146,7 @@ function AppContent() {
       return d.id === memberPartyId;
     })
     .map(d => ({
-      id: d.id, docId: d.doc_id || d.id, name: d.party_name || "", type: d.party_type || "", role: d.role_type || "",
+      id: d.id, docId: d.doc_id || d.id, _path: d._path, name: d.party_name || "", type: d.party_type || "", role: d.role_type || "",
       email: d.email || "", phone: d.phone || "", investor_type: d.investor_type || "",
       address: d.address || "", bank_information: d.bank_information || "", tax_id: d.tax_id || "",
       created_at: fmtDate(d.created_at), updated_at: fmtDate(d.updated_at),
@@ -159,6 +160,7 @@ function AppContent() {
     .map(d => ({
       id: d.contract_id || d.id,
       docId: d.doc_id || d.id,
+      _path: d._path,
       contract_id: d.contract_id || "",
       project: d.project_name || d.project_id || "",
       project_id: d.project_id || "",
@@ -185,7 +187,7 @@ function AppContent() {
       return d.party_id === memberPartyId;
     })
     .map(d => ({
-      id: d.id, docId: d.doc_id || d.id, contract: d.contract_id || "", dueDate: fmtDate(d.due_date),
+      id: d.id, docId: d.doc_id || d.id, _path: d._path, contract: d.contract_id || "", dueDate: fmtDate(d.due_date),
       type: d.payment_type || "", payment: fmtCurr(d.payment_amount),
       status: d.status || "", direction: d.direction_from_company || "", fee_id: d.fee_id || "",
       party_id: d.party_id || "", period_number: d.period_number != null ? String(d.period_number) : "",
@@ -206,7 +208,7 @@ function AppContent() {
       return false;
     })
     .map(d => ({
-      id: d.id, docId: d.doc_id || d.id,
+      id: d.id, docId: d.doc_id || d.id, _path: d._path,
       contract: d.contract_id || "",
       party: d.party_name || "",
       type: d.payment_type || "",
@@ -226,6 +228,7 @@ function AppContent() {
   const TENANTS = rawTenants.map(d => ({
     id: d.id || d.tenant_id || "",
     docId: d.doc_id || d.id,
+    _path: d._path,
     name: d.tenant_name || "",
     logo: d.tenant_logo || "",
     owner_id: d.owner_id || "",
