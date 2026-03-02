@@ -80,6 +80,7 @@ export default function PageSuperAdmin({ t, isDark, DIMENSIONS = [], ROLES = [],
             email: d.email || "",
             role: d.role || "",
             tenantId: d.tenantId || "",
+            status: d.status || "Active",
             updated_at: serverTimestamp(),
         };
         try {
@@ -215,6 +216,14 @@ export default function PageSuperAdmin({ t, isDark, DIMENSIONS = [], ROLES = [],
                     {isRoleGlobal(modal.data.role)
                         ? <div style={{ fontSize: 13, fontWeight: 600, color: "#22C55E", background: isDark ? "rgba(34,197,94,0.1)" : "#F0FDF4", border: "1px solid rgba(34,197,94,0.35)", borderRadius: 9, padding: "10px 13px" }}>🌐 Global — Access to all tenants</div>
                         : <FIn value={modal.data.tenantId} onChange={e => setF("tenantId", e.target.value)} placeholder="Leave blank for super admins, e.g. T10001" t={t} />}
+                </FF>
+                <FF label="Status" t={t}>
+                    <FSel
+                        value={modal.data.status || "Pending"}
+                        onChange={e => setF("status", e.target.value)}
+                        options={["Active", "Pending"]}
+                        t={t}
+                    />
                 </FF>
             </Modal>
 
