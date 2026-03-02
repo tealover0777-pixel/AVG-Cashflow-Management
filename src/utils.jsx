@@ -176,12 +176,11 @@ export const normalizeDateAtNoon = (date) => {
         month = parseInt(parts[0], 10) - 1;
         day = parseInt(parts[1], 10);
         year = parseInt(parts[2], 10);
-      } else {
-        d = new Date(date);
-        d.setHours(12, 0, 0, 0);
-        return d;
       }
-      return new Date(year, month, day, 12, 0, 0);
+      if (year !== undefined) {
+        d = new Date(year, month, day, 12, 0, 0);
+        return isNaN(d.getTime()) ? null : d;
+      }
     }
   }
   d = new Date(date);

@@ -152,7 +152,13 @@ export default function PageContracts({ t, isDark, CONTRACTS = [], PROJECTS = []
 
     if (!window.confirm(`Generate payment schedules for ${selected.length} contract(s)?`)) return;
     setGenerating(true);
+    console.log("Starting generation for contracts:", selected.map(c => c.id));
+
     try {
+      if (!schedulePath || schedulePath.startsWith("GROUP:")) {
+        throw new Error(`Invalid schedule path: "${schedulePath}". Please select a specific tenant first.`);
+      }
+
       // --- ID Generation Logic ---
       let maxIdNum = 9999;
       SCHEDULES.forEach(s => {
@@ -165,7 +171,10 @@ export default function PageContracts({ t, isDark, CONTRACTS = [], PROJECTS = []
 
       const entries = [];
       const skipped = [];
-      const parseNum = v => Number(String(v).replace(/[^0-9.-]/g, "")) || 0;
+      const parseNum = v => {
+        const n = Number(String(v).replace(/[^0-9.-]/g, ""));
+        return isNaN(n) ? 0 : n;
+      };
 
       for (const c of selected) {
         const principal = parseNum(c.amount);
@@ -174,13 +183,13 @@ export default function PageContracts({ t, isDark, CONTRACTS = [], PROJECTS = []
         const matDate = normalizeDateAtNoon(c.maturity_date);
 
         if (!startDate || !matDate || matDate <= startDate) {
-          console.warn(`Skipping contract ${c.id}: startDate=${c.start_date}, matDate=${c.maturity_date}`);
+          console.warn(`Skipping contract ${c.id}: Invalid dates`, { startDate: c.start_date, matDate: c.maturity_date });
           skipped.push(`${c.id} (Invalid Dates)`);
           continue;
         }
 
         if (principal <= 0) {
-          console.warn(`Skipping contract ${c.id}: Amount is 0 or invalid`);
+          console.warn(`Skipping contract ${c.id}: Principal is 0 or invalid`, { principal: c.amount });
           skipped.push(`${c.id} (Zero Amount)`);
           continue;
         }
@@ -191,9 +200,8 @@ export default function PageContracts({ t, isDark, CONTRACTS = [], PROJECTS = []
         // --- 1. Initial Deposit/Received ---
         const initialPaymentType = isDisbursement ? PT_BOR_RECEIVED : PT_DEPOSIT;
         const ds1 = getDirectionAndSigned(initialPaymentType, principal);
-        const id1 = `S${currentIdNum++}`;
         entries.push({
-          id: id1,
+          id: `S${currentIdNum++}`,
           contract_id: c.id, project_id: c.project_id || "", party_id: c.party_id || "",
           due_date: startDate.toISOString().slice(0, 10), payment_type: initialPaymentType, fee_id: "",
           period_number: 1, principal_amount: principal, payment_amount: principal,
@@ -206,7 +214,6 @@ export default function PageContracts({ t, isDark, CONTRACTS = [], PROJECTS = []
         const monthsPerPeriod = 12 / freqValue;
         let periodNum = 1;
 
-        // Theoretical align
         const startMonth = startDate.getMonth();
         const startYear = startDate.getFullYear();
         let theoreticalStartMonth = startMonth;
@@ -223,12 +230,12 @@ export default function PageContracts({ t, isDark, CONTRACTS = [], PROJECTS = []
           const fInfo = feeInfoMap[fid];
           if (fInfo && fInfo.frequency === "One_Time") {
             const feeAmt = feeCalculator_ACT360_30360(fInfo, principal, startDate, startDate, startDate);
+            if (isNaN(feeAmt)) return;
             let dDate = startDate;
             if (fInfo.fee_charge_at === "Contract_End") dDate = matDate;
             const dsf = getDirectionAndSigned(PT_FEE, feeAmt);
-            const idF = `S${currentIdNum++}`;
             entries.push({
-              id: idF,
+              id: `S${currentIdNum++}`,
               contract_id: c.id, project_id: c.project_id || "", party_id: c.party_id || "",
               due_date: dDate.toISOString().slice(0, 10), payment_type: PT_FEE, fee_id: fid,
               period_number: 1, principal_amount: principal, payment_amount: feeAmt,
@@ -238,7 +245,9 @@ export default function PageContracts({ t, isDark, CONTRACTS = [], PROJECTS = []
           }
         });
 
-        while (pStart < matDate) {
+        let safety = 0;
+        while (pStart < matDate && safety < 1200) {
+          safety++;
           let pEnd;
           if (fLow.includes("month")) pEnd = normalizeDateAtNoon(new Date(pStart.getFullYear(), pStart.getMonth() + 1, 0));
           else if (fLow.includes("quart")) {
@@ -258,7 +267,8 @@ export default function PageContracts({ t, isDark, CONTRACTS = [], PROJECTS = []
             pEnd = normalizeDateAtNoon(new Date(pStart.getFullYear(), pStart.getMonth() + (monthsPerPeriod || 1), 0));
           }
 
-          if (pEnd <= pStart) pEnd = normalizeDateAtNoon(new Date(pStart.getFullYear(), pStart.getMonth() + (monthsPerPeriod || 1) + 1, 0));
+          if (!pEnd || pEnd <= pStart) pEnd = normalizeDateAtNoon(new Date(pStart.getFullYear(), pStart.getMonth() + (monthsPerPeriod || 1) + 1, 0));
+          if (!pEnd) break;
 
           const isLast = pEnd > matDate;
           const isMonthEnd = (dt) => (dt.getDate() === new Date(dt.getFullYear(), dt.getMonth() + 1, 0).getDate());
@@ -268,22 +278,24 @@ export default function PageContracts({ t, isDark, CONTRACTS = [], PROJECTS = []
             calcEnd = isMonthEnd(matDate) ? normalizeDateAtNoon(new Date(matDate.getFullYear(), matDate.getMonth() + 1, 0)) : normalizeDateAtNoon(matDate);
             pEnd = normalizeDateAtNoon(matDate);
           }
+          if (!calcEnd || !pEnd) break;
 
           let interest = 0;
           if (c.calculator === "ACT/360+30/360") interest = pmtCalculator_ACT360_30360(pStart, calcEnd, startDate, principal, rate, c.freq);
-          else interest = principal * (rate / 360) * 90; // Default or error logic
+          else interest = principal * (rate / 360) * 90;
 
-          const interestPT = isDisbursement ? PT_BOR_INTEREST : PT_INTEREST;
-          const ds2 = getDirectionAndSigned(interestPT, interest);
-          const idI = `S${currentIdNum++}`;
-          entries.push({
-            id: idI,
-            contract_id: c.id, project_id: c.project_id || "", party_id: c.party_id || "",
-            due_date: pEnd.toISOString().slice(0, 10), payment_type: interestPT, fee_id: "",
-            period_number: periodNum, principal_amount: principal, payment_amount: Math.round(interest * 100) / 100,
-            signed_payment_amount: ds2.signed, direction_from_company: ds2.direction,
-            status: "Due", notes: `Interest Period ${periodNum} for ${c.id}`, created_at: serverTimestamp(),
-          });
+          if (!isNaN(interest)) {
+            const interestPT = isDisbursement ? PT_BOR_INTEREST : PT_INTEREST;
+            const ds2 = getDirectionAndSigned(interestPT, interest);
+            entries.push({
+              id: `S${currentIdNum++}`,
+              contract_id: c.id, project_id: c.project_id || "", party_id: c.party_id || "",
+              due_date: pEnd.toISOString().slice(0, 10), payment_type: interestPT, fee_id: "",
+              period_number: periodNum, principal_amount: principal, payment_amount: Math.round(interest * 100) / 100,
+              signed_payment_amount: ds2.signed, direction_from_company: ds2.direction,
+              status: "Due", notes: `Interest Period ${periodNum} for ${c.id}`, created_at: serverTimestamp(),
+            });
+          }
 
           // Recurring Fees
           cFeeIds.forEach(fid => {
@@ -301,31 +313,32 @@ export default function PageContracts({ t, isDark, CONTRACTS = [], PROJECTS = []
 
               if (should) {
                 const feeAmt = feeCalculator_ACT360_30360(fInfo, principal, pStart, calcEnd, startDate);
-                const dsf2 = getDirectionAndSigned(PT_FEE, feeAmt);
-                const idRF = `S${currentIdNum++}`;
-                const feeDueDate = ca.includes("start") ? pStart : pEnd;
-                entries.push({
-                  id: idRF,
-                  contract_id: c.id, project_id: c.project_id || "", party_id: c.party_id || "",
-                  due_date: feeDueDate.toISOString().slice(0, 10), payment_type: PT_FEE, fee_id: fid,
-                  period_number: periodNum, principal_amount: principal, payment_amount: Math.round(feeAmt * 100) / 100,
-                  signed_payment_amount: dsf2.signed, direction_from_company: dsf2.direction,
-                  status: "Due", notes: `Recurring Fee ${fid} P${periodNum} for ${c.id}`, created_at: serverTimestamp(),
-                });
+                if (!isNaN(feeAmt)) {
+                  const dsf2 = getDirectionAndSigned(PT_FEE, feeAmt);
+                  const feeDueDate = ca.includes("start") ? pStart : pEnd;
+                  entries.push({
+                    id: `S${currentIdNum++}`,
+                    contract_id: c.id, project_id: c.project_id || "", party_id: c.party_id || "",
+                    due_date: feeDueDate.toISOString().slice(0, 10), payment_type: PT_FEE, fee_id: fid,
+                    period_number: periodNum, principal_amount: principal, payment_amount: Math.round(feeAmt * 100) / 100,
+                    signed_payment_amount: dsf2.signed, direction_from_company: dsf2.direction,
+                    status: "Due", notes: `Recurring Fee ${fid} P${periodNum} for ${c.id}`, created_at: serverTimestamp(),
+                  });
+                }
               }
             }
           });
 
           periodNum++;
           pStart = normalizeDateAtNoon(new Date(pEnd.getFullYear(), pEnd.getMonth() + 1, 1));
+          if (!pStart) break;
         }
 
         // --- 3. Principal Repayment ---
         const repaymentPT = isDisbursement ? PT_BOR_PAYMENT : PT_INV_REPAYMENT;
         const ds3 = getDirectionAndSigned(repaymentPT, principal);
-        const idR = `S${currentIdNum++}`;
         entries.push({
-          id: idR,
+          id: `S${currentIdNum++}`,
           contract_id: c.id, project_id: c.project_id || "", party_id: c.party_id || "",
           due_date: matDate.toISOString().slice(0, 10), payment_type: repaymentPT, fee_id: "",
           period_number: periodNum, principal_amount: principal, payment_amount: principal,
@@ -334,19 +347,18 @@ export default function PageContracts({ t, isDark, CONTRACTS = [], PROJECTS = []
         });
       }
 
+      console.log(`Generated ${entries.length} entries. Skipped:`, skipped);
+
       if (entries.length === 0) {
         let msg = "No entries were generated.";
         if (selected.length > 0 && skipped.length === selected.length) {
-          msg += "\n\nReason: All selected contracts were skipped. Please ensure they have a valid 'Start Date' and 'Maturity Date' set, and that 'Maturity Date' is after 'Start Date'.";
+          msg += "\n\nReason: All selected contracts were skipped. Please ensure they have a valid 'Amount', 'Start Date', and 'Maturity Date' set.";
         } else if (skipped.length > 0) {
-          msg += `\n\nSkipped ${skipped.length} contract(s) due to missing/invalid dates: ${skipped.join(", ")}`;
+          msg += `\n\nSkipped contracts: ${skipped.join(", ")}`;
         }
         window.alert(msg);
       } else {
-        // Batch Write to Firestore
-        if (schedulePath.startsWith("GROUP:")) {
-          throw new Error("Cannot generate schedules in Consolidated view. Please select a specific tenant first.");
-        }
+        console.log("Saving entries to:", schedulePath);
         for (const entry of entries) {
           await addDoc(collection(db, schedulePath), entry);
         }
@@ -355,7 +367,7 @@ export default function PageContracts({ t, isDark, CONTRACTS = [], PROJECTS = []
       }
     } catch (err) {
       console.error("Generate schedules error:", err);
-      window.alert("Error generating schedules:\n" + (err.message || err));
+      window.alert("Error generating schedules:\n" + String(err.message || err));
     } finally {
       setGenerating(false);
     }
