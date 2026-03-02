@@ -174,7 +174,14 @@ export default function PageContracts({ t, isDark, CONTRACTS = [], PROJECTS = []
         const matDate = normalizeDateAtNoon(c.maturity_date);
 
         if (!startDate || !matDate || matDate <= startDate) {
-          skipped.push(c.id || "Unknown");
+          console.warn(`Skipping contract ${c.id}: startDate=${c.start_date}, matDate=${c.maturity_date}`);
+          skipped.push(`${c.id} (Invalid Dates)`);
+          continue;
+        }
+
+        if (principal <= 0) {
+          console.warn(`Skipping contract ${c.id}: Amount is 0 or invalid`);
+          skipped.push(`${c.id} (Zero Amount)`);
           continue;
         }
 
