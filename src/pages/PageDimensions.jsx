@@ -1,10 +1,51 @@
 import { useState } from "react";
+import { db } from "../firebase";
+import { doc, updateDoc } from "firebase/firestore";
 import { useAuth } from "../AuthContext";
 
-export default function PageDimensions({ t, isDark, DIMENSIONS = [] }) {
+export default function PageDimensions({ t, isDark, DIMENSIONS = [], rawDimensions = [], collectionPath = "" }) {
   const { hasPermission } = useAuth();
   const canUpdate = hasPermission("DIMENTION_UPDATE");
   const [editing, setEditing] = useState(null);
+  const [newVals, setNewVals] = useState({});
+
+  const getRawDoc = (name) => rawDimensions.find(d => (d.category || d.name || d.id) === name);
+  const getItemsField = (rawDoc) => {
+    if (!rawDoc) return "items";
+    if (Array.isArray(rawDoc.options)) return "options";
+    return "items";
+  };
+
+  const handleAdd = async (groupName) => {
+    const val = (newVals[groupName] || "").trim();
+    if (!val) return;
+    const rawDoc = getRawDoc(groupName);
+    if (!rawDoc) return;
+    const field = getItemsField(rawDoc);
+    const current = rawDoc[field] || [];
+    if (current.includes(val)) return;
+    try {
+      await updateDoc(doc(db, collectionPath, rawDoc.doc_id), { [field]: [...current, val] });
+      setNewVals(v => ({ ...v, [groupName]: "" }));
+    } catch (err) {
+      console.error("Add dimension value error:", err);
+      alert("Failed to add value: " + (err.message || err));
+    }
+  };
+
+  const handleRemove = async (groupName, item) => {
+    const rawDoc = getRawDoc(groupName);
+    if (!rawDoc) return;
+    const field = getItemsField(rawDoc);
+    const current = rawDoc[field] || [];
+    try {
+      await updateDoc(doc(db, collectionPath, rawDoc.doc_id), { [field]: current.filter(v => v !== item) });
+    } catch (err) {
+      console.error("Remove dimension value error:", err);
+      alert("Failed to remove value: " + (err.message || err));
+    }
+  };
+
   return (<>
     <div style={{ marginBottom: 28 }}><h1 style={{ fontFamily: t.titleFont, fontWeight: t.titleWeight, fontSize: t.titleSize, color: isDark ? "#fff" : "#1C1917", letterSpacing: t.titleTracking, lineHeight: 1, marginBottom: 6 }}>Dimensions</h1><p style={{ fontSize: 13.5, color: t.textMuted }}>Reference data · <strong style={{ color: t.textSecondary }}>{DIMENSIONS.length}</strong> groups · <strong style={{ color: t.textSecondary }}>{DIMENSIONS.reduce((s, g) => s + g.items.length, 0)}</strong> values</p></div>
     <div style={{ display: "grid", gridTemplateColumns: "repeat(2,1fr)", gap: 20 }}>
@@ -26,10 +67,10 @@ export default function PageDimensions({ t, isDark, DIMENSIONS = [] }) {
               {g.items.map(item => (
                 <div key={item} style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 12.5, fontWeight: 500, padding: "5px 12px", borderRadius: 20, background: t.tagBg, color: t.tagColor, border: `1px solid ${t.tagBorder}` }}>
                   {item}
-                  {isEd && <span style={{ fontSize: 13, color: isDark ? "#F87171" : "#DC2626", fontWeight: 700, lineHeight: 1, marginLeft: 2, cursor: "pointer" }}>×</span>}
+                  {isEd && <span onClick={() => handleRemove(g.name, item)} style={{ fontSize: 13, color: isDark ? "#F87171" : "#DC2626", fontWeight: 700, lineHeight: 1, marginLeft: 2, cursor: "pointer" }}>×</span>}
                 </div>
               ))}
-              {isEd && <div style={{ display: "flex", alignItems: "center", gap: 6 }}><input placeholder="Add value..." style={{ background: t.searchBg, border: `1px solid ${t.searchBorder}`, borderRadius: 20, padding: "5px 12px", color: t.searchText, fontSize: 12.5, width: 120 }} /><button style={{ width: 28, height: 28, borderRadius: 8, background: t.addItemBg, color: t.addItemColor, border: `1px solid ${t.addItemBorder}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, cursor: "pointer", fontWeight: 700 }}>+</button></div>}
+              {isEd && <div style={{ display: "flex", alignItems: "center", gap: 6 }}><input value={newVals[g.name] || ""} onChange={e => setNewVals(v => ({ ...v, [g.name]: e.target.value }))} onKeyDown={e => { if (e.key === "Enter") handleAdd(g.name); }} placeholder="Add value..." style={{ background: t.searchBg, border: `1px solid ${t.searchBorder}`, borderRadius: 20, padding: "5px 12px", color: t.searchText, fontSize: 12.5, width: 120 }} /><button onClick={() => handleAdd(g.name)} style={{ width: 28, height: 28, borderRadius: 8, background: t.addItemBg, color: t.addItemColor, border: `1px solid ${t.addItemBorder}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, cursor: "pointer", fontWeight: 700 }}>+</button></div>}
             </div>
           </div>
         );
