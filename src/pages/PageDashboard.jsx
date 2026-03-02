@@ -95,7 +95,8 @@ export default function PageDashboard(props) {
             </div>
           </div>
           <div style={{ marginTop: 20, display: 'flex', alignItems: 'center', gap: 6, color: 'rgba(255,255,255,0.9)', fontSize: 12, fontWeight: 600 }}>
-            <ArrowUpRight size={14} /> +12.5% from last month
+            {metrics.aumTrend >= 0 ? <ArrowUpRight size={14} /> : <ArrowDownRight size={14} />}
+            {metrics.aumTrend >= 0 ? "+" : ""}{metrics.aumTrend.toFixed(1)}% from last month
           </div>
         </div>
 
@@ -108,12 +109,11 @@ export default function PageDashboard(props) {
               <div style={{ width: 32, height: 32, borderRadius: 10, background: s.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', color: s.accent, border: `1px solid ${s.border}` }}>
                 {s.icon}
               </div>
-              <div style={{ fontSize: 10, fontWeight: 700, color: '#10B981', background: 'rgba(16,185,129,0.1)', padding: '2px 6px', borderRadius: 6 }}>+5%</div>
             </div>
             <div style={{ marginTop: 12 }}>
               <div style={{ fontSize: 11, fontWeight: 600, color: t.textMuted, marginBottom: 4 }}>{s.label}</div>
               <div style={{ fontSize: 20, fontWeight: 700, color: isDark ? '#fff' : '#1C1917' }}>{s.value}</div>
-              {s.sub && <div style={{ fontSize: 10, color: '#EF4444', fontWeight: 600 }}>{s.sub} Volume</div>}
+              {s.sub && <div style={{ fontSize: 10, color: '#EF4444', fontWeight: 600 }}>{s.sub}</div>}
             </div>
           </div>
         ))}

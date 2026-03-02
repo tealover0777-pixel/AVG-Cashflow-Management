@@ -39,9 +39,21 @@ export function useDashboardData({ PROJECTS = [], CONTRACTS = [], PARTIES = [], 
             ? activeContracts.reduce((sum, c) => sum + Number(String(c.rate || 0).replace(/[^0-9.-]/g, '')), 0) / activeContracts.length
             : 0;
 
+        // 2b. Calculate Trends
+        const now = new Date();
+        const startOfThisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+        const prevAUM = filteredContracts
+            .filter(c => {
+                const created = new Date(c.created_at);
+                return created < startOfThisMonth;
+            })
+            .reduce((sum, c) => sum + Number(String(c.amount || 0).replace(/[^0-9.-]/g, '')), 0);
+
+        const aumTrend = prevAUM > 0 ? ((totalAUM - prevAUM) / prevAUM) * 100 : 0;
+
         // 3. Prepare Chart Data (Quarterly View)
         const scheduleDates = filteredSchedules.map(s => s.dueDate).filter(Boolean);
-        const now = new Date();
         const todayStr = now.toISOString().slice(0, 10);
 
         // Find date range
@@ -116,7 +128,8 @@ export function useDashboardData({ PROJECTS = [], CONTRACTS = [], PARTIES = [], 
                 missedCount: missedPayments.length,
                 missedValue,
                 avgYield,
-                activeContractsCount: activeContracts.length
+                activeContractsCount: activeContracts.length,
+                aumTrend
             },
             charts: {
                 cashflow: quarters,
