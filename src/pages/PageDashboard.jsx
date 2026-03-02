@@ -232,9 +232,10 @@ export default function PageDashboard(props) {
           <h3 style={{ fontSize: 14, fontWeight: 700, color: isDark ? '#fff' : '#1C1917', marginBottom: 20 }}>Quick Insights</h3>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             {[
-              { label: 'Pending Invitations', value: '12', icon: <Users size={14} />, color: t.accent },
-              { label: 'Projected Monthly Yield', value: '$84.2k', icon: <TrendingUp size={14} />, color: '#10B981' },
-              { label: 'Days until Q1 Wrap', value: '28', icon: <Calendar size={14} />, color: '#F59E0B' }
+              { label: 'Payments Due This Month', value: metrics.dueThisMonthCount, icon: <Wallet size={14} />, color: t.accent },
+              { label: 'Projected Monthly Income', value: fmtCurr(metrics.projectedMonthlyIncome), icon: <TrendingUp size={14} />, color: '#10B981' },
+              { label: 'Projected Monthly Payout', value: fmtCurr(metrics.projectedMonthlyPayout), icon: <ArrowDownRight size={14} />, color: '#F87171' },
+              { label: `Days until ${metrics.qLabel}`, value: metrics.daysUntilQuarterEnd, icon: <Calendar size={14} />, color: '#F59E0B' }
             ].map((item, i) => (
               <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px', borderRadius: 12, background: isDark ? 'rgba(255,255,255,0.03)' : '#F9FAFB' }}>
                 <div style={{ width: 30, height: 30, borderRadius: 8, background: `${item.color}15`, color: item.color, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>

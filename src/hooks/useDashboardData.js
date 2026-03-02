@@ -52,6 +52,25 @@ export function useDashboardData({ PROJECTS = [], CONTRACTS = [], PARTIES = [], 
 
         const aumTrend = prevAUM > 0 ? ((totalAUM - prevAUM) / prevAUM) * 100 : 0;
 
+        // 2c. Quick Insights Calculations
+        const endOfThisMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+        const thisMonthStrStart = startOfThisMonth.toISOString().slice(0, 10);
+        const thisMonthStrEnd = endOfThisMonth.toISOString().slice(0, 10);
+
+        const thisMonthSchedules = filteredSchedules.filter(s => s.dueDate && s.dueDate >= thisMonthStrStart && s.dueDate <= thisMonthStrEnd);
+
+        const dueThisMonthCount = thisMonthSchedules.length;
+        const projectedMonthlyIncome = thisMonthSchedules
+            .filter(s => s.direction === 'IN')
+            .reduce((sum, s) => sum + Number(String(s.payment || 0).replace(/[^0-9.-]/g, '')), 0);
+        const projectedMonthlyPayout = thisMonthSchedules
+            .filter(s => s.direction === 'OUT')
+            .reduce((sum, s) => sum + Number(String(s.payment || 0).replace(/[^0-9.-]/g, '')), 0);
+
+        const qEnd = new Date(now.getFullYear(), (Math.floor(now.getMonth() / 3) + 1) * 3, 0);
+        const daysUntilQuarterEnd = Math.max(0, Math.ceil((qEnd - now) / (1000 * 60 * 60 * 24)));
+        const qLabel = `Q${Math.floor(now.getMonth() / 3) + 1} Wrap`;
+
         // 3. Prepare Chart Data (Quarterly View)
         const scheduleDates = filteredSchedules.map(s => s.dueDate).filter(Boolean);
         const todayStr = now.toISOString().slice(0, 10);
@@ -129,7 +148,12 @@ export function useDashboardData({ PROJECTS = [], CONTRACTS = [], PARTIES = [], 
                 missedValue,
                 avgYield,
                 activeContractsCount: activeContracts.length,
-                aumTrend
+                aumTrend,
+                dueThisMonthCount,
+                projectedMonthlyIncome,
+                projectedMonthlyPayout,
+                daysUntilQuarterEnd,
+                qLabel
             },
             charts: {
                 cashflow: quarters,
