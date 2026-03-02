@@ -157,6 +157,12 @@ export const initials = name => name.split(" ").slice(0, 2).map(w => w[0]).join(
 // --- Robust Payment Calculation Helpers ---
 export const normalizeDateAtNoon = (date) => {
   if (!date) return null;
+  // Handle Firestore Timestamp objects
+  if (date && typeof date.toDate === "function") {
+    const d = date.toDate();
+    d.setHours(12, 0, 0, 0);
+    return d;
+  }
   let d;
   if (typeof date === "string") {
     const parts = date.split(/[-/ \.]/);
@@ -179,6 +185,7 @@ export const normalizeDateAtNoon = (date) => {
     }
   }
   d = new Date(date);
+  if (isNaN(d.getTime())) return null;
   d.setHours(12, 0, 0, 0);
   return d;
 };

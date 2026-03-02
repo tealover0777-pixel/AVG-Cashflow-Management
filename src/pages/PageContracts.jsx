@@ -185,7 +185,7 @@ export default function PageContracts({ t, isDark, CONTRACTS = [], PROJECTS = []
         entries.push({
           id: id1,
           contract_id: c.id, project_id: c.project_id || "", party_id: c.party_id || "",
-          due_date: c.start_date, payment_type: initialPaymentType, fee_id: "",
+          due_date: startDate.toISOString().slice(0, 10), payment_type: initialPaymentType, fee_id: "",
           period_number: 1, principal_amount: principal, payment_amount: principal,
           signed_payment_amount: ds1.signed, direction_from_company: ds1.direction,
           status: "Due", notes: `Initial for ${c.id}`, created_at: serverTimestamp(),
@@ -317,7 +317,7 @@ export default function PageContracts({ t, isDark, CONTRACTS = [], PROJECTS = []
         entries.push({
           id: idR,
           contract_id: c.id, project_id: c.project_id || "", party_id: c.party_id || "",
-          due_date: c.maturity_date, payment_type: repaymentPT, fee_id: "",
+          due_date: matDate.toISOString().slice(0, 10), payment_type: repaymentPT, fee_id: "",
           period_number: periodNum, principal_amount: principal, payment_amount: principal,
           signed_payment_amount: ds3.signed, direction_from_company: ds3.direction,
           status: "Due", notes: `Repayment for ${c.id}`, created_at: serverTimestamp(),
@@ -332,7 +332,7 @@ export default function PageContracts({ t, isDark, CONTRACTS = [], PROJECTS = []
       setSel(new Set());
     } catch (err) {
       console.error("Generate schedules error:", err);
-      window.alert("Error generating schedules. Check console.");
+      window.alert("Error generating schedules:\n" + (err.message || err));
     } finally {
       setGenerating(false);
     }
