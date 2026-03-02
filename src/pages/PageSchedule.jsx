@@ -49,6 +49,8 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
       linked_schedule_id: d.linked || null,
       status: d.status || "Due",
       notes: d.notes || "",
+      term_start: d.term_start || null,
+      term_end: d.term_end || null,
       updated_at: serverTimestamp(),
     };
 
@@ -87,6 +89,8 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
               fee_ids: [],
               status: "Due",
               dueDate: nextDueDate,
+              term_start: d.dueDate,
+              term_end: nextDueDate,
               basePayment: Math.abs(Number(String(d.payment || d.signed_payment_amount || 0).replace(/[^0-9.-]/g, "")) || 0),
               notes: `${d.status} payment replacement for ${d.id}`,
             }
@@ -117,6 +121,8 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
               fee_ids: [],
               status: "Due",
               dueDate: nextDueDatePartial,
+              term_start: d.dueDate,
+              term_end: nextDueDatePartial,
               partialPaid: "",
               basePayment: Math.abs(Number(String(d.payment || d.signed_payment_amount || 0).replace(/[^0-9.-]/g, "")) || 0),
               notes: `Partial payment replacement for ${d.id}`,
@@ -279,6 +285,11 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14 }}>
         <FF label="Due Date" t={t}><FIn value={modal.data.dueDate || ""} onChange={e => setF("dueDate", e.target.value)} t={t} type="date" /></FF>
         <FF label="Period Number" t={t}><FIn value={modal.data.period_number || ""} onChange={e => setF("period_number", e.target.value)} placeholder="1" t={t} /></FF>
+        <FF label="Status" t={t}><FSel value={modal.data.status} onChange={e => setF("status", e.target.value)} options={["Due", "Paid", "Partial", "Missed", "Cancelled"]} t={t} /></FF>
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14 }}>
+        <FF label="Term Start" t={t}><FIn value={modal.data.term_start || ""} onChange={e => setF("term_start", e.target.value)} t={t} type="date" /></FF>
+        <FF label="Term End" t={t}><FIn value={modal.data.term_end || ""} onChange={e => setF("term_end", e.target.value)} t={t} type="date" /></FF>
         <FF label="Direction" t={t}><FSel value={modal.data.direction} onChange={e => setF("direction", e.target.value)} options={["IN", "OUT"]} t={t} /></FF>
       </div>
       <FF label="Payment Type" t={t}><FSel value={modal.data.type} onChange={e => setF("type", e.target.value)} options={["INVESTOR_PRINCIPAL_DEPOSIT", "INVESTOR_INTEREST_PAYMENT", "INVESTOR_PRINCIPAL_RETURN", "BORROWER_PRINCIPAL_DISBURSEMENT", "BORROWER_INTEREST_COLLECTION", "BORROWER_PRINCIPAL_REPAYMENT", "Interest", "Principal", "Fee", "Catch-Up"]} t={t} /></FF>
@@ -288,9 +299,9 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
         <FF label="Signed Amount" t={t}><FIn value={modal.data.signed_payment_amount || ""} onChange={e => setF("signed_payment_amount", e.target.value)} placeholder="$0" t={t} /></FF>
       </div>
       {modal.mode === "add_late" ? (<>
-        <FF label="Late Fees" t={t}>
+        <FF label="Penalty Fees" t={t}>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-            {FEES_DATA.filter(f => f.fee_type === "Late Fee").map(f => {
+            {FEES_DATA.filter(f => f.fee_type === "Late Fee" || f.fee_type === "Contract Penalty").map(f => {
               const selected = (modal.data.fee_ids || []).includes(f.id);
               const toggle = () => {
                 const cur = modal.data.fee_ids || [];
@@ -324,7 +335,7 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
                 </div>
               );
             })}
-            {FEES_DATA.filter(f => f.fee_type === "Late Fee").length === 0 && <span style={{ fontSize: 12, color: t.textMuted }}>No Late Fee types defined in Fees</span>}
+            {FEES_DATA.filter(f => f.fee_type === "Late Fee" || f.fee_type === "Contract Penalty").length === 0 && <span style={{ fontSize: 12, color: t.textMuted }}>No Late Fee or Contract Penalty types defined in Fees</span>}
           </div>
         </FF>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
@@ -373,9 +384,9 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
                 <div style={{ fontFamily: t.mono, fontSize: 13, fontWeight: 600, color: isDark ? "#FBBF24" : "#D97706", background: isDark ? "rgba(251,191,36,0.08)" : "#FFFBEB", border: `1px solid ${isDark ? "rgba(251,191,36,0.2)" : "#FDE68A"}`, borderRadius: 9, padding: "10px 13px" }}>${partialUnpaid}</div>
               </FF>
             </div>
-            <FF label="Partial-Pay Penalty Fees" t={t}>
+            <FF label="Penalty Fees" t={t}>
               <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                {FEES_DATA.filter(f => f.fee_type === "Partial-Pay Penalty").map(f => {
+                {FEES_DATA.filter(f => f.fee_type === "Partial-Pay Penalty" || f.fee_type === "Contract Penalty").map(f => {
                   const selected = (modal.data.fee_ids || []).includes(f.id);
                   const toggle = () => {
                     const cur = modal.data.fee_ids || [];
@@ -391,7 +402,7 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
                     </div>
                   );
                 })}
-                {FEES_DATA.filter(f => f.fee_type === "Partial-Pay Penalty").length === 0 && <span style={{ fontSize: 12, color: t.textMuted }}>No Partial-Pay Penalty types defined in Fees</span>}
+                {FEES_DATA.filter(f => f.fee_type === "Partial-Pay Penalty" || f.fee_type === "Contract Penalty").length === 0 && <span style={{ fontSize: 12, color: t.textMuted }}>No Partial-Pay or Contract Penalty types defined in Fees</span>}
               </div>
             </FF>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
