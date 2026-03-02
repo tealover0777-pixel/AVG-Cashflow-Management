@@ -207,16 +207,26 @@ function AppContent() {
       if (!memberPartyId) return false;
       return d.party_id === memberPartyId;
     })
-    .map(d => ({
-      id: d.id, docId: d.doc_id || d.id, _path: d._path, contract: d.contract_id || "", dueDate: fmtDate(d.due_date),
-      type: d.payment_type || "", payment: fmtCurr(d.payment_amount),
-      status: d.status || "", direction: d.direction_from_company || "", fee_id: d.fee_id || "",
-      party_id: d.party_id || "", period_number: d.period_number != null ? String(d.period_number) : "",
-      principal_amount: fmtCurr(d.principal_amount),
-      project_id: d.project_id || "",
-      signed_payment_amount: fmtCurr(d.signed_payment_amount),
-      linked: d.linked_schedule_id || "", notes: d.notes || "",
-    }));
+    .map(d => {
+      let dir = d.direction_from_company || "";
+      let signed = d.signed_payment_amount;
+      let principal = d.principal_amount;
+      if (forceFilter) {
+        dir = (dir === "IN") ? "OUT" : (dir === "OUT" ? "IN" : dir);
+        if (signed != null) signed = -signed;
+        if (principal != null) principal = -principal;
+      }
+      return {
+        id: d.id, docId: d.doc_id || d.id, _path: d._path, contract: d.contract_id || "", dueDate: fmtDate(d.due_date),
+        type: d.payment_type || "", payment: fmtCurr(d.payment_amount),
+        status: d.status || "", direction: dir, fee_id: d.fee_id || "",
+        party_id: d.party_id || "", period_number: d.period_number != null ? String(d.period_number) : "",
+        principal_amount: fmtCurr(principal),
+        project_id: d.project_id || "",
+        signed_payment_amount: fmtCurr(signed),
+        linked: d.linked_schedule_id || "", notes: d.notes || "",
+      };
+    });
 
   const PAYMENTS = rawPayments
     .filter(d => {
@@ -229,17 +239,23 @@ function AppContent() {
       }
       return false;
     })
-    .map(d => ({
-      id: d.id, docId: d.doc_id || d.id, _path: d._path,
-      contract: d.contract_id || "",
-      party: d.party_name || "",
-      type: d.payment_type || "",
-      amount: fmtCurr(d.amount),
-      date: fmtDate(d.payment_date),
-      method: d.payment_method || "",
-      direction: d.direction || "Received",
-      note: d.notes || ""
-    }));
+    .map(d => {
+      let dir = d.direction || "Received";
+      if (forceFilter) {
+        dir = (dir === "Received") ? "Disbursed" : (dir === "Disbursed" ? "Received" : dir);
+      }
+      return {
+        id: d.id, docId: d.doc_id || d.id, _path: d._path,
+        contract: d.contract_id || "",
+        party: d.party_name || "",
+        type: d.payment_type || "",
+        amount: fmtCurr(d.amount),
+        date: fmtDate(d.payment_date),
+        method: d.payment_method || "",
+        direction: dir,
+        note: d.notes || ""
+      };
+    });
 
   const FEES_DATA = rawFees.map(d => ({
     id: d.id, docId: d.doc_id || d.id, name: d.fee_name || "", fee_type: d.fee_type || "", method: d.calculation_method || "",
