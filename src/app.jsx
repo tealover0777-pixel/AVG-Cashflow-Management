@@ -6,6 +6,7 @@ import React, { useState, useMemo, useEffect } from "react";
 import { AuthProvider, useAuth } from "./AuthContext";
 import { createRoot } from "react-dom/client";
 import { db, auth } from "./firebase";
+import { doc, getDoc } from "firebase/firestore";
 import { useFirestoreCollection } from "./useFirestoreCollection";
 import { mkTheme, getNav, getCollectionPaths, DIM_STYLES, DEFAULT_DIM_STYLE, MONTHLY, initials, av, fmtCurr } from "./utils";
 import PageDashboard from "./pages/PageDashboard";
@@ -275,8 +276,22 @@ function AppContent() {
     return null;
   }, [isGlobalRole, activeTenantId, TENANTS]);
 
-  const determinedLogo = activeTenant?.logo || null;
-  const determinedTenantName = activeTenant?.name || "";
+  // Fetch tenant doc directly for non-super-admin users (who don't load the full tenants collection)
+  const [myTenant, setMyTenant] = useState(null);
+  useEffect(() => {
+    if (isSuperAdmin || !activeTenantId || activeTenantId === "GLOBAL") return;
+    if (activeTenant) { setMyTenant(null); return; } // Already have it from TENANTS
+    getDoc(doc(db, "tenants", activeTenantId)).then(snap => {
+      if (snap.exists()) {
+        const d = snap.data();
+        setMyTenant({ id: snap.id, name: d.tenant_name || "", logo: d.tenant_logo || "" });
+      }
+    }).catch(() => {});
+  }, [activeTenantId, isSuperAdmin, activeTenant]);
+
+  const resolvedTenant = activeTenant || myTenant;
+  const determinedLogo = resolvedTenant?.logo || null;
+  const determinedTenantName = resolvedTenant?.name || "";
 
   // Merge Firestore dimensions with local styling
   const DIMENSIONS = rawDimensions.map(d => {
