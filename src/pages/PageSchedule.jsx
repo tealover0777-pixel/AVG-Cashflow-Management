@@ -36,6 +36,11 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
       const orig = SCHEDULES.find(s => s.id === r.linked);
       if (orig) basePayment = Math.abs(Number(String(orig.payment || 0).replace(/[^0-9.-]/g, "")));
     }
+    // For standard schedules, the base is the current payment minus any already selected fees (approximated or just current payment)
+    if (!basePayment) {
+      basePayment = Math.abs(Number(String(r.payment || 0).replace(/[^0-9.-]/g, "")));
+    }
+
     const noteMatch = (r.notes || "").match(/replacement for.*\$(\d+(\.\d+)?)/i);
     if (noteMatch) {
       const extracted = Number(noteMatch[1]);
@@ -50,8 +55,8 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
     const isP = (currentData.notes || "").toLowerCase().includes("partial") || modal.mode === "add_partial";
     const isL = (currentData.notes || "").toLowerCase().includes("late") || modal.mode === "add_late";
     const linkedId = currentData.linked || "";
-    if (!linkedId || (!isP && !isL)) return { fee_ids: newFeeIds };
 
+    // If not a replacement, we still want to calculate fees and update notes/amounts
     const baseAmt = currentData.basePayment || 0;
     const paidVal = newPartialPaid !== null ? newPartialPaid : (currentData.partialPaid || "");
     const paidNum = Number(String(paidVal).replace(/[^0-9.]/g, "")) || 0;
@@ -69,14 +74,29 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
     const dir = currentData.direction;
     const signedAmt = (dir === "OUT") ? -finalAmt : finalAmt;
 
-    let notes;
-    const prefix = isP ? "Partial payment replacement for" : "Late payment replacement for";
-    if (newFeeIds.length === 0) {
-      notes = `${prefix} ${linkedId}${isP ? `. Unpaid: $${unpaid}` : ""}`;
+    let notes = (currentData.notes || "");
+
+    if (linkedId && (isP || isL)) {
+      // Logic for Replacement Schedules
+      const prefix = isP ? "Partial payment replacement for" : "Late payment replacement for";
+      if (newFeeIds.length === 0) {
+        notes = `${prefix} ${linkedId}${isP ? `. Unpaid: $${unpaid}` : ""}`;
+      } else {
+        const parts = [`$${unpaid}`, ...feeAmts.map(a => `$${a}`)].join(" + ");
+        notes = `${prefix} ${linkedId} with penalty selected. ${parts} = $${finalAmt}`;
+      }
     } else {
-      const parts = [`$${unpaid}`, ...feeAmts.map(a => `$${a}`)].join(" + ");
-      notes = `${prefix} ${linkedId} with penalty selected. ${parts} = $${finalAmt}`;
+      // Logic for Standard Schedules (General fee addition)
+      // Strip old breakdown if exists to avoid doubling up
+      const cleanNote = notes.split(" | Fee Breakdown:")[0];
+      if (newFeeIds.length > 0) {
+        const parts = [`$${unpaid}`, ...feeAmts.map(a => `$${a}`)].join(" + ");
+        notes = `${cleanNote} | Fee Breakdown: ${parts} = $${finalAmt}`;
+      } else {
+        notes = cleanNote;
+      }
     }
+
     return { fee_ids: newFeeIds, notes, payment: fmtCurr(finalAmt), signed_payment_amount: fmtCurr(signedAmt), partialPaid: paidVal };
   };
   const close = () => setModal(m => ({ ...m, open: false }));
