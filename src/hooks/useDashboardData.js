@@ -11,7 +11,7 @@ export function useDashboardData({ PROJECTS = [], CONTRACTS = [], PARTIES = [], 
 
         // Find the Party record for the member to filter their data
         const myParty = isMember
-            ? PARTIES.find(p => p.email === profile?.email || p.id === (profile?.notes || '').split(' — ')[1])
+            ? (PARTIES.find(p => p.id === profile?.party_id || p.email === profile?.email || p.id === (profile?.notes || '').split(' — ')[1]) || { id: profile?.party_id })
             : null;
 
         const filteredContracts = isMember

@@ -141,7 +141,13 @@ export function AuthProvider({ children }) {
         loading,
         login,
         logout,
-        isSuperAdmin: (user?.email?.toLowerCase() === "kyuahn@yahoo.com") || profile?.role === "Super Admin" || profile?.role === "Platform Admin" || profile?.role === "company_super_admin_read_write" || profile?.role === "L2 Admin" || profile?.isGlobalRole === true || profile?.isGlobal === true,
+        isSuperAdmin: (() => {
+            if (user?.email?.toLowerCase() === "kyuahn@yahoo.com") return true;
+            const role = (profile?.role || "").toLowerCase();
+            const roleName = (profile?.roleName || "").toLowerCase();
+            if (role === "r10001" || roleName.includes("member")) return false;
+            return ["super admin", "platform admin", "company_super_admin_read_write", "l2 admin"].includes(role) || profile?.isGlobalRole === true || profile?.isGlobal === true;
+        })(),
         isTenantAdmin: profile?.role === "Tenant Admin" || profile?.role === "Tenant Owner" || profile?.role === "tenant_admin_super_user" || profile?.role === "tenant_admin_read_write",
         isGlobalRole: profile?.isGlobalRole === true,
         tenantId: profile?.tenantId || ""

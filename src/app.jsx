@@ -106,7 +106,13 @@ function AppContent() {
   }, [isSuperAdmin, activeTenantId, rawTenants]);
 
   const memberPartyId = useMemo(() => {
-    if (isSuperAdmin || isTenantAdmin) return null;
+    const roleId = profile?.role || "";
+    const roleName = (profile?.roleName || "").toLowerCase();
+    const isMember = roleId === "R10001" || roleName.includes("member");
+
+    // Admins see everything, UNLESS they are specifically a Member role
+    if ((isSuperAdmin || isTenantAdmin) && !isMember) return null;
+
     if (profile?.party_id) return profile.party_id;
     return (profile?.notes || "").split(" — ")[1] || null;
   }, [profile, isSuperAdmin, isTenantAdmin]);
