@@ -63,7 +63,8 @@ export default function PageParties({ t, isDark, PARTIES = [], collectionPath = 
   };
   const [invitingId, setInvitingId] = useState(null);
   const [inviteResult, setInviteResult] = useState(null);
-  const handleInviteParty = async (party) => {
+  const [inviteConfirm, setInviteConfirm] = useState(null);
+  const handleInviteParty = (party) => {
     if (!party.email) {
       alert("This party has no email address. Please add a valid email first.");
       return;
@@ -73,8 +74,12 @@ export default function PageParties({ t, isDark, PARTIES = [], collectionPath = 
       alert("The email address provided is not in a valid format. Please correct it first.");
       return;
     }
-
-    if (!window.confirm(`Invite ${party.name} (${party.email}) as a Member (R10001)?`)) return;
+    setInviteConfirm(party);
+  };
+  const executeInvite = async () => {
+    const party = inviteConfirm;
+    setInviteConfirm(null);
+    if (!party) return;
     setInvitingId(party.id);
     try {
       const inviteUserFn = httpsCallable(functions, "inviteUser");
@@ -185,6 +190,15 @@ export default function PageParties({ t, isDark, PARTIES = [], collectionPath = 
       <FF label="Bank Information" t={t}><FIn value={modal.data.bank_information || ""} onChange={e => setF("bank_information", e.target.value)} placeholder="e.g. Citibank" t={t} /></FF>
     </Modal>
     <DelModal target={delT} onClose={() => setDelT(null)} onConfirm={handleDeleteParty} label="This party" t={t} isDark={isDark} />
+    <Modal open={!!inviteConfirm} onClose={() => setInviteConfirm(null)} title="Invite as Member" onSave={executeInvite} saveLabel="Invite" t={t} isDark={isDark}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 16, alignItems: "center", textAlign: "center", padding: "8px 0" }}>
+        <div style={{ width: 52, height: 52, borderRadius: 14, background: isDark ? "rgba(96,165,250,0.15)" : "#EFF6FF", border: `1px solid ${isDark ? "rgba(96,165,250,0.25)" : "#BFDBFE"}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, color: isDark ? "#60A5FA" : "#2563EB" }}>✉️</div>
+        <div>
+          <div style={{ fontSize: 15, fontWeight: 600, color: isDark ? "#fff" : "#1C1917", marginBottom: 8 }}>Invite {inviteConfirm?.name}?</div>
+          <div style={{ fontSize: 13, color: t.textMuted, lineHeight: 1.7 }}>{inviteConfirm?.email} will be invited as a Member (R10001).</div>
+        </div>
+      </div>
+    </Modal>
     {inviteResult && (
       <div style={{ position: "fixed", inset: 0, zIndex: 1100, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center" }}>
         <div style={{ background: isDark ? "#1C1917" : "#fff", borderRadius: 16, padding: 28, maxWidth: 540, width: "90%", boxShadow: "0 24px 60px rgba(0,0,0,0.3)" }}>
