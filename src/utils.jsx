@@ -102,8 +102,8 @@ export const getNav = (isSuper, isAdmin, hasPermission) => {
       if (item.label === "Payment Schedule" && !hasPermission("PAYMENT_SCHEDULE_VIEW")) return false;
       if (item.label === "Payments" && !hasPermission("PAYMENT_VIEW")) return false;
       if (item.label === "Fees" && !hasPermission("FEE_VIEW")) return false;
-      if (item.label === "User Profiles" && !hasPermission("USER_VIEW")) return false;
-      if (item.label === "Role Types" && !hasPermission("ROLE_TYPE_VIEW")) return false;
+      if (item.label === "User Profiles" && !hasPermission("USER_PROFILE_*")) return false;
+      if (item.label === "Role Types" && !hasPermission("ROLE_TYPE_*")) return false;
       if (item.label === "Tenants" && !hasPermission("PLATFORM_TENANT_VIEW")) return false;
       if (item.label === "Super Admin" && !hasPermission("PLATFORM_USER_VIEW")) return false;
       if (item.label === "Dimensions" && !hasPermission("DIMENTION_VIEW")) return false;

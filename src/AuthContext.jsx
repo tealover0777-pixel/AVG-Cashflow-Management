@@ -131,7 +131,14 @@ export function AuthProvider({ children }) {
     const login = (email, password) => signInWithEmailAndPassword(auth, email, password);
     const logout = () => signOut(auth);
 
-    const hasPermission = (perm) => permissions.includes(perm);
+    const hasPermission = (perm) => {
+        if (!perm) return false;
+        if (perm.endsWith("*")) {
+            const prefix = perm.slice(0, -1);
+            return permissions.some(p => p.startsWith(prefix));
+        }
+        return permissions.includes(perm);
+    };
 
     const value = {
         user,
