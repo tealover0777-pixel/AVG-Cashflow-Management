@@ -96,7 +96,7 @@ export const getNav = (isSuper, isAdmin, hasPermission) => {
     // Apply granular RBAC per section if not a super admin
     if (!isSuper && hasPermission) {
       if (item.label === "Projects" && !hasPermission("PROJECT_VIEW")) return false;
-      if (item.label === "Parties" && !hasPermission("TENANT_VIEW")) return false;
+      if (item.label === "Parties" && !hasPermission("PARTY_VIEW")) return false;
       if (item.label === "Contracts" && !hasPermission("CONTRACT_VIEW")) return false;
       if (item.label === "Payment Schedule" && !hasPermission("PAYMENT_SCHEDULE_VIEW")) return false;
       if (item.label === "Payments" && !hasPermission("PAYMENT_SCHEDULE_VIEW")) return false;
