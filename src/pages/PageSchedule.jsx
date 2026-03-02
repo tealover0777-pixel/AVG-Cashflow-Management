@@ -30,7 +30,54 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
   const openAdd = () => setModal({ open: true, mode: "add", data: { id: getNextScheduleId(), contract: "C10000", dueDate: "", type: "Interest", payment: "", status: "Due", notes: "" } });
   const openEdit = r => {
     const fee_ids = r.fee_id ? String(r.fee_id).split(",").filter(Boolean) : [];
-    setModal({ open: true, mode: "edit", data: { ...r, fee_ids, originalStatus: r.status } });
+    let basePayment = 0;
+    let partialPaid = "";
+    if (r.linked) {
+      const orig = SCHEDULES.find(s => s.id === r.linked);
+      if (orig) basePayment = Math.abs(Number(String(orig.payment || 0).replace(/[^0-9.-]/g, "")));
+    }
+    const noteMatch = (r.notes || "").match(/replacement for.*\$(\d+(\.\d+)?)/i);
+    if (noteMatch) {
+      const extracted = Number(noteMatch[1]);
+      if (!basePayment) basePayment = extracted;
+      const isP = (r.notes || "").toLowerCase().includes("partial");
+      if (isP && basePayment > extracted) partialPaid = String(basePayment - extracted);
+    }
+    setModal({ open: true, mode: "edit", data: { ...r, fee_ids, basePayment, partialPaid, originalStatus: r.status } });
+  };
+
+  const recalcReplacement = (currentData, newFeeIds, newPartialPaid = null) => {
+    const isP = (currentData.notes || "").toLowerCase().includes("partial") || modal.mode === "add_partial";
+    const isL = (currentData.notes || "").toLowerCase().includes("late") || modal.mode === "add_late";
+    const linkedId = currentData.linked || "";
+    if (!linkedId || (!isP && !isL)) return { fee_ids: newFeeIds };
+
+    const baseAmt = currentData.basePayment || 0;
+    const paidVal = newPartialPaid !== null ? newPartialPaid : (currentData.partialPaid || "");
+    const paidNum = Number(String(paidVal).replace(/[^0-9.]/g, "")) || 0;
+    const unpaid = isP ? Math.max(baseAmt - paidNum, 0) : baseAmt;
+
+    const feeAmts = newFeeIds.map(fid => {
+      const fee = FEES_DATA.find(ff => ff.id === fid);
+      if (!fee) return 0;
+      const rateNum = Number(String(fee.rate).replace(/[^0-9.]/g, "")) || 0;
+      return fee.method === "Fixed Amount" ? rateNum : unpaid * rateNum / 100;
+    });
+
+    const totalFees = feeAmts.reduce((a, b) => a + b, 0);
+    const finalAmt = unpaid + totalFees;
+    const dir = currentData.direction;
+    const signedAmt = (dir === "OUT") ? -finalAmt : finalAmt;
+
+    let notes;
+    const prefix = isP ? "Partial payment replacement for" : "Late payment replacement for";
+    if (newFeeIds.length === 0) {
+      notes = `${prefix} ${linkedId}${isP ? `. Unpaid: $${unpaid}` : ""}`;
+    } else {
+      const parts = [`$${unpaid}`, ...feeAmts.map(a => `$${a}`)].join(" + ");
+      notes = `${prefix} ${linkedId} with penalty selected. ${parts} = $${finalAmt}`;
+    }
+    return { fee_ids: newFeeIds, notes, payment: fmtCurr(finalAmt), signed_payment_amount: fmtCurr(signedAmt), partialPaid: paidVal };
   };
   const close = () => setModal(m => ({ ...m, open: false }));
   const setF = (k, v) => setModal(m => ({ ...m, data: { ...m.data, [k]: v } }));
@@ -315,26 +362,8 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
               const toggle = () => {
                 const cur = modal.data.fee_ids || [];
                 const newFeeIds = selected ? cur.filter(x => x !== f.id) : [...cur, f.id];
-                const baseAmt = modal.data.basePayment || 0;
-                const linkedId = modal.data.linked || "";
-                const feeAmts = newFeeIds.map(fid => {
-                  const fee = FEES_DATA.find(ff => ff.id === fid);
-                  if (!fee) return 0;
-                  const rateNum = Number(String(fee.rate).replace(/[^0-9.]/g, "")) || 0;
-                  return fee.method === "Fixed Amount" ? rateNum : baseAmt * rateNum / 100;
-                });
-                const totalFees = feeAmts.reduce((a, b) => a + b, 0);
-                const finalAmt = baseAmt + totalFees;
-                const dir = modal.data.direction;
-                const signedAmt = dir === "OUT" ? -finalAmt : finalAmt;
-                let notes;
-                if (newFeeIds.length === 0) {
-                  notes = `Late payment replacement for ${linkedId}`;
-                } else {
-                  const parts = [`$${baseAmt}`, ...feeAmts.map(a => `$${a}`)].join(" + ");
-                  notes = `Late payment replacement for ${linkedId} with penalty selected. ${parts} = $${finalAmt}`;
-                }
-                setModal(m => ({ ...m, data: { ...m.data, fee_ids: newFeeIds, notes, payment: fmtCurr(finalAmt), signed_payment_amount: fmtCurr(signedAmt) } }));
+                const updates = recalcReplacement(modal.data, newFeeIds);
+                setModal(m => ({ ...m, data: { ...m.data, ...updates } }));
               };
               return (
                 <div key={f.id} onClick={toggle} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12.5, fontWeight: selected ? 600 : 400, padding: "5px 12px", borderRadius: 20, cursor: "pointer", transition: "all 0.15s ease", background: selected ? (isDark ? "rgba(248,113,113,0.15)" : "#FEF2F2") : t.chipBg, color: selected ? (isDark ? "#F87171" : "#DC2626") : t.textSecondary, border: `1px solid ${selected ? (isDark ? "rgba(248,113,113,0.4)" : "#FECACA") : t.chipBorder}` }}>
@@ -356,29 +385,7 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
           const baseAmt = modal.data.basePayment || 0;
           const paidNum = Number(String(modal.data.partialPaid || 0).replace(/[^0-9.]/g, "")) || 0;
           const partialUnpaid = Math.max(baseAmt - paidNum, 0);
-          const recalcPartial = (newPaid, newFeeIds) => {
-            const pv = Number(String(newPaid || 0).replace(/[^0-9.]/g, "")) || 0;
-            const unpaid = Math.max(baseAmt - pv, 0);
-            const linkedId = modal.data.linked || "";
-            const feeAmts = newFeeIds.map(fid => {
-              const fee = FEES_DATA.find(ff => ff.id === fid);
-              if (!fee) return 0;
-              const rateNum = Number(String(fee.rate).replace(/[^0-9.]/g, "")) || 0;
-              return fee.method === "Fixed Amount" ? rateNum : unpaid * rateNum / 100;
-            });
-            const totalFees = feeAmts.reduce((a, b) => a + b, 0);
-            const finalAmt = unpaid + totalFees;
-            const dir = modal.data.direction;
-            const signedAmt = dir === "OUT" ? -finalAmt : finalAmt;
-            let notes;
-            if (newFeeIds.length === 0) {
-              notes = `Partial payment replacement for ${linkedId}. Unpaid: $${unpaid}`;
-            } else {
-              const parts = [`$${unpaid}`, ...feeAmts.map(a => `$${a}`)].join(" + ");
-              notes = `Partial payment replacement for ${linkedId} with penalty selected. ${parts} = $${finalAmt}`;
-            }
-            return { notes, payment: fmtCurr(finalAmt), signed_payment_amount: fmtCurr(signedAmt) };
-          };
+          const recalcPartial = (newPaid, newFeeIds) => recalcReplacement(modal.data, newFeeIds, newPaid);
           return (<>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
               <div style={{ marginBottom: 16, background: isDark ? "rgba(251,191,36,0.06)" : "#FFFBEB", border: `1.5px solid ${isDark ? "rgba(251,191,36,0.35)" : "#FDE68A"}`, borderRadius: 11, padding: "10px 12px 12px" }}>
@@ -436,7 +443,8 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
                   const toggle = () => {
                     const cur = modal.data.fee_ids || [];
                     const next = selected ? cur.filter(x => x !== f.id) : [...cur, f.id];
-                    setF("fee_ids", next);
+                    const updates = recalcReplacement(modal.data, next);
+                    setModal(m => ({ ...m, data: { ...m.data, ...updates, fee_ids: next } }));
                   };
                   return (
                     <div key={f.id} onClick={toggle} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11.5, fontWeight: selected ? 600 : 400, padding: "5px 12px", borderRadius: 20, cursor: "pointer", transition: "all 0.15s ease", background: selected ? (isDark ? "rgba(96,165,250,0.15)" : "#EFF6FF") : t.chipBg, color: selected ? (isDark ? "#60A5FA" : "#2563EB") : t.textSecondary, border: `1px solid ${selected ? (isDark ? "rgba(96,165,250,0.4)" : "#BFDBFE") : t.chipBorder}` }}>
