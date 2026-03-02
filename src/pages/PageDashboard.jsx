@@ -121,7 +121,7 @@ export default function PageDashboard(props) {
 
       {/* Charts Row */}
       <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 20, marginBottom: 24 }}>
-        <div style={{ background: t.surface, borderRadius: 20, padding: 24, border: `1px solid ${t.surfaceBorder}` }}>
+        <div style={{ background: t.surface, borderRadius: 20, padding: 24, border: `1px solid ${t.surfaceBorder}`, minWidth: 0 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
             <h3 style={{ fontSize: 15, fontWeight: 700, color: isDark ? '#fff' : '#1C1917' }}>Cashflow Overview</h3>
             <div style={{ display: 'flex', gap: 12, fontSize: 11, fontWeight: 600 }}>
@@ -164,7 +164,7 @@ export default function PageDashboard(props) {
           </div>
         </div>
 
-        <div style={{ background: t.surface, borderRadius: 20, padding: 24, border: `1px solid ${t.surfaceBorder}` }}>
+        <div style={{ background: t.surface, borderRadius: 20, padding: 24, border: `1px solid ${t.surfaceBorder}`, minWidth: 0 }}>
           <h3 style={{ fontSize: 15, fontWeight: 700, color: isDark ? '#fff' : '#1C1917', marginBottom: 20 }}>Portfolio Diversification</h3>
           <div style={{ height: 300, width: '100%' }}>
             <ResponsiveContainer width="100%" height="100%">
@@ -190,7 +190,7 @@ export default function PageDashboard(props) {
 
       {/* Table & Activity Row */}
       <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 20 }}>
-        <div style={{ background: t.surface, borderRadius: 20, border: `1px solid ${t.surfaceBorder}`, overflow: 'hidden' }}>
+        <div style={{ background: t.surface, borderRadius: 20, border: `1px solid ${t.surfaceBorder}`, overflow: 'hidden', minWidth: 0 }}>
           <div style={{ padding: '18px 24px', borderBottom: `1px solid ${t.surfaceBorder}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <h3 style={{ fontSize: 14, fontWeight: 700, color: isDark ? '#fff' : '#1C1917' }}>Upcoming Payments</h3>
             <button style={{ fontSize: 11, color: t.accent, background: 'none', border: 'none', fontWeight: 600, cursor: 'pointer' }}>View Schedule →</button>
@@ -228,7 +228,7 @@ export default function PageDashboard(props) {
           </div>
         </div>
 
-        <div style={{ background: t.surface, borderRadius: 20, padding: '18px 24px', border: `1px solid ${t.surfaceBorder}` }}>
+        <div style={{ background: t.surface, borderRadius: 20, padding: '18px 24px', border: `1px solid ${t.surfaceBorder}`, minWidth: 0 }}>
           <h3 style={{ fontSize: 14, fontWeight: 700, color: isDark ? '#fff' : '#1C1917', marginBottom: 20 }}>Quick Insights</h3>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             {[
