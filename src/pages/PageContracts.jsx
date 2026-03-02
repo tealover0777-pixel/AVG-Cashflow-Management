@@ -14,6 +14,7 @@ export default function PageContracts({ t, isDark, CONTRACTS = [], PROJECTS = []
   const [hov, setHov] = useState(null); const [sel, setSel] = useState(new Set()); const [chip, setChip] = useState("All"); const [generating, setGenerating] = useState(false);
   const [modal, setModal] = useState({ open: false, mode: "add", data: {} });
   const [delT, setDelT] = useState(null);
+  const [genConfirm, setGenConfirm] = useState(null);
   const [sort, setSort] = useState({ key: null, direction: "asc" });
   const [page, setPage] = useState(1);
   const onSort = k => { setSort(s => ({ key: k, direction: s.key === k && s.direction === "asc" ? "desc" : "asc" })); setPage(1); };
@@ -119,9 +120,16 @@ export default function PageContracts({ t, isDark, CONTRACTS = [], PROJECTS = []
       setSel(new Set());
     } catch (err) { console.error("Bulk delete error:", err); }
   };
-  const handleGenerate = async () => {
+  const handleGenerate = () => {
     if (sel.size === 0) return;
     const selected = CONTRACTS.filter(c => sel.has(c.id));
+    setGenConfirm({ count: selected.length });
+  };
+
+  const executeGenerate = async () => {
+    setGenConfirm(null);
+    const selected = CONTRACTS.filter(c => sel.has(c.id));
+    if (selected.length === 0) return;
 
     // 1. Preparation - Load mapping from DIMENSIONS
     const findDim = n => (DIMENSIONS.find(d => d.name === n) || {}).items || [];
@@ -149,8 +157,6 @@ export default function PageContracts({ t, isDark, CONTRACTS = [], PROJECTS = []
     FEES_DATA.forEach(f => {
       feeInfoMap[f.id] = { name: f.name, method: f.method, rate: f.rate, frequency: f.fee_frequency, fee_charge_at: f.fee_charge_at };
     });
-
-    if (!window.confirm(`Generate payment schedules for ${selected.length} contract(s)?`)) return;
     setGenerating(true);
     console.log("Starting generation for contracts:", selected.map(c => c.id));
 
@@ -572,6 +578,15 @@ export default function PageContracts({ t, isDark, CONTRACTS = [], PROJECTS = []
       )}
     </Modal>
     <DelModal target={delT} onClose={() => setDelT(null)} onConfirm={handleDeleteContract} label="This contract" t={t} isDark={isDark} />
+    <Modal open={!!genConfirm} onClose={() => setGenConfirm(null)} title="Confirm Generate" onSave={executeGenerate} saveLabel="Generate" t={t} isDark={isDark}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 16, alignItems: "center", textAlign: "center", padding: "8px 0" }}>
+        <div style={{ width: 52, height: 52, borderRadius: 14, background: isDark ? "rgba(96,165,250,0.15)" : "#EFF6FF", border: `1px solid ${isDark ? "rgba(96,165,250,0.25)" : "#BFDBFE"}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, color: isDark ? "#60A5FA" : "#2563EB" }}>▤</div>
+        <div>
+          <div style={{ fontSize: 15, fontWeight: 600, color: isDark ? "#fff" : "#1C1917", marginBottom: 8 }}>Generate Payment Schedules?</div>
+          <div style={{ fontSize: 13, color: t.textMuted, lineHeight: 1.7 }}>This will generate payment schedules for {genConfirm?.count || 0} contract(s).</div>
+        </div>
+      </div>
+    </Modal>
     {generating && <>
       <style>{`@keyframes cfm-spin { to { transform: rotate(360deg); } }`}</style>
       <div style={{ position: "fixed", inset: 0, zIndex: 99999, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.55)", backdropFilter: "blur(6px)" }}>
