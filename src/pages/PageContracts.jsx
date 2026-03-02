@@ -153,7 +153,6 @@ export default function PageContracts({ t, isDark, CONTRACTS = [], PROJECTS = []
     if (!window.confirm(`Generate payment schedules for ${selected.length} contract(s)?`)) return;
     setGenerating(true);
     try {
-
       // --- ID Generation Logic ---
       let maxIdNum = 9999;
       SCHEDULES.forEach(s => {
@@ -165,6 +164,7 @@ export default function PageContracts({ t, isDark, CONTRACTS = [], PROJECTS = []
       let currentIdNum = maxIdNum + 1;
 
       const entries = [];
+      const skipped = [];
       const parseNum = v => Number(String(v).replace(/[^0-9.-]/g, "")) || 0;
 
       for (const c of selected) {
@@ -173,7 +173,10 @@ export default function PageContracts({ t, isDark, CONTRACTS = [], PROJECTS = []
         const startDate = normalizeDateAtNoon(c.start_date);
         const matDate = normalizeDateAtNoon(c.maturity_date);
 
-        if (!startDate || !matDate || matDate <= startDate) continue;
+        if (!startDate || !matDate || matDate <= startDate) {
+          skipped.push(c.id || "Unknown");
+          continue;
+        }
 
         const cTypeUpper = (c.type || "").toUpperCase();
         const isDisbursement = cTypeUpper.includes("DISBURSEMENT");
@@ -324,12 +327,25 @@ export default function PageContracts({ t, isDark, CONTRACTS = [], PROJECTS = []
         });
       }
 
-      // Batch Write to Firestore
-      for (const entry of entries) {
-        await addDoc(collection(db, schedulePath), entry);
+      if (entries.length === 0) {
+        let msg = "No entries were generated.";
+        if (selected.length > 0 && skipped.length === selected.length) {
+          msg += "\n\nReason: All selected contracts were skipped. Please ensure they have a valid 'Start Date' and 'Maturity Date' set, and that 'Maturity Date' is after 'Start Date'.";
+        } else if (skipped.length > 0) {
+          msg += `\n\nSkipped ${skipped.length} contract(s) due to missing/invalid dates: ${skipped.join(", ")}`;
+        }
+        window.alert(msg);
+      } else {
+        // Batch Write to Firestore
+        if (schedulePath.startsWith("GROUP:")) {
+          throw new Error("Cannot generate schedules in Consolidated view. Please select a specific tenant first.");
+        }
+        for (const entry of entries) {
+          await addDoc(collection(db, schedulePath), entry);
+        }
+        setSel(new Set());
+        window.alert(`Successfully generated ${entries.length} schedule entries for ${selected.length} contract(s).`);
       }
-
-      setSel(new Set());
     } catch (err) {
       console.error("Generate schedules error:", err);
       window.alert("Error generating schedules:\n" + (err.message || err));
