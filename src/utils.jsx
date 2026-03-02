@@ -81,7 +81,7 @@ const NAV_ITEMS = [
   { label: "Tenants", icon: "🏢", superOnly: true },
   { label: "User Profiles", icon: "👥", adminOnly: true },
   { label: "Role Types", icon: "🛡️", adminOnly: true },
-  { label: "Super Admin", icon: "⚡", superOnly: true },
+  { label: "Super Admin", icon: "⚡", adminOnly: true },
   { label: "Dimensions", icon: "⊞" },
   { label: "Reports", icon: "╱╲" },
   { label: "Profile", icon: "👤", hidden: true },
@@ -99,11 +99,12 @@ export const getNav = (isSuper, isAdmin, hasPermission) => {
       if (item.label === "Parties" && !hasPermission("PARTY_VIEW")) return false;
       if (item.label === "Contracts" && !hasPermission("CONTRACT_VIEW")) return false;
       if (item.label === "Payment Schedule" && !hasPermission("PAYMENT_SCHEDULE_VIEW")) return false;
-      if (item.label === "Payments" && !hasPermission("PAYMENT_SCHEDULE_VIEW")) return false;
+      if (item.label === "Payments" && !hasPermission("PAYMENT_VIEW")) return false;
       if (item.label === "Fees" && !hasPermission("FEE_VIEW")) return false;
       if (item.label === "User Profiles" && !hasPermission("USER_VIEW")) return false;
-      if (item.label === "Role Types" && !hasPermission("ROLE_VIEW")) return false;
+      if (item.label === "Role Types" && !hasPermission("ROLE_TYPE_VIEW")) return false;
       if (item.label === "Tenants" && !hasPermission("PLATFORM_TENANT_VIEW")) return false;
+      if (item.label === "Super Admin" && !hasPermission("PLATFORM_USER_VIEW")) return false;
       if (item.label === "Dimensions" && !hasPermission("DIMENTION_VIEW")) return false;
       if (item.label === "Reports" && !hasPermission("REPORT_VIEW")) return false;
     }
