@@ -30,6 +30,6 @@ Transform the current dashboard into a high-end financial command center with dy
 - **Upcoming Payments**: Mini-table showing the next 5 expected cash inflows.
 
 ## 3. Implementation Roadmap
-1.  **Stage 1: Logic Hook**: Create a `useDashboardData` hook to calculate valid sums dynamically from Firestore data.
-2.  **Stage 2: Modern UI**: Rebuild `PageDashboard.jsx` using the grid system and charts (Recharts).
-3.  **Stage 3: Role Security**: Apply view-layer filters so Members only see their data.
+1.  **Stage 1: Logic Hook**: Completed.
+2.  **Stage 2: Modern UI**: Completed.
+3.  **Stage 3: Role Security & Global Filtering**: Completed. Member data is isolated globally.

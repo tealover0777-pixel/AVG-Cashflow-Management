@@ -102,69 +102,93 @@ function AppContent() {
     }
   }, [isSuperAdmin, activeTenantId, rawTenants]);
 
+  const memberPartyId = useMemo(() => {
+    if (isSuperAdmin || isTenantAdmin) return null;
+    if (profile?.party_id) return profile.party_id;
+    return (profile?.notes || "").split(" — ")[1] || null;
+  }, [profile, isSuperAdmin, isTenantAdmin]);
+
   // ── Normalize Firestore field names → what UI components expect ──
-
-
   const fmtDate = v => {
     if (!v) return "";
     if (v.seconds) return new Date(v.seconds * 1000).toISOString().slice(0, 10);
     return String(v);
   };
 
-  const PROJECTS = rawProjects.map(d => ({
-    id: d.id,
-    docId: d.doc_id || d.id,
-    name: d.project_name || "",
-    status: d.status || "",
-    currency: d.currency || "",
-    description: d.description || "",
-    created: fmtDate(d.created_at),
-    startDate: fmtDate(d.start_date),
-    endDate: fmtDate(d.end_date),
-    valuation: fmtCurr(d.valuation_amount),
-    feeIds: typeof d.fees === "string" && d.fees ? d.fees.split(",").map(s => s.trim()) : [],
-  }));
+  const PROJECTS = rawProjects
+    .filter(d => {
+      if (!memberPartyId) return true;
+      return rawContracts.some(c => (c.project_id === d.id || c.project_name === d.project_name) && c.counterparty_id === memberPartyId);
+    })
+    .map(d => ({
+      id: d.id,
+      docId: d.doc_id || d.id,
+      name: d.project_name || "",
+      status: d.status || "",
+      currency: d.currency || "",
+      description: d.description || "",
+      created: fmtDate(d.created_at),
+      startDate: fmtDate(d.start_date),
+      endDate: fmtDate(d.end_date),
+      valuation: fmtCurr(d.valuation_amount),
+      feeIds: typeof d.fees === "string" && d.fees ? d.fees.split(",").map(s => s.trim()) : [],
+    }));
 
-  const PARTIES = rawParties.map(d => ({
-    id: d.id, docId: d.doc_id || d.id, name: d.party_name || "", type: d.party_type || "", role: d.role_type || "",
-    email: d.email || "", phone: d.phone || "", investor_type: d.investor_type || "",
-    address: d.address || "", bank_information: d.bank_information || "", tax_id: d.tax_id || "",
-    created_at: fmtDate(d.created_at), updated_at: fmtDate(d.updated_at),
-  }));
+  const PARTIES = rawParties
+    .filter(d => {
+      if (!memberPartyId) return true;
+      return d.id === memberPartyId;
+    })
+    .map(d => ({
+      id: d.id, docId: d.doc_id || d.id, name: d.party_name || "", type: d.party_type || "", role: d.role_type || "",
+      email: d.email || "", phone: d.phone || "", investor_type: d.investor_type || "",
+      address: d.address || "", bank_information: d.bank_information || "", tax_id: d.tax_id || "",
+      created_at: fmtDate(d.created_at), updated_at: fmtDate(d.updated_at),
+    }));
 
-  const CONTRACTS = rawContracts.map(d => ({
-    id: d.contract_id || d.id,
-    docId: d.doc_id || d.id,
-    contract_id: d.contract_id || "",
-    project: d.project_name || d.project_id || "",
-    project_id: d.project_id || "",
-    party: d.counterparty_name || d.counterparty_id || "",
-    party_id: d.counterparty_id || "",
-    type: d.contract_type || "",
-    amount: fmtCurr(d.amount),
-    rate: d.interest_rate ? `${d.interest_rate}%` : "",
-    freq: d.payment_frequency || "",
-    status: d.status || "",
-    calculator: d.calculator || "",
-    term_months: d.term_months != null ? String(d.term_months) : "",
-    start_date: fmtDate(d.start_date),
-    maturity_date: fmtDate(d.maturity_date),
-    fees: d.fees || "",
-    feeIds: typeof d.fees === "string" && d.fees ? d.fees.split(",").map(s => s.trim()) : [],
-    created_at: fmtDate(d.created_at),
-    updated_at: fmtDate(d.updated_at),
-  }));
+  const CONTRACTS = rawContracts
+    .filter(d => {
+      if (!memberPartyId) return true;
+      return (d.counterparty_id === memberPartyId);
+    })
+    .map(d => ({
+      id: d.contract_id || d.id,
+      docId: d.doc_id || d.id,
+      contract_id: d.contract_id || "",
+      project: d.project_name || d.project_id || "",
+      project_id: d.project_id || "",
+      party: d.counterparty_name || d.counterparty_id || "",
+      party_id: d.counterparty_id || "",
+      type: d.contract_type || "",
+      amount: fmtCurr(d.amount),
+      rate: d.interest_rate ? `${d.interest_rate}%` : "",
+      freq: d.payment_frequency || "",
+      status: d.status || "",
+      calculator: d.calculator || "",
+      term_months: d.term_months != null ? String(d.term_months) : "",
+      start_date: fmtDate(d.start_date),
+      maturity_date: fmtDate(d.maturity_date),
+      fees: d.fees || "",
+      feeIds: typeof d.fees === "string" && d.fees ? d.fees.split(",").map(s => s.trim()) : [],
+      created_at: fmtDate(d.created_at),
+      updated_at: fmtDate(d.updated_at),
+    }));
 
-  const SCHEDULES = rawSchedules.map(d => ({
-    id: d.id, docId: d.doc_id || d.id, contract: d.contract_id || "", dueDate: fmtDate(d.due_date),
-    type: d.payment_type || "", payment: fmtCurr(d.payment_amount),
-    status: d.status || "", direction: d.direction_from_company || "", fee_id: d.fee_id || "",
-    party_id: d.party_id || "", period_number: d.period_number != null ? String(d.period_number) : "",
-    principal_amount: fmtCurr(d.principal_amount),
-    project_id: d.project_id || "",
-    signed_payment_amount: fmtCurr(d.signed_payment_amount),
-    linked: d.linked_schedule_id || "", notes: d.notes || "",
-  }));
+  const SCHEDULES = rawSchedules
+    .filter(d => {
+      if (!memberPartyId) return true;
+      return d.party_id === memberPartyId;
+    })
+    .map(d => ({
+      id: d.id, docId: d.doc_id || d.id, contract: d.contract_id || "", dueDate: fmtDate(d.due_date),
+      type: d.payment_type || "", payment: fmtCurr(d.payment_amount),
+      status: d.status || "", direction: d.direction_from_company || "", fee_id: d.fee_id || "",
+      party_id: d.party_id || "", period_number: d.period_number != null ? String(d.period_number) : "",
+      principal_amount: fmtCurr(d.principal_amount),
+      project_id: d.project_id || "",
+      signed_payment_amount: fmtCurr(d.signed_payment_amount),
+      linked: d.linked_schedule_id || "", notes: d.notes || "",
+    }));
 
   const FEES_DATA = rawFees.map(d => ({
     id: d.id, docId: d.doc_id || d.id, name: d.fee_name || "", fee_type: d.fee_type || "", method: d.calculation_method || "",

@@ -84,6 +84,7 @@ export default function PageParties({ t, isDark, PARTIES = [], collectionPath = 
         tenantId: tenantId || "",
         user_name: party.name || "",
         phone: party.phone || "",
+        partyId: party.id || "",
         notes: `Invited from Parties page — ${party.id}`,
       });
       setInviteResult({ email: party.email, user_id: result.data.user_id, link: result.data.link });

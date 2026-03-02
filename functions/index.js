@@ -27,7 +27,7 @@ exports.inviteUser = functions.https.onCall(async (data, context) => {
     throw new functions.https.HttpsError('unauthenticated', 'The function must be called while authenticated.');
   }
 
-  const { email, role, tenantId, user_name, phone, notes, user_id: providedUserId } = data;
+  const { email, role, tenantId, user_name, phone, notes, user_id: providedUserId, partyId } = data;
   const db = admin.firestore();
 
   try {
@@ -74,6 +74,7 @@ exports.inviteUser = functions.https.onCall(async (data, context) => {
       tenantId,
       isGlobal,
       status: 'Pending',
+      party_id: partyId || '',
       last_updated: admin.firestore.FieldValue.serverTimestamp()
     }, { merge: true });
 
@@ -110,6 +111,7 @@ exports.inviteUser = functions.https.onCall(async (data, context) => {
         notes: notes || '',
         tenantId,
         auth_uid: uid,
+        party_id: partyId || '',
         created_at: admin.firestore.FieldValue.serverTimestamp()
       }, { merge: true });
     }
