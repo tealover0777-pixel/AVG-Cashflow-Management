@@ -87,13 +87,13 @@ function AppContent() {
   const { data: rawPayments, loading: l5, error: e5 } = useFirestoreCollection(isGlobalConsolidated ? "payments" : (activeTenantId ? fetchPaths.payments : null), isGlobalConsolidated);
   const { data: rawFees, loading: l6, error: e6 } = useFirestoreCollection(isGlobalConsolidated ? "fees" : (activeTenantId ? fetchPaths.fees : null), isGlobalConsolidated);
   const { data: rawTenants, loading: l8, error: e8 } = useFirestoreCollection(isSuperAdmin ? getCollectionPaths("").tenants : null);
-  const { data: rawUsers, loading: l9, error: e9 } = useFirestoreCollection((activeTenantId && (isSuperAdmin || isTenantAdmin) && !isGlobalConsolidated) ? fetchPaths.users : null);
-  const { data: rawRoles, loading: l10, error: e10 } = useFirestoreCollection((activeTenantId && (isSuperAdmin || isTenantAdmin) && !isGlobalConsolidated) ? fetchPaths.roles : null);
+  const { data: rawUsers, loading: l9, error: e9 } = useFirestoreCollection((activeTenantId && (isSuperAdmin || isTenantAdmin || hasPermission("USER_PROFILE_*")) && !isGlobalConsolidated) ? fetchPaths.users : null);
+  const { data: rawRoles, loading: l10, error: e10 } = useFirestoreCollection((activeTenantId && (isSuperAdmin || isTenantAdmin || hasPermission("ROLE_TYPE_*")) && !isGlobalConsolidated) ? fetchPaths.roles : null);
   const { data: rawDimensions, loading: l7, error: e7 } = useFirestoreCollection(user ? fetchPaths.dimensions : null);
 
   const shouldFetch = !!activeTenantId || isGlobalRole;
 
-  const loading = authLoading || (shouldFetch && (l1 || l2 || l3 || l4 || l5 || l6)) || (isSuperAdmin && l8) || (activeTenantId && (isSuperAdmin || isTenantAdmin) && (l9 || l10)) || (user && l7);
+  const loading = authLoading || (shouldFetch && (l1 || l2 || l3 || l4 || l5 || l6)) || (isSuperAdmin && l8) || (activeTenantId && (isSuperAdmin || isTenantAdmin || hasPermission("USER_PROFILE_*") || hasPermission("ROLE_TYPE_*")) && (l9 || l10)) || (user && l7);
   const dataPresent = rawProjects.length > 0 || rawContracts.length > 0;
   const showLoading = loading && !dataPresent;
 
@@ -286,7 +286,7 @@ function AppContent() {
         const d = snap.data();
         setMyTenant({ id: snap.id, name: d.tenant_name || "", logo: d.tenant_logo || "" });
       }
-    }).catch(() => {});
+    }).catch(() => { });
   }, [activeTenantId, isSuperAdmin, activeTenant]);
 
   const resolvedTenant = activeTenant || myTenant;
