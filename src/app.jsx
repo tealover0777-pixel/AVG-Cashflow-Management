@@ -75,23 +75,28 @@ function AppContent() {
   }, [tenantId]);
 
   const isGlobalConsolidated = activeTenantId === "GLOBAL";
-  const shouldFetch = !!activeTenantId || isGlobalRole;
+  // We only fetch single-tenant data if activeTenantId is physically set.
+  // Super admins/Global roles can fetch "GLOBAL" which uses group queries.
+  const fetchPaths = getCollectionPaths(isGlobalConsolidated ? "" : (activeTenantId || "T_PENDING"));
 
-  // Paths for data fetching - if global consolidated, use base collection names for group queries
-  const fetchPaths = getCollectionPaths(isGlobalConsolidated ? "" : activeTenantId);
-
-  const { data: rawProjects, loading: l1, error: e1 } = useFirestoreCollection(isGlobalConsolidated ? "projects" : (shouldFetch ? fetchPaths.projects : null), isGlobalConsolidated);
-  const { data: rawParties, loading: l2, error: e2 } = useFirestoreCollection(isGlobalConsolidated ? "parties" : (shouldFetch ? fetchPaths.parties : null), isGlobalConsolidated);
-  const { data: rawContracts, loading: l3, error: e3 } = useFirestoreCollection(isGlobalConsolidated ? "contracts" : (shouldFetch ? fetchPaths.contracts : null), isGlobalConsolidated);
-  const { data: rawSchedules, loading: l4, error: e4 } = useFirestoreCollection(isGlobalConsolidated ? "paymentSchedules" : (shouldFetch ? fetchPaths.paymentSchedules : null), isGlobalConsolidated);
-  const { data: rawPayments, loading: l5, error: e5 } = useFirestoreCollection(isGlobalConsolidated ? "payments" : (shouldFetch ? fetchPaths.payments : null), isGlobalConsolidated);
-  const { data: rawFees, loading: l6, error: e6 } = useFirestoreCollection(isGlobalConsolidated ? "fees" : (shouldFetch ? fetchPaths.fees : null), isGlobalConsolidated);
+  const { data: rawProjects, loading: l1, error: e1 } = useFirestoreCollection(isGlobalConsolidated ? "projects" : (activeTenantId ? fetchPaths.projects : null), isGlobalConsolidated);
+  const { data: rawParties, loading: l2, error: e2 } = useFirestoreCollection(isGlobalConsolidated ? "parties" : (activeTenantId ? fetchPaths.parties : null), isGlobalConsolidated);
+  const { data: rawContracts, loading: l3, error: e3 } = useFirestoreCollection(isGlobalConsolidated ? "contracts" : (activeTenantId ? fetchPaths.contracts : null), isGlobalConsolidated);
+  const { data: rawSchedules, loading: l4, error: e4 } = useFirestoreCollection(isGlobalConsolidated ? "paymentSchedules" : (activeTenantId ? fetchPaths.paymentSchedules : null), isGlobalConsolidated);
+  const { data: rawPayments, loading: l5, error: e5 } = useFirestoreCollection(isGlobalConsolidated ? "payments" : (activeTenantId ? fetchPaths.payments : null), isGlobalConsolidated);
+  const { data: rawFees, loading: l6, error: e6 } = useFirestoreCollection(isGlobalConsolidated ? "fees" : (activeTenantId ? fetchPaths.fees : null), isGlobalConsolidated);
   const { data: rawTenants, loading: l8, error: e8 } = useFirestoreCollection(isSuperAdmin ? getCollectionPaths("").tenants : null);
-  const { data: rawUsers, loading: l9, error: e9 } = useFirestoreCollection((shouldFetch && (isSuperAdmin || isTenantAdmin) && !isGlobalConsolidated) ? fetchPaths.users : null);
-  const { data: rawRoles, loading: l10, error: e10 } = useFirestoreCollection((shouldFetch && (isSuperAdmin || isTenantAdmin) && !isGlobalConsolidated) ? fetchPaths.roles : null);
+  const { data: rawUsers, loading: l9, error: e9 } = useFirestoreCollection((activeTenantId && (isSuperAdmin || isTenantAdmin) && !isGlobalConsolidated) ? fetchPaths.users : null);
+  const { data: rawRoles, loading: l10, error: e10 } = useFirestoreCollection((activeTenantId && (isSuperAdmin || isTenantAdmin) && !isGlobalConsolidated) ? fetchPaths.roles : null);
   const { data: rawDimensions, loading: l7, error: e7 } = useFirestoreCollection(user ? fetchPaths.dimensions : null);
 
-  const loading = authLoading || (shouldFetch && (l1 || l2 || l3 || l4 || l5 || l6)) || ((isSuperAdmin) && l8) || (shouldFetch && (isSuperAdmin || isTenantAdmin) && (l9 || l10)) || (user && l7);
+  const shouldFetch = !!activeTenantId || isGlobalRole;
+
+  const loading = authLoading ||
+    (shouldFetch && (l1 || l2 || l3 || l4 || l5 || l6)) ||
+    (isSuperAdmin && l8) ||
+    (activeTenantId && (isSuperAdmin || isTenantAdmin) && (l9 || l10)) ||
+    (user && l7);
 
   const firstError = e1 || e2 || e3 || e4 || e5 || e6 || e7 || e8 || e9 || e10;
 
