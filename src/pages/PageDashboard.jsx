@@ -164,7 +164,7 @@ export default function PageDashboard(props) {
         <div style={{ background: t.surface, borderRadius: 20, padding: 24, border: `1px solid ${t.surfaceBorder}`, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
             <h3 style={{ fontSize: 15, fontWeight: 700, color: isDark ? '#fff' : '#1C1917' }}>{isMember ? 'My Contracts' : 'Contracts'}</h3>
-            <button onClick={() => setActivePage("Contracts")} style={{ fontSize: 11, color: t.accent, background: 'none', border: 'none', fontWeight: 600, cursor: 'pointer' }}>View All →</button>
+            {!isMember && <button onClick={() => setActivePage("Contracts")} style={{ fontSize: 11, color: t.accent, background: 'none', border: 'none', fontWeight: 600, cursor: 'pointer' }}>View All →</button>}
           </div>
           <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 10 }}>
             {contracts.length === 0 && <div style={{ fontSize: 12, color: t.textMuted, textAlign: 'center', padding: 20 }}>No contracts found</div>}
@@ -185,7 +185,7 @@ export default function PageDashboard(props) {
                   </div>
                   <div style={{ textAlign: 'right', flexShrink: 0 }}>
                     <div style={{ fontSize: 13, fontWeight: 700, color: isDark ? '#fff' : '#1C1917' }}>{fmtCurr(amt)}</div>
-                    <div style={{ fontSize: 10, color: t.textMuted }}>{c.maturity_date || '—'}</div>
+                    <div style={{ fontSize: 10, color: t.textMuted }}>{c.start_date || '—'} ~ {c.maturity_date || '—'}</div>
                   </div>
                 </div>
               );
@@ -199,7 +199,7 @@ export default function PageDashboard(props) {
         <div style={{ background: t.surface, borderRadius: 20, border: `1px solid ${t.surfaceBorder}`, overflow: 'hidden', minWidth: 0, display: 'flex', flexDirection: 'column', maxHeight: 480 }}>
           <div style={{ padding: '18px 24px', borderBottom: `1px solid ${t.surfaceBorder}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0 }}>
             <h3 style={{ fontSize: 14, fontWeight: 700, color: isDark ? '#fff' : '#1C1917' }}>Payment Schedules</h3>
-            <button onClick={() => setActivePage("Payment Schedule")} style={{ fontSize: 11, color: t.accent, background: 'none', border: 'none', fontWeight: 600, cursor: 'pointer' }}>View Schedule →</button>
+            {!isMember && <button onClick={() => setActivePage("Payment Schedule")} style={{ fontSize: 11, color: t.accent, background: 'none', border: 'none', fontWeight: 600, cursor: 'pointer' }}>View Schedule →</button>}
           </div>
           <div style={{ overflow: 'auto', flex: 1 }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
