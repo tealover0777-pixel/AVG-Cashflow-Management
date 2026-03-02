@@ -2,12 +2,10 @@ import { useMemo } from 'react';
 import { useAuth } from '../AuthContext';
 
 export function useDashboardData({ PROJECTS = [], CONTRACTS = [], PARTIES = [], SCHEDULES = [], PAYMENTS = [], MONTHLY = [] }) {
-    const { profile, isSuperAdmin, isTenantAdmin, isGlobalRole } = useAuth();
+    const { profile, isSuperAdmin, isTenantAdmin, isMember, isGlobalRole } = useAuth();
 
     const dashboardData = useMemo(() => {
         // 1. Resolve User Role & Slicing
-        // If not admin, they are a Member.
-        const isMember = !isSuperAdmin && !isTenantAdmin;
 
         // Find the Party record for the member to filter their data
         const myParty = isMember
@@ -131,7 +129,7 @@ export function useDashboardData({ PROJECTS = [], CONTRACTS = [], PARTIES = [], 
             isMember,
             myParty
         };
-    }, [PROJECTS, CONTRACTS, PARTIES, SCHEDULES, PAYMENTS, profile, isSuperAdmin, isTenantAdmin]);
+    }, [PROJECTS, CONTRACTS, PARTIES, SCHEDULES, PAYMENTS, profile, isSuperAdmin, isTenantAdmin, isMember]);
 
     return dashboardData;
 }
