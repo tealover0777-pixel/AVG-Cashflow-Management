@@ -151,6 +151,14 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
   const handleDeleteSchedule = async () => {
     if (!delT || !delT.docId) return;
     try {
+      const s = SCHEDULES.find(x => x.docId === delT.docId || x.id === delT.id);
+      if (s && s.linked) {
+        const linkedSched = SCHEDULES.find(ls => ls.id === s.linked);
+        if (linkedSched && window.confirm(`This schedule is linked to ${s.linked}. Remove the reference in ${s.linked} as well?`)) {
+          const lRef = linkedSched._path ? doc(db, linkedSched._path) : doc(db, collectionPath, linkedSched.docId);
+          await updateDoc(lRef, { linked_schedule_id: "", updated_at: serverTimestamp() });
+        }
+      }
       const ref = delT._path ? doc(db, delT._path) : doc(db, collectionPath, delT.docId);
       await deleteDoc(ref);
       setDelT(null);
@@ -252,7 +260,7 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
           <div style={{ fontFamily: t.mono, fontSize: 11.5, color: t.textMuted }}>{s.principal_amount || dash}</div>
           <div><span style={{ fontSize: 11.5, fontWeight: 600, padding: "4px 11px", borderRadius: 20, background: bg, color, border: `1px solid ${border}` }}>{s.status}</span></div>
           <div style={{ fontSize: 11.5, color: t.textMuted, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0 }}>{s.notes || dash}</div>
-          <ActBtns show={isHov} t={t} onEdit={() => openEdit(s)} onDel={() => setDelT({ id: s.id, name: s.id, docId: s.docId })} />
+          <ActBtns show={isHov} t={t} onEdit={() => openEdit(s)} onDel={() => setDelT({ id: s.id, name: s.id, docId: s.docId, _path: s._path })} />
         </div>);
       })}
     </div>
