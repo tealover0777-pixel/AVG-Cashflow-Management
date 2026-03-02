@@ -28,7 +28,10 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
   const [page, setPage] = useState(1);
   const onSort = k => { setSort(s => ({ key: k, direction: s.key === k && s.direction === "asc" ? "desc" : "asc" })); setPage(1); };
   const openAdd = () => setModal({ open: true, mode: "add", data: { id: getNextScheduleId(), contract: "C10000", dueDate: "", type: "Interest", payment: "", status: "Due", notes: "" } });
-  const openEdit = r => setModal({ open: true, mode: "edit", data: { ...r, originalStatus: r.status } });
+  const openEdit = r => {
+    const fee_ids = r.fee_id ? String(r.fee_id).split(",").filter(Boolean) : [];
+    setModal({ open: true, mode: "edit", data: { ...r, fee_ids, originalStatus: r.status } });
+  };
   const close = () => setModal(m => ({ ...m, open: false }));
   const setF = (k, v) => setModal(m => ({ ...m, data: { ...m.data, [k]: v } }));
 
@@ -254,7 +257,13 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
           <div style={{ fontSize: 11.5, color: t.textMuted, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{s.type}</div>
           <div style={{ fontSize: 10.5, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
             {s.fee_id
-              ? <><span style={{ fontFamily: t.mono, color: t.idText }}>{s.fee_id}</span><span style={{ color: t.textMuted }}> - {(FEES_DATA.find(f => f.id === s.fee_id) || {}).name || ""}</span></>
+              ? String(s.fee_id).split(",").filter(Boolean).map((fid, idx, arr) => (
+                <span key={fid}>
+                  <span style={{ fontFamily: t.mono, color: t.idText }}>{fid}</span>
+                  <span style={{ color: t.textMuted }}> - {(FEES_DATA.find(f => f.id === fid) || {}).name || ""}</span>
+                  {idx < arr.length - 1 ? "; " : ""}
+                </span>
+              ))
               : dash}
           </div>
           <div style={{ fontSize: 11, fontWeight: 700, color: s.direction === "IN" ? (isDark ? "#34D399" : "#059669") : s.direction === "OUT" ? (isDark ? "#F87171" : "#DC2626") : t.textMuted }}>{s.direction || dash}</div>
@@ -412,11 +421,35 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
           </>);
         })()}
       </>) : (
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14 }}>
-          <FF label="Fee ID" t={t}><FIn value={modal.data.fee_id || ""} onChange={e => setF("fee_id", e.target.value)} placeholder="F10001" t={t} /></FF>
-          <FF label="Linked Schedule" t={t}><FIn value={modal.data.linked || ""} onChange={e => setF("linked", e.target.value)} placeholder="S00001" t={t} /></FF>
-          <FF label="Status" t={t}><FSel value={modal.data.status} onChange={e => setF("status", e.target.value)} options={paymentStatusOpts} t={t} /></FF>
-        </div>
+        <>
+          <FF label="Linked Schedule & Status" t={t}>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+              <FIn value={modal.data.linked || ""} onChange={e => setF("linked", e.target.value)} placeholder="Linked Sched (e.g. S00001)" t={t} />
+              <FSel value={modal.data.status} onChange={e => setF("status", e.target.value)} options={paymentStatusOpts} t={t} />
+            </div>
+          </FF>
+          <FF label="Fee Selection (Multi-select)" t={t}>
+            <div style={{ background: isDark ? "rgba(255,255,255,0.02)" : "#FDFDFC", border: `1px solid ${t.surfaceBorder}`, borderRadius: 12, padding: 12 }}>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 8, maxHeight: 160, overflowY: "auto", padding: 2 }}>
+                {FEES_DATA.map(f => {
+                  const selected = (modal.data.fee_ids || []).includes(f.id);
+                  const toggle = () => {
+                    const cur = modal.data.fee_ids || [];
+                    const next = selected ? cur.filter(x => x !== f.id) : [...cur, f.id];
+                    setF("fee_ids", next);
+                  };
+                  return (
+                    <div key={f.id} onClick={toggle} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11.5, fontWeight: selected ? 600 : 400, padding: "5px 12px", borderRadius: 20, cursor: "pointer", transition: "all 0.15s ease", background: selected ? (isDark ? "rgba(96,165,250,0.15)" : "#EFF6FF") : t.chipBg, color: selected ? (isDark ? "#60A5FA" : "#2563EB") : t.textSecondary, border: `1px solid ${selected ? (isDark ? "rgba(96,165,250,0.4)" : "#BFDBFE") : t.chipBorder}` }}>
+                      <span style={{ fontSize: 10, fontWeight: 700 }}>{selected ? "✓" : "+"}</span>
+                      {f.name} <span style={{ fontFamily: t.mono, fontSize: 10, opacity: 0.6 }}>[{f.id}]</span>
+                    </div>
+                  );
+                })}
+                {FEES_DATA.length === 0 && <span style={{ fontSize: 12, color: t.textMuted }}>No fees available</span>}
+              </div>
+            </div>
+          </FF>
+        </>
       )}
       <FF label="Notes" t={t}><textarea value={modal.data.notes || ""} onChange={e => setF("notes", e.target.value)} placeholder="Any remarks..." rows={2} style={{ width: "100%", background: t.searchBg, border: `1px solid ${t.searchBorder}`, borderRadius: 9, padding: "10px 13px", color: t.searchText, fontSize: 13.5, fontFamily: "inherit", outline: "none", resize: "vertical", boxSizing: "border-box" }} /></FF>
     </Modal>
