@@ -57,7 +57,7 @@ class ErrorBoundary extends React.Component {
 // ROOT APP
 // ─────────────────────────────────────────────────────────────────────────────
 function AppContent() {
-  const { user, profile, loading: authLoading, login, logout, isSuperAdmin, isTenantAdmin, isGlobalRole, tenantId, hasPermission } = useAuth();
+  const { user, profile, loading: authLoading, login, logout, isSuperAdmin, isTenantAdmin, isMember, isGlobalRole, tenantId, hasPermission } = useAuth();
   const [isDark, setIsDark] = useState(() => {
     const saved = localStorage.getItem("avg_theme");
     return saved !== null ? saved === "dark" : true;
@@ -106,12 +106,7 @@ function AppContent() {
   }, [isSuperAdmin, activeTenantId, rawTenants]);
 
   const memberPartyId = useMemo(() => {
-    const roleId = profile?.role || "";
-    const roleName = (profile?.roleName || "").toLowerCase();
-    const isMember = roleId === "R10001" || roleName.includes("member");
-
-    // Admins see everything, UNLESS they are specifically a Member role
-    if ((isSuperAdmin || isTenantAdmin) && !isMember) return null;
+    if (!isMember) return null;
 
     // 1. Check explicit profile field
     if (profile?.party_id) return profile.party_id;
@@ -123,12 +118,9 @@ function AppContent() {
     if (foundByEmail) return foundByEmail.id || foundByEmail.doc_id;
 
     return null;
-  }, [profile, user, rawParties, isSuperAdmin, isTenantAdmin]);
+  }, [profile, user, rawParties, isMember]);
 
-  const isFiltered = !isSuperAdmin && !isTenantAdmin && !!(profile?.role === "R10001" || (profile?.roleName || "").toLowerCase().includes("member") || true);
-  // Actually, a simpler way: if memberPartyId is NOT null, we MUST filter.
-  // If user is a member but memberPartyId IS null, we should STILL filter (resulting in nothing).
-  const forceFilter = !isSuperAdmin && !isTenantAdmin;
+  const forceFilter = isMember;
 
   // ── Normalize Firestore field names → what UI components expect ──
   const fmtDate = v => {
@@ -211,7 +203,7 @@ function AppContent() {
       let dir = d.direction_from_company || "";
       let signed = d.signed_payment_amount;
       let principal = d.principal_amount;
-      if (forceFilter) {
+      if (isMember) {
         dir = (dir === "IN") ? "OUT" : (dir === "OUT" ? "IN" : dir);
         if (signed != null) signed = -signed;
         if (principal != null) principal = -principal;
@@ -241,7 +233,7 @@ function AppContent() {
     })
     .map(d => {
       let dir = d.direction || "Received";
-      if (forceFilter) {
+      if (isMember) {
         dir = (dir === "Received") ? "Disbursed" : (dir === "Disbursed" ? "Received" : dir);
       }
       return {

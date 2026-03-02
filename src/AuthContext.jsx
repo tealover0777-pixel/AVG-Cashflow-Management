@@ -141,15 +141,24 @@ export function AuthProvider({ children }) {
         loading,
         login,
         logout,
+        isMember: (() => {
+            const role = (profile?.role || "").toLowerCase();
+            const roleName = (profile?.roleName || "").toLowerCase();
+            return role === "r10001" || roleName.includes("member");
+        })(),
         isSuperAdmin: (() => {
             if (user?.email?.toLowerCase() === "kyuahn@yahoo.com") return true;
             const role = (profile?.role || "").toLowerCase();
             const roleName = (profile?.roleName || "").toLowerCase();
-            if (role === "r10001" || roleName.includes("member")) return false;
+            if (role === "r10001" || roleName.includes("member")) return false; // Members are never super admins
             return ["super admin", "platform admin", "company_super_admin_read_write", "l2 admin"].includes(role) || profile?.isGlobalRole === true || profile?.isGlobal === true;
         })(),
-        isTenantAdmin: profile?.role === "Tenant Admin" || profile?.role === "Tenant Owner" || profile?.role === "tenant_admin_super_user" || profile?.role === "tenant_admin_read_write",
-        isGlobalRole: profile?.isGlobalRole === true,
+        isTenantAdmin: (() => {
+            const role = (profile?.role || "");
+            const isT = role.includes("Tenant") || role.includes("tenant") || ["tenant_admin_super_user", "tenant_admin_read_write"].includes(role);
+            return isT && !(profile?.isGlobalRole === true || profile?.isGlobal === true);
+        })(),
+        isGlobalRole: profile?.isGlobalRole === true || profile?.isGlobal === true,
         tenantId: profile?.tenantId || ""
     };
 
