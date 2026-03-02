@@ -125,14 +125,14 @@ export default function PageDashboard(props) {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
             <h3 style={{ fontSize: 15, fontWeight: 700, color: isDark ? '#fff' : '#1C1917' }}>Cashflow Overview</h3>
             <div style={{ display: 'flex', gap: 12, fontSize: 11, fontWeight: 600 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}><div style={{ width: 8, height: 8, borderRadius: 2, background: t.accent }} /> IN Projected</div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}><div style={{ width: 8, height: 8, borderRadius: 2, background: '#10B981' }} /> IN Actual</div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}><div style={{ width: 8, height: 8, borderRadius: 2, background: '#F87171' }} /> OUT Projected</div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}><div style={{ width: 8, height: 8, borderRadius: 2, background: '#EF4444' }} /> OUT Actual</div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}><div style={{ width: 8, height: 8, borderRadius: 2, background: t.accent }} /> IN Proj</div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}><div style={{ width: 8, height: 8, borderRadius: 2, background: '#10B981' }} /> IN Act</div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}><div style={{ width: 8, height: 8, borderRadius: 2, background: '#F87171' }} /> OUT Proj</div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}><div style={{ width: 8, height: 8, borderRadius: 2, background: '#FBBF24' }} /> OUT Act</div>
             </div>
           </div>
-          <div style={{ height: 320, width: '100%', overflowX: 'auto', overflowY: 'hidden' }}>
-            <div style={{ width: Math.max(charts.cashflow.length * 50, 600), height: '100%' }}>
+          <div style={{ height: 320, width: '100%', overflowX: 'auto', overflowY: 'hidden', paddingBottom: 8, scrollbarWidth: 'thin' }}>
+            <div style={{ width: Math.max(charts.cashflow.length * 120, 600), height: '100%' }}>
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={charts.cashflow} margin={{ bottom: 20 }}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDark ? "rgba(255,255,255,0.05)" : "#F3F4F6"} />
@@ -154,10 +154,10 @@ export default function PageDashboard(props) {
                     cursor={{ fill: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)' }}
                     formatter={(value) => fmtCurr(value)}
                   />
-                  <Bar dataKey="projectedIn" stackId="in" fill={t.accent} radius={[4, 4, 0, 0]} barSize={12} />
-                  <Bar dataKey="actualIn" stackId="in" fill="#10B981" radius={[4, 4, 0, 0]} barSize={12} />
-                  <Bar dataKey="projectedOut" stackId="out" fill="#F87171" radius={[4, 4, 0, 0]} barSize={12} />
-                  <Bar dataKey="actualOut" stackId="out" fill="#EF4444" radius={[4, 4, 0, 0]} barSize={12} />
+                  <Bar dataKey="projectedIn" fill={t.accent} radius={[3, 3, 0, 0]} barSize={16} />
+                  <Bar dataKey="actualIn" fill="#10B981" radius={[3, 3, 0, 0]} barSize={16} />
+                  <Bar dataKey="projectedOut" fill="#F87171" radius={[3, 3, 0, 0]} barSize={16} />
+                  <Bar dataKey="actualOut" fill="#FBBF24" radius={[3, 3, 0, 0]} barSize={16} />
                 </BarChart>
               </ResponsiveContainer>
             </div>

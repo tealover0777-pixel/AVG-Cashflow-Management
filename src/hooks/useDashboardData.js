@@ -41,58 +41,63 @@ export function useDashboardData({ PROJECTS = [], CONTRACTS = [], PARTIES = [], 
             ? activeContracts.reduce((sum, c) => sum + Number(String(c.rate || 0).replace(/[^0-9.-]/g, '')), 0) / activeContracts.length
             : 0;
 
-        // 3. Prepare Chart Data (Duration of Project / Multi-month)
+        // 3. Prepare Chart Data (Quarterly View)
         const scheduleDates = filteredSchedules.map(s => s.dueDate).filter(Boolean);
         const now = new Date();
         const todayStr = now.toISOString().slice(0, 10);
 
-        // Start from either 1 month ago or the first schedule date
-        const startDate = scheduleDates.length
+        // Find date range
+        const firstDate = scheduleDates.length
             ? new Date(Math.min(...scheduleDates.map(d => new Date(d))))
             : new Date(now.getFullYear(), now.getMonth(), 1);
-        startDate.setDate(1);
 
-        const endDate = scheduleDates.length
+        const lastDate = scheduleDates.length
             ? new Date(Math.max(...scheduleDates.map(d => new Date(d))))
             : new Date(now.getFullYear(), now.getMonth() + 11, 1);
-        endDate.setDate(1);
 
-        const months = [];
+        // Round to start of first quarter and end of last quarter
+        const startDate = new Date(firstDate.getFullYear(), Math.floor(firstDate.getMonth() / 3) * 3, 1);
+        const endDate = new Date(lastDate.getFullYear(), (Math.floor(lastDate.getMonth() / 3) + 1) * 3, 0);
+
+        const quarters = [];
         let curr = new Date(startDate);
-        // Ensure at least 12 months from start or current
-        const limitDate = new Date(startDate);
-        limitDate.setMonth(limitDate.getMonth() + 11);
-        const finalEnd = endDate > limitDate ? endDate : limitDate;
 
-        while (curr <= finalEnd) {
-            const label = curr.toLocaleString('default', { month: 'short', year: '2-digit' });
-            const monthKey = curr.toISOString().slice(0, 7); // YYYY-MM
+        // Ensure at least 4 quarters
+        while (curr <= endDate || quarters.length < 4) {
+            const qNum = Math.floor(curr.getMonth() / 3) + 1;
+            const label = `Q${qNum} ${curr.getFullYear()}`;
 
-            const monthlySchedules = filteredSchedules.filter(s => s.dueDate && s.dueDate.startsWith(monthKey));
+            const qStart = new Date(curr.getFullYear(), curr.getMonth(), 1);
+            const qEnd = new Date(curr.getFullYear(), curr.getMonth() + 3, 0);
+            const qStartStr = qStart.toISOString().slice(0, 10);
+            const qEndStr = qEnd.toISOString().slice(0, 10);
 
-            const projectedIn = monthlySchedules
+            const qSchedules = filteredSchedules.filter(s => s.dueDate && s.dueDate >= qStartStr && s.dueDate <= qEndStr);
+
+            const projectedIn = qSchedules
                 .filter(s => s.direction === 'IN')
                 .reduce((sum, s) => sum + Number(String(s.payment || 0).replace(/[^0-9.-]/g, '')), 0);
-            const projectedOut = monthlySchedules
+            const projectedOut = qSchedules
                 .filter(s => s.direction === 'OUT')
                 .reduce((sum, s) => sum + Number(String(s.payment || 0).replace(/[^0-9.-]/g, '')), 0);
 
-            const actualIn = monthlySchedules
+            const actualIn = qSchedules
                 .filter(s => s.status === 'Paid' && s.direction === 'IN')
                 .reduce((sum, s) => sum + Number(String(s.payment || 0).replace(/[^0-9.-]/g, '')), 0);
-            const actualOut = monthlySchedules
+            const actualOut = qSchedules
                 .filter(s => s.status === 'Paid' && s.direction === 'OUT')
                 .reduce((sum, s) => sum + Number(String(s.payment || 0).replace(/[^0-9.-]/g, '')), 0);
 
-            months.push({
+            quarters.push({
                 name: label,
                 projectedIn,
                 projectedOut: Math.abs(projectedOut),
                 actualIn,
                 actualOut: Math.abs(actualOut)
             });
-            curr.setMonth(curr.getMonth() + 1);
-            if (months.length > 60) break;
+
+            curr.setMonth(curr.getMonth() + 3);
+            if (quarters.length > 20) break; // Cap at 5 years
         }
 
         // 4. Portfolio Diversification by Payment/Transaction Type
@@ -116,7 +121,7 @@ export function useDashboardData({ PROJECTS = [], CONTRACTS = [], PARTIES = [], 
                 activeContractsCount: activeContracts.length
             },
             charts: {
-                cashflow: months,
+                cashflow: quarters,
                 diversification: pieData
             },
             recentActivity: filteredSchedules
