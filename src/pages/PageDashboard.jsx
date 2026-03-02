@@ -12,7 +12,7 @@ import {
 } from 'lucide-react';
 
 export default function PageDashboard(props) {
-  const { t, isDark } = props;
+  const { t, isDark, setActivePage } = props;
   const data = useDashboardData(props);
   const { metrics, charts, recentActivity, isMember, myParty } = data;
 
@@ -193,7 +193,7 @@ export default function PageDashboard(props) {
         <div style={{ background: t.surface, borderRadius: 20, border: `1px solid ${t.surfaceBorder}`, overflow: 'hidden', minWidth: 0 }}>
           <div style={{ padding: '18px 24px', borderBottom: `1px solid ${t.surfaceBorder}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <h3 style={{ fontSize: 14, fontWeight: 700, color: isDark ? '#fff' : '#1C1917' }}>Upcoming Payments</h3>
-            <button style={{ fontSize: 11, color: t.accent, background: 'none', border: 'none', fontWeight: 600, cursor: 'pointer' }}>View Schedule →</button>
+            <button onClick={() => setActivePage("Payment Schedule")} style={{ fontSize: 11, color: t.accent, background: 'none', border: 'none', fontWeight: 600, cursor: 'pointer' }}>View Schedule →</button>
           </div>
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
