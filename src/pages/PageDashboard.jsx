@@ -125,35 +125,42 @@ export default function PageDashboard(props) {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
             <h3 style={{ fontSize: 15, fontWeight: 700, color: isDark ? '#fff' : '#1C1917' }}>Cashflow Overview</h3>
             <div style={{ display: 'flex', gap: 12, fontSize: 11, fontWeight: 600 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}><div style={{ width: 8, height: 8, borderRadius: 2, background: t.accent }} /> Projected</div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}><div style={{ width: 8, height: 8, borderRadius: 2, background: isDark ? 'rgba(255,255,255,0.2)' : '#E5E7EB' }} /> Actual</div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}><div style={{ width: 8, height: 8, borderRadius: 2, background: t.accent }} /> IN Projected</div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}><div style={{ width: 8, height: 8, borderRadius: 2, background: '#10B981' }} /> IN Actual</div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}><div style={{ width: 8, height: 8, borderRadius: 2, background: '#F87171' }} /> OUT Projected</div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}><div style={{ width: 8, height: 8, borderRadius: 2, background: '#EF4444' }} /> OUT Actual</div>
             </div>
           </div>
-          <div style={{ height: 300, width: '100%' }}>
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={charts.cashflow}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDark ? "rgba(255,255,255,0.05)" : "#F3F4F6"} />
-                <XAxis
-                  dataKey="name"
-                  axisLine={false}
-                  tickLine={false}
-                  tick={{ fontSize: 11, fill: t.textMuted }}
-                  dy={10}
-                />
-                <YAxis
-                  axisLine={false}
-                  tickLine={false}
-                  tick={{ fontSize: 11, fill: t.textMuted }}
-                  tickFormatter={(v) => `$${v / 1000}k`}
-                />
-                <Tooltip
-                  contentStyle={{ background: isDark ? '#1C1917' : '#fff', border: `1px solid ${t.surfaceBorder}`, borderRadius: 12, fontSize: 12 }}
-                  cursor={{ fill: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)' }}
-                />
-                <Bar dataKey="projected" fill={t.accent} radius={[4, 4, 0, 0]} barSize={32} />
-                <Bar dataKey="actual" fill={isDark ? "rgba(255,255,255,0.1)" : "#E5E7EB"} radius={[4, 4, 0, 0]} barSize={32} />
-              </BarChart>
-            </ResponsiveContainer>
+          <div style={{ height: 320, width: '100%', overflowX: 'auto', overflowY: 'hidden' }}>
+            <div style={{ width: Math.max(charts.cashflow.length * 50, 600), height: '100%' }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={charts.cashflow} margin={{ bottom: 20 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDark ? "rgba(255,255,255,0.05)" : "#F3F4F6"} />
+                  <XAxis
+                    dataKey="name"
+                    axisLine={false}
+                    tickLine={false}
+                    tick={{ fontSize: 11, fill: t.textMuted }}
+                    dy={10}
+                  />
+                  <YAxis
+                    axisLine={false}
+                    tickLine={false}
+                    tick={{ fontSize: 11, fill: t.textMuted }}
+                    tickFormatter={(v) => `$${v / 1000}k`}
+                  />
+                  <Tooltip
+                    contentStyle={{ background: isDark ? '#1C1917' : '#fff', border: `1px solid ${t.surfaceBorder}`, borderRadius: 12, fontSize: 12 }}
+                    cursor={{ fill: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)' }}
+                    formatter={(value) => fmtCurr(value)}
+                  />
+                  <Bar dataKey="projectedIn" stackId="in" fill={t.accent} radius={[4, 4, 0, 0]} barSize={12} />
+                  <Bar dataKey="actualIn" stackId="in" fill="#10B981" radius={[4, 4, 0, 0]} barSize={12} />
+                  <Bar dataKey="projectedOut" stackId="out" fill="#F87171" radius={[4, 4, 0, 0]} barSize={12} />
+                  <Bar dataKey="actualOut" stackId="out" fill="#EF4444" radius={[4, 4, 0, 0]} barSize={12} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
           </div>
         </div>
 
@@ -194,6 +201,8 @@ export default function PageDashboard(props) {
                 <tr>
                   <th style={{ padding: '12px 24px', fontSize: 11, fontWeight: 700, color: t.textMuted }}>CONTRACT</th>
                   <th style={{ padding: '12px 24px', fontSize: 11, fontWeight: 700, color: t.textMuted }}>DUE DATE</th>
+                  <th style={{ padding: '12px 24px', fontSize: 11, fontWeight: 700, color: t.textMuted }}>TYPE</th>
+                  <th style={{ padding: '12px 24px', fontSize: 11, fontWeight: 700, color: t.textMuted }}>DIR</th>
                   <th style={{ padding: '12px 24px', fontSize: 11, fontWeight: 700, color: t.textMuted }}>AMOUNT</th>
                   <th style={{ padding: '12px 24px', fontSize: 11, fontWeight: 700, color: t.textMuted }}>STATUS</th>
                 </tr>
@@ -205,6 +214,8 @@ export default function PageDashboard(props) {
                     <tr key={s.id} style={{ borderBottom: i === recentActivity.length - 1 ? 'none' : `1px solid ${t.surfaceBorder}` }}>
                       <td style={{ padding: '14px 24px', fontSize: 12.5, fontWeight: 500 }}>{s.contract || s.id}</td>
                       <td style={{ padding: '14px 24px', fontSize: 12, fontFamily: t.mono, color: t.textMuted }}>{s.dueDate}</td>
+                      <td style={{ padding: '14px 24px', fontSize: 12, color: t.textSecondary }}>{s.type}</td>
+                      <td style={{ padding: '14px 24px', fontSize: 11, fontWeight: 600, color: s.direction === 'IN' ? '#10B981' : '#EF4444' }}>{s.direction}</td>
                       <td style={{ padding: '14px 24px', fontSize: 12.5, fontWeight: 600 }}>{s.payment}</td>
                       <td style={{ padding: '14px 24px' }}>
                         <span style={{ fontSize: 10, fontWeight: 700, padding: '4px 10px', borderRadius: 20, background: bg, color, border: `1px solid ${brd}` }}>{s.status}</span>
