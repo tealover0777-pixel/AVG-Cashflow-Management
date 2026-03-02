@@ -113,9 +113,22 @@ function AppContent() {
     // Admins see everything, UNLESS they are specifically a Member role
     if ((isSuperAdmin || isTenantAdmin) && !isMember) return null;
 
+    // 1. Check explicit profile field
     if (profile?.party_id) return profile.party_id;
-    return (profile?.notes || "").split(" — ")[1] || null;
-  }, [profile, isSuperAdmin, isTenantAdmin]);
+    // 2. Check notes field
+    const noteId = (profile?.notes || "").split(" — ")[1];
+    if (noteId) return noteId;
+    // 3. Fallback: Lookup by email in rawParties
+    const foundByEmail = rawParties.find(p => p.email && p.email.toLowerCase() === user?.email?.toLowerCase());
+    if (foundByEmail) return foundByEmail.id || foundByEmail.doc_id;
+
+    return null;
+  }, [profile, user, rawParties, isSuperAdmin, isTenantAdmin]);
+
+  const isFiltered = !isSuperAdmin && !isTenantAdmin && !!(profile?.role === "R10001" || (profile?.roleName || "").toLowerCase().includes("member") || true);
+  // Actually, a simpler way: if memberPartyId is NOT null, we MUST filter.
+  // If user is a member but memberPartyId IS null, we should STILL filter (resulting in nothing).
+  const forceFilter = !isSuperAdmin && !isTenantAdmin;
 
   // ── Normalize Firestore field names → what UI components expect ──
   const fmtDate = v => {
@@ -126,7 +139,8 @@ function AppContent() {
 
   const PROJECTS = rawProjects
     .filter(d => {
-      if (!memberPartyId) return true;
+      if (!forceFilter) return true;
+      if (!memberPartyId) return false;
       return rawContracts.some(c => (c.project_id === d.id || c.project_name === d.project_name) && c.counterparty_id === memberPartyId);
     })
     .map(d => ({
@@ -146,7 +160,8 @@ function AppContent() {
 
   const PARTIES = rawParties
     .filter(d => {
-      if (!memberPartyId) return true;
+      if (!forceFilter) return true;
+      if (!memberPartyId) return false;
       return d.id === memberPartyId;
     })
     .map(d => ({
@@ -158,7 +173,8 @@ function AppContent() {
 
   const CONTRACTS = rawContracts
     .filter(d => {
-      if (!memberPartyId) return true;
+      if (!forceFilter) return true;
+      if (!memberPartyId) return false;
       return (d.counterparty_id === memberPartyId);
     })
     .map(d => ({
@@ -187,7 +203,8 @@ function AppContent() {
 
   const SCHEDULES = rawSchedules
     .filter(d => {
-      if (!memberPartyId) return true;
+      if (!forceFilter) return true;
+      if (!memberPartyId) return false;
       return d.party_id === memberPartyId;
     })
     .map(d => ({
@@ -203,7 +220,8 @@ function AppContent() {
 
   const PAYMENTS = rawPayments
     .filter(d => {
-      if (!memberPartyId) return true;
+      if (!forceFilter) return true;
+      if (!memberPartyId) return false;
       // Filter by counterparty_id or by linked contract's counterparty
       if (d.counterparty_id === memberPartyId) return true;
       if (d.contract_id) {
