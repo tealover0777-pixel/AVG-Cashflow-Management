@@ -7,7 +7,7 @@ import { AuthProvider, useAuth } from "./AuthContext";
 import { createRoot } from "react-dom/client";
 import { db, auth } from "./firebase";
 import { useFirestoreCollection } from "./useFirestoreCollection";
-import { mkTheme, getNav, getCollectionPaths, DIM_STYLES, DEFAULT_DIM_STYLE, MONTHLY, initials, av } from "./utils";
+import { mkTheme, getNav, getCollectionPaths, DIM_STYLES, DEFAULT_DIM_STYLE, MONTHLY, initials, av, fmtCurr } from "./utils";
 import PageDashboard from "./pages/PageDashboard";
 import PageProjects from "./pages/PageProjects";
 import PageParties from "./pages/PageParties";
@@ -103,12 +103,7 @@ function AppContent() {
   }, [isSuperAdmin, activeTenantId, rawTenants]);
 
   // ── Normalize Firestore field names → what UI components expect ──
-  const fmtCurr = v => {
-    if (v == null || v === "") return "";
-    const n = Number(String(v).replace(/[^0-9.-]/g, ""));
-    if (isNaN(n)) return String(v);
-    return "$" + n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  };
+
 
   const fmtDate = v => {
     if (!v) return "";
@@ -207,7 +202,7 @@ function AppContent() {
   });
 
   const pageMap = {
-    "Dashboard": <PageDashboard t={t} isDark={isDark} PROJECTS={PROJECTS} CONTRACTS={CONTRACTS} PARTIES={PARTIES} SCHEDULES={SCHEDULES} MONTHLY={MONTHLY} />,
+    "Dashboard": <PageDashboard t={t} isDark={isDark} PROJECTS={PROJECTS} CONTRACTS={CONTRACTS} PARTIES={PARTIES} SCHEDULES={SCHEDULES} PAYMENTS={PAYMENTS} MONTHLY={MONTHLY} />,
     "Projects": <PageProjects t={t} isDark={isDark} PROJECTS={PROJECTS} FEES_DATA={FEES_DATA} collectionPath={COLLECTION_PATHS.projects} />,
     "Parties": <PageParties t={t} isDark={isDark} PARTIES={PARTIES} collectionPath={COLLECTION_PATHS.parties} DIMENSIONS={DIMENSIONS} tenantId={activeTenantId} />,
     "Contracts": <PageContracts t={t} isDark={isDark} CONTRACTS={CONTRACTS} PROJECTS={PROJECTS} PARTIES={PARTIES} DIMENSIONS={DIMENSIONS} FEES_DATA={FEES_DATA} SCHEDULES={SCHEDULES} collectionPath={COLLECTION_PATHS.contracts} schedulePath={COLLECTION_PATHS.paymentSchedules} />,
