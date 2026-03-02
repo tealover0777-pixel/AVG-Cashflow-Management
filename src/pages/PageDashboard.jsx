@@ -180,7 +180,7 @@ export default function PageDashboard(props) {
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                   ))}
                 </Pie>
-                <Tooltip />
+                <Tooltip formatter={(value) => fmtCurr(value)} />
                 <Legend verticalAlign="bottom" height={36} wrapperStyle={{ fontSize: 11 }} />
               </PieChart>
             </ResponsiveContainer>
