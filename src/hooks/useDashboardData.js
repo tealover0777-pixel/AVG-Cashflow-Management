@@ -73,7 +73,6 @@ export function useDashboardData({ PROJECTS = [], CONTRACTS = [], PARTIES = [], 
 
         // 3. Prepare Chart Data (Quarterly View)
         const scheduleDates = filteredSchedules.map(s => s.dueDate).filter(Boolean);
-        const todayStr = now.toISOString().slice(0, 10);
 
         // Find date range
         const firstDate = scheduleDates.length
@@ -160,9 +159,8 @@ export function useDashboardData({ PROJECTS = [], CONTRACTS = [], PARTIES = [], 
                 diversification: pieData
             },
             recentActivity: filteredSchedules
-                .filter(s => s.status === 'Due' || s.dueDate >= todayStr)
-                .sort((a, b) => a.dueDate.localeCompare(b.dueDate))
-                .slice(0, 10),
+                .sort((a, b) => (a.dueDate || '').localeCompare(b.dueDate || '')),
+            contracts: filteredContracts,
             isMember,
             myParty
         };
