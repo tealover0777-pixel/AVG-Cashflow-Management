@@ -20,7 +20,7 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
     });
     return `S${maxNum + 1}`;
   };
-  const paymentStatusOpts = (DIMENSIONS.find(d => d.name === "PaymentStatus") || {}).items || ["Due", "Paid", "Missed"];
+  const paymentStatusOpts = (DIMENSIONS.find(d => d.name === "Payment Status" || d.name === "PaymentStatus") || {}).items || ["Due", "Paid", "Partial", "Missed"];
   const [hov, setHov] = useState(null); const [sel, setSel] = useState(new Set()); const [chip, setChip] = useState("All");
   const [modal, setModal] = useState({ open: false, mode: "add", data: {} });
   const [delT, setDelT] = useState(null);
@@ -71,7 +71,8 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
     if (modal.mode === "edit" && d.status === "Missed" && d.status !== d.originalStatus) {
       if (window.confirm(`Do you want to set "Missed" payment and book a replacement schedule?`)) {
         try {
-          await updateDoc(doc(db, collectionPath, d.docId), payload);
+          const ref = d._path ? doc(db, d._path) : doc(db, collectionPath, d.docId);
+          await updateDoc(ref, payload);
           // Pre-populate late payment
           const lateId = getNextScheduleId();
           const nextDueDate = getNextTermDate(d.dueDate, d.contract);
@@ -101,7 +102,8 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
     if (modal.mode === "edit" && d.status === "Partial" && d.status !== d.originalStatus) {
       if (window.confirm(`Do you want to set "Partial" payment and book a partial replacement schedule?`)) {
         try {
-          await updateDoc(doc(db, collectionPath, d.docId), payload);
+          const ref = d._path ? doc(db, d._path) : doc(db, collectionPath, d.docId);
+          await updateDoc(ref, payload);
           const partialId = getNextScheduleId();
           const nextDueDatePartial = getNextTermDate(d.dueDate, d.contract);
           setModal({
@@ -129,12 +131,15 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
 
     try {
       if (modal.mode === "edit" && d.docId) {
-        await updateDoc(doc(db, collectionPath, d.docId), payload);
+        const ref = d._path ? doc(db, d._path) : doc(db, collectionPath, d.docId);
+        await updateDoc(ref, payload);
       } else {
         const docRef = await addDoc(collection(db, collectionPath), { ...payload, created_at: serverTimestamp() });
         // If this was a late payment, link back to original
         if ((modal.mode === "add_late" || modal.mode === "add_partial") && modal.originalDocId) {
-          await updateDoc(doc(db, collectionPath, modal.originalDocId), { linked_schedule_id: payload.id, updated_at: serverTimestamp() });
+          const orig = SCHEDULES.find(s => s.docId === modal.originalDocId);
+          const ref = orig && orig._path ? doc(db, orig._path) : doc(db, collectionPath, modal.originalDocId);
+          await updateDoc(ref, { linked_schedule_id: payload.id, updated_at: serverTimestamp() });
         }
       }
     } catch (err) {
@@ -146,7 +151,8 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
   const handleDeleteSchedule = async () => {
     if (!delT || !delT.docId) return;
     try {
-      await deleteDoc(doc(db, collectionPath, delT.docId));
+      const ref = delT._path ? doc(db, delT._path) : doc(db, collectionPath, delT.docId);
+      await deleteDoc(ref);
       setDelT(null);
     } catch (err) { console.error("Delete schedule error:", err); }
   };
@@ -157,7 +163,10 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
     try {
       await Promise.all([...sel].map(id => {
         const s = SCHEDULES.find(s => s.id === id);
-        if (s && s.docId) return updateDoc(doc(db, collectionPath, s.docId), { status, updated_at: serverTimestamp() });
+        if (s && s.docId) {
+          const ref = s._path ? doc(db, s._path) : doc(db, collectionPath, s.docId);
+          return updateDoc(ref, { status, updated_at: serverTimestamp() });
+        }
         return Promise.resolve();
       }));
       setSel(new Set()); setBulkStatus("");
@@ -169,7 +178,10 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
     try {
       await Promise.all([...sel].map(id => {
         const s = SCHEDULES.find(s => s.id === id);
-        if (s && s.docId) return deleteDoc(doc(db, collectionPath, s.docId));
+        if (s && s.docId) {
+          const ref = s._path ? doc(db, s._path) : doc(db, collectionPath, s.docId);
+          return deleteDoc(ref);
+        }
         return Promise.resolve();
       }));
       setSel(new Set());
