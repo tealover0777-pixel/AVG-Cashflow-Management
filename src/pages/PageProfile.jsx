@@ -5,13 +5,6 @@ import { sendPasswordResetEmail } from "firebase/auth";
 import { useAuth } from "../AuthContext";
 import { FF, FIn } from "../components";
 
-import { useState, useEffect } from "react";
-import { db, auth } from "../firebase";
-import { doc, setDoc, updateDoc, serverTimestamp, collection, query, where, getDocs, getDoc } from "firebase/firestore";
-import { sendPasswordResetEmail } from "firebase/auth";
-import { useAuth } from "../AuthContext";
-import { FF, FIn } from "../components";
-
 export default function PageProfile({ t, isDark, setIsDark, ROLES = [], collectionPath = "" }) {
     const { user, profile, tenantId, isSuperAdmin } = useAuth();
     const [saving, setSaving] = useState(false);
