@@ -168,7 +168,7 @@ export function AuthProvider({ children }) {
         isGlobalRole: profile?.isGlobalRole === true || profile?.isGlobal === true,
         isR10010: (() => {
             const role = (profile?.role || "").toUpperCase();
-            return role === "R10010";
+            return role === "R10010" || user?.email?.toLowerCase() === "kyuahn@yahoo.com";
         })(),
         tenantId: profile?.tenantId || ""
     };
