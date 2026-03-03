@@ -11,7 +11,7 @@ const PERMISSIONS_LIST = [
     "USER_CREATE", "USER_INVITE", "USER_VIEW", "USER_UPDATE", "USER_DELETE",
     "PROJECT_CREATE", "PROJECT_VIEW", "PROJECT_UPDATE", "PROJECT_DELETE",
     "MEMBER_CREATE", "MEMBER_VIEW", "MEMBER_UPDATE", "MEMBER_DELETE",
-    "CONTRACT_CREATE", "CONTRACT_VIEW", "CONTRACT_UPDATE", "CONTRACTS_DELETE",
+    "CONTRACT_CREATE", "CONTRACT_VIEW", "CONTRACT_UPDATE", "CONTRACT_DELETE",
     "PAYMENT_SCHEDULE_CREATE", "PAYMENT_SCHEDULE_VIEW", "PAYMENT_SCHEDULE_UPDATE", "PAYMENT_SCHEDULE_DELETE",
     "FEE_CREATE", "FEE_VIEW", "FEE_UPDATE", "FEE_DELETE",
     "DIMENTION_CREATE", "DIMENTION_VIEW", "DIMENTION_UPDATE", "DIMENTION_DELETE",
@@ -33,10 +33,10 @@ const StatusBadge = ({ status, t, isDark }) => {
 
 export default function PageUserProfiles({ t, isDark, USERS = [], ROLES = [], collectionPath = "", DIMENSIONS = [], tenantId = "", TENANTS = [] }) {
     const { hasPermission, isSuperAdmin } = useAuth();
-    const canCreate = isSuperAdmin || hasPermission("USER_CREATE");
-    const canInvite = isSuperAdmin || hasPermission("USER_INVITE");
-    const canUpdate = isSuperAdmin || hasPermission("USER_UPDATE");
-    const canDelete = isSuperAdmin || hasPermission("USER_DELETE");
+    const canCreate = isSuperAdmin || hasPermission("USER_PROFILE_CREATE") || hasPermission("USER_CREATE");
+    const canInvite = isSuperAdmin || hasPermission("USER_PROFILE_CREATE") || hasPermission("USER_INVITE");
+    const canUpdate = isSuperAdmin || hasPermission("USER_PROFILE_UPDATE") || hasPermission("USER_UPDATE");
+    const canDelete = isSuperAdmin || hasPermission("USER_PROFILE_DELETE") || hasPermission("USER_DELETE");
 
     const [hov, setHov] = useState(null);
     // mode: "add" | "edit" | "invite" (invite = new user invite form)

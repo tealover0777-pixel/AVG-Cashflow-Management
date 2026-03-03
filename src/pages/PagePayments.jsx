@@ -6,10 +6,10 @@ import { Pagination, ActBtns, useResizableColumns, TblHead, Modal, FF, FIn, FSel
 import { useAuth } from "../AuthContext";
 
 export default function PagePayments({ t, isDark, PAYMENTS = [], collectionPath = "" }) {
-  const { hasPermission } = useAuth();
-  const canCreate = hasPermission("PAYMENTS_CREATE");
-  const canUpdate = hasPermission("PAYMENTS_UPDATE");
-  const canDelete = hasPermission("PAYMENTS_DELETE");
+  const { hasPermission, isSuperAdmin } = useAuth();
+  const canCreate = isSuperAdmin || hasPermission("PAYMENT_CREATE") || hasPermission("PAYMENTS_CREATE");
+  const canUpdate = isSuperAdmin || hasPermission("PAYMENT_UPDATE") || hasPermission("PAYMENTS_UPDATE");
+  const canDelete = isSuperAdmin || hasPermission("PAYMENT_DELETE") || hasPermission("PAYMENTS_DELETE");
   const [hov, setHov] = useState(null); const [chip, setChip] = useState("All");
   const [modal, setModal] = useState({ open: false, mode: "add", data: {} });
   const [delT, setDelT] = useState(null);

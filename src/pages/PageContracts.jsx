@@ -6,11 +6,11 @@ import { Bdg, StatCard, Pagination, ActBtns, useResizableColumns, TblHead, Modal
 import { useAuth } from "../AuthContext";
 
 export default function PageContracts({ t, isDark, CONTRACTS = [], PROJECTS = [], PARTIES = [], DIMENSIONS = [], FEES_DATA = [], SCHEDULES = [], collectionPath = "", schedulePath = "" }) {
-  const { hasPermission } = useAuth();
-  const canCreate = hasPermission("CONTRACT_CREATE");
-  const canUpdate = hasPermission("CONTRACT_UPDATE");
-  const canDelete = hasPermission("CONTRACT_DELETE") || hasPermission("CONTRACTS_DELETE"); // User provided "CONTRACTS_DELETE"
-  const canGenerate = hasPermission("PAYMENT_SCHEDULE_CREATE");
+  const { hasPermission, isSuperAdmin } = useAuth();
+  const canCreate = isSuperAdmin || hasPermission("CONTRACT_CREATE");
+  const canUpdate = isSuperAdmin || hasPermission("CONTRACT_UPDATE");
+  const canDelete = isSuperAdmin || hasPermission("CONTRACT_DELETE") || hasPermission("CONTRACTS_DELETE");
+  const canGenerate = isSuperAdmin || hasPermission("PAYMENT_SCHEDULE_CREATE");
   const [hov, setHov] = useState(null); const [sel, setSel] = useState(new Set()); const [chip, setChip] = useState("All"); const [generating, setGenerating] = useState(false);
   const [modal, setModal] = useState({ open: false, mode: "add", data: {} });
   const [delT, setDelT] = useState(null);

@@ -6,10 +6,10 @@ import { StatCard, Pagination, ActBtns, useResizableColumns, TblHead, Modal, FF,
 import { useAuth } from "../AuthContext";
 
 export default function PageFees({ t, isDark, FEES_DATA = [], DIMENSIONS = [], collectionPath = "" }) {
-  const { hasPermission } = useAuth();
-  const canCreate = hasPermission("FEE_CREATE");
-  const canUpdate = hasPermission("FEE_UPDATE");
-  const canDelete = hasPermission("FEE_DELETE");
+  const { hasPermission, isSuperAdmin } = useAuth();
+  const canCreate = isSuperAdmin || hasPermission("FEE_CREATE");
+  const canUpdate = isSuperAdmin || hasPermission("FEE_UPDATE");
+  const canDelete = isSuperAdmin || hasPermission("FEE_DELETE");
   const feeChargeAtOpts = (DIMENSIONS.find(d => d.name === "FeeChargeAt") || {}).items || [];
   const feeFrequencyOpts = (DIMENSIONS.find(d => d.name === "FeeFrequency") || {}).items || [];
   const feeTypeOpts = (DIMENSIONS.find(d => d.name === "FeeType") || {}).items || [];

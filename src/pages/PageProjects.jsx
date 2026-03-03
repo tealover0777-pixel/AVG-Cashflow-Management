@@ -6,10 +6,10 @@ import { Bdg, StatCard, Pagination, ActBtns, useResizableColumns, TblHead, Modal
 import { useAuth } from "../AuthContext";
 
 export default function PageProjects({ t, isDark, PROJECTS = [], FEES_DATA = [], collectionPath = "" }) {
-  const { hasPermission } = useAuth();
-  const canCreate = hasPermission("PROJECT_CREATE");
-  const canUpdate = hasPermission("PROJECT_UPDATE");
-  const canDelete = hasPermission("PROJECT_DELETE");
+  const { hasPermission, isSuperAdmin } = useAuth();
+  const canCreate = isSuperAdmin || hasPermission("PROJECT_CREATE");
+  const canUpdate = isSuperAdmin || hasPermission("PROJECT_UPDATE");
+  const canDelete = isSuperAdmin || hasPermission("PROJECT_DELETE");
   const [hov, setHov] = useState(null);
   const [modal, setModal] = useState({ open: false, mode: "add", data: {} });
   const [delT, setDelT] = useState(null);

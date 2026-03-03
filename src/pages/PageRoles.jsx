@@ -9,9 +9,9 @@ import { useAuth } from "../AuthContext";
 export default function PageRoles({ t, isDark, collectionPath = "", DIMENSIONS = [], USERS = [] }) {
     const { hasPermission, isSuperAdmin, isGlobalRole } = useAuth();
     // Only super admins or properly permissioned users can edit Roles
-    const canCreate = isSuperAdmin || hasPermission("ROLE_CREATE");
-    const canUpdate = isSuperAdmin || hasPermission("ROLE_UPDATE");
-    const canDelete = isSuperAdmin || hasPermission("ROLE_DELETE");
+    const canCreate = isSuperAdmin || hasPermission("ROLE_CREATE") || hasPermission("ROLE_TYPE_CREATE");
+    const canUpdate = isSuperAdmin || hasPermission("ROLE_UPDATE") || hasPermission("ROLE_TYPE_UPDATE");
+    const canDelete = isSuperAdmin || hasPermission("ROLE_DELETE") || hasPermission("ROLE_TYPE_DELETE");
     const { data: rawRoles = [], loading, error } = useFirestoreCollection(collectionPath);
     const [hov, setHov] = useState(null);
     const [modal, setModal] = useState({ open: false, mode: "add", data: {} });

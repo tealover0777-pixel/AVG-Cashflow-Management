@@ -7,10 +7,9 @@ import { useAuth } from "../AuthContext";
 
 export default function PageTenants({ t, isDark, TENANTS = [], collectionPath = "" }) {
     const { hasPermission, isSuperAdmin } = useAuth();
-    // Usually only SUPER ADMIN can create/delete tenants, or users with explicit permissions
-    const canCreate = isSuperAdmin || hasPermission("PLATFORM_TENANT_CREATE");
-    const canUpdate = isSuperAdmin || hasPermission("PLATFORM_TENANT_UPDATE");
-    const canDelete = isSuperAdmin || hasPermission("PLATFORM_TENANT_DELETE");
+    const canCreate = isSuperAdmin || hasPermission("PLATFORM_TENANT_CREATE") || hasPermission("TENANT_CREATE");
+    const canUpdate = isSuperAdmin || hasPermission("PLATFORM_TENANT_UPDATE") || hasPermission("TENANT_UPDATE");
+    const canDelete = isSuperAdmin || hasPermission("PLATFORM_TENANT_DELETE") || hasPermission("TENANT_DELETE");
     const [hov, setHov] = useState(null);
     const [modal, setModal] = useState({ open: false, mode: "add", data: {} });
     const [delT, setDelT] = useState(null);

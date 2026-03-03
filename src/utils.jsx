@@ -87,10 +87,14 @@ const NAV_ITEMS = [
   { label: "Profile", icon: "👤", hidden: true },
 ];
 
-export const getNav = (isSuper, isAdmin, hasPermission) => {
+export const getNav = (isSuper, isAdmin, hasPermission, isR10010) => {
   return NAV_ITEMS.filter(item => {
     if (item.hidden) return false;
-    if (isSuper) return true; // Super Admins always see everything
+
+    // Super Admin section is restricted ONLY to R10010 role
+    if (item.label === "Super Admin") return isR10010;
+
+    if (isSuper) return true; // Super Admins always see everything else
 
     if (!hasPermission) return false;
 
@@ -102,11 +106,10 @@ export const getNav = (isSuper, isAdmin, hasPermission) => {
     if (item.label === "Payment Schedule" && !hasPermission("PAYMENT_SCHEDULE_VIEW")) return false;
     if (item.label === "Payments" && !hasPermission("PAYMENT_VIEW")) return false;
     if (item.label === "Fees" && !hasPermission("FEE_VIEW")) return false;
-    if (item.label === "User Profiles" && !hasPermission("USER_PROFILE_*")) return false;
-    if (item.label === "Role Types" && !hasPermission("ROLE_TYPE_*")) return false;
-    if (item.label === "Tenants" && !hasPermission("PLATFORM_TENANT_VIEW")) return false;
-    if (item.label === "Super Admin" && !hasPermission("PLATFORM_USER_VIEW")) return false;
-    if (item.label === "Dimensions" && !hasPermission("DIMENTION_VIEW")) return false;
+    if (item.label === "User Profiles" && !hasPermission("USER_PROFILE_VIEW")) return false;
+    if (item.label === "Role Types" && !hasPermission("ROLE_TYPE_VIEW")) return false;
+    if (item.label === "Tenants" && !(hasPermission("PLATFORM_TENANT_VIEW") || hasPermission("TENANT_VIEW"))) return false;
+    if (item.label === "Dimensions" && !(hasPermission("DIMENSION_VIEW") || hasPermission("DIMENTION_VIEW"))) return false;
     if (item.label === "Reports" && !hasPermission("REPORT_VIEW")) return false;
 
     return true;

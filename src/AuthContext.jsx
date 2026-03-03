@@ -166,6 +166,10 @@ export function AuthProvider({ children }) {
             return isT && !(profile?.isGlobalRole === true || profile?.isGlobal === true);
         })(),
         isGlobalRole: profile?.isGlobalRole === true || profile?.isGlobal === true,
+        isR10010: (() => {
+            const role = (profile?.role || "").toUpperCase();
+            return role === "R10010";
+        })(),
         tenantId: profile?.tenantId || ""
     };
 
