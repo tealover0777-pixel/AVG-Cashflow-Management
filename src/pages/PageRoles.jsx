@@ -7,7 +7,7 @@ import { Bdg, Pagination, ActBtns, useResizableColumns, TblHead, Modal, FF, FIn,
 import { useAuth } from "../AuthContext";
 
 export default function PageRoles({ t, isDark, collectionPath = "", DIMENSIONS = [], USERS = [] }) {
-    const { hasPermission, isSuperAdmin } = useAuth();
+    const { hasPermission, isSuperAdmin, isGlobalRole } = useAuth();
     // Only super admins or properly permissioned users can edit Roles
     const canCreate = isSuperAdmin || hasPermission("ROLE_CREATE");
     const canUpdate = isSuperAdmin || hasPermission("ROLE_UPDATE");
@@ -80,7 +80,19 @@ export default function PageRoles({ t, isDark, collectionPath = "", DIMENSIONS =
     if (loading) return <div style={{ padding: 40, color: t.textMuted }}>Loading roles...</div>;
     if (error) return <div style={{ padding: 40, color: "red" }}>Error loading roles: {error.message}</div>;
 
-    const filtered = rawRoles.filter(p => cols.every(c => { if (!c.k || !colFilters[c.k]) return true; return String(p[c.k] || "").toLowerCase().includes(colFilters[c.k].toLowerCase()); }));
+    const filtered = rawRoles.filter(p => {
+        // Filter out global roles if user is not a global user or super admin
+        // User mentioned R10006 .. R10010 as examples of global roles
+        const rid = p.role_id || "";
+        const m = rid.match(/^R(\d+)$/);
+        const rNum = m ? Number(m[1]) : 0;
+        if (!isSuperAdmin && !isGlobalRole && (p.IsGlobal || (rNum >= 10006 && rNum <= 10010))) return false;
+
+        return cols.every(c => {
+            if (!c.k || !colFilters[c.k]) return true;
+            return String(p[c.k] || "").toLowerCase().includes(colFilters[c.k].toLowerCase());
+        });
+    });
     const sorted = sortData(filtered, sort);
     const paginated = sorted.slice((page - 1) * 20, page * 20);
     const totalPages = Math.ceil(sorted.length / 20);
