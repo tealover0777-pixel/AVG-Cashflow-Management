@@ -169,7 +169,12 @@ function AppContent() {
     .filter(d => {
       if (!forceFilter) return true;
       if (!memberPartyId) return false;
-      const mId = String(memberPartyId).trim(); const dPId = String(d.party_id || "").trim(); const mParty = rawParties.find(p => String(p.id || "").trim() === mId); const mDocId = mParty ? String(mParty.doc_id || mParty.id || "").trim() : ""; return (dPId === mId || (mDocId && dPId === mDocId));
+      const mId = String(memberPartyId).trim();
+      const dPId = String(d.party_id || "").trim();
+      const mParty = rawParties.find(p => String(p.id || "").trim() === mId);
+      const mDocId = mParty ? String(mParty.doc_id || mParty.id || "").trim() : "";
+      const mName = mParty ? String(mParty.party_name || "").trim() : "";
+      return (dPId === mId || (mDocId && dPId === mDocId) || (mName && d.party_name === mName));
     })
     .map(d => ({
       id: d.contract_id || d.id,
@@ -199,7 +204,12 @@ function AppContent() {
     .filter(d => {
       if (!forceFilter) return true;
       if (!memberPartyId) return false;
-      const mId = String(memberPartyId).trim(); const dPId = String(d.party_id || "").trim(); const mParty = rawParties.find(p => String(p.id || "").trim() === mId); const mDocId = mParty ? String(mParty.doc_id || mParty.id || "").trim() : ""; return (dPId === mId || (mDocId && dPId === mDocId));
+      const mId = String(memberPartyId).trim();
+      const dPId = String(d.party_id || "").trim();
+      const mParty = rawParties.find(p => String(p.id || "").trim() === mId);
+      const mDocId = mParty ? String(mParty.doc_id || mParty.id || "").trim() : "";
+      const isDirectMatch = (dPId === mId || (mDocId && dPId === mDocId));
+      return isDirectMatch || CONTRACTS.some(c => c.contract_id === d.contract_id || c.id === d.contract_id);
     })
     .map(d => {
       let dir = d.direction_from_company || "";
@@ -228,10 +238,12 @@ function AppContent() {
       if (!forceFilter) return true;
       if (!memberPartyId) return false;
       const mId = String(memberPartyId).trim();
-      // Filter by party_id or by linked contract's party
-      if (String(d.party_id || "").trim() === mId) return true;
+      const mParty = rawParties.find(p => String(p.id || "").trim() === mId);
+      const mDocId = mParty ? String(mParty.doc_id || mParty.id || "").trim() : "";
+
+      if (String(d.party_id || "").trim() === mId || (mDocId && String(d.party_id || "").trim() === mDocId)) return true;
       if (d.contract_id) {
-        return rawContracts.some(c => (c.contract_id === d.contract_id || c.id === d.contract_id) && (String(c.party_id || "").trim() === mId));
+        return CONTRACTS.some(c => c.contract_id === d.contract_id || c.id === d.contract_id);
       }
       return false;
     })

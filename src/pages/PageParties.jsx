@@ -206,11 +206,13 @@ export default function PageParties({ t, isDark, PARTIES = [], CONTRACTS = [], S
       const dpDocId = String(dp.docId || "").trim();
       const partyContracts = CONTRACTS.filter(c => {
         const cPId = String(c.party_id || "").trim();
-        return (cPId === dpId || (dpDocId && cPId === dpDocId));
+        const cPName = String(c.party || "").trim();
+        const dpName = String(dp.name || "").trim();
+        return (cPId === dpId || (dpDocId && cPId === dpDocId) || (dpName && cPName === dpName));
       });
       const partySchedules = SCHEDULES.filter(s => {
         const sPId = String(s.party_id || "").trim();
-        const isMatched = sPId === dpId || (dpDocId && sPId === dpDocId);
+        const isMatched = sPId === dpId || (dpDocId && sPId === dpDocId) || (dp.name && s.party_id === dp.name); // party_id sometimes stores name in schedules?
         return isMatched || partyContracts.some(c => c.id === s.contract);
       }).sort((a, b) => (a.dueDate || '').localeCompare(b.dueDate || ''));
       const totalValue = partyContracts.reduce((sum, c) => sum + Number(String(c.amount || 0).replace(/[^0-9.-]/g, '')), 0);

@@ -17,7 +17,8 @@ export function useDashboardData({ PROJECTS = [], CONTRACTS = [], PARTIES = [], 
                 const pId = String(c.party_id || "").trim();
                 const targetId = String(myParty?.id || "").trim();
                 const targetDocId = String(myParty?.docId || "").trim();
-                return pId === targetId || (targetDocId && pId === targetDocId);
+                const targetName = String(myParty?.name || "").trim();
+                return pId === targetId || (targetDocId && pId === targetDocId) || (targetName && c.party === targetName);
             })
             : CONTRACTS;
 
@@ -30,7 +31,8 @@ export function useDashboardData({ PROJECTS = [], CONTRACTS = [], PARTIES = [], 
                 const pId = String(s.party_id || "").trim();
                 const targetId = String(myParty?.id || "").trim();
                 const targetDocId = String(myParty?.docId || "").trim();
-                return pId === targetId || (targetDocId && pId === targetDocId);
+                const isDirectMatch = pId === targetId || (targetDocId && pId === targetDocId);
+                return isDirectMatch || filteredContracts.some(c => c.id === s.contract);
             })
             : SCHEDULES;
 
