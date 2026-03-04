@@ -5,8 +5,9 @@ import { sendPasswordResetEmail } from "firebase/auth";
 import { useAuth } from "../AuthContext";
 import { FF, FIn } from "../components";
 
-export default function PageProfile({ t, isDark, setIsDark, ROLES = [], collectionPath = "" }) {
-    const { user, profile, tenantId, isSuperAdmin } = useAuth();
+export default function PageProfile({ t, isDark, setIsDark, ROLES = [], collectionPath = "", activeTenantId = "" }) {
+    const { user, profile, tenantId: authTenantId, isSuperAdmin } = useAuth();
+    const tenantId = activeTenantId || authTenantId;
     const [saving, setSaving] = useState(false);
     const [data, setData] = useState({
         name: profile?.user_name || profile?.name || user?.displayName || "",
