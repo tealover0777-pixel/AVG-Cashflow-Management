@@ -2,11 +2,11 @@ import { useState } from "react";
 import { db, functions } from "../firebase";
 import { doc, setDoc, updateDoc, deleteDoc, serverTimestamp } from "firebase/firestore";
 import { httpsCallable } from "firebase/functions";
-import { initials, av, badge, sortData } from "../utils";
+import { initials, av, badge, sortData, fmtCurr } from "../utils";
 import { StatCard, Pagination, ActBtns, useResizableColumns, TblHead, Modal, FF, FIn, FSel, DelModal } from "../components";
 import { useAuth } from "../AuthContext";
 
-export default function PageParties({ t, isDark, PARTIES = [], collectionPath = "", DIMENSIONS = [], tenantId = "" }) {
+export default function PageParties({ t, isDark, PARTIES = [], CONTRACTS = [], SCHEDULES = [], collectionPath = "", DIMENSIONS = [], tenantId = "" }) {
   const { hasPermission, isSuperAdmin } = useAuth();
   const canCreate = hasPermission("PARTY_CREATE");
   const canUpdate = hasPermission("PARTY_UPDATE");
@@ -61,6 +61,7 @@ export default function PageParties({ t, isDark, PARTIES = [], collectionPath = 
       setDelT(null);
     } catch (err) { console.error("Delete party error:", err); }
   };
+  const [detailParty, setDetailParty] = useState(null);
   const [invitingId, setInvitingId] = useState(null);
   const [inviteResult, setInviteResult] = useState(null);
   const [inviteConfirm, setInviteConfirm] = useState(null);
@@ -132,7 +133,7 @@ export default function PageParties({ t, isDark, PARTIES = [], collectionPath = 
       {paginated.map((p, i) => {
         const isHov = hov === p.id; const a = av(p.name, isDark); const [rb, rc, rbr] = badge(p.role, isDark); return (<div key={p.id} className="data-row" onMouseEnter={() => setHov(p.id)} onMouseLeave={() => setHov(null)} style={{ display: "grid", gridTemplateColumns: gridTemplate, padding: "12px 22px", borderBottom: i < paginated.length - 1 ? `1px solid ${t.rowDivider}` : "none", alignItems: "center", background: isHov ? t.rowHover : "transparent", transition: "all 0.15s ease" }}>
           <div style={{ fontFamily: t.mono, fontSize: 11, color: t.idText }}>{p.id}</div>
-          <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}><div style={{ width: 32, height: 32, borderRadius: 9, background: a.bg, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700, color: a.c, flexShrink: 0, border: `1px solid ${a.c}${isDark ? "44" : "22"}` }}>{initials(p.name)}</div><span style={{ fontSize: 13.5, fontWeight: 500, color: isDark ? "rgba(255,255,255,0.85)" : (isHov ? "#1C1917" : "#44403C"), overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.name}</span></div>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}><div style={{ width: 32, height: 32, borderRadius: 9, background: a.bg, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700, color: a.c, flexShrink: 0, border: `1px solid ${a.c}${isDark ? "44" : "22"}` }}>{initials(p.name)}</div><span onClick={() => setDetailParty(p)} style={{ fontSize: 13.5, fontWeight: 500, color: isDark ? "#60A5FA" : "#4F46E5", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", cursor: "pointer", textDecoration: "underline", textDecorationColor: "transparent", transition: "text-decoration-color 0.15s" }} onMouseEnter={e => e.target.style.textDecorationColor = "currentColor"} onMouseLeave={e => e.target.style.textDecorationColor = "transparent"}>{p.name}</span></div>
           <div style={{ fontSize: 12.5, color: p.type === "Company" ? (isDark ? "#A78BFA" : "#7C3AED") : t.textMuted }}>{p.type === "Company" ? "◈ Company" : "◎ Individual"}</div>
           <div><span style={{ fontSize: 11.5, fontWeight: 600, padding: "4px 11px", borderRadius: 20, background: rb, color: rc, border: `1px solid ${rbr}` }}>{p.role}</span></div>
           <div style={{ fontSize: 11.5, color: t.textMuted }}>{p.investor_type || <span style={{ color: isDark ? "rgba(255,255,255,0.12)" : "#D4D0CB" }}>—</span>}</div>
@@ -199,6 +200,96 @@ export default function PageParties({ t, isDark, PARTIES = [], collectionPath = 
         </div>
       </div>
     </Modal>
+    {detailParty && (() => {
+      const dp = detailParty;
+      const partyContracts = CONTRACTS.filter(c => c.party_id === dp.id);
+      const partySchedules = SCHEDULES.filter(s => s.party_id === dp.id || partyContracts.some(c => c.id === s.contract));
+      const totalValue = partyContracts.reduce((sum, c) => sum + Number(String(c.amount || 0).replace(/[^0-9.-]/g, '')), 0);
+      return (
+        <div style={{ position: "fixed", inset: 0, zIndex: 1100, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <div style={{ background: isDark ? "#1C1917" : "#fff", borderRadius: 18, padding: 0, maxWidth: 720, width: "92%", maxHeight: "85vh", display: "flex", flexDirection: "column", boxShadow: "0 24px 60px rgba(0,0,0,0.3)", border: `1px solid ${t.surfaceBorder}` }}>
+            {/* Header */}
+            <div style={{ padding: "22px 28px", borderBottom: `1px solid ${t.surfaceBorder}`, display: "flex", justifyContent: "space-between", alignItems: "center", flexShrink: 0 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+                {(() => { const a2 = av(dp.name, isDark); return <div style={{ width: 42, height: 42, borderRadius: 12, background: a2.bg, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, fontWeight: 700, color: a2.c, border: `1px solid ${a2.c}22` }}>{initials(dp.name)}</div>; })()}
+                <div>
+                  <div style={{ fontSize: 17, fontWeight: 700, color: isDark ? "#fff" : "#1C1917" }}>{dp.name}</div>
+                  <div style={{ fontSize: 12, color: t.textMuted, display: "flex", gap: 10, marginTop: 2 }}>
+                    <span style={{ fontFamily: t.mono }}>{dp.id}</span>
+                    <span>{(() => { const [bg, color, brd] = badge(dp.role, isDark); return <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 20, background: bg, color, border: `1px solid ${brd}` }}>{dp.role}</span>; })()}</span>
+                  </div>
+                </div>
+              </div>
+              <button onClick={() => setDetailParty(null)} style={{ width: 32, height: 32, borderRadius: 8, background: isDark ? "rgba(255,255,255,0.08)" : "#F5F4F1", border: `1px solid ${t.surfaceBorder}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, cursor: "pointer", color: t.textMuted }}>×</button>
+            </div>
+            {/* Body */}
+            <div style={{ flex: 1, overflow: "auto", padding: "20px 28px" }}>
+              {/* Contracts */}
+              <div style={{ marginBottom: 24 }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: isDark ? "#fff" : "#1C1917", marginBottom: 10, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <span>Contracts ({partyContracts.length})</span>
+                  <span style={{ fontSize: 12, fontWeight: 600, color: t.accent }}>{fmtCurr(totalValue)}</span>
+                </div>
+                {partyContracts.length === 0 && <div style={{ fontSize: 12, color: t.textMuted, padding: "12px 0" }}>No contracts</div>}
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  {partyContracts.map(c => {
+                    const [bg, color, brd] = badge(c.status, isDark);
+                    return (
+                      <div key={c.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 14px", borderRadius: 12, background: isDark ? "rgba(255,255,255,0.03)" : "#F9FAFB", border: `1px solid ${isDark ? "rgba(255,255,255,0.05)" : "#F3F4F6"}` }}>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 3 }}>
+                            <span style={{ fontFamily: t.mono, fontSize: 12, fontWeight: 600, color: isDark ? "#fff" : "#1C1917" }}>{c.id}</span>
+                            <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 20, background: bg, color, border: `1px solid ${brd}` }}>{c.status}</span>
+                          </div>
+                          <div style={{ fontSize: 11, color: t.textMuted }}>{c.type || "—"} · {c.rate || "—"} · {c.freq || "—"} · {c.start_date || "—"} ~ {c.maturity_date || "—"}</div>
+                        </div>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: isDark ? "#fff" : "#1C1917", flexShrink: 0 }}>{c.amount}</div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+              {/* Payment Schedules */}
+              <div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: isDark ? "#fff" : "#1C1917", marginBottom: 10 }}>Payment Schedules ({partySchedules.length})</div>
+                {partySchedules.length === 0 && <div style={{ fontSize: 12, color: t.textMuted, padding: "12px 0" }}>No payment schedules</div>}
+                {partySchedules.length > 0 && (
+                  <div style={{ borderRadius: 12, border: `1px solid ${t.surfaceBorder}`, overflow: "hidden" }}>
+                    <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left" }}>
+                      <thead style={{ background: isDark ? "rgba(255,255,255,0.03)" : "#FAFAFA" }}>
+                        <tr>
+                          <th style={{ padding: "10px 14px", fontSize: 10, fontWeight: 700, color: t.textMuted }}>CONTRACT</th>
+                          <th style={{ padding: "10px 14px", fontSize: 10, fontWeight: 700, color: t.textMuted }}>DUE DATE</th>
+                          <th style={{ padding: "10px 14px", fontSize: 10, fontWeight: 700, color: t.textMuted }}>TYPE</th>
+                          <th style={{ padding: "10px 14px", fontSize: 10, fontWeight: 700, color: t.textMuted }}>DIR</th>
+                          <th style={{ padding: "10px 14px", fontSize: 10, fontWeight: 700, color: t.textMuted }}>AMOUNT</th>
+                          <th style={{ padding: "10px 14px", fontSize: 10, fontWeight: 700, color: t.textMuted }}>STATUS</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {partySchedules.map((s, i) => {
+                          const [sbg, sc, sbrd] = badge(s.status, isDark);
+                          return (
+                            <tr key={s.id} style={{ borderBottom: i < partySchedules.length - 1 ? `1px solid ${t.surfaceBorder}` : "none" }}>
+                              <td style={{ padding: "10px 14px", fontSize: 11.5, fontFamily: t.mono, fontWeight: 500 }}>{s.contract}</td>
+                              <td style={{ padding: "10px 14px", fontSize: 11, fontFamily: t.mono, color: t.textMuted }}>{s.dueDate}</td>
+                              <td style={{ padding: "10px 14px", fontSize: 11, color: t.textSecondary }}>{s.type}</td>
+                              <td style={{ padding: "10px 14px", fontSize: 10, fontWeight: 600, color: s.direction === "IN" ? "#10B981" : "#EF4444" }}>{s.direction}</td>
+                              <td style={{ padding: "10px 14px", fontSize: 11.5, fontWeight: 600 }}>{s.payment}</td>
+                              <td style={{ padding: "10px 14px" }}><span style={{ fontSize: 9, fontWeight: 700, padding: "3px 8px", borderRadius: 20, background: sbg, color: sc, border: `1px solid ${sbrd}` }}>{s.status}</span></td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    })()}
     {inviteResult && (
       <div style={{ position: "fixed", inset: 0, zIndex: 1100, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center" }}>
         <div style={{ background: isDark ? "#1C1917" : "#fff", borderRadius: 16, padding: 28, maxWidth: 540, width: "90%", boxShadow: "0 24px 60px rgba(0,0,0,0.3)" }}>

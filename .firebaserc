@@ -1,5 +1,21 @@
 {
   "projects": {},
   "targets": {},
-  "etags": {}
+  "etags": {
+    "avg-cashflow-management": {
+      "extensionInstances": {
+        "firestore-bigquery-export": "5fc1675a2eee1c87ad7bb45b5f72097d02caf335f895053a6160a2a853cf61f1",
+        "firestore-bigquery-export-2": "8cd34261bc98b257d42151c72057a7190c82ea78c2ed27e178f5112fecba24a2",
+        "firestore-bigquery-export-3": "efc612c99217233ff46c4179b2d0d458dfacc0f0973d6966b13e1359e387ebe6",
+        "firestore-bigquery-export-4": "ba363b81f29affe7d521046b946fddb072c89eb7874e18656bb29a7ad53fe256",
+        "firestore-bigquery-export-contracts": "56f002ad012d3d54f00d1a10b1acacb8a4aca61fe04618e89b735766ec40e3f2",
+        "firestore-bigquery-export-fees": "8eff06dbe17d8a66552f5ca389ad2ce56bab086daf4785b40d88959228329b71",
+        "firestore-bigquery-export-parties": "696fe8ce77a72fcc2f168adaeaf496f3dcec2c339dd31137ecc810eeedfd7dc7",
+        "firestore-bigquery-export-payments": "017ca2fa5e9d374b48950793293fa440cd4bda52eae9278d1319f8eb0ba877ef",
+        "firestore-bigquery-export-projects": "cba7be4244528ee7bd7a8351099b13ea44efa20dafed8f6e183f5cac3ea3edae",
+        "firestore-bigquery-export-schedules": "b91d46dd7f5e5d2b29bb84aa0b337c54f226fe84484746dae387d924cf3079db",
+        "firestore-bigquery-export-tenant-users": "29923deebcd83978adb5d8cfcd8f5b921e802e6d51f92f6bb14a42c2e6dfad45"
+      }
+    }
+  }
 }
