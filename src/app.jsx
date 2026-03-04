@@ -286,8 +286,8 @@ function AppContent() {
   }));
 
   const activeTenant = useMemo(() => {
+    if (activeTenantId) return TENANTS.find(t2 => t2.id === activeTenantId) || null;
     if (isGlobalRole && TENANTS.length > 0) return TENANTS[0];
-    if (activeTenantId) return TENANTS.find(t2 => t2.id === activeTenantId);
     return null;
   }, [isGlobalRole, activeTenantId, TENANTS]);
 
