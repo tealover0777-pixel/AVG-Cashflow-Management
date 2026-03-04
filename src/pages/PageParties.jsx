@@ -203,13 +203,15 @@ export default function PageParties({ t, isDark, PARTIES = [], CONTRACTS = [], S
     {detailParty && (() => {
       const dp = detailParty;
       const dpId = String(dp.id || "").trim();
+      const dpDocId = String(dp.docId || "").trim();
       const partyContracts = CONTRACTS.filter(c => {
-        const cPartyId = String(c.party_id || "").trim();
-        return cPartyId === dpId;
+        const cPId = String(c.party_id || "").trim();
+        return (cPId === dpId || (dpDocId && cPId === dpDocId));
       });
       const partySchedules = SCHEDULES.filter(s => {
-        const sPartyId = String(s.party_id || "").trim();
-        return sPartyId === dpId || partyContracts.some(c => c.id === s.contract);
+        const sPId = String(s.party_id || "").trim();
+        const isMatched = sPId === dpId || (dpDocId && sPId === dpDocId);
+        return isMatched || partyContracts.some(c => c.id === s.contract);
       }).sort((a, b) => (a.dueDate || '').localeCompare(b.dueDate || ''));
       const totalValue = partyContracts.reduce((sum, c) => sum + Number(String(c.amount || 0).replace(/[^0-9.-]/g, '')), 0);
       return (

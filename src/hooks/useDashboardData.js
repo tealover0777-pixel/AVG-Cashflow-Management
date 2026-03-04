@@ -13,7 +13,12 @@ export function useDashboardData({ PROJECTS = [], CONTRACTS = [], PARTIES = [], 
             : null;
 
         const filteredContracts = isMember
-            ? CONTRACTS.filter(c => c.party_id === myParty?.id)
+            ? CONTRACTS.filter(c => {
+                const pId = String(c.party_id || "").trim();
+                const targetId = String(myParty?.id || "").trim();
+                const targetDocId = String(myParty?.docId || "").trim();
+                return pId === targetId || (targetDocId && pId === targetDocId);
+            })
             : CONTRACTS;
 
         const filteredProjects = isMember
@@ -21,7 +26,12 @@ export function useDashboardData({ PROJECTS = [], CONTRACTS = [], PARTIES = [], 
             : PROJECTS;
 
         const filteredSchedules = isMember
-            ? SCHEDULES.filter(s => s.party_id === myParty?.id)
+            ? SCHEDULES.filter(s => {
+                const pId = String(s.party_id || "").trim();
+                const targetId = String(myParty?.id || "").trim();
+                const targetDocId = String(myParty?.docId || "").trim();
+                return pId === targetId || (targetDocId && pId === targetDocId);
+            })
             : SCHEDULES;
 
         // 2. Calculate Key Metrics
