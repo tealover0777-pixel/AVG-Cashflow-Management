@@ -11,10 +11,10 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
   const { hasPermission, isSuperAdmin } = useAuth();
   const canCreate = isSuperAdmin || hasPermission("PAYMENT_SCHEDULE_CREATE");
   const getNextScheduleId = () => {
-    let maxNum = 9999;
+    let maxNum = 10000;
     SCHEDULES.forEach(s => {
-      if (s.id && s.id.startsWith("S")) {
-        const num = parseInt(s.id.substring(1), 10);
+      if (s.schedule_id && s.schedule_id.startsWith("S")) {
+        const num = parseInt(s.schedule_id.substring(1), 10);
         if (!isNaN(num) && num > maxNum) maxNum = num;
       }
     });
@@ -27,13 +27,13 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
   const [sort, setSort] = useState({ key: "dueDate", direction: "asc" });
   const [page, setPage] = useState(1);
   const onSort = k => { setSort(s => ({ key: k, direction: s.key === k && s.direction === "asc" ? "desc" : "asc" })); setPage(1); };
-  const openAdd = () => setModal({ open: true, mode: "add", data: { id: getNextScheduleId(), contract: "C10000", dueDate: "", type: "Interest", payment: "", status: "Due", notes: "" } });
+  const openAdd = () => setModal({ open: true, mode: "add", data: { schedule_id: getNextScheduleId(), contract: "C10000", dueDate: "", type: "Interest", payment: "", status: "Due", notes: "" } });
   const openEdit = r => {
     const fee_ids = r.fee_id ? String(r.fee_id).split(",").filter(Boolean) : [];
     let basePayment = 0;
     let partialPaid = "";
     if (r.linked) {
-      const orig = SCHEDULES.find(s => s.id === r.linked);
+      const orig = SCHEDULES.find(s => s.schedule_id === r.linked);
       if (orig) basePayment = Math.abs(Number(String(orig.payment || 0).replace(/[^0-9.-]/g, "")));
     }
     // For standard schedules, the base is the current payment minus any already selected fees (approximated or just current payment)
@@ -105,7 +105,7 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
   const handleSaveSchedule = async () => {
     const d = modal.data;
     const payload = {
-      id: d.id || "",
+      schedule_id: d.schedule_id || "",
       contract_id: d.contract || "",
       project_id: d.project_id || "",
       party_id: d.party_id || "",
@@ -154,15 +154,15 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
             originalDocId: d.docId, // Carry over to update later
             data: {
               ...d,
-              id: lateId,
-              linked: d.id,
+              schedule_id: lateId,
+              linked: d.schedule_id,
               fee_ids: [],
               status: "Due",
               dueDate: nextDueDate,
               term_start: d.dueDate,
               term_end: nextDueDate,
               basePayment: Math.abs(Number(String(d.payment || d.signed_payment_amount || 0).replace(/[^0-9.-]/g, "")) || 0),
-              notes: `${d.status} payment replacement for ${d.id}`,
+              notes: `${d.status} payment replacement for ${d.schedule_id}`,
             }
           });
           return; // Stay open in add_late mode
@@ -186,8 +186,8 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
             originalDocId: d.docId,
             data: {
               ...d,
-              id: partialId,
-              linked: d.id,
+              schedule_id: partialId,
+              linked: d.schedule_id,
               fee_ids: [],
               status: "Due",
               dueDate: nextDueDatePartial,
@@ -195,7 +195,7 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
               term_end: nextDueDatePartial,
               partialPaid: "",
               basePayment: Math.abs(Number(String(d.payment || d.signed_payment_amount || 0).replace(/[^0-9.-]/g, "")) || 0),
-              notes: `Partial payment replacement for ${d.id}`,
+              notes: `Partial payment replacement for ${d.schedule_id}`,
             }
           });
           return;
@@ -215,7 +215,7 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
         if ((modal.mode === "add_late" || modal.mode === "add_partial") && modal.originalDocId) {
           const orig = SCHEDULES.find(s => s.docId === modal.originalDocId);
           const ref = orig && orig._path ? doc(db, orig._path) : doc(db, collectionPath, modal.originalDocId);
-          await updateDoc(ref, { linked_schedule_id: payload.id, updated_at: serverTimestamp() });
+          await updateDoc(ref, { linked_schedule_id: payload.schedule_id, updated_at: serverTimestamp() });
         }
       }
     } catch (err) {
@@ -227,9 +227,9 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
   const handleDeleteSchedule = async () => {
     if (!delT || !delT.docId) return;
     try {
-      const s = SCHEDULES.find(x => x.docId === delT.docId || x.id === delT.id);
+      const s = SCHEDULES.find(x => x.docId === delT.docId || x.schedule_id === delT.schedule_id);
       if (s && s.linked) {
-        const linkedSched = SCHEDULES.find(ls => ls.id === s.linked);
+        const linkedSched = SCHEDULES.find(ls => ls.schedule_id === s.linked);
         if (linkedSched && window.confirm(`This schedule is linked to ${s.linked}. Remove the reference in ${s.linked} as well?`)) {
           const lRef = linkedSched._path ? doc(db, linkedSched._path) : doc(db, collectionPath, linkedSched.docId);
           await updateDoc(lRef, { linked_schedule_id: "", updated_at: serverTimestamp() });
@@ -245,8 +245,8 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
     if (!status || sel.size === 0) return;
     if (!window.confirm(`Are you sure you want to update status to "${status}" for ${sel.size} schedule(s)?`)) return;
     try {
-      await Promise.all([...sel].map(id => {
-        const s = SCHEDULES.find(s => s.id === id);
+      await Promise.all([...sel].map(sid => {
+        const s = SCHEDULES.find(s => s.schedule_id === sid);
         if (s && s.docId) {
           const ref = s._path ? doc(db, s._path) : doc(db, collectionPath, s.docId);
           return updateDoc(ref, { status, updated_at: serverTimestamp() });
@@ -260,8 +260,8 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
     if (sel.size === 0) return;
     if (!window.confirm(`Are you sure you want to delete ${sel.size} schedule(s)? This action cannot be undone.`)) return;
     try {
-      await Promise.all([...sel].map(id => {
-        const s = SCHEDULES.find(s => s.id === id);
+      await Promise.all([...sel].map(sid => {
+        const s = SCHEDULES.find(s => s.schedule_id === sid);
         if (s && s.docId) {
           const ref = s._path ? doc(db, s._path) : doc(db, collectionPath, s.docId);
           return deleteDoc(ref);
@@ -271,7 +271,7 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
       setSel(new Set());
     } catch (err) { console.error("Bulk delete error:", err); }
   };
-  const cols = [{ l: "", w: "36px" }, { l: "SCHEDULE ID", w: "80px", k: "id" }, { l: "LINKED", w: "80px", k: "linked" }, { l: "CONTRACT", w: "85px", k: "contract" }, { l: "PROJECT ID", w: "85px", k: "project_id" }, { l: "PARTY ID", w: "80px", k: "party_id" }, { l: "PERIOD", w: "58px", k: "period_number" }, { l: "DUE DATE", w: "98px", k: "dueDate" }, { l: "TYPE", w: "minmax(60px, 0.33fr)", k: "type" }, { l: "FEE", w: "260px", k: "fee_id" }, { l: "DIR", w: "50px", k: "direction" }, { l: "SIGNED AMT", w: "110px", k: "signed_payment_amount" }, { l: "PRINCIPAL", w: "110px", k: "principal_amount" }, { l: "STATUS", w: "90px", k: "status" }, { l: "NOTES", w: "minmax(80px, 1fr)", k: "notes" }, { l: "ACTIONS", w: "76px" }];
+  const cols = [{ l: "", w: "36px" }, { l: "SCHEDULE ID", w: "80px", k: "schedule_id" }, { l: "LINKED", w: "80px", k: "linked" }, { l: "CONTRACT", w: "85px", k: "contract" }, { l: "PROJECT ID", w: "85px", k: "project_id" }, { l: "PARTY ID", w: "80px", k: "party_id" }, { l: "PERIOD", w: "58px", k: "period_number" }, { l: "DUE DATE", w: "98px", k: "dueDate" }, { l: "TYPE", w: "minmax(60px, 0.33fr)", k: "type" }, { l: "FEE", w: "260px", k: "fee_id" }, { l: "DIR", w: "50px", k: "direction" }, { l: "SIGNED AMT", w: "110px", k: "signed_payment_amount" }, { l: "PRINCIPAL", w: "110px", k: "principal_amount" }, { l: "STATUS", w: "90px", k: "status" }, { l: "NOTES", w: "minmax(80px, 1fr)", k: "notes" }, { l: "ACTIONS", w: "76px" }];
   const { gridTemplate, headerRef, onResizeStart } = useResizableColumns(cols);
   const [colFilters, setColFilters] = useState({});
   const setColFilter = (key, val) => { setColFilters(f => ({ ...f, [key]: val })); setPage(1); };
@@ -304,17 +304,17 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
     </div>
     <div style={{ background: t.surface, borderRadius: 16, border: `1px solid ${t.surfaceBorder}`, overflow: "auto", backdropFilter: isDark ? "blur(20px)" : "none", boxShadow: t.tableShadow }}>
       <TblHead cols={cols} t={t} isDark={isDark} sortConfig={sort} onSort={onSort} gridTemplate={gridTemplate} headerRef={headerRef} onResizeStart={onResizeStart}>
-        <input type="checkbox" checked={sel.size === filtered.length && filtered.length > 0} onChange={() => setSel(sel.size === filtered.length ? new Set() : new Set(filtered.map(s => s.id)))} style={{ accentColor: t.checkActive, width: 14, height: 14 }} />
+        <input type="checkbox" checked={sel.size === filtered.length && filtered.length > 0} onChange={() => setSel(sel.size === filtered.length ? new Set() : new Set(filtered.map(s => s.schedule_id)))} style={{ accentColor: t.checkActive, width: 14, height: 14 }} />
       </TblHead>
       <div style={{ display: "grid", gridTemplateColumns: gridTemplate, padding: "6px 22px", borderBottom: `1px solid ${t.rowDivider}`, background: isDark ? "rgba(255,255,255,0.015)" : "#FDFDFC" }}>
         {cols.map(c => c.k ? <input key={c.k} value={colFilters[c.k] || ""} onChange={e => setColFilter(c.k, e.target.value)} placeholder="Filter..." style={{ fontSize: 11, padding: "4px 8px", borderRadius: 6, border: `1px solid ${t.surfaceBorder}`, background: isDark ? "rgba(30, 58, 138, 0.3)" : "rgba(219, 234, 254, 0.7)", color: isDark ? "rgba(255,255,255,0.8)" : "#44403C", outline: "none", width: "100%", boxSizing: "border-box", fontFamily: "inherit" }} /> : <div key={c.l || "nofilter"} />)}
       </div>
       {paginated.map((s, i) => {
-        const isHov = hov === s.id; const isSel = sel.has(s.id); const [bg, color, border] = badge(s.status, isDark);
+        const isHov = hov === s.schedule_id; const isSel = sel.has(s.schedule_id); const [bg, color, border] = badge(s.status, isDark);
         const dash = <span style={{ color: isDark ? "rgba(255,255,255,0.12)" : "#D4D0CB" }}>—</span>;
-        return (<div key={s.id} className="data-row" onMouseEnter={() => setHov(s.id)} onMouseLeave={() => setHov(null)} style={{ display: "grid", gridTemplateColumns: gridTemplate, padding: "12px 22px", borderBottom: i < paginated.length - 1 ? `1px solid ${t.rowDivider}` : "none", alignItems: "center", background: isSel ? (isDark ? "rgba(52,211,153,0.04)" : "#F0FDF4") : isHov ? t.rowHover : "transparent", transition: "all 0.15s ease" }}>
-          <input type="checkbox" checked={isSel} onChange={() => { const n = new Set(sel); n.has(s.id) ? n.delete(s.id) : n.add(s.id); setSel(n); }} style={{ accentColor: t.checkActive, width: 14, height: 14 }} onClick={e => e.stopPropagation()} />
-          <div style={{ fontFamily: t.mono, fontSize: 11, color: t.idText }}>{s.id}</div>
+        return (<div key={s.schedule_id} className="data-row" onMouseEnter={() => setHov(s.schedule_id)} onMouseLeave={() => setHov(null)} style={{ display: "grid", gridTemplateColumns: gridTemplate, padding: "12px 22px", borderBottom: i < paginated.length - 1 ? `1px solid ${t.rowDivider}` : "none", alignItems: "center", background: isSel ? (isDark ? "rgba(52,211,153,0.04)" : "#F0FDF4") : isHov ? t.rowHover : "transparent", transition: "all 0.15s ease" }}>
+          <input type="checkbox" checked={isSel} onChange={() => { const n = new Set(sel); n.has(s.schedule_id) ? n.delete(s.schedule_id) : n.add(s.schedule_id); setSel(n); }} style={{ accentColor: t.checkActive, width: 14, height: 14 }} onClick={e => e.stopPropagation()} />
+          <div style={{ fontFamily: t.mono, fontSize: 11, color: t.idText }}>{s.schedule_id}</div>
           <div style={{ fontFamily: t.mono, fontSize: 11, color: t.textMuted }}>{s.linked || dash}</div>
           <div style={{ fontFamily: t.mono, fontSize: 11.5, color: isDark ? "#60A5FA" : "#4F46E5", fontWeight: 500 }}>{s.contract}</div>
           <div style={{ fontFamily: t.mono, fontSize: 11, color: t.idText }}>{s.project_id || dash}</div>
@@ -342,7 +342,7 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
           <div style={{ fontFamily: t.mono, fontSize: 11.5, color: t.textMuted }}>{s.principal_amount || dash}</div>
           <div><span style={{ fontSize: 11.5, fontWeight: 600, padding: "4px 11px", borderRadius: 20, background: bg, color, border: `1px solid ${border}` }}>{s.status}</span></div>
           <div style={{ fontSize: 11.5, color: t.textMuted, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0 }}>{s.notes || dash}</div>
-          <ActBtns show={isHov} t={t} onEdit={() => openEdit(s)} onDel={() => setDelT({ id: s.id, name: s.id, docId: s.docId, _path: s._path })} />
+          <ActBtns show={isHov} t={t} onEdit={() => openEdit(s)} onDel={() => setDelT({ schedule_id: s.schedule_id, name: s.schedule_id, docId: s.docId, _path: s._path })} />
         </div>);
       })}
     </div>
@@ -350,7 +350,7 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
     <Modal open={modal.open} onClose={close} title={modal.mode === "add" ? "New Schedule Entry" : modal.mode === "add_late" ? "Late Payment Schedule" : modal.mode === "add_partial" ? "Partial Payment Schedule" : "Edit Schedule Entry"} onSave={handleSaveSchedule} width={620} t={t} isDark={isDark}>
       {modal.mode === "edit" && (
         <FF label="Schedule ID" t={t}>
-          <div style={{ fontFamily: t.mono, fontSize: 13, color: t.idText, background: isDark ? "rgba(255,255,255,0.04)" : "#F5F4F1", border: `1px solid ${t.surfaceBorder}`, borderRadius: 9, padding: "10px 13px" }}>{modal.data.id}</div>
+          <div style={{ fontFamily: t.mono, fontSize: 13, color: t.idText, background: isDark ? "rgba(255,255,255,0.04)" : "#F5F4F1", border: `1px solid ${t.surfaceBorder}`, borderRadius: 9, padding: "10px 13px" }}>{modal.data.schedule_id}</div>
         </FF>
       )}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14 }}>

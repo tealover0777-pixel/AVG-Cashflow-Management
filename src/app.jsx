@@ -173,8 +173,7 @@ function AppContent() {
       const dPId = String(d.party_id || "").trim();
       const mParty = rawParties.find(p => String(p.id || "").trim() === mId);
       const mDocId = mParty ? String(mParty.doc_id || mParty.id || "").trim() : "";
-      const mName = mParty ? String(mParty.party_name || "").trim() : "";
-      return (dPId === mId || (mDocId && dPId === mDocId) || (mName && d.party_name === mName));
+      return (dPId === mId || (mDocId && dPId === mDocId));
     })
     .map(d => ({
       id: d.contract_id || d.id,
@@ -208,8 +207,7 @@ function AppContent() {
       const dPId = String(d.party_id || "").trim();
       const mParty = rawParties.find(p => String(p.id || "").trim() === mId);
       const mDocId = mParty ? String(mParty.doc_id || mParty.id || "").trim() : "";
-      const isDirectMatch = (dPId === mId || (mDocId && dPId === mDocId));
-      return isDirectMatch || CONTRACTS.some(c => c.contract_id === d.contract_id || c.id === d.contract_id);
+      return (dPId === mId || (mDocId && dPId === mDocId));
     })
     .map(d => {
       let dir = d.direction_from_company || "";
@@ -221,7 +219,7 @@ function AppContent() {
         if (principal != null) principal = -principal;
       }
       return {
-        id: d.id, docId: d.doc_id || d.id, _path: d._path, contract: d.contract_id || "", dueDate: fmtDate(d.due_date),
+        schedule_id: d.schedule_id || d.id, docId: d.doc_id || d.id, _path: d._path, contract: d.contract_id || "", dueDate: fmtDate(d.due_date),
         type: d.payment_type || "", payment: fmtCurr(d.payment_amount),
         status: d.status || "", direction: dir, fee_id: d.fee_id || "",
         party_id: d.party_id || "",
@@ -241,9 +239,10 @@ function AppContent() {
       const mParty = rawParties.find(p => String(p.id || "").trim() === mId);
       const mDocId = mParty ? String(mParty.doc_id || mParty.id || "").trim() : "";
 
-      if (String(d.party_id || "").trim() === mId || (mDocId && String(d.party_id || "").trim() === mDocId)) return true;
+      const dPId = String(d.party_id || "").trim();
+      if (dPId === mId || (mDocId && dPId === mDocId)) return true;
       if (d.contract_id) {
-        return CONTRACTS.some(c => c.contract_id === d.contract_id || c.id === d.contract_id);
+        return rawContracts.some(c => (c.contract_id === d.contract_id || c.id === d.contract_id) && (String(c.party_id || "").trim() === mId || (mDocId && String(c.party_id || "").trim() === mDocId)));
       }
       return false;
     })

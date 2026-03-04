@@ -17,8 +17,7 @@ export function useDashboardData({ PROJECTS = [], CONTRACTS = [], PARTIES = [], 
                 const pId = String(c.party_id || "").trim();
                 const targetId = String(myParty?.id || "").trim();
                 const targetDocId = String(myParty?.docId || "").trim();
-                const targetName = String(myParty?.name || "").trim();
-                return pId === targetId || (targetDocId && pId === targetDocId) || (targetName && c.party === targetName);
+                return pId === targetId || (targetDocId && pId === targetDocId);
             })
             : CONTRACTS;
 

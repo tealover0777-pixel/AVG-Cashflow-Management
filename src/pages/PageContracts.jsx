@@ -166,10 +166,11 @@ export default function PageContracts({ t, isDark, CONTRACTS = [], PROJECTS = []
       }
 
       // --- ID Generation Logic ---
-      let maxIdNum = 9999;
+      let maxIdNum = 10000;
       SCHEDULES.forEach(s => {
-        if (s.id && s.id.startsWith("S")) {
-          const num = parseInt(s.id.substring(1), 10);
+        const sid = s.schedule_id || s.id;
+        if (sid && sid.startsWith("S")) {
+          const num = parseInt(sid.substring(1), 10);
           if (!isNaN(num) && num > maxIdNum) maxIdNum = num;
         }
       });
@@ -207,7 +208,7 @@ export default function PageContracts({ t, isDark, CONTRACTS = [], PROJECTS = []
         const initialPaymentType = isDisbursement ? PT_BOR_RECEIVED : PT_DEPOSIT;
         const ds1 = getDirectionAndSigned(initialPaymentType, principal);
         entries.push({
-          id: `S${currentIdNum++}`,
+          schedule_id: `S${currentIdNum++}`,
           contract_id: c.id, project_id: c.project_id || "", party_id: c.party_id || "",
           due_date: startDate.toISOString().slice(0, 10), payment_type: initialPaymentType, fee_id: "",
           period_number: 1, principal_amount: principal, payment_amount: principal,
@@ -241,7 +242,7 @@ export default function PageContracts({ t, isDark, CONTRACTS = [], PROJECTS = []
             if (fInfo.fee_charge_at === "Contract_End") dDate = matDate;
             const dsf = getDirectionAndSigned(PT_FEE, feeAmt);
             entries.push({
-              id: `S${currentIdNum++}`,
+              schedule_id: `S${currentIdNum++}`,
               contract_id: c.id, project_id: c.project_id || "", party_id: c.party_id || "",
               due_date: dDate.toISOString().slice(0, 10), payment_type: PT_FEE, fee_id: fid,
               period_number: 1, principal_amount: principal, payment_amount: feeAmt,
@@ -294,7 +295,7 @@ export default function PageContracts({ t, isDark, CONTRACTS = [], PROJECTS = []
             const interestPT = isDisbursement ? PT_BOR_INTEREST : PT_INTEREST;
             const ds2 = getDirectionAndSigned(interestPT, interest);
             entries.push({
-              id: `S${currentIdNum++}`,
+              schedule_id: `S${currentIdNum++}`,
               contract_id: c.id, project_id: c.project_id || "", party_id: c.party_id || "",
               due_date: pEnd.toISOString().slice(0, 10), payment_type: interestPT, fee_id: "",
               period_number: periodNum, principal_amount: principal, payment_amount: Math.round(interest * 100) / 100,
@@ -323,7 +324,7 @@ export default function PageContracts({ t, isDark, CONTRACTS = [], PROJECTS = []
                   const dsf2 = getDirectionAndSigned(PT_FEE, feeAmt);
                   const feeDueDate = ca.includes("start") ? pStart : pEnd;
                   entries.push({
-                    id: `S${currentIdNum++}`,
+                    schedule_id: `S${currentIdNum++}`,
                     contract_id: c.id, project_id: c.project_id || "", party_id: c.party_id || "",
                     due_date: feeDueDate.toISOString().slice(0, 10), payment_type: PT_FEE, fee_id: fid,
                     period_number: periodNum, principal_amount: principal, payment_amount: Math.round(feeAmt * 100) / 100,
@@ -344,7 +345,7 @@ export default function PageContracts({ t, isDark, CONTRACTS = [], PROJECTS = []
         const repaymentPT = isDisbursement ? PT_BOR_PAYMENT : PT_INV_REPAYMENT;
         const ds3 = getDirectionAndSigned(repaymentPT, principal);
         entries.push({
-          id: `S${currentIdNum++}`,
+          schedule_id: `S${currentIdNum++}`,
           contract_id: c.id, project_id: c.project_id || "", party_id: c.party_id || "",
           due_date: matDate.toISOString().slice(0, 10), payment_type: repaymentPT, fee_id: "",
           period_number: periodNum, principal_amount: principal, payment_amount: principal,
