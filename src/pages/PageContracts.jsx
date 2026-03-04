@@ -356,7 +356,32 @@ export default function PageContracts({ t, isDark, CONTRACTS = [], PROJECTS = []
 
       console.log(`Generated ${entries.length} entries. Skipped:`, skipped);
 
-      if (entries.length === 0) {
+      // Build a set of existing schedule keys for duplicate detection
+      const existingKeys = new Set();
+      SCHEDULES.forEach(s => {
+        const key = `${s.contract_id || s.contract}|${s.due_date || s.dueDate}|${s.payment_type || s.type}|${s.fee_id || ""}`;
+        existingKeys.add(key);
+      });
+
+      // Filter out duplicates
+      const newEntries = [];
+      const duplicates = [];
+      for (const entry of entries) {
+        const key = `${entry.contract_id}|${entry.due_date}|${entry.payment_type}|${entry.fee_id || ""}`;
+        if (existingKeys.has(key)) {
+          duplicates.push(`${entry.contract_id} / ${entry.due_date} / ${entry.payment_type}${entry.fee_id ? ` / ${entry.fee_id}` : ""}`);
+        } else {
+          newEntries.push(entry);
+          existingKeys.add(key); // prevent duplicate within same batch
+        }
+      }
+
+      if (newEntries.length === 0 && entries.length > 0) {
+        let msg = "No new schedules were generated — all schedules already exist.";
+        if (skipped.length > 0) msg += `\n\nSkipped contracts: ${skipped.join(", ")}`;
+        msg += `\n\nDuplicate schedules skipped: ${duplicates.length}`;
+        window.alert(msg);
+      } else if (newEntries.length === 0) {
         let msg = "No entries were generated.";
         if (selected.length > 0 && skipped.length === selected.length) {
           msg += "\n\nReason: All selected contracts were skipped. Please ensure they have a valid 'Amount', 'Start Date', and 'Maturity Date' set.";
@@ -366,11 +391,15 @@ export default function PageContracts({ t, isDark, CONTRACTS = [], PROJECTS = []
         window.alert(msg);
       } else {
         console.log("Saving entries to:", schedulePath);
-        for (const entry of entries) {
+        for (const entry of newEntries) {
           await addDoc(collection(db, schedulePath), entry);
         }
         setSel(new Set());
-        window.alert(`Successfully generated ${entries.length} schedule entries for ${selected.length} contract(s).`);
+        let msg = `Successfully generated ${newEntries.length} schedule entries for ${selected.length} contract(s).`;
+        if (duplicates.length > 0) {
+          msg += `\n\n${duplicates.length} schedule(s) already existed and were skipped.`;
+        }
+        window.alert(msg);
       }
     } catch (err) {
       console.error("Generate schedules error:", err);
