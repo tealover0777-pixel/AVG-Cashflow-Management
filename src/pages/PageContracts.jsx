@@ -63,8 +63,8 @@ export default function PageContracts({ t, isDark, CONTRACTS = [], PROJECTS = []
     const payload = {
       project_name: d.project || "",
       project_id: pObj ? pObj.id : (d.project_id || ""),
-      counterparty_name: d.party || "",
-      counterparty_id: parObj ? parObj.id : (d.party_id || d.counterparty_id || ""),
+      party_name: d.party || "",
+      party_id: parObj ? parObj.id : (d.party_id || ""),
       contract_type: d.type || "",
       amount: d.amount ? Number(String(d.amount).replace(/[^0-9.-]/g, "")) || null : null,
       interest_rate: d.rate ? Number(String(d.rate).replace(/[^0-9.-]/g, "")) || null : null,

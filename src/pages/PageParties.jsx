@@ -202,8 +202,15 @@ export default function PageParties({ t, isDark, PARTIES = [], CONTRACTS = [], S
     </Modal>
     {detailParty && (() => {
       const dp = detailParty;
-      const partyContracts = CONTRACTS.filter(c => c.party_id === dp.id);
-      const partySchedules = SCHEDULES.filter(s => s.party_id === dp.id || partyContracts.some(c => c.id === s.contract)).sort((a, b) => (a.dueDate || '').localeCompare(b.dueDate || ''));
+      const dpId = String(dp.id || "").trim();
+      const partyContracts = CONTRACTS.filter(c => {
+        const cPartyId = String(c.party_id || "").trim();
+        return cPartyId === dpId;
+      });
+      const partySchedules = SCHEDULES.filter(s => {
+        const sPartyId = String(s.party_id || "").trim();
+        return sPartyId === dpId || partyContracts.some(c => c.id === s.contract);
+      }).sort((a, b) => (a.dueDate || '').localeCompare(b.dueDate || ''));
       const totalValue = partyContracts.reduce((sum, c) => sum + Number(String(c.amount || 0).replace(/[^0-9.-]/g, '')), 0);
       return (
         <div style={{ position: "fixed", inset: 0, zIndex: 1100, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center" }}>

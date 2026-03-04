@@ -134,7 +134,7 @@ function AppContent() {
     .filter(d => {
       if (!forceFilter) return true;
       if (!memberPartyId) return false;
-      return rawContracts.some(c => (c.project_id === d.id || c.project_name === d.project_name) && c.counterparty_id === memberPartyId);
+      return rawContracts.some(c => (c.project_id === d.id || c.project_name === d.project_name) && (c.party_id === memberPartyId || c.counterparty_id === memberPartyId));
     })
     .map(d => ({
       id: d.id,
@@ -168,7 +168,7 @@ function AppContent() {
     .filter(d => {
       if (!forceFilter) return true;
       if (!memberPartyId) return false;
-      return (d.counterparty_id === memberPartyId);
+      return (d.party_id === memberPartyId || d.counterparty_id === memberPartyId);
     })
     .map(d => ({
       id: d.contract_id || d.id,
@@ -177,8 +177,8 @@ function AppContent() {
       contract_id: d.contract_id || "",
       project: d.project_name || d.project_id || "",
       project_id: d.project_id || "",
-      party: d.counterparty_name || d.counterparty_id || "",
-      party_id: d.counterparty_id || "",
+      party: d.party_name || d.counterparty_name || d.party_id || d.counterparty_id || "",
+      party_id: d.party_id || d.counterparty_id || "",
       type: d.contract_type || "",
       amount: fmtCurr(d.amount),
       rate: d.interest_rate ? `${d.interest_rate}%` : "",
@@ -198,7 +198,7 @@ function AppContent() {
     .filter(d => {
       if (!forceFilter) return true;
       if (!memberPartyId) return false;
-      return d.party_id === memberPartyId;
+      return (d.party_id === memberPartyId || d.counterparty_id === memberPartyId);
     })
     .map(d => {
       let dir = d.direction_from_company || "";
@@ -213,7 +213,7 @@ function AppContent() {
         id: d.id, docId: d.doc_id || d.id, _path: d._path, contract: d.contract_id || "", dueDate: fmtDate(d.due_date),
         type: d.payment_type || "", payment: fmtCurr(d.payment_amount),
         status: d.status || "", direction: dir, fee_id: d.fee_id || "",
-        party_id: d.party_id || "", period_number: d.period_number != null ? String(d.period_number) : "",
+        party_id: d.party_id || d.counterparty_id || "", period_number: d.period_number != null ? String(d.period_number) : "",
         principal_amount: fmtCurr(principal),
         project_id: d.project_id || "",
         signed_payment_amount: fmtCurr(signed),
@@ -225,10 +225,10 @@ function AppContent() {
     .filter(d => {
       if (!forceFilter) return true;
       if (!memberPartyId) return false;
-      // Filter by counterparty_id or by linked contract's counterparty
-      if (d.counterparty_id === memberPartyId) return true;
+      // Filter by party_id or by linked contract's party
+      if (d.party_id === memberPartyId || d.counterparty_id === memberPartyId) return true;
       if (d.contract_id) {
-        return rawContracts.some(c => (c.contract_id === d.contract_id || c.id === d.contract_id) && c.counterparty_id === memberPartyId);
+        return rawContracts.some(c => (c.contract_id === d.contract_id || c.id === d.contract_id) && (c.party_id === memberPartyId || c.counterparty_id === memberPartyId));
       }
       return false;
     })
