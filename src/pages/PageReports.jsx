@@ -2,9 +2,18 @@ import { useState } from "react";
 import { initials } from "../utils";
 import { StatCard } from "../components";
 
-export default function PageReports({ t, isDark, MONTHLY = [] }) {
+export default function PageReports({ t, isDark, MONTHLY = [], activeTenantId = "" }) {
   const [tab, setTab] = useState("Cashflow");
-  const lookerUrl = "https://lookerstudio.google.com/embed/reporting/4252f725-57ca-40e1-b714-8c8605789cf1/page/puArF"; // TODO: Replace with your actual Looker report URL
+  const baseUrl = "https://lookerstudio.google.com/embed/reporting/4252f725-57ca-40e1-b714-8c8605789cf1/page/puArF";
+
+  // Construct dynamic Looker URL with tenant filtering
+  let lookerUrl = baseUrl;
+  if (activeTenantId && activeTenantId !== "GLOBAL") {
+    // Note: This expects a parameter named 'tenant_id' in your Looker Studio report
+    const params = { "ds0.tenant_id": activeTenantId };
+    const encodedParams = encodeURIComponent(JSON.stringify(params));
+    lookerUrl = `${baseUrl}?params=${encodedParams}`;
+  }
 
 
   const maxBar = Math.max(...MONTHLY.map(d => Math.max(d.received, d.disbursed)));

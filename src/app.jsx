@@ -481,7 +481,7 @@ function AppContent() {
                   {activePage === "Super Admin" && isR10010 && <PageSuperAdmin t={t} isDark={isDark} DIMENSIONS={DIMENSIONS} ROLES={rawRoles} TENANTS={TENANTS} />}
                   {activePage === "Profile" && <PageProfile t={t} isDark={isDark} setIsDark={setIsDark} ROLES={rawRoles} collectionPath={fetchPaths.users} activeTenantId={activeTenantId} />}
                   {activePage === "Dimensions" && <PageDimensions t={t} isDark={isDark} DIMENSIONS={DIMENSIONS} rawDimensions={rawDimensions} collectionPath={fetchPaths.dimensions} />}
-                  {activePage === "Reports" && <PageReports t={t} isDark={isDark} MONTHLY={MONTHLY} />}
+                  {activePage === "Reports" && <PageReports t={t} isDark={isDark} MONTHLY={MONTHLY} activeTenantId={activeTenantId} />}
                 </>
               )}
         </div>
