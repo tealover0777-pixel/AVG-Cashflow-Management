@@ -386,7 +386,7 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
         <FF label="Term End" t={t}><FIn value={modal.data.term_end || ""} onChange={e => setF("term_end", e.target.value)} t={t} type="date" /></FF>
         <FF label="Direction" t={t}><FSel value={modal.data.direction} onChange={e => setF("direction", e.target.value)} options={["IN", "OUT"]} t={t} /></FF>
       </div>
-      <FF label="Payment Type" t={t}><FSel value={modal.data.type} onChange={e => setF("type", e.target.value)} options={["INVESTOR_PRINCIPAL_DEPOSIT", "INVESTOR_INTEREST_PAYMENT", "INVESTOR_PRINCIPAL_RETURN", "BORROWER_PRINCIPAL_DISBURSEMENT", "BORROWER_INTEREST_COLLECTION", "BORROWER_PRINCIPAL_REPAYMENT", "Interest", "Principal", "Fee", "Catch-Up"]} t={t} /></FF>
+      <FF label="Payment Type" t={t}><FSel value={modal.data.type} onChange={e => setF("type", e.target.value)} options={["INVESTOR_PRINCIPAL_DEPOSIT", "INVESTOR_INTEREST_PAYMENT", "INVESTOR_PRINCIPAL_PAYMENT", "BORROWER_PRINCIPAL_RECEIVED", "BORROWER_INTEREST_PAYMENT", "BORROWER_PRINCIPAL_PAYMENT", "FEE"]} t={t} /></FF>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14 }}>
         <FF label="Payment Amount" t={t}><FIn value={modal.data.payment || ""} onChange={e => setF("payment", e.target.value)} placeholder="$0" t={t} /></FF>
         <FF label="Principal Amount" t={t}><FIn value={modal.data.principal_amount || ""} onChange={e => setF("principal_amount", e.target.value)} placeholder="$0" t={t} /></FF>

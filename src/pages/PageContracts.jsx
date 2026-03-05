@@ -138,21 +138,31 @@ export default function PageContracts({ t, isDark, CONTRACTS = [], PROJECTS = []
     const inPT = findDim("IN_PaymentType");
     const outPT = findDim("OUT_PaymentType");
 
+    const FALLBACK_DIR = {
+      BORROWER_PRINCIPAL_RECEIVED: "IN",
+      BORROWER_PRINCIPAL_PAYMENT: "OUT",
+      BORROWER_INTEREST_PAYMENT: "IN",
+      INVESTOR_PRINCIPAL_DEPOSIT: "OUT",
+      INVESTOR_PRINCIPAL_PAYMENT: "IN",
+      INVESTOR_INTEREST_PAYMENT: "OUT",
+      FEE: "OUT",
+    };
     const getDirectionAndSigned = (pt, amt) => {
       let dir = "";
       if (inPT.includes(pt)) dir = "IN";
       else if (outPT.includes(pt)) dir = "OUT";
+      else if (FALLBACK_DIR[pt]) dir = FALLBACK_DIR[pt];
       const signed = dir === "OUT" ? -Math.abs(amt) : Math.abs(amt);
       return { direction: dir, signed: signed };
     };
 
     const PT_DEPOSIT = ptItems.find(i => i.includes("INVESTOR_PRINCIPAL_DEPOSIT")) || "INVESTOR_PRINCIPAL_DEPOSIT";
-    const PT_INTEREST = ptItems.find(i => i.includes("INVESTOR_INTEREST_ACCRUAL")) || "INVESTOR_INTEREST_ACCRUAL";
+    const PT_INTEREST = "INVESTOR_INTEREST_PAYMENT";
     const PT_FEE = ptItems.find(i => i.includes("FEE")) || "FEE";
     const PT_INV_REPAYMENT = ptItems.find(i => i.includes("INVESTOR_PRINCIPAL_PAYMENT")) || "INVESTOR_PRINCIPAL_PAYMENT";
     const PT_BOR_RECEIVED = ptItems.find(i => i.includes("BORROWER_PRINCIPAL_RECEIVED")) || "BORROWER_PRINCIPAL_RECEIVED";
     const PT_BOR_PAYMENT = ptItems.find(i => i.includes("BORROWER_PRINCIPAL_PAYMENT")) || "BORROWER_PRINCIPAL_PAYMENT";
-    const PT_BOR_INTEREST = ptItems.find(i => i.includes("BORROWER_INTEREST_PAYMENT")) || "BORROWER_INTEREST_PAYMENT";
+    const PT_BOR_INTEREST = "BORROWER_INTEREST_PAYMENT";
 
     const feeInfoMap = {};
     FEES_DATA.forEach(f => {
