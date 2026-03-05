@@ -138,6 +138,7 @@ export default function PageContracts({ t, isDark, CONTRACTS = [], PROJECTS = []
     const outPT = findDim("OUT_PaymentType");
 
     const FALLBACK_DIR = {
+      BORROWER_DISBURSEMENT: "OUT",
       BORROWER_PRINCIPAL_RECEIVED: "IN",
       BORROWER_PRINCIPAL_PAYMENT: "OUT",
       BORROWER_INTEREST_PAYMENT: "IN",
@@ -159,8 +160,8 @@ export default function PageContracts({ t, isDark, CONTRACTS = [], PROJECTS = []
     const PT_INTEREST = "INVESTOR_INTEREST_PAYMENT";
     const PT_FEE = "FEE";
     const PT_INV_REPAYMENT = "INVESTOR_PRINCIPAL_PAYMENT";
+    const PT_BOR_DISBURSEMENT = "BORROWER_DISBURSEMENT";
     const PT_BOR_RECEIVED = "BORROWER_PRINCIPAL_RECEIVED";
-    const PT_BOR_PAYMENT = "BORROWER_PRINCIPAL_PAYMENT";
     const PT_BOR_INTEREST = "BORROWER_INTEREST_PAYMENT";
 
     const feeInfoMap = {};
@@ -214,8 +215,8 @@ export default function PageContracts({ t, isDark, CONTRACTS = [], PROJECTS = []
         const cTypeUpper = (c.type || "").toUpperCase();
         const isDisbursement = cTypeUpper.includes("DISBURSEMENT");
 
-        // --- 1. Initial Deposit/Received ---
-        const initialPaymentType = isDisbursement ? PT_BOR_RECEIVED : PT_DEPOSIT;
+        // --- 1. Initial Deposit/Disbursement ---
+        const initialPaymentType = isDisbursement ? PT_BOR_DISBURSEMENT : PT_DEPOSIT;
         const ds1 = getDirectionAndSigned(initialPaymentType, principal);
         entries.push({
           schedule_id: `S${currentIdNum++}`,
@@ -351,8 +352,8 @@ export default function PageContracts({ t, isDark, CONTRACTS = [], PROJECTS = []
           if (!pStart) break;
         }
 
-        // --- 3. Principal Repayment ---
-        const repaymentPT = isDisbursement ? PT_BOR_PAYMENT : PT_INV_REPAYMENT;
+        // --- 3. Principal Repayment/Received ---
+        const repaymentPT = isDisbursement ? PT_BOR_RECEIVED : PT_INV_REPAYMENT;
         const ds3 = getDirectionAndSigned(repaymentPT, principal);
         entries.push({
           schedule_id: `S${currentIdNum++}`,
