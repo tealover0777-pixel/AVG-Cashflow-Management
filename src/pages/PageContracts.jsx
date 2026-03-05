@@ -15,6 +15,7 @@ export default function PageContracts({ t, isDark, CONTRACTS = [], PROJECTS = []
   const [modal, setModal] = useState({ open: false, mode: "add", data: {} });
   const [delT, setDelT] = useState(null);
   const [genConfirm, setGenConfirm] = useState(null);
+  const [genResult, setGenResult] = useState(null); // { title, message }
   const [sort, setSort] = useState({ key: null, direction: "asc" });
   const [page, setPage] = useState(1);
   const onSort = k => { setSort(s => ({ key: k, direction: s.key === k && s.direction === "asc" ? "desc" : "asc" })); setPage(1); };
@@ -377,33 +378,33 @@ export default function PageContracts({ t, isDark, CONTRACTS = [], PROJECTS = []
       }
 
       if (newEntries.length === 0 && entries.length > 0) {
-        let msg = "No new schedules were generated — all schedules already exist.";
-        if (skipped.length > 0) msg += `\n\nSkipped contracts: ${skipped.join(", ")}`;
-        msg += `\n\nDuplicate schedules skipped: ${duplicates.length}`;
-        window.alert(msg);
+        const lines = ["No new schedules were generated — all schedules already exist."];
+        if (skipped.length > 0) lines.push(`Skipped contracts: ${skipped.join(", ")}`);
+        lines.push(`Duplicate schedules skipped: ${duplicates.length}`);
+        setGenResult({ title: "No New Schedules", lines });
       } else if (newEntries.length === 0) {
-        let msg = "No entries were generated.";
+        const lines = ["No entries were generated."];
         if (selected.length > 0 && skipped.length === selected.length) {
-          msg += "\n\nReason: All selected contracts were skipped. Please ensure they have a valid 'Amount', 'Start Date', and 'Maturity Date' set.";
+          lines.push("All selected contracts were skipped. Please ensure they have a valid Amount, Start Date, and Maturity Date.");
         } else if (skipped.length > 0) {
-          msg += `\n\nSkipped contracts: ${skipped.join(", ")}`;
+          lines.push(`Skipped contracts: ${skipped.join(", ")}`);
         }
-        window.alert(msg);
+        setGenResult({ title: "No Entries", lines });
       } else {
         console.log("Saving entries to:", schedulePath);
         for (const entry of newEntries) {
           await addDoc(collection(db, schedulePath), entry);
         }
         setSel(new Set());
-        let msg = `Successfully generated ${newEntries.length} schedule entries for ${selected.length} contract(s).`;
+        const lines = [`Successfully generated ${newEntries.length} schedule entries for ${selected.length} contract(s).`];
         if (duplicates.length > 0) {
-          msg += `\n\n${duplicates.length} schedule(s) already existed and were skipped.`;
+          lines.push(`${duplicates.length} schedule(s) already existed and were skipped.`);
         }
-        window.alert(msg);
+        setGenResult({ title: "Generation Complete", lines });
       }
     } catch (err) {
       console.error("Generate schedules error:", err);
-      window.alert("Error generating schedules:\n" + String(err.message || err));
+      setGenResult({ title: "Error", lines: ["Error generating schedules:", String(err.message || err)] });
     } finally {
       setGenerating(false);
     }
@@ -460,7 +461,7 @@ export default function PageContracts({ t, isDark, CONTRACTS = [], PROJECTS = []
     return opts.length > 0 ? opts : ["Loan", "Mortgage", "Equity"];
   };
   const toggleRow = id => { const n = new Set(sel); n.has(id) ? n.delete(id) : n.add(id); setSel(n); };
-  const cols = [{ l: "", w: "36px" }, { l: "CONTRACT ID", w: "78px", k: "id" }, { l: "PROJECT ID", w: "78px", k: "project_id" }, { l: "PROJECT", w: "minmax(0,1fr)", k: "project" }, { l: "PARTY", w: "minmax(0,1fr)", k: "party" }, { l: "TYPE", w: "80px", k: "type" }, { l: "AMOUNT", w: "100px", k: "amount" }, { l: "RATE", w: "60px", k: "rate" }, { l: "FREQ", w: "80px", k: "freq" }, { l: "TERM", w: "52px", k: "term_months" }, { l: "FEES", w: "minmax(120px, 1.2fr)", k: "feeIds" }, { l: "START", w: "84px", k: "start_date" }, { l: "MATURITY", w: "84px", k: "maturity_date" }, { l: "STATUS", w: "72px", k: "status" }, { l: "CREATED", w: "84px", k: "created_at" }, { l: "UPDATED", w: "84px", k: "updated_at" }, { l: "ACTIONS", w: "72px" }];
+  const cols = [{ l: "", w: "36px" }, { l: "CONTRACT ID", w: "78px", k: "id" }, { l: "PROJECT ID", w: "78px", k: "project_id" }, { l: "PROJECT", w: "minmax(0,0.8fr)", k: "project" }, { l: "PARTY", w: "minmax(0,0.8fr)", k: "party" }, { l: "TYPE", w: "80px", k: "type" }, { l: "AMOUNT", w: "100px", k: "amount" }, { l: "RATE", w: "60px", k: "rate" }, { l: "FREQ", w: "80px", k: "freq" }, { l: "TERM", w: "52px", k: "term_months" }, { l: "FEES", w: "minmax(120px, 1.2fr)", k: "feeIds" }, { l: "START", w: "84px", k: "start_date" }, { l: "MATURITY", w: "84px", k: "maturity_date" }, { l: "STATUS", w: "72px", k: "status" }, { l: "CREATED", w: "84px", k: "created_at" }, { l: "UPDATED", w: "84px", k: "updated_at" }, { l: "ACTIONS", w: "72px" }];
   const { gridTemplate, headerRef, onResizeStart } = useResizableColumns(cols);
   const [colFilters, setColFilters] = useState({});
   const setColFilter = (key, val) => { setColFilters(f => ({ ...f, [key]: val })); setPage(1); };
@@ -627,5 +628,12 @@ export default function PageContracts({ t, isDark, CONTRACTS = [], PROJECTS = []
         </div>
       </div>
     </>}
+    <Modal open={!!genResult} onClose={() => setGenResult(null)} title={genResult?.title || "Result"} onSave={() => setGenResult(null)} saveLabel="OK" t={t} isDark={isDark}>
+      <div style={{ padding: "8px 0", display: "flex", flexDirection: "column", gap: 10 }}>
+        {(genResult?.lines || []).map((line, i) => (
+          <div key={i} style={{ fontSize: 13.5, color: i === 0 ? (isDark ? "#fff" : "#1C1917") : t.textMuted, lineHeight: 1.6, fontWeight: i === 0 ? 600 : 400 }}>{line}</div>
+        ))}
+      </div>
+    </Modal>
   </>);
 }
