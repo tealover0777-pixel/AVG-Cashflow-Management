@@ -134,7 +134,6 @@ export default function PageContracts({ t, isDark, CONTRACTS = [], PROJECTS = []
 
     // 1. Preparation - Load mapping from DIMENSIONS
     const findDim = n => (DIMENSIONS.find(d => d.name === n) || {}).items || [];
-    const ptItems = findDim("PaymentType");
     const inPT = findDim("IN_PaymentType");
     const outPT = findDim("OUT_PaymentType");
 
@@ -156,12 +155,12 @@ export default function PageContracts({ t, isDark, CONTRACTS = [], PROJECTS = []
       return { direction: dir, signed: signed };
     };
 
-    const PT_DEPOSIT = ptItems.find(i => i.includes("INVESTOR_PRINCIPAL_DEPOSIT")) || "INVESTOR_PRINCIPAL_DEPOSIT";
+    const PT_DEPOSIT = "INVESTOR_PRINCIPAL_DEPOSIT";
     const PT_INTEREST = "INVESTOR_INTEREST_PAYMENT";
-    const PT_FEE = ptItems.find(i => i.includes("FEE")) || "FEE";
-    const PT_INV_REPAYMENT = ptItems.find(i => i.includes("INVESTOR_PRINCIPAL_PAYMENT")) || "INVESTOR_PRINCIPAL_PAYMENT";
-    const PT_BOR_RECEIVED = ptItems.find(i => i.includes("BORROWER_PRINCIPAL_RECEIVED")) || "BORROWER_PRINCIPAL_RECEIVED";
-    const PT_BOR_PAYMENT = ptItems.find(i => i.includes("BORROWER_PRINCIPAL_PAYMENT")) || "BORROWER_PRINCIPAL_PAYMENT";
+    const PT_FEE = "FEE";
+    const PT_INV_REPAYMENT = "INVESTOR_PRINCIPAL_PAYMENT";
+    const PT_BOR_RECEIVED = "BORROWER_PRINCIPAL_RECEIVED";
+    const PT_BOR_PAYMENT = "BORROWER_PRINCIPAL_PAYMENT";
     const PT_BOR_INTEREST = "BORROWER_INTEREST_PAYMENT";
 
     const feeInfoMap = {};
