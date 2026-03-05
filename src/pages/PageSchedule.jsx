@@ -24,6 +24,7 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
   const [hov, setHov] = useState(null); const [sel, setSel] = useState(new Set()); const [chip, setChip] = useState("All");
   const [modal, setModal] = useState({ open: false, mode: "add", data: {} });
   const [delT, setDelT] = useState(null);
+  const [confirmAction, setConfirmAction] = useState(null); // { title, message, onConfirm }
   const [sort, setSort] = useState({ key: "dueDate", direction: "asc" });
   const [page, setPage] = useState(1);
   const onSort = k => { setSort(s => ({ key: k, direction: s.key === k && s.direction === "asc" ? "desc" : "asc" })); setPage(1); };
@@ -141,68 +142,73 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
 
     // Missed or Cancelled Payment Workflow
     if (modal.mode === "edit" && (d.status === "Missed" || d.status === "Cancelled") && d.status !== d.originalStatus) {
-      if (window.confirm(`Do you want to set "${d.status}" payment and book a replacement schedule?`)) {
-        try {
-          const ref = d._path ? doc(db, d._path) : doc(db, collectionPath, d.docId);
-          await updateDoc(ref, payload);
-          // Pre-populate late payment
-          const lateId = getNextScheduleId();
-          const nextDueDate = getNextTermDate(d.dueDate, d.contract);
-          setModal({
-            open: true,
-            mode: "add_late",
-            originalDocId: d.docId, // Carry over to update later
-            data: {
-              ...d,
-              schedule_id: lateId,
-              linked: d.schedule_id,
-              fee_ids: [],
-              status: "Due",
-              dueDate: nextDueDate,
-              term_start: d.dueDate,
-              term_end: nextDueDate,
-              basePayment: Math.abs(Number(String(d.payment || d.signed_payment_amount || 0).replace(/[^0-9.-]/g, "")) || 0),
-              notes: `${d.status} payment replacement for ${d.schedule_id}`,
-            }
-          });
-          return; // Stay open in add_late mode
-        } catch (err) { console.error("Update missed error:", err); return; }
-      } else {
-        return; // Cancel the edit
-      }
+      setConfirmAction({
+        title: "Replacement Schedule",
+        message: `Do you want to set "${d.status}" payment and book a replacement schedule?`,
+        onConfirm: async () => {
+          setConfirmAction(null);
+          try {
+            const ref = d._path ? doc(db, d._path) : doc(db, collectionPath, d.docId);
+            await updateDoc(ref, payload);
+            const lateId = getNextScheduleId();
+            const nextDueDate = getNextTermDate(d.dueDate, d.contract);
+            setModal({
+              open: true,
+              mode: "add_late",
+              originalDocId: d.docId,
+              data: {
+                ...d,
+                schedule_id: lateId,
+                linked: d.schedule_id,
+                fee_ids: [],
+                status: "Due",
+                dueDate: nextDueDate,
+                term_start: d.dueDate,
+                term_end: nextDueDate,
+                basePayment: Math.abs(Number(String(d.payment || d.signed_payment_amount || 0).replace(/[^0-9.-]/g, "")) || 0),
+                notes: `${d.status} payment replacement for ${d.schedule_id}`,
+              }
+            });
+          } catch (err) { console.error("Update missed error:", err); }
+        }
+      });
+      return;
     }
 
     // Partial Payment Workflow
     if (modal.mode === "edit" && d.status === "Partial" && d.status !== d.originalStatus) {
-      if (window.confirm(`Do you want to set "Partial" payment and book a partial replacement schedule?`)) {
-        try {
-          const ref = d._path ? doc(db, d._path) : doc(db, collectionPath, d.docId);
-          await updateDoc(ref, payload);
-          const partialId = getNextScheduleId();
-          const nextDueDatePartial = getNextTermDate(d.dueDate, d.contract);
-          setModal({
-            open: true,
-            mode: "add_partial",
-            originalDocId: d.docId,
-            data: {
-              ...d,
-              schedule_id: partialId,
-              linked: d.schedule_id,
-              fee_ids: [],
-              status: "Due",
-              dueDate: nextDueDatePartial,
-              term_start: d.dueDate,
-              term_end: nextDueDatePartial,
-              partialPaid: "",
-              basePayment: Math.abs(Number(String(d.payment || d.signed_payment_amount || 0).replace(/[^0-9.-]/g, "")) || 0),
-              notes: `Partial payment replacement for ${d.schedule_id}`,
-            }
-          });
-          return;
-        } catch (err) { console.error("Update partial error:", err); return; }
-      } else {
-        return;
-      }
+      setConfirmAction({
+        title: "Partial Replacement",
+        message: `Do you want to set "Partial" payment and book a partial replacement schedule?`,
+        onConfirm: async () => {
+          setConfirmAction(null);
+          try {
+            const ref = d._path ? doc(db, d._path) : doc(db, collectionPath, d.docId);
+            await updateDoc(ref, payload);
+            const partialId = getNextScheduleId();
+            const nextDueDatePartial = getNextTermDate(d.dueDate, d.contract);
+            setModal({
+              open: true,
+              mode: "add_partial",
+              originalDocId: d.docId,
+              data: {
+                ...d,
+                schedule_id: partialId,
+                linked: d.schedule_id,
+                fee_ids: [],
+                status: "Due",
+                dueDate: nextDueDatePartial,
+                term_start: d.dueDate,
+                term_end: nextDueDatePartial,
+                partialPaid: "",
+                basePayment: Math.abs(Number(String(d.payment || d.signed_payment_amount || 0).replace(/[^0-9.-]/g, "")) || 0),
+                notes: `Partial payment replacement for ${d.schedule_id}`,
+              }
+            });
+          } catch (err) { console.error("Update partial error:", err); }
+        }
+      });
+      return;
     }
 
     try {
@@ -230,7 +236,7 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
       const s = SCHEDULES.find(x => x.docId === delT.docId || x.schedule_id === delT.schedule_id);
       if (s && s.linked) {
         const linkedSched = SCHEDULES.find(ls => ls.schedule_id === s.linked);
-        if (linkedSched && window.confirm(`This schedule is linked to ${s.linked}. Remove the reference in ${s.linked} as well?`)) {
+        if (linkedSched) {
           const lRef = linkedSched._path ? doc(db, linkedSched._path) : doc(db, collectionPath, linkedSched.docId);
           await updateDoc(lRef, { linked_schedule_id: "", updated_at: serverTimestamp() });
         }
@@ -241,35 +247,47 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
     } catch (err) { console.error("Delete schedule error:", err); }
   };
   const [bulkStatus, setBulkStatus] = useState("");
-  const handleBulkStatus = async (status) => {
+  const handleBulkStatus = (status) => {
     if (!status || sel.size === 0) return;
-    if (!window.confirm(`Are you sure you want to update status to "${status}" for ${sel.size} schedule(s)?`)) return;
-    try {
-      await Promise.all([...sel].map(sid => {
-        const s = SCHEDULES.find(s => s.schedule_id === sid);
-        if (s && s.docId) {
-          const ref = s._path ? doc(db, s._path) : doc(db, collectionPath, s.docId);
-          return updateDoc(ref, { status, updated_at: serverTimestamp() });
-        }
-        return Promise.resolve();
-      }));
-      setSel(new Set()); setBulkStatus("");
-    } catch (err) { console.error("Bulk status update error:", err); }
+    setConfirmAction({
+      title: "Update Status",
+      message: `Are you sure you want to update status to "${status}" for ${sel.size} schedule(s)?`,
+      onConfirm: async () => {
+        setConfirmAction(null);
+        try {
+          await Promise.all([...sel].map(sid => {
+            const s = SCHEDULES.find(s => s.schedule_id === sid);
+            if (s && s.docId) {
+              const ref = s._path ? doc(db, s._path) : doc(db, collectionPath, s.docId);
+              return updateDoc(ref, { status, updated_at: serverTimestamp() });
+            }
+            return Promise.resolve();
+          }));
+          setSel(new Set()); setBulkStatus("");
+        } catch (err) { console.error("Bulk status update error:", err); }
+      }
+    });
   };
-  const handleBulkDelete = async () => {
+  const handleBulkDelete = () => {
     if (sel.size === 0) return;
-    if (!window.confirm(`Are you sure you want to delete ${sel.size} schedule(s)? This action cannot be undone.`)) return;
-    try {
-      await Promise.all([...sel].map(sid => {
-        const s = SCHEDULES.find(s => s.schedule_id === sid);
-        if (s && s.docId) {
-          const ref = s._path ? doc(db, s._path) : doc(db, collectionPath, s.docId);
-          return deleteDoc(ref);
-        }
-        return Promise.resolve();
-      }));
-      setSel(new Set());
-    } catch (err) { console.error("Bulk delete error:", err); }
+    setConfirmAction({
+      title: "Delete Schedules",
+      message: `Are you sure you want to delete ${sel.size} schedule(s)? This action cannot be undone.`,
+      onConfirm: async () => {
+        setConfirmAction(null);
+        try {
+          await Promise.all([...sel].map(sid => {
+            const s = SCHEDULES.find(s => s.schedule_id === sid);
+            if (s && s.docId) {
+              const ref = s._path ? doc(db, s._path) : doc(db, collectionPath, s.docId);
+              return deleteDoc(ref);
+            }
+            return Promise.resolve();
+          }));
+          setSel(new Set());
+        } catch (err) { console.error("Bulk delete error:", err); }
+      }
+    });
   };
   const cols = [{ l: "", w: "36px" }, { l: "SCHEDULE ID", w: "80px", k: "schedule_id" }, { l: "LINKED", w: "80px", k: "linked" }, { l: "CONTRACT", w: "85px", k: "contract" }, { l: "PROJECT ID", w: "85px", k: "project_id" }, { l: "PARTY ID", w: "80px", k: "party_id" }, { l: "PERIOD", w: "58px", k: "period_number" }, { l: "DUE DATE", w: "98px", k: "dueDate" }, { l: "TYPE", w: "minmax(60px, 0.33fr)", k: "type" }, { l: "FEE", w: "260px", k: "fee_id" }, { l: "DIR", w: "50px", k: "direction" }, { l: "SIGNED AMT", w: "110px", k: "signed_payment_amount" }, { l: "PRINCIPAL", w: "110px", k: "principal_amount" }, { l: "STATUS", w: "90px", k: "status" }, { l: "NOTES", w: "minmax(80px, 1fr)", k: "notes" }, { l: "ACTIONS", w: "76px" }];
   const { gridTemplate, headerRef, onResizeStart } = useResizableColumns(cols);
@@ -482,5 +500,8 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
       <FF label="Notes" t={t}><textarea value={modal.data.notes || ""} onChange={e => setF("notes", e.target.value)} placeholder="Any remarks..." rows={2} style={{ width: "100%", background: t.searchBg, border: `1px solid ${t.searchBorder}`, borderRadius: 9, padding: "10px 13px", color: t.searchText, fontSize: 13.5, fontFamily: "inherit", outline: "none", resize: "vertical", boxSizing: "border-box" }} /></FF>
     </Modal>
     <DelModal target={delT} onClose={() => setDelT(null)} onConfirm={handleDeleteSchedule} label="This schedule entry" t={t} isDark={isDark} />
+    <Modal open={!!confirmAction} onClose={() => setConfirmAction(null)} title={confirmAction?.title || "Confirm"} onSave={confirmAction?.onConfirm} saveLabel="Confirm" t={t} isDark={isDark}>
+      <div style={{ padding: "12px 0", fontSize: 14, color: t.textSecondary, lineHeight: 1.6, textAlign: "center" }}>{confirmAction?.message}</div>
+    </Modal>
   </>);
 }
