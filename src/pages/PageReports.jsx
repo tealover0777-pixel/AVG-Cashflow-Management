@@ -9,10 +9,13 @@ export default function PageReports({ t, isDark, MONTHLY = [], activeTenantId = 
   // Construct dynamic Looker URL with tenant filtering
   let lookerUrl = baseUrl;
   if (activeTenantId && activeTenantId !== "GLOBAL") {
-    // The Looker parameter internal name is 'param_2ctfd09h1d'
-    const params = { "param_2ctfd09h1d": activeTenantId };
+    // Using the specifically created 'ds0.tenant_id' parameter
+    const params = {
+      "ds0.tenant_id": activeTenantId
+    };
     const encodedParams = encodeURIComponent(JSON.stringify(params));
     lookerUrl = `${baseUrl}?params=${encodedParams}`;
+    console.log("Looker Embed URL:", lookerUrl);
   }
 
 
