@@ -4,6 +4,9 @@ import { StatCard } from "../components";
 
 export default function PageReports({ t, isDark, MONTHLY = [] }) {
   const [tab, setTab] = useState("Cashflow");
+  const lookerUrl = "https://lookerstudio.google.com/embed/reporting/4252f725-57ca-40e1-b714-8c8605789cf1/page/puArF"; // TODO: Replace with your actual Looker report URL
+
+
   const maxBar = Math.max(...MONTHLY.map(d => Math.max(d.received, d.disbursed)));
   const projMax = Math.max(1250000, 1850000, 320000, 500000, 270000, 600000);
   const projData = [{ name: "Palm Springs Villas", total: 810000 }, { name: "Irvine Office Complex", total: 1850000 }, { name: "San Diego Condo", total: 320000 }, { name: "Beverly Hills Estate", total: 500000 }, { name: "Santa Monica Retail", total: 270000 }, { name: "Anaheim Hotel (Closed)", total: 0 }];
@@ -14,7 +17,7 @@ export default function PageReports({ t, isDark, MONTHLY = [] }) {
     <div style={{ marginBottom: 28, display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}><div><h1 style={{ fontFamily: t.titleFont, fontWeight: t.titleWeight, fontSize: t.titleSize, color: isDark ? "#fff" : "#1C1917", letterSpacing: t.titleTracking, lineHeight: 1, marginBottom: 6 }}>Reports</h1><p style={{ fontSize: 13.5, color: t.textMuted }}>Analytics and financial summaries</p></div><button className="export-btn" style={{ background: t.accentGrad, color: "#fff", padding: "11px 22px", borderRadius: 11, fontSize: 13.5, fontWeight: 600, boxShadow: `0 4px 16px ${t.accentShadow}`, border: "none", cursor: "pointer" }}>↓ Export PDF</button></div>
     <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 16, marginBottom: 28 }}>{kpi.map(s => <StatCard key={s.label} {...s} large titleFont={t.titleFont} isDark={isDark} />)}</div>
     <div style={{ display: "flex", gap: 4, marginBottom: 20, background: isDark ? "rgba(255,255,255,0.04)" : "#F1F0EE", padding: 4, borderRadius: 10, width: "fit-content" }}>
-      {["Cashflow", "Capital", "Investors"].map(tb => <div key={tb} onClick={() => setTab(tb)} className="report-tab" style={{ padding: "7px 18px", borderRadius: 8, fontSize: 13, fontWeight: tab === tb ? 600 : 400, background: tab === tb ? (isDark ? "rgba(52,211,153,0.15)" : "#fff") : "transparent", color: tab === tb ? t.accent : t.textSecondary, border: tab === tb ? `1px solid ${isDark ? "rgba(52,211,153,0.25)" : "#E5E3DF"}` : "1px solid transparent", cursor: "pointer" }}>{tb}</div>)}
+      {["Cashflow", "Capital", "Investors", "Analytics"].map(tb => <div key={tb} onClick={() => setTab(tb)} className="report-tab" style={{ padding: "7px 18px", borderRadius: 8, fontSize: 13, fontWeight: tab === tb ? 600 : 400, background: tab === tb ? (isDark ? "rgba(52,211,153,0.15)" : "#fff") : "transparent", color: tab === tb ? t.accent : t.textSecondary, border: tab === tb ? `1px solid ${isDark ? "rgba(52,211,153,0.25)" : "#E5E3DF"}` : "1px solid transparent", cursor: "pointer" }}>{tb}</div>)}
     </div>
     {tab === "Cashflow" && (<div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
       <div style={{ background: t.surface, borderRadius: 16, border: `1px solid ${t.surfaceBorder}`, padding: "20px", backdropFilter: isDark ? "blur(20px)" : "none", gridColumn: "1 / -1" }}>
@@ -38,5 +41,15 @@ export default function PageReports({ t, isDark, MONTHLY = [] }) {
       <div style={{ fontSize: 13, fontWeight: 600, color: isDark ? "#fff" : "#1C1917", marginBottom: 20 }}>Capital by Party</div>
       {invData.map((inv, i) => { const color = pColors[i]; return (<div key={inv.name} style={{ display: "flex", alignItems: "center", gap: 14, padding: "12px 0", borderBottom: i < invData.length - 1 ? `1px solid ${t.rowDivider}` : "none" }}><div style={{ width: 36, height: 36, borderRadius: 9, background: `${color}22`, border: `1px solid ${color}44`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11.5, fontWeight: 700, color, flexShrink: 0 }}>{initials(inv.name).slice(0, 2)}</div><div style={{ flex: 1 }}><div style={{ fontSize: 13, fontWeight: 500, color: isDark ? "rgba(255,255,255,0.85)" : "#1C1917", marginBottom: 4 }}>{inv.name}</div><div style={{ height: 5, borderRadius: 5, background: t.barTrack, overflow: "hidden" }}><div style={{ height: "100%", width: `${inv.pct}%`, borderRadius: 5, background: color }} /></div></div><div style={{ textAlign: "right", flexShrink: 0 }}><div style={{ fontFamily: t.mono, fontSize: 13, fontWeight: 700, color }}>${inv.amount.toLocaleString()}</div><div style={{ fontSize: 10.5, color: t.textMuted, marginTop: 2 }}>{inv.pct}%</div></div></div>); })}
     </div>)}
+    {tab === "Analytics" && (
+      <div style={{ background: t.surface, borderRadius: 16, border: `1px solid ${t.surfaceBorder}`, padding: "12px", height: "calc(100vh - 380px)", minHeight: 600, display: "flex", flexDirection: "column" }}>
+        <iframe
+          src={lookerUrl}
+          style={{ width: "100%", height: "100%", border: "none", borderRadius: 8 }}
+          allowFullScreen
+          sandbox="allow-storage-access-by-user-activation allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox"
+        />
+      </div>
+    )}
   </>);
 }
