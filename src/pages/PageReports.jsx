@@ -7,17 +7,12 @@ export default function PageReports({ t, isDark, MONTHLY = [], activeTenantId = 
   const baseUrl = "https://lookerstudio.google.com/embed/reporting/4252f725-57ca-40e1-b714-8c8605789cf1/page/puArF";
 
   // Construct dynamic Looker URL with tenant filtering
-  let lookerUrl = baseUrl;
-  if (activeTenantId && activeTenantId !== "GLOBAL") {
-    // We send both with and without the ds0 prefix to be safe
-    const params = {
-      "ds0.tenant_id": activeTenantId,
-      "tenant_id": activeTenantId
-    };
-    const encodedParams = encodeURIComponent(JSON.stringify(params));
-    lookerUrl = `${baseUrl}?params=${encodedParams}`;
-    console.log("Looker Embed URL:", lookerUrl);
-  }
+  const lookerUrl = (activeTenantId && activeTenantId !== "GLOBAL")
+    ? `${baseUrl}?params=${encodeURIComponent(JSON.stringify({
+      "ds0.selected_tenant_id": activeTenantId,
+      "selected_tenant_id": activeTenantId
+    }))}`
+    : baseUrl;
 
 
   const maxBar = Math.max(...MONTHLY.map(d => Math.max(d.received, d.disbursed)));
@@ -57,6 +52,7 @@ export default function PageReports({ t, isDark, MONTHLY = [], activeTenantId = 
     {tab === "Analytics" && (
       <div style={{ background: t.surface, borderRadius: 16, border: `1px solid ${t.surfaceBorder}`, padding: "12px", height: "calc(100vh - 380px)", minHeight: 600, display: "flex", flexDirection: "column" }}>
         <iframe
+          key={lookerUrl}
           src={lookerUrl}
           style={{ width: "100%", height: "100%", border: "none", borderRadius: 8 }}
           allowFullScreen
