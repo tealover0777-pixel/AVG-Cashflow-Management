@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { initials } from "../utils";
 import { StatCard } from "../components";
 
@@ -7,12 +7,17 @@ export default function PageReports({ t, isDark, MONTHLY = [], activeTenantId = 
   const baseUrl = "https://lookerstudio.google.com/embed/reporting/4252f725-57ca-40e1-b714-8c8605789cf1/page/puArF";
 
   // Construct dynamic Looker URL with tenant filtering
-  const lookerUrl = (activeTenantId && activeTenantId !== "GLOBAL")
-    ? `${baseUrl}?params=${encodeURIComponent(JSON.stringify({
+  const lookerUrl = useMemo(() => {
+    if (!activeTenantId || activeTenantId === "GLOBAL") return baseUrl;
+    const params = {
+      "selected_tenant_id": activeTenantId,
       "ds0.selected_tenant_id": activeTenantId,
-      "selected_tenant_id": activeTenantId
-    }))}`
-    : baseUrl;
+      "ds1.selected_tenant_id": activeTenantId
+    };
+    const finalUrl = `${baseUrl}?params=${encodeURIComponent(JSON.stringify(params))}`;
+    console.log("Looker Filter Link:", finalUrl);
+    return finalUrl;
+  }, [activeTenantId, baseUrl]);
 
 
   const maxBar = Math.max(...MONTHLY.map(d => Math.max(d.received, d.disbursed)));
