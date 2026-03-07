@@ -88,3 +88,9 @@ firebase deploy --only hosting
 
 
 (To deploy everything including functions and rules, just use firebase deploy)
+
+
+git add . && git commit -m "Update from local"  &&  git push origin main
+
+
+git pull origin main && npm run build && firebase deploy --only hosting
