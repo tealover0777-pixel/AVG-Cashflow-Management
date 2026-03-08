@@ -53,7 +53,7 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
   const [sort, setSort] = useState({ key: "dueDate", direction: "asc" });
   const [page, setPage] = useState(1);
   const onSort = k => { setSort(s => ({ key: k, direction: s.key === k && s.direction === "asc" ? "desc" : "asc" })); setPage(1); };
-  const openAdd = () => setModal({ open: true, mode: "add", data: { schedule_id: getNextScheduleId(), contract: "C10000", dueDate: "", type: "Interest", payment: "", status: "Due", notes: "" } });
+  const openAdd = () => setModal({ open: true, mode: "add", data: { schedule_id: getNextScheduleId(), contract: "C10000", dueDate: "", type: "Interest", payment: "", status: "Due", notes: "", fee_ids: [], basePayment: 0 } });
   const openEdit = r => {
     const fee_ids = r.fee_id ? String(r.fee_id).split(",").filter(Boolean) : [];
     let basePayment = 0;
@@ -82,8 +82,9 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
     const isL = (currentData.notes || "").toLowerCase().includes("late") || modal.mode === "add_late";
     const linkedId = currentData.linked || "";
 
-    // If not a replacement, we still want to calculate fees and update notes/amounts
-    const baseAmt = currentData.basePayment || 0;
+    // Fallback to current typed payment if basePayment is missing to prevent reset to $0
+    const rawTyping = String(currentData.payment || "").replace(/[^0-9.-]/g, "");
+    const baseAmt = currentData.basePayment !== undefined ? currentData.basePayment : (Number(rawTyping) || 0);
     const paidVal = newPartialPaid !== null ? newPartialPaid : (currentData.partialPaid || "");
     const paidNum = Number(String(paidVal).replace(/[^0-9.]/g, "")) || 0;
     const unpaid = isP ? Math.max(baseAmt - paidNum, 0) : baseAmt;
@@ -92,24 +93,38 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
       const fee = FEES_DATA.find(ff => ff.id === fid);
       if (!fee) return 0;
       const rateNum = Number(String(fee.rate).replace(/[^0-9.]/g, "")) || 0;
-      return fee.method === "Fixed Amount" ? rateNum : unpaid * rateNum / 100;
+      return fee.method === "Fixed Amount" ? rateNum : Math.abs(unpaid) * rateNum / 100;
     });
 
     const totalFees = feeAmts.reduce((a, b) => a + b, 0);
-    const finalAmt = unpaid + totalFees;
+    const absBase = Math.abs(unpaid);
+    const finalAmtAbs = absBase + totalFees;
     const dir = currentData.direction;
-    const signedAmt = (dir === "OUT") ? -finalAmt : finalAmt;
+
+    // Rule 1: Signed Amount = -1 * Payment Amount
+    // Rule 2: IN direction: Signed (+), Payment (-)
+    // Rule 3: OUT direction: Signed (-), Payment (+)
+    const signedAmt = (dir === "IN") ? finalAmtAbs : -finalAmtAbs;
+    const paymentAmt = -signedAmt;
 
     let notes = (currentData.notes || "");
-
+    // ... rest of the notes logic ...
     if (linkedId && (isP || isL)) {
       // Logic for Replacement Schedules
-      const prefix = isP ? "Partial payment replacement for" : "Late payment replacement for";
+      let prefix = isP ? "Partial payment replacement for" : "Late payment replacement for";
+      if (isL && (currentData.notes || "").toLowerCase().includes("cancelled")) {
+        prefix = "Cancelled payment replacement for";
+      } else if (isL && (currentData.notes || "").toLowerCase().includes("missed")) {
+        prefix = "Missed payment replacement for";
+      } else if (isL) {
+        prefix = "Replacement payment for";
+      }
+
       if (newFeeIds.length === 0) {
         notes = `${prefix} ${linkedId}${isP ? `. Unpaid: ${fmtCurr(unpaid)}` : ""}`;
       } else {
         const parts = [fmtCurr(unpaid), ...feeAmts.map(a => fmtCurr(a))].join(" + ");
-        notes = `${prefix} ${linkedId} with penalty selected. ${parts} = ${fmtCurr(finalAmt)}`;
+        notes = `${prefix} ${linkedId} with penalty selected. ${parts} = ${fmtCurr(finalAmtAbs)}`;
       }
     } else {
       // Logic for Standard Schedules (General fee addition)
@@ -117,13 +132,13 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
       const cleanNote = notes.split(" | Fee Breakdown:")[0];
       if (newFeeIds.length > 0) {
         const parts = [fmtCurr(unpaid), ...feeAmts.map(a => fmtCurr(a))].join(" + ");
-        notes = `${cleanNote} | Fee Breakdown: ${parts} = ${fmtCurr(finalAmt)}`;
+        notes = `${cleanNote} | Fee Breakdown: ${parts} = ${fmtCurr(finalAmtAbs)}`;
       } else {
         notes = cleanNote;
       }
     }
 
-    return { fee_ids: newFeeIds, notes, payment: fmtCurr(finalAmt), signed_payment_amount: fmtCurr(signedAmt), partialPaid: paidVal };
+    return { fee_ids: newFeeIds, notes, payment: fmtCurr(paymentAmt), signed_payment_amount: fmtCurr(signedAmt), partialPaid: paidVal, basePayment: baseAmt };
   };
   const close = () => setModal(m => ({ ...m, open: false }));
   const setF = (k, v) => setModal(m => ({ ...m, data: { ...m.data, [k]: v } }));
@@ -401,7 +416,7 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
       })}
     </div>
     <div style={{ marginTop: 16, display: "flex", justifyContent: "space-between", alignItems: "center" }}><span style={{ fontSize: 12, color: t.textSubtle }}>Showing <strong style={{ color: t.textSecondary }}>{paginated.length}</strong> of <strong style={{ color: t.textSecondary }}>{sorted.length}</strong> schedules{sel.size > 0 && <span style={{ color: t.accent, marginLeft: 8 }}>· {sel.size} selected</span>}</span><Pagination totalPages={totalPages} currentPage={page} onPageChange={setPage} t={t} /></div>
-    <Modal open={modal.open} onClose={close} title={modal.mode === "add" ? "New Schedule Entry" : modal.mode === "add_late" ? "Late Payment Schedule" : modal.mode === "add_partial" ? "Partial Payment Schedule" : "Edit Schedule Entry"} onSave={handleSaveSchedule} width={620} t={t} isDark={isDark}>
+    <Modal open={modal.open} onClose={close} title={modal.mode === "add" ? "New Schedule Entry" : modal.mode === "add_late" ? "Replacement Payment Schedule" : modal.mode === "add_partial" ? "Partial Payment Schedule" : "Edit Schedule Entry"} onSave={handleSaveSchedule} width={620} t={t} isDark={isDark}>
       {modal.mode === "edit" && (
         <FF label="Schedule ID" t={t}>
           <div style={{ fontFamily: t.mono, fontSize: 13, color: t.idText, background: isDark ? "rgba(255,255,255,0.04)" : "#F5F4F1", border: `1px solid ${t.surfaceBorder}`, borderRadius: 9, padding: "10px 13px" }}>{modal.data.schedule_id}</div>
@@ -420,17 +435,27 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14 }}>
         <FF label="Term Start" t={t}><FIn value={modal.data.term_start || ""} onChange={e => setF("term_start", e.target.value)} t={t} type="date" /></FF>
         <FF label="Term End" t={t}><FIn value={modal.data.term_end || ""} onChange={e => setF("term_end", e.target.value)} t={t} type="date" /></FF>
-        <FF label="Direction" t={t}><FSel value={modal.data.direction} onChange={e => setF("direction", e.target.value)} options={["IN", "OUT"]} t={t} /></FF>
+        <FF label="Direction" t={t}><FSel value={modal.data.direction} onChange={e => {
+          const dir = e.target.value;
+          const updates = recalcReplacement({ ...modal.data, direction: dir }, modal.data.fee_ids || []);
+          setModal(m => ({ ...m, data: { ...m.data, direction: dir, ...updates } }));
+        }} options={["IN", "OUT"]} t={t} /></FF>
       </div>
       <FF label="Payment Type" t={t}><FSel value={modal.data.type} onChange={e => setF("type", e.target.value)} options={["INVESTOR_PRINCIPAL_DEPOSIT", "INVESTOR_INTEREST_PAYMENT", "INVESTOR_PRINCIPAL_PAYMENT", "BORROWER_PRINCIPAL_RECEIVED", "BORROWER_INTEREST_PAYMENT", "BORROWER_PRINCIPAL_PAYMENT", "FEE"]} t={t} /></FF>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14 }}>
-        <FF label="Payment Amount" t={t}><FIn value={modal.data.payment || ""} onChange={e => setF("payment", e.target.value)} placeholder="$0" t={t} /></FF>
+        <FF label="Payment Amount" t={t}><FIn value={modal.data.payment || ""} onChange={e => {
+          const val = e.target.value;
+          const raw = Number(String(val).replace(/[^0-9.-]/g, "")) || 0;
+          const base = Math.abs(raw);
+          const updates = recalcReplacement({ ...modal.data, payment: val, basePayment: base }, modal.data.fee_ids || []);
+          setModal(m => ({ ...m, data: { ...m.data, payment: val, basePayment: base, ...updates } }));
+        }} placeholder="$0" t={t} /></FF>
         <FF label="Principal Amount" t={t}><FIn value={modal.data.principal_amount || ""} onChange={e => setF("principal_amount", e.target.value)} placeholder="$0" t={t} /></FF>
         <FF label="Signed Amount" t={t}><FIn value={modal.data.signed_payment_amount || ""} onChange={e => setF("signed_payment_amount", e.target.value)} placeholder="$0" t={t} /></FF>
       </div>
       {modal.mode === "add_late" ? (<>
-        <FF label="Penalty Fees" t={t}>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+        <FF label="Fee Selection" t={t}>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 8, maxHeight: 120, overflowY: "auto", padding: 2 }}>
             {FEES_DATA.map(f => {
               const selected = (modal.data.fee_ids || []).includes(f.id);
               const toggle = () => {
@@ -440,14 +465,13 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
                 setModal(m => ({ ...m, data: { ...m.data, ...updates } }));
               };
               return (
-                <div key={f.id} onClick={toggle} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12.5, fontWeight: selected ? 600 : 400, padding: "5px 12px", borderRadius: 20, cursor: "pointer", transition: "all 0.15s ease", background: selected ? (isDark ? "rgba(248,113,113,0.15)" : "#FEF2F2") : t.chipBg, color: selected ? (isDark ? "#F87171" : "#DC2626") : t.textSecondary, border: `1px solid ${selected ? (isDark ? "rgba(248,113,113,0.4)" : "#FECACA") : t.chipBorder}` }}>
+                <div key={f.id} onClick={toggle} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: selected ? 600 : 400, padding: "5px 12px", borderRadius: 20, cursor: "pointer", transition: "all 0.15s ease", background: selected ? (isDark ? "rgba(248,113,113,0.15)" : "#FEF2F2") : t.chipBg, color: selected ? (isDark ? "#F87171" : "#DC2626") : t.textSecondary, border: `1px solid ${selected ? (isDark ? "rgba(248,113,113,0.4)" : "#FECACA") : t.chipBorder}` }}>
                   <span style={{ fontSize: 11, fontWeight: 700, lineHeight: 1 }}>{selected ? "✓" : "+"}</span>
-                  {f.name}
-                  <span style={{ fontFamily: t.mono, fontSize: 10.5, opacity: 0.7 }}>({f.rate})</span>
+                  {f.name} <span style={{ fontFamily: t.mono, fontSize: 10, opacity: 0.6 }}>({f.rate})</span>
                 </div>
               );
             })}
-            {FEES_DATA.length === 0 && <span style={{ fontSize: 12, color: t.textMuted }}>No fees defined</span>}
+            {FEES_DATA.length === 0 && <span style={{ fontSize: 12, color: t.textMuted }}>No fees available</span>}
           </div>
         </FF>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
@@ -474,8 +498,8 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
                 <div style={{ fontFamily: t.mono, fontSize: 13, fontWeight: 600, color: isDark ? "#FBBF24" : "#D97706", background: isDark ? "rgba(251,191,36,0.08)" : "#FFFBEB", border: `1px solid ${isDark ? "rgba(251,191,36,0.2)" : "#FDE68A"}`, borderRadius: 9, padding: "10px 13px" }}>${partialUnpaid}</div>
               </FF>
             </div>
-            <FF label="Penalty Fees" t={t}>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+            <FF label="Fee Selection" t={t}>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 8, maxHeight: 120, overflowY: "auto", padding: 2 }}>
                 {FEES_DATA.map(f => {
                   const selected = (modal.data.fee_ids || []).includes(f.id);
                   const toggle = () => {
@@ -485,14 +509,13 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
                     setModal(m => ({ ...m, data: { ...m.data, fee_ids: newFeeIds, ...updates } }));
                   };
                   return (
-                    <div key={f.id} onClick={toggle} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12.5, fontWeight: selected ? 600 : 400, padding: "5px 12px", borderRadius: 20, cursor: "pointer", transition: "all 0.15s ease", background: selected ? (isDark ? "rgba(251,191,36,0.15)" : "#FFFBEB") : t.chipBg, color: selected ? (isDark ? "#FBBF24" : "#D97706") : t.textSecondary, border: `1px solid ${selected ? (isDark ? "rgba(251,191,36,0.4)" : "#FDE68A") : t.chipBorder}` }}>
+                    <div key={f.id} onClick={toggle} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: selected ? 600 : 400, padding: "5px 12px", borderRadius: 20, cursor: "pointer", transition: "all 0.15s ease", background: selected ? (isDark ? "rgba(251,191,36,0.15)" : "#FFFBEB") : t.chipBg, color: selected ? (isDark ? "#FBBF24" : "#D97706") : t.textSecondary, border: `1px solid ${selected ? (isDark ? "rgba(251,191,36,0.4)" : "#FDE68A") : t.chipBorder}` }}>
                       <span style={{ fontSize: 11, fontWeight: 700, lineHeight: 1 }}>{selected ? "✓" : "+"}</span>
-                      {f.name}
-                      <span style={{ fontFamily: t.mono, fontSize: 10.5, opacity: 0.7 }}>({f.rate})</span>
+                      {f.name} <span style={{ fontFamily: t.mono, fontSize: 10, opacity: 0.6 }}>({f.rate})</span>
                     </div>
                   );
                 })}
-                {FEES_DATA.length === 0 && <span style={{ fontSize: 12, color: t.textMuted }}>No fees defined</span>}
+                {FEES_DATA.length === 0 && <span style={{ fontSize: 12, color: t.textMuted }}>No fees available</span>}
               </div>
             </FF>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
@@ -509,9 +532,9 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
               <FSel value={modal.data.status} onChange={e => setF("status", e.target.value)} options={paymentStatusOpts} t={t} />
             </div>
           </FF>
-          <FF label="Fee Selection (Multi-select)" t={t}>
+          <FF label="Fee Selection" t={t}>
             <div style={{ background: isDark ? "rgba(255,255,255,0.02)" : "#FDFDFC", border: `1px solid ${t.surfaceBorder}`, borderRadius: 12, padding: 12 }}>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 8, maxHeight: 160, overflowY: "auto", padding: 2 }}>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 8, maxHeight: 120, overflowY: "auto", padding: 2 }}>
                 {FEES_DATA.map(f => {
                   const selected = (modal.data.fee_ids || []).includes(f.id);
                   const toggle = () => {
@@ -521,9 +544,9 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
                     setModal(m => ({ ...m, data: { ...m.data, ...updates, fee_ids: next } }));
                   };
                   return (
-                    <div key={f.id} onClick={toggle} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11.5, fontWeight: selected ? 600 : 400, padding: "5px 12px", borderRadius: 20, cursor: "pointer", transition: "all 0.15s ease", background: selected ? (isDark ? "rgba(96,165,250,0.15)" : "#EFF6FF") : t.chipBg, color: selected ? (isDark ? "#60A5FA" : "#2563EB") : t.textSecondary, border: `1px solid ${selected ? (isDark ? "rgba(96,165,250,0.4)" : "#BFDBFE") : t.chipBorder}` }}>
-                      <span style={{ fontSize: 10, fontWeight: 700 }}>{selected ? "✓" : "+"}</span>
-                      {f.name} <span style={{ fontFamily: t.mono, fontSize: 10, opacity: 0.6 }}>[{f.id}]</span>
+                    <div key={f.id} onClick={toggle} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: selected ? 600 : 400, padding: "5px 12px", borderRadius: 20, cursor: "pointer", transition: "all 0.15s ease", background: selected ? (isDark ? "rgba(96,165,250,0.15)" : "#EFF6FF") : t.chipBg, color: selected ? (isDark ? "#60A5FA" : "#2563EB") : t.textSecondary, border: `1px solid ${selected ? (isDark ? "rgba(96,165,250,0.4)" : "#BFDBFE") : t.chipBorder}` }}>
+                      <span style={{ fontSize: 11, fontWeight: 700, lineHeight: 1 }}>{selected ? "✓" : "+"}</span>
+                      {f.name} <span style={{ fontFamily: t.mono, fontSize: 10, opacity: 0.6 }}>({f.rate})</span>
                     </div>
                   );
                 })}
