@@ -8,6 +8,7 @@ export default function PageReports({ t, isDark, MONTHLY = [], activeTenantId = 
 
   // Construct dynamic Looker URL with tenant filtering
   const lookerUrl = useMemo(() => {
+    console.log("PageReports: activeTenantId prop updated ->", activeTenantId);
     if (!activeTenantId || activeTenantId === "GLOBAL") return baseUrl;
     const params = {
       "selected_tenant": activeTenantId,
@@ -63,8 +64,8 @@ export default function PageReports({ t, isDark, MONTHLY = [], activeTenantId = 
               <span style={{ color: t.textMuted }}>Active Tenant: </span>
               <span style={{ fontWeight: 600, color: t.accent }}>{activeTenantId || "None (GLOBAL)"}</span>
               <span style={{ margin: "0 12px", color: t.surfaceBorder }}>|</span>
-              <span style={{ color: t.textMuted }}>Parameter: </span>
-              <span style={{ fontFamily: t.mono }}>selected_tenant_id</span>
+              <span style={{ color: t.textMuted }}>Parameter ID: </span>
+              <span style={{ fontFamily: t.mono }}>selected_tenant</span>
             </div>
             <button
               onClick={() => {
