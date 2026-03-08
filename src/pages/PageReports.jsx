@@ -63,22 +63,27 @@ export default function PageReports({ t, isDark, MONTHLY = [], activeTenantId = 
             <div>
               <span style={{ color: t.textMuted }}>Active Tenant: </span>
               <span style={{ fontWeight: 600, color: t.accent }}>{activeTenantId || "None (GLOBAL)"}</span>
-              <span style={{ margin: "0 12px", color: t.surfaceBorder }}>|</span>
-              <span style={{ color: t.textMuted }}>Parameter ID: </span>
-              <span style={{ fontFamily: t.mono }}>selected_tenant</span>
             </div>
-            <button
-              onClick={() => {
-                navigator.clipboard.writeText(lookerUrl);
-                alert("Looker URL copied to clipboard!");
-              }}
-              style={{ background: isDark ? "rgba(255,255,255,0.1)" : "#fff", border: `1px solid ${t.surfaceBorder}`, padding: "4px 10px", borderRadius: 6, fontSize: 11, cursor: "pointer", color: t.text }}
-            >
-              Copy Embed URL
-            </button>
+            <div style={{ display: "flex", gap: 8 }}>
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(lookerUrl);
+                  alert("Looker URL copied to clipboard!");
+                }}
+                style={{ background: isDark ? "rgba(255,255,255,0.1)" : "#fff", border: `1px solid ${t.surfaceBorder}`, padding: "4px 10px", borderRadius: 6, fontSize: 11, cursor: "pointer", color: t.text }}
+              >
+                Copy URL
+              </button>
+            </div>
           </div>
-          <div style={{ marginTop: 8, fontFamily: t.mono, fontSize: 10, color: t.textMuted, wordBreak: "break-all", opacity: 0.7 }}>
-            {lookerUrl}
+          <div style={{ marginTop: 12, paddingTop: 12, borderTop: `1px solid ${t.surfaceBorder}` }}>
+            <div style={{ fontWeight: 600, marginBottom: 8, fontSize: 11, color: t.textSecondary }}>FINAL LOOKER VERIFICATION CHECKLIST:</div>
+            <div style={{ display: "grid", gap: 6, opacity: 0.9 }}>
+              <div>✅ 1. Parameter ID is exactly <code style={{ color: t.accent }}>selected_tenant</code> (Case-sensitive)</div>
+              <div>✅ 2. "Allow parameter to be modified in report URL" is **CHECKED** on all sources.</div>
+              <div>✅ 3. Chart filter is set to: <code style={{ color: t.accent }}>Filter Match = True</code></div>
+              <div>✅ 4. Formula: <code style={{ color: t.accent }}>UPPER(TRIM(tenant_id)) = UPPER(TRIM(selected_tenant))</code></div>
+            </div>
           </div>
         </div>
 
