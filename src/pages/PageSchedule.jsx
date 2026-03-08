@@ -138,7 +138,14 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
       }
     }
 
-    return { fee_ids: newFeeIds, notes, payment: fmtCurr(paymentAmt), signed_payment_amount: fmtCurr(signedAmt), partialPaid: paidVal, basePayment: baseAmt };
+    const updates = { fee_ids: newFeeIds, notes, signed_payment_amount: fmtCurr(signedAmt), basePayment: baseAmt };
+    if (currentData.isTyping !== "payment") {
+      updates.payment = fmtCurr(paymentAmt);
+    }
+    if (currentData.isTyping !== "partialPaid") {
+      updates.partialPaid = paidVal;
+    }
+    return updates;
   };
   const close = () => setModal(m => ({ ...m, open: false }));
   const setF = (k, v) => setModal(m => ({ ...m, data: { ...m.data, [k]: v } }));
@@ -447,8 +454,11 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
           const val = e.target.value;
           const raw = Number(String(val).replace(/[^0-9.-]/g, "")) || 0;
           const base = Math.abs(raw);
-          const updates = recalcReplacement({ ...modal.data, payment: val, basePayment: base }, modal.data.fee_ids || []);
+          const updates = recalcReplacement({ ...modal.data, payment: val, basePayment: base, isTyping: "payment" }, modal.data.fee_ids || []);
           setModal(m => ({ ...m, data: { ...m.data, payment: val, basePayment: base, ...updates } }));
+        }} onBlur={() => {
+          const updates = recalcReplacement({ ...modal.data, isTyping: false }, modal.data.fee_ids || []);
+          setModal(m => ({ ...m, data: { ...m.data, ...updates } }));
         }} placeholder="$0" t={t} /></FF>
         <FF label="Principal Amount" t={t}><FIn value={modal.data.principal_amount || ""} onChange={e => setF("principal_amount", e.target.value)} placeholder="$0" t={t} /></FF>
         <FF label="Signed Amount" t={t}><FIn value={modal.data.signed_payment_amount || ""} onChange={e => setF("signed_payment_amount", e.target.value)} placeholder="$0" t={t} /></FF>
@@ -491,7 +501,9 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
                 <input value={modal.data.partialPaid || ""} onChange={e => {
                   const val = e.target.value;
                   const updates = recalcPartial(val, modal.data.fee_ids || []);
-                  setModal(m => ({ ...m, data: { ...m.data, partialPaid: val, ...updates } }));
+                  setModal(m => ({ ...m, data: { ...m.data, partialPaid: val, isTyping: "partialPaid", ...updates } }));
+                }} onBlur={() => {
+                  setModal(m => ({ ...m, data: { ...m.data, isTyping: false } }));
                 }} placeholder="Enter amount paid..." style={{ width: "100%", background: isDark ? "rgba(251,191,36,0.08)" : "#fff", border: `1.5px solid ${isDark ? "rgba(251,191,36,0.4)" : "#FCD34D"}`, borderRadius: 9, padding: "10px 13px", color: isDark ? "#FBBF24" : "#92400E", fontSize: 13.5, fontWeight: 600, fontFamily: "inherit", outline: "none", boxSizing: "border-box" }} />
               </div>
               <FF label="Partial Unpaid" t={t}>
