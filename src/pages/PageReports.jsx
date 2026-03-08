@@ -10,10 +10,12 @@ export default function PageReports({ t, isDark, MONTHLY = [], activeTenantId = 
   const lookerUrl = useMemo(() => {
     console.log("PageReports: activeTenantId prop updated ->", activeTenantId);
     if (!activeTenantId || activeTenantId === "GLOBAL") return baseUrl;
+    // Generate a wide range of dsX aliases to ensure we hit the correct internal Looker ID (e.g., ds12 seen in screenshot)
     const params = {
       "selected_tenant_id": activeTenantId,
-      "ds0.selected_tenant_id": activeTenantId,
-      "ds1.selected_tenant_id": activeTenantId
+      ...Object.fromEntries(
+        Array.from({ length: 21 }, (_, i) => [`ds${i}.selected_tenant_id`, activeTenantId])
+      )
     };
     const finalUrl = `${baseUrl}?params=${encodeURIComponent(JSON.stringify(params))}`;
     console.log("Looker Filter Link:", finalUrl);
