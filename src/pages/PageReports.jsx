@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
 import { initials } from "../utils";
-import { StatCard } from "../components";
+// import { StatCard } from "../components"; // Removed as per request
+
 
 export default function PageReports({ t, isDark, MONTHLY = [], activeTenantId = "" }) {
   const [tab, setTab] = useState("Cashflow");
@@ -28,10 +29,10 @@ export default function PageReports({ t, isDark, MONTHLY = [], activeTenantId = 
   const projData = [{ name: "Palm Springs Villas", total: 810000 }, { name: "Irvine Office Complex", total: 1850000 }, { name: "San Diego Condo", total: 320000 }, { name: "Beverly Hills Estate", total: 500000 }, { name: "Santa Monica Retail", total: 270000 }, { name: "Anaheim Hotel (Closed)", total: 0 }];
   const invData = [{ name: "Kies Capital Group", amount: 1250000, pct: 26 }, { name: "Hsiu Ju Hsu Properties", amount: 600000, pct: 12 }, { name: "Suet Fong Yu Ho", amount: 500000, pct: 10 }, { name: "Pao Fu Chen", amount: 450000, pct: 9 }, { name: "Others (16)", amount: 2020000, pct: 42 }];
   const pColors = [isDark ? "#60A5FA" : "#3B82F6", isDark ? "#34D399" : "#059669", isDark ? "#FBBF24" : "#D97706", isDark ? "#A78BFA" : "#7C3AED", isDark ? "#F472B6" : "#BE185D", isDark ? "rgba(255,255,255,0.2)" : "#D1D5DB"];
-  const kpi = [{ label: "Capital Deployed", value: "$4,820,000", sub: "Across 7 projects", accent: isDark ? "#60A5FA" : "#3B82F6", bg: isDark ? "rgba(96,165,250,0.08)" : "#EFF6FF", border: isDark ? "rgba(96,165,250,0.15)" : "#BFDBFE" }, { label: "Cash Received YTD", value: "$788,041", sub: "Interest + principal", accent: isDark ? "#34D399" : "#059669", bg: isDark ? "rgba(52,211,153,0.08)" : "#ECFDF5", border: isDark ? "rgba(52,211,153,0.15)" : "#A7F3D0" }, { label: "Avg Interest Rate", value: "9.85%", sub: "Weighted average", accent: isDark ? "#FBBF24" : "#D97706", bg: isDark ? "rgba(251,191,36,0.08)" : "#FFFBEB", border: isDark ? "rgba(251,191,36,0.15)" : "#FDE68A" }, { label: "Collection Rate", value: "94.2%", sub: "Paid vs scheduled", accent: isDark ? "#A78BFA" : "#7C3AED", bg: isDark ? "rgba(167,139,250,0.08)" : "#F5F3FF", border: isDark ? "rgba(167,139,250,0.15)" : "#DDD6FE" }];
+
   return (<>
     <div style={{ marginBottom: 28, display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}><div><h1 style={{ fontFamily: t.titleFont, fontWeight: t.titleWeight, fontSize: t.titleSize, color: isDark ? "#fff" : "#1C1917", letterSpacing: t.titleTracking, lineHeight: 1, marginBottom: 6 }}>Reports</h1><p style={{ fontSize: 13.5, color: t.textMuted }}>Analytics and financial summaries</p></div><button className="export-btn" style={{ background: t.accentGrad, color: "#fff", padding: "11px 22px", borderRadius: 11, fontSize: 13.5, fontWeight: 600, boxShadow: `0 4px 16px ${t.accentShadow}`, border: "none", cursor: "pointer" }}>↓ Export PDF</button></div>
-    <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 16, marginBottom: 28 }}>{kpi.map(s => <StatCard key={s.label} {...s} large titleFont={t.titleFont} isDark={isDark} />)}</div>
+
     <div style={{ display: "flex", gap: 4, marginBottom: 20, background: isDark ? "rgba(255,255,255,0.04)" : "#F1F0EE", padding: 4, borderRadius: 10, width: "fit-content" }}>
       {["Cashflow", "Capital", "Investors", "Analytics"].map(tb => <div key={tb} onClick={() => setTab(tb)} className="report-tab" style={{ padding: "7px 18px", borderRadius: 8, fontSize: 13, fontWeight: tab === tb ? 600 : 400, background: tab === tb ? (isDark ? "rgba(52,211,153,0.15)" : "#fff") : "transparent", color: tab === tb ? t.accent : t.textSecondary, border: tab === tb ? `1px solid ${isDark ? "rgba(52,211,153,0.25)" : "#E5E3DF"}` : "1px solid transparent", cursor: "pointer" }}>{tb}</div>)}
     </div>
