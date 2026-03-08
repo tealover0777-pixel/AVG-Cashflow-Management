@@ -161,7 +161,10 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
       else if (freq.includes("annu") || freq.includes("year")) monthsToAdd = 12;
       const dt = new Date(currentDueDate + "T12:00:00");
       if (isNaN(dt.getTime())) return "";
+      const origDay = dt.getDate();
       dt.setMonth(dt.getMonth() + monthsToAdd);
+      // If day changed, month overflowed (e.g. Mar 31 + 3mo → Jul 1). Clamp to last day of target month.
+      if (dt.getDate() !== origDay) dt.setDate(0);
       return dt.toISOString().split("T")[0];
     };
 
