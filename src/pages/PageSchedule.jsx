@@ -168,6 +168,14 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
       return dt.toISOString().split("T")[0];
     };
 
+    const getNextDay = (dateStr) => {
+      if (!dateStr) return "";
+      const dt = new Date(dateStr + "T12:00:00");
+      if (isNaN(dt.getTime())) return "";
+      dt.setDate(dt.getDate() + 1);
+      return dt.toISOString().split("T")[0];
+    };
+
     // Missed or Cancelled Payment Workflow
     if (modal.mode === "edit" && (d.status === "Missed" || d.status === "Cancelled") && d.status !== d.originalStatus) {
       setConfirmAction({
@@ -191,7 +199,7 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
                 fee_ids: [],
                 status: "Due",
                 dueDate: nextDueDate,
-                term_start: d.dueDate,
+                term_start: getNextDay(d.dueDate),
                 term_end: nextDueDate,
                 basePayment: Math.abs(Number(String(d.payment || d.signed_payment_amount || 0).replace(/[^0-9.-]/g, "")) || 0),
                 notes: `${d.status} payment replacement for ${d.schedule_id}`,
@@ -226,7 +234,7 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
                 fee_ids: [],
                 status: "Due",
                 dueDate: nextDueDatePartial,
-                term_start: d.dueDate,
+                term_start: getNextDay(d.dueDate),
                 term_end: nextDueDatePartial,
                 partialPaid: "",
                 basePayment: Math.abs(Number(String(d.payment || d.signed_payment_amount || 0).replace(/[^0-9.-]/g, "")) || 0),
@@ -423,7 +431,7 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
       {modal.mode === "add_late" ? (<>
         <FF label="Penalty Fees" t={t}>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-            {FEES_DATA.filter(f => f.fee_type === "Late Fee" || f.fee_type === "Contract Penalty").map(f => {
+            {FEES_DATA.map(f => {
               const selected = (modal.data.fee_ids || []).includes(f.id);
               const toggle = () => {
                 const cur = modal.data.fee_ids || [];
@@ -439,7 +447,7 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
                 </div>
               );
             })}
-            {FEES_DATA.filter(f => f.fee_type === "Late Fee" || f.fee_type === "Contract Penalty").length === 0 && <span style={{ fontSize: 12, color: t.textMuted }}>No Late Fee or Contract Penalty types defined in Fees</span>}
+            {FEES_DATA.length === 0 && <span style={{ fontSize: 12, color: t.textMuted }}>No fees defined</span>}
           </div>
         </FF>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
@@ -468,7 +476,7 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
             </div>
             <FF label="Penalty Fees" t={t}>
               <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                {FEES_DATA.filter(f => f.fee_type === "Partial-Pay Penalty" || f.fee_type === "Contract Penalty").map(f => {
+                {FEES_DATA.map(f => {
                   const selected = (modal.data.fee_ids || []).includes(f.id);
                   const toggle = () => {
                     const cur = modal.data.fee_ids || [];
@@ -484,7 +492,7 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
                     </div>
                   );
                 })}
-                {FEES_DATA.filter(f => f.fee_type === "Partial-Pay Penalty" || f.fee_type === "Contract Penalty").length === 0 && <span style={{ fontSize: 12, color: t.textMuted }}>No Partial-Pay or Contract Penalty types defined in Fees</span>}
+                {FEES_DATA.length === 0 && <span style={{ fontSize: 12, color: t.textMuted }}>No fees defined</span>}
               </div>
             </FF>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
