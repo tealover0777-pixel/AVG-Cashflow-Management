@@ -12,7 +12,10 @@ export default function PageReports({ t, isDark, MONTHLY = [], activeTenantId = 
     const params = {
       "selected_tenant": activeTenantId,
       "ds0.selected_tenant": activeTenantId,
-      "ds1.selected_tenant": activeTenantId
+      "ds1.selected_tenant": activeTenantId,
+      "ds2.selected_tenant": activeTenantId,
+      "ds3.selected_tenant": activeTenantId,
+      "ds4.selected_tenant": activeTenantId
     };
     const finalUrl = `${baseUrl}?params=${encodeURIComponent(JSON.stringify(params))}`;
     console.log("Looker Filter Link:", finalUrl);
