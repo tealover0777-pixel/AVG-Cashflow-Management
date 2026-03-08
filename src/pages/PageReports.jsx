@@ -58,24 +58,24 @@ export default function PageReports({ t, isDark, MONTHLY = [], activeTenantId = 
       {invData.map((inv, i) => { const color = pColors[i]; return (<div key={inv.name} style={{ display: "flex", alignItems: "center", gap: 14, padding: "12px 0", borderBottom: i < invData.length - 1 ? `1px solid ${t.rowDivider}` : "none" }}><div style={{ width: 36, height: 36, borderRadius: 9, background: `${color}22`, border: `1px solid ${color}44`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11.5, fontWeight: 700, color, flexShrink: 0 }}>{initials(inv.name).slice(0, 2)}</div><div style={{ flex: 1 }}><div style={{ fontSize: 13, fontWeight: 500, color: isDark ? "rgba(255,255,255,0.85)" : "#1C1917", marginBottom: 4 }}>{inv.name}</div><div style={{ height: 5, borderRadius: 5, background: t.barTrack, overflow: "hidden" }}><div style={{ height: "100%", width: `${inv.pct}%`, borderRadius: 5, background: color }} /></div></div><div style={{ textAlign: "right", flexShrink: 0 }}><div style={{ fontFamily: t.mono, fontSize: 13, fontWeight: 700, color }}>${inv.amount.toLocaleString()}</div><div style={{ fontSize: 10.5, color: t.textMuted, marginTop: 2 }}>{inv.pct}%</div></div></div>); })}
     </div>)}
     {tab === "Analytics" && (
-      <div style={{ width: "100%", marginLeft: -2, marginRight: -2 }}>
+      <div style={{ width: "calc(100% + 72px)", marginLeft: -36, marginRight: -36 }}>
         <div style={{
           background: t.surface,
-          borderRadius: 12,
+          borderRadius: 0,
           border: `1px solid ${t.surfaceBorder}`,
-          padding: "0 0 60px 0", // Extra 60px at bottom to clear the scrollbar
+          padding: 0,
           height: "calc(100vh - 440px)",
           minHeight: 600,
           overflowX: "scroll",
           overflowY: "hidden",
-          marginBottom: 40,
+          marginBottom: 0,
           WebkitOverflowScrolling: "touch"
         }}>
           <iframe
             key={lookerUrl}
             src={lookerUrl}
             scrolling="auto"
-            style={{ width: 1800, height: "100%", border: "none", display: "block" }}
+            style={{ width: "100%", height: "100%", border: "none", display: "block" }}
             allowFullScreen
             sandbox="allow-storage-access-by-user-activation allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox allow-top-navigation-by-user-activation"
           />
