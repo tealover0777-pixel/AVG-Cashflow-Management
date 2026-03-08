@@ -82,11 +82,12 @@ export default function PageReports({ t, isDark, MONTHLY = [], activeTenantId = 
           </div>
         </div>
 
-        <div style={{ background: t.surface, borderRadius: 0, border: `1px solid ${t.surfaceBorder}`, padding: 0, height: "calc(100vh - 440px)", minHeight: 500, overflowX: "scroll", overflowY: "hidden", marginBottom: 20 }}>
+        <div style={{ background: t.surface, borderRadius: 0, border: `1px solid ${t.surfaceBorder}`, padding: 0, height: "calc(100vh - 440px)", minHeight: 500, overflowX: "scroll", overflowY: "hidden", marginBottom: 20, WebkitOverflowScrolling: "touch" }}>
           <iframe
             key={lookerUrl}
             src={lookerUrl}
-            style={{ width: "100%", minWidth: 1200, height: "100%", border: "none", display: "block" }}
+            scrolling="auto"
+            style={{ width: 1800, height: "100%", border: "none", display: "block" }}
             allowFullScreen
             sandbox="allow-storage-access-by-user-activation allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox allow-top-navigation-by-user-activation"
           />
