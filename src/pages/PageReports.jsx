@@ -11,9 +11,9 @@ export default function PageReports({ t, isDark, MONTHLY = [], activeTenantId = 
     console.log("PageReports: activeTenantId prop updated ->", activeTenantId);
     if (!activeTenantId || activeTenantId === "GLOBAL") return baseUrl;
     const params = {
-      "selected_tenant": activeTenantId,
-      "ds0.selected_tenant": activeTenantId,
-      "ds1.selected_tenant": activeTenantId
+      "selected_tenant_id": activeTenantId,
+      "ds0.selected_tenant_id": activeTenantId,
+      "ds1.selected_tenant_id": activeTenantId
     };
     const finalUrl = `${baseUrl}?params=${encodeURIComponent(JSON.stringify(params))}`;
     console.log("Looker Filter Link:", finalUrl);
@@ -79,10 +79,10 @@ export default function PageReports({ t, isDark, MONTHLY = [], activeTenantId = 
           <div style={{ marginTop: 12, paddingTop: 12, borderTop: `1px solid ${t.surfaceBorder}` }}>
             <div style={{ fontWeight: 600, marginBottom: 8, fontSize: 11, color: t.textSecondary }}>FINAL LOOKER VERIFICATION CHECKLIST:</div>
             <div style={{ display: "grid", gap: 6, opacity: 0.9 }}>
-              <div>✅ 1. Parameter ID is exactly <code style={{ color: t.accent }}>selected_tenant</code> (Case-sensitive)</div>
+              <div>✅ 1. Parameter ID is exactly <code style={{ color: t.accent }}>selected_tenant_id</code> (Case-sensitive)</div>
               <div>✅ 2. "Allow parameter to be modified in report URL" is **CHECKED** on all sources.</div>
               <div>✅ 3. Chart filter is set to: <code style={{ color: t.accent }}>Filter Match = True</code></div>
-              <div>✅ 4. Formula: <code style={{ color: t.accent }}>UPPER(TRIM(tenant_id)) = UPPER(TRIM(selected_tenant))</code></div>
+              <div>✅ 4. Formula: <code style={{ color: t.accent }}>UPPER(TRIM(tenant_id)) = UPPER(TRIM(selected_tenant_id))</code></div>
             </div>
           </div>
         </div>
