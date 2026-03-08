@@ -59,44 +59,6 @@ export default function PageReports({ t, isDark, MONTHLY = [], activeTenantId = 
     </div>)}
     {tab === "Analytics" && (
       <div style={{ width: "100%" }}>
-        {/* Debug Section */}
-        <div style={{ background: isDark ? "rgba(255,255,255,0.05)" : "#F9F8F6", padding: "12px 16px", borderRadius: 10, marginBottom: 12, border: `1px dashed ${t.surfaceBorder}`, fontSize: 12 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <div>
-              <span style={{ color: t.textMuted }}>Active Tenant: </span>
-              <span style={{ fontWeight: 600, color: t.accent }}>{activeTenantId || "None (GLOBAL)"}</span>
-            </div>
-            <div style={{ display: "flex", gap: 8 }}>
-              <a
-                href={lookerUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{ background: t.accent, color: "#fff", padding: "4px 10px", borderRadius: 6, fontSize: 11, cursor: "pointer", textDecoration: "none" }}
-              >
-                Open Link in New Tab ↗
-              </a>
-              <button
-                onClick={() => {
-                  navigator.clipboard.writeText(lookerUrl);
-                  alert("Looker URL copied to clipboard!");
-                }}
-                style={{ background: isDark ? "rgba(255,255,255,0.1)" : "#fff", border: `1px solid ${t.surfaceBorder}`, padding: "4px 10px", borderRadius: 6, fontSize: 11, cursor: "pointer", color: t.text }}
-              >
-                Copy URL
-              </button>
-            </div>
-          </div>
-          <div style={{ marginTop: 12, paddingTop: 12, borderTop: `1px solid ${t.surfaceBorder}` }}>
-            <div style={{ fontWeight: 600, marginBottom: 8, fontSize: 11, color: t.textSecondary }}>FINAL LOOKER VERIFICATION CHECKLIST:</div>
-            <div style={{ display: "grid", gap: 6, opacity: 0.9 }}>
-              <div>✅ 1. BigQuery Query uses: <code style={{ color: t.accent }}>@selected_tenant_id</code></div>
-              <div>✅ 2. "Allow to be modified in URL" is **CHECKED** for the parameter.</div>
-              <div>✅ 3. If NOT using a query filter, Chart filter is: <code style={{ color: t.accent }}>Filter Match = True</code></div>
-              <div>✅ 4. Formula: <code style={{ color: t.accent }}>UPPER(TRIM(tenant_id)) = UPPER(TRIM(selected_tenant_id))</code></div>
-            </div>
-          </div>
-        </div>
-
         <div style={{ background: t.surface, borderRadius: 0, border: `1px solid ${t.surfaceBorder}`, padding: 0, height: "calc(100vh - 440px)", minHeight: 500, overflowX: "scroll", overflowY: "hidden", marginBottom: 20, WebkitOverflowScrolling: "touch" }}>
           <iframe
             key={lookerUrl}
