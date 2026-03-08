@@ -3,85 +3,82 @@ import { initials } from "../utils";
 // import { StatCard } from "../components"; // Removed as per request
 
 
+const REPORT_CONFIG = {
+  "CASHFLOW - Full Schedule": "https://lookerstudio.google.com/embed/reporting/4252f725-57ca-40e1-b714-8c8605789cf1/page/puArF",
+  "CASHFLOW - Due in 3 Months": "https://lookerstudio.google.com/embed/reporting/4252f725-57ca-40e1-b714-8c8605789cf1/page/puArF", // TODO: Update with specific URL/Page ID
+  "CASHFLOW - Past Due 3 Months": "https://lookerstudio.google.com/embed/reporting/4252f725-57ca-40e1-b714-8c8605789cf1/page/puArF", // TODO: Update with specific URL/Page ID
+  "Analytics": "https://lookerstudio.google.com/embed/reporting/4252f725-57ca-40e1-b714-8c8605789cf1/page/puArF"
+};
+
 export default function PageReports({ t, isDark, MONTHLY = [], activeTenantId = "" }) {
-  const [tab, setTab] = useState("Cashflow");
-  const baseUrl = "https://lookerstudio.google.com/embed/reporting/4252f725-57ca-40e1-b714-8c8605789cf1/page/puArF";
+  const [tab, setTab] = useState("CASHFLOW - Full Schedule");
 
   // Construct dynamic Looker URL with tenant filtering
   const lookerUrl = useMemo(() => {
-    console.log("PageReports: activeTenantId prop updated ->", activeTenantId);
-    if (!activeTenantId || activeTenantId === "GLOBAL") return baseUrl;
-    // Generate a wide range of dsX aliases to ensure we hit the correct internal Looker ID (e.g., ds12 seen in screenshot)
+    const activeBaseUrl = REPORT_CONFIG[tab] || REPORT_CONFIG["CASHFLOW - Full Schedule"];
+    console.log(`PageReports: Loading tab "${tab}" with tenant ${activeTenantId}`);
+
+    if (!activeTenantId || activeTenantId === "GLOBAL") return activeBaseUrl;
+
+    // Generate parameters for tenant filtering
     const params = {
       "selected_tenant_id": activeTenantId,
       ...Object.fromEntries(
         Array.from({ length: 21 }, (_, i) => [`ds${i}.selected_tenant_id`, activeTenantId])
       )
     };
-    const finalUrl = `${baseUrl}?params=${encodeURIComponent(JSON.stringify(params))}`;
-    console.log("Looker Filter Link:", finalUrl);
-    return finalUrl;
-  }, [activeTenantId, baseUrl]);
+    return `${activeBaseUrl}?params=${encodeURIComponent(JSON.stringify(params))}`;
+  }, [activeTenantId, tab]);
 
 
-  const maxBar = Math.max(...MONTHLY.map(d => Math.max(d.received, d.disbursed)));
-  const projMax = Math.max(1250000, 1850000, 320000, 500000, 270000, 600000);
-  const projData = [{ name: "Palm Springs Villas", total: 810000 }, { name: "Irvine Office Complex", total: 1850000 }, { name: "San Diego Condo", total: 320000 }, { name: "Beverly Hills Estate", total: 500000 }, { name: "Santa Monica Retail", total: 270000 }, { name: "Anaheim Hotel (Closed)", total: 0 }];
-  const invData = [{ name: "Kies Capital Group", amount: 1250000, pct: 26 }, { name: "Hsiu Ju Hsu Properties", amount: 600000, pct: 12 }, { name: "Suet Fong Yu Ho", amount: 500000, pct: 10 }, { name: "Pao Fu Chen", amount: 450000, pct: 9 }, { name: "Others (16)", amount: 2020000, pct: 42 }];
-  const pColors = [isDark ? "#60A5FA" : "#3B82F6", isDark ? "#34D399" : "#059669", isDark ? "#FBBF24" : "#D97706", isDark ? "#A78BFA" : "#7C3AED", isDark ? "#F472B6" : "#BE185D", isDark ? "rgba(255,255,255,0.2)" : "#D1D5DB"];
 
   return (<>
     <div style={{ marginBottom: 28, display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}><div><h1 style={{ fontFamily: t.titleFont, fontWeight: t.titleWeight, fontSize: t.titleSize, color: isDark ? "#fff" : "#1C1917", letterSpacing: t.titleTracking, lineHeight: 1, marginBottom: 6 }}>Reports</h1><p style={{ fontSize: 13.5, color: t.textMuted }}>Analytics and financial summaries</p></div><button className="export-btn" style={{ background: t.accentGrad, color: "#fff", padding: "11px 22px", borderRadius: 11, fontSize: 13.5, fontWeight: 600, boxShadow: `0 4px 16px ${t.accentShadow}`, border: "none", cursor: "pointer" }}>↓ Export PDF</button></div>
 
     <div style={{ display: "flex", gap: 4, marginBottom: 20, background: isDark ? "rgba(255,255,255,0.04)" : "#F1F0EE", padding: 4, borderRadius: 10, width: "fit-content" }}>
-      {["Cashflow", "Capital", "Investors", "Analytics"].map(tb => <div key={tb} onClick={() => setTab(tb)} className="report-tab" style={{ padding: "7px 18px", borderRadius: 8, fontSize: 13, fontWeight: tab === tb ? 600 : 400, background: tab === tb ? (isDark ? "rgba(52,211,153,0.15)" : "#fff") : "transparent", color: tab === tb ? t.accent : t.textSecondary, border: tab === tb ? `1px solid ${isDark ? "rgba(52,211,153,0.25)" : "#E5E3DF"}` : "1px solid transparent", cursor: "pointer" }}>{tb}</div>)}
-    </div>
-    {tab === "Cashflow" && (<div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
-      <div style={{ background: t.surface, borderRadius: 16, border: `1px solid ${t.surfaceBorder}`, padding: "20px", backdropFilter: isDark ? "blur(20px)" : "none", gridColumn: "1 / -1" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}><div><div style={{ fontSize: 13, fontWeight: 600, color: isDark ? "#fff" : "#1C1917" }}>Monthly Cashflow</div><div style={{ fontSize: 11.5, color: t.textMuted, marginTop: 2 }}>Jul 2025 – Feb 2026</div></div><div style={{ display: "flex", gap: 16, fontSize: 11.5 }}><div style={{ display: "flex", alignItems: "center", gap: 6 }}><div style={{ width: 10, height: 10, borderRadius: 3, background: isDark ? "#34D399" : "#059669" }} /><span style={{ color: t.textMuted }}>Received</span></div><div style={{ display: "flex", alignItems: "center", gap: 6 }}><div style={{ width: 10, height: 10, borderRadius: 3, background: isDark ? "#F87171" : "#DC2626" }} /><span style={{ color: t.textMuted }}>Disbursed</span></div></div></div>
-        <div style={{ display: "flex", gap: 12, alignItems: "flex-end", height: 140 }}>{MONTHLY.map(d => { const rH = maxBar > 0 ? (d.received / maxBar) * 120 : 0; const dH = maxBar > 0 ? (d.disbursed / maxBar) * 120 : 0; return (<div key={d.month} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}><div style={{ display: "flex", gap: 3, alignItems: "flex-end", height: 120 }}><div style={{ width: "45%", height: rH, borderRadius: "4px 4px 0 0", background: isDark ? "rgba(52,211,153,0.7)" : "#059669", minHeight: rH > 0 ? 3 : 0 }} /><div style={{ width: "45%", height: dH, borderRadius: "4px 4px 0 0", background: isDark ? "rgba(248,113,113,0.7)" : "#DC2626", minHeight: dH > 0 ? 3 : 0 }} /></div><div style={{ fontSize: 10.5, color: t.textMuted, fontFamily: t.mono }}>{d.month}</div></div>); })}</div>
-      </div>
-      <div style={{ background: t.surface, borderRadius: 16, border: `1px solid ${t.surfaceBorder}`, padding: "20px", backdropFilter: isDark ? "blur(20px)" : "none" }}>
-        <div style={{ fontSize: 13, fontWeight: 600, color: isDark ? "#fff" : "#1C1917", marginBottom: 16 }}>Period Summary</div>
-        {[{ label: "Total Received", value: "$788,041", color: isDark ? "#34D399" : "#059669" }, { label: "Total Disbursed", value: "$68,000", color: isDark ? "#F87171" : "#DC2626" }, { label: "Net Cashflow", value: "$720,041", color: isDark ? "#FBBF24" : "#D97706" }].map((r, i, arr) => <div key={r.label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 0", borderBottom: i < arr.length - 1 ? `1px solid ${t.rowDivider}` : "none" }}><span style={{ fontSize: 12.5, color: t.textMuted }}>{r.label}</span><span style={{ fontFamily: t.mono, fontSize: 14, fontWeight: 700, color: r.color }}>{r.value}</span></div>)}
-      </div>
-      <div style={{ background: t.surface, borderRadius: 16, border: `1px solid ${t.surfaceBorder}`, padding: "20px", backdropFilter: isDark ? "blur(20px)" : "none" }}>
-        <div style={{ fontSize: 13, fontWeight: 600, color: isDark ? "#fff" : "#1C1917", marginBottom: 16 }}>By Payment Type</div>
-        {[{ label: "Interest", pct: 72, color: isDark ? "#60A5FA" : "#3B82F6" }, { label: "Principal", pct: 24, color: isDark ? "#34D399" : "#059669" }, { label: "Fees", pct: 4, color: isDark ? "#FBBF24" : "#D97706" }].map(r => <div key={r.label} style={{ marginBottom: 14 }}><div style={{ display: "flex", justifyContent: "space-between", marginBottom: 5 }}><span style={{ fontSize: 12.5, color: t.textMuted }}>{r.label}</span><span style={{ fontFamily: t.mono, fontSize: 12, fontWeight: 600, color: r.color }}>{r.pct}%</span></div><div style={{ height: 6, borderRadius: 6, background: t.barTrack, overflow: "hidden" }}><div style={{ height: "100%", width: `${r.pct}%`, borderRadius: 6, background: r.color }} /></div></div>)}
-      </div>
-    </div>)}
-    {tab === "Capital" && (<div style={{ background: t.surface, borderRadius: 16, border: `1px solid ${t.surfaceBorder}`, padding: "20px", backdropFilter: isDark ? "blur(20px)" : "none" }}>
-      <div style={{ fontSize: 13, fontWeight: 600, color: isDark ? "#fff" : "#1C1917", marginBottom: 20 }}>Capital Deployed by Project</div>
-      {projData.map((p, i) => { const color = pColors[i]; const pct = projMax > 0 ? (p.total / projMax) * 100 : 0; return (<div key={p.name} style={{ marginBottom: 16 }}><div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}><span style={{ fontSize: 13, fontWeight: 500, color: isDark ? "rgba(255,255,255,0.8)" : "#44403C" }}>{p.name}</span><span style={{ fontFamily: t.mono, fontSize: 12.5, fontWeight: 700, color }}>${p.total.toLocaleString()}</span></div><div style={{ height: 8, borderRadius: 8, background: t.barTrack, overflow: "hidden" }}><div style={{ height: "100%", width: `${pct}%`, borderRadius: 8, background: color, opacity: p.total === 0 ? 0.2 : 1 }} /></div></div>); })}
-    </div>)}
-    {tab === "Investors" && (<div style={{ background: t.surface, borderRadius: 16, border: `1px solid ${t.surfaceBorder}`, padding: "20px", backdropFilter: isDark ? "blur(20px)" : "none" }}>
-      <div style={{ fontSize: 13, fontWeight: 600, color: isDark ? "#fff" : "#1C1917", marginBottom: 20 }}>Capital by Party</div>
-      {invData.map((inv, i) => { const color = pColors[i]; return (<div key={inv.name} style={{ display: "flex", alignItems: "center", gap: 14, padding: "12px 0", borderBottom: i < invData.length - 1 ? `1px solid ${t.rowDivider}` : "none" }}><div style={{ width: 36, height: 36, borderRadius: 9, background: `${color}22`, border: `1px solid ${color}44`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11.5, fontWeight: 700, color, flexShrink: 0 }}>{initials(inv.name).slice(0, 2)}</div><div style={{ flex: 1 }}><div style={{ fontSize: 13, fontWeight: 500, color: isDark ? "rgba(255,255,255,0.85)" : "#1C1917", marginBottom: 4 }}>{inv.name}</div><div style={{ height: 5, borderRadius: 5, background: t.barTrack, overflow: "hidden" }}><div style={{ height: "100%", width: `${inv.pct}%`, borderRadius: 5, background: color }} /></div></div><div style={{ textAlign: "right", flexShrink: 0 }}><div style={{ fontFamily: t.mono, fontSize: 13, fontWeight: 700, color }}>${inv.amount.toLocaleString()}</div><div style={{ fontSize: 10.5, color: t.textMuted, marginTop: 2 }}>{inv.pct}%</div></div></div>); })}
-    </div>)}
-    {tab === "Analytics" && (
-      <div style={{ width: "calc(100% + 72px)", marginLeft: -36, marginRight: -36 }}>
-        <div style={{
-          background: t.surface,
-          borderRadius: 0,
-          border: `1px solid ${t.surfaceBorder}`,
-          padding: 0,
-          height: "calc(100vh - 440px)",
-          minHeight: 600,
-          overflowX: "scroll",
-          overflowY: "hidden",
-          marginBottom: 0,
-          WebkitOverflowScrolling: "touch"
-        }}>
-          <iframe
-            key={lookerUrl}
-            src={lookerUrl}
-            scrolling="auto"
-            style={{ width: "100%", height: "100%", border: "none", display: "block" }}
-            allowFullScreen
-            sandbox="allow-storage-access-by-user-activation allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox allow-top-navigation-by-user-activation"
-          />
+      {Object.keys(REPORT_CONFIG).map(tb => (
+        <div
+          key={tb}
+          onClick={() => setTab(tb)}
+          className="report-tab"
+          style={{
+            padding: "7px 18px",
+            borderRadius: 8,
+            fontSize: 13,
+            fontWeight: tab === tb ? 600 : 400,
+            background: tab === tb ? (isDark ? "rgba(52,211,153,0.15)" : "#fff") : "transparent",
+            color: tab === tb ? t.accent : t.textSecondary,
+            border: tab === tb ? `1px solid ${isDark ? "rgba(52,211,153,0.25)" : "#E5E3DF"}` : "1px solid transparent",
+            cursor: "pointer"
+          }}
+        >
+          {tb}
         </div>
+      ))}
+    </div>
+
+    <div style={{ width: "calc(100% + 72px)", marginLeft: -36, marginRight: -36 }}>
+      <div style={{
+        background: t.surface,
+        borderRadius: 0,
+        border: `1px solid ${t.surfaceBorder}`,
+        padding: 0,
+        height: "calc(100vh - 300px)", // Increased height since KPI boxes are gone
+        minHeight: 700,
+        overflowX: "scroll",
+        overflowY: "hidden",
+        marginBottom: 0,
+        WebkitOverflowScrolling: "touch"
+      }}>
+        <iframe
+          key={lookerUrl + tab}
+          src={lookerUrl}
+          scrolling="auto"
+          style={{ width: "100%", height: "100%", border: "none", display: "block" }}
+          allowFullScreen
+          sandbox="allow-storage-access-by-user-activation allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox allow-top-navigation-by-user-activation"
+        />
       </div>
-    )}
+    </div>
   </>);
 }
