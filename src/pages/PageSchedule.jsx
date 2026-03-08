@@ -25,6 +25,31 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
   const [modal, setModal] = useState({ open: false, mode: "add", data: {} });
   const [delT, setDelT] = useState(null);
   const [confirmAction, setConfirmAction] = useState(null); // { title, message, onConfirm }
+  const [drillSchedule, setDrillSchedule] = useState(null);
+  const buildChain = (scheduleId) => {
+    const visited = new Set();
+    const chain = [];
+    // Walk backward to find the root original
+    let current = SCHEDULES.find(s => s.schedule_id === scheduleId);
+    while (current && !visited.has(current.schedule_id)) {
+      visited.add(current.schedule_id);
+      chain.unshift(current);
+      if (current.linked) {
+        const parent = SCHEDULES.find(s => s.schedule_id === current.linked);
+        if (parent && !visited.has(parent.schedule_id)) { current = parent; } else break;
+      } else break;
+    }
+    // Walk forward to find replacements
+    let lastId = chain[chain.length - 1]?.schedule_id;
+    let safety = 0;
+    while (lastId && safety++ < 50) {
+      const child = SCHEDULES.find(s => s.linked === lastId && !visited.has(s.schedule_id));
+      if (child) { visited.add(child.schedule_id); chain.push(child); lastId = child.schedule_id; }
+      else break;
+    }
+    return chain;
+  };
+  const hasLink = (s) => s.linked || SCHEDULES.some(x => x.linked === s.schedule_id);
   const [sort, setSort] = useState({ key: "dueDate", direction: "asc" });
   const [page, setPage] = useState(1);
   const onSort = k => { setSort(s => ({ key: k, direction: s.key === k && s.direction === "asc" ? "desc" : "asc" })); setPage(1); };
@@ -332,8 +357,8 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
         const dash = <span style={{ color: isDark ? "rgba(255,255,255,0.12)" : "#D4D0CB" }}>—</span>;
         return (<div key={s.schedule_id} className="data-row" onMouseEnter={() => setHov(s.schedule_id)} onMouseLeave={() => setHov(null)} style={{ display: "grid", gridTemplateColumns: gridTemplate, padding: "12px 22px", borderBottom: i < paginated.length - 1 ? `1px solid ${t.rowDivider}` : "none", alignItems: "center", background: isSel ? (isDark ? "rgba(52,211,153,0.04)" : "#F0FDF4") : isHov ? t.rowHover : "transparent", transition: "all 0.15s ease" }}>
           <input type="checkbox" checked={isSel} onChange={() => { const n = new Set(sel); n.has(s.schedule_id) ? n.delete(s.schedule_id) : n.add(s.schedule_id); setSel(n); }} style={{ accentColor: t.checkActive, width: 14, height: 14 }} onClick={e => e.stopPropagation()} />
-          <div style={{ fontFamily: t.mono, fontSize: 11, color: t.idText }}>{s.schedule_id}</div>
-          <div style={{ fontFamily: t.mono, fontSize: 11, color: t.textMuted }}>{s.linked || dash}</div>
+          <div style={{ fontFamily: t.mono, fontSize: 11, color: t.idText }}>{hasLink(s) ? <a href="#" onClick={e => { e.preventDefault(); e.stopPropagation(); setDrillSchedule(s); }} style={{ color: isDark ? "#60A5FA" : "#4F46E5", textDecoration: "none", fontWeight: 600 }}>{s.schedule_id}</a> : s.schedule_id}</div>
+          <div style={{ fontFamily: t.mono, fontSize: 11, color: t.textMuted }}>{s.linked ? <a href="#" onClick={e => { e.preventDefault(); e.stopPropagation(); const linked = SCHEDULES.find(x => x.schedule_id === s.linked); if (linked) setDrillSchedule(linked); }} style={{ color: isDark ? "#60A5FA" : "#4F46E5", textDecoration: "none" }}>{s.linked}</a> : dash}</div>
           <div style={{ fontFamily: t.mono, fontSize: 11.5, color: isDark ? "#60A5FA" : "#4F46E5", fontWeight: 500 }}>{s.contract}</div>
           <div style={{ fontFamily: t.mono, fontSize: 11, color: t.idText }}>{s.project_id || dash}</div>
           <div style={{ fontFamily: t.mono, fontSize: 11, color: t.idText }}>{s.party_id || dash}</div>
@@ -503,5 +528,99 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
     <Modal open={!!confirmAction} onClose={() => setConfirmAction(null)} title={confirmAction?.title || "Confirm"} onSave={confirmAction?.onConfirm} saveLabel="Confirm" t={t} isDark={isDark}>
       <div style={{ padding: "12px 0", fontSize: 14, color: t.textSecondary, lineHeight: 1.6, textAlign: "center" }}>{confirmAction?.message}</div>
     </Modal>
+    {drillSchedule && (() => {
+      const chain = buildChain(drillSchedule.schedule_id);
+      return (
+        <div style={{ position: "fixed", inset: 0, zIndex: 1100, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <div style={{ background: isDark ? "#1C1917" : "#fff", borderRadius: 18, padding: 0, maxWidth: 680, width: "92%", maxHeight: "85vh", display: "flex", flexDirection: "column", boxShadow: "0 24px 60px rgba(0,0,0,0.3)", border: `1px solid ${t.surfaceBorder}` }}>
+            {/* Header */}
+            <div style={{ padding: "22px 28px", borderBottom: `1px solid ${t.surfaceBorder}`, display: "flex", justifyContent: "space-between", alignItems: "center", flexShrink: 0 }}>
+              <div>
+                <div style={{ fontSize: 17, fontWeight: 700, color: isDark ? "#fff" : "#1C1917", fontFamily: t.titleFont }}>Schedule Chain</div>
+                <div style={{ fontSize: 12, color: t.textMuted, display: "flex", gap: 10, marginTop: 4 }}>
+                  <span style={{ fontFamily: t.mono }}>{drillSchedule.contract}</span>
+                  <span style={{ fontFamily: t.mono }}>{drillSchedule.party_id || ""}</span>
+                  <span style={{ fontWeight: 600, color: drillSchedule.direction === "IN" ? (isDark ? "#34D399" : "#059669") : (isDark ? "#F87171" : "#DC2626") }}>{drillSchedule.direction}</span>
+                </div>
+              </div>
+              <button onClick={() => setDrillSchedule(null)} style={{ width: 32, height: 32, borderRadius: 8, background: isDark ? "rgba(255,255,255,0.08)" : "#F5F4F1", border: `1px solid ${t.surfaceBorder}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, cursor: "pointer", color: t.textMuted }}>×</button>
+            </div>
+            {/* Chain Body */}
+            <div style={{ flex: 1, overflow: "auto", padding: "20px 28px" }}>
+              {chain.map((cs, idx) => {
+                const [sbg, sc, sbrd] = badge(cs.status, isDark);
+                const isActive = cs.schedule_id === drillSchedule.schedule_id;
+                const isOriginal = idx === 0 && chain.length > 1 && !cs.linked;
+                const feeIds = cs.fee_id ? String(cs.fee_id).split(",").filter(Boolean) : [];
+                return (
+                  <div key={cs.schedule_id}>
+                    {/* Connector line */}
+                    {idx > 0 && (
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: "4px 0" }}>
+                        <div style={{ width: 2, height: 28, background: isDark ? "rgba(96,165,250,0.3)" : "#BFDBFE" }} />
+                      </div>
+                    )}
+                    {/* Schedule card */}
+                    <div style={{
+                      padding: "16px 18px",
+                      borderRadius: 14,
+                      border: `1.5px solid ${isActive ? (isDark ? "rgba(96,165,250,0.5)" : "#93C5FD") : t.surfaceBorder}`,
+                      background: isActive ? (isDark ? "rgba(96,165,250,0.06)" : "#EFF6FF") : (isDark ? "rgba(255,255,255,0.02)" : "#FAFAF9"),
+                    }}>
+                      {/* Card header */}
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                          <span style={{ fontFamily: t.mono, fontSize: 13, fontWeight: 700, color: isDark ? "#fff" : "#1C1917" }}>{cs.schedule_id}</span>
+                          <span style={{ fontSize: 11.5, fontWeight: 600, padding: "3px 10px", borderRadius: 20, background: sbg, color: sc, border: `1px solid ${sbrd}` }}>{cs.status}</span>
+                          {isOriginal && <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 20, background: isDark ? "rgba(96,165,250,0.12)" : "#DBEAFE", color: isDark ? "#60A5FA" : "#2563EB", border: `1px solid ${isDark ? "rgba(96,165,250,0.3)" : "#93C5FD"}` }}>ORIGINAL</span>}
+                          {idx > 0 && <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 20, background: isDark ? "rgba(251,191,36,0.12)" : "#FEF3C7", color: isDark ? "#FBBF24" : "#D97706", border: `1px solid ${isDark ? "rgba(251,191,36,0.3)" : "#FDE68A"}` }}>REPLACEMENT</span>}
+                        </div>
+                        <div style={{ fontFamily: t.mono, fontSize: 13, fontWeight: 700, color: isDark ? "#60A5FA" : "#4F46E5" }}>
+                          {cs.signed_payment_amount && cs.direction === "OUT" && String(cs.signed_payment_amount).includes("-")
+                            ? String(cs.signed_payment_amount).replace("-", "(") + ")"
+                            : (cs.signed_payment_amount || cs.payment || "")}
+                        </div>
+                      </div>
+                      {/* Card details */}
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, fontSize: 11, color: t.textMuted }}>
+                        <div><span style={{ fontWeight: 600, color: t.textSecondary }}>Due: </span>{cs.dueDate || "—"}</div>
+                        <div><span style={{ fontWeight: 600, color: t.textSecondary }}>Term: </span>{cs.term_start || "—"} ~ {cs.term_end || "—"}</div>
+                        <div><span style={{ fontWeight: 600, color: t.textSecondary }}>Type: </span>{cs.type || "—"}</div>
+                      </div>
+                      {cs.principal_amount && (
+                        <div style={{ fontSize: 11, color: t.textMuted, marginTop: 6 }}><span style={{ fontWeight: 600, color: t.textSecondary }}>Principal: </span>{cs.principal_amount}</div>
+                      )}
+                      {/* Fee details */}
+                      {feeIds.length > 0 && (
+                        <div style={{ marginTop: 10, padding: "10px 12px", borderRadius: 10, background: isDark ? "rgba(255,255,255,0.03)" : "#F9FAFB", border: `1px solid ${isDark ? "rgba(255,255,255,0.06)" : "#F3F4F6"}` }}>
+                          <div style={{ fontSize: 10, fontWeight: 700, color: t.textSecondary, textTransform: "uppercase", letterSpacing: "0.8px", marginBottom: 6, fontFamily: t.mono }}>Fees</div>
+                          {feeIds.map(fid => {
+                            const fee = FEES_DATA.find(f => f.id === fid);
+                            return (
+                              <div key={fid} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "4px 0", fontSize: 11 }}>
+                                <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                                  <span style={{ fontFamily: t.mono, color: t.idText, fontWeight: 600 }}>{fid}</span>
+                                  <span style={{ color: t.textMuted }}>{fee?.name || ""}</span>
+                                  {fee?.fee_type && <span style={{ fontSize: 9.5, padding: "1px 6px", borderRadius: 10, background: isDark ? "rgba(255,255,255,0.06)" : "#F3F4F6", color: t.textMuted }}>{fee.fee_type}</span>}
+                                </div>
+                                <span style={{ fontFamily: t.mono, fontSize: 11, color: t.textSecondary, fontWeight: 600 }}>{fee?.method === "Fixed Amount" ? fmtCurr(fee?.rate) : `${fee?.rate || ""}%`}</span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                      {/* Notes */}
+                      {cs.notes && (
+                        <div style={{ marginTop: 8, fontSize: 11, color: t.textMuted, fontStyle: "italic", lineHeight: 1.5 }}>{cs.notes}</div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      );
+    })()}
   </>);
 }

@@ -58,14 +58,41 @@ export default function PageReports({ t, isDark, MONTHLY = [], activeTenantId = 
       {invData.map((inv, i) => { const color = pColors[i]; return (<div key={inv.name} style={{ display: "flex", alignItems: "center", gap: 14, padding: "12px 0", borderBottom: i < invData.length - 1 ? `1px solid ${t.rowDivider}` : "none" }}><div style={{ width: 36, height: 36, borderRadius: 9, background: `${color}22`, border: `1px solid ${color}44`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11.5, fontWeight: 700, color, flexShrink: 0 }}>{initials(inv.name).slice(0, 2)}</div><div style={{ flex: 1 }}><div style={{ fontSize: 13, fontWeight: 500, color: isDark ? "rgba(255,255,255,0.85)" : "#1C1917", marginBottom: 4 }}>{inv.name}</div><div style={{ height: 5, borderRadius: 5, background: t.barTrack, overflow: "hidden" }}><div style={{ height: "100%", width: `${inv.pct}%`, borderRadius: 5, background: color }} /></div></div><div style={{ textAlign: "right", flexShrink: 0 }}><div style={{ fontFamily: t.mono, fontSize: 13, fontWeight: 700, color }}>${inv.amount.toLocaleString()}</div><div style={{ fontSize: 10.5, color: t.textMuted, marginTop: 2 }}>{inv.pct}%</div></div></div>); })}
     </div>)}
     {tab === "Analytics" && (
-      <div style={{ background: t.surface, borderRadius: 0, border: `1px solid ${t.surfaceBorder}`, padding: 0, height: "calc(100vh - 380px)", minHeight: 500, display: "flex", flexDirection: "column", overflow: "hidden", marginBottom: 20, maxWidth: 1100, width: "100%", margin: "0 auto" }}>
-        <iframe
-          key={lookerUrl}
-          src={lookerUrl}
-          style={{ width: "100%", height: "100%", border: "none", flex: 1, display: "block", verticalAlign: "bottom" }}
-          allowFullScreen
-          sandbox="allow-storage-access-by-user-activation allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox allow-top-navigation-by-user-activation"
-        />
+      <div style={{ maxWidth: 1100, margin: "0 auto", width: "100%" }}>
+        {/* Debug Section */}
+        <div style={{ background: isDark ? "rgba(255,255,255,0.05)" : "#F9F8F6", padding: "12px 16px", borderRadius: 10, marginBottom: 12, border: `1px dashed ${t.surfaceBorder}`, fontSize: 12 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <div>
+              <span style={{ color: t.textMuted }}>Active Tenant: </span>
+              <span style={{ fontWeight: 600, color: t.accent }}>{activeTenantId || "None (GLOBAL)"}</span>
+              <span style={{ margin: "0 12px", color: t.surfaceBorder }}>|</span>
+              <span style={{ color: t.textMuted }}>Parameter: </span>
+              <span style={{ fontFamily: t.mono }}>selected_tenant_id</span>
+            </div>
+            <button
+              onClick={() => {
+                navigator.clipboard.writeText(lookerUrl);
+                alert("Looker URL copied to clipboard!");
+              }}
+              style={{ background: isDark ? "rgba(255,255,255,0.1)" : "#fff", border: `1px solid ${t.surfaceBorder}`, padding: "4px 10px", borderRadius: 6, fontSize: 11, cursor: "pointer", color: t.text }}
+            >
+              Copy Embed URL
+            </button>
+          </div>
+          <div style={{ marginTop: 8, fontFamily: t.mono, fontSize: 10, color: t.textMuted, wordBreak: "break-all", opacity: 0.7 }}>
+            {lookerUrl}
+          </div>
+        </div>
+
+        <div style={{ background: t.surface, borderRadius: 0, border: `1px solid ${t.surfaceBorder}`, padding: 0, height: "calc(100vh - 440px)", minHeight: 500, display: "flex", flexDirection: "column", overflow: "hidden", marginBottom: 20 }}>
+          <iframe
+            key={lookerUrl}
+            src={lookerUrl}
+            style={{ width: "100%", height: "100%", border: "none", flex: 1, display: "block", verticalAlign: "bottom" }}
+            allowFullScreen
+            sandbox="allow-storage-access-by-user-activation allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox allow-top-navigation-by-user-activation"
+          />
+        </div>
       </div>
     )}
   </>);
