@@ -1,16 +1,13 @@
 import { useState, useMemo } from "react";
-import { initials } from "../utils";
-// import { StatCard } from "../components"; // Removed as per request
 
 
 const REPORT_CONFIG = {
   "CASHFLOW - Full Schedule": "https://lookerstudio.google.com/embed/reporting/4252f725-57ca-40e1-b714-8c8605789cf1/page/puArF",
   "CASHFLOW - Due in 3 Months": "https://lookerstudio.google.com/embed/reporting/4252f725-57ca-40e1-b714-8c8605789cf1/page/puArF", // TODO: Update with specific URL/Page ID
-  "CASHFLOW - Past Due 3 Months": "https://lookerstudio.google.com/embed/reporting/4252f725-57ca-40e1-b714-8c8605789cf1/page/puArF", // TODO: Update with specific URL/Page ID
-  "Analytics": "https://lookerstudio.google.com/embed/reporting/4252f725-57ca-40e1-b714-8c8605789cf1/page/puArF"
+  "CASHFLOW - Past Due 3 Months": "https://lookerstudio.google.com/embed/reporting/4252f725-57ca-40e1-b714-8c8605789cf1/page/puArF"     // TODO: Update with specific URL/Page ID
 };
 
-export default function PageReports({ t, isDark, MONTHLY = [], activeTenantId = "" }) {
+export default function PageReports({ t, isDark, activeTenantId = "" }) {
   const [tab, setTab] = useState("CASHFLOW - Full Schedule");
 
   // Construct dynamic Looker URL with tenant filtering
