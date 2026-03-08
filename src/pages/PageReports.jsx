@@ -65,6 +65,14 @@ export default function PageReports({ t, isDark, MONTHLY = [], activeTenantId = 
               <span style={{ fontWeight: 600, color: t.accent }}>{activeTenantId || "None (GLOBAL)"}</span>
             </div>
             <div style={{ display: "flex", gap: 8 }}>
+              <a
+                href={lookerUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ background: t.accent, color: "#fff", padding: "4px 10px", borderRadius: 6, fontSize: 11, cursor: "pointer", textDecoration: "none" }}
+              >
+                Open Link in New Tab ↗
+              </a>
               <button
                 onClick={() => {
                   navigator.clipboard.writeText(lookerUrl);
