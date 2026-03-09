@@ -72,7 +72,14 @@ export default function PageReports({ t, isDark, activeTenantId = "" }) {
           key={lookerUrl + tab}
           src={lookerUrl}
           scrolling="auto"
-          style={{ width: "100%", height: "100%", border: "none", display: "block" }}
+          style={{
+            width: "90.9%", // 100% / 1.1
+            height: "90.9%",
+            border: "none",
+            display: "block",
+            transform: "scale(1.1)",
+            transformOrigin: "0 0"
+          }}
           allowFullScreen
           sandbox="allow-storage-access-by-user-activation allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox allow-top-navigation-by-user-activation"
         />
