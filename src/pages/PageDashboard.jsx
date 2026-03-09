@@ -87,7 +87,7 @@ export default function PageDashboard(props) {
             <div style={{ fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,0.7)", textTransform: "uppercase", letterSpacing: "1px", marginBottom: 8 }}>
               Capital Under Management
             </div>
-            <div style={{ fontFamily: t.titleFont, fontSize: 32, fontWeight: 800, color: "#fff", letterSpacing: "-1px", lineHeight: 1 }}>
+            <div style={{ fontFamily: t.titleFont, fontSize: 22, fontWeight: 800, color: "#fff", letterSpacing: "-1px", lineHeight: 1 }}>
               {fmtCurr(metrics.totalAUM)}
             </div>
           </div>
