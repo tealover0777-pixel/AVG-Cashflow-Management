@@ -20,21 +20,26 @@ service cloud.firestore {
       return isSignedIn() && getRole() == role;
     }
 
+    function hasPermission(perm) {
+      return isSignedIn() && 
+             get(/databases/$(database)/documents/role_types/$(getRole())).data.permissions.hasAny([perm]);
+    }
+
     function isTenantMember(tenantId) {
       return isSignedIn() && getTenant() == tenantId;
     }
 
     // --- Role-based access check functions ---
     function isSecretAdmin() {
-      return isRole('L2 Admin');
+      return isRole('R10010') || (isSignedIn() && request.auth.token.email.lower() == 'kyuahn@yahoo.com');
     }
 
     function isCompanySuperAdmin() {
-      return isRole('company_super_admin_read_write');
+      return isRole('R10009') || isRole('R10010');
     }
 
     function isCompanySupport() {
-        return isRole('company_tech_support_read_only') || isRole('company_customer_support_read_only');
+        return isRole('R10006');
     }
 
     // Global role: IsGlobal flag set in custom claims by inviteUser
@@ -44,11 +49,8 @@ service cloud.firestore {
 
     function isTenantAdmin(tenantId) {
         return isTenantMember(tenantId) && (
-            getRole() == 'Tenant Owner' ||
-            getRole() == 'Tenant Admin' ||
-            getRole() == 'Tenant Manager' ||
-            getRole() == 'tenant_admin_super_user' ||
-            getRole() == 'tenant_admin_read_write'
+            getRole() == 'R10004' ||
+            getRole() == 'R10005'
         );
     }
 
@@ -91,27 +93,64 @@ service cloud.firestore {
     // Rules for data within a tenant.
     match /tenants/{tenantId}/{document=**} {
       allow read, write: if isCompanySuperAdmin() || isSecretAdmin() || isGlobalRole();
-      allow read: if isCompanySupport() || isTenantAdminRead(tenantId) || isTenantMember(tenantId);
+      allow read: if isCompanySupport() || isTenantMember(tenantId);
       allow write: if isTenantAdmin(tenantId);
     }
 
     // Rules for specific collections for a tenant_user.
     match /tenants/{tenantId}/users/{userId} {
-        allow read: if isTenantMember(tenantId) && (request.auth.uid == userId || resource.data.auth_uid == request.auth.uid);
-        allow update: if isTenantMember(tenantId) && resource.data.auth_uid == request.auth.uid
-           && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['user_name', 'phone', 'photo_url', 'status', 'last_login', 'last_updated', 'updated_at']);
+        allow read: if isTenantMember(tenantId) && (request.auth.uid == userId || resource.data.auth_uid == request.auth.uid || hasPermission('USER_VIEW') || hasPermission('USER_PROFILE_VIEW'));
+        allow create: if isTenantMember(tenantId) && hasPermission('USER_CREATE');
+        allow update: if isTenantMember(tenantId) && (resource.data.auth_uid == request.auth.uid || hasPermission('USER_UPDATE') || hasPermission('USER_PROFILE_UPDATE'))
+           && (resource.data.auth_uid != request.auth.uid ? true : request.resource.data.diff(resource.data).affectedKeys().hasOnly(['user_name', 'phone', 'photo_url', 'status', 'last_login', 'last_updated', 'updated_at']));
+        allow delete: if isTenantMember(tenantId) && (hasPermission('USER_DELETE') || hasPermission('USER_PROFILE_DELETE'));
     }
 
-    match /tenants/{tenantId}/projects/{projectId} {
-        allow read: if isTenantMember(tenantId);
+    match /tenants/{tenantId}/projects/{docId} {
+        allow read: if isTenantMember(tenantId) && hasPermission('PROJECT_VIEW');
+        allow create: if isTenantMember(tenantId) && hasPermission('PROJECT_CREATE');
+        allow update: if isTenantMember(tenantId) && hasPermission('PROJECT_UPDATE');
+        allow delete: if isTenantMember(tenantId) && hasPermission('PROJECT_DELETE');
     }
 
-    match /tenants/{tenantId}/contracts/{contractId} {
-        allow read: if isTenantMember(tenantId);
+    match /tenants/{tenantId}/contracts/{docId} {
+        allow read: if isTenantMember(tenantId) && hasPermission('CONTRACT_VIEW');
+        allow create: if isTenantMember(tenantId) && hasPermission('CONTRACT_CREATE');
+        allow update: if isTenantMember(tenantId) && hasPermission('CONTRACT_UPDATE');
+        allow delete: if isTenantMember(tenantId) && hasPermission('CONTRACT_DELETE');
     }
 
-    match /tenants/{tenantId}/reports/{reportId} {
-        allow read: if isTenantMember(tenantId);
+    match /tenants/{tenantId}/paymentSchedules/{docId} {
+        allow read: if isTenantMember(tenantId) && hasPermission('PAYMENT_SCHEDULE_VIEW');
+        allow create: if isTenantMember(tenantId) && hasPermission('PAYMENT_SCHEDULE_CREATE');
+        allow update: if isTenantMember(tenantId) && hasPermission('PAYMENT_SCHEDULE_UPDATE');
+        allow delete: if isTenantMember(tenantId) && hasPermission('PAYMENT_SCHEDULE_DELETE');
+    }
+
+    match /tenants/{tenantId}/parties/{docId} {
+        allow read: if isTenantMember(tenantId) && hasPermission('PARTY_VIEW');
+        allow create: if isTenantMember(tenantId) && hasPermission('PARTY_CREATE');
+        allow update: if isTenantMember(tenantId) && hasPermission('PARTY_UPDATE');
+        allow delete: if isTenantMember(tenantId) && hasPermission('PARTY_DELETE');
+    }
+
+    match /tenants/{tenantId}/fees/{docId} {
+        allow read: if isTenantMember(tenantId) && hasPermission('FEE_VIEW');
+        allow create: if isTenantMember(tenantId) && hasPermission('FEE_CREATE');
+        allow update: if isTenantMember(tenantId) && hasPermission('FEE_UPDATE');
+        allow delete: if isTenantMember(tenantId) && hasPermission('FEE_DELETE');
+    }
+
+    match /tenants/{tenantId}/payments/{docId} {
+        allow read: if isTenantMember(tenantId) && hasPermission('PAYMENT_VIEW');
+        allow create: if isTenantMember(tenantId) && hasPermission('PAYMENT_CREATE');
+        allow update: if isTenantMember(tenantId) && hasPermission('PAYMENT_UPDATE');
+        allow delete: if isTenantMember(tenantId) && hasPermission('PAYMENT_DELETE');
+    }
+
+    match /tenants/{tenantId}/reports/{docId} {
+        allow read: if isTenantMember(tenantId) && hasPermission('REPORT_VIEW');
+        allow create, update, delete: if isTenantMember(tenantId) && (hasPermission('REPORT_CREATE') || hasPermission('REPORT_UPDATE') || hasPermission('REPORT_DELETE'));
     }
   }
 }
