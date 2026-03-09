@@ -300,20 +300,35 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
   };
 
   const handleDeleteSchedule = async () => {
-    if (!delT || !delT.docId) return;
+    console.log("[DELETE] delT:", JSON.stringify(delT));
+    console.log("[DELETE] collectionPath:", collectionPath);
+    if (!delT || !delT.docId) {
+      console.error("[DELETE] ABORTED: missing delT or delT.docId", delT);
+      alert("Delete failed: schedule reference is missing. Check console for details.");
+      return;
+    }
     try {
-      const s = SCHEDULES.find(x => x.docId === delT.docId || x.schedule_id === delT.schedule_id);
-      if (s && s.linked) {
-        const linkedSched = SCHEDULES.find(ls => ls.schedule_id === s.linked);
-        if (linkedSched) {
-          const lRef = linkedSched._path ? doc(db, linkedSched._path) : doc(db, collectionPath, linkedSched.docId);
-          await updateDoc(lRef, { linked_schedule_id: "", updated_at: serverTimestamp() });
-        }
-      }
+      const path = delT._path || `${collectionPath}/${delT.docId}`;
+      console.log("[DELETE] Deleting doc at path:", path);
       const ref = delT._path ? doc(db, delT._path) : doc(db, collectionPath, delT.docId);
       await deleteDoc(ref);
+      console.log("[DELETE] deleteDoc succeeded for:", path);
+      // Then clean up linked parent (non-blocking)
+      try {
+        const s = SCHEDULES.find(x => x.docId === delT.docId || x.schedule_id === delT.schedule_id);
+        if (s && s.linked) {
+          const linkedSched = SCHEDULES.find(ls => ls.schedule_id === s.linked);
+          if (linkedSched) {
+            const lRef = linkedSched._path ? doc(db, linkedSched._path) : doc(db, collectionPath, linkedSched.docId);
+            await updateDoc(lRef, { linked_schedule_id: "", updated_at: serverTimestamp() });
+          }
+        }
+      } catch (linkErr) { console.error("[DELETE] Failed to unlink parent schedule:", linkErr); }
       setDelT(null);
-    } catch (err) { console.error("Delete schedule error:", err); }
+    } catch (err) {
+      console.error("[DELETE] deleteDoc FAILED:", err.code, err.message, err);
+      alert(`Delete failed: ${err.code || err.message}. Check browser console (F12) for details.`);
+    }
   };
   const [bulkStatus, setBulkStatus] = useState("");
   const handleBulkStatus = (status) => {
@@ -354,7 +369,10 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
             return Promise.resolve();
           }));
           setSel(new Set());
-        } catch (err) { console.error("Bulk delete error:", err); }
+        } catch (err) {
+          console.error("Bulk delete error:", err);
+          alert("Failed to delete schedule(s). You may not have permission to perform this action.");
+        }
       }
     });
   };

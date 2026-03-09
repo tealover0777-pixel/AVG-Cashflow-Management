@@ -54,6 +54,17 @@ service cloud.firestore {
         );
     }
 
+    function isTenantAdminRead(tenantId) {
+        return isTenantMember(tenantId) && (
+            getRole() == 'Tenant Owner' ||
+            getRole() == 'Tenant Admin' ||
+            getRole() == 'Tenant Manager' ||
+            getRole() == 'tenant_admin_super_user' ||
+            getRole() == 'tenant_admin_read_write' ||
+            getRole() == 'tenant_admin_read_only'
+        );
+    }
+
 
     // --- Rules ---
 
