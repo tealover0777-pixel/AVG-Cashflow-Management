@@ -78,8 +78,9 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
   };
 
   const recalcReplacement = (currentData, newFeeIds, newPartialPaid = null) => {
-    const isP = (currentData.notes || "").toLowerCase().includes("partial") || modal.mode === "add_partial";
-    const isL = (currentData.notes || "").toLowerCase().includes("late") || modal.mode === "add_late";
+    const noteLower = (currentData.notes || "").toLowerCase();
+    const isP = noteLower.includes("partial") || modal.mode === "add_partial";
+    const isL = noteLower.includes("late") || noteLower.includes("missed") || noteLower.includes("cancelled") || noteLower.includes("replacement") || modal.mode === "add_late";
     const linkedId = currentData.linked || "";
 
     // Fallback to current typed payment if basePayment is missing to prevent reset to $0
@@ -108,15 +109,14 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
     const paymentAmt = -signedAmt;
 
     let notes = (currentData.notes || "");
-    // ... rest of the notes logic ...
     if (linkedId && (isP || isL)) {
       // Logic for Replacement Schedules
       let prefix = isP ? "Partial payment replacement for" : "Late payment replacement for";
-      if (isL && (currentData.notes || "").toLowerCase().includes("cancelled")) {
+      if (isL && noteLower.includes("cancelled")) {
         prefix = "Cancelled payment replacement for";
-      } else if (isL && (currentData.notes || "").toLowerCase().includes("missed")) {
+      } else if (isL && noteLower.includes("missed")) {
         prefix = "Missed payment replacement for";
-      } else if (isL) {
+      } else if (isL && noteLower.includes("replacement") && !noteLower.includes("late")) {
         prefix = "Replacement payment for";
       }
 
@@ -124,7 +124,7 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
         notes = `${prefix} ${linkedId}${isP ? `. Unpaid: ${fmtCurr(unpaid)}` : ""}`;
       } else {
         const parts = [fmtCurr(unpaid), ...feeAmts.map(a => fmtCurr(a))].join(" + ");
-        notes = `${prefix} ${linkedId} with penalty selected. ${parts} = ${fmtCurr(finalAmtAbs)}`;
+        notes = `${prefix} ${linkedId} | Fee Breakdown: ${parts} = ${fmtCurr(finalAmtAbs)}`;
       }
     } else {
       // Logic for Standard Schedules (General fee addition)
