@@ -4,7 +4,8 @@ import { useState, useMemo } from "react";
 const REPORT_CONFIG = {
   "CASHFLOW - Full Schedule": "https://lookerstudio.google.com/embed/reporting/4252f725-57ca-40e1-b714-8c8605789cf1/page/puArF",
   "CASHFLOW - Due in 3 Months": "https://lookerstudio.google.com/embed/reporting/d0c73e5a-6fa4-4234-86fa-e6d6f5696b46/page/puArF",
-  "CASHFLOW - Past Due 3 Months": "https://lookerstudio.google.com/embed/reporting/b47b0999-1766-4ebd-8df1-bf704815b3d2/page/puArF"
+  "CASHFLOW - Past Due 3 Months": "https://lookerstudio.google.com/embed/reporting/b47b0999-1766-4ebd-8df1-bf704815b3d2/page/puArF",
+  "CASHFLOW - Party View": "https://lookerstudio.google.com/embed/reporting/48f62f94-c189-4844-a4c6-6e5d490d656d/page/puArF"
 };
 
 export default function PageReports({ t, isDark, activeTenantId = "" }) {
