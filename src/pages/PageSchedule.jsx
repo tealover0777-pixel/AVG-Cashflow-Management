@@ -182,12 +182,21 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
       if (freq.includes("quart")) monthsToAdd = 3;
       else if (freq.includes("semi")) monthsToAdd = 6;
       else if (freq.includes("annu") || freq.includes("year")) monthsToAdd = 12;
+
       const dt = new Date(currentDueDate + "T12:00:00");
       if (isNaN(dt.getTime())) return "";
       const origDay = dt.getDate();
+      const isMonthEnd = new Date(dt.getFullYear(), dt.getMonth() + 1, 0).getDate() === origDay;
+
       dt.setMonth(dt.getMonth() + monthsToAdd);
-      // If day changed, month overflowed (e.g. Mar 31 + 3mo → Jul 1). Clamp to last day of target month.
-      if (dt.getDate() !== origDay) dt.setDate(0);
+
+      if (isMonthEnd) {
+        // Carry over month-end alignment (e.g. Sep 30 -> Dec 31)
+        dt.setDate(new Date(dt.getFullYear(), dt.getMonth() + 1, 0).getDate());
+      } else if (dt.getDate() !== origDay) {
+        // Handle month overflow (e.g. Jan 31 -> Feb 28)
+        dt.setDate(0);
+      }
       return dt.toISOString().split("T")[0];
     };
 
