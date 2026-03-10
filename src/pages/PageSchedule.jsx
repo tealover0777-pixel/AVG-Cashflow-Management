@@ -214,15 +214,27 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
     if (modal.mode === "edit") {
       const original = SCHEDULES.find(x => x.docId === d.docId || x.schedule_id === d.schedule_id);
       if (original) {
+        // Unformat amounts for Firestore storage
+        const unformat = v => {
+          if (v == null || v === "") return null;
+          const n = Number(String(v).replace(/[^0-9.-]/g, ""));
+          return isNaN(n) ? null : n;
+        };
         payload._undo_snapshot = {
           status: original.status || "Due",
-          signed_payment_amount: original.signed_payment_amount || null,
+          signed_payment_amount: unformat(original.signed_payment_amount),
+          principal_amount: unformat(original.principal_amount),
           notes: original.notes || "",
-          linked_schedule_id: original.linked_schedule_id || null,
+          linked_schedule_id: original.linked_schedule_id || original.linked || null,
           fee_id: original.fee_id || null,
           due_date: original.dueDate || null,
           term_start: original.term_start || null,
           term_end: original.term_end || null,
+          payment_type: original.type || null,
+          project_id: original.project_id || null,
+          party_id: original.party_id || null,
+          contract_id: original.contract || null,
+          period_number: original.period_number ? Number(original.period_number) : null,
         };
       }
     }

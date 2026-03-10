@@ -229,6 +229,7 @@ function AppContent() {
         signed_payment_amount: fmtCurr(signed),
         linked: d.linked_schedule_id || "", notes: d.notes || "",
         term_start: fmtDate(d.term_start), term_end: fmtDate(d.term_end),
+        _undo_snapshot: d._undo_snapshot || null,
       };
     });
 
