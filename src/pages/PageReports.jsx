@@ -63,9 +63,12 @@ export default function PageReports({ t, isDark, activeTenantId = "" }) {
         padding: 0,
         height: "calc(100vh - 300px)", // Increased height since KPI boxes are gone
         minHeight: 700,
-        overflowX: "scroll",
+        overflowX: "hidden",
         overflowY: "hidden",
         marginBottom: 0,
+        maxWidth: 1100,
+        width: "100%",
+        margin: "0 auto",
         WebkitOverflowScrolling: "touch"
       }}>
         <iframe
