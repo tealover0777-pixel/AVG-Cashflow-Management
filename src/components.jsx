@@ -121,14 +121,14 @@ export const FF = ({ label, t, children }) => (
   </div>
 );
 
-export const FIn = ({ value, onChange, onBlur, placeholder, t, type }) => (
-  <input type={type || "text"} value={value || ""} onChange={onChange} onBlur={onBlur} placeholder={placeholder || ""}
-    style={{ width: "100%", background: t.searchBg, border: `1px solid ${t.searchBorder}`, borderRadius: 9, padding: "10px 13px", color: t.searchText, fontSize: 13.5, fontFamily: "inherit", outline: "none" }} />
+export const FIn = ({ value, onChange, onBlur, placeholder, t, type, disabled }) => (
+  <input type={type || "text"} value={value || ""} onChange={onChange} onBlur={onBlur} placeholder={placeholder || ""} disabled={disabled}
+    style={{ width: "100%", background: t.searchBg, border: `1px solid ${t.searchBorder}`, borderRadius: 9, padding: "10px 13px", color: t.searchText, fontSize: 13.5, fontFamily: "inherit", outline: "none", opacity: disabled ? 0.6 : 1, cursor: disabled ? "not-allowed" : "text" }} />
 );
 
-export const FSel = ({ value, onChange, options, t, placeholder }) => (
-  <select value={value} onChange={onChange}
-    style={{ width: "100%", background: t.searchBg, border: `1px solid ${t.searchBorder}`, borderRadius: 9, padding: "10px 13px", color: value ? t.searchText : (t.textMuted), fontSize: 13.5, fontFamily: "inherit", outline: "none", cursor: "pointer" }}>
+export const FSel = ({ value, onChange, options, t, placeholder, disabled }) => (
+  <select value={value} onChange={onChange} disabled={disabled}
+    style={{ width: "100%", background: t.searchBg, border: `1px solid ${t.searchBorder}`, borderRadius: 9, padding: "10px 13px", color: value ? t.searchText : (t.textMuted), fontSize: 13.5, fontFamily: "inherit", outline: "none", cursor: disabled ? "not-allowed" : "pointer", opacity: disabled ? 0.6 : 1 }}>
     {!value && <option value="">{placeholder || "Select..."}</option>}
     {options.map(o => <option key={o} value={o}>{o}</option>)}
   </select>

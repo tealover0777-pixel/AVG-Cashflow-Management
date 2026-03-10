@@ -290,7 +290,20 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
         if ((modal.mode === "add_late" || modal.mode === "add_partial") && modal.originalDocId) {
           const orig = SCHEDULES.find(s => s.docId === modal.originalDocId);
           const ref = orig && orig._path ? doc(db, orig._path) : doc(db, collectionPath, modal.originalDocId);
-          await updateDoc(ref, { linked_schedule_id: payload.schedule_id, updated_at: serverTimestamp() });
+
+          const updates = { linked_schedule_id: payload.schedule_id, updated_at: serverTimestamp() };
+
+          // Sync partial amount back to original schedule
+          if (modal.mode === "add_partial" && d.partialPaid) {
+            const partialPaidNum = Number(String(d.partialPaid).replace(/[^0-9.]/g, "")) || 0;
+            const dir = orig.direction || d.direction;
+            const signedAmt = (dir === "IN") ? partialPaidNum : -partialPaidNum;
+            updates.signed_payment_amount = signedAmt;
+            // Also update the formatted payment mapping
+            updates.notes = (orig.notes || "") + (orig.notes ? " | " : "") + `Partial Paid Sync: ${fmtCurr(partialPaidNum)}`;
+          }
+
+          await updateDoc(ref, updates);
         }
       }
     } catch (err) {
@@ -455,92 +468,49 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
     </div>
     <div style={{ marginTop: 16, display: "flex", justifyContent: "space-between", alignItems: "center" }}><span style={{ fontSize: 12, color: t.textSubtle }}>Showing <strong style={{ color: t.textSecondary }}>{paginated.length}</strong> of <strong style={{ color: t.textSecondary }}>{sorted.length}</strong> schedules{sel.size > 0 && <span style={{ color: t.accent, marginLeft: 8 }}>· {sel.size} selected</span>}</span><Pagination totalPages={totalPages} currentPage={page} onPageChange={setPage} t={t} /></div>
     <Modal open={modal.open} onClose={close} title={modal.mode === "add" ? "New Schedule Entry" : modal.mode === "add_late" ? "Replacement Payment Schedule" : modal.mode === "add_partial" ? "Partial Payment Schedule" : "Edit Schedule Entry"} onSave={handleSaveSchedule} width={620} t={t} isDark={isDark}>
-      {modal.mode === "edit" && (
-        <FF label="Schedule ID" t={t}>
-          <div style={{ fontFamily: t.mono, fontSize: 13, color: t.idText, background: isDark ? "rgba(255,255,255,0.04)" : "#F5F4F1", border: `1px solid ${t.surfaceBorder}`, borderRadius: 9, padding: "10px 13px" }}>{modal.data.schedule_id}</div>
-        </FF>
-      )}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14 }}>
-        <FF label="Contract" t={t}><FSel value={modal.data.contract} onChange={e => setF("contract", e.target.value)} options={CONTRACTS.map(c => c.id)} t={t} /></FF>
-        <FF label="Project ID" t={t}><FIn value={modal.data.project_id || ""} onChange={e => setF("project_id", e.target.value)} placeholder="P10000" t={t} /></FF>
-        <FF label="Party ID" t={t}><FIn value={modal.data.party_id || ""} onChange={e => setF("party_id", e.target.value)} placeholder="M10000" t={t} /></FF>
-      </div>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14 }}>
-        <FF label="Due Date" t={t}><FIn value={modal.data.dueDate || ""} onChange={e => setF("dueDate", e.target.value)} t={t} type="date" /></FF>
-        <FF label="Period Number" t={t}><FIn value={modal.data.period_number || ""} onChange={e => setF("period_number", e.target.value)} placeholder="1" t={t} /></FF>
-        <FF label="Status" t={t}><FSel value={modal.data.status} onChange={e => setF("status", e.target.value)} options={["Due", "Paid", "Partial", "Missed", "Cancelled"]} t={t} /></FF>
-      </div>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14 }}>
-        <FF label="Term Start" t={t}><FIn value={modal.data.term_start || ""} onChange={e => setF("term_start", e.target.value)} t={t} type="date" /></FF>
-        <FF label="Term End" t={t}><FIn value={modal.data.term_end || ""} onChange={e => setF("term_end", e.target.value)} t={t} type="date" /></FF>
-        <FF label="Direction" t={t}><FSel value={modal.data.direction} onChange={e => {
-          const dir = e.target.value;
-          const updates = recalcReplacement({ ...modal.data, direction: dir }, modal.data.fee_ids || []);
-          setModal(m => ({ ...m, data: { ...m.data, direction: dir, ...updates } }));
-        }} options={["IN", "OUT"]} t={t} /></FF>
-      </div>
-      <FF label="Payment Type" t={t}><FSel value={modal.data.type} onChange={e => setF("type", e.target.value)} options={["INVESTOR_PRINCIPAL_DEPOSIT", "INVESTOR_INTEREST_PAYMENT", "INVESTOR_PRINCIPAL_PAYMENT", "BORROWER_PRINCIPAL_RECEIVED", "BORROWER_INTEREST_PAYMENT", "BORROWER_PRINCIPAL_PAYMENT", "FEE"]} t={t} /></FF>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14 }}>
-        <FF label="Payment Amount" t={t}><FIn value={modal.data.payment || ""} onChange={e => {
-          const val = e.target.value;
-          const raw = Number(String(val).replace(/[^0-9.-]/g, "")) || 0;
-          const base = Math.abs(raw);
-          const updates = recalcReplacement({ ...modal.data, payment: val, basePayment: base, isTyping: "payment" }, modal.data.fee_ids || []);
-          setModal(m => ({ ...m, data: { ...m.data, payment: val, basePayment: base, ...updates } }));
-        }} onBlur={() => {
-          const updates = recalcReplacement({ ...modal.data, isTyping: false }, modal.data.fee_ids || []);
-          setModal(m => ({ ...m, data: { ...m.data, ...updates } }));
-        }} placeholder="$0" t={t} /></FF>
-        <FF label="Principal Amount" t={t}><FIn value={modal.data.principal_amount || ""} onChange={e => setF("principal_amount", e.target.value)} placeholder="$0" t={t} /></FF>
-        <FF label="Signed Amount" t={t}><FIn value={modal.data.signed_payment_amount || ""} onChange={e => setF("signed_payment_amount", e.target.value)} placeholder="$0" t={t} /></FF>
-      </div>
-      {modal.mode === "add_late" ? (<>
-        <FF label="Fee Selection" t={t}>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 8, maxHeight: 120, overflowY: "auto", padding: 2 }}>
-            {FEES_DATA.map(f => {
-              const selected = (modal.data.fee_ids || []).includes(f.id);
-              const toggle = () => {
-                const cur = modal.data.fee_ids || [];
-                const newFeeIds = selected ? cur.filter(x => x !== f.id) : [...cur, f.id];
-                const updates = recalcReplacement(modal.data, newFeeIds);
-                setModal(m => ({ ...m, data: { ...m.data, ...updates } }));
-              };
-              return (
-                <div key={f.id} onClick={toggle} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: selected ? 600 : 400, padding: "5px 12px", borderRadius: 20, cursor: "pointer", transition: "all 0.15s ease", background: selected ? (isDark ? "rgba(248,113,113,0.15)" : "#FEF2F2") : t.chipBg, color: selected ? (isDark ? "#F87171" : "#DC2626") : t.textSecondary, border: `1px solid ${selected ? (isDark ? "rgba(248,113,113,0.4)" : "#FECACA") : t.chipBorder}` }}>
-                  <span style={{ fontSize: 11, fontWeight: 700, lineHeight: 1 }}>{selected ? "✓" : "+"}</span>
-                  {f.name} <span style={{ fontFamily: t.mono, fontSize: 10, opacity: 0.6 }}>({f.rate})</span>
-                </div>
-              );
-            })}
-            {FEES_DATA.length === 0 && <span style={{ fontSize: 12, color: t.textMuted }}>No fees available</span>}
+      {(() => {
+        const freeze = modal.mode === "edit" && ["Partial", "Missed"].includes(modal.data.status);
+        return (<>
+          {modal.mode === "edit" && (
+            <FF label="Schedule ID" t={t}>
+              <div style={{ fontFamily: t.mono, fontSize: 13, color: t.idText, background: isDark ? "rgba(255,255,255,0.04)" : "#F5F4F1", border: `1px solid ${t.surfaceBorder}`, borderRadius: 9, padding: "10px 13px" }}>{modal.data.schedule_id}</div>
+            </FF>
+          )}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14 }}>
+            <FF label="Contract" t={t}><FSel value={modal.data.contract} onChange={e => setF("contract", e.target.value)} options={CONTRACTS.map(c => c.id)} t={t} disabled={freeze} /></FF>
+            <FF label="Project ID" t={t}><FIn value={modal.data.project_id || ""} onChange={e => setF("project_id", e.target.value)} placeholder="P10000" t={t} disabled={freeze} /></FF>
+            <FF label="Party ID" t={t}><FIn value={modal.data.party_id || ""} onChange={e => setF("party_id", e.target.value)} placeholder="M10000" t={t} disabled={freeze} /></FF>
           </div>
-        </FF>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
-          <FF label="Linked Schedule" t={t}><FIn value={modal.data.linked || ""} onChange={e => setF("linked", e.target.value)} placeholder="S00001" t={t} /></FF>
-          <FF label="Status" t={t}><FSel value={modal.data.status} onChange={e => setF("status", e.target.value)} options={paymentStatusOpts} t={t} /></FF>
-        </div>
-      </>) : modal.mode === "add_partial" ? (<>
-        {(() => {
-          const baseAmt = modal.data.basePayment || 0;
-          const paidNum = Number(String(modal.data.partialPaid || 0).replace(/[^0-9.]/g, "")) || 0;
-          const partialUnpaid = Math.max(baseAmt - paidNum, 0);
-          const recalcPartial = (newPaid, newFeeIds) => recalcReplacement(modal.data, newFeeIds, newPaid);
-          return (<>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
-              <div style={{ marginBottom: 16, background: isDark ? "rgba(251,191,36,0.06)" : "#FFFBEB", border: `1.5px solid ${isDark ? "rgba(251,191,36,0.35)" : "#FDE68A"}`, borderRadius: 11, padding: "10px 12px 12px" }}>
-                <div style={{ fontSize: 10.5, fontWeight: 700, color: isDark ? "#FBBF24" : "#D97706", textTransform: "uppercase", letterSpacing: "0.8px", marginBottom: 7, fontFamily: t.mono, display: "flex", alignItems: "center", gap: 6 }}>Partial Amount Paid <span style={{ fontSize: 9, fontWeight: 500, letterSpacing: 0, textTransform: "none", opacity: 0.8 }}>(required)</span></div>
-                <input value={modal.data.partialPaid || ""} onChange={e => {
-                  const val = e.target.value;
-                  const updates = recalcPartial(val, modal.data.fee_ids || []);
-                  setModal(m => ({ ...m, data: { ...m.data, partialPaid: val, isTyping: "partialPaid", ...updates } }));
-                }} onBlur={() => {
-                  setModal(m => ({ ...m, data: { ...m.data, isTyping: false } }));
-                }} placeholder="Enter amount paid..." style={{ width: "100%", background: isDark ? "rgba(251,191,36,0.08)" : "#fff", border: `1.5px solid ${isDark ? "rgba(251,191,36,0.4)" : "#FCD34D"}`, borderRadius: 9, padding: "10px 13px", color: isDark ? "#FBBF24" : "#92400E", fontSize: 13.5, fontWeight: 600, fontFamily: "inherit", outline: "none", boxSizing: "border-box" }} />
-              </div>
-              <FF label="Partial Unpaid" t={t}>
-                <div style={{ fontFamily: t.mono, fontSize: 13, fontWeight: 600, color: isDark ? "#FBBF24" : "#D97706", background: isDark ? "rgba(251,191,36,0.08)" : "#FFFBEB", border: `1px solid ${isDark ? "rgba(251,191,36,0.2)" : "#FDE68A"}`, borderRadius: 9, padding: "10px 13px" }}>${partialUnpaid}</div>
-              </FF>
-            </div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14 }}>
+            <FF label="Due Date" t={t}><FIn value={modal.data.dueDate || ""} onChange={e => setF("dueDate", e.target.value)} t={t} type="date" disabled={freeze} /></FF>
+            <FF label="Period Number" t={t}><FIn value={modal.data.period_number || ""} onChange={e => setF("period_number", e.target.value)} placeholder="1" t={t} disabled={freeze} /></FF>
+            <FF label="Status" t={t}><FSel value={modal.data.status} onChange={e => setF("status", e.target.value)} options={["Due", "Paid", "Partial", "Missed", "Cancelled"]} t={t} /></FF>
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14 }}>
+            <FF label="Term Start" t={t}><FIn value={modal.data.term_start || ""} onChange={e => setF("term_start", e.target.value)} t={t} type="date" disabled={freeze} /></FF>
+            <FF label="Term End" t={t}><FIn value={modal.data.term_end || ""} onChange={e => setF("term_end", e.target.value)} t={t} type="date" disabled={freeze} /></FF>
+            <FF label="Direction" t={t}><FSel value={modal.data.direction} onChange={e => {
+              const dir = e.target.value;
+              const updates = recalcReplacement({ ...modal.data, direction: dir }, modal.data.fee_ids || []);
+              setModal(m => ({ ...m, data: { ...m.data, direction: dir, ...updates } }));
+            }} options={["IN", "OUT"]} t={t} disabled={freeze} /></FF>
+          </div>
+          <FF label="Payment Type" t={t}><FSel value={modal.data.type} onChange={e => setF("type", e.target.value)} options={["INVESTOR_PRINCIPAL_DEPOSIT", "INVESTOR_INTEREST_PAYMENT", "INVESTOR_PRINCIPAL_PAYMENT", "BORROWER_PRINCIPAL_RECEIVED", "BORROWER_INTEREST_PAYMENT", "BORROWER_PRINCIPAL_PAYMENT", "FEE"]} t={t} disabled={freeze} /></FF>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14 }}>
+            <FF label="Payment Amount" t={t}><FIn value={modal.data.payment || ""} onChange={e => {
+              const val = e.target.value;
+              const raw = Number(String(val).replace(/[^0-9.-]/g, "")) || 0;
+              const base = Math.abs(raw);
+              const updates = recalcReplacement({ ...modal.data, payment: val, basePayment: base, isTyping: "payment" }, modal.data.fee_ids || []);
+              setModal(m => ({ ...m, data: { ...m.data, payment: val, basePayment: base, ...updates } }));
+            }} onBlur={() => {
+              const updates = recalcReplacement({ ...modal.data, isTyping: false }, modal.data.fee_ids || []);
+              setModal(m => ({ ...m, data: { ...m.data, ...updates } }));
+            }} placeholder="$0" t={t} disabled={freeze} /></FF>
+            <FF label="Principal Amount" t={t}><FIn value={modal.data.principal_amount || ""} onChange={e => setF("principal_amount", e.target.value)} placeholder="$0" t={t} disabled={freeze} /></FF>
+            <FF label="Signed Amount" t={t}><FIn value={modal.data.signed_payment_amount || ""} onChange={e => setF("signed_payment_amount", e.target.value)} placeholder="$0" t={t} disabled={freeze} /></FF>
+          </div>
+          {modal.mode === "add_late" ? (<>
             <FF label="Fee Selection" t={t}>
               <div style={{ display: "flex", flexWrap: "wrap", gap: 8, maxHeight: 120, overflowY: "auto", padding: 2 }}>
                 {FEES_DATA.map(f => {
@@ -548,11 +518,11 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
                   const toggle = () => {
                     const cur = modal.data.fee_ids || [];
                     const newFeeIds = selected ? cur.filter(x => x !== f.id) : [...cur, f.id];
-                    const updates = recalcPartial(modal.data.partialPaid, newFeeIds);
-                    setModal(m => ({ ...m, data: { ...m.data, fee_ids: newFeeIds, ...updates } }));
+                    const updates = recalcReplacement(modal.data, newFeeIds);
+                    setModal(m => ({ ...m, data: { ...m.data, ...updates } }));
                   };
                   return (
-                    <div key={f.id} onClick={toggle} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: selected ? 600 : 400, padding: "5px 12px", borderRadius: 20, cursor: "pointer", transition: "all 0.15s ease", background: selected ? (isDark ? "rgba(251,191,36,0.15)" : "#FFFBEB") : t.chipBg, color: selected ? (isDark ? "#FBBF24" : "#D97706") : t.textSecondary, border: `1px solid ${selected ? (isDark ? "rgba(251,191,36,0.4)" : "#FDE68A") : t.chipBorder}` }}>
+                    <div key={f.id} onClick={toggle} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: selected ? 600 : 400, padding: "5px 12px", borderRadius: 20, cursor: "pointer", transition: "all 0.15s ease", background: selected ? (isDark ? "rgba(248,113,113,0.15)" : "#FEF2F2") : t.chipBg, color: selected ? (isDark ? "#F87171" : "#DC2626") : t.textSecondary, border: `1px solid ${selected ? (isDark ? "rgba(248,113,113,0.4)" : "#FECACA") : t.chipBorder}` }}>
                       <span style={{ fontSize: 11, fontWeight: 700, lineHeight: 1 }}>{selected ? "✓" : "+"}</span>
                       {f.name} <span style={{ fontFamily: t.mono, fontSize: 10, opacity: 0.6 }}>({f.rate})</span>
                     </div>
@@ -565,41 +535,89 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
               <FF label="Linked Schedule" t={t}><FIn value={modal.data.linked || ""} onChange={e => setF("linked", e.target.value)} placeholder="S00001" t={t} /></FF>
               <FF label="Status" t={t}><FSel value={modal.data.status} onChange={e => setF("status", e.target.value)} options={paymentStatusOpts} t={t} /></FF>
             </div>
-          </>);
-        })()}
-      </>) : (
-        <>
-          <FF label="Linked Schedule & Status" t={t}>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
-              <FIn value={modal.data.linked || ""} onChange={e => setF("linked", e.target.value)} placeholder="Linked Sched (e.g. S00001)" t={t} />
-              <FSel value={modal.data.status} onChange={e => setF("status", e.target.value)} options={paymentStatusOpts} t={t} />
-            </div>
-          </FF>
-          <FF label="Fee Selection" t={t}>
-            <div style={{ background: isDark ? "rgba(255,255,255,0.02)" : "#FDFDFC", border: `1px solid ${t.surfaceBorder}`, borderRadius: 12, padding: 12 }}>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 8, maxHeight: 120, overflowY: "auto", padding: 2 }}>
-                {FEES_DATA.map(f => {
-                  const selected = (modal.data.fee_ids || []).includes(f.id);
-                  const toggle = () => {
-                    const cur = modal.data.fee_ids || [];
-                    const next = selected ? cur.filter(x => x !== f.id) : [...cur, f.id];
-                    const updates = recalcReplacement(modal.data, next);
-                    setModal(m => ({ ...m, data: { ...m.data, ...updates, fee_ids: next } }));
-                  };
-                  return (
-                    <div key={f.id} onClick={toggle} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: selected ? 600 : 400, padding: "5px 12px", borderRadius: 20, cursor: "pointer", transition: "all 0.15s ease", background: selected ? (isDark ? "rgba(96,165,250,0.15)" : "#EFF6FF") : t.chipBg, color: selected ? (isDark ? "#60A5FA" : "#2563EB") : t.textSecondary, border: `1px solid ${selected ? (isDark ? "rgba(96,165,250,0.4)" : "#BFDBFE") : t.chipBorder}` }}>
-                      <span style={{ fontSize: 11, fontWeight: 700, lineHeight: 1 }}>{selected ? "✓" : "+"}</span>
-                      {f.name} <span style={{ fontFamily: t.mono, fontSize: 10, opacity: 0.6 }}>({f.rate})</span>
-                    </div>
-                  );
-                })}
-                {FEES_DATA.length === 0 && <span style={{ fontSize: 12, color: t.textMuted }}>No fees available</span>}
-              </div>
-            </div>
-          </FF>
-        </>
-      )}
-      <FF label="Notes" t={t}><textarea value={modal.data.notes || ""} onChange={e => setF("notes", e.target.value)} placeholder="Any remarks..." rows={2} style={{ width: "100%", background: t.searchBg, border: `1px solid ${t.searchBorder}`, borderRadius: 9, padding: "10px 13px", color: t.searchText, fontSize: 13.5, fontFamily: "inherit", outline: "none", resize: "vertical", boxSizing: "border-box" }} /></FF>
+          </>) : modal.mode === "add_partial" ? (<>
+            {(() => {
+              const baseAmt = modal.data.basePayment || 0;
+              const paidNum = Number(String(modal.data.partialPaid || 0).replace(/[^0-9.]/g, "")) || 0;
+              const partialUnpaid = Math.max(baseAmt - paidNum, 0);
+              const recalcPartial = (newPaid, newFeeIds) => recalcReplacement(modal.data, newFeeIds, newPaid);
+              return (<>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+                  <div style={{ marginBottom: 16, background: isDark ? "rgba(251,191,36,0.06)" : "#FFFBEB", border: `1.5px solid ${isDark ? "rgba(251,191,36,0.35)" : "#FDE68A"}`, borderRadius: 11, padding: "10px 12px 12px" }}>
+                    <div style={{ fontSize: 10.5, fontWeight: 700, color: isDark ? "#FBBF24" : "#D97706", textTransform: "uppercase", letterSpacing: "0.8px", marginBottom: 7, fontFamily: t.mono, display: "flex", alignItems: "center", gap: 6 }}>Partial Amount Paid <span style={{ fontSize: 9, fontWeight: 500, letterSpacing: 0, textTransform: "none", opacity: 0.8 }}>(required)</span></div>
+                    <input value={modal.data.partialPaid || ""} onChange={e => {
+                      const val = e.target.value;
+                      const updates = recalcPartial(val, modal.data.fee_ids || []);
+                      setModal(m => ({ ...m, data: { ...m.data, partialPaid: val, isTyping: "partialPaid", ...updates } }));
+                    }} onBlur={() => {
+                      setModal(m => ({ ...m, data: { ...m.data, isTyping: false } }));
+                    }} placeholder="Enter amount paid..." style={{ width: "100%", background: isDark ? "rgba(251,191,36,0.08)" : "#fff", border: `1.5px solid ${isDark ? "rgba(251,191,36,0.4)" : "#FCD34D"}`, borderRadius: 9, padding: "10px 13px", color: isDark ? "#FBBF24" : "#92400E", fontSize: 13.5, fontWeight: 600, fontFamily: "inherit", outline: "none", boxSizing: "border-box" }} />
+                  </div>
+                  <FF label="Partial Unpaid" t={t}>
+                    <div style={{ fontFamily: t.mono, fontSize: 13, fontWeight: 600, color: isDark ? "#FBBF24" : "#D97706", background: isDark ? "rgba(251,191,36,0.08)" : "#FFFBEB", border: `1px solid ${isDark ? "rgba(251,191,36,0.2)" : "#FDE68A"}`, borderRadius: 9, padding: "10px 13px" }}>${partialUnpaid}</div>
+                  </FF>
+                </div>
+                <FF label="Fee Selection" t={t}>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 8, maxHeight: 120, overflowY: "auto", padding: 2 }}>
+                    {FEES_DATA.map(f => {
+                      const selected = (modal.data.fee_ids || []).includes(f.id);
+                      const toggle = () => {
+                        const cur = modal.data.fee_ids || [];
+                        const newFeeIds = selected ? cur.filter(x => x !== f.id) : [...cur, f.id];
+                        const updates = recalcPartial(modal.data.partialPaid, newFeeIds);
+                        setModal(m => ({ ...m, data: { ...m.data, fee_ids: newFeeIds, ...updates } }));
+                      };
+                      return (
+                        <div key={f.id} onClick={toggle} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: selected ? 600 : 400, padding: "5px 12px", borderRadius: 20, cursor: "pointer", transition: "all 0.15s ease", background: selected ? (isDark ? "rgba(251,191,36,0.15)" : "#FFFBEB") : t.chipBg, color: selected ? (isDark ? "#FBBF24" : "#D97706") : t.textSecondary, border: `1px solid ${selected ? (isDark ? "rgba(251,191,36,0.4)" : "#FDE68A") : t.chipBorder}` }}>
+                          <span style={{ fontSize: 11, fontWeight: 700, lineHeight: 1 }}>{selected ? "✓" : "+"}</span>
+                          {f.name} <span style={{ fontFamily: t.mono, fontSize: 10, opacity: 0.6 }}>({f.rate})</span>
+                        </div>
+                      );
+                    })}
+                    {FEES_DATA.length === 0 && <span style={{ fontSize: 12, color: t.textMuted }}>No fees available</span>}
+                  </div>
+                </FF>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+                  <FF label="Linked Schedule" t={t}><FIn value={modal.data.linked || ""} onChange={e => setF("linked", e.target.value)} placeholder="S00001" t={t} /></FF>
+                  <FF label="Status" t={t}><FSel value={modal.data.status} onChange={e => setF("status", e.target.value)} options={paymentStatusOpts} t={t} /></FF>
+                </div>
+              </>);
+            })()}
+          </>) : (
+            <>
+              <FF label="Linked Schedule & Status" t={t}>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+                  <FIn value={modal.data.linked || ""} onChange={e => setF("linked", e.target.value)} placeholder="Linked Sched (e.g. S00001)" t={t} />
+                  <FSel value={modal.data.status} onChange={e => setF("status", e.target.value)} options={paymentStatusOpts} t={t} />
+                </div>
+              </FF>
+              <FF label="Fee Selection" t={t}>
+                <div style={{ background: isDark ? "rgba(255,255,255,0.02)" : "#FDFDFC", border: `1px solid ${t.surfaceBorder}`, borderRadius: 12, padding: 12 }}>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 8, maxHeight: 120, overflowY: "auto", padding: 2 }}>
+                    {FEES_DATA.map(f => {
+                      const selected = (modal.data.fee_ids || []).includes(f.id);
+                      const toggle = () => {
+                        const cur = modal.data.fee_ids || [];
+                        const next = selected ? cur.filter(x => x !== f.id) : [...cur, f.id];
+                        const updates = recalcReplacement(modal.data, next);
+                        setModal(m => ({ ...m, data: { ...m.data, ...updates, fee_ids: next } }));
+                      };
+                      return (
+                        <div key={f.id} onClick={toggle} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: selected ? 600 : 400, padding: "5px 12px", borderRadius: 20, cursor: "pointer", transition: "all 0.15s ease", background: selected ? (isDark ? "rgba(96,165,250,0.15)" : "#EFF6FF") : t.chipBg, color: selected ? (isDark ? "#60A5FA" : "#2563EB") : t.textSecondary, border: `1px solid ${selected ? (isDark ? "rgba(96,165,250,0.4)" : "#BFDBFE") : t.chipBorder}` }}>
+                          <span style={{ fontSize: 11, fontWeight: 700, lineHeight: 1 }}>{selected ? "✓" : "+"}</span>
+                          {f.name} <span style={{ fontFamily: t.mono, fontSize: 10, opacity: 0.6 }}>({f.rate})</span>
+                        </div>
+                      );
+                    })}
+                    {FEES_DATA.length === 0 && <span style={{ fontSize: 12, color: t.textMuted }}>No fees available</span>}
+                  </div>
+                </div>
+              </FF>
+            </>
+          )}
+          <FF label="Notes" t={t}><textarea value={modal.data.notes || ""} onChange={e => setF("notes", e.target.value)} placeholder="Any remarks..." rows={2} disabled={freeze} style={{ width: "100%", background: t.searchBg, border: `1px solid ${t.searchBorder}`, borderRadius: 9, padding: "10px 13px", color: t.searchText, fontSize: 13.5, fontFamily: "inherit", outline: "none", resize: freeze ? "none" : "vertical", boxSizing: "border-box", opacity: freeze ? 0.6 : 1, cursor: freeze ? "not-allowed" : "text" }} /></FF>
+        </>);
+      })()}
     </Modal>
     <DelModal target={delT} onClose={() => setDelT(null)} onConfirm={handleDeleteSchedule} label="This schedule entry" t={t} isDark={isDark} />
     <Modal open={!!confirmAction} onClose={() => setConfirmAction(null)} title={confirmAction?.title || "Confirm"} onSave={confirmAction?.onConfirm} saveLabel="Confirm" t={t} isDark={isDark}>
