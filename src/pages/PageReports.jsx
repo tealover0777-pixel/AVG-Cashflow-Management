@@ -61,14 +61,12 @@ export default function PageReports({ t, isDark, activeTenantId = "" }) {
         borderRadius: 0,
         border: `1px solid ${t.surfaceBorder}`,
         padding: 0,
-        height: "calc(100vh - 300px)", // Increased height since KPI boxes are gone
+        height: "calc(100vh - 300px)",
         minHeight: 700,
         overflowX: "hidden",
         overflowY: "hidden",
         marginBottom: 0,
-        maxWidth: 1100,
         width: "100%",
-        margin: "0 auto",
         WebkitOverflowScrolling: "touch"
       }}>
         <iframe
@@ -76,12 +74,10 @@ export default function PageReports({ t, isDark, activeTenantId = "" }) {
           src={lookerUrl}
           scrolling="auto"
           style={{
-            width: "125%", // 100% / 0.8
-            height: "125%",
+            width: "100%",
+            height: "100%",
             border: "none",
-            display: "block",
-            transform: "scale(0.8)",
-            transformOrigin: "0 0"
+            display: "block"
           }}
           allowFullScreen
           sandbox="allow-storage-access-by-user-activation allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox allow-top-navigation-by-user-activation"
