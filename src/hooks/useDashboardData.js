@@ -40,12 +40,9 @@ export function useDashboardData({ PROJECTS = [], CONTRACTS = [], PARTIES = [], 
         // 2. Calculate Key Metrics
         const totalAUM = filteredContracts.reduce((sum, c) => sum + Number(String(c.amount || 0).replace(/[^0-9.-]/g, '')), 0);
 
-        const totalIncome = PAYMENTS
-            .filter(p => {
-                if (p.direction !== 'Received') return false;
-                return true;
-            })
-            .reduce((sum, p) => sum + Number(String(p.amount || 0).replace(/[^0-9.-]/g, '')), 0);
+        const totalIncome = liveSchedules
+            .filter(s => s.direction === 'IN')
+            .reduce((sum, s) => sum + Number(String(s.payment || 0).replace(/[^0-9.-]/g, '')), 0);
 
         const missedPayments = allFilteredSchedules.filter(s => s.status === 'Missed');
         const missedValue = missedPayments.reduce((sum, s) => sum + Number(String(s.payment || 0).replace(/[^0-9.-]/g, '')), 0);
