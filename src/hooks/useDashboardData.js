@@ -138,7 +138,6 @@ export function useDashboardData({ PROJECTS = [], CONTRACTS = [], PARTIES = [], 
             });
 
             curr.setMonth(curr.getMonth() + 3);
-            if (quarters.length > 20) break; // Cap at 5 years
         }
 
         // 4. Portfolio Diversification by Payment/Transaction Type
