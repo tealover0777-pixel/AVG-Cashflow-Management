@@ -44,8 +44,9 @@ export const Pagination = ({ totalPages, currentPage, onPageChange, t }) => {
   );
 };
 
-export const ActBtns = ({ show, t, onEdit, onDel }) => (
+export const ActBtns = ({ show, t, onEdit, onDel, onUndo }) => (
   <div style={{ display: "flex", gap: 6, opacity: show ? 1 : 0, transition: "opacity 0.15s ease" }}>
+    {onUndo && <button className="action-btn" onClick={e => { e.stopPropagation(); onUndo(); }} title="Undo last action" style={{ width: 30, height: 30, borderRadius: 7, background: t.chipBg, color: t.accent, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, border: `1px solid ${t.chipBorder}` }}>↺</button>}
     <button className="action-btn" onClick={e => { e.stopPropagation(); onEdit && onEdit(); }} style={{ width: 30, height: 30, borderRadius: 7, background: t.editBtn[0], color: t.editBtn[1], display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13 }}>✎</button>
     <button className="action-btn" onClick={e => { e.stopPropagation(); onDel && onDel(); }} style={{ width: 30, height: 30, borderRadius: 7, background: t.deleteBtn[0], color: t.deleteBtn[1], display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13 }}>⊗</button>
   </div>

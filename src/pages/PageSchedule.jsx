@@ -152,6 +152,42 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
   const close = () => setModal(m => ({ ...m, open: false }));
   const setF = (k, v) => setModal(m => ({ ...m, data: { ...m.data, [k]: v } }));
 
+  const handleUndo = async (s) => {
+    if (!s || !s._undo_snapshot) return;
+    const snap = s._undo_snapshot;
+    setConfirmAction({
+      title: "Undo Last Action",
+      message: "Are you sure you want to undo the last action? This will restore original values and delete any linked repayment schedules.",
+      onConfirm: async () => {
+        setConfirmAction(null);
+        try {
+          const ref = s._path ? doc(db, s._path) : doc(db, collectionPath, s.docId);
+          // 1. Restore the original state and clear snapshot
+          const restorePayload = {
+            ...snap,
+            _undo_snapshot: null,
+            updated_at: serverTimestamp()
+          };
+          await updateDoc(ref, restorePayload);
+
+          // 2. Identify and delete the child (repayment/replacement) schedule if it exists
+          // Since the child was created and its ID was stored in linked_schedule_id (current state)
+          const childId = s.linked_schedule_id || s.linked; // linked_schedule_id is from Firestore, linked might be from local mapping
+          if (childId) {
+            const childDoc = SCHEDULES.find(x => x.schedule_id === childId);
+            if (childDoc && childDoc.docId) {
+              const childRef = childDoc._path ? doc(db, childDoc._path) : doc(db, collectionPath, childDoc.docId);
+              await deleteDoc(childRef);
+            }
+          }
+        } catch (err) {
+          console.error("Undo error:", err);
+          alert("Failed to undo action: " + err.message);
+        }
+      }
+    });
+  };
+
   const handleSaveSchedule = async () => {
     const d = modal.data;
     const payload = {
@@ -173,6 +209,23 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
       term_end: d.term_end || null,
       updated_at: serverTimestamp(),
     };
+
+    // Snapshot logic for Undo
+    if (modal.mode === "edit") {
+      const original = SCHEDULES.find(x => x.docId === d.docId || x.schedule_id === d.schedule_id);
+      if (original) {
+        payload._undo_snapshot = {
+          status: original.status || "Due",
+          signed_payment_amount: original.signed_payment_amount || null,
+          notes: original.notes || "",
+          linked_schedule_id: original.linked_schedule_id || null,
+          fee_id: original.fee_id || null,
+          due_date: original.dueDate || null,
+          term_start: original.term_start || null,
+          term_end: original.term_end || null,
+        };
+      }
+    }
 
     // Calculate next term due date based on contract frequency
     const getNextTermDate = (currentDueDate, contractId) => {
@@ -464,7 +517,7 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
           <div style={{ fontFamily: t.mono, fontSize: 11.5, color: t.textMuted }}>{s.principal_amount || dash}</div>
           <div><span style={{ fontSize: 11.5, fontWeight: 600, padding: "4px 11px", borderRadius: 20, background: bg, color, border: `1px solid ${border}` }}>{s.status}</span></div>
           <div style={{ fontSize: 11.5, color: t.textMuted, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0 }}>{s.notes || dash}</div>
-          <ActBtns show={isHov} t={t} onEdit={() => openEdit(s)} onDel={canDelete ? (() => setDelT({ schedule_id: s.schedule_id, name: s.schedule_id, docId: s.docId, _path: s._path })) : null} />
+          <ActBtns show={isHov} t={t} onEdit={() => openEdit(s)} onDel={canDelete ? (() => setDelT({ schedule_id: s.schedule_id, name: s.schedule_id, docId: s.docId, _path: s._path })) : null} onUndo={s._undo_snapshot ? () => handleUndo(s) : null} />
         </div>);
       })}
     </div>
