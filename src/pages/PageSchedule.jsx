@@ -529,6 +529,7 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
           <div style={{ fontFamily: t.mono, fontSize: 11.5, color: t.textMuted }}>{s.principal_amount || dash}</div>
           <div><span style={{ fontSize: 11.5, fontWeight: 600, padding: "4px 11px", borderRadius: 20, background: bg, color, border: `1px solid ${border}` }}>{s.status}</span></div>
           <div style={{ fontSize: 11.5, color: t.textMuted, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0 }}>{s.notes || dash}</div>
+          {s.schedule_id === "S10028" && console.log("Rendering S10028:", s)}
           <ActBtns show={isHov} t={t} onEdit={() => openEdit(s)} onDel={canDelete ? (() => setDelT({ schedule_id: s.schedule_id, name: s.schedule_id, docId: s.docId, _path: s._path })) : null} onUndo={s._undo_snapshot ? () => handleUndo(s) : null} />
         </div>);
       })}
