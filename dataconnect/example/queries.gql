@@ -11,8 +11,8 @@ query ListAllMovies @auth(level: PUBLIC, insecureReason: "This operation is safe
   }
 }
 
-query GetUserWatchHistory($userId: UUID!) @auth(level: USER, insecureReason: "This operation is safe to expose to all logged in users as it fetches their own watch history.") {
-  watches(where: {userId: {eq: $userId}}) {
+query GetUserWatchHistory @auth(level: USER) {
+  watches(where: {userId: {eq_expr: "auth.uid"}}) {
     id
     watchDate
     location
@@ -36,7 +36,7 @@ mutation CreateNewMovieList($name: String!, $description: String, $isPublic: Boo
   })
 }
 
-mutation AddMovieToMovieList($movieListId: UUID!, $movieId: UUID!, $position: Int!) @auth(level: USER) {
+mutation AddMovieToMovieList($movieListId: UUID!, $movieId: UUID!, $position: Int!) @auth(level: USER, insecureReason: "This example mutation is used to demonstrate insertion into a joined table. In production, you should add a check to verify the user owns the movieList.") {
   movieListEntry_insert(data: {
     movieListId: $movieListId,
     movieId: $movieId,

@@ -1,5 +1,7 @@
 {
-  "projects": {},
+  "projects": {
+    "default": "avg-cashflow-management"
+  },
   "targets": {},
   "etags": {
     "avg-cashflow-management": {

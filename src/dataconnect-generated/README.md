@@ -164,22 +164,22 @@ executeQuery(ref).then((response) => {
 ## GetUserWatchHistory
 You can execute the `GetUserWatchHistory` query using the following action shortcut function, or by calling `executeQuery()` after calling the following `QueryRef` function, both of which are defined in [dataconnect-generated/index.d.ts](./index.d.ts):
 ```typescript
-getUserWatchHistory(vars: GetUserWatchHistoryVariables): QueryPromise<GetUserWatchHistoryData, GetUserWatchHistoryVariables>;
+getUserWatchHistory(): QueryPromise<GetUserWatchHistoryData, undefined>;
 
 interface GetUserWatchHistoryRef {
   ...
   /* Allow users to create refs without passing in DataConnect */
-  (vars: GetUserWatchHistoryVariables): QueryRef<GetUserWatchHistoryData, GetUserWatchHistoryVariables>;
+  (): QueryRef<GetUserWatchHistoryData, undefined>;
 }
 export const getUserWatchHistoryRef: GetUserWatchHistoryRef;
 ```
 You can also pass in a `DataConnect` instance to the action shortcut function or `QueryRef` function.
 ```typescript
-getUserWatchHistory(dc: DataConnect, vars: GetUserWatchHistoryVariables): QueryPromise<GetUserWatchHistoryData, GetUserWatchHistoryVariables>;
+getUserWatchHistory(dc: DataConnect): QueryPromise<GetUserWatchHistoryData, undefined>;
 
 interface GetUserWatchHistoryRef {
   ...
-  (dc: DataConnect, vars: GetUserWatchHistoryVariables): QueryRef<GetUserWatchHistoryData, GetUserWatchHistoryVariables>;
+  (dc: DataConnect): QueryRef<GetUserWatchHistoryData, undefined>;
 }
 export const getUserWatchHistoryRef: GetUserWatchHistoryRef;
 ```
@@ -191,13 +191,7 @@ console.log(name);
 ```
 
 ### Variables
-The `GetUserWatchHistory` query requires an argument of type `GetUserWatchHistoryVariables`, which is defined in [dataconnect-generated/index.d.ts](./index.d.ts). It has the following fields:
-
-```typescript
-export interface GetUserWatchHistoryVariables {
-  userId: UUIDString;
-}
-```
+The `GetUserWatchHistory` query has no variables.
 ### Return Type
 Recall that executing the `GetUserWatchHistory` query returns a `QueryPromise` that resolves to an object with a `data` property.
 
@@ -220,27 +214,21 @@ export interface GetUserWatchHistoryData {
 
 ```typescript
 import { getDataConnect } from 'firebase/data-connect';
-import { connectorConfig, getUserWatchHistory, GetUserWatchHistoryVariables } from '@dataconnect/generated';
+import { connectorConfig, getUserWatchHistory } from '@dataconnect/generated';
 
-// The `GetUserWatchHistory` query requires an argument of type `GetUserWatchHistoryVariables`:
-const getUserWatchHistoryVars: GetUserWatchHistoryVariables = {
-  userId: ..., 
-};
 
 // Call the `getUserWatchHistory()` function to execute the query.
 // You can use the `await` keyword to wait for the promise to resolve.
-const { data } = await getUserWatchHistory(getUserWatchHistoryVars);
-// Variables can be defined inline as well.
-const { data } = await getUserWatchHistory({ userId: ..., });
+const { data } = await getUserWatchHistory();
 
 // You can also pass in a `DataConnect` instance to the action shortcut function.
 const dataConnect = getDataConnect(connectorConfig);
-const { data } = await getUserWatchHistory(dataConnect, getUserWatchHistoryVars);
+const { data } = await getUserWatchHistory(dataConnect);
 
 console.log(data.watches);
 
 // Or, you can use the `Promise` API.
-getUserWatchHistory(getUserWatchHistoryVars).then((response) => {
+getUserWatchHistory().then((response) => {
   const data = response.data;
   console.log(data.watches);
 });
@@ -250,21 +238,15 @@ getUserWatchHistory(getUserWatchHistoryVars).then((response) => {
 
 ```typescript
 import { getDataConnect, executeQuery } from 'firebase/data-connect';
-import { connectorConfig, getUserWatchHistoryRef, GetUserWatchHistoryVariables } from '@dataconnect/generated';
+import { connectorConfig, getUserWatchHistoryRef } from '@dataconnect/generated';
 
-// The `GetUserWatchHistory` query requires an argument of type `GetUserWatchHistoryVariables`:
-const getUserWatchHistoryVars: GetUserWatchHistoryVariables = {
-  userId: ..., 
-};
 
 // Call the `getUserWatchHistoryRef()` function to get a reference to the query.
-const ref = getUserWatchHistoryRef(getUserWatchHistoryVars);
-// Variables can be defined inline as well.
-const ref = getUserWatchHistoryRef({ userId: ..., });
+const ref = getUserWatchHistoryRef();
 
 // You can also pass in a `DataConnect` instance to the `QueryRef` function.
 const dataConnect = getDataConnect(connectorConfig);
-const ref = getUserWatchHistoryRef(dataConnect, getUserWatchHistoryVars);
+const ref = getUserWatchHistoryRef(dataConnect);
 
 // Call `executeQuery()` on the reference to execute the query.
 // You can use the `await` keyword to wait for the promise to resolve.

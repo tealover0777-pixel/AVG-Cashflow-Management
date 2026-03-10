@@ -44,10 +44,6 @@ export interface GetUserWatchHistoryData {
   } & Watch_Key)[];
 }
 
-export interface GetUserWatchHistoryVariables {
-  userId: UUIDString;
-}
-
 export interface ListAllMoviesData {
   movies: ({
     id: UUIDString;
@@ -107,15 +103,15 @@ export function listAllMovies(dc: DataConnect): QueryPromise<ListAllMoviesData, 
 
 interface GetUserWatchHistoryRef {
   /* Allow users to create refs without passing in DataConnect */
-  (vars: GetUserWatchHistoryVariables): QueryRef<GetUserWatchHistoryData, GetUserWatchHistoryVariables>;
+  (): QueryRef<GetUserWatchHistoryData, undefined>;
   /* Allow users to pass in custom DataConnect instances */
-  (dc: DataConnect, vars: GetUserWatchHistoryVariables): QueryRef<GetUserWatchHistoryData, GetUserWatchHistoryVariables>;
+  (dc: DataConnect): QueryRef<GetUserWatchHistoryData, undefined>;
   operationName: string;
 }
 export const getUserWatchHistoryRef: GetUserWatchHistoryRef;
 
-export function getUserWatchHistory(vars: GetUserWatchHistoryVariables): QueryPromise<GetUserWatchHistoryData, GetUserWatchHistoryVariables>;
-export function getUserWatchHistory(dc: DataConnect, vars: GetUserWatchHistoryVariables): QueryPromise<GetUserWatchHistoryData, GetUserWatchHistoryVariables>;
+export function getUserWatchHistory(): QueryPromise<GetUserWatchHistoryData, undefined>;
+export function getUserWatchHistory(dc: DataConnect): QueryPromise<GetUserWatchHistoryData, undefined>;
 
 interface CreateNewMovieListRef {
   /* Allow users to create refs without passing in DataConnect */

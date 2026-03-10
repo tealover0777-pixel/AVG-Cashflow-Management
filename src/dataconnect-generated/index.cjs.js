@@ -19,16 +19,16 @@ exports.listAllMovies = function listAllMovies(dc) {
   return executeQuery(listAllMoviesRef(dc));
 };
 
-const getUserWatchHistoryRef = (dcOrVars, vars) => {
-  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+const getUserWatchHistoryRef = (dc) => {
+  const { dc: dcInstance} = validateArgs(connectorConfig, dc, undefined);
   dcInstance._useGeneratedSdk();
-  return queryRef(dcInstance, 'GetUserWatchHistory', inputVars);
+  return queryRef(dcInstance, 'GetUserWatchHistory');
 }
 getUserWatchHistoryRef.operationName = 'GetUserWatchHistory';
 exports.getUserWatchHistoryRef = getUserWatchHistoryRef;
 
-exports.getUserWatchHistory = function getUserWatchHistory(dcOrVars, vars) {
-  return executeQuery(getUserWatchHistoryRef(dcOrVars, vars));
+exports.getUserWatchHistory = function getUserWatchHistory(dc) {
+  return executeQuery(getUserWatchHistoryRef(dc));
 };
 
 const createNewMovieListRef = (dcOrVars, vars) => {

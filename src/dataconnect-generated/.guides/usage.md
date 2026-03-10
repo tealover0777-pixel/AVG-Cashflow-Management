@@ -17,7 +17,7 @@ import { useListAllMovies, useGetUserWatchHistory, useCreateNewMovieList, useAdd
 
 const { data, isPending, isSuccess, isError, error } = useListAllMovies();
 
-const { data, isPending, isSuccess, isError, error } = useGetUserWatchHistory(getUserWatchHistoryVars);
+const { data, isPending, isSuccess, isError, error } = useGetUserWatchHistory();
 
 const { data, isPending, isSuccess, isError, error } = useCreateNewMovieList(createNewMovieListVars);
 
@@ -66,8 +66,8 @@ import { listAllMovies, getUserWatchHistory, createNewMovieList, addMovieToMovie
 // Operation ListAllMovies: 
 const { data } = await ListAllMovies(dataConnect);
 
-// Operation GetUserWatchHistory:  For variables, look at type GetUserWatchHistoryVars in ../index.d.ts
-const { data } = await GetUserWatchHistory(dataConnect, getUserWatchHistoryVars);
+// Operation GetUserWatchHistory: 
+const { data } = await GetUserWatchHistory(dataConnect);
 
 // Operation CreateNewMovieList:  For variables, look at type CreateNewMovieListVars in ../index.d.ts
 const { data } = await CreateNewMovieList(dataConnect, createNewMovieListVars);

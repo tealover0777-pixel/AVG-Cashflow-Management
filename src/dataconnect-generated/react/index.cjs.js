@@ -9,9 +9,9 @@ exports.useListAllMovies = function useListAllMovies(dcOrOptions, options) {
   return useDataConnectQuery(ref, inputOpts, CallerSdkTypeEnum.GeneratedReact);
 }
 
-exports.useGetUserWatchHistory = function useGetUserWatchHistory(dcOrVars, varsOrOptions, options) {
-  const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateReactArgs(connectorConfig, dcOrVars, varsOrOptions, options, true, true);
-  const ref = getUserWatchHistoryRef(dcInstance, inputVars);
+exports.useGetUserWatchHistory = function useGetUserWatchHistory(dcOrOptions, options) {
+  const { dc: dcInstance, options: inputOpts } = validateReactArgs(connectorConfig, dcOrOptions, options);
+  const ref = getUserWatchHistoryRef(dcInstance);
   return useDataConnectQuery(ref, inputOpts, CallerSdkTypeEnum.GeneratedReact);
 }
 exports.useCreateNewMovieList = function useCreateNewMovieList(dcOrOptions, options) {

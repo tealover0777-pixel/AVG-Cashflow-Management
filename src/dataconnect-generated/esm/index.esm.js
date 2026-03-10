@@ -17,15 +17,15 @@ export function listAllMovies(dc) {
   return executeQuery(listAllMoviesRef(dc));
 }
 
-export const getUserWatchHistoryRef = (dcOrVars, vars) => {
-  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+export const getUserWatchHistoryRef = (dc) => {
+  const { dc: dcInstance} = validateArgs(connectorConfig, dc, undefined);
   dcInstance._useGeneratedSdk();
-  return queryRef(dcInstance, 'GetUserWatchHistory', inputVars);
+  return queryRef(dcInstance, 'GetUserWatchHistory');
 }
 getUserWatchHistoryRef.operationName = 'GetUserWatchHistory';
 
-export function getUserWatchHistory(dcOrVars, vars) {
-  return executeQuery(getUserWatchHistoryRef(dcOrVars, vars));
+export function getUserWatchHistory(dc) {
+  return executeQuery(getUserWatchHistoryRef(dc));
 }
 
 export const createNewMovieListRef = (dcOrVars, vars) => {

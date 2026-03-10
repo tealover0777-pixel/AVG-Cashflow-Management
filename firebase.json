@@ -40,5 +40,13 @@
     "firestore-bigquery-export-payments": "firebase/firestore-bigquery-export@0.2.9",
     "firestore-bigquery-export-fees": "firebase/firestore-bigquery-export@0.2.9",
     "firestore-bigquery-export-tenant-users": "firebase/firestore-bigquery-export@0.2.9"
+  },
+  "emulators": {
+    "dataconnect": {
+      "dataDir": "dataconnect/.dataconnect/pgliteData"
+    }
+  },
+  "dataconnect": {
+    "source": "dataconnect"
   }
 }

@@ -195,21 +195,15 @@ export default function ListAllMoviesComponent() {
 You can execute the `GetUserWatchHistory` Query using the following Query hook function, which is defined in [dataconnect-generated/react/index.d.ts](./index.d.ts):
 
 ```javascript
-useGetUserWatchHistory(dc: DataConnect, vars: GetUserWatchHistoryVariables, options?: useDataConnectQueryOptions<GetUserWatchHistoryData>): UseDataConnectQueryResult<GetUserWatchHistoryData, GetUserWatchHistoryVariables>;
+useGetUserWatchHistory(dc: DataConnect, options?: useDataConnectQueryOptions<GetUserWatchHistoryData>): UseDataConnectQueryResult<GetUserWatchHistoryData, undefined>;
 ```
 You can also pass in a `DataConnect` instance to the Query hook function.
 ```javascript
-useGetUserWatchHistory(vars: GetUserWatchHistoryVariables, options?: useDataConnectQueryOptions<GetUserWatchHistoryData>): UseDataConnectQueryResult<GetUserWatchHistoryData, GetUserWatchHistoryVariables>;
+useGetUserWatchHistory(options?: useDataConnectQueryOptions<GetUserWatchHistoryData>): UseDataConnectQueryResult<GetUserWatchHistoryData, undefined>;
 ```
 
 ### Variables
-The `GetUserWatchHistory` Query requires an argument of type `GetUserWatchHistoryVariables`, which is defined in [dataconnect-generated/index.d.ts](../index.d.ts). It has the following fields:
-
-```javascript
-export interface GetUserWatchHistoryVariables {
-  userId: UUIDString;
-}
-```
+The `GetUserWatchHistory` Query has no variables.
 ### Return Type
 Recall that calling the `GetUserWatchHistory` Query hook function returns a `UseQueryResult` object. This object holds the state of your Query, including whether the Query is loading, has completed, or has succeeded/failed, and any data returned by the Query, among other things.
 
@@ -237,33 +231,26 @@ To learn more about the `UseQueryResult` object, see the [TanStack React Query d
 
 ```javascript
 import { getDataConnect } from 'firebase/data-connect';
-import { connectorConfig, GetUserWatchHistoryVariables } from '@dataconnect/generated';
+import { connectorConfig } from '@dataconnect/generated';
 import { useGetUserWatchHistory } from '@dataconnect/generated/react'
 
 export default function GetUserWatchHistoryComponent() {
-  // The `useGetUserWatchHistory` Query hook requires an argument of type `GetUserWatchHistoryVariables`:
-  const getUserWatchHistoryVars: GetUserWatchHistoryVariables = {
-    userId: ..., 
-  };
-
   // You don't have to do anything to "execute" the Query.
   // Call the Query hook function to get a `UseQueryResult` object which holds the state of your Query.
-  const query = useGetUserWatchHistory(getUserWatchHistoryVars);
-  // Variables can be defined inline as well.
-  const query = useGetUserWatchHistory({ userId: ..., });
+  const query = useGetUserWatchHistory();
 
   // You can also pass in a `DataConnect` instance to the Query hook function.
   const dataConnect = getDataConnect(connectorConfig);
-  const query = useGetUserWatchHistory(dataConnect, getUserWatchHistoryVars);
+  const query = useGetUserWatchHistory(dataConnect);
 
   // You can also pass in a `useDataConnectQueryOptions` object to the Query hook function.
   const options = { staleTime: 5 * 1000 };
-  const query = useGetUserWatchHistory(getUserWatchHistoryVars, options);
+  const query = useGetUserWatchHistory(options);
 
   // You can also pass both a `DataConnect` instance and a `useDataConnectQueryOptions` object.
   const dataConnect = getDataConnect(connectorConfig);
   const options = { staleTime: 5 * 1000 };
-  const query = useGetUserWatchHistory(dataConnect, getUserWatchHistoryVars, options);
+  const query = useGetUserWatchHistory(dataConnect, options);
 
   // Then, you can render your component dynamically based on the status of the Query.
   if (query.isPending) {
