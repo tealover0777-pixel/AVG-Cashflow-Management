@@ -296,11 +296,13 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
           // Sync partial amount back to original schedule
           if (modal.mode === "add_partial" && d.partialPaid) {
             const partialPaidNum = Number(String(d.partialPaid).replace(/[^0-9.]/g, "")) || 0;
+            const baseAmt = d.basePayment || 0;
+            const unpaidAmt = Math.max(baseAmt - partialPaidNum, 0);
             const dir = orig.direction || d.direction;
             const signedAmt = (dir === "IN") ? partialPaidNum : -partialPaidNum;
             updates.signed_payment_amount = signedAmt;
             // Also update the formatted payment mapping with specific note
-            updates.notes = `partial amount of ${fmtCurr(partialPaidNum)} paid and partial unpaid will be scheduled`;
+            updates.notes = `partial amount of ${fmtCurr(partialPaidNum)} paid and partial unpaid amount of ${fmtCurr(unpaidAmt)} will be scheduled`;
           }
 
           await updateDoc(ref, updates);
