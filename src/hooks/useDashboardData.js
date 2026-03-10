@@ -25,7 +25,7 @@ export function useDashboardData({ PROJECTS = [], CONTRACTS = [], PARTIES = [], 
             ? PROJECTS.filter(p => filteredContracts.some(c => c.project_id === p.id))
             : PROJECTS;
 
-        const filteredSchedules = isMember
+        const allFilteredSchedules = isMember
             ? SCHEDULES.filter(s => {
                 const pId = String(s.party_id || "").trim();
                 const targetId = String(myParty?.id || "").trim();
@@ -35,14 +35,19 @@ export function useDashboardData({ PROJECTS = [], CONTRACTS = [], PARTIES = [], 
             })
             : SCHEDULES;
 
+        const liveSchedules = allFilteredSchedules.filter(s => ["Due", "Paid", "Partial"].includes(s.status));
+
         // 2. Calculate Key Metrics
         const totalAUM = filteredContracts.reduce((sum, c) => sum + Number(String(c.amount || 0).replace(/[^0-9.-]/g, '')), 0);
 
-        const totalIncome = filteredSchedules
-            .filter(s => s.status === 'Paid')
-            .reduce((sum, s) => sum + Number(String(s.payment || 0).replace(/[^0-9.-]/g, '')), 0);
+        const totalIncome = PAYMENTS
+            .filter(p => {
+                if (p.direction !== 'Received') return false;
+                return true;
+            })
+            .reduce((sum, p) => sum + Number(String(p.amount || 0).replace(/[^0-9.-]/g, '')), 0);
 
-        const missedPayments = filteredSchedules.filter(s => s.status === 'Missed');
+        const missedPayments = allFilteredSchedules.filter(s => s.status === 'Missed');
         const missedValue = missedPayments.reduce((sum, s) => sum + Number(String(s.payment || 0).replace(/[^0-9.-]/g, '')), 0);
 
         const activeContracts = filteredContracts.filter(c => c.status === 'Active');
@@ -68,7 +73,7 @@ export function useDashboardData({ PROJECTS = [], CONTRACTS = [], PARTIES = [], 
         const thisMonthStrStart = startOfThisMonth.toISOString().slice(0, 10);
         const thisMonthStrEnd = endOfThisMonth.toISOString().slice(0, 10);
 
-        const thisMonthSchedules = filteredSchedules.filter(s => s.dueDate && s.dueDate >= thisMonthStrStart && s.dueDate <= thisMonthStrEnd);
+        const thisMonthSchedules = liveSchedules.filter(s => s.dueDate && s.dueDate >= thisMonthStrStart && s.dueDate <= thisMonthStrEnd);
 
         const dueThisMonthCount = thisMonthSchedules.length;
         const projectedMonthlyIncome = thisMonthSchedules
@@ -83,7 +88,7 @@ export function useDashboardData({ PROJECTS = [], CONTRACTS = [], PARTIES = [], 
         const qLabel = `Q${Math.floor(now.getMonth() / 3) + 1} Wrap`;
 
         // 3. Prepare Chart Data (Quarterly View)
-        const scheduleDates = filteredSchedules.map(s => s.dueDate).filter(Boolean);
+        const scheduleDates = liveSchedules.map(s => s.dueDate).filter(Boolean);
 
         // Find date range
         const firstDate = scheduleDates.length
@@ -111,7 +116,7 @@ export function useDashboardData({ PROJECTS = [], CONTRACTS = [], PARTIES = [], 
             const qStartStr = qStart.toISOString().slice(0, 10);
             const qEndStr = qEnd.toISOString().slice(0, 10);
 
-            const qSchedules = filteredSchedules.filter(s => s.dueDate && s.dueDate >= qStartStr && s.dueDate <= qEndStr);
+            const qSchedules = liveSchedules.filter(s => s.dueDate && s.dueDate >= qStartStr && s.dueDate <= qEndStr);
 
             const projectedIn = qSchedules
                 .filter(s => s.direction === 'IN')
@@ -120,12 +125,12 @@ export function useDashboardData({ PROJECTS = [], CONTRACTS = [], PARTIES = [], 
                 .filter(s => s.direction === 'OUT')
                 .reduce((sum, s) => sum + Number(String(s.payment || 0).replace(/[^0-9.-]/g, '')), 0);
 
-            const actualIn = qSchedules
-                .filter(s => s.status === 'Paid' && s.direction === 'IN')
-                .reduce((sum, s) => sum + Number(String(s.payment || 0).replace(/[^0-9.-]/g, '')), 0);
-            const actualOut = qSchedules
-                .filter(s => s.status === 'Paid' && s.direction === 'OUT')
-                .reduce((sum, s) => sum + Number(String(s.payment || 0).replace(/[^0-9.-]/g, '')), 0);
+            const actualIn = PAYMENTS
+                .filter(p => p.direction === 'Received' && p.date && p.date >= qStartStr && p.date <= qEndStr)
+                .reduce((sum, p) => sum + Number(String(p.amount || 0).replace(/[^0-9.-]/g, '')), 0);
+            const actualOut = PAYMENTS
+                .filter(p => p.direction === 'Disbursed' && p.date && p.date >= qStartStr && p.date <= qEndStr)
+                .reduce((sum, p) => sum + Number(String(p.amount || 0).replace(/[^0-9.-]/g, '')), 0);
 
             quarters.push({
                 name: label,
@@ -141,7 +146,7 @@ export function useDashboardData({ PROJECTS = [], CONTRACTS = [], PARTIES = [], 
 
         // 4. Portfolio Diversification by Payment/Transaction Type
         const diversificationMap = {};
-        filteredSchedules.forEach(s => {
+        liveSchedules.forEach(s => {
             const type = s.type || 'Other';
             diversificationMap[type] = (diversificationMap[type] || 0) + Number(String(s.payment || 0).replace(/[^0-9.-]/g, ''));
         });
@@ -169,7 +174,7 @@ export function useDashboardData({ PROJECTS = [], CONTRACTS = [], PARTIES = [], 
                 cashflow: quarters,
                 diversification: pieData
             },
-            recentActivity: filteredSchedules
+            recentActivity: liveSchedules
                 .sort((a, b) => (a.dueDate || '').localeCompare(b.dueDate || '')),
             contracts: filteredContracts,
             isMember,
