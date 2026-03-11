@@ -531,8 +531,8 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
           </div>
           <div style={{ fontFamily: t.mono, fontSize: 11.5, color: t.textMuted, textAlign: "center" }}>{s.period_number || dash}</div>
           <div style={{ fontFamily: t.mono, fontSize: 11, color: isDark ? "rgba(255,255,255,0.7)" : "#44403C" }}>{s.dueDate}</div>
-          <div style={{ fontSize: 11.5, color: s.type === "Fee" ? (isDark ? "#60A5FA" : "#4F46E5") : t.textMuted, cursor: s.type === "Fee" ? "pointer" : "default", fontWeight: s.type === "Fee" ? 600 : 400, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} onClick={() => {
-            if (s.type === "Fee") {
+          <div style={{ fontSize: 11.5, color: String(s.type || "").toLowerCase() === "fee" ? (isDark ? "#60A5FA" : "#4F46E5") : t.textMuted, cursor: String(s.type || "").toLowerCase() === "fee" ? "pointer" : "default", fontWeight: String(s.type || "").toLowerCase() === "fee" ? 600 : 400, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} onClick={() => {
+            if (String(s.type || "").toLowerCase() === "fee") {
               const fids = String(s.fee_id || "").split(",").filter(Boolean);
               if (fids.length > 0) {
                 const fees = fids.map(id => FEES_DATA.find(x => x.id === id)).filter(Boolean);
