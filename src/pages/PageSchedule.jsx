@@ -57,7 +57,7 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
   const [sort, setSort] = useState({ key: "dueDate", direction: "asc" });
   const [page, setPage] = useState(1);
   const onSort = k => { setSort(s => ({ key: k, direction: s.key === k && s.direction === "asc" ? "desc" : "asc" })); setPage(1); };
-  const openAdd = () => setModal({ open: true, mode: "add", data: { schedule_id: getNextScheduleId(), contract: "C10000", dueDate: "", type: "Interest", payment: "", status: "Due", notes: "", fee_ids: [], basePayment: 0 } });
+  const openAdd = () => setModal({ open: true, mode: "add", data: { schedule_id: getNextScheduleId(), contract: "C10000", dueDate: "", type: "Interest", payment: "", status: "Due", notes: "New Manual Schedule ", fee_ids: [], basePayment: 0 } });
   const openEdit = r => {
     const fee_ids = r.fee_id ? String(r.fee_id).split(",").filter(Boolean) : [];
     let basePayment = 0;

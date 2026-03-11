@@ -411,12 +411,10 @@ export default function PageContracts({ t, isDark, CONTRACTS = [], PROJECTS = []
 
         const mergedFees = Object.values(feeGroups).map(g => {
           const { fee_ids, payment_amounts, total_payment, total_signed, ...rest } = g;
-          let notes = rest.notes;
-          if (fee_ids.length > 1) {
-            const parts = payment_amounts.map(a => fmtCurr(a));
-            const sumStr = fmtCurr(total_payment);
-            notes = `Fee Breakdown: ${parts.join(" + ")} = ${sumStr}`;
-          }
+          const parts = payment_amounts.map(a => fmtCurr(a));
+          const sumStr = fmtCurr(total_payment);
+          const notes = `Fee Breakdown: ${parts.join(" + ")} = ${sumStr}`;
+
           return {
             ...rest,
             fee_id: fee_ids.join(","),
