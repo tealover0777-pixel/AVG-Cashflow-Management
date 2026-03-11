@@ -95,7 +95,6 @@ export default function PageProfile({ t, isDark, setIsDark, ROLES = [], collecti
 
     const executeSave = async () => {
         setSaving(true);
-        setShowConfirm(false);
         try {
             const uid = user?.uid;
             if (!uid) return;
@@ -133,9 +132,11 @@ export default function PageProfile({ t, isDark, setIsDark, ROLES = [], collecti
             }
 
             alert("Profile updated successfully.");
+            setShowConfirm(false);
         } catch (err) {
             console.error("Save profile error:", err);
             alert("Save failed: " + (err.message || "Unknown error"));
+            setShowConfirm(false);
         } finally {
             setSaving(false);
         }
@@ -151,6 +152,7 @@ export default function PageProfile({ t, isDark, setIsDark, ROLES = [], collecti
                 saveLabel={saving ? "Saving..." : "Confirm & Save"}
                 t={t}
                 isDark={isDark}
+                loading={saving}
             >
                 <div style={{ display: "flex", flexDirection: "column", gap: 16, alignItems: "center", textAlign: "center", padding: "8px 0" }}>
                     <div style={{ width: 52, height: 52, borderRadius: 14, background: isDark ? "rgba(255,255,255,0.05)" : "#F0F9FF", border: `1px solid ${t.surfaceBorder}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24 }}>💾</div>

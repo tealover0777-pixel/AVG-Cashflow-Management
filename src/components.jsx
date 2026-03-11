@@ -197,7 +197,7 @@ export const TblFilterRow = ({ cols, colFilters, onFilterChange, onClear, gridTe
 // ─────────────────────────────────────────────────────────────────────────────
 // MODAL SYSTEM
 // ─────────────────────────────────────────────────────────────────────────────
-export const Modal = ({ open, onClose, title, onSave, saveLabel, danger, width, children, t, isDark }) => {
+export const Modal = ({ open, onClose, title, onSave, saveLabel, danger, width, children, t, isDark, loading }) => {
   if (!open) return null;
   return (
     <div style={{ position: "fixed", inset: 0, zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -212,10 +212,12 @@ export const Modal = ({ open, onClose, title, onSave, saveLabel, danger, width, 
         <div style={{ padding: "24px 26px", overflowY: "auto", flex: 1 }}>{children}</div>
         <div style={{ padding: "16px 26px", borderTop: `1px solid ${t.surfaceBorder}`, display: "flex", justifyContent: "flex-end", gap: 10, background: isDark ? "rgba(255,255,255,0.02)" : "#FAFAF9", borderRadius: "0 0 20px 20px" }}>
           <Tooltip text="Cancel without saving" t={t}>
-            <button onClick={onClose} style={{ padding: "10px 22px", borderRadius: 10, fontSize: 13, fontWeight: 500, background: t.chipBg, color: t.textSecondary, border: `1px solid ${t.chipBorder}`, cursor: "pointer" }}>Cancel</button>
+            <button onClick={onClose} disabled={loading} style={{ padding: "10px 22px", borderRadius: 10, fontSize: 13, fontWeight: 500, background: t.chipBg, color: t.textSecondary, border: `1px solid ${t.chipBorder}`, cursor: loading ? "default" : "pointer", opacity: loading ? 0.5 : 1 }}>Cancel</button>
           </Tooltip>
           <Tooltip text={danger ? "Confirm deletion" : (saveLabel || "Save changes")} t={t}>
-            <button onClick={onSave} className="primary-btn" style={{ padding: "10px 22px", borderRadius: 10, fontSize: 13, fontWeight: 600, background: danger ? "rgba(248,113,113,0.15)" : t.accentGrad, color: danger ? (isDark ? "#F87171" : "#DC2626") : "#fff", border: danger ? `1px solid ${isDark ? "rgba(248,113,113,0.3)" : "#FECACA"}` : "none", boxShadow: danger ? "none" : `0 4px 14px ${t.accentShadow}`, cursor: "pointer" }}>{saveLabel || "Save"}</button>
+            <button onClick={onSave} disabled={loading} className="primary-btn" style={{ padding: "10px 22px", borderRadius: 10, fontSize: 13, fontWeight: 600, background: danger ? "rgba(248,113,113,0.15)" : t.accentGrad, color: danger ? (isDark ? "#F87171" : "#DC2626") : "#fff", border: danger ? `1px solid ${isDark ? "rgba(248,113,113,0.3)" : "#FECACA"}` : "none", boxShadow: danger ? "none" : `0 4px 14px ${t.accentShadow}`, cursor: loading ? "default" : "pointer", opacity: loading ? 0.6 : 1 }}>
+              {loading ? "..." : (saveLabel || "Save")}
+            </button>
           </Tooltip>
         </div>
       </div>
