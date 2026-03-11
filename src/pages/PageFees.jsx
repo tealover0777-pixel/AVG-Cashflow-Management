@@ -112,6 +112,24 @@ export default function PageFees({ t, isDark, FEES_DATA = [], DIMENSIONS = [], c
         <FF label="Direction" t={t}><FSel value={modal.data.direction || "IN"} onChange={e => setF("direction", e.target.value)} options={["IN", "OUT"]} t={t} /></FF>
         <FF label="Rate / Amount" t={t}><FIn value={modal.data.rate} onChange={e => setF("rate", e.target.value)} placeholder={modal.data.method === "Fixed Amount" ? "$500" : "1.50%"} t={t} /></FF>
       </div>
+      <FF label="Signed Rate / Amount" t={t}>
+        {(() => {
+          const rateValue = modal.data.rate ? String(modal.data.rate).replace(/[^0-9.-]/g, "") : "0";
+          const rateNum = Number(rateValue) || 0;
+          const dir = modal.data.direction || "IN";
+          const signedRate = dir === "OUT" ? -rateNum : rateNum;
+          const isFixedAmount = modal.data.method === "Fixed Amount" || modal.data.method === "Flat";
+          const formattedSignedRate = isFixedAmount
+            ? (signedRate >= 0 ? `$${Math.abs(signedRate).toFixed(2)}` : `($${Math.abs(signedRate).toFixed(2)})`)
+            : (signedRate >= 0 ? `${signedRate}%` : `(${Math.abs(signedRate)}%)`);
+          const displayColor = signedRate >= 0 ? (isDark ? "#34D399" : "#059669") : (isDark ? "#F87171" : "#DC2626");
+          return (
+            <div style={{ fontFamily: t.mono, fontSize: 13, fontWeight: 700, color: displayColor, background: isDark ? "rgba(255,255,255,0.04)" : "#F5F4F1", border: `1px solid ${t.surfaceBorder}`, borderRadius: 9, padding: "10px 13px" }}>
+              {formattedSignedRate}
+            </div>
+          );
+        })()}
+      </FF>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
         <FF label="Charge At" t={t}><FSel value={modal.data.fee_charge_at || ""} onChange={e => setF("fee_charge_at", e.target.value)} options={feeChargeAtOpts} t={t} /></FF>
         <FF label="Frequency" t={t}><FSel value={modal.data.fee_frequency || ""} onChange={e => setF("fee_frequency", e.target.value)} options={feeFrequencyOpts} t={t} /></FF>
