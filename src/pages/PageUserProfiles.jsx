@@ -3,7 +3,7 @@ import { db, functions } from "../firebase";
 import { doc, setDoc, updateDoc, deleteDoc, serverTimestamp } from "firebase/firestore";
 import { httpsCallable } from "firebase/functions";
 import { sortData } from "../utils";
-import { Bdg, Pagination, ActBtns, useResizableColumns, TblHead, Modal, FF, FIn, DelModal } from "../components";
+import { Bdg, Pagination, ActBtns, useResizableColumns, TblHead, Modal, FF, FIn, DelModal, Tooltip } from "../components";
 import { useAuth } from "../AuthContext";
 
 const PERMISSIONS_LIST = [
@@ -280,7 +280,7 @@ export default function PageUserProfiles({ t, isDark, USERS = [], ROLES = [], co
                         {fixing ? "⏳ Fixing..." : "🔧 Fix All Statuses"}
                     </button>
                 )}
-                {(canCreate || canInvite) && <button className="primary-btn" onClick={openInvite} style={{ background: t.accentGrad, color: "#fff", padding: "11px 22px", borderRadius: 11, fontSize: 13.5, fontWeight: 600, boxShadow: `0 4px 16px ${t.accentShadow}` }}>✉️ Invite User</button>}
+                {(canCreate || canInvite) && <Tooltip text="Send invitation to new user" t={t}><button className="primary-btn" onClick={openInvite} style={{ background: t.accentGrad, color: "#fff", padding: "11px 22px", borderRadius: 11, fontSize: 13.5, fontWeight: 600, boxShadow: `0 4px 16px ${t.accentShadow}` }}>✉️ Invite User</button></Tooltip>}
             </div>
         </div>
 

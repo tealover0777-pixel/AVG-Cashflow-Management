@@ -3,7 +3,7 @@ import { db } from "../firebase";
 import { doc, setDoc, deleteDoc, serverTimestamp } from "firebase/firestore";
 import { useFirestoreCollection } from "../useFirestoreCollection";
 import { sortData } from "../utils";
-import { Bdg, Pagination, ActBtns, useResizableColumns, TblHead, Modal, FF, FIn, DelModal, FMultiSel } from "../components";
+import { Bdg, Pagination, ActBtns, useResizableColumns, TblHead, Modal, FF, FIn, DelModal, FMultiSel, Tooltip } from "../components";
 import { useAuth } from "../AuthContext";
 
 export default function PageRoles({ t, isDark, collectionPath = "", DIMENSIONS = [], USERS = [] }) {
@@ -103,7 +103,7 @@ export default function PageRoles({ t, isDark, collectionPath = "", DIMENSIONS =
                 <h1 style={{ fontFamily: t.titleFont, fontWeight: t.titleWeight, fontSize: t.titleSize, color: isDark ? "#fff" : "#1C1917", letterSpacing: t.titleTracking, lineHeight: 1, marginBottom: 6 }}>Role Types</h1>
                 <p style={{ fontSize: 13.5, color: t.textMuted }}>Define custom roles and map them to application permissions</p>
             </div>
-            {canCreate && <button className="primary-btn" onClick={openAdd} style={{ background: t.accentGrad, color: "#fff", padding: "11px 22px", borderRadius: 11, fontSize: 13.5, fontWeight: 600, boxShadow: `0 4px 16px ${t.accentShadow}` }}>+ New Role</button>}
+            {canCreate && <Tooltip text="Create a new role type" t={t}><button className="primary-btn" onClick={openAdd} style={{ background: t.accentGrad, color: "#fff", padding: "11px 22px", borderRadius: 11, fontSize: 13.5, fontWeight: 600, boxShadow: `0 4px 16px ${t.accentShadow}` }}>+ New Role</button></Tooltip>}
         </div>
 
         <div style={{ background: t.surface, borderRadius: 16, border: `1px solid ${t.surfaceBorder}`, overflow: "auto", backdropFilter: isDark ? "blur(20px)" : "none" }}>

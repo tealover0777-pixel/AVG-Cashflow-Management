@@ -23,6 +23,7 @@ import PageSuperAdmin from "./pages/PageSuperAdmin";
 import PageProfile from "./pages/PageProfile";
 import PageDimensions from "./pages/PageDimensions";
 import PageReports from "./pages/PageReports";
+import { Tooltip } from "./components";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // ERROR BOUNDARY
@@ -354,6 +355,10 @@ function AppContent() {
         .export-btn:hover { opacity: 0.85; transform: translateY(-1px); }
         .theme-toggle { transition: all 0.2s ease; cursor: pointer; border: none; }
         .theme-toggle:hover { opacity: 0.85; transform: scale(1.05); }
+        @keyframes tooltipFadeIn {
+          from { opacity: 0; transform: translate(-50%, 4px); }
+          to { opacity: 1; transform: translate(-50%, 0); }
+        }
       `}</style>
 
       {/* ── Sidebar ── */}
@@ -396,9 +401,11 @@ function AppContent() {
         {/* User */}
         <div style={{ padding: "16px", borderTop: `1px solid ${t.sidebarBorder}` }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <div onClick={() => setActivePage("Profile")} style={{ cursor: "pointer", width: isDark ? 32 : 34, height: isDark ? 32 : 34, borderRadius: isDark ? 8 : 9, background: isDark ? "linear-gradient(135deg,#60A5FA,#3B82F6)" : "linear-gradient(135deg,#F472B6,#EC4899)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700, color: "#fff" }}>
-              {(profile?.name || user.email || "A").charAt(0).toUpperCase()}
-            </div>
+            <Tooltip text="View your profile settings" t={t}>
+              <div onClick={() => setActivePage("Profile")} style={{ cursor: "pointer", width: isDark ? 32 : 34, height: isDark ? 32 : 34, borderRadius: isDark ? 8 : 9, background: isDark ? "linear-gradient(135deg,#60A5FA,#3B82F6)" : "linear-gradient(135deg,#F472B6,#EC4899)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700, color: "#fff" }}>
+                {(profile?.name || user.email || "A").charAt(0).toUpperCase()}
+              </div>
+            </Tooltip>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: isDark ? 11 : 12, fontWeight: isDark ? 500 : 700, color: isDark ? "rgba(255,255,255,0.9)" : "#292524", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                 {(profile?.user_name || profile?.name) ? `${profile?.user_name || profile?.name} (${user.email})` : user.email}
@@ -407,7 +414,9 @@ function AppContent() {
                 {profile?.role}{profile?.roleName && profile?.roleName !== profile?.role ? ` - ${profile?.roleName}` : ""}
               </div>
             </div>
-            <div onClick={logout} style={{ fontSize: 16, color: "#F87171", cursor: "pointer" }}>⎋</div>
+            <Tooltip text="Sign out of your account" t={t}>
+              <div onClick={logout} style={{ fontSize: 16, color: "#F87171", cursor: "pointer" }}>⎋</div>
+            </Tooltip>
           </div>
         </div>
       </div>
@@ -451,11 +460,15 @@ function AppContent() {
               <span style={{ color: t.text, fontWeight: 500 }}>{profile?.user_name || profile?.name || user.email}</span>
               <span style={{ color: t.textSecondary }}>Profile</span>
             </span>
-            <button className="theme-toggle" onClick={() => setIsDark(!isDark)}
-              style={{ background: isDark ? "rgba(52,211,153,0.1)" : "#EEF2FF", color: isDark ? "#34D399" : "#4F46E5", border: `1px solid ${isDark ? "rgba(52,211,153,0.25)" : "#C7D2FE"}`, padding: "4px 12px", borderRadius: 6, fontSize: 12, fontWeight: 500, display: "flex", alignItems: "center", gap: 5 }}>
-              {isDark ? "☀ Light" : "☽ Dark"}
-            </button>
-            <span onClick={logout} style={{ color: t.logoutText, cursor: "pointer", fontWeight: 500, background: t.logoutBg, padding: "4px 12px", borderRadius: 6, border: `1px solid ${t.logoutBorder}`, fontSize: 12 }}>Logout</span>
+            <Tooltip text={isDark ? "Switch to light theme" : "Switch to dark theme"} t={t}>
+              <button className="theme-toggle" onClick={() => setIsDark(!isDark)}
+                style={{ background: isDark ? "rgba(52,211,153,0.1)" : "#EEF2FF", color: isDark ? "#34D399" : "#4F46E5", border: `1px solid ${isDark ? "rgba(52,211,153,0.25)" : "#C7D2FE"}`, padding: "4px 12px", borderRadius: 6, fontSize: 12, fontWeight: 500, display: "flex", alignItems: "center", gap: 5 }}>
+                {isDark ? "☀ Light" : "☽ Dark"}
+              </button>
+            </Tooltip>
+            <Tooltip text="Sign out of your account" t={t}>
+              <span onClick={logout} style={{ color: t.logoutText, cursor: "pointer", fontWeight: 500, background: t.logoutBg, padding: "4px 12px", borderRadius: 6, border: `1px solid ${t.logoutBorder}`, fontSize: 12 }}>Logout</span>
+            </Tooltip>
           </div>
         </div>
 

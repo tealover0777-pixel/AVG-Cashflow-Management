@@ -2,7 +2,7 @@ import { useState } from "react";
 import { db } from "../firebase";
 import { doc, setDoc, updateDoc, deleteDoc, serverTimestamp } from "firebase/firestore";
 import { sortData } from "../utils";
-import { Bdg, StatCard, Pagination, ActBtns, useResizableColumns, TblHead, Modal, FF, FIn, DelModal } from "../components";
+import { Bdg, StatCard, Pagination, ActBtns, useResizableColumns, TblHead, Modal, FF, FIn, DelModal, Tooltip } from "../components";
 import { useAuth } from "../AuthContext";
 
 export default function PageTenants({ t, isDark, TENANTS = [], collectionPath = "" }) {
@@ -114,9 +114,11 @@ export default function PageTenants({ t, isDark, TENANTS = [], collectionPath = 
                 <p style={{ fontSize: 13.5, color: t.textMuted }}>Manage platform tenants and owners</p>
             </div>
             {canCreate && (
-                <button className="primary-btn" onClick={openAdd} style={{ background: t.accentGrad, color: "#fff", padding: "11px 22px", borderRadius: 11, fontSize: 13.5, fontWeight: 600, boxShadow: `0 4px 16px ${t.accentShadow}`, display: "flex", alignItems: "center", gap: 7 }}>
-                    <span style={{ fontSize: 18, lineHeight: 1 }}>+</span> New Tenant
-                </button>
+                <Tooltip text="Add a new tenant organization" t={t}>
+                    <button className="primary-btn" onClick={openAdd} style={{ background: t.accentGrad, color: "#fff", padding: "11px 22px", borderRadius: 11, fontSize: 13.5, fontWeight: 600, boxShadow: `0 4px 16px ${t.accentShadow}`, display: "flex", alignItems: "center", gap: 7 }}>
+                        <span style={{ fontSize: 18, lineHeight: 1 }}>+</span> New Tenant
+                    </button>
+                </Tooltip>
             )}
         </div>
 

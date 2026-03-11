@@ -30,16 +30,70 @@ export const Pagination = ({ totalPages, currentPage, onPageChange, t }) => {
     return Array.from({ length: Math.min(10, totalPages - start + 1) }, (_, i) => start + i);
   };
   const pages = getPages();
-  const btn = (label, target, disabled = false, isAct = false) => (
-    <span key={label} onClick={() => !disabled && onPageChange(target)} style={{ width: 32, height: 32, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: isAct ? 700 : 500, background: isAct ? t.pageBtnActive : (disabled ? "transparent" : t.pageBtnBg), color: isAct ? t.pageBtnActiveTxt : (disabled ? t.textMuted : t.pageBtnText), border: `1px solid ${isAct ? t.pageBtnActive : (disabled ? t.surfaceBorder : t.pageBtnBorder)}`, cursor: disabled ? "default" : "pointer", opacity: disabled ? 0.5 : 1, transition: "all 0.1s ease" }}>{label}</span>
+  const btn = (label, target, disabled = false, isAct = false, tooltip = "") => (
+    <Tooltip key={label} text={disabled ? "" : tooltip} t={t}>
+      <span onClick={() => !disabled && onPageChange(target)} style={{ width: 32, height: 32, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: isAct ? 700 : 500, background: isAct ? t.pageBtnActive : (disabled ? "transparent" : t.pageBtnBg), color: isAct ? t.pageBtnActiveTxt : (disabled ? t.textMuted : t.pageBtnText), border: `1px solid ${isAct ? t.pageBtnActive : (disabled ? t.surfaceBorder : t.pageBtnBorder)}`, cursor: disabled ? "default" : "pointer", opacity: disabled ? 0.5 : 1, transition: "all 0.1s ease" }}>{label}</span>
+    </Tooltip>
   );
   return (
     <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-      {btn("««", 1, currentPage === 1)}
-      {btn("«", Math.max(1, currentPage - 10), currentPage <= 10)}
-      {pages.map(p => btn(p, p, false, currentPage === p))}
-      {btn("»", Math.min(totalPages, currentPage + 10), currentPage > totalPages - (totalPages % 10 || 10))}
-      {btn("»»", totalPages, currentPage === totalPages)}
+      {btn("««", 1, currentPage === 1, false, "Go to first page")}
+      {btn("«", Math.max(1, currentPage - 10), currentPage <= 10, false, "Go back 10 pages")}
+      {pages.map(p => btn(p, p, false, currentPage === p, `Go to page ${p}`))}
+      {btn("»", Math.min(totalPages, currentPage + 10), currentPage > totalPages - (totalPages % 10 || 10), false, "Go forward 10 pages")}
+      {btn("»»", totalPages, currentPage === totalPages, false, "Go to last page")}
+    </div>
+  );
+};
+
+export const Tooltip = ({ children, text, position = "top", delay = 300, t }) => {
+  const [visible, setVisible] = useState(false);
+  const timeoutRef = useRef(null);
+
+  const handleShow = () => {
+    timeoutRef.current = setTimeout(() => setVisible(true), delay);
+  };
+
+  const handleHide = () => {
+    clearTimeout(timeoutRef.current);
+    setVisible(false);
+  };
+
+  return (
+    <div
+      onMouseEnter={handleShow}
+      onMouseLeave={handleHide}
+      onFocus={handleShow}
+      onBlur={handleHide}
+      style={{ position: "relative", display: "inline-block" }}
+    >
+      {children}
+      {visible && text && (
+        <div
+          role="tooltip"
+          style={{
+            position: "absolute",
+            background: t.tooltipBg,
+            color: t.tooltipText,
+            padding: "6px 10px",
+            borderRadius: 6,
+            fontSize: 11.5,
+            fontWeight: 500,
+            whiteSpace: "nowrap",
+            border: `1px solid ${t.tooltipBorder}`,
+            boxShadow: t.tooltipShadow,
+            zIndex: 10000,
+            pointerEvents: "none",
+            bottom: position === "top" ? "calc(100% + 8px)" : "auto",
+            top: position === "bottom" ? "calc(100% + 8px)" : "auto",
+            left: "50%",
+            transform: "translateX(-50%)",
+            animation: "tooltipFadeIn 150ms ease forwards"
+          }}
+        >
+          {text}
+        </div>
+      )}
     </div>
   );
 };
@@ -47,9 +101,17 @@ export const Pagination = ({ totalPages, currentPage, onPageChange, t }) => {
 export const ActBtns = ({ show, t, onEdit, onDel, onUndo }) => {
   return (
     <div style={{ display: "flex", gap: 6, opacity: show ? 1 : 0, transition: "opacity 0.15s ease" }}>
-      {onUndo && <button className="action-btn" onClick={e => { e.stopPropagation(); onUndo(); }} title="Undo last action" style={{ width: 30, height: 30, borderRadius: 7, background: t.chipBg, color: t.accent, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, border: `1px solid ${t.chipBorder}` }}>↺</button>}
-      <button className="action-btn" onClick={e => { e.stopPropagation(); onEdit && onEdit(); }} style={{ width: 30, height: 30, borderRadius: 7, background: t.editBtn[0], color: t.editBtn[1], display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13 }}>✎</button>
-      <button className="action-btn" onClick={e => { e.stopPropagation(); onDel && onDel(); }} style={{ width: 30, height: 30, borderRadius: 7, background: t.deleteBtn[0], color: t.deleteBtn[1], display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13 }}>⊗</button>
+      {onUndo && (
+        <Tooltip text="Undo last action" t={t}>
+          <button className="action-btn" onClick={e => { e.stopPropagation(); onUndo(); }} style={{ width: 30, height: 30, borderRadius: 7, background: t.chipBg, color: t.accent, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, border: `1px solid ${t.chipBorder}` }}>↺</button>
+        </Tooltip>
+      )}
+      <Tooltip text="Edit this record" t={t}>
+        <button className="action-btn" onClick={e => { e.stopPropagation(); onEdit && onEdit(); }} style={{ width: 30, height: 30, borderRadius: 7, background: t.editBtn[0], color: t.editBtn[1], display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13 }}>✎</button>
+      </Tooltip>
+      <Tooltip text="Delete this record" t={t}>
+        <button className="action-btn" onClick={e => { e.stopPropagation(); onDel && onDel(); }} style={{ width: 30, height: 30, borderRadius: 7, background: t.deleteBtn[0], color: t.deleteBtn[1], display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13 }}>⊗</button>
+      </Tooltip>
     </div>
   );
 };
@@ -105,12 +167,18 @@ export const Modal = ({ open, onClose, title, onSave, saveLabel, danger, width, 
       <div style={{ position: "relative", zIndex: 1, background: isDark ? "#0b1929" : "#ffffff", borderRadius: 20, border: `1px solid ${t.surfaceBorder}`, width: width || 480, maxWidth: "92vw", maxHeight: "88vh", display: "flex", flexDirection: "column", boxShadow: isDark ? "0 40px 100px rgba(0,0,0,0.7)" : "0 24px 60px rgba(0,0,0,0.13)" }}>
         <div style={{ padding: "22px 26px", borderBottom: `1px solid ${t.surfaceBorder}`, display: "flex", justifyContent: "space-between", alignItems: "center", background: isDark ? "rgba(255,255,255,0.02)" : "#FAFAF9", borderRadius: "20px 20px 0 0" }}>
           <span style={{ fontSize: 16, fontWeight: 700, color: isDark ? "#fff" : "#1C1917", fontFamily: t.titleFont, letterSpacing: "-0.4px" }}>{title}</span>
-          <button onClick={onClose} className="action-btn" style={{ width: 28, height: 28, borderRadius: 8, background: t.deleteBtn[0], color: t.deleteBtn[1], display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, border: "none", lineHeight: 1 }}>×</button>
+          <Tooltip text="Close this dialog" t={t}>
+            <button onClick={onClose} className="action-btn" style={{ width: 28, height: 28, borderRadius: 8, background: t.deleteBtn[0], color: t.deleteBtn[1], display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, border: "none", lineHeight: 1 }}>×</button>
+          </Tooltip>
         </div>
         <div style={{ padding: "24px 26px", overflowY: "auto", flex: 1 }}>{children}</div>
         <div style={{ padding: "16px 26px", borderTop: `1px solid ${t.surfaceBorder}`, display: "flex", justifyContent: "flex-end", gap: 10, background: isDark ? "rgba(255,255,255,0.02)" : "#FAFAF9", borderRadius: "0 0 20px 20px" }}>
-          <button onClick={onClose} style={{ padding: "10px 22px", borderRadius: 10, fontSize: 13, fontWeight: 500, background: t.chipBg, color: t.textSecondary, border: `1px solid ${t.chipBorder}`, cursor: "pointer" }}>Cancel</button>
-          <button onClick={onSave} className="primary-btn" style={{ padding: "10px 22px", borderRadius: 10, fontSize: 13, fontWeight: 600, background: danger ? "rgba(248,113,113,0.15)" : t.accentGrad, color: danger ? (isDark ? "#F87171" : "#DC2626") : "#fff", border: danger ? `1px solid ${isDark ? "rgba(248,113,113,0.3)" : "#FECACA"}` : "none", boxShadow: danger ? "none" : `0 4px 14px ${t.accentShadow}`, cursor: "pointer" }}>{saveLabel || "Save"}</button>
+          <Tooltip text="Cancel without saving" t={t}>
+            <button onClick={onClose} style={{ padding: "10px 22px", borderRadius: 10, fontSize: 13, fontWeight: 500, background: t.chipBg, color: t.textSecondary, border: `1px solid ${t.chipBorder}`, cursor: "pointer" }}>Cancel</button>
+          </Tooltip>
+          <Tooltip text={danger ? "Confirm deletion" : (saveLabel || "Save changes")} t={t}>
+            <button onClick={onSave} className="primary-btn" style={{ padding: "10px 22px", borderRadius: 10, fontSize: 13, fontWeight: 600, background: danger ? "rgba(248,113,113,0.15)" : t.accentGrad, color: danger ? (isDark ? "#F87171" : "#DC2626") : "#fff", border: danger ? `1px solid ${isDark ? "rgba(248,113,113,0.3)" : "#FECACA"}` : "none", boxShadow: danger ? "none" : `0 4px 14px ${t.accentShadow}`, cursor: "pointer" }}>{saveLabel || "Save"}</button>
+          </Tooltip>
         </div>
       </div>
     </div>
