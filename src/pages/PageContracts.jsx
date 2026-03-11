@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { db } from "../firebase";
 import { collection, doc, addDoc, updateDoc, deleteDoc, serverTimestamp } from "firebase/firestore";
-import { normalizeDateAtNoon, hybridDays, pmtCalculator_ACT360_30360, feeCalculator_ACT360_30360, getFrequencyValue, sortData } from "../utils";
+import { normalizeDateAtNoon, hybridDays, pmtCalculator_ACT360_30360, feeCalculator_ACT360_30360, getFrequencyValue, sortData, fmtCurr } from "../utils";
 import { Bdg, StatCard, Pagination, ActBtns, useResizableColumns, TblHead, TblFilterRow, Modal, FF, FIn, FSel, DelModal, Tooltip } from "../components";
 import { useAuth } from "../AuthContext";
 
@@ -378,6 +378,59 @@ export default function PageContracts({ t, isDark, CONTRACTS = [], PROJECTS = []
           applied_to: "Principal Amount",
           status: "Due", notes: `Repayment for ${c.id}`, created_at: serverTimestamp(),
         });
+
+        // --- 4. Post-process Fee Merging for this contract ---
+        const feeGroups = {}; // key: due_date|applied_to|direction
+        const nonFeeEntries = [];
+        const contractEntries = entries.filter(e => e.contract_id === c.id);
+        
+        // Remove temporary entries from main list to rebuild
+        const otherContractsEntries = entries.filter(e => e.contract_id !== c.id);
+        
+        contractEntries.forEach(e => {
+          if (e.payment_type !== PT_FEE) {
+            nonFeeEntries.push(e);
+            return;
+          }
+          const key = `${e.due_date}|${e.applied_to}|${e.direction_from_company}`;
+          if (!feeGroups[key]) {
+            feeGroups[key] = {
+              ...e,
+              fee_ids: [e.fee_id],
+              payment_amounts: [e.payment_amount],
+              total_payment: e.payment_amount,
+              total_signed: e.signed_payment_amount
+            };
+          } else {
+            feeGroups[key].fee_ids.push(e.fee_id);
+            feeGroups[key].payment_amounts.push(e.payment_amount);
+            feeGroups[key].total_payment += e.payment_amount;
+            feeGroups[key].total_signed += e.signed_payment_amount;
+          }
+        });
+
+        const mergedFees = Object.values(feeGroups).map(g => {
+          const { fee_ids, payment_amounts, total_payment, total_signed, ...rest } = g;
+          let notes = rest.notes;
+          if (fee_ids.length > 1) {
+            const parts = payment_amounts.map(a => fmtCurr(a));
+            const sumStr = fmtCurr(total_payment);
+            notes = `Fee Breakdown: ${parts.join(" + ")} = ${sumStr}`;
+          }
+          return {
+            ...rest,
+            fee_id: fee_ids.join(","),
+            payment_amount: Math.round(total_payment * 100) / 100,
+            signed_payment_amount: Math.round(total_signed * 100) / 100,
+            notes
+          };
+        });
+
+        // Re-assign grouped list back to entries
+        const finalContractEntries = [...nonFeeEntries, ...mergedFees];
+        // Clear and rebuild entries
+        entries.length = 0;
+        entries.push(...otherContractsEntries, ...finalContractEntries);
       }
 
       console.log(`Generated ${entries.length} entries. Skipped:`, skipped);
