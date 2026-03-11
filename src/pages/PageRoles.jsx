@@ -3,7 +3,7 @@ import { db } from "../firebase";
 import { doc, setDoc, deleteDoc, serverTimestamp } from "firebase/firestore";
 import { useFirestoreCollection } from "../useFirestoreCollection";
 import { sortData } from "../utils";
-import { Bdg, Pagination, ActBtns, useResizableColumns, TblHead, Modal, FF, FIn, DelModal, FMultiSel, Tooltip } from "../components";
+import { Bdg, Pagination, ActBtns, useResizableColumns, TblHead, TblFilterRow, Modal, FF, FIn, DelModal, FMultiSel, Tooltip } from "../components";
 import { useAuth } from "../AuthContext";
 
 export default function PageRoles({ t, isDark, collectionPath = "", DIMENSIONS = [], USERS = [] }) {
@@ -67,6 +67,7 @@ export default function PageRoles({ t, isDark, collectionPath = "", DIMENSIONS =
     ];
     const { gridTemplate, headerRef, onResizeStart } = useResizableColumns(cols);
     const [colFilters, setColFilters] = useState({});
+    const setColFilter = (key, val) => { setColFilters(f => ({ ...f, [key]: val })); setPage(1); };
 
     // Auto-sync Roles to Dimensions so "Role" dropdowns have access to them!
     useEffect(() => {
@@ -108,6 +109,7 @@ export default function PageRoles({ t, isDark, collectionPath = "", DIMENSIONS =
 
         <div style={{ background: t.surface, borderRadius: 16, border: `1px solid ${t.surfaceBorder}`, overflow: "auto", backdropFilter: isDark ? "blur(20px)" : "none" }}>
             <TblHead cols={cols} t={t} isDark={isDark} sortConfig={sort} onSort={onSort} gridTemplate={gridTemplate} headerRef={headerRef} onResizeStart={onResizeStart} />
+            <TblFilterRow cols={cols} colFilters={colFilters} onFilterChange={setColFilter} onClear={() => setColFilters({})} gridTemplate={gridTemplate} t={t} isDark={isDark} />
             {paginated.map((p, i) => {
                 const isHov = hov === p.id;
                 return (<div key={p.id} className="data-row" onMouseEnter={() => setHov(p.id)} onMouseLeave={() => setHov(null)} style={{ display: "grid", gridTemplateColumns: gridTemplate, padding: "12px 22px", borderBottom: i < paginated.length - 1 ? `1px solid ${t.rowDivider}` : "none", alignItems: "center", background: isHov ? t.rowHover : "transparent" }}>

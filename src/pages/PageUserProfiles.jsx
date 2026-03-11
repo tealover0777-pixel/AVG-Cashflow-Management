@@ -3,7 +3,7 @@ import { db, functions } from "../firebase";
 import { doc, setDoc, updateDoc, deleteDoc, serverTimestamp } from "firebase/firestore";
 import { httpsCallable } from "firebase/functions";
 import { sortData } from "../utils";
-import { Bdg, Pagination, ActBtns, useResizableColumns, TblHead, Modal, FF, FIn, DelModal, Tooltip } from "../components";
+import { Bdg, Pagination, ActBtns, useResizableColumns, TblHead, TblFilterRow, Modal, FF, FIn, DelModal, Tooltip } from "../components";
 import { useAuth } from "../AuthContext";
 
 const PERMISSIONS_LIST = [
@@ -287,9 +287,7 @@ export default function PageUserProfiles({ t, isDark, USERS = [], ROLES = [], co
         <div style={{ background: t.surface, borderRadius: 16, border: `1px solid ${t.surfaceBorder}`, overflow: "auto", backdropFilter: isDark ? "blur(20px)" : "none" }}>
             <TblHead cols={cols} t={t} isDark={isDark} sortConfig={sort} onSort={onSort} gridTemplate={gridTemplate} headerRef={headerRef} onResizeStart={onResizeStart} />
             {/* Filter row */}
-            <div style={{ display: "grid", gridTemplateColumns: gridTemplate, padding: "6px 22px", borderBottom: `1px solid ${t.rowDivider}`, background: isDark ? "rgba(255,255,255,0.015)" : "#FDFDFC" }}>
-                {cols.map(c => c.k ? <input key={c.k} value={colFilters[c.k] || ""} onChange={e => setColFilter(c.k, e.target.value)} placeholder="Filter..." style={{ fontSize: 11, padding: "4px 8px", borderRadius: 6, border: `1px solid ${t.surfaceBorder}`, background: isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.04)", color: t.text, outline: "none", width: "100%", boxSizing: "border-box" }} /> : <div key={c.l || "nofilter"} />)}
-            </div>
+            <TblFilterRow cols={cols} colFilters={colFilters} onFilterChange={setColFilter} onClear={() => setColFilters({})} gridTemplate={gridTemplate} t={t} isDark={isDark} />
 
             {paginated.map((p, i) => {
                 const isHov = hov === p.id;

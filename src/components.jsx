@@ -156,6 +156,44 @@ export const TblHead = ({ cols, t, isDark, sortConfig, onSort, children, gridTem
   </div>
 );
 
+export const TblFilterRow = ({ cols, colFilters, onFilterChange, onClear, gridTemplate, t, isDark }) => (
+  <div style={{ display: "grid", gridTemplateColumns: gridTemplate || cols.map(c => c.w).join(" "), padding: "6px 22px", borderBottom: `1px solid ${t.rowDivider}`, background: isDark ? "rgba(255,255,255,0.015)" : "#FDFDFC" }}>
+    {cols.map(c => c.k ? (
+      <input
+        key={c.k}
+        value={colFilters[c.k] || ""}
+        onChange={e => onFilterChange(c.k, e.target.value)}
+        placeholder="Filter..."
+        style={{ fontSize: 11, padding: "4px 8px", borderRadius: 6, border: `1px solid ${t.surfaceBorder}`, background: isDark ? "rgba(30, 58, 138, 0.3)" : "rgba(219, 234, 254, 0.7)", color: isDark ? "rgba(255,255,255,0.8)" : "#44403C", outline: "none", width: "100%", boxSizing: "border-box", fontFamily: "inherit" }}
+      />
+    ) : (
+      <div key={c.l || "nofilter"} style={{ display: "flex", justifyContent: "center", alignItems: "center" }}>
+        {c.l === "ACTIONS" && Object.values(colFilters).some(v => v !== "") && (
+          <Tooltip text="Clear all filters" t={t}>
+            <button
+              onClick={onClear}
+              className="action-btn"
+              style={{
+                background: isDark ? "rgba(248,113,113,0.15)" : "#FEF2F2",
+                color: isDark ? "#F87171" : "#DC2626",
+                border: `1px solid ${isDark ? "rgba(248,113,113,0.3)" : "#FECACA"}`,
+                borderRadius: 6,
+                padding: "2px 8px",
+                fontSize: 10,
+                fontWeight: 600,
+                cursor: "pointer",
+                transition: "all 0.15s ease",
+              }}
+            >
+              Clear
+            </button>
+          </Tooltip>
+        )}
+      </div>
+    ))}
+  </div>
+);
+
 // ─────────────────────────────────────────────────────────────────────────────
 // MODAL SYSTEM
 // ─────────────────────────────────────────────────────────────────────────────
