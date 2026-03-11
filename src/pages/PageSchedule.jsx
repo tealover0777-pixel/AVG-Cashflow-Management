@@ -98,12 +98,15 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
       const fee = FEES_DATA.find(ff => ff.id === fid);
       if (!fee) return 0;
       const rateNum = Number(String(fee.rate).replace(/[^0-9.]/g, "")) || 0;
-      return fee.method === "Fixed Amount" ? rateNum : Math.abs(unpaid) * rateNum / 100;
+      const unsignedAmt = fee.method === "Fixed Amount" ? rateNum : Math.abs(unpaid) * rateNum / 100;
+      // Apply fee's direction: IN fees are positive (added), OUT fees are negative (subtracted)
+      const feeDir = fee.direction || "IN";
+      return feeDir === "OUT" ? -unsignedAmt : unsignedAmt;
     });
 
     const totalFees = feeAmts.reduce((a, b) => a + b, 0);
     const absBase = Math.abs(unpaid);
-    const finalAmtAbs = absBase + totalFees;
+    const finalAmtAbs = Math.abs(absBase + totalFees);
     const dir = currentData.direction;
 
     // Rule 1: Signed Amount = -1 * Payment Amount
@@ -127,16 +130,24 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
       if (newFeeIds.length === 0) {
         notes = `${prefix} ${linkedId}${isP ? `. Unpaid: ${fmtCurr(unpaid)}` : ""}`;
       } else {
-        const parts = [fmtCurr(unpaid), ...feeAmts.map(a => fmtCurr(a))].join(" + ");
-        notes = `${prefix} ${linkedId} | Fee Breakdown: ${parts} = ${fmtCurr(finalAmtAbs)}`;
+        const parts = [fmtCurr(unpaid)];
+        feeAmts.forEach(a => {
+          if (a >= 0) parts.push(`+ ${fmtCurr(a)}`);
+          else parts.push(`- ${fmtCurr(Math.abs(a))}`);
+        });
+        notes = `${prefix} ${linkedId} | Fee Breakdown: ${parts.join(" ")} = ${fmtCurr(finalAmtAbs)}`;
       }
     } else {
       // Logic for Standard Schedules (General fee addition)
       // Strip old breakdown if exists to avoid doubling up
       const cleanNote = notes.split(" | Fee Breakdown:")[0];
       if (newFeeIds.length > 0) {
-        const parts = [fmtCurr(unpaid), ...feeAmts.map(a => fmtCurr(a))].join(" + ");
-        notes = `${cleanNote} | Fee Breakdown: ${parts} = ${fmtCurr(finalAmtAbs)}`;
+        const parts = [fmtCurr(unpaid)];
+        feeAmts.forEach(a => {
+          if (a >= 0) parts.push(`+ ${fmtCurr(a)}`);
+          else parts.push(`- ${fmtCurr(Math.abs(a))}`);
+        });
+        notes = `${cleanNote} | Fee Breakdown: ${parts.join(" ")} = ${fmtCurr(finalAmtAbs)}`;
       } else {
         notes = cleanNote;
       }

@@ -167,7 +167,7 @@ export default function PageContracts({ t, isDark, CONTRACTS = [], PROJECTS = []
 
     const feeInfoMap = {};
     FEES_DATA.forEach(f => {
-      feeInfoMap[f.id] = { name: f.name, method: f.method, rate: f.rate, frequency: f.fee_frequency, fee_charge_at: f.fee_charge_at };
+      feeInfoMap[f.id] = { name: f.name, method: f.method, rate: f.rate, frequency: f.fee_frequency, fee_charge_at: f.fee_charge_at, direction: f.direction || "IN" };
     });
     setGenerating(true);
     console.log("Starting generation for contracts:", selected.map(c => c.id));
@@ -253,13 +253,15 @@ export default function PageContracts({ t, isDark, CONTRACTS = [], PROJECTS = []
             if (isNaN(feeAmt)) return;
             let dDate = startDate;
             if (fInfo.fee_charge_at === "Contract_End") dDate = matDate;
-            const dsf = getDirectionAndSigned(PT_FEE, feeAmt);
+            // Use fee's direction instead of PT_FEE default
+            const feeDir = fInfo.direction || "OUT";
+            const signedFeeAmt = feeDir === "OUT" ? -Math.abs(feeAmt) : Math.abs(feeAmt);
             entries.push({
               schedule_id: `S${currentIdNum++}`,
               contract_id: c.id, project_id: c.project_id || "", party_id: c.party_id || "",
               due_date: dDate.toISOString().slice(0, 10), payment_type: PT_FEE, fee_id: fid,
               period_number: 1, principal_amount: principal, payment_amount: feeAmt,
-              signed_payment_amount: dsf.signed, direction_from_company: dsf.direction,
+              signed_payment_amount: signedFeeAmt, direction_from_company: feeDir,
               term_start: startDate.toISOString().slice(0, 10), term_end: dDate.toISOString().slice(0, 10),
               status: "Due", notes: `One-time Fee ${fid} for ${c.id}`, created_at: serverTimestamp(),
             });
@@ -336,14 +338,16 @@ export default function PageContracts({ t, isDark, CONTRACTS = [], PROJECTS = []
               if (should) {
                 const feeAmt = feeCalculator_ACT360_30360(fInfo, principal, pStart, calcEnd, startDate);
                 if (!isNaN(feeAmt)) {
-                  const dsf2 = getDirectionAndSigned(PT_FEE, feeAmt);
+                  // Use fee's direction instead of PT_FEE default
+                  const feeDir = fInfo.direction || "OUT";
+                  const signedFeeAmt = feeDir === "OUT" ? -Math.abs(feeAmt) : Math.abs(feeAmt);
                   const feeDueDate = ca.includes("start") ? pStart : pEnd;
                   entries.push({
                     schedule_id: `S${currentIdNum++}`,
                     contract_id: c.id, project_id: c.project_id || "", party_id: c.party_id || "",
                     due_date: feeDueDate.toISOString().slice(0, 10), payment_type: PT_FEE, fee_id: fid,
                     period_number: periodNum, principal_amount: principal, payment_amount: Math.round(feeAmt * 100) / 100,
-                    signed_payment_amount: dsf2.signed, direction_from_company: dsf2.direction,
+                    signed_payment_amount: signedFeeAmt, direction_from_company: feeDir,
                     term_start: pStart.toISOString().slice(0, 10), term_end: pEnd.toISOString().slice(0, 10),
                     status: "Due", notes: `Recurring Fee ${fid} P${periodNum} for ${c.id}`, created_at: serverTimestamp(),
                   });

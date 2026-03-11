@@ -24,7 +24,7 @@ export default function PageFees({ t, isDark, FEES_DATA = [], DIMENSIONS = [], c
     const maxNum = Math.max(...FEES_DATA.map(f => { const m = String(f.id).match(/^F(\d+)$/); return m ? Number(m[1]) : 0; }));
     return "F" + (maxNum + 1);
   })();
-  const openAdd = () => setModal({ open: true, mode: "add", data: { id: nextFeeId, name: "", fee_type: "", method: "% of Amount", rate: "", fee_charge_at: "", fee_frequency: "", description: "" } });
+  const openAdd = () => setModal({ open: true, mode: "add", data: { id: nextFeeId, name: "", fee_type: "", method: "% of Amount", rate: "", fee_charge_at: "", fee_frequency: "", description: "", direction: "IN" } });
   const openEdit = r => setModal({ open: true, mode: "edit", data: { ...r } });
   const close = () => setModal(m => ({ ...m, open: false }));
   const setF = (k, v) => setModal(m => ({ ...m, data: { ...m.data, [k]: v } }));
@@ -35,6 +35,7 @@ export default function PageFees({ t, isDark, FEES_DATA = [], DIMENSIONS = [], c
       fee_type: d.fee_type || "",
       calculation_method: d.method || "",
       default_rate: d.rate || "",
+      direction: d.direction || "IN",
       fee_charge_at: d.fee_charge_at || "",
       fee_frequency: d.fee_frequency || "",
       description: d.description || "",
@@ -57,7 +58,7 @@ export default function PageFees({ t, isDark, FEES_DATA = [], DIMENSIONS = [], c
       setDelT(null);
     } catch (err) { console.error("Delete fee error:", err); }
   };
-  const cols = [{ l: "FEE ID", w: "100px", k: "id" }, { l: "NAME", w: "1fr", k: "name" }, { l: "FEE TYPE", w: "130px", k: "fee_type" }, { l: "METHOD", w: "130px", k: "method" }, { l: "RATE", w: "110px", k: "rate" }, { l: "CHARGE AT", w: "120px", k: "fee_charge_at" }, { l: "FREQUENCY", w: "120px", k: "fee_frequency" }, { l: "DESCRIPTION", w: "1fr", k: "description" }, { l: "ACTIONS", w: "90px" }];
+  const cols = [{ l: "FEE ID", w: "100px", k: "id" }, { l: "NAME", w: "1fr", k: "name" }, { l: "FEE TYPE", w: "130px", k: "fee_type" }, { l: "METHOD", w: "130px", k: "method" }, { l: "DIRECTION", w: "80px", k: "direction" }, { l: "RATE", w: "110px", k: "rate" }, { l: "SIGNED RATE/AMT", w: "140px", k: "signed_rate" }, { l: "CHARGE AT", w: "120px", k: "fee_charge_at" }, { l: "FREQUENCY", w: "120px", k: "fee_frequency" }, { l: "DESCRIPTION", w: "1fr", k: "description" }, { l: "ACTIONS", w: "90px" }];
   const { gridTemplate, headerRef, onResizeStart } = useResizableColumns(cols);
   const [colFilters, setColFilters] = useState({});
   const setColFilter = (key, val) => { setColFilters(f => ({ ...f, [key]: val })); setPage(1); };
@@ -77,12 +78,21 @@ export default function PageFees({ t, isDark, FEES_DATA = [], DIMENSIONS = [], c
       <TblHead cols={cols} t={t} isDark={isDark} sortConfig={sort} onSort={onSort} gridTemplate={gridTemplate} headerRef={headerRef} onResizeStart={onResizeStart} />
       <TblFilterRow cols={cols} colFilters={colFilters} onFilterChange={setColFilter} onClear={() => setColFilters({})} gridTemplate={gridTemplate} t={t} isDark={isDark} />
       {paginated.map((f, i) => {
-        const isHov = hov === f.id; const [mb, mc, mbr] = mCfg[f.method] || ["transparent", "#888", "#ccc"]; return (<div key={f.id} className="data-row" onMouseEnter={() => setHov(f.id)} onMouseLeave={() => setHov(null)} style={{ display: "grid", gridTemplateColumns: gridTemplate, padding: "12px 22px", borderBottom: i < paginated.length - 1 ? `1px solid ${t.rowDivider}` : "none", alignItems: "center", background: isHov ? t.rowHover : "transparent", transition: "all 0.15s ease" }}>
+        const isHov = hov === f.id; const [mb, mc, mbr] = mCfg[f.method] || ["transparent", "#888", "#ccc"];
+        const rateValue = f.rate ? String(f.rate).replace(/[^0-9.-]/g, "") : "0";
+        const rateNum = Number(rateValue) || 0;
+        const signedRate = (f.direction === "OUT") ? -rateNum : rateNum;
+        const formattedRate = (f.method === "Fixed Amount" || f.method === "Flat") ? (f.rate && !String(f.rate).startsWith("$") ? `$${f.rate}` : f.rate) : (f.rate && !String(f.rate).endsWith("%") ? `${f.rate}%` : f.rate);
+        const formattedSignedRate = (f.method === "Fixed Amount" || f.method === "Flat") ? (signedRate >= 0 ? `$${Math.abs(signedRate).toFixed(2)}` : `($${Math.abs(signedRate).toFixed(2)})`) : (signedRate >= 0 ? `${signedRate}%` : `(${Math.abs(signedRate)}%)`);
+        const dash = <span style={{ color: isDark ? "rgba(255,255,255,0.12)" : "#D4D0CB" }}>—</span>;
+        return (<div key={f.id} className="data-row" onMouseEnter={() => setHov(f.id)} onMouseLeave={() => setHov(null)} style={{ display: "grid", gridTemplateColumns: gridTemplate, padding: "12px 22px", borderBottom: i < paginated.length - 1 ? `1px solid ${t.rowDivider}` : "none", alignItems: "center", background: isHov ? t.rowHover : "transparent", transition: "all 0.15s ease" }}>
           <div style={{ fontFamily: t.mono, fontSize: 11, color: t.idText }}>{f.id}</div>
           <div style={{ fontSize: 13.5, fontWeight: 500, color: isDark ? "rgba(255,255,255,0.85)" : (isHov ? "#1C1917" : "#44403C") }}>{f.name}</div>
           <div style={{ fontSize: 12.5, color: t.textMuted }}>{f.fee_type}</div>
           <div><span style={{ fontSize: 11.5, fontWeight: 600, padding: "4px 11px", borderRadius: 20, background: mb, color: mc, border: `1px solid ${mbr}` }}>{f.method}</span></div>
-          <div style={{ fontFamily: t.mono, fontSize: 12.5, fontWeight: 700, color: isDark ? "#60A5FA" : "#4F46E5" }}>{(f.method === "Fixed Amount" || f.method === "Flat") ? (f.rate && !String(f.rate).startsWith("$") ? `$${f.rate}` : f.rate) : (f.rate && !String(f.rate).endsWith("%") ? `${f.rate}%` : f.rate)}</div>
+          <div style={{ fontSize: 11, fontWeight: 700, color: f.direction === "IN" ? (isDark ? "#34D399" : "#059669") : f.direction === "OUT" ? (isDark ? "#F87171" : "#DC2626") : t.textMuted }}>{f.direction || dash}</div>
+          <div style={{ fontFamily: t.mono, fontSize: 12.5, fontWeight: 700, color: isDark ? "#60A5FA" : "#4F46E5" }}>{formattedRate}</div>
+          <div style={{ fontFamily: t.mono, fontSize: 12.5, fontWeight: 700, color: signedRate >= 0 ? (isDark ? "#34D399" : "#059669") : (isDark ? "#F87171" : "#DC2626") }}>{formattedSignedRate}</div>
           <div style={{ fontSize: 12.5, color: t.textMuted }}>{f.fee_charge_at}</div>
           <div style={{ fontSize: 12.5, color: t.textMuted }}>{f.fee_frequency}</div>
           <div style={{ fontSize: 12.5, color: t.textMuted, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", paddingRight: 8 }}>{f.description}</div>
@@ -97,8 +107,9 @@ export default function PageFees({ t, isDark, FEES_DATA = [], DIMENSIONS = [], c
       </FF>
       <FF label="Fee Name" t={t}><FIn value={modal.data.name} onChange={e => setF("name", e.target.value)} placeholder="e.g. Origination Fee" t={t} /></FF>
       <FF label="Fee Type" t={t}><FSel value={modal.data.fee_type || ""} onChange={e => setF("fee_type", e.target.value)} options={feeTypeOpts} t={t} /></FF>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14 }}>
         <FF label="Method" t={t}><FSel value={modal.data.method} onChange={e => setF("method", e.target.value)} options={["% of Amount", "Fixed Amount"]} t={t} /></FF>
+        <FF label="Direction" t={t}><FSel value={modal.data.direction || "IN"} onChange={e => setF("direction", e.target.value)} options={["IN", "OUT"]} t={t} /></FF>
         <FF label="Rate / Amount" t={t}><FIn value={modal.data.rate} onChange={e => setF("rate", e.target.value)} placeholder={modal.data.method === "Fixed Amount" ? "$500" : "1.50%"} t={t} /></FF>
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
