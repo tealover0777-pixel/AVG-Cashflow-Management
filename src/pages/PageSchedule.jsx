@@ -78,7 +78,8 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
       const isP = (r.notes || "").toLowerCase().includes("partial");
       if (isP && basePayment > extracted) partialPaid = String(basePayment - extracted);
     }
-    setModal({ open: true, mode: "edit", data: { ...r, fee_ids, basePayment, partialPaid, originalStatus: r.status } });
+    const applied_to = r.applied_to || (fee_ids[0] ? (FEES_DATA.find(f => f.id === fee_ids[0])?.applied_to || "") : "");
+    setModal({ open: true, mode: "edit", data: { ...r, fee_ids, basePayment, partialPaid, applied_to, originalStatus: r.status } });
   };
 
   const recalcReplacement = (currentData, newFeeIds, newPartialPaid = null) => {
@@ -541,7 +542,17 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
               ))
               : dash}
           </div>
-          <div style={{ fontSize: 11, color: t.textSecondary }}>{s.applied_to || dash}</div>
+          <div style={{ fontSize: 11, color: t.textSecondary }}>
+            {(() => {
+              if (s.applied_to) return s.applied_to;
+              if (s.fee_id) {
+                const fid = String(s.fee_id).split(",")[0];
+                const fee = FEES_DATA.find(f => f.id === fid);
+                if (fee?.applied_to) return fee.applied_to;
+              }
+              return dash;
+            })()}
+          </div>
           <div style={{ fontSize: 11, fontWeight: 700, color: s.direction === "IN" ? (isDark ? "#34D399" : "#059669") : s.direction === "OUT" ? (isDark ? "#F87171" : "#DC2626") : t.textMuted }}>{s.direction || dash}</div>
           <div style={{ fontFamily: t.mono, fontSize: 12, fontWeight: 700, color: isDark ? "#60A5FA" : "#4F46E5" }}>
             {(() => {
@@ -801,7 +812,7 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
                         <div><span style={{ fontWeight: 600, color: t.textSecondary }}>Due: </span>{cs.dueDate || "—"}</div>
                         <div><span style={{ fontWeight: 600, color: t.textSecondary }}>Term: </span>{cs.term_start || "—"} ~ {cs.term_end || "—"}</div>
                         <div><span style={{ fontWeight: 600, color: t.textSecondary }}>Type: </span>{cs.type || "—"}</div>
-                        <div><span style={{ fontWeight: 600, color: t.textSecondary }}>Applied To: </span>{cs.applied_to || "—"}</div>
+                        <div><span style={{ fontWeight: 600, color: t.textSecondary }}>Applied To: </span>{cs.applied_to || (feeIds[0] ? (FEES_DATA.find(f => f.id === feeIds[0])?.applied_to || "—") : "—")}</div>
                       </div>
                       {cs.principal_amount && (
                         <div style={{ fontSize: 11, color: t.textMuted, marginTop: 6 }}><span style={{ fontWeight: 600, color: t.textSecondary }}>Principal: </span>{cs.principal_amount}</div>

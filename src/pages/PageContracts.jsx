@@ -225,6 +225,7 @@ export default function PageContracts({ t, isDark, CONTRACTS = [], PROJECTS = []
           due_date: startDate.toISOString().slice(0, 10), payment_type: initialPaymentType, fee_id: "",
           period_number: 1, principal_amount: principal, payment_amount: principal,
           signed_payment_amount: ds1.signed, direction_from_company: ds1.direction,
+          applied_to: "Principal Amount",
           term_start: startDate.toISOString().slice(0, 10), term_end: startDate.toISOString().slice(0, 10),
           status: "Due", notes: `Initial for ${c.id}`, created_at: serverTimestamp(),
         });
@@ -263,6 +264,7 @@ export default function PageContracts({ t, isDark, CONTRACTS = [], PROJECTS = []
               period_number: 1, principal_amount: principal, payment_amount: feeAmt,
               signed_payment_amount: signedFeeAmt, direction_from_company: feeDir,
               term_start: startDate.toISOString().slice(0, 10), term_end: dDate.toISOString().slice(0, 10),
+              applied_to: fInfo.applied_to || "Principal Amount",
               status: "Due", notes: `One-time Fee ${fid} for ${c.id}`, created_at: serverTimestamp(),
             });
           }
@@ -317,6 +319,7 @@ export default function PageContracts({ t, isDark, CONTRACTS = [], PROJECTS = []
               period_number: periodNum, principal_amount: principal, payment_amount: Math.round(interest * 100) / 100,
               signed_payment_amount: ds2.signed, direction_from_company: ds2.direction,
               term_start: pStart.toISOString().slice(0, 10), term_end: pEnd.toISOString().slice(0, 10),
+              applied_to: "Interest Amount",
               status: "Due", notes: `Interest Period ${periodNum} for ${c.id}`, created_at: serverTimestamp(),
             });
           }
@@ -349,6 +352,7 @@ export default function PageContracts({ t, isDark, CONTRACTS = [], PROJECTS = []
                     period_number: periodNum, principal_amount: principal, payment_amount: Math.round(feeAmt * 100) / 100,
                     signed_payment_amount: signedFeeAmt, direction_from_company: feeDir,
                     term_start: pStart.toISOString().slice(0, 10), term_end: pEnd.toISOString().slice(0, 10),
+                    applied_to: fInfo.applied_to || "Principal Amount",
                     status: "Due", notes: `Recurring Fee ${fid} P${periodNum} for ${c.id}`, created_at: serverTimestamp(),
                   });
                 }
@@ -371,6 +375,7 @@ export default function PageContracts({ t, isDark, CONTRACTS = [], PROJECTS = []
           period_number: periodNum, principal_amount: principal, payment_amount: principal,
           signed_payment_amount: ds3.signed, direction_from_company: ds3.direction,
           term_start: startDate.toISOString().slice(0, 10), term_end: matDate.toISOString().slice(0, 10),
+          applied_to: "Principal Amount",
           status: "Due", notes: `Repayment for ${c.id}`, created_at: serverTimestamp(),
         });
       }
