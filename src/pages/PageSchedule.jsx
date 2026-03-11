@@ -286,22 +286,24 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
             await updateDoc(ref, payload);
             const lateId = getNextScheduleId();
             const nextDueDate = getNextTermDate(d.dueDate, d.contract);
+            const initialData = {
+              ...d,
+              schedule_id: lateId,
+              linked: d.schedule_id,
+              fee_ids: [],
+              status: "Due",
+              dueDate: nextDueDate,
+              term_start: getNextDay(d.dueDate),
+              term_end: nextDueDate,
+              basePayment: Math.abs(Number(String(d._prevPayment || d.basePayment || d.payment || 0).replace(/[^0-9.-]/g, ""))),
+              notes: `Missed payment replacement for ${d.schedule_id}`,
+            };
+            const updates = recalcReplacement(initialData, []);
             setModal({
               open: true,
               mode: "add_late",
               originalDocId: d.docId,
-              data: {
-                ...d,
-                schedule_id: lateId,
-                linked: d.schedule_id,
-                fee_ids: [],
-                status: "Due",
-                dueDate: nextDueDate,
-                term_start: getNextDay(d.dueDate),
-                term_end: nextDueDate,
-                basePayment: Math.abs(Number(String(d._prevPayment || d.basePayment || d.payment || 0).replace(/[^0-9.-]/g, ""))),
-                notes: `Missed payment replacement for ${d.schedule_id}`,
-              }
+              data: { ...initialData, ...updates }
             });
           } catch (err) { console.error("Update missed error:", err); }
         }
@@ -321,23 +323,25 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
             await updateDoc(ref, payload);
             const partialId = getNextScheduleId();
             const nextDueDatePartial = getNextTermDate(d.dueDate, d.contract);
+            const initialDataPartial = {
+              ...d,
+              schedule_id: partialId,
+              linked: d.schedule_id,
+              fee_ids: [],
+              status: "Due",
+              dueDate: nextDueDatePartial,
+              term_start: getNextDay(d.dueDate),
+              term_end: nextDueDatePartial,
+              partialPaid: "",
+              basePayment: Math.abs(Number(String(d.basePayment || d.payment || 0).replace(/[^0-9.-]/g, ""))),
+              notes: `Partial payment replacement for ${d.schedule_id}`,
+            };
+            const updatesPartial = recalcReplacement(initialDataPartial, []);
             setModal({
               open: true,
               mode: "add_partial",
               originalDocId: d.docId,
-              data: {
-                ...d,
-                schedule_id: partialId,
-                linked: d.schedule_id,
-                fee_ids: [],
-                status: "Due",
-                dueDate: nextDueDatePartial,
-                term_start: getNextDay(d.dueDate),
-                term_end: nextDueDatePartial,
-                partialPaid: "",
-                basePayment: Math.abs(Number(String(d.basePayment || d.payment || 0).replace(/[^0-9.-]/g, ""))),
-                notes: `Partial payment replacement for ${d.schedule_id}`,
-              }
+              data: { ...initialDataPartial, ...updatesPartial }
             });
           } catch (err) { console.error("Update partial error:", err); }
         }
