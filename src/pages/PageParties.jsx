@@ -147,23 +147,24 @@ export default function PageParties({ t, isDark, PARTIES = [], CONTRACTS = [], S
           <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
             <ActBtns show={isHov && (canUpdate || canDelete)} t={t} onEdit={canUpdate ? () => openEdit(p) : null} onDel={canDelete ? () => setDelT({ id: p.id, name: p.name, docId: p.docId }) : null} />
             {isHov && canInvite && (
-              <button
-                onClick={() => handleInviteParty(p)}
-                disabled={invitingId === p.id}
-                title="Invite as Member (R10001)"
-                style={{
-                  background: "none",
-                  border: `1px solid ${t.border}`,
-                  borderRadius: 7,
-                  padding: "5px 8px",
-                  cursor: invitingId === p.id ? "default" : "pointer",
-                  fontSize: 13,
-                  color: t.textMuted,
-                  opacity: (invitingId === p.id || !p.email) ? 0.5 : 1
-                }}
-              >
-                {invitingId === p.id ? "..." : "✉️"}
-              </button>
+              <Tooltip text="Invite as Member (R10001)" t={t}>
+                <button
+                  onClick={() => handleInviteParty(p)}
+                  disabled={invitingId === p.id}
+                  style={{
+                    background: "none",
+                    border: `1px solid ${t.border}`,
+                    borderRadius: 7,
+                    padding: "5px 8px",
+                    cursor: invitingId === p.id ? "default" : "pointer",
+                    fontSize: 13,
+                    color: t.textMuted,
+                    opacity: (invitingId === p.id || !p.email) ? 0.5 : 1
+                  }}
+                >
+                  {invitingId === p.id ? "..." : "✉️"}
+                </button>
+              </Tooltip>
             )}
           </div>
         </div>);
