@@ -274,11 +274,11 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
       return dt.toISOString().split("T")[0];
     };
 
-    // Missed or Cancelled Payment Workflow
-    if (modal.mode === "edit" && (d.status === "Missed" || d.status === "Cancelled") && d.status !== d.originalStatus) {
+    // Missed Payment Workflow (only Missed now, Cancelled removed)
+    if (modal.mode === "edit" && d.status === "Missed" && d.status !== d.originalStatus) {
       setConfirmAction({
         title: "Replacement Schedule",
-        message: `Do you want to set "${d.status}" payment and book a replacement schedule?`,
+        message: `Do you want to set "Missed" payment and book a replacement schedule?`,
         onConfirm: async () => {
           setConfirmAction(null);
           try {
@@ -300,7 +300,7 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
                 term_start: getNextDay(d.dueDate),
                 term_end: nextDueDate,
                 basePayment: Math.abs(Number(String(d.payment || d.signed_payment_amount || 0).replace(/[^0-9.-]/g, "")) || 0),
-                notes: `${d.status} payment replacement for ${d.schedule_id}`,
+                notes: `Missed payment replacement for ${d.schedule_id}`,
               }
             });
           } catch (err) { console.error("Update missed error:", err); }
@@ -534,7 +534,7 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
     <div style={{ marginTop: 16, display: "flex", justifyContent: "space-between", alignItems: "center" }}><span style={{ fontSize: 12, color: t.textSubtle }}>Showing <strong style={{ color: t.textSecondary }}>{paginated.length}</strong> of <strong style={{ color: t.textSecondary }}>{sorted.length}</strong> schedules{sel.size > 0 && <span style={{ color: t.accent, marginLeft: 8 }}>· {sel.size} selected</span>}</span><Pagination totalPages={totalPages} currentPage={page} onPageChange={setPage} t={t} /></div>
     <Modal open={modal.open} onClose={close} title={modal.mode === "add" ? "New Schedule Entry" : modal.mode === "add_late" ? "Replacement Payment Schedule" : modal.mode === "add_partial" ? "Partial Payment Schedule" : "Edit Schedule Entry"} onSave={handleSaveSchedule} width={620} t={t} isDark={isDark}>
       {(() => {
-        const freeze = modal.mode === "edit" && ["Partial", "Missed", "Cancelled"].includes(modal.data.status);
+        const freeze = ["Missed", "Partial", "Cancelled", "VOID", "WAIVED", "REPLACED"].includes(modal.data.status);
         return (<>
           {modal.mode === "edit" && (
             <FF label="Schedule ID" t={t}>
@@ -549,7 +549,27 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14 }}>
             <FF label="Due Date" t={t}><FIn value={modal.data.dueDate || ""} onChange={e => setF("dueDate", e.target.value)} t={t} type="date" disabled={freeze} /></FF>
             <FF label="Period Number" t={t}><FIn value={modal.data.period_number || ""} onChange={e => setF("period_number", e.target.value)} placeholder="1" t={t} disabled={freeze} /></FF>
-            <FF label="Status" t={t}><FSel value={modal.data.status} onChange={e => setF("status", e.target.value)} options={["Due", "Paid", "Partial", "Missed", "Cancelled"]} t={t} /></FF>
+            <FF label="Status" t={t}>
+              <FSel value={modal.data.status} onChange={e => {
+                const newStatus = e.target.value;
+                const oldStatus = modal.data.status;
+                const zeroing = ["Cancelled", "VOID", "WAIVED", "REPLACED"];
+                const isNewZero = zeroing.includes(newStatus);
+                const isOldZero = zeroing.includes(oldStatus);
+
+                let updates = { status: newStatus };
+                if (isNewZero && !isOldZero) {
+                  updates._prevPayment = modal.data.payment;
+                  updates._prevSignedAmt = modal.data.signed_payment_amount;
+                  updates.payment = "$0.00";
+                  updates.signed_payment_amount = "$0.00";
+                } else if (!isNewZero && isOldZero) {
+                  if (modal.data._prevPayment !== undefined) updates.payment = modal.data._prevPayment;
+                  if (modal.data._prevSignedAmt !== undefined) updates.signed_payment_amount = modal.data._prevSignedAmt;
+                }
+                setModal(m => ({ ...m, data: { ...m.data, ...updates } }));
+              }} options={paymentStatusOpts} t={t} />
+            </FF>
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14 }}>
             <FF label="Term Start" t={t}><FIn value={modal.data.term_start || ""} onChange={e => setF("term_start", e.target.value)} t={t} type="date" disabled={freeze} /></FF>
@@ -601,7 +621,7 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
             {(() => {
               const baseAmt = modal.data.basePayment || 0;
               const paidNum = Number(String(modal.data.partialPaid || 0).replace(/[^0-9.]/g, "")) || 0;
-              const partialUnpaid = Math.max(baseAmt - paidNum, 0);
+              const partialUnpaid = Math.max(baseAmt - paidNum, 0).toFixed(2);
               const recalcPartial = (newPaid, newFeeIds) => recalcReplacement(modal.data, newFeeIds, newPaid);
               return (<>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
