@@ -167,7 +167,7 @@ export default function PageContracts({ t, isDark, CONTRACTS = [], PROJECTS = []
 
     const feeInfoMap = {};
     FEES_DATA.forEach(f => {
-      feeInfoMap[f.id] = { name: f.name, method: f.method, rate: f.rate, frequency: f.fee_frequency, fee_charge_at: f.fee_charge_at, direction: f.direction || "IN" };
+      feeInfoMap[f.id] = { name: f.name, method: f.method, rate: f.rate, frequency: f.fee_frequency, fee_charge_at: f.fee_charge_at, applied_to: f.applied_to || "Principal Amount", direction: f.direction || "IN" };
     });
     setGenerating(true);
     console.log("Starting generation for contracts:", selected.map(c => c.id));

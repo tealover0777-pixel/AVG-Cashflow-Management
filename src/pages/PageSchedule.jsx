@@ -633,9 +633,12 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
                     setModal(m => ({ ...m, data: { ...m.data, ...updates } }));
                   };
                   return (
-                    <div key={f.id} onClick={toggle} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: selected ? 600 : 400, padding: "5px 12px", borderRadius: 20, cursor: "pointer", transition: "all 0.15s ease", background: selected ? (isDark ? "rgba(248,113,113,0.15)" : "#FEF2F2") : t.chipBg, color: selected ? (isDark ? "#F87171" : "#DC2626") : t.textSecondary, border: `1px solid ${selected ? (isDark ? "rgba(248,113,113,0.4)" : "#FECACA") : t.chipBorder}` }}>
-                      <span style={{ fontSize: 11, fontWeight: 700, lineHeight: 1 }}>{selected ? "✓" : "+"}</span>
-                      {f.name} <span style={{ fontFamily: t.mono, fontSize: 10, opacity: 0.6 }}>({f.rate})</span>
+                    <div key={f.id} onClick={toggle} style={{ display: "flex", flexDirection: "column", gap: 2, fontSize: 12, fontWeight: selected ? 600 : 400, padding: "6px 12px", borderRadius: 12, cursor: "pointer", transition: "all 0.15s ease", background: selected ? (isDark ? "rgba(248,113,113,0.15)" : "#FEF2F2") : t.chipBg, color: selected ? (isDark ? "#F87171" : "#DC2626") : t.textSecondary, border: `1px solid ${selected ? (isDark ? "rgba(248,113,113,0.4)" : "#FECACA") : t.chipBorder}` }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                        <span style={{ fontSize: 11, fontWeight: 700, lineHeight: 1 }}>{selected ? "✓" : "+"}</span>
+                        {f.name} <span style={{ fontFamily: t.mono, fontSize: 10, opacity: 0.6 }}>({f.rate})</span>
+                      </div>
+                      <div style={{ fontSize: 10, opacity: 0.7, paddingLeft: 17 }}>Applied to: {f.applied_to || "Principal Amount"}</div>
                     </div>
                   );
                 })}
@@ -676,9 +679,12 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
                         setModal(m => ({ ...m, data: { ...m.data, fee_ids: newFeeIds, ...updates } }));
                       };
                       return (
-                        <div key={f.id} onClick={toggle} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: selected ? 600 : 400, padding: "5px 12px", borderRadius: 20, cursor: "pointer", transition: "all 0.15s ease", background: selected ? (isDark ? "rgba(251,191,36,0.15)" : "#FFFBEB") : t.chipBg, color: selected ? (isDark ? "#FBBF24" : "#D97706") : t.textSecondary, border: `1px solid ${selected ? (isDark ? "rgba(251,191,36,0.4)" : "#FDE68A") : t.chipBorder}` }}>
-                          <span style={{ fontSize: 11, fontWeight: 700, lineHeight: 1 }}>{selected ? "✓" : "+"}</span>
-                          {f.name} <span style={{ fontFamily: t.mono, fontSize: 10, opacity: 0.6 }}>({f.rate})</span>
+                        <div key={f.id} onClick={toggle} style={{ display: "flex", flexDirection: "column", gap: 2, fontSize: 12, fontWeight: selected ? 600 : 400, padding: "6px 12px", borderRadius: 12, cursor: "pointer", transition: "all 0.15s ease", background: selected ? (isDark ? "rgba(251,191,36,0.15)" : "#FFFBEB") : t.chipBg, color: selected ? (isDark ? "#FBBF24" : "#D97706") : t.textSecondary, border: `1px solid ${selected ? (isDark ? "rgba(251,191,36,0.4)" : "#FDE68A") : t.chipBorder}` }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                            <span style={{ fontSize: 11, fontWeight: 700, lineHeight: 1 }}>{selected ? "✓" : "+"}</span>
+                            {f.name} <span style={{ fontFamily: t.mono, fontSize: 10, opacity: 0.6 }}>({f.rate})</span>
+                          </div>
+                          <div style={{ fontSize: 10, opacity: 0.7, paddingLeft: 17 }}>Applied to: {f.applied_to || "Principal Amount"}</div>
                         </div>
                       );
                     })}
@@ -705,9 +711,12 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
                         setModal(m => ({ ...m, data: { ...m.data, ...updates, fee_ids: next } }));
                       };
                       return (
-                        <div key={f.id} onClick={freeze ? null : toggle} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: selected ? 600 : 400, padding: "5px 12px", borderRadius: 20, cursor: freeze ? "not-allowed" : "pointer", transition: "all 0.15s ease", background: selected ? (isDark ? "rgba(96,165,250,0.15)" : "#EFF6FF") : t.chipBg, color: selected ? (isDark ? "#60A5FA" : "#2563EB") : t.textSecondary, border: `1px solid ${selected ? (isDark ? "rgba(96,165,250,0.4)" : "#BFDBFE") : t.chipBorder}`, opacity: freeze ? 0.7 : 1 }}>
-                          <span style={{ fontSize: 11, fontWeight: 700, lineHeight: 1 }}>{selected ? "✓" : "+"}</span>
-                          {f.name} <span style={{ fontFamily: t.mono, fontSize: 10, opacity: 0.6 }}>({f.rate})</span>
+                        <div key={f.id} onClick={freeze ? null : toggle} style={{ display: "flex", flexDirection: "column", gap: 2, fontSize: 12, fontWeight: selected ? 600 : 400, padding: "6px 12px", borderRadius: 12, cursor: freeze ? "not-allowed" : "pointer", transition: "all 0.15s ease", background: selected ? (isDark ? "rgba(96,165,250,0.15)" : "#EFF6FF") : t.chipBg, color: selected ? (isDark ? "#60A5FA" : "#2563EB") : t.textSecondary, border: `1px solid ${selected ? (isDark ? "rgba(96,165,250,0.4)" : "#BFDBFE") : t.chipBorder}`, opacity: freeze ? 0.7 : 1 }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                            <span style={{ fontSize: 11, fontWeight: 700, lineHeight: 1 }}>{selected ? "✓" : "+"}</span>
+                            {f.name} <span style={{ fontFamily: t.mono, fontSize: 10, opacity: 0.6 }}>({f.rate})</span>
+                          </div>
+                          <div style={{ fontSize: 10, opacity: 0.7, paddingLeft: 17 }}>Applied to: {f.applied_to || "Principal Amount"}</div>
                         </div>
                       );
                     })}

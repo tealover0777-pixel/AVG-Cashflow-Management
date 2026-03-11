@@ -24,7 +24,7 @@ export default function PageFees({ t, isDark, FEES_DATA = [], DIMENSIONS = [], c
     const maxNum = Math.max(...FEES_DATA.map(f => { const m = String(f.id).match(/^F(\d+)$/); return m ? Number(m[1]) : 0; }));
     return "F" + (maxNum + 1);
   })();
-  const openAdd = () => setModal({ open: true, mode: "add", data: { id: nextFeeId, name: "", fee_type: "", method: "% of Amount", rate: "", fee_charge_at: "", fee_frequency: "", description: "", direction: "IN" } });
+  const openAdd = () => setModal({ open: true, mode: "add", data: { id: nextFeeId, name: "", fee_type: "", method: "% of Amount", rate: "", applied_to: "Principal Amount", fee_charge_at: "", fee_frequency: "", description: "", direction: "IN" } });
   const openEdit = r => setModal({ open: true, mode: "edit", data: { ...r } });
   const close = () => setModal(m => ({ ...m, open: false }));
   const setF = (k, v) => setModal(m => ({ ...m, data: { ...m.data, [k]: v } }));
@@ -35,6 +35,7 @@ export default function PageFees({ t, isDark, FEES_DATA = [], DIMENSIONS = [], c
       fee_type: d.fee_type || "",
       calculation_method: d.method || "",
       default_rate: d.rate || "",
+      applied_to: d.applied_to || "Principal Amount",
       direction: d.direction || "IN",
       fee_charge_at: d.fee_charge_at || "",
       fee_frequency: d.fee_frequency || "",
@@ -58,7 +59,7 @@ export default function PageFees({ t, isDark, FEES_DATA = [], DIMENSIONS = [], c
       setDelT(null);
     } catch (err) { console.error("Delete fee error:", err); }
   };
-  const cols = [{ l: "FEE ID", w: "100px", k: "id" }, { l: "NAME", w: "1fr", k: "name" }, { l: "FEE TYPE", w: "130px", k: "fee_type" }, { l: "METHOD", w: "130px", k: "method" }, { l: "DIRECTION", w: "80px", k: "direction" }, { l: "RATE", w: "110px", k: "rate" }, { l: "SIGNED RATE/AMT", w: "140px", k: "signed_rate" }, { l: "CHARGE AT", w: "120px", k: "fee_charge_at" }, { l: "FREQUENCY", w: "120px", k: "fee_frequency" }, { l: "DESCRIPTION", w: "1fr", k: "description" }, { l: "ACTIONS", w: "90px" }];
+  const cols = [{ l: "FEE ID", w: "100px", k: "id" }, { l: "NAME", w: "1fr", k: "name" }, { l: "FEE TYPE", w: "130px", k: "fee_type" }, { l: "METHOD", w: "130px", k: "method" }, { l: "APPLIED TO", w: "140px", k: "applied_to" }, { l: "DIRECTION", w: "80px", k: "direction" }, { l: "RATE", w: "110px", k: "rate" }, { l: "SIGNED RATE/AMT", w: "140px", k: "signed_rate" }, { l: "CHARGE AT", w: "120px", k: "fee_charge_at" }, { l: "FREQUENCY", w: "120px", k: "fee_frequency" }, { l: "DESCRIPTION", w: "1fr", k: "description" }, { l: "ACTIONS", w: "90px" }];
   const { gridTemplate, headerRef, onResizeStart } = useResizableColumns(cols);
   const [colFilters, setColFilters] = useState({});
   const setColFilter = (key, val) => { setColFilters(f => ({ ...f, [key]: val })); setPage(1); };
@@ -90,6 +91,7 @@ export default function PageFees({ t, isDark, FEES_DATA = [], DIMENSIONS = [], c
           <div style={{ fontSize: 13.5, fontWeight: 500, color: isDark ? "rgba(255,255,255,0.85)" : (isHov ? "#1C1917" : "#44403C") }}>{f.name}</div>
           <div style={{ fontSize: 12.5, color: t.textMuted }}>{f.fee_type}</div>
           <div><span style={{ fontSize: 11.5, fontWeight: 600, padding: "4px 11px", borderRadius: 20, background: mb, color: mc, border: `1px solid ${mbr}` }}>{f.method}</span></div>
+          <div style={{ fontSize: 12, color: isDark ? "rgba(255,255,255,0.7)" : "#57534E", fontWeight: 500 }}>{f.applied_to || dash}</div>
           <div style={{ fontSize: 11, fontWeight: 700, color: f.direction === "IN" ? (isDark ? "#34D399" : "#059669") : f.direction === "OUT" ? (isDark ? "#F87171" : "#DC2626") : t.textMuted }}>{f.direction || dash}</div>
           <div style={{ fontFamily: t.mono, fontSize: 12.5, fontWeight: 700, color: isDark ? "#60A5FA" : "#4F46E5" }}>{formattedRate}</div>
           <div style={{ fontFamily: t.mono, fontSize: 12.5, fontWeight: 700, color: signedRate >= 0 ? (isDark ? "#34D399" : "#059669") : (isDark ? "#F87171" : "#DC2626") }}>{formattedSignedRate}</div>
@@ -106,7 +108,18 @@ export default function PageFees({ t, isDark, FEES_DATA = [], DIMENSIONS = [], c
         <div style={{ fontFamily: t.mono, fontSize: 13, color: t.idText, background: isDark ? "rgba(255,255,255,0.04)" : "#F5F4F1", border: `1px solid ${t.surfaceBorder}`, borderRadius: 9, padding: "10px 13px", letterSpacing: "0.5px" }}>{modal.data.id}</div>
       </FF>
       <FF label="Fee Name" t={t}><FIn value={modal.data.name} onChange={e => setF("name", e.target.value)} placeholder="e.g. Origination Fee" t={t} /></FF>
-      <FF label="Fee Type" t={t}><FSel value={modal.data.fee_type || ""} onChange={e => setF("fee_type", e.target.value)} options={feeTypeOpts} t={t} /></FF>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+        <FF label="Fee Type" t={t}><FSel value={modal.data.fee_type || ""} onChange={e => {
+          const feeType = e.target.value;
+          // Auto-set "Applied To" based on Fee Type
+          let appliedTo = "Principal Amount"; // default
+          if (feeType === "Late Fee") appliedTo = "Payment Amount";
+          else if (feeType === "Partial-Pay Penalty") appliedTo = "Outstanding Balance";
+          else if (feeType === "Contract Initiation") appliedTo = "Principal Amount";
+          setModal(m => ({ ...m, data: { ...m.data, fee_type: feeType, applied_to: appliedTo } }));
+        }} options={feeTypeOpts} t={t} /></FF>
+        <FF label="Applied To" t={t}><FSel value={modal.data.applied_to || "Principal Amount"} onChange={e => setF("applied_to", e.target.value)} options={["Principal Amount", "Payment Amount", "Outstanding Balance", "Interest Amount"]} t={t} /></FF>
+      </div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14 }}>
         <FF label="Method" t={t}><FSel value={modal.data.method} onChange={e => setF("method", e.target.value)} options={["% of Amount", "Fixed Amount"]} t={t} /></FF>
         <FF label="Direction" t={t}><FSel value={modal.data.direction || "IN"} onChange={e => setF("direction", e.target.value)} options={["IN", "OUT"]} t={t} /></FF>
