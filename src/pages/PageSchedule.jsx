@@ -29,6 +29,7 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
   const [confirmAction, setConfirmAction] = useState(null); // { title, message, onConfirm }
   const [drillSchedule, setDrillSchedule] = useState(null);
   const [drillContract, setDrillContract] = useState(null);
+  const [drillFee, setDrillFee] = useState(null);
   const [detailParty, setDetailParty] = useState(null);
   const buildChain = (scheduleId) => {
     const visited = new Set();
@@ -530,7 +531,15 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
           </div>
           <div style={{ fontFamily: t.mono, fontSize: 11.5, color: t.textMuted, textAlign: "center" }}>{s.period_number || dash}</div>
           <div style={{ fontFamily: t.mono, fontSize: 11, color: isDark ? "rgba(255,255,255,0.7)" : "#44403C" }}>{s.dueDate}</div>
-          <div style={{ fontSize: 11.5, color: t.textMuted, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{s.type}</div>
+          <div style={{ fontSize: 11.5, color: s.type === "Fee" ? (isDark ? "#60A5FA" : "#4F46E5") : t.textMuted, cursor: s.type === "Fee" ? "pointer" : "default", fontWeight: s.type === "Fee" ? 600 : 400, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} onClick={() => {
+            if (s.type === "Fee") {
+              const fids = String(s.fee_id || "").split(",").filter(Boolean);
+              if (fids.length > 0) {
+                const fees = fids.map(id => FEES_DATA.find(x => x.id === id)).filter(Boolean);
+                if (fees.length > 0) setDrillFee(fees);
+              }
+            }
+          }}>{s.type}</div>
           <div style={{ fontSize: 10.5, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
             {s.fee_id
               ? String(s.fee_id).split(",").filter(Boolean).map((fid, idx, arr) => (
@@ -908,6 +917,44 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
               })()}
             </div>
           </div>
+        </div>
+      </Modal>
+    )}
+    {drillFee && (
+      <Modal open={!!drillFee} onClose={() => setDrillFee(null)} title="Fee Summary" saveLabel="OK" onSave={() => setDrillFee(null)} width={500} t={t} isDark={isDark}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 20, padding: "10px 0" }}>
+          {drillFee.map((f, i) => (
+            <div key={f.id} style={{ borderBottom: i < drillFee.length - 1 ? `1px solid ${t.surfaceBorder}` : "none", paddingBottom: i < drillFee.length - 1 ? 20 : 0 }}>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px 20px" }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+                  <span style={{ fontSize: 10, fontWeight: 700, color: t.textSecondary, textTransform: "uppercase", letterSpacing: "0.8px", fontFamily: t.mono }}>Fee Name / ID</span>
+                  <div style={{ fontSize: 13.5, fontWeight: 700, color: isDark ? "#fff" : "#1C1917", display: "flex", gap: 8, alignItems: "center" }}>
+                    <span>{f.name || "Fee"}</span>
+                    <span style={{ color: t.surfaceBorder }}>|</span>
+                    <span style={{ fontFamily: t.mono, color: t.idText }}>{f.id}</span>
+                  </div>
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+                  <span style={{ fontSize: 10, fontWeight: 700, color: t.textSecondary, textTransform: "uppercase", letterSpacing: "0.8px", fontFamily: t.mono }}>Calculation Method</span>
+                  <div style={{ fontSize: 13, color: isDark ? "#fff" : "#1C1917", fontWeight: 600 }}>{f.method || "—"}</div>
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+                  <span style={{ fontSize: 10, fontWeight: 700, color: t.textSecondary, textTransform: "uppercase", letterSpacing: "0.8px", fontFamily: t.mono }}>Rate / Amount</span>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: isDark ? "#60A5FA" : "#2563EB", fontFamily: t.mono }}>
+                    {f.method === "% of Amount" ? `${f.rate}%` : fmtCurr(f.amount || 0)}
+                  </div>
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+                  <span style={{ fontSize: 10, fontWeight: 700, color: t.textSecondary, textTransform: "uppercase", letterSpacing: "0.8px", fontFamily: t.mono }}>Applied To</span>
+                  <div style={{ fontSize: 13, color: isDark ? "rgba(255,255,255,0.8)" : "#44403C" }}>{f.applied_to || "—"}</div>
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+                  <span style={{ fontSize: 10, fontWeight: 700, color: t.textSecondary, textTransform: "uppercase", letterSpacing: "0.8px", fontFamily: t.mono }}>Frequency</span>
+                  <div style={{ fontSize: 13, color: isDark ? "#fff" : "#1C1917" }}>{f.frequency || "Once"}</div>
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
       </Modal>
     )}
