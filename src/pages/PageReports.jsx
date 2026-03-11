@@ -85,7 +85,7 @@ export default function PageReports({ t, isDark, activeTenantId = "" }) {
             transformOrigin: "0 0"
           }}
           allowFullScreen
-          sandbox="allow-storage-access-by-user-activation allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox allow-top-navigation-by-user-activation"
+          sandbox="allow-storage-access-by-user-activation allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox allow-top-navigation-by-user-activation allow-downloads"
         />
       </div>
     </div>

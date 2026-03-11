@@ -540,12 +540,12 @@ export default function PageContracts({ t, isDark, CONTRACTS = [], PROJECTS = []
     </div>
     <div style={{ background: t.surface, borderRadius: 16, border: `1px solid ${t.surfaceBorder}`, overflow: "auto", backdropFilter: isDark ? "blur(20px)" : "none", boxShadow: t.tableShadow }}>
       <TblHead cols={cols} t={t} isDark={isDark} sortConfig={sort} onSort={onSort} gridTemplate={gridTemplate} headerRef={headerRef} onResizeStart={onResizeStart}>
-        <input type="checkbox" checked={sel.size === filtered.length && filtered.length > 0} onChange={() => setSel(sel.size === filtered.length ? new Set() : new Set(filtered.map(c => c.id)))} style={{ accentColor: t.checkActive, width: 14, height: 14 }} />
+        {canUpdate && <input type="checkbox" checked={sel.size === filtered.length && filtered.length > 0} onChange={() => setSel(sel.size === filtered.length ? new Set() : new Set(filtered.map(c => c.id)))} style={{ accentColor: t.checkActive, width: 14, height: 14 }} />}
       </TblHead>
       <TblFilterRow cols={cols} colFilters={colFilters} onFilterChange={setColFilter} onClear={() => setColFilters({})} gridTemplate={gridTemplate} t={t} isDark={isDark} />
       {paginated.map((c, i) => {
         const isHov = hov === c.id; const isSel = sel.has(c.id); return (<div key={c.id} className="data-row" onMouseEnter={() => setHov(c.id)} onMouseLeave={() => setHov(null)} style={{ display: "grid", gridTemplateColumns: gridTemplate, padding: "12px 22px", borderBottom: i < paginated.length - 1 ? `1px solid ${t.rowDivider}` : "none", alignItems: "center", background: isSel ? (isDark ? "rgba(52,211,153,0.05)" : "#F0FDF4") : isHov ? t.rowHover : "transparent", transition: "all 0.15s ease" }}>
-          <input type="checkbox" checked={isSel} onChange={() => toggleRow(c.id)} style={{ accentColor: t.checkActive, width: 14, height: 14 }} onClick={e => e.stopPropagation()} />
+          {canUpdate ? <input type="checkbox" checked={isSel} onChange={() => toggleRow(c.id)} style={{ accentColor: t.checkActive, width: 14, height: 14 }} onClick={e => e.stopPropagation()} /> : <div />}
           <div style={{ fontFamily: t.mono, fontSize: 11, color: t.idText }}>
             <a href="#" onClick={e => { e.preventDefault(); e.stopPropagation(); setDrillContract(c); }} style={{ color: isDark ? "#60A5FA" : "#4F46E5", textDecoration: "none", fontWeight: 600 }}>{c.id}</a>
           </div>

@@ -11,6 +11,7 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
   const { hasPermission, isSuperAdmin } = useAuth();
   const canCreate = isSuperAdmin || hasPermission("PAYMENT_SCHEDULE_CREATE");
   const canDelete = isSuperAdmin || hasPermission("PAYMENT_SCHEDULE_DELETE");
+  const canUpdate = isSuperAdmin || hasPermission("PAYMENT_SCHEDULE_UPDATE");
   const getNextScheduleId = () => {
     let maxNum = 10000;
     SCHEDULES.forEach(s => {
@@ -494,14 +495,14 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
     </div>
     <div style={{ background: t.surface, borderRadius: 16, border: `1px solid ${t.surfaceBorder}`, overflow: "auto", backdropFilter: isDark ? "blur(20px)" : "none", boxShadow: t.tableShadow }}>
       <TblHead cols={cols} t={t} isDark={isDark} sortConfig={sort} onSort={onSort} gridTemplate={gridTemplate} headerRef={headerRef} onResizeStart={onResizeStart}>
-        <input type="checkbox" checked={sel.size === filtered.length && filtered.length > 0} onChange={() => setSel(sel.size === filtered.length ? new Set() : new Set(filtered.map(s => s.schedule_id)))} style={{ accentColor: t.checkActive, width: 14, height: 14 }} />
+        {canUpdate && <input type="checkbox" checked={sel.size === filtered.length && filtered.length > 0} onChange={() => setSel(sel.size === filtered.length ? new Set() : new Set(filtered.map(s => s.schedule_id)))} style={{ accentColor: t.checkActive, width: 14, height: 14 }} />}
       </TblHead>
       <TblFilterRow cols={cols} colFilters={colFilters} onFilterChange={setColFilter} onClear={() => setColFilters({})} gridTemplate={gridTemplate} t={t} isDark={isDark} />
       {paginated.map((s, i) => {
         const isHov = hov === s.schedule_id; const isSel = sel.has(s.schedule_id); const [bg, color, border] = badge(s.status, isDark);
         const dash = <span style={{ color: isDark ? "rgba(255,255,255,0.12)" : "#D4D0CB" }}>—</span>;
         return (<div key={s.schedule_id} className="data-row" onMouseEnter={() => setHov(s.schedule_id)} onMouseLeave={() => setHov(null)} style={{ display: "grid", gridTemplateColumns: gridTemplate, padding: "12px 22px", borderBottom: i < paginated.length - 1 ? `1px solid ${t.rowDivider}` : "none", alignItems: "center", background: isSel ? (isDark ? "rgba(52,211,153,0.04)" : "#F0FDF4") : isHov ? t.rowHover : "transparent", transition: "all 0.15s ease" }}>
-          <input type="checkbox" checked={isSel} onChange={() => { const n = new Set(sel); n.has(s.schedule_id) ? n.delete(s.schedule_id) : n.add(s.schedule_id); setSel(n); }} style={{ accentColor: t.checkActive, width: 14, height: 14 }} onClick={e => e.stopPropagation()} />
+          {canUpdate ? <input type="checkbox" checked={isSel} onChange={() => { const n = new Set(sel); n.has(s.schedule_id) ? n.delete(s.schedule_id) : n.add(s.schedule_id); setSel(n); }} style={{ accentColor: t.checkActive, width: 14, height: 14 }} onClick={e => e.stopPropagation()} /> : <div />}
           <div style={{ fontFamily: t.mono, fontSize: 11, color: t.idText }}>{hasLink(s) ? <a href="#" onClick={e => { e.preventDefault(); e.stopPropagation(); setDrillSchedule(s); }} style={{ color: isDark ? "#60A5FA" : "#4F46E5", textDecoration: "none", fontWeight: 600 }}>{s.schedule_id}</a> : s.schedule_id}</div>
           <div style={{ fontFamily: t.mono, fontSize: 11, color: t.textMuted }}>{s.linked ? <a href="#" onClick={e => { e.preventDefault(); e.stopPropagation(); const linked = SCHEDULES.find(x => x.schedule_id === s.linked); if (linked) setDrillSchedule(linked); }} style={{ color: isDark ? "#60A5FA" : "#4F46E5", textDecoration: "none" }}>{s.linked}</a> : dash}</div>
           <div style={{ fontFamily: t.mono, fontSize: 11.5, color: isDark ? "#60A5FA" : "#4F46E5", fontWeight: 500 }}>
