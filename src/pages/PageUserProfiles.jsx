@@ -31,7 +31,7 @@ const StatusBadge = ({ status, t, isDark }) => {
     );
 };
 
-export default function PageUserProfiles({ t, isDark, USERS = [], ROLES = [], collectionPath = "", DIMENSIONS = [], tenantId = "", TENANTS = [] }) {
+export default function PageUserProfiles({ t, isDark, USERS = [], ROLES = [], collectionPath = "", DIMENSIONS = [], tenantId = "", TENANTS = [], PARTIES = [] }) {
     const { hasPermission, isSuperAdmin } = useAuth();
     const canCreate = isSuperAdmin || hasPermission("USER_PROFILE_CREATE") || hasPermission("USER_CREATE");
     const canInvite = isSuperAdmin || hasPermission("USER_PROFILE_CREATE") || hasPermission("USER_INVITE");
@@ -45,6 +45,7 @@ export default function PageUserProfiles({ t, isDark, USERS = [], ROLES = [], co
     const [sort, setSort] = useState({ key: null, direction: "asc" });
     const [page, setPage] = useState(1);
     const [inviting, setInviting] = useState(false);
+    const [processing, setProcessing] = useState(false);
     const [saving, setSaving] = useState(false);
     const [fixing, setFixing] = useState(false);
     const [inviteResult, setInviteResult] = useState(null); // { link, email } or null
@@ -82,6 +83,15 @@ export default function PageUserProfiles({ t, isDark, USERS = [], ROLES = [], co
     const handleInviteUser = async () => {
         const d = modal.data;
         if (!d.email || !d.role_id) return;
+
+        // 1. Email existence check against PARTIES
+        const emailExists = PARTIES.some(p => p.email && p.email.toLowerCase() === d.email.toLowerCase());
+        if (!emailExists) {
+            alert("This email does not belong to any existing Party. Please create a Party record first on the Parties page.");
+            return;
+        }
+
+        setProcessing(true);
         setInviting(true);
         try {
             const resolvedTenantId = isSelectedRoleGlobal(d.role_id) ? "" : (d.inviteTenantId || tenantId || "");
@@ -103,6 +113,7 @@ export default function PageUserProfiles({ t, isDark, USERS = [], ROLES = [], co
             alert("Invite failed: " + (err.message || "Unknown error"));
         } finally {
             setInviting(false);
+            setProcessing(false);
         }
     };
 
@@ -232,6 +243,15 @@ export default function PageUserProfiles({ t, isDark, USERS = [], ROLES = [], co
     };
 
     return (<>
+        {/* Full-screen Loading Overlay (Freeze) */}
+        {processing && (
+            <div style={{ position: "fixed", inset: 0, zIndex: 9999, background: "rgba(0,0,0,0.6)", backdropFilter: "blur(4px)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", color: "#fff" }}>
+                <div style={{ width: 44, height: 44, border: "3px solid rgba(255,255,255,0.2)", borderTopColor: "#fff", borderRadius: "50%", animation: "spin 0.8s linear infinite", marginBottom: 16 }} />
+                <div style={{ fontSize: 16, fontWeight: 600, letterSpacing: "0.5px" }}>Processing Invitation...</div>
+                <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+            </div>
+        )}
+
         {/* Invite result link sheet */}
         {inviteResult && (
             <div style={{ position: "fixed", inset: 0, zIndex: 1100, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center" }}>

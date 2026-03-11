@@ -3,12 +3,13 @@ import { db, auth } from "../firebase";
 import { doc, setDoc, updateDoc, serverTimestamp, collection, query, where, getDocs, getDoc } from "firebase/firestore";
 import { sendPasswordResetEmail } from "firebase/auth";
 import { useAuth } from "../AuthContext";
-import { FF, FIn } from "../components";
+import { FF, FIn, Modal } from "../components";
 
 export default function PageProfile({ t, isDark, setIsDark, ROLES = [], collectionPath = "", activeTenantId = "" }) {
     const { user, profile, tenantId: authTenantId, isSuperAdmin } = useAuth();
     const tenantId = activeTenantId || authTenantId;
     const [saving, setSaving] = useState(false);
+    const [showConfirm, setShowConfirm] = useState(false);
     const [data, setData] = useState({
         name: profile?.user_name || profile?.name || user?.displayName || "",
         email: user?.email || "",
@@ -90,8 +91,11 @@ export default function PageProfile({ t, isDark, setIsDark, ROLES = [], collecti
         reader.readAsDataURL(file);
     };
 
-    const handleSave = async () => {
+    const handleSave = () => setShowConfirm(true);
+
+    const executeSave = async () => {
         setSaving(true);
+        setShowConfirm(false);
         try {
             const uid = user?.uid;
             if (!uid) return;
@@ -139,6 +143,24 @@ export default function PageProfile({ t, isDark, setIsDark, ROLES = [], collecti
 
     return (
         <>
+            <Modal
+                open={showConfirm}
+                onClose={() => setShowConfirm(false)}
+                title="Confirm Changes"
+                onSave={executeSave}
+                saveLabel={saving ? "Saving..." : "Confirm & Save"}
+                t={t}
+                isDark={isDark}
+            >
+                <div style={{ display: "flex", flexDirection: "column", gap: 16, alignItems: "center", textAlign: "center", padding: "8px 0" }}>
+                    <div style={{ width: 52, height: 52, borderRadius: 14, background: isDark ? "rgba(255,255,255,0.05)" : "#F0F9FF", border: `1px solid ${t.surfaceBorder}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24 }}>💾</div>
+                    <div>
+                        <div style={{ fontSize: 15, fontWeight: 600, color: isDark ? "#fff" : "#1C1917", marginBottom: 8 }}>Save profile changes?</div>
+                        <div style={{ fontSize: 13, color: t.textMuted, lineHeight: 1.7 }}>Are you sure you want to update your profile and organization settings?</div>
+                    </div>
+                </div>
+            </Modal>
+
             <div style={{ marginBottom: 28 }}>
                 <h1 style={{ fontFamily: t.titleFont, fontWeight: t.titleWeight, fontSize: t.titleSize, color: isDark ? "#fff" : "#1C1917", letterSpacing: t.titleTracking, lineHeight: 1, marginBottom: 6 }}>My Profile</h1>
                 <p style={{ fontSize: 13.5, color: t.textMuted }}>Manage your account settings</p>

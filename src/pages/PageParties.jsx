@@ -63,6 +63,7 @@ export default function PageParties({ t, isDark, PARTIES = [], CONTRACTS = [], S
   };
   const [detailParty, setDetailParty] = useState(null);
   const [invitingId, setInvitingId] = useState(null);
+  const [processing, setProcessing] = useState(false);
   const [inviteResult, setInviteResult] = useState(null);
   const [inviteConfirm, setInviteConfirm] = useState(null);
   const handleInviteParty = (party) => {
@@ -81,6 +82,7 @@ export default function PageParties({ t, isDark, PARTIES = [], CONTRACTS = [], S
     const party = inviteConfirm;
     setInviteConfirm(null);
     if (!party) return;
+    setProcessing(true);
     setInvitingId(party.id);
     try {
       const inviteUserFn = httpsCallable(functions, "inviteUser");
@@ -99,6 +101,7 @@ export default function PageParties({ t, isDark, PARTIES = [], CONTRACTS = [], S
       alert("Invite failed: " + (err.message || "Unknown error"));
     } finally {
       setInvitingId(null);
+      setProcessing(false);
     }
   };
   const [colFilters, setColFilters] = useState({});
@@ -116,6 +119,15 @@ export default function PageParties({ t, isDark, PARTIES = [], CONTRACTS = [], S
   const paginated = sorted.slice((page - 1) * 20, page * 20);
   const totalPages = Math.ceil(sorted.length / 20);
   return (<>
+    {/* Full-screen Loading Overlay (Freeze) */}
+    {processing && (
+      <div style={{ position: "fixed", inset: 0, zIndex: 9999, background: "rgba(0,0,0,0.6)", backdropFilter: "blur(4px)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", color: "#fff" }}>
+        <div style={{ width: 44, height: 44, border: "3px solid rgba(255,255,255,0.2)", borderTopColor: "#fff", borderRadius: "50%", animation: "spin 0.8s linear infinite", marginBottom: 16 }} />
+        <div style={{ fontSize: 16, fontWeight: 600, letterSpacing: "0.5px" }}>Inviting Member...</div>
+        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      </div>
+    )}
+
     <div style={{ marginBottom: 28, display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}><div><h1 style={{ fontFamily: t.titleFont, fontWeight: t.titleWeight, fontSize: t.titleSize, color: isDark ? "#fff" : "#1C1917", letterSpacing: t.titleTracking, lineHeight: 1, marginBottom: 6 }}>Parties</h1><p style={{ fontSize: 13.5, color: t.textMuted }}>Manage Investors, Borrowers, and Companies</p></div>
       {canCreate && <Tooltip text="Add a new investor or borrower" t={t}><button className="primary-btn" onClick={openAdd} style={{ background: t.accentGrad, color: "#fff", padding: "11px 22px", borderRadius: 11, fontSize: 13.5, fontWeight: 600, boxShadow: `0 4px 16px ${t.accentShadow}`, display: "flex", alignItems: "center", gap: 7 }}><span style={{ fontSize: 18, lineHeight: 1 }}>+</span> New Party</button></Tooltip>}
     </div>
