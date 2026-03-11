@@ -229,6 +229,7 @@ function AppContent() {
         project_id: d.project_id || "",
         signed_payment_amount: fmtCurr(signed),
         linked: d.linked_schedule_id || "", notes: d.notes || "",
+        applied_to: d.applied_to || "",
         term_start: fmtDate(d.term_start), term_end: fmtDate(d.term_end),
         _undo_snapshot: d._undo_snapshot || null,
       };

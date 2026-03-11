@@ -218,6 +218,7 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
       linked_schedule_id: d.linked || null,
       status: d.status || "Due",
       notes: d.notes || "",
+      applied_to: d.applied_to || "",
       term_start: d.term_start || null,
       term_end: d.term_end || null,
       updated_at: serverTimestamp(),
@@ -238,6 +239,7 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
           signed_payment_amount: unformat(original.signed_payment_amount),
           principal_amount: unformat(original.principal_amount),
           notes: original.notes || "",
+          applied_to: original.applied_to || "",
           linked_schedule_id: original.linked_schedule_id || original.linked || null,
           fee_id: original.fee_id || null,
           due_date: original.dueDate || null,
@@ -473,7 +475,7 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
       }
     });
   };
-  const cols = [{ l: "", w: "36px" }, { l: "SCHEDULE ID", w: "80px", k: "schedule_id" }, { l: "LINKED", w: "80px", k: "linked" }, { l: "CONTRACT", w: "85px", k: "contract" }, { l: "PROJECT ID", w: "85px", k: "project_id" }, { l: "PARTY ID", w: "80px", k: "party_id" }, { l: "PERIOD", w: "58px", k: "period_number" }, { l: "DUE DATE", w: "98px", k: "dueDate" }, { l: "TYPE", w: "minmax(60px, 0.33fr)", k: "type" }, { l: "FEE", w: "260px", k: "fee_id" }, { l: "DIR", w: "50px", k: "direction" }, { l: "SIGNED AMT", w: "110px", k: "signed_payment_amount" }, { l: "PRINCIPAL", w: "110px", k: "principal_amount" }, { l: "STATUS", w: "90px", k: "status" }, { l: "NOTES", w: "minmax(80px, 1fr)", k: "notes" }, { l: "ACTIONS", w: "76px" }];
+  const cols = [{ l: "", w: "36px" }, { l: "SCHEDULE ID", w: "80px", k: "schedule_id" }, { l: "LINKED", w: "80px", k: "linked" }, { l: "CONTRACT", w: "85px", k: "contract" }, { l: "PROJECT ID", w: "85px", k: "project_id" }, { l: "PARTY ID", w: "80px", k: "party_id" }, { l: "PERIOD", w: "58px", k: "period_number" }, { l: "DUE DATE", w: "98px", k: "dueDate" }, { l: "TYPE", w: "minmax(60px, 0.33fr)", k: "type" }, { l: "FEE", w: "260px", k: "fee_id" }, { l: "APPLIED TO", w: "120px", k: "applied_to" }, { l: "DIR", w: "50px", k: "direction" }, { l: "SIGNED AMT", w: "110px", k: "signed_payment_amount" }, { l: "PRINCIPAL", w: "110px", k: "principal_amount" }, { l: "STATUS", w: "90px", k: "status" }, { l: "NOTES", w: "minmax(80px, 1fr)", k: "notes" }, { l: "ACTIONS", w: "76px" }];
   const { gridTemplate, headerRef, onResizeStart } = useResizableColumns(cols);
   const [colFilters, setColFilters] = useState({});
   const setColFilter = (key, val) => { setColFilters(f => ({ ...f, [key]: val })); setPage(1); };
@@ -539,6 +541,7 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
               ))
               : dash}
           </div>
+          <div style={{ fontSize: 11, color: t.textSecondary }}>{s.applied_to || dash}</div>
           <div style={{ fontSize: 11, fontWeight: 700, color: s.direction === "IN" ? (isDark ? "#34D399" : "#059669") : s.direction === "OUT" ? (isDark ? "#F87171" : "#DC2626") : t.textMuted }}>{s.direction || dash}</div>
           <div style={{ fontFamily: t.mono, fontSize: 12, fontWeight: 700, color: isDark ? "#60A5FA" : "#4F46E5" }}>
             {(() => {
@@ -606,7 +609,10 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
               setModal(m => ({ ...m, data: { ...m.data, direction: dir, ...updates } }));
             }} options={["IN", "OUT"]} t={t} disabled={freeze} /></FF>
           </div>
-          <FF label="Payment Type" t={t}><FSel value={modal.data.type} onChange={e => setF("type", e.target.value)} options={["INVESTOR_PRINCIPAL_DEPOSIT", "INVESTOR_INTEREST_PAYMENT", "INVESTOR_PRINCIPAL_PAYMENT", "BORROWER_PRINCIPAL_RECEIVED", "BORROWER_INTEREST_PAYMENT", "BORROWER_PRINCIPAL_PAYMENT", "FEE"]} t={t} disabled={freeze} /></FF>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr", gap: 14 }}>
+            <FF label="Payment Type" t={t}><FSel value={modal.data.type} onChange={e => setF("type", e.target.value)} options={["INVESTOR_PRINCIPAL_DEPOSIT", "INVESTOR_INTEREST_PAYMENT", "INVESTOR_PRINCIPAL_PAYMENT", "BORROWER_PRINCIPAL_RECEIVED", "BORROWER_INTEREST_PAYMENT", "BORROWER_PRINCIPAL_PAYMENT", "FEE"]} t={t} disabled={freeze} /></FF>
+            <FF label="Applied To" t={t}><FSel value={modal.data.applied_to || "Principal Amount"} onChange={e => setF("applied_to", e.target.value)} options={["Principal Amount", "Interest Amount", "Total Amount", "Balance"]} t={t} disabled={freeze} /></FF>
+          </div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14 }}>
             <FF label="Payment Amount" t={t}><FIn value={modal.data.payment || ""} onChange={e => {
               const val = e.target.value;
@@ -629,8 +635,9 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
                   const toggle = () => {
                     const cur = modal.data.fee_ids || [];
                     const newFeeIds = selected ? cur.filter(x => x !== f.id) : [...cur, f.id];
+                    const nextAppliedTo = !selected && f.applied_to ? f.applied_to : (modal.data.applied_to || "");
                     const updates = recalcReplacement(modal.data, newFeeIds);
-                    setModal(m => ({ ...m, data: { ...m.data, ...updates } }));
+                    setModal(m => ({ ...m, data: { ...m.data, ...updates, applied_to: nextAppliedTo } }));
                   };
                   return (
                     <div key={f.id} onClick={toggle} style={{ display: "flex", flexDirection: "column", gap: 2, fontSize: 12, fontWeight: selected ? 600 : 400, padding: "6px 12px", borderRadius: 12, cursor: "pointer", transition: "all 0.15s ease", background: selected ? (isDark ? "rgba(248,113,113,0.15)" : "#FEF2F2") : t.chipBg, color: selected ? (isDark ? "#F87171" : "#DC2626") : t.textSecondary, border: `1px solid ${selected ? (isDark ? "rgba(248,113,113,0.4)" : "#FECACA") : t.chipBorder}` }}>
@@ -675,8 +682,9 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
                       const toggle = () => {
                         const cur = modal.data.fee_ids || [];
                         const newFeeIds = selected ? cur.filter(x => x !== f.id) : [...cur, f.id];
+                        const nextAppliedTo = !selected && f.applied_to ? f.applied_to : (modal.data.applied_to || "");
                         const updates = recalcPartial(modal.data.partialPaid, newFeeIds);
-                        setModal(m => ({ ...m, data: { ...m.data, fee_ids: newFeeIds, ...updates } }));
+                        setModal(m => ({ ...m, data: { ...m.data, fee_ids: newFeeIds, applied_to: nextAppliedTo, ...updates } }));
                       };
                       return (
                         <div key={f.id} onClick={toggle} style={{ display: "flex", flexDirection: "column", gap: 2, fontSize: 12, fontWeight: selected ? 600 : 400, padding: "6px 12px", borderRadius: 12, cursor: "pointer", transition: "all 0.15s ease", background: selected ? (isDark ? "rgba(251,191,36,0.15)" : "#FFFBEB") : t.chipBg, color: selected ? (isDark ? "#FBBF24" : "#D97706") : t.textSecondary, border: `1px solid ${selected ? (isDark ? "rgba(251,191,36,0.4)" : "#FDE68A") : t.chipBorder}` }}>
@@ -707,8 +715,9 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
                       const toggle = () => {
                         const cur = modal.data.fee_ids || [];
                         const next = selected ? cur.filter(x => x !== f.id) : [...cur, f.id];
+                        const nextAppliedTo = !selected && f.applied_to ? f.applied_to : (modal.data.applied_to || "");
                         const updates = recalcReplacement(modal.data, next);
-                        setModal(m => ({ ...m, data: { ...m.data, ...updates, fee_ids: next } }));
+                        setModal(m => ({ ...m, data: { ...m.data, ...updates, fee_ids: next, applied_to: nextAppliedTo } }));
                       };
                       return (
                         <div key={f.id} onClick={freeze ? null : toggle} style={{ display: "flex", flexDirection: "column", gap: 2, fontSize: 12, fontWeight: selected ? 600 : 400, padding: "6px 12px", borderRadius: 12, cursor: freeze ? "not-allowed" : "pointer", transition: "all 0.15s ease", background: selected ? (isDark ? "rgba(96,165,250,0.15)" : "#EFF6FF") : t.chipBg, color: selected ? (isDark ? "#60A5FA" : "#2563EB") : t.textSecondary, border: `1px solid ${selected ? (isDark ? "rgba(96,165,250,0.4)" : "#BFDBFE") : t.chipBorder}`, opacity: freeze ? 0.7 : 1 }}>
@@ -792,6 +801,7 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
                         <div><span style={{ fontWeight: 600, color: t.textSecondary }}>Due: </span>{cs.dueDate || "—"}</div>
                         <div><span style={{ fontWeight: 600, color: t.textSecondary }}>Term: </span>{cs.term_start || "—"} ~ {cs.term_end || "—"}</div>
                         <div><span style={{ fontWeight: 600, color: t.textSecondary }}>Type: </span>{cs.type || "—"}</div>
+                        <div><span style={{ fontWeight: 600, color: t.textSecondary }}>Applied To: </span>{cs.applied_to || "—"}</div>
                       </div>
                       {cs.principal_amount && (
                         <div style={{ fontSize: 11, color: t.textMuted, marginTop: 6 }}><span style={{ fontWeight: 600, color: t.textSecondary }}>Principal: </span>{cs.principal_amount}</div>
@@ -882,7 +892,7 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
                 const fids = String(drillContract.fees || drillContract.feeIds || "").split(",").filter(Boolean);
                 return fids.length > 0 ? fids.map(fid => {
                   const f = FEES_DATA.find(x => x.id === fid);
-                  return <span key={fid} style={{ fontSize: 11, fontWeight: 600, padding: "3px 10px", borderRadius: 20, background: isDark ? "rgba(52,211,153,0.12)" : "#ECFDF5", color: isDark ? "#34D399" : "#059669", border: `1px solid ${isDark ? "rgba(52,211,153,0.25)" : "#A7F3D0"}` }}>{f?.name || fid} {f?.rate ? `(${f.rate})` : ""}</span>;
+                  return <span key={fid} style={{ fontSize: 11, fontWeight: 600, padding: "3px 10px", borderRadius: 20, background: isDark ? "rgba(52,211,153,0.12)" : "#ECFDF5", color: isDark ? "#34D399" : "#059669", border: `1px solid ${isDark ? "rgba(52,211,153,0.25)" : "#A7F3D0"}` }}>{f?.name || fid} {f?.rate ? `(${f.rate})` : ""} · {f?.applied_to || "No applied to"}</span>;
                 }) : <span style={{ fontSize: 12, color: t.textMuted, fontStyle: "italic" }}>No applicable fees</span>;
               })()}
             </div>
