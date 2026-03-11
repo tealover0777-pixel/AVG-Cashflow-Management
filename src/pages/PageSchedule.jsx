@@ -524,9 +524,14 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
           </div>
           <div style={{ fontSize: 11, fontWeight: 700, color: s.direction === "IN" ? (isDark ? "#34D399" : "#059669") : s.direction === "OUT" ? (isDark ? "#F87171" : "#DC2626") : t.textMuted }}>{s.direction || dash}</div>
           <div style={{ fontFamily: t.mono, fontSize: 12, fontWeight: 700, color: isDark ? "#60A5FA" : "#4F46E5" }}>
-            {s.signed_payment_amount && s.direction === "OUT" && String(s.signed_payment_amount).includes("-")
-              ? String(s.signed_payment_amount).replace("-", "(") + ")"
-              : (s.signed_payment_amount || dash)}
+            {(() => {
+              const zeroing = ["Missed", "Cancelled", "VOID", "WAIVED", "REPLACED"];
+              let val = s.signed_payment_amount;
+              if (zeroing.includes(s.status) && (!val || val === dash)) val = "$0.00";
+              if (!val || val === dash) return dash;
+              if (s.direction === "OUT" && String(val).includes("-")) return String(val).replace("-", "(") + ")";
+              return val;
+            })()}
           </div>
           <div style={{ fontFamily: t.mono, fontSize: 11.5, color: t.textMuted }}>{s.principal_amount || dash}</div>
           <div><span style={{ fontSize: 11.5, fontWeight: 600, padding: "4px 11px", borderRadius: 20, background: bg, color, border: `1px solid ${border}` }}>{s.status}</span></div>
