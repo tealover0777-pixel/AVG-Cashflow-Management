@@ -11,6 +11,9 @@ const REPORT_CONFIG = {
 export default function PageReports({ t, isDark, activeTenantId = "" }) {
   const [tab, setTab] = useState("CASHFLOW - Full Schedule");
 
+  const SCALE_FACTOR = 1.125; // 12px * 1.125 = 13.5px
+  const DIM_PERCENT = `${(100 / SCALE_FACTOR).toFixed(4)}%`;
+
   // Construct dynamic Looker URL with tenant filtering
   const lookerUrl = useMemo(() => {
     const activeBaseUrl = REPORT_CONFIG[tab] || REPORT_CONFIG["CASHFLOW - Full Schedule"];
@@ -74,10 +77,12 @@ export default function PageReports({ t, isDark, activeTenantId = "" }) {
           src={lookerUrl}
           scrolling="auto"
           style={{
-            width: "100%",
-            height: "100%",
+            width: DIM_PERCENT,
+            height: DIM_PERCENT,
             border: "none",
-            display: "block"
+            display: "block",
+            transform: `scale(${SCALE_FACTOR})`,
+            transformOrigin: "0 0"
           }}
           allowFullScreen
           sandbox="allow-storage-access-by-user-activation allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox allow-top-navigation-by-user-activation"

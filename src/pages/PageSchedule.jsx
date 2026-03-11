@@ -49,7 +49,7 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
       if (child) { visited.add(child.schedule_id); chain.push(child); lastId = child.schedule_id; }
       else break;
     }
-    return chain;
+    return chain.sort((a, b) => (a.dueDate || "").localeCompare(b.dueDate || ""));
   };
   const hasLink = (s) => s.linked || SCHEDULES.some(x => x.linked === s.schedule_id);
   const [sort, setSort] = useState({ key: "dueDate", direction: "asc" });
@@ -553,7 +553,7 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
               <FSel value={modal.data.status} onChange={e => {
                 const newStatus = e.target.value;
                 const oldStatus = modal.data.status;
-                const zeroing = ["Cancelled", "VOID", "WAIVED", "REPLACED"];
+                const zeroing = ["Missed", "Cancelled", "VOID", "WAIVED", "REPLACED"];
                 const isNewZero = zeroing.includes(newStatus);
                 const isOldZero = zeroing.includes(oldStatus);
 
