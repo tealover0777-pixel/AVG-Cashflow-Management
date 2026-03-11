@@ -266,6 +266,8 @@ export default function PageContracts({ t, isDark, CONTRACTS = [], PROJECTS = []
               term_start: startDate.toISOString().slice(0, 10), term_end: dDate.toISOString().slice(0, 10),
               applied_to: fInfo.applied_to || "Principal Amount",
               fee_name: fInfo.name || "Fee",
+              fee_rate: fInfo.rate || "0",
+              fee_method: fInfo.method || "Fixed Amount",
               status: "Due", notes: `One-time Fee ${fid} for ${c.id}`, created_at: serverTimestamp(),
             });
           }
@@ -355,6 +357,8 @@ export default function PageContracts({ t, isDark, CONTRACTS = [], PROJECTS = []
                     term_start: pStart.toISOString().slice(0, 10), term_end: pEnd.toISOString().slice(0, 10),
                     applied_to: fInfo.applied_to || "Principal Amount",
                     fee_name: fInfo.name || "Fee",
+                    fee_rate: fInfo.rate || "0",
+                    fee_method: fInfo.method || "Fixed Amount",
                     status: "Due", notes: `Recurring Fee ${fid} P${periodNum} for ${c.id}`, created_at: serverTimestamp(),
                   });
                 }
@@ -400,6 +404,8 @@ export default function PageContracts({ t, isDark, CONTRACTS = [], PROJECTS = []
               ...e,
               fee_ids: [e.fee_id],
               fee_names: [e.fee_name],
+              fee_rates: [e.fee_rate],
+              fee_methods: [e.fee_method],
               payment_amounts: [e.payment_amount],
               total_payment: e.payment_amount,
               total_signed: e.signed_payment_amount
@@ -407,6 +413,8 @@ export default function PageContracts({ t, isDark, CONTRACTS = [], PROJECTS = []
           } else {
             feeGroups[key].fee_ids.push(e.fee_id);
             feeGroups[key].fee_names.push(e.fee_name);
+            feeGroups[key].fee_rates.push(e.fee_rate);
+            feeGroups[key].fee_methods.push(e.fee_method);
             feeGroups[key].payment_amounts.push(e.payment_amount);
             feeGroups[key].total_payment += e.payment_amount;
             feeGroups[key].total_signed += e.signed_payment_amount;
@@ -414,16 +422,27 @@ export default function PageContracts({ t, isDark, CONTRACTS = [], PROJECTS = []
         });
 
         const mergedFees = Object.values(feeGroups).map(g => {
-          const { fee_ids, payment_amounts, total_payment, total_signed, fee_names, ...rest } = g;
-          // Build detailed breakdown: Basis (Basis Name) + Fee1 (Name1) + Fee2 (Name2) = Total
+          const { fee_ids, payment_amounts, total_payment, total_signed, fee_names, fee_rates, fee_methods, ...rest } = g;
+          // Build detailed breakdown: "5% of $100 (Principal Amount) = $5"
           const basisAmt = rest.principal_amount || 0;
           const basisLabel = rest.applied_to || "Principal Amount";
           
-          let breakdown = `Fee Breakdown: ${fmtCurr(basisAmt)} (${basisLabel})`;
-          fee_ids.forEach((id, i) => {
-            breakdown += ` + ${fmtCurr(payment_amounts[i])} (${fee_names[i] || "Fee"})`;
+          const stepParts = fee_ids.map((id, i) => {
+            const method = fee_methods[i];
+            const rate = fee_rates[i];
+            const amt = payment_amounts[i];
+            if (method === "% of Amount") {
+              return `${rate}% of ${fmtCurr(basisAmt)} (${basisLabel}) = ${fmtCurr(amt)}`;
+            }
+            return `Fixed amount of ${fmtCurr(amt)}`;
           });
-          breakdown += ` = ${fmtCurr(total_payment + basisAmt)}`;
+
+          let breakdown = "Fee Breakdown: ";
+          if (stepParts.length === 1) {
+            breakdown += stepParts[0];
+          } else {
+            breakdown += stepParts.map(p => `[${p}]`).join(" + ") + ` = ${fmtCurr(total_payment)}`;
+          }
 
           return {
             ...rest,
