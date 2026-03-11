@@ -299,7 +299,7 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
                 dueDate: nextDueDate,
                 term_start: getNextDay(d.dueDate),
                 term_end: nextDueDate,
-                basePayment: Math.abs(Number(String(d.payment || d.signed_payment_amount || 0).replace(/[^0-9.-]/g, "")) || 0),
+                basePayment: Math.abs(Number(String(d._prevPayment || d.basePayment || d.payment || 0).replace(/[^0-9.-]/g, ""))),
                 notes: `Missed payment replacement for ${d.schedule_id}`,
               }
             });
@@ -335,7 +335,7 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
                 term_start: getNextDay(d.dueDate),
                 term_end: nextDueDatePartial,
                 partialPaid: "",
-                basePayment: Math.abs(Number(String(d.payment || d.signed_payment_amount || 0).replace(/[^0-9.-]/g, "")) || 0),
+                basePayment: Math.abs(Number(String(d.basePayment || d.payment || 0).replace(/[^0-9.-]/g, ""))),
                 notes: `Partial payment replacement for ${d.schedule_id}`,
               }
             });
