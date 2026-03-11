@@ -926,7 +926,7 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
           {drillFee.map((f, i) => (
             <div key={f.id} style={{ borderBottom: i < drillFee.length - 1 ? `1px solid ${t.surfaceBorder}` : "none", paddingBottom: i < drillFee.length - 1 ? 20 : 0 }}>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px 20px" }}>
-                <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+                <div style={{ gridColumn: "span 2", display: "flex", flexDirection: "column", gap: 5 }}>
                   <span style={{ fontSize: 10, fontWeight: 700, color: t.textSecondary, textTransform: "uppercase", letterSpacing: "0.8px", fontFamily: t.mono }}>Fee Name / ID</span>
                   <div style={{ fontSize: 13.5, fontWeight: 700, color: isDark ? "#fff" : "#1C1917", display: "flex", gap: 8, alignItems: "center" }}>
                     <span>{f.name || "Fee"}</span>
