@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { Modal } from "../components";
 
 
 const REPORT_CONFIG = {
@@ -10,6 +11,7 @@ const REPORT_CONFIG = {
 
 export default function PageReports({ t, isDark, activeTenantId = "" }) {
   const [tab, setTab] = useState("CASHFLOW - Full Schedule");
+  const [showInstructions, setShowInstructions] = useState(false);
 
   const SCALE_FACTOR = 1.125; // 12px * 1.125 = 13.5px
   const DIM_PERCENT = `${(100 / SCALE_FACTOR).toFixed(4)}%`;
@@ -34,7 +36,7 @@ export default function PageReports({ t, isDark, activeTenantId = "" }) {
 
 
   return (<>
-    <div style={{ marginBottom: 28, display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}><div><h1 style={{ fontFamily: t.titleFont, fontWeight: t.titleWeight, fontSize: t.titleSize, color: isDark ? "#fff" : "#1C1917", letterSpacing: t.titleTracking, lineHeight: 1, marginBottom: 6 }}>Reports</h1><p style={{ fontSize: 13.5, color: t.textMuted }}>Analytics and financial summaries</p></div><button className="export-btn" style={{ background: t.accentGrad, color: "#fff", padding: "11px 22px", borderRadius: 11, fontSize: 13.5, fontWeight: 600, boxShadow: `0 4px 16px ${t.accentShadow}`, border: "none", cursor: "pointer" }}>↓ Export data</button></div>
+    <div style={{ marginBottom: 28, display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}><div><h1 style={{ fontFamily: t.titleFont, fontWeight: t.titleWeight, fontSize: t.titleSize, color: isDark ? "#fff" : "#1C1917", letterSpacing: t.titleTracking, lineHeight: 1, marginBottom: 6 }}>Reports</h1><p style={{ fontSize: 13.5, color: t.textMuted }}>Analytics and financial summaries</p></div><button className="export-btn" onClick={() => setShowInstructions(true)} style={{ background: t.accentGrad, color: "#fff", padding: "11px 22px", borderRadius: 11, fontSize: 13.5, fontWeight: 600, boxShadow: `0 4px 16px ${t.accentShadow}`, border: "none", cursor: "pointer" }}>↓ Export data</button></div>
 
     <div style={{ display: "flex", gap: 4, marginBottom: 20, background: isDark ? "rgba(255,255,255,0.04)" : "#F1F0EE", padding: 4, borderRadius: 10, width: "fit-content" }}>
       {Object.keys(REPORT_CONFIG).map(tb => (
@@ -89,5 +91,28 @@ export default function PageReports({ t, isDark, activeTenantId = "" }) {
         />
       </div>
     </div>
+
+    <Modal
+      open={showInstructions}
+      onClose={() => setShowInstructions(false)}
+      title="How to use Export data"
+      saveLabel="Got it"
+      onSave={() => setShowInstructions(false)}
+      t={t}
+      isDark={isDark}
+      width={520}
+    >
+      <div style={{ fontSize: 14, color: isDark ? "rgba(255,255,255,0.85)" : "#374151", lineHeight: 1.6 }}>
+        <p style={{ marginBottom: 16 }}>To access the <strong>Export data</strong> dialog, please follow these steps directly within the report below:</p>
+        <ol style={{ paddingLeft: 20, marginBottom: 16, display: "flex", flexDirection: "column", gap: 10 }}>
+          <li><strong>Hover</strong> over the specific chart or table you want to export.</li>
+          <li>Click the <strong>three vertical dots</strong> (More options) icon that appears in the top right corner of that chart.</li>
+          <li>Select <strong>Export</strong> from the menu.</li>
+        </ol>
+        <p style={{ fontSize: 13, color: t.textMuted, background: isDark ? "rgba(255,255,255,0.04)" : "#F8F8F7", padding: "10px 14px", borderRadius: 8, border: `1px solid ${t.surfaceBorder}` }}>
+          The "Export data" dialog (CSV, Excel, Google Sheets) will then appear natively within the Looker Studio interface.
+        </p>
+      </div>
+    </Modal>
   </>);
 }
