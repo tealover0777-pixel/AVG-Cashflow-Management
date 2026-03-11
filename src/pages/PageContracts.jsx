@@ -265,6 +265,7 @@ export default function PageContracts({ t, isDark, CONTRACTS = [], PROJECTS = []
               signed_payment_amount: signedFeeAmt, direction_from_company: feeDir,
               term_start: startDate.toISOString().slice(0, 10), term_end: dDate.toISOString().slice(0, 10),
               applied_to: fInfo.applied_to || "Principal Amount",
+              fee_name: fInfo.name || "Fee",
               status: "Due", notes: `One-time Fee ${fid} for ${c.id}`, created_at: serverTimestamp(),
             });
           }
@@ -353,6 +354,7 @@ export default function PageContracts({ t, isDark, CONTRACTS = [], PROJECTS = []
                     signed_payment_amount: signedFeeAmt, direction_from_company: feeDir,
                     term_start: pStart.toISOString().slice(0, 10), term_end: pEnd.toISOString().slice(0, 10),
                     applied_to: fInfo.applied_to || "Principal Amount",
+                    fee_name: fInfo.name || "Fee",
                     status: "Due", notes: `Recurring Fee ${fid} P${periodNum} for ${c.id}`, created_at: serverTimestamp(),
                   });
                 }
@@ -397,12 +399,14 @@ export default function PageContracts({ t, isDark, CONTRACTS = [], PROJECTS = []
             feeGroups[key] = {
               ...e,
               fee_ids: [e.fee_id],
+              fee_names: [e.fee_name],
               payment_amounts: [e.payment_amount],
               total_payment: e.payment_amount,
               total_signed: e.signed_payment_amount
             };
           } else {
             feeGroups[key].fee_ids.push(e.fee_id);
+            feeGroups[key].fee_names.push(e.fee_name);
             feeGroups[key].payment_amounts.push(e.payment_amount);
             feeGroups[key].total_payment += e.payment_amount;
             feeGroups[key].total_signed += e.signed_payment_amount;
@@ -410,17 +414,23 @@ export default function PageContracts({ t, isDark, CONTRACTS = [], PROJECTS = []
         });
 
         const mergedFees = Object.values(feeGroups).map(g => {
-          const { fee_ids, payment_amounts, total_payment, total_signed, ...rest } = g;
-          const parts = payment_amounts.map(a => fmtCurr(a));
-          const sumStr = fmtCurr(total_payment);
-          const notes = `Fee Breakdown: ${parts.join(" + ")} = ${sumStr}`;
+          const { fee_ids, payment_amounts, total_payment, total_signed, fee_names, ...rest } = g;
+          // Build detailed breakdown: Basis (Basis Name) + Fee1 (Name1) + Fee2 (Name2) = Total
+          const basisAmt = rest.principal_amount || 0;
+          const basisLabel = rest.applied_to || "Principal Amount";
+          
+          let breakdown = `Fee Breakdown: ${fmtCurr(basisAmt)} (${basisLabel})`;
+          fee_ids.forEach((id, i) => {
+            breakdown += ` + ${fmtCurr(payment_amounts[i])} (${fee_names[i] || "Fee"})`;
+          });
+          breakdown += ` = ${fmtCurr(total_payment + basisAmt)}`;
 
           return {
             ...rest,
             fee_id: fee_ids.join(","),
             payment_amount: Math.round(total_payment * 100) / 100,
             signed_payment_amount: Math.round(total_signed * 100) / 100,
-            notes
+            notes: breakdown
           };
         });
 
