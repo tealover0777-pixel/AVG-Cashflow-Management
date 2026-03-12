@@ -80,7 +80,14 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
       if (isP && basePayment > extracted) partialPaid = String(basePayment - extracted);
     }
     const applied_to = r.applied_to || (fee_ids[0] ? (FEES_DATA.find(f => f.id === fee_ids[0])?.applied_to || "") : "");
-    setModal({ open: true, mode: "edit", data: { ...r, fee_ids, basePayment, partialPaid, applied_to, originalStatus: r.status } });
+    const zeroing = ["Missed", "Cancelled", "VOID", "WAIVED", "REPLACED"];
+    let modalData = { ...r, fee_ids, basePayment, partialPaid, applied_to, originalStatus: r.status };
+    if (zeroing.includes(r.status)) {
+      modalData.payment = "$0.00";
+      modalData.signed_payment_amount = "$0.00";
+      modalData.principal_amount = "$0.00";
+    }
+    setModal({ open: true, mode: "edit", data: modalData });
   };
 
   const recalcReplacement = (currentData, newFeeIds, newPartialPaid = null) => {
@@ -156,9 +163,19 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
     }
 
     const updates = { fee_ids: newFeeIds, notes, signed_payment_amount: fmtCurr(signedAmt), basePayment: baseAmt };
-    if (currentData.isTyping !== "payment") {
-      updates.payment = fmtCurr(paymentAmt);
+    
+    // Status-based zeroing override
+    const zeroingStatuses = ["Missed", "Cancelled", "VOID", "WAIVED", "REPLACED"];
+    if (zeroingStatuses.includes(currentData.status)) {
+      updates.payment = "$0.00";
+      updates.signed_payment_amount = "$0.00";
+      updates.principal_amount = "$0.00";
+    } else {
+      if (currentData.isTyping !== "payment") {
+        updates.payment = fmtCurr(paymentAmt);
+      }
     }
+
     if (currentData.isTyping !== "partialPaid") {
       updates.partialPaid = paidVal;
     }
@@ -610,11 +627,14 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
                 if (isNewZero && !isOldZero) {
                   updates._prevPayment = modal.data.payment;
                   updates._prevSignedAmt = modal.data.signed_payment_amount;
+                  updates._prevPrincipal = modal.data.principal_amount;
                   updates.payment = "$0.00";
                   updates.signed_payment_amount = "$0.00";
+                  updates.principal_amount = "$0.00";
                 } else if (!isNewZero && isOldZero) {
                   if (modal.data._prevPayment !== undefined) updates.payment = modal.data._prevPayment;
                   if (modal.data._prevSignedAmt !== undefined) updates.signed_payment_amount = modal.data._prevSignedAmt;
+                  if (modal.data._prevPrincipal !== undefined) updates.principal_amount = modal.data._prevPrincipal;
                 }
 
                 if (newStatus === "Missed") {
