@@ -590,7 +590,13 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
               return val;
             })()}
           </div>
-          <div style={{ fontFamily: t.mono, fontSize: 11.5, color: t.textMuted }}>{s.principal_amount || dash}</div>
+          <div style={{ fontFamily: t.mono, fontSize: 11.5, color: t.textMuted }}>
+            {(() => {
+              const zeroing = ["Missed", "Cancelled", "VOID", "WAIVED", "REPLACED"];
+              if (zeroing.includes(s.status)) return "$0.00";
+              return s.principal_amount || dash;
+            })()}
+          </div>
           <div><span style={{ fontSize: 11.5, fontWeight: 600, padding: "4px 11px", borderRadius: 20, background: bg, color, border: `1px solid ${border}` }}>{s.status}</span></div>
           <div style={{ fontSize: 11.5, color: t.textMuted, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0 }}>{s.notes || dash}</div>
           <ActBtns show={isHov || !!s._undo_snapshot} t={t} onEdit={() => openEdit(s)} onDel={canDelete ? (() => setDelT({ schedule_id: s.schedule_id, name: s.schedule_id, docId: s.docId, _path: s._path })) : null} onUndo={s._undo_snapshot ? () => handleUndo(s) : null} />
@@ -849,16 +855,25 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
                         <div><span style={{ fontWeight: 600, color: t.textSecondary }}>Type: </span>{cs.type || "—"}</div>
                         <div><span style={{ fontWeight: 600, color: t.textSecondary }}>Applied To: </span>{cs.applied_to || (feeIds[0] ? (FEES_DATA.find(f => f.id === feeIds[0])?.applied_to || "—") : "—")}</div>
                       </div>
-                      {cs.principal_amount && (
-                        <div style={{ fontSize: 11, color: t.textMuted, marginTop: 6, display: "flex", gap: 15 }}>
-                          <div><span style={{ fontWeight: 600, color: t.textSecondary }}>Principal: </span>{cs.principal_amount}</div>
-                          <div><span style={{ fontWeight: 600, color: t.textSecondary }}>Total Payment Amount: </span>{
-                            cs.signed_payment_amount && cs.direction === "OUT" && String(cs.signed_payment_amount).includes("-")
-                            ? String(cs.signed_payment_amount).replace("-", "(") + ")"
-                            : (cs.signed_payment_amount || cs.payment || "")
-                          }</div>
-                        </div>
-                      )}
+                      {(() => {
+                        const zeroing = ["Missed", "Cancelled", "VOID", "WAIVED", "REPLACED"];
+                        const isZeroed = zeroing.includes(cs.status);
+                        if (cs.principal_amount || isZeroed) {
+                          return (
+                            <div style={{ fontSize: 11, color: t.textMuted, marginTop: 6, display: "flex", gap: 15 }}>
+                              <div><span style={{ fontWeight: 600, color: t.textSecondary }}>Principal: </span>{isZeroed ? "$0.00" : (cs.principal_amount || dash)}</div>
+                              <div><span style={{ fontWeight: 600, color: t.textSecondary }}>Total Payment Amount: </span>{
+                                isZeroed ? "$0.00" : (
+                                  cs.signed_payment_amount && cs.direction === "OUT" && String(cs.signed_payment_amount).includes("-")
+                                  ? String(cs.signed_payment_amount).replace("-", "(") + ")"
+                                  : (cs.signed_payment_amount || cs.payment || "")
+                                )
+                              }</div>
+                            </div>
+                          );
+                        }
+                        return null;
+                      })()}
                       {/* Fee details */}
                       {feeIds.length > 0 && (
                         <div style={{ marginTop: 10, padding: "10px 12px", borderRadius: 10, background: isDark ? "rgba(255,255,255,0.03)" : "#F9FAFB", border: `1px solid ${isDark ? "rgba(255,255,255,0.06)" : "#F3F4F6"}` }}>
