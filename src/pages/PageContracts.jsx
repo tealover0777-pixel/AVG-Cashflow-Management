@@ -427,6 +427,7 @@ export default function PageContracts({ t, isDark, CONTRACTS = [], PROJECTS = []
               fee_rates: [e.fee_rate],
               fee_methods: [e.fee_method],
               payment_amounts: [e.payment_amount],
+              signed_amounts: [e.signed_payment_amount],
               total_payment: e.payment_amount,
               total_signed: e.signed_payment_amount
             };
@@ -436,32 +437,37 @@ export default function PageContracts({ t, isDark, CONTRACTS = [], PROJECTS = []
             feeGroups[key].fee_rates.push(e.fee_rate);
             feeGroups[key].fee_methods.push(e.fee_method);
             feeGroups[key].payment_amounts.push(e.payment_amount);
+            feeGroups[key].signed_amounts.push(e.signed_payment_amount);
             feeGroups[key].total_payment += e.payment_amount;
             feeGroups[key].total_signed += e.signed_payment_amount;
           }
         });
 
         const mergedFees = Object.values(feeGroups).map(g => {
-          const { fee_ids, payment_amounts, total_payment, total_signed, fee_names, fee_rates, fee_methods, ...rest } = g;
-          // Build detailed breakdown: "5% of $100 (Principal Amount) = $5"
+          const { fee_ids, payment_amounts, signed_amounts, total_payment, total_signed, fee_names, fee_rates, fee_methods, ...rest } = g;
+          // Build detailed breakdown with direction signs
           const basisAmt = rest.principal_amount || 0;
           const basisLabel = rest.applied_to || "Principal Amount";
-          
+
           const stepParts = fee_ids.map((id, i) => {
             const method = fee_methods[i];
             const rate = fee_rates[i];
             const amt = payment_amounts[i];
+            const signedAmt = signed_amounts[i];
+            const sign = signedAmt >= 0 ? "+" : "-";
+            const absAmt = Math.abs(amt);
+
             if (method === "% of Amount") {
-              return `${rate}% of ${fmtCurr(basisAmt)} (${basisLabel}) = ${fmtCurr(amt)}`;
+              return `${sign}${rate}% of ${fmtCurr(basisAmt)} (${basisLabel}) = ${sign}${fmtCurr(absAmt)}`;
             }
-            return `Fixed amount of ${fmtCurr(amt)}`;
+            return `${sign}Fixed amount of ${fmtCurr(absAmt)}`;
           });
 
           let breakdown = "Fee Breakdown: ";
           if (stepParts.length === 1) {
             breakdown += stepParts[0];
           } else {
-            breakdown += stepParts.map(p => `[${p}]`).join(" + ") + ` = ${fmtCurr(total_payment)}`;
+            breakdown += stepParts.map(p => `[${p}]`).join(" ") + ` = ${fmtCurr(Math.abs(total_signed))}`;
           }
 
           return {

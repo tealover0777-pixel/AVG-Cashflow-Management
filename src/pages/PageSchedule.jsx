@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { db } from "../firebase";
 import { collection, doc, addDoc, updateDoc, deleteDoc, serverTimestamp } from "firebase/firestore";
-import { sortData, badge, initials, av } from "../utils";
+import { sortData, badge, initials, av, feeCalculator_ACT360_30360 } from "../utils";
 import { StatCard, Pagination, ActBtns, useResizableColumns, TblHead, TblFilterRow, Modal, FF, FIn, FSel, DelModal, Tooltip } from "../components";
 import { useAuth } from "../AuthContext";
 
@@ -111,18 +111,32 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
     const feeAmts = newFeeIds.map(fid => {
       const fee = FEES_DATA.find(ff => ff.id === fid);
       if (!fee) return 0;
-      const rateNum = Number(String(fee.rate).replace(/[^0-9.]/g, "")) || 0;
 
-      // Determine the basis amount for percentage calculation
-      let basisForCalc = Math.abs(unpaid);
-      const appliedTo = (fee.applied_to || "").toLowerCase();
-      if (appliedTo.includes("principal")) {
-        // Use principal amount for fees applied to principal
+      let unsignedAmt = 0;
+
+      // Use ACT/360 calculator for recurring fees with period dates
+      if (fee.frequency === "Recurring" && currentData.term_start && currentData.term_end) {
         const principalAmt = Number(String(currentData.principal_amount || "").replace(/[^0-9.-]/g, "")) || 0;
-        basisForCalc = Math.abs(principalAmt);
+        const startDate = currentData.term_start;
+        const endDate = currentData.term_end;
+        // Use term_start as invest date for recurring fees
+        unsignedAmt = feeCalculator_ACT360_30360(fee, principalAmt, startDate, endDate, startDate);
+      } else {
+        // For one-time fees or when period dates not available, use simple calculation
+        const rateNum = Number(String(fee.rate).replace(/[^0-9.]/g, "")) || 0;
+
+        // Determine the basis amount for percentage calculation
+        let basisForCalc = Math.abs(unpaid);
+        const appliedTo = (fee.applied_to || "").toLowerCase();
+        if (appliedTo.includes("principal")) {
+          // Use principal amount for fees applied to principal
+          const principalAmt = Number(String(currentData.principal_amount || "").replace(/[^0-9.-]/g, "")) || 0;
+          basisForCalc = Math.abs(principalAmt);
+        }
+
+        unsignedAmt = fee.method === "Fixed Amount" ? rateNum : basisForCalc * rateNum / 100;
       }
 
-      const unsignedAmt = fee.method === "Fixed Amount" ? rateNum : basisForCalc * rateNum / 100;
       // Apply fee's direction: IN fees are positive (added), OUT fees are negative (subtracted)
       const feeDir = fee.direction || "IN";
       return feeDir === "OUT" ? -unsignedAmt : unsignedAmt;
