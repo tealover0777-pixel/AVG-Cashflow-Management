@@ -106,7 +106,17 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
       const fee = FEES_DATA.find(ff => ff.id === fid);
       if (!fee) return 0;
       const rateNum = Number(String(fee.rate).replace(/[^0-9.]/g, "")) || 0;
-      const unsignedAmt = fee.method === "Fixed Amount" ? rateNum : Math.abs(unpaid) * rateNum / 100;
+
+      // Determine the basis amount for percentage calculation
+      let basisForCalc = Math.abs(unpaid);
+      const appliedTo = (fee.applied_to || "").toLowerCase();
+      if (appliedTo.includes("principal")) {
+        // Use principal amount for fees applied to principal
+        const principalAmt = Number(String(currentData.principal_amount || "").replace(/[^0-9.-]/g, "")) || 0;
+        basisForCalc = Math.abs(principalAmt);
+      }
+
+      const unsignedAmt = fee.method === "Fixed Amount" ? rateNum : basisForCalc * rateNum / 100;
       // Apply fee's direction: IN fees are positive (added), OUT fees are negative (subtracted)
       const feeDir = fee.direction || "IN";
       return feeDir === "OUT" ? -unsignedAmt : unsignedAmt;
@@ -158,9 +168,6 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
 
       if (newFeeIds.length > 0) {
         // Build detailed breakdown with calculation info for each fee
-        const basisAmt = Math.abs(unpaid);
-        const basisLabel = currentData.applied_to || "Principal Amount";
-
         const stepParts = newFeeIds.map((fid, i) => {
           const fee = FEES_DATA.find(ff => ff.id === fid);
           if (!fee) return `${fmtCurr(Math.abs(feeAmts[i]))}`;
@@ -170,7 +177,16 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
           const amt = Math.abs(feeAmts[i]);
 
           if (method === "% of Amount") {
-            return `${rate}% of ${fmtCurr(basisAmt)} (${basisLabel}) = ${fmtCurr(amt)}`;
+            // Determine the correct basis amount for this specific fee
+            const appliedTo = fee.applied_to || "Principal Amount";
+            let basisAmt = Math.abs(unpaid);
+
+            if (appliedTo.toLowerCase().includes("principal")) {
+              const principalAmt = Number(String(currentData.principal_amount || "").replace(/[^0-9.-]/g, "")) || 0;
+              basisAmt = Math.abs(principalAmt);
+            }
+
+            return `${rate}% of ${fmtCurr(basisAmt)} (${appliedTo}) = ${fmtCurr(amt)}`;
           }
           return `Fixed amount of ${fmtCurr(amt)}`;
         });
