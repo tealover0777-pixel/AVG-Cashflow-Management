@@ -157,12 +157,31 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
       }
 
       if (newFeeIds.length > 0) {
-        const parts = [fmtCurr(unpaid)];
-        feeAmts.forEach(a => {
-          if (a >= 0) parts.push(`+ ${fmtCurr(a)}`);
-          else parts.push(`- ${fmtCurr(Math.abs(a))}`);
+        // Build detailed breakdown with calculation info for each fee
+        const basisAmt = Math.abs(unpaid);
+        const basisLabel = currentData.applied_to || "Principal Amount";
+
+        const stepParts = newFeeIds.map((fid, i) => {
+          const fee = FEES_DATA.find(ff => ff.id === fid);
+          if (!fee) return `${fmtCurr(Math.abs(feeAmts[i]))}`;
+
+          const method = fee.method || "Fixed Amount";
+          const rate = fee.rate || "0";
+          const amt = Math.abs(feeAmts[i]);
+
+          if (method === "% of Amount") {
+            return `${rate}% of ${fmtCurr(basisAmt)} (${basisLabel}) = ${fmtCurr(amt)}`;
+          }
+          return `Fixed amount of ${fmtCurr(amt)}`;
         });
-        const breakdown = `Fee Breakdown: ${parts.join(" ")} = ${fmtCurr(finalAmtAbs)}`;
+
+        let breakdown;
+        if (stepParts.length === 1) {
+          breakdown = `Fee Breakdown: ${stepParts[0]}`;
+        } else {
+          breakdown = `Fee Breakdown: ${stepParts.map(p => `[${p}]`).join(" + ")} = ${fmtCurr(finalAmtAbs)}`;
+        }
+
         notes = cleanNote ? `${cleanNote} | ${breakdown}` : breakdown;
       } else {
         notes = cleanNote;
