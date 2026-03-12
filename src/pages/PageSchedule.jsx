@@ -113,14 +113,32 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
     const contractCalculator = relatedContract?.calculator || "ACT/360+30/360";
     const contractStartDate = relatedContract?.start_date || currentData.term_start;
 
+    console.log("=== Fee Recalculation Debug ===");
+    console.log("Contract ID:", currentData.contract_id);
+    console.log("Related Contract Found:", !!relatedContract);
+    console.log("Contract Calculator:", contractCalculator);
+    console.log("Contract Start Date:", contractStartDate);
+    console.log("Term Start:", currentData.term_start, "Term End:", currentData.term_end);
+    console.log("Payment Type:", currentData.payment_type || currentData.type);
+    console.log("Selected Fee IDs:", newFeeIds);
+
     const feeAmts = newFeeIds.map(fid => {
       const fee = FEES_DATA.find(ff => ff.id === fid);
-      if (!fee) return 0;
+      if (!fee) {
+        console.log(`  Fee ${fid}: NOT FOUND`);
+        return 0;
+      }
+
+      console.log(`  Fee ${fid}:`, { name: fee.name, frequency: fee.frequency, fee_charge_at: fee.fee_charge_at, method: fee.method, rate: fee.rate, direction: fee.direction });
 
       let unsignedAmt = 0;
 
       // Use contract's calculator and frequency for recurring fees
-      if (fee.frequency === "Recurring" && currentData.term_start && currentData.term_end) {
+      const isRecurring = fee.frequency === "Recurring";
+      const hasDates = !!(currentData.term_start && currentData.term_end);
+      console.log(`    Recurring: ${isRecurring}, Has Dates: ${hasDates}`);
+
+      if (isRecurring && hasDates) {
         const principalAmt = Number(String(currentData.principal_amount || "").replace(/[^0-9.-]/g, "")) || 0;
         const periodStart = currentData.term_start;
         const periodEnd = currentData.term_end;
@@ -131,13 +149,16 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
         if (contractCalculator === "ACT/360+30/360") {
           // Use ACT/360 calculator with fee's charge frequency
           const feeFreqStr = getFeeFrequencyString(fee.fee_charge_at);
+          console.log(`    Using ACT/360, FeeFreq: ${feeFreqStr}, Principal: ${principalAmt}, Rate: ${rateNum}%`);
           unsignedAmt = pmtCalculator_ACT360_30360(periodStart, periodEnd, investDate, principalAmt, rateNum / 100, feeFreqStr);
+          console.log(`    Result: ${unsignedAmt}`);
         } else {
           // Use simple calculation: principal * (rate / 360) * 90
           unsignedAmt = principalAmt * (rateNum / 100 / 360) * 90;
         }
       } else {
         // For one-time fees or when period dates not available, use simple calculation
+        console.log(`    Using simple calculation (not recurring or missing dates)`);
         const rateNum = Number(String(fee.rate).replace(/[^0-9.]/g, "")) || 0;
 
         // Determine the basis amount for percentage calculation
@@ -150,12 +171,19 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
         }
 
         unsignedAmt = fee.method === "Fixed Amount" ? rateNum : basisForCalc * rateNum / 100;
+        console.log(`    Basis: ${basisForCalc}, Rate: ${rateNum}%, Result: ${unsignedAmt}`);
       }
 
       // Apply fee's direction: IN fees are positive (added), OUT fees are negative (subtracted)
       const feeDir = fee.direction || "IN";
-      return feeDir === "OUT" ? -unsignedAmt : unsignedAmt;
+      const finalAmt = feeDir === "OUT" ? -unsignedAmt : unsignedAmt;
+      console.log(`    Direction: ${feeDir}, Signed: ${finalAmt}`);
+      return finalAmt;
     });
+
+    console.log("Fee Amounts:", feeAmts);
+    console.log("Total Fees:", feeAmts.reduce((a, b) => a + b, 0));
+    console.log("=== End Debug ===");
 
     const totalFees = feeAmts.reduce((a, b) => a + b, 0);
     const absBase = Math.abs(unpaid);
