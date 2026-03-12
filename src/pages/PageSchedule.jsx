@@ -994,8 +994,16 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
                   <div style={{ fontSize: 13, color: isDark ? "rgba(255,255,255,0.8)" : "#44403C" }}>{f.applied_to || "—"}</div>
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+                  <span style={{ fontSize: 10, fontWeight: 700, color: t.textSecondary, textTransform: "uppercase", letterSpacing: "0.8px", fontFamily: t.mono }}>Direction</span>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: f.direction === "IN" ? (isDark ? "#34D399" : "#059669") : f.direction === "OUT" ? (isDark ? "#F87171" : "#DC2626") : t.textMuted }}>{f.direction || "—"}</div>
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+                  <span style={{ fontSize: 10, fontWeight: 700, color: t.textSecondary, textTransform: "uppercase", letterSpacing: "0.8px", fontFamily: t.mono }}>Charge At</span>
+                  <div style={{ fontSize: 13, color: isDark ? "rgba(255,255,255,0.8)" : "#44403C" }}>{f.fee_charge_at || "—"}</div>
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
                   <span style={{ fontSize: 10, fontWeight: 700, color: t.textSecondary, textTransform: "uppercase", letterSpacing: "0.8px", fontFamily: t.mono }}>Frequency</span>
-                  <div style={{ fontSize: 13, color: isDark ? "#fff" : "#1C1917" }}>{f.frequency || "Once"}</div>
+                  <div style={{ fontSize: 13, color: isDark ? "#fff" : "#1C1917" }}>{f.fee_frequency || "Once"}</div>
                 </div>
               </div>
             </div>
