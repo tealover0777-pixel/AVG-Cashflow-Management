@@ -177,11 +177,14 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
         // Build detailed breakdown with calculation info for each fee
         const stepParts = newFeeIds.map((fid, i) => {
           const fee = FEES_DATA.find(ff => ff.id === fid);
-          if (!fee) return `${fmtCurr(Math.abs(feeAmts[i]))}`;
+          const feeAmt = feeAmts[i]; // Keep the sign (positive for IN, negative for OUT)
+          const absAmt = Math.abs(feeAmt);
+
+          if (!fee) return feeAmt >= 0 ? `+${fmtCurr(absAmt)}` : `-${fmtCurr(absAmt)}`;
 
           const method = fee.method || "Fixed Amount";
           const rate = fee.rate || "0";
-          const amt = Math.abs(feeAmts[i]);
+          const sign = feeAmt >= 0 ? "+" : "-";
 
           if (method === "% of Amount") {
             // Determine the correct basis amount for this specific fee
@@ -193,16 +196,19 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
               basisAmt = Math.abs(principalAmt);
             }
 
-            return `${rate}% of ${fmtCurr(basisAmt)} (${appliedTo}) = ${fmtCurr(amt)}`;
+            return `${sign}${rate}% of ${fmtCurr(basisAmt)} (${appliedTo}) = ${sign}${fmtCurr(absAmt)}`;
           }
-          return `Fixed amount of ${fmtCurr(amt)}`;
+          return `${sign}Fixed amount of ${fmtCurr(absAmt)}`;
         });
+
+        // Calculate the signed total (sum of fees with their signs)
+        const signedTotal = totalFees;
 
         let breakdown;
         if (stepParts.length === 1) {
           breakdown = `Fee Breakdown: ${stepParts[0]}`;
         } else {
-          breakdown = `Fee Breakdown: ${stepParts.map(p => `[${p}]`).join(" + ")} = ${fmtCurr(finalAmtAbs)}`;
+          breakdown = `Fee Breakdown: ${stepParts.map(p => `[${p}]`).join(" ")} = ${fmtCurr(Math.abs(signedTotal))}`;
         }
 
         notes = cleanNote ? `${cleanNote} | ${breakdown}` : breakdown;
