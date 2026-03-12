@@ -824,7 +824,14 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
                         <div><span style={{ fontWeight: 600, color: t.textSecondary }}>Applied To: </span>{cs.applied_to || (feeIds[0] ? (FEES_DATA.find(f => f.id === feeIds[0])?.applied_to || "—") : "—")}</div>
                       </div>
                       {cs.principal_amount && (
-                        <div style={{ fontSize: 11, color: t.textMuted, marginTop: 6 }}><span style={{ fontWeight: 600, color: t.textSecondary }}>Principal: </span>{cs.principal_amount}</div>
+                        <div style={{ fontSize: 11, color: t.textMuted, marginTop: 6, display: "flex", gap: 15 }}>
+                          <div><span style={{ fontWeight: 600, color: t.textSecondary }}>Principal: </span>{cs.principal_amount}</div>
+                          <div><span style={{ fontWeight: 600, color: t.textSecondary }}>Signed: </span>{
+                            cs.signed_payment_amount && cs.direction === "OUT" && String(cs.signed_payment_amount).includes("-")
+                            ? String(cs.signed_payment_amount).replace("-", "(") + ")"
+                            : (cs.signed_payment_amount || cs.payment || "")
+                          }</div>
+                        </div>
                       )}
                       {/* Fee details */}
                       {feeIds.length > 0 && (
@@ -941,7 +948,13 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
                 <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
                   <span style={{ fontSize: 10, fontWeight: 700, color: t.textSecondary, textTransform: "uppercase", letterSpacing: "0.8px", fontFamily: t.mono }}>Rate / Amount</span>
                   <div style={{ fontSize: 14, fontWeight: 700, color: isDark ? "#60A5FA" : "#2563EB", fontFamily: t.mono }}>
-                    {f.method === "% of Amount" ? `${f.rate}%` : fmtCurr(f.amount || 0)}
+                    {(() => {
+                      const val = f.rate || "0";
+                      if (f.method === "% of Amount") {
+                        return String(val).endsWith("%") ? val : `${val}%`;
+                      }
+                      return fmtCurr(val);
+                    })()}
                   </div>
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
