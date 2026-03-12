@@ -109,12 +109,21 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
     }
 
     // Find the related contract for this schedule entry
-    const relatedContract = CONTRACTS.find(c => c.id === currentData.contract_id || c.contract_id === currentData.contract_id);
+    // Check multiple possible field names: contract_id, contract, contractId
+    const contractIdField = currentData.contract_id || currentData.contract || currentData.contractId;
+    const relatedContract = CONTRACTS.find(c =>
+      c.id === contractIdField ||
+      c.contract_id === contractIdField ||
+      c.contractId === contractIdField
+    );
     const contractCalculator = relatedContract?.calculator || "ACT/360+30/360";
     const contractStartDate = relatedContract?.start_date || currentData.term_start;
 
     console.log("=== Fee Recalculation Debug ===");
-    console.log("Contract ID:", currentData.contract_id);
+    console.log("Contract ID field:", contractIdField);
+    console.log("currentData.contract_id:", currentData.contract_id);
+    console.log("currentData.contract:", currentData.contract);
+    console.log("currentData.contractId:", currentData.contractId);
     console.log("Related Contract Found:", !!relatedContract);
     console.log("Contract Calculator:", contractCalculator);
     console.log("Contract Start Date:", contractStartDate);
@@ -133,8 +142,22 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
 
       let unsignedAmt = 0;
 
+      // Infer fee frequency if not set
+      // If fee_charge_at is Contract_Start/Contract_End, treat as One_Time
+      // Otherwise, treat as Recurring
+      let feeFrequency = fee.frequency;
+      if (!feeFrequency) {
+        const chargeAt = (fee.fee_charge_at || "").toLowerCase();
+        if (chargeAt.includes("contract_start") || chargeAt.includes("contract_end")) {
+          feeFrequency = "One_Time";
+        } else {
+          feeFrequency = "Recurring";
+        }
+        console.log(`    Fee frequency not set, inferred as: ${feeFrequency} (from fee_charge_at: ${fee.fee_charge_at})`);
+      }
+
       // Use contract's calculator and frequency for recurring fees
-      const isRecurring = fee.frequency === "Recurring";
+      const isRecurring = feeFrequency === "Recurring";
       const hasDates = !!(currentData.term_start && currentData.term_end);
       console.log(`    Recurring: ${isRecurring}, Has Dates: ${hasDates}`);
 
