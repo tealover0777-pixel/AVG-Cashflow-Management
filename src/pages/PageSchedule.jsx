@@ -612,12 +612,15 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
                   updates._prevSignedAmt = modal.data.signed_payment_amount;
                   updates.payment = "$0.00";
                   updates.signed_payment_amount = "$0.00";
-                  if (newStatus === "Cancelled") {
-                    updates.notes = "payment is missed so $0 now. Replacement is scheduled.";
-                  }
                 } else if (!isNewZero && isOldZero) {
                   if (modal.data._prevPayment !== undefined) updates.payment = modal.data._prevPayment;
                   if (modal.data._prevSignedAmt !== undefined) updates.signed_payment_amount = modal.data._prevSignedAmt;
+                }
+
+                if (newStatus === "Missed") {
+                  updates.notes = "payment is missed so $0 now. Replacement is scheduled.";
+                } else if (newStatus === "Cancelled") {
+                  updates.notes = "payment is cancelled so $0 now.";
                 }
                 setModal(m => ({ ...m, data: { ...m.data, ...updates } }));
               }} options={paymentStatusOpts} t={t} />
