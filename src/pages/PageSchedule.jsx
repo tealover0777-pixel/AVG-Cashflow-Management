@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { db } from "../firebase";
 import { collection, doc, addDoc, updateDoc, deleteDoc, serverTimestamp } from "firebase/firestore";
-import { sortData, badge, initials, av, feeCalculator_ACT360_30360 } from "../utils";
+import { sortData, badge, initials, av, pmtCalculator_ACT360_30360 } from "../utils";
 import { StatCard, Pagination, ActBtns, useResizableColumns, TblHead, TblFilterRow, Modal, FF, FIn, FSel, DelModal, Tooltip } from "../components";
 import { useAuth } from "../AuthContext";
 
@@ -108,19 +108,32 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
       unpaid = 0;
     }
 
+    // Find the related contract for this schedule entry
+    const relatedContract = CONTRACTS.find(c => c.id === currentData.contract_id || c.contract_id === currentData.contract_id);
+    const contractCalculator = relatedContract?.calculator || "ACT/360+30/360";
+    const contractFrequency = relatedContract?.freq || "Quarterly";
+
     const feeAmts = newFeeIds.map(fid => {
       const fee = FEES_DATA.find(ff => ff.id === fid);
       if (!fee) return 0;
 
       let unsignedAmt = 0;
 
-      // Use ACT/360 calculator for recurring fees with period dates
+      // Use contract's calculator and frequency for recurring fees
       if (fee.frequency === "Recurring" && currentData.term_start && currentData.term_end) {
         const principalAmt = Number(String(currentData.principal_amount || "").replace(/[^0-9.-]/g, "")) || 0;
         const startDate = currentData.term_start;
         const endDate = currentData.term_end;
-        // Use term_start as invest date for recurring fees
-        unsignedAmt = feeCalculator_ACT360_30360(fee, principalAmt, startDate, endDate, startDate);
+        const rateNum = Number(String(fee.rate).replace(/[^0-9.]/g, "")) || 0;
+
+        // Use the same calculator as the contract
+        if (contractCalculator === "ACT/360+30/360") {
+          // Use ACT/360 calculator with contract frequency
+          unsignedAmt = pmtCalculator_ACT360_30360(startDate, endDate, startDate, principalAmt, rateNum / 100, contractFrequency);
+        } else {
+          // Use simple calculation: principal * (rate / 360) * 90
+          unsignedAmt = principalAmt * (rateNum / 100 / 360) * 90;
+        }
       } else {
         // For one-time fees or when period dates not available, use simple calculation
         const rateNum = Number(String(fee.rate).replace(/[^0-9.]/g, "")) || 0;
