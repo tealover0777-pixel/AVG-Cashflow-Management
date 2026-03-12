@@ -249,7 +249,20 @@ export default function PageContracts({ t, isDark, CONTRACTS = [], PROJECTS = []
         // One-time fees
         cFeeIds.forEach(fid => {
           const fInfo = feeInfoMap[fid];
-          if (fInfo && fInfo.frequency === "One_Time") {
+          if (!fInfo) return;
+
+          // Infer fee frequency if not set
+          let feeFrequency = fInfo.frequency;
+          if (!feeFrequency) {
+            const chargeAt = (fInfo.fee_charge_at || "").toLowerCase();
+            if (chargeAt.includes("contract_start") || chargeAt.includes("contract_end")) {
+              feeFrequency = "One_Time";
+            } else {
+              feeFrequency = "Recurring";
+            }
+          }
+
+          if (feeFrequency === "One_Time") {
             const feeAmt = feeCalculator_ACT360_30360(fInfo, principal, startDate, startDate, startDate);
             if (isNaN(feeAmt)) return;
             let dDate = startDate;
@@ -330,7 +343,20 @@ export default function PageContracts({ t, isDark, CONTRACTS = [], PROJECTS = []
           // Recurring Fees
           cFeeIds.forEach(fid => {
             const fInfo = feeInfoMap[fid];
-            if (fInfo && fInfo.frequency === "Recurring") {
+            if (!fInfo) return;
+
+            // Infer fee frequency if not set
+            let feeFrequency = fInfo.frequency;
+            if (!feeFrequency) {
+              const chargeAt = (fInfo.fee_charge_at || "").toLowerCase();
+              if (chargeAt.includes("contract_start") || chargeAt.includes("contract_end")) {
+                feeFrequency = "One_Time";
+              } else {
+                feeFrequency = "Recurring";
+              }
+            }
+
+            if (feeFrequency === "Recurring") {
               const ca = (fInfo.fee_charge_at || "").toLowerCase();
               let should = false;
 
@@ -359,6 +385,7 @@ export default function PageContracts({ t, isDark, CONTRACTS = [], PROJECTS = []
                 should = pEnd.getMonth() === 11;
               }
 
+              // Always charge fee in the last period, even if fee_charge_at timing hasn't been met
               if (isLast) should = true;
 
               if (should) {
@@ -367,7 +394,22 @@ export default function PageContracts({ t, isDark, CONTRACTS = [], PROJECTS = []
                   // Use fee's direction instead of PT_FEE default
                   const feeDir = fInfo.direction || "OUT";
                   const signedFeeAmt = feeDir === "OUT" ? -Math.abs(feeAmt) : Math.abs(feeAmt);
-                  const feeDueDate = ca.includes("start") ? pStart : pEnd;
+
+                  // Determine due date based on period and fee_charge_at
+                  // This ensures fees are charged on actual contract dates, not theoretical calendar dates
+                  let feeDueDate;
+                  if (isLast) {
+                    // Last period: always use maturity date (pEnd), regardless of fee_charge_at
+                    // Example: Year_End with Jan 10 maturity → charges on Jan 10, not Dec 31
+                    feeDueDate = pEnd;
+                  } else if (periodNum === 1 && ca.includes("start")) {
+                    // First period with "start" fees: use contract start date
+                    // Example: Quarter_Start with Mar 15 start → charges on Mar 15, not Apr 1
+                    feeDueDate = startDate;
+                  } else {
+                    // Normal periods: use standard logic based on fee_charge_at
+                    feeDueDate = ca.includes("start") ? pStart : pEnd;
+                  }
                   entries.push({
                     schedule_id: `S${currentIdNum++}`,
                     contract_id: c.id, project_id: c.project_id || "", party_id: c.party_id || "",

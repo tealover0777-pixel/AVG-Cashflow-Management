@@ -165,7 +165,8 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
         const principalAmt = Number(String(currentData.principal_amount || "").replace(/[^0-9.-]/g, "")) || 0;
         const periodStart = currentData.term_start;
         const periodEnd = currentData.term_end;
-        const investDate = contractStartDate; // Use contract start date, not period start
+        // Use contract start date as investDate to prorate fees based on contract duration
+        const investDate = contractStartDate;
         const rateNum = Number(String(fee.rate).replace(/[^0-9.]/g, "")) || 0;
 
         // Use the same calculator as the contract
@@ -173,6 +174,7 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
           // Use ACT/360 calculator with fee's charge frequency
           const feeFreqStr = getFeeFrequencyString(fee.fee_charge_at);
           console.log(`    Using ACT/360, FeeFreq: ${feeFreqStr}, Principal: ${principalAmt}, Rate: ${rateNum}%`);
+          console.log(`    Period: ${periodStart} to ${periodEnd}, InvestDate: ${investDate}`);
           unsignedAmt = pmtCalculator_ACT360_30360(periodStart, periodEnd, investDate, principalAmt, rateNum / 100, feeFreqStr);
           console.log(`    Result: ${unsignedAmt}`);
         } else {
