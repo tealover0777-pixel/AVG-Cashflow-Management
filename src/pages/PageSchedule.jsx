@@ -111,6 +111,7 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
     // Find the related contract for this schedule entry
     const relatedContract = CONTRACTS.find(c => c.id === currentData.contract_id || c.contract_id === currentData.contract_id);
     const contractCalculator = relatedContract?.calculator || "ACT/360+30/360";
+    const contractStartDate = relatedContract?.start_date || currentData.term_start;
 
     const feeAmts = newFeeIds.map(fid => {
       const fee = FEES_DATA.find(ff => ff.id === fid);
@@ -121,15 +122,16 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
       // Use contract's calculator and frequency for recurring fees
       if (fee.frequency === "Recurring" && currentData.term_start && currentData.term_end) {
         const principalAmt = Number(String(currentData.principal_amount || "").replace(/[^0-9.-]/g, "")) || 0;
-        const startDate = currentData.term_start;
-        const endDate = currentData.term_end;
+        const periodStart = currentData.term_start;
+        const periodEnd = currentData.term_end;
+        const investDate = contractStartDate; // Use contract start date, not period start
         const rateNum = Number(String(fee.rate).replace(/[^0-9.]/g, "")) || 0;
 
         // Use the same calculator as the contract
         if (contractCalculator === "ACT/360+30/360") {
-          // Use ACT/360 calculator with fee's charge frequency (not contract frequency)
+          // Use ACT/360 calculator with fee's charge frequency
           const feeFreqStr = getFeeFrequencyString(fee.fee_charge_at);
-          unsignedAmt = pmtCalculator_ACT360_30360(startDate, endDate, startDate, principalAmt, rateNum / 100, feeFreqStr);
+          unsignedAmt = pmtCalculator_ACT360_30360(periodStart, periodEnd, investDate, principalAmt, rateNum / 100, feeFreqStr);
         } else {
           // Use simple calculation: principal * (rate / 360) * 90
           unsignedAmt = principalAmt * (rateNum / 100 / 360) * 90;
