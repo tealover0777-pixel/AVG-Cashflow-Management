@@ -612,6 +612,9 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
                   updates._prevSignedAmt = modal.data.signed_payment_amount;
                   updates.payment = "$0.00";
                   updates.signed_payment_amount = "$0.00";
+                  if (newStatus === "Cancelled") {
+                    updates.notes = "payment is missed so $0 now. Replacement is scheduled.";
+                  }
                 } else if (!isNewZero && isOldZero) {
                   if (modal.data._prevPayment !== undefined) updates.payment = modal.data._prevPayment;
                   if (modal.data._prevSignedAmt !== undefined) updates.signed_payment_amount = modal.data._prevSignedAmt;
@@ -826,7 +829,7 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
                       {cs.principal_amount && (
                         <div style={{ fontSize: 11, color: t.textMuted, marginTop: 6, display: "flex", gap: 15 }}>
                           <div><span style={{ fontWeight: 600, color: t.textSecondary }}>Principal: </span>{cs.principal_amount}</div>
-                          <div><span style={{ fontWeight: 600, color: t.textSecondary }}>Signed: </span>{
+                          <div><span style={{ fontWeight: 600, color: t.textSecondary }}>Total Payment Amount: </span>{
                             cs.signed_payment_amount && cs.direction === "OUT" && String(cs.signed_payment_amount).includes("-")
                             ? String(cs.signed_payment_amount).replace("-", "(") + ")"
                             : (cs.signed_payment_amount || cs.payment || "")
