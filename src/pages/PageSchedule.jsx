@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { db } from "../firebase";
 import { collection, doc, addDoc, updateDoc, deleteDoc, serverTimestamp } from "firebase/firestore";
-import { sortData, badge, initials, av, pmtCalculator_ACT360_30360, getFeeFrequencyString } from "../utils";
+import { sortData, badge, initials, av, pmtCalculator_ACT360_30360, getFeeFrequencyString, normalizeDateAtNoon } from "../utils";
 import { StatCard, Pagination, ActBtns, useResizableColumns, TblHead, TblFilterRow, Modal, FF, FIn, FSel, DelModal, Tooltip } from "../components";
 import { useAuth } from "../AuthContext";
 
@@ -154,15 +154,12 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
 
       if (isRecurring && hasDates) {
         const principalAmt = Number(String(currentData.principal_amount || "").replace(/[^0-9.-]/g, "")) || 0;
-        const periodStart = currentData.term_start;
-        const periodEnd = currentData.term_end;
-        // Use contract start date as investDate to prorate fees based on contract duration
-        const investDate = contractStartDate;
+        const periodStart = normalizeDateAtNoon(currentData.term_start);
+        const periodEnd = normalizeDateAtNoon(currentData.term_end);
+        const investDate = normalizeDateAtNoon(contractStartDate);
         const rateNum = Number(String(fee.rate).replace(/[^0-9.]/g, "")) || 0;
 
-        // Use the same calculator as the contract
         if (contractCalculator === "ACT/360+30/360") {
-          // Use ACT/360 calculator with fee's charge frequency
           const feeFreqStr = getFeeFrequencyString(fee.fee_charge_at);
           unsignedAmt = pmtCalculator_ACT360_30360(periodStart, periodEnd, investDate, principalAmt, rateNum / 100, feeFreqStr);
         } else {

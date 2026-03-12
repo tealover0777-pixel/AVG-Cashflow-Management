@@ -674,9 +674,8 @@ export default function PageContracts({ t, isDark, CONTRACTS = [], PROJECTS = []
       {(() => {
         const scope = sel.size > 0 ? filtered.filter(c => sel.has(c.id)) : filtered;
         const parseAmt = a => Number(String(a).replace(/[^0-9.-]/g, "")) || 0;
-        const fmtAmt = v => "$" + v.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-        const depositTotal = fmtAmt(scope.filter(c => c.type === "DEPOSIT").reduce((s, c) => s + parseAmt(c.amount), 0));
-        const disbTotal = fmtAmt(scope.filter(c => c.type === "DISBURSEMENT").reduce((s, c) => s + parseAmt(c.amount), 0));
+        const depositTotal = fmtCurr(scope.filter(c => c.type === "DEPOSIT").reduce((s, c) => s + parseAmt(c.amount), 0));
+        const disbTotal = fmtCurr(scope.filter(c => c.type === "DISBURSEMENT").reduce((s, c) => s + parseAmt(c.amount), 0));
         const activeCount = scope.filter(c => c.status === "Active").length;
         return [
           { label: "Total", value: filtered.length, accent: isDark ? "#60A5FA" : "#3B82F6", bg: isDark ? "rgba(96,165,250,0.08)" : "#EFF6FF", border: isDark ? "rgba(96,165,250,0.15)" : "#BFDBFE" },

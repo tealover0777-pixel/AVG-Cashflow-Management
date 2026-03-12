@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { db } from "../firebase";
 import { collection, doc, addDoc, updateDoc, deleteDoc, serverTimestamp } from "firebase/firestore";
-import { sortData } from "../utils";
+import { sortData, fmtCurr } from "../utils";
 import { Pagination, ActBtns, useResizableColumns, TblHead, TblFilterRow, Modal, FF, FIn, FSel, DelModal, Tooltip } from "../components";
 import { useAuth } from "../AuthContext";
 
@@ -75,7 +75,7 @@ export default function PagePayments({ t, isDark, PAYMENTS = [], collectionPath 
           <div style={{ fontFamily: t.mono, fontSize: 11.5, color: isDark ? "#60A5FA" : "#4F46E5", fontWeight: 500 }}>{p.contract || <span style={{ color: isDark ? "rgba(255,255,255,0.15)" : "#D4D0CB" }}>—</span>}</div>
           <div style={{ fontSize: 13, fontWeight: 500, color: isDark ? "rgba(255,255,255,0.85)" : "#1C1917", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", paddingRight: 8 }}>{p.party}</div>
           <div style={{ fontSize: 12, color: t.textMuted }}>{p.type}</div>
-          <div style={{ fontFamily: t.mono, fontSize: 12.5, fontWeight: 700, color: isIn ? (isDark ? "#34D399" : "#059669") : (isDark ? "#F87171" : "#DC2626") }}>{isIn ? "+" : "−"}{p.amount}</div>
+          <div style={{ fontFamily: t.mono, fontSize: 12.5, fontWeight: 700, color: isIn ? (isDark ? "#34D399" : "#059669") : (isDark ? "#F87171" : "#DC2626") }}>{fmtCurr(isIn ? Math.abs(p.amount) : -Math.abs(p.amount))}</div>
           <div style={{ fontFamily: t.mono, fontSize: 11, color: t.textMuted }}>{p.date}</div>
           <div style={{ fontSize: 12, color: t.textMuted }}>{p.method}</div>
           <ActBtns show={isHov && (canUpdate || canDelete)} t={t} onEdit={canUpdate ? () => openEdit(p) : null} onDel={canDelete ? () => setDelT({ id: p.id, name: p.id, docId: p.docId }) : null} />
