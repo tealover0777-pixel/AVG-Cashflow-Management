@@ -85,7 +85,6 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
     if (zeroing.includes(r.status)) {
       modalData.payment = "$0.00";
       modalData.signed_payment_amount = "$0.00";
-      modalData.principal_amount = "$0.00";
     }
     setModal({ open: true, mode: "edit", data: modalData });
   };
@@ -169,7 +168,6 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
     if (zeroingStatuses.includes(currentData.status)) {
       updates.payment = "$0.00";
       updates.signed_payment_amount = "$0.00";
-      updates.principal_amount = "$0.00";
     } else {
       if (currentData.isTyping !== "payment") {
         updates.payment = fmtCurr(paymentAmt);
@@ -591,11 +589,7 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
             })()}
           </div>
           <div style={{ fontFamily: t.mono, fontSize: 11.5, color: t.textMuted }}>
-            {(() => {
-              const zeroing = ["Missed", "Cancelled", "VOID", "WAIVED", "REPLACED"];
-              if (zeroing.includes(s.status)) return "$0.00";
-              return s.principal_amount || dash;
-            })()}
+            {s.principal_amount || dash}
           </div>
           <div><span style={{ fontSize: 11.5, fontWeight: 600, padding: "4px 11px", borderRadius: 20, background: bg, color, border: `1px solid ${border}` }}>{s.status}</span></div>
           <div style={{ fontSize: 11.5, color: t.textMuted, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0 }}>{s.notes || dash}</div>
@@ -633,14 +627,11 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
                 if (isNewZero && !isOldZero) {
                   updates._prevPayment = modal.data.payment;
                   updates._prevSignedAmt = modal.data.signed_payment_amount;
-                  updates._prevPrincipal = modal.data.principal_amount;
                   updates.payment = "$0.00";
                   updates.signed_payment_amount = "$0.00";
-                  updates.principal_amount = "$0.00";
                 } else if (!isNewZero && isOldZero) {
                   if (modal.data._prevPayment !== undefined) updates.payment = modal.data._prevPayment;
                   if (modal.data._prevSignedAmt !== undefined) updates.signed_payment_amount = modal.data._prevSignedAmt;
-                  if (modal.data._prevPrincipal !== undefined) updates.principal_amount = modal.data._prevPrincipal;
                 }
 
                 if (newStatus === "Missed") {
@@ -861,7 +852,7 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
                         if (cs.principal_amount || isZeroed) {
                           return (
                             <div style={{ fontSize: 11, color: t.textMuted, marginTop: 6, display: "flex", gap: 15 }}>
-                              <div><span style={{ fontWeight: 600, color: t.textSecondary }}>Principal: </span>{isZeroed ? "$0.00" : (cs.principal_amount || dash)}</div>
+                              <div><span style={{ fontWeight: 600, color: t.textSecondary }}>Principal: </span>{cs.principal_amount || dash}</div>
                               <div><span style={{ fontWeight: 600, color: t.textSecondary }}>Total Payment Amount: </span>{
                                 isZeroed ? "$0.00" : (
                                   cs.signed_payment_amount && cs.direction === "OUT" && String(cs.signed_payment_amount).includes("-")
