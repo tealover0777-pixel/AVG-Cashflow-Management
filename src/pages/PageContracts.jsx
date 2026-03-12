@@ -246,11 +246,15 @@ export default function PageContracts({ t, isDark, CONTRACTS = [], PROJECTS = []
         let pStart = normalizeDateAtNoon(new Date(startYear, theoreticalStartMonth, 1));
         const cFeeIds = (c.fees || "").split(",").map(f => f.trim()).filter(Boolean);
 
+        console.log(`Contract ${c.id}: Processing fees:`, cFeeIds);
+
         // One-time fees
         cFeeIds.forEach(fid => {
           const fInfo = feeInfoMap[fid];
+          console.log(`  Fee ${fid}:`, fInfo ? { frequency: fInfo.frequency, method: fInfo.method, rate: fInfo.rate } : "NOT FOUND");
           if (fInfo && fInfo.frequency === "One_Time") {
             const feeAmt = feeCalculator_ACT360_30360(fInfo, principal, startDate, startDate, startDate);
+            console.log(`    Calculated one-time fee amount: ${feeAmt}, isNaN: ${isNaN(feeAmt)}`);
             if (isNaN(feeAmt)) return;
             let dDate = startDate;
             if (fInfo.fee_charge_at === "Contract_End") dDate = matDate;
@@ -341,8 +345,11 @@ export default function PageContracts({ t, isDark, CONTRACTS = [], PROJECTS = []
 
               if (isLast) should = true;
 
+              console.log(`    Period ${periodNum} Fee ${fid}: should=${should}, ca="${ca}", pEnd.getMonth()=${pEnd.getMonth()}, isLast=${isLast}`);
+
               if (should) {
                 const feeAmt = feeCalculator_ACT360_30360(fInfo, principal, pStart, calcEnd, startDate);
+                console.log(`      Calculated recurring fee amount: ${feeAmt}, isNaN: ${isNaN(feeAmt)}`);
                 if (!isNaN(feeAmt)) {
                   // Use fee's direction instead of PT_FEE default
                   const feeDir = fInfo.direction || "OUT";
