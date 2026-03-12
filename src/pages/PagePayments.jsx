@@ -89,7 +89,7 @@ export default function PagePayments({ t, isDark, PAYMENTS = [], collectionPath 
         <FF label="Payment Type" t={t}><FSel value={modal.data.type} onChange={e => setF("type", e.target.value)} options={["Interest", "Principal", "Interest + Principal", "Disbursement", "Fee"]} t={t} /></FF>
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
-        <FF label="Contract" t={t}><FIn value={modal.data.contract} onChange={e => setF("contract", e.target.value)} placeholder="C10000" t={t} /></FF>
+        <FF label="Contract" t={t}><FIn value={modal.data.contract} onChange={e => setF("contract", e.target.value)} placeholder="C10001" t={t} /></FF>
         <FF label="Party" t={t}><FIn value={modal.data.party} onChange={e => setF("party", e.target.value)} placeholder="Party name" t={t} /></FF>
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>

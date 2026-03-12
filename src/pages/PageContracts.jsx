@@ -21,7 +21,7 @@ export default function PageContracts({ t, isDark, CONTRACTS = [], PROJECTS = []
   const [page, setPage] = useState(1);
   const onSort = k => { setSort(s => ({ key: k, direction: s.key === k && s.direction === "asc" ? "desc" : "asc" })); setPage(1); };
   const openAdd = () => {
-    let maxIdNum = 9999;
+    let maxIdNum = 10000;
     CONTRACTS.forEach(c => {
       const cid = c.contract_id || c.id;
       if (cid && cid.startsWith("C")) {

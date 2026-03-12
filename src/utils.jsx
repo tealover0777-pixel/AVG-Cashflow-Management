@@ -10,7 +10,8 @@ export const fmtCurr = n => {
   if (n == null || n === "") return "";
   const num = Number(String(n).replace(/[^0-9.-]/g, ""));
   if (isNaN(num)) return String(n);
-  return "$" + num.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const sign = num < 0 ? "-" : "";
+  return sign + "$" + Math.abs(num).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 };
 
 
