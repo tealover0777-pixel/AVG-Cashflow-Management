@@ -148,14 +148,22 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
     } else {
       // Logic for Standard Schedules (General fee addition)
       // Strip old breakdown if exists to avoid doubling up
-      const cleanNote = notes.split(" | Fee Breakdown:")[0];
+      let cleanNote = notes;
+      // Handle both formats: " | Fee Breakdown:" (with prefix) and "Fee Breakdown:" (at start)
+      if (cleanNote.includes(" | Fee Breakdown:")) {
+        cleanNote = cleanNote.split(" | Fee Breakdown:")[0];
+      } else if (cleanNote.startsWith("Fee Breakdown:")) {
+        cleanNote = "";
+      }
+
       if (newFeeIds.length > 0) {
         const parts = [fmtCurr(unpaid)];
         feeAmts.forEach(a => {
           if (a >= 0) parts.push(`+ ${fmtCurr(a)}`);
           else parts.push(`- ${fmtCurr(Math.abs(a))}`);
         });
-        notes = `${cleanNote} | Fee Breakdown: ${parts.join(" ")} = ${fmtCurr(finalAmtAbs)}`;
+        const breakdown = `Fee Breakdown: ${parts.join(" ")} = ${fmtCurr(finalAmtAbs)}`;
+        notes = cleanNote ? `${cleanNote} | ${breakdown}` : breakdown;
       } else {
         notes = cleanNote;
       }
