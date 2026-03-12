@@ -246,15 +246,11 @@ export default function PageContracts({ t, isDark, CONTRACTS = [], PROJECTS = []
         let pStart = normalizeDateAtNoon(new Date(startYear, theoreticalStartMonth, 1));
         const cFeeIds = (c.fees || "").split(",").map(f => f.trim()).filter(Boolean);
 
-        console.log(`Contract ${c.id}: Processing fees:`, cFeeIds);
-
         // One-time fees
         cFeeIds.forEach(fid => {
           const fInfo = feeInfoMap[fid];
-          console.log(`  Fee ${fid}:`, fInfo ? { frequency: fInfo.frequency, method: fInfo.method, rate: fInfo.rate } : "NOT FOUND");
           if (fInfo && fInfo.frequency === "One_Time") {
             const feeAmt = feeCalculator_ACT360_30360(fInfo, principal, startDate, startDate, startDate);
-            console.log(`    Calculated one-time fee amount: ${feeAmt}, isNaN: ${isNaN(feeAmt)}`);
             if (isNaN(feeAmt)) return;
             let dDate = startDate;
             if (fInfo.fee_charge_at === "Contract_End") dDate = matDate;
@@ -337,19 +333,36 @@ export default function PageContracts({ t, isDark, CONTRACTS = [], PROJECTS = []
             if (fInfo && fInfo.frequency === "Recurring") {
               const ca = (fInfo.fee_charge_at || "").toLowerCase();
               let should = false;
+
+              // Term-based (every period)
               if (ca.includes("term_start") || ca.includes("term_end")) should = true;
+              // Contract start/end (only first/last period)
+              else if (ca.includes("contract_start") && periodNum === 1) should = true;
+              else if (ca.includes("contract_end") && isLast) should = true;
+              // Monthly (every period)
               else if (ca.includes("month")) should = true;
+              // Quarterly (Mar, Jun, Sep, Dec)
               else if (ca.includes("quart") && [2, 5, 8, 11].includes(pEnd.getMonth())) should = true;
+              // Semi-annual (Jun, Dec)
               else if (ca.includes("semi") && [5, 11].includes(pEnd.getMonth())) should = true;
-              else if (ca.includes("annu") && pEnd.getMonth() === 11) should = true;
+              // Year_Start (periods that include beginning of year)
+              else if (ca.includes("year_start") || ca.includes("year start")) {
+                // Period starts in January OR period wraps around year boundary (e.g., Dec-Mar)
+                should = pStart.getMonth() === 0 || pStart.getMonth() > pEnd.getMonth();
+              }
+              // Year_End (periods that include end of year)
+              else if (ca.includes("year_end") || ca.includes("year end")) {
+                should = pEnd.getMonth() === 11;
+              }
+              // Generic "year" or "annu" (defaults to year end)
+              else if (ca.includes("annu") || ca.includes("year")) {
+                should = pEnd.getMonth() === 11;
+              }
 
               if (isLast) should = true;
 
-              console.log(`    Period ${periodNum} Fee ${fid}: should=${should}, ca="${ca}", pEnd.getMonth()=${pEnd.getMonth()}, isLast=${isLast}`);
-
               if (should) {
                 const feeAmt = feeCalculator_ACT360_30360(fInfo, principal, pStart, calcEnd, startDate);
-                console.log(`      Calculated recurring fee amount: ${feeAmt}, isNaN: ${isNaN(feeAmt)}`);
                 if (!isNaN(feeAmt)) {
                   // Use fee's direction instead of PT_FEE default
                   const feeDir = fInfo.direction || "OUT";
