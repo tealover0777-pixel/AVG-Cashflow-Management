@@ -100,7 +100,13 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
     const baseAmt = currentData.basePayment !== undefined ? currentData.basePayment : (Number(rawTyping) || 0);
     const paidVal = newPartialPaid !== null ? newPartialPaid : (currentData.partialPaid || "");
     const paidNum = Number(String(paidVal).replace(/[^0-9.]/g, "")) || 0;
-    const unpaid = isP ? Math.max(baseAmt - paidNum, 0) : baseAmt;
+    let unpaid = isP ? Math.max(baseAmt - paidNum, 0) : baseAmt;
+
+    // For FEE payment types, the payment amount is the sum of fees only (no base payment)
+    const isFeePaymentType = (currentData.payment_type || currentData.type || "").toUpperCase() === "FEE";
+    if (isFeePaymentType && newFeeIds.length > 0) {
+      unpaid = 0;
+    }
 
     const feeAmts = newFeeIds.map(fid => {
       const fee = FEES_DATA.find(ff => ff.id === fid);
@@ -124,7 +130,8 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
 
     const totalFees = feeAmts.reduce((a, b) => a + b, 0);
     const absBase = Math.abs(unpaid);
-    const finalAmtAbs = Math.abs(absBase + totalFees);
+    // For FEE payment types, final amount is just the sum of fees (no base payment)
+    const finalAmtAbs = isFeePaymentType && newFeeIds.length > 0 ? Math.abs(totalFees) : Math.abs(absBase + totalFees);
     const dir = currentData.direction;
 
     // Rule 1: Signed Amount = -1 * Payment Amount
