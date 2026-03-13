@@ -108,18 +108,6 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
     const paidNum = Number(String(paidVal).replace(/[^0-9.]/g, "")) || 0;
     let unpaid = isP ? Math.max(baseAmt - paidNum, 0) : baseAmt;
 
-    // DEBUG: Log unpaid calculation
-    console.log(`💰 Base payment calculation:`, {
-      isPartial: isP,
-      isLate: isL,
-      payment: currentData.payment,
-      basePayment: currentData.basePayment,
-      baseAmt: baseAmt,
-      paidNum: paidNum,
-      unpaid: unpaid,
-      principalAmount: currentData.principal_amount
-    });
-
     // For FEE payment types, the payment amount is the sum of fees only (no base payment)
     const isFeePaymentType = (currentData.payment_type || currentData.type || "").toUpperCase() === "FEE";
     if (isFeePaymentType && newFeeIds.length > 0) {
@@ -139,16 +127,9 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
     const contractCalculator = relatedContract?.calculator || "ACT/360+30/360";
     const contractStartDate = relatedContract?.start_date || currentData.term_start;
 
-    // DEBUG: Log fee calculation start
-    console.log(`🚀 Starting fee calculation for ${newFeeIds.length} fees:`, newFeeIds);
-
     const feeAmts = newFeeIds.map(fid => {
       const fee = FEES_DATA.find(ff => ff.id === fid);
-      if (!fee) {
-        console.log(`  ⚠️ Fee ${fid} not found in FEES_DATA`);
-        return 0;
-      }
-      console.log(`  📋 Processing fee ${fid}:`, fee);
+      if (!fee) return 0;
 
 
       let unsignedAmt = 0;
@@ -170,11 +151,7 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
       const isRecurring = feeFrequency === "Recurring";
       const hasDates = !!(currentData.term_start && currentData.term_end);
 
-      console.log(`  🔄 Fee frequency check:`, { feeFrequency, isRecurring, hasDates, fee_charge_at: fee.fee_charge_at });
-
       if (isRecurring && hasDates) {
-        console.log(`  ✓ RECURRING PATH - Now respecting applied_to field`);
-
         // Determine the basis amount based on applied_to field
         const appliedTo = (fee.applied_to || "").toLowerCase();
         let basisAmt = Math.abs(unpaid); // Default to payment amount
@@ -182,9 +159,6 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
         if (appliedTo.includes("principal")) {
           const principalAmt = Number(String(currentData.principal_amount || "").replace(/[^0-9.-]/g, "")) || 0;
           basisAmt = Math.abs(principalAmt);
-          console.log(`  → Using PRINCIPAL amount: ${basisAmt} (applied_to="${fee.applied_to}")`);
-        } else {
-          console.log(`  → Using PAYMENT amount: ${basisAmt} (applied_to="${fee.applied_to}")`);
         }
 
         const periodStart = normalizeDateAtNoon(currentData.term_start);
@@ -195,11 +169,9 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
         if (contractCalculator === "ACT/360+30/360") {
           const feeFreqStr = getFeeFrequencyString(fee.fee_charge_at);
           unsignedAmt = pmtCalculator_ACT360_30360(periodStart, periodEnd, investDate, basisAmt, rateNum / 100, feeFreqStr);
-          console.log(`  → Calculated using ACT/360: ${unsignedAmt}`);
         } else {
           // Use simple calculation: basis * (rate / 360) * 90
           unsignedAmt = basisAmt * (rateNum / 100 / 360) * 90;
-          console.log(`  → Calculated using simple: ${unsignedAmt}`);
         }
       } else {
         // For one-time fees or when period dates not available, use simple calculation
@@ -209,32 +181,13 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
         let basisForCalc = Math.abs(unpaid);
         const appliedTo = (fee.applied_to || "").toLowerCase();
 
-        // DEBUG: Log fee calculation details
-        console.log(`🔍 Fee ${fee.id} (${fee.name}) calculation:`, {
-          feeId: fee.id,
-          feeName: fee.name,
-          method: fee.method,
-          rate: fee.rate,
-          appliedTo: fee.applied_to,
-          appliedToLower: appliedTo,
-          unpaid: unpaid,
-          basisBeforeCheck: basisForCalc,
-          principalAmount: currentData.principal_amount,
-          paymentAmount: currentData.payment,
-          basePayment: currentData.basePayment
-        });
-
         if (appliedTo.includes("principal")) {
           // Use principal amount for fees applied to principal
           const principalAmt = Number(String(currentData.principal_amount || "").replace(/[^0-9.-]/g, "")) || 0;
           basisForCalc = Math.abs(principalAmt);
-          console.log(`  ✓ Using PRINCIPAL amount: ${principalAmt} (basis: ${basisForCalc})`);
-        } else {
-          console.log(`  ✓ Using UNPAID amount: ${unpaid} (basis: ${basisForCalc})`);
         }
 
         unsignedAmt = fee.method === "Fixed Amount" ? rateNum : basisForCalc * rateNum / 100;
-        console.log(`  → Calculated fee amount: ${unsignedAmt} (${fee.method === "Fixed Amount" ? "fixed" : `${rateNum}% of ${basisForCalc}`})`);
       }
 
       // Apply fee's direction: IN fees are positive (added), OUT fees are negative (subtracted)
@@ -355,60 +308,82 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
   const setF = (k, v) => setModal(m => ({ ...m, data: { ...m.data, [k]: v } }));
 
   const handleUndo = async (s) => {
-    if (!s || !s._undo_snapshot) return;
+    if (!s) return;
+
+    const hasSnapshot = !!s._undo_snapshot;
+    const isReplacementSchedule = !!(s.linked || s.linked_schedule_id);
+
+    // Allow undo if:
+    // 1. Has an undo snapshot (was edited), OR
+    // 2. Is a replacement schedule (has linked field) even if newly created
+    if (!hasSnapshot && !isReplacementSchedule) return;
 
     // Check if this schedule has a subsequent linked schedule (created from this one)
-    const childId = s.linked_schedule_id || s.linked;
+    const childId = s.linked_schedule_id;
     const childSchedule = childId ? SCHEDULES.find(x => x.schedule_id === childId) : null;
-
-    console.log('🔍 Undo check for', s.schedule_id, {
-      schedule_id: s.schedule_id,
-      linked: s.linked,
-      linked_schedule_id: s.linked_schedule_id,
-      childId,
-      childSchedule: childSchedule ? {
-        schedule_id: childSchedule.schedule_id,
-        linked: childSchedule.linked,
-        linked_schedule_id: childSchedule.linked_schedule_id
-      } : null
-    });
 
     // Check if the child schedule itself has been used to create another schedule
     const hasGrandchild = childSchedule && (childSchedule.linked_schedule_id ||
       SCHEDULES.some(x => (x.linked || x.linked_schedule_id) === childSchedule.schedule_id));
-
-    console.log('🚨 Grandchild check:', { hasGrandchild, childHasLink: childSchedule?.linked_schedule_id });
 
     if (hasGrandchild) {
       alert(`Cannot undo ${s.schedule_id} because it has subsequent linked schedules.\n\nLinked chain: ${s.schedule_id} → ${childSchedule.schedule_id} → ${childSchedule.linked_schedule_id || '...'}\n\nPlease undo the most recent schedule first, or delete them manually in reverse order.`);
       return;
     }
 
-    const snap = s._undo_snapshot;
-    const deleteMessage = childSchedule
-      ? `This will restore original values and delete the linked schedule ${childSchedule.schedule_id}.`
-      : "This will restore original values.";
+    // Find parent schedule if this is a replacement schedule
+    const parentId = s.linked;
+    const parentSchedule = parentId ? SCHEDULES.find(x => x.schedule_id === parentId) : null;
+
+    let message;
+    if (hasSnapshot) {
+      // This schedule was edited - restore it
+      const deleteMsg = childSchedule
+        ? ` and delete the linked schedule ${childSchedule.schedule_id}`
+        : "";
+      message = `This will restore ${s.schedule_id} to its previous state${deleteMsg}.`;
+    } else {
+      // This is a newly created replacement schedule - delete it
+      const clearParentMsg = parentSchedule
+        ? ` and clear the link from ${parentSchedule.schedule_id}`
+        : "";
+      message = `This will delete the replacement schedule ${s.schedule_id}${clearParentMsg}.`;
+    }
 
     setConfirmAction({
       title: "Undo Last Action",
-      message: `Are you sure you want to undo the last action on ${s.schedule_id}?\n\n${deleteMessage}`,
+      message: `Are you sure you want to undo the last action?\n\n${message}`,
       onConfirm: async () => {
         setConfirmAction(null);
         try {
-          const ref = s._path ? doc(db, s._path) : doc(db, collectionPath, s.docId);
-          // 1. Restore the original state and clear snapshot
-          const restorePayload = {
-            ...snap,
-            _undo_snapshot: null,
-            updated_at: serverTimestamp()
-          };
-          await updateDoc(ref, restorePayload);
+          if (hasSnapshot) {
+            // Restore the schedule to its previous state
+            const ref = s._path ? doc(db, s._path) : doc(db, collectionPath, s.docId);
+            const restorePayload = {
+              ...s._undo_snapshot,
+              _undo_snapshot: null,
+              updated_at: serverTimestamp()
+            };
+            await updateDoc(ref, restorePayload);
 
-          // 2. Identify and delete the child (repayment/replacement) schedule if it exists
-          // Since the child was created and its ID was stored in linked_schedule_id (current state)
-          if (childSchedule && childSchedule.docId) {
-            const childRef = childSchedule._path ? doc(db, childSchedule._path) : doc(db, collectionPath, childSchedule.docId);
-            await deleteDoc(childRef);
+            // Delete the child schedule if it exists
+            if (childSchedule && childSchedule.docId) {
+              const childRef = childSchedule._path ? doc(db, childSchedule._path) : doc(db, collectionPath, childSchedule.docId);
+              await deleteDoc(childRef);
+            }
+          } else {
+            // Delete this replacement schedule
+            const ref = s._path ? doc(db, s._path) : doc(db, collectionPath, s.docId);
+            await deleteDoc(ref);
+
+            // Clear the parent's linked_schedule_id
+            if (parentSchedule && parentSchedule.docId) {
+              const parentRef = parentSchedule._path ? doc(db, parentSchedule._path) : doc(db, collectionPath, parentSchedule.docId);
+              await updateDoc(parentRef, {
+                linked_schedule_id: null,
+                updated_at: serverTimestamp()
+              });
+            }
           }
         } catch (err) {
           console.error("Undo error:", err);
@@ -793,7 +768,7 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
           </div>
           <div><span style={{ fontSize: 11.5, fontWeight: 600, padding: "4px 11px", borderRadius: 20, background: bg, color, border: `1px solid ${border}` }}>{s.status}</span></div>
           <div style={{ fontSize: 11.5, color: t.textMuted, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0 }}>{s.notes || dash}</div>
-          <ActBtns show={isHov || !!s._undo_snapshot} t={t} onEdit={() => openEdit(s)} onDel={canDelete ? (() => setDelT({ schedule_id: s.schedule_id, name: s.schedule_id, docId: s.docId, _path: s._path })) : null} onUndo={s._undo_snapshot ? () => handleUndo(s) : null} />
+          <ActBtns show={isHov || !!s._undo_snapshot || !!(s.linked || s.linked_schedule_id)} t={t} onEdit={() => openEdit(s)} onDel={canDelete ? (() => setDelT({ schedule_id: s.schedule_id, name: s.schedule_id, docId: s.docId, _path: s._path })) : null} onUndo={(s._undo_snapshot || s.linked) ? () => handleUndo(s) : null} />
         </div>);
       })}
     </div>
