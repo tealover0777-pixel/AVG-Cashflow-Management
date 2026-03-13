@@ -497,11 +497,18 @@ Are you sure you want to continue?`;
       const origDay = dt.getDate();
       const isMonthEnd = new Date(dt.getFullYear(), dt.getMonth() + 1, 0).getDate() === origDay;
 
+      // Calculate target month and year before adding (to handle overflow correctly)
+      const targetMonth = dt.getMonth() + monthsToAdd;
+      const targetYear = dt.getFullYear() + Math.floor(targetMonth / 12);
+      const targetMonthIndex = targetMonth % 12;
+
       dt.setMonth(dt.getMonth() + monthsToAdd);
 
       if (isMonthEnd) {
-        // Carry over month-end alignment (e.g. Sep 30 -> Dec 31)
-        dt.setDate(new Date(dt.getFullYear(), dt.getMonth() + 1, 0).getDate());
+        // Set to last day of TARGET month, not overflowed month (e.g. Mar 31 + 3mo = Jun 30, not Jul 31)
+        dt.setFullYear(targetYear);
+        dt.setMonth(targetMonthIndex);
+        dt.setDate(new Date(targetYear, targetMonthIndex + 1, 0).getDate());
       } else if (dt.getDate() !== origDay) {
         // Handle month overflow (e.g. Jan 31 -> Feb 28)
         dt.setDate(0);
