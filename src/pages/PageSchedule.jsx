@@ -19,13 +19,10 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
   // Debug: Check S10005 data
   const s10005 = SCHEDULES.find(s => s.schedule_id === "S10005");
   if (s10005) {
-    console.log("PageSchedule - S10005 data:", {
-      schedule_id: s10005.schedule_id,
-      original_payment_amount: s10005.original_payment_amount,
-      payment: s10005.payment,
-      status: s10005.status,
-      allFields: Object.keys(s10005)
-    });
+    console.log("PageSchedule - S10005 FIELD NAMES:", Object.keys(s10005).sort());
+    console.log("PageSchedule - S10005 original_payment_amount:", s10005.original_payment_amount);
+    console.log("PageSchedule - S10005 has 'original_payment_amount'?", 'original_payment_amount' in s10005);
+    console.log("PageSchedule - S10005 has 'originalPaymentAmount'?", 'originalPaymentAmount' in s10005);
   }
 
   const { hasPermission, isSuperAdmin } = useAuth();
