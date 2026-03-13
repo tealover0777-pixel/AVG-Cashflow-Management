@@ -434,15 +434,6 @@ Are you sure you want to continue?`;
       return isNaN(n) ? null : n;
     };
 
-    // Store original payment amount before zeroing for ZEROING_STATUSES
-    let originalPaymentAmt = null;
-    if (modal.mode === "edit" && ZEROING_STATUSES.includes(d.status) && !ZEROING_STATUSES.includes(d.originalStatus)) {
-      const original = SCHEDULES.find(x => x.docId === d.docId || x.schedule_id === d.schedule_id);
-      if (original && original.payment && original.payment !== "$0.00") {
-        originalPaymentAmt = unformat(original.payment);
-      }
-    }
-
     const payload = {
       schedule_id: d.schedule_id,
       contract_id: d.contract || "",
@@ -464,9 +455,16 @@ Are you sure you want to continue?`;
       updated_at: serverTimestamp(),
     };
 
-    // Add original_payment_amount if transitioning to a zeroing status
-    if (originalPaymentAmt !== null) {
-      payload.original_payment_amount = originalPaymentAmt;
+    // Save original_payment_amount when transitioning to a zeroing status
+    if (modal.mode === "edit" && ZEROING_STATUSES.includes(d.status)) {
+      const original = SCHEDULES.find(x => x.docId === d.docId || x.schedule_id === d.schedule_id);
+      if (original && !original.original_payment_amount) {
+        // Only save if we haven't saved it before
+        const origPayment = original.payment_amount || unformat(original.payment) || 0;
+        if (origPayment && origPayment !== 0) {
+          payload.original_payment_amount = origPayment;
+        }
+      }
     }
 
     // Add link fields for replacement schedules
@@ -1087,51 +1085,17 @@ Are you sure you want to continue?`;
                         </div>
                         <div style={{ fontFamily: t.mono, fontSize: 13, fontWeight: 700, color: isDark ? "#60A5FA" : "#4F46E5" }}>
                           {(() => {
+                            // If has original_payment_amount, show it with label
+                            if (cs.original_payment_amount) {
+                              const origNum = Number(cs.original_payment_amount);
+                              const formatted = `$${Math.abs(origNum).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+                              return `Original Payment: ${formatted}`;
+                            }
+
+                            // Otherwise show current payment amount
                             let displayAmount = cs.payment && cs.payment !== "$0.00" ? cs.payment : (cs.signed_payment_amount || "$0.00");
-                            let showAsOriginal = false;
 
-                            // If this schedule was zeroed (REPLACED, etc.), find original amount
-                            if (ZEROING_STATUSES.includes(cs.status)) {
-                              let foundAmount = null;
-
-                              // 1. Try to get from stored original_payment_amount field
-                              if (cs.original_payment_amount) {
-                                foundAmount = Number(cs.original_payment_amount);
-                              }
-
-                              // 2. Try to extract from replacement schedule
-                              if (!foundAmount) {
-                                const replacement = chain.find(c => c.linked === cs.schedule_id);
-                                if (replacement) {
-                                  // 2a. Try notes with amount format
-                                  if (replacement.notes) {
-                                    let noteMatch = replacement.notes.match(/for [^\s]+ \$([0-9,]+\.?\d*)/i);
-                                    if (noteMatch) {
-                                      foundAmount = Number(noteMatch[1].replace(/,/g, ""));
-                                    }
-                                  }
-                                  // 2b. Try basePayment field
-                                  if (!foundAmount && replacement.basePayment) {
-                                    foundAmount = Number(String(replacement.basePayment).replace(/[^0-9.-]/g, ""));
-                                  }
-                                  // 2c. Try payment field if not $0
-                                  if (!foundAmount && replacement.payment && replacement.payment !== "$0.00") {
-                                    foundAmount = Number(String(replacement.payment).replace(/[^0-9.-]/g, ""));
-                                  }
-                                }
-                              }
-
-                              if (foundAmount) {
-                                displayAmount = `$${Math.abs(foundAmount).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-                                showAsOriginal = true;
-                              }
-                            }
-
-                            // Format display
-                            if (showAsOriginal) {
-                              return `Original Value: ${displayAmount}`;
-                            }
-                            // Only add parenthesis if displayAmount itself contains a negative sign
+                            // Add parenthesis for negative amounts
                             if (String(displayAmount).includes("-")) {
                               return String(displayAmount).replace("-", "(") + ")";
                             }
@@ -1154,43 +1118,16 @@ Are you sure you want to continue?`;
                               <div><span style={{ fontWeight: 600, color: t.textSecondary }}>Principal: </span>{cs.principal_amount || dash}</div>
                               <div><span style={{ fontWeight: 600, color: t.textSecondary }}>Total Payment Amount: </span>{
                                 (() => {
-                                  let totalAmt = cs.payment && cs.payment !== "$0.00" ? cs.payment : (cs.signed_payment_amount || "$0.00");
-                                  // If zeroed, show original amount
-                                  if (isZeroed) {
-                                    let foundAmount = null;
-
-                                    // 1. Try to get from stored original_payment_amount field
-                                    if (cs.original_payment_amount) {
-                                      foundAmount = Number(cs.original_payment_amount);
-                                    }
-
-                                    // 2. Try to extract from replacement schedule
-                                    if (!foundAmount) {
-                                      const replacement = chain.find(c => c.linked === cs.schedule_id);
-                                      if (replacement) {
-                                        // 2a. Try notes with amount format
-                                        if (replacement.notes) {
-                                          let noteMatch = replacement.notes.match(/for [^\s]+ \$([0-9,]+\.?\d*)/i);
-                                          if (noteMatch) {
-                                            foundAmount = Number(noteMatch[1].replace(/,/g, ""));
-                                          }
-                                        }
-                                        // 2b. Try basePayment field
-                                        if (!foundAmount && replacement.basePayment) {
-                                          foundAmount = Number(String(replacement.basePayment).replace(/[^0-9.-]/g, ""));
-                                        }
-                                        // 2c. Try payment field if not $0
-                                        if (!foundAmount && replacement.payment && replacement.payment !== "$0.00") {
-                                          foundAmount = Number(String(replacement.payment).replace(/[^0-9.-]/g, ""));
-                                        }
-                                      }
-                                    }
-
-                                    if (foundAmount) {
-                                      totalAmt = `$${Math.abs(foundAmount).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-                                    }
+                                  // If has original_payment_amount, show it
+                                  if (cs.original_payment_amount) {
+                                    const origNum = Number(cs.original_payment_amount);
+                                    return `$${Math.abs(origNum).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
                                   }
-                                  // Only add parenthesis if totalAmt itself contains a negative sign
+
+                                  // Otherwise show current payment amount
+                                  let totalAmt = cs.payment && cs.payment !== "$0.00" ? cs.payment : (cs.signed_payment_amount || "$0.00");
+
+                                  // Add parenthesis for negative amounts
                                   if (String(totalAmt).includes("-")) {
                                     return String(totalAmt).replace("-", "(") + ")";
                                   }
