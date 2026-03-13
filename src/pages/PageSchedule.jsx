@@ -1085,6 +1085,17 @@ Are you sure you want to continue?`;
                         </div>
                         <div style={{ fontFamily: t.mono, fontSize: 13, fontWeight: 700, color: isDark ? "#60A5FA" : "#4F46E5" }}>
                           {(() => {
+                            // Debug logging for S10005
+                            if (cs.schedule_id === "S10005") {
+                              console.log("S10005 Debug:", {
+                                status: cs.status,
+                                original_payment_amount: cs.original_payment_amount,
+                                isZeroingStatus: ZEROING_STATUSES.includes(cs.status),
+                                payment: cs.payment,
+                                signed_payment_amount: cs.signed_payment_amount
+                              });
+                            }
+
                             // For zeroed schedules, show original payment amount
                             if (ZEROING_STATUSES.includes(cs.status) && cs.original_payment_amount) {
                               const origNum = Number(cs.original_payment_amount);
