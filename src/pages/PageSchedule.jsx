@@ -356,10 +356,28 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
 
   const handleUndo = async (s) => {
     if (!s || !s._undo_snapshot) return;
+
+    // Check if this schedule has a subsequent linked schedule (created from this one)
+    const childId = s.linked_schedule_id || s.linked;
+    const childSchedule = childId ? SCHEDULES.find(x => x.schedule_id === childId) : null;
+
+    // Check if the child schedule itself has been used to create another schedule
+    const hasGrandchild = childSchedule && (childSchedule.linked_schedule_id ||
+      SCHEDULES.some(x => (x.linked || x.linked_schedule_id) === childSchedule.schedule_id));
+
+    if (hasGrandchild) {
+      alert(`Cannot undo ${s.schedule_id} because it has subsequent linked schedules.\n\nLinked chain: ${s.schedule_id} → ${childSchedule.schedule_id} → ${childSchedule.linked_schedule_id || '...'}\n\nPlease undo the most recent schedule first, or delete them manually in reverse order.`);
+      return;
+    }
+
     const snap = s._undo_snapshot;
+    const deleteMessage = childSchedule
+      ? `This will restore original values and delete the linked schedule ${childSchedule.schedule_id}.`
+      : "This will restore original values.";
+
     setConfirmAction({
       title: "Undo Last Action",
-      message: "Are you sure you want to undo the last action? This will restore original values and delete any linked repayment schedules.",
+      message: `Are you sure you want to undo the last action on ${s.schedule_id}?\n\n${deleteMessage}`,
       onConfirm: async () => {
         setConfirmAction(null);
         try {
@@ -374,13 +392,9 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
 
           // 2. Identify and delete the child (repayment/replacement) schedule if it exists
           // Since the child was created and its ID was stored in linked_schedule_id (current state)
-          const childId = s.linked_schedule_id || s.linked; // linked_schedule_id is from Firestore, linked might be from local mapping
-          if (childId) {
-            const childDoc = SCHEDULES.find(x => x.schedule_id === childId);
-            if (childDoc && childDoc.docId) {
-              const childRef = childDoc._path ? doc(db, childDoc._path) : doc(db, collectionPath, childDoc.docId);
-              await deleteDoc(childRef);
-            }
+          if (childSchedule && childSchedule.docId) {
+            const childRef = childSchedule._path ? doc(db, childSchedule._path) : doc(db, collectionPath, childSchedule.docId);
+            await deleteDoc(childRef);
           }
         } catch (err) {
           console.error("Undo error:", err);
