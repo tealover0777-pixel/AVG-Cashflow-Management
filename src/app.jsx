@@ -219,9 +219,15 @@ function AppContent() {
         if (signed != null) signed = -signed;
         if (principal != null) principal = -principal;
       }
+      
+      // Payment types that should fall back to principal_amount if payment_amount is missing
+      const principalPTs = ["INVESTOR_PRINCIPAL_PAYMENT", "BORROWER_PRINCIPAL_RECEIVED", "BORROWER_DISBURSEMENT", "INVESTOR_PRINCIPAL_DEPOSIT", "REPAYMENT", "BORROWER_REPAYMENT"];
+      const isPrincipal = principalPTs.includes(d.payment_type);
+      
       return {
         schedule_id: d.schedule_id || d.id, docId: d.doc_id || d.id, _path: d._path, contract: d.contract_id || "", dueDate: fmtDate(d.due_date),
-        type: d.payment_type || "", payment: fmtCurr(d.payment_amount || Math.abs(d.signed_payment_amount || 0) || d.principal_amount),
+        type: d.payment_type || "", 
+        payment: fmtCurr(d.payment_amount != null ? d.payment_amount : (Math.abs(d.signed_payment_amount || 0) || (isPrincipal ? d.principal_amount : 0))),
         status: d.status || "", direction: dir, fee_id: d.fee_id || "",
         party_id: d.party_id || "",
         period_number: d.period_number != null ? String(d.period_number) : "",

@@ -299,8 +299,9 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
     // Status-based zeroing override
     const zeroingStatuses = ["Missed", "Cancelled", "VOID", "WAIVED", "REPLACED"];
     if (zeroingStatuses.includes(currentData.status)) {
-      updates.payment = "$0.00";
       updates.signed_payment_amount = "$0.00";
+      // We preserve updates.payment (intended amount) for the Schedule Chain display
+      // even if the cashflow (signed amount) is zeroed out.
     } else {
       if (currentData.isTyping !== "payment") {
         updates.payment = fmtCurr(paymentAmt);
@@ -425,8 +426,15 @@ Are you sure you want to continue?`;
 
   const handleSaveSchedule = async () => {
     const d = modal.data;
+
+    const unformat = v => {
+      if (v == null || v === "") return null;
+      const n = Number(String(v).replace(/[^0-9.-]/g, ""));
+      return isNaN(n) ? null : n;
+    };
+
     const payload = {
-      schedule_id: d.schedule_id || "",
+      schedule_id: d.schedule_id,
       contract_id: d.contract || "",
       project_id: d.project_id || "",
       party_id: d.party_id || "",
@@ -434,8 +442,9 @@ Are you sure you want to continue?`;
       payment_type: d.type || "",
       direction_from_company: d.direction || "",
       period_number: d.period_number ? Number(d.period_number) : null,
-      principal_amount: d.principal_amount ? Number(String(d.principal_amount).replace(/[^0-9.-]/g, "")) || null : null,
-      signed_payment_amount: d.signed_payment_amount ? Number(String(d.signed_payment_amount).replace(/[^0-9.-]/g, "")) || null : null,
+      principal_amount: unformat(d.principal_amount),
+      payment_amount: unformat(d.payment),
+      signed_payment_amount: unformat(d.signed_payment_amount),
       fee_id: Array.isArray(d.fee_ids) ? d.fee_ids.join(",") : (d.fee_id || null),
       status: d.status || "Due",
       notes: d.notes || "",
@@ -875,7 +884,7 @@ Are you sure you want to continue?`;
             <FF label="Applied To" t={t}><FSel value={modal.data.applied_to || "Principal Amount"} onChange={e => setF("applied_to", e.target.value)} options={["Principal Amount", "Interest Amount", "Total Amount", "Balance"]} t={t} disabled={freeze} /></FF>
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14 }}>
-            <FF label="Payment Amount" t={t}><FIn value={modal.data.payment || ""} onChange={e => {
+            <FF label="Payment Amount" t={t}><FIn value={(zeroing.includes(modal.data.status) && modal.data.payment !== "$0.00") ? "$0.00" : (modal.data.payment || "")} onChange={e => {
               const val = e.target.value;
               const raw = Number(String(val).replace(/[^0-9.-]/g, "")) || 0;
               const base = Math.abs(raw);
@@ -1054,7 +1063,7 @@ Are you sure you want to continue?`;
                         <div style={{ fontFamily: t.mono, fontSize: 13, fontWeight: 700, color: isDark ? "#60A5FA" : "#4F46E5" }}>
                           {cs.signed_payment_amount && cs.direction === "OUT" && String(cs.signed_payment_amount).includes("-")
                             ? String(cs.signed_payment_amount).replace("-", "(") + ")"
-                            : (cs.signed_payment_amount || cs.payment || "")}
+                            : (cs.payment && cs.payment !== "$0.00" ? cs.payment : (cs.signed_payment_amount || "$0.00"))}
                         </div>
                       </div>
                       {/* Card details */}
@@ -1075,7 +1084,7 @@ Are you sure you want to continue?`;
                                 isZeroed ? "$0.00" : (
                                   cs.signed_payment_amount && cs.direction === "OUT" && String(cs.signed_payment_amount).includes("-")
                                   ? String(cs.signed_payment_amount).replace("-", "(") + ")"
-                                  : (cs.signed_payment_amount || cs.payment || "")
+                                  : (cs.payment && cs.payment !== "$0.00" ? cs.payment : (cs.signed_payment_amount || "$0.00"))
                                 )
                               }</div>
                             </div>
