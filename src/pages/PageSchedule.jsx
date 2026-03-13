@@ -313,6 +313,13 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
     const hasSnapshot = !!s._undo_snapshot;
     const isReplacementSchedule = !!(s.linked || s.linked_schedule_id);
 
+    console.log('🔄 UNDO CLICKED:', s.schedule_id, {
+      hasSnapshot,
+      isReplacementSchedule,
+      linked: s.linked,
+      linked_schedule_id: s.linked_schedule_id
+    });
+
     // Allow undo if:
     // 1. Has an undo snapshot (was edited), OR
     // 2. Is a replacement schedule (has linked field) even if newly created
@@ -322,14 +329,21 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
     const childId = s.linked_schedule_id;
     const childSchedule = childId ? SCHEDULES.find(x => x.schedule_id === childId) : null;
 
+    console.log('  → Child:', childId, childSchedule ? `(found: ${childSchedule.schedule_id})` : '(not found)');
+
     // Check if the child schedule itself has been used to create another schedule
     const hasGrandchild = childSchedule && (childSchedule.linked_schedule_id ||
       SCHEDULES.some(x => (x.linked || x.linked_schedule_id) === childSchedule.schedule_id));
 
+    console.log('  → Has grandchild?', hasGrandchild, childSchedule?.linked_schedule_id);
+
     if (hasGrandchild) {
+      console.log('  ❌ BLOCKING: Has grandchild');
       alert(`Cannot undo ${s.schedule_id} because it has subsequent linked schedules.\n\nLinked chain: ${s.schedule_id} → ${childSchedule.schedule_id} → ${childSchedule.linked_schedule_id || '...'}\n\nPlease undo the most recent schedule first, or delete them manually in reverse order.`);
       return;
     }
+
+    console.log('  ✅ SHOWING CONFIRMATION DIALOG');
 
     // Find parent schedule if this is a replacement schedule
     const parentId = s.linked;
