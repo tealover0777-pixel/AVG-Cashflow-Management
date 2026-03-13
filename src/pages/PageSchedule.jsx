@@ -341,17 +341,35 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
     if (hasSnapshot) {
       // This schedule was edited - restore it
       if (childSchedule) {
-        title = "⚠️ Warning: This Will Delete Linked Schedule";
-        message = `Undoing ${s.schedule_id} will:\n\n1. Restore ${s.schedule_id} to its previous state\n2. DELETE the linked schedule ${childSchedule.schedule_id}\n\nThis action cannot be undone.\n\nAre you sure you want to continue?`;
+        title = "⚠️  Warning: Linked Schedule Will Be Deleted";
+        message = `Undoing ${s.schedule_id} will perform the following actions:
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ✓  Restore ${s.schedule_id} to its previous state
+
+  ✗  DELETE the linked schedule ${childSchedule.schedule_id}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+⚠️  This action CANNOT be undone!
+
+Are you sure you want to continue?`;
       } else {
         message = `This will restore ${s.schedule_id} to its previous state.`;
       }
     } else {
       // This is a newly created replacement schedule - delete it
       const clearParentMsg = parentSchedule
-        ? ` and clear the link from ${parentSchedule.schedule_id}`
+        ? `\n  ✓  Clear the link from ${parentSchedule.schedule_id}`
         : "";
-      message = `This will delete the replacement schedule ${s.schedule_id}${clearParentMsg}.`;
+      message = `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ✗  DELETE replacement schedule ${s.schedule_id}${clearParentMsg}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Are you sure you want to continue?`;
     }
 
     setConfirmAction({
