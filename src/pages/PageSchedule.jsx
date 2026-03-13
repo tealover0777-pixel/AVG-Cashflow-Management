@@ -139,10 +139,16 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
     const contractCalculator = relatedContract?.calculator || "ACT/360+30/360";
     const contractStartDate = relatedContract?.start_date || currentData.term_start;
 
+    // DEBUG: Log fee calculation start
+    console.log(`🚀 Starting fee calculation for ${newFeeIds.length} fees:`, newFeeIds);
 
     const feeAmts = newFeeIds.map(fid => {
       const fee = FEES_DATA.find(ff => ff.id === fid);
-      if (!fee) return 0;
+      if (!fee) {
+        console.log(`  ⚠️ Fee ${fid} not found in FEES_DATA`);
+        return 0;
+      }
+      console.log(`  📋 Processing fee ${fid}:`, fee);
 
 
       let unsignedAmt = 0;
