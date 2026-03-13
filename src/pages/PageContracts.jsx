@@ -219,7 +219,7 @@ export default function PageContracts({ t, isDark, CONTRACTS = [], PROJECTS = []
         // --- 1. Initial Deposit/Disbursement ---
         const initialPaymentType = isDisbursement ? PT_BOR_DISBURSEMENT : PT_DEPOSIT;
         const ds1 = getDirectionAndSigned(initialPaymentType, principal);
-        entries.push({
+        const newEntry = {
           schedule_id: `S${currentIdNum++}`,
           contract_id: c.id, project_id: c.project_id || "", party_id: c.party_id || "",
           due_date: startDate.toISOString().slice(0, 10), payment_type: initialPaymentType, fee_id: "",
@@ -229,7 +229,9 @@ export default function PageContracts({ t, isDark, CONTRACTS = [], PROJECTS = []
           applied_to: "Principal Amount",
           term_start: startDate.toISOString().slice(0, 10), term_end: startDate.toISOString().slice(0, 10),
           status: "Due", notes: `Initial for ${c.id}`, created_at: serverTimestamp(),
-        });
+        };
+        console.log("GENERATE: Creating entry with original_payment_amount:", newEntry.original_payment_amount);
+        entries.push(newEntry);
 
         // --- 2. Interest and Recurring Fees ---
         const freqValue = getFrequencyValue(c.freq);
