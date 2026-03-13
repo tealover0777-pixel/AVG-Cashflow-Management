@@ -1092,6 +1092,21 @@ Are you sure you want to continue?`;
                               return `Original Payment: ${formatted}`;
                             }
 
+                            // For existing zeroed schedules, try to get original amount from replacement schedule
+                            if (ZEROING_STATUSES.includes(cs.status)) {
+                              const replacement = chain.find(c => c.linked === cs.schedule_id);
+                              if (replacement) {
+                                const baseAmt = replacement.basePayment || replacement.payment_amount;
+                                if (baseAmt) {
+                                  const num = typeof baseAmt === 'number' ? baseAmt : Number(String(baseAmt).replace(/[^0-9.-]/g, ""));
+                                  if (num && num !== 0) {
+                                    const formatted = `$${Math.abs(num).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+                                    return `Original Payment: ${formatted}`;
+                                  }
+                                }
+                              }
+                            }
+
                             // Otherwise show current payment amount
                             let displayAmount = cs.payment && cs.payment !== "$0.00" ? cs.payment : (cs.signed_payment_amount || "$0.00");
 
@@ -1122,6 +1137,20 @@ Are you sure you want to continue?`;
                                   if (cs.original_payment_amount) {
                                     const origNum = Number(cs.original_payment_amount);
                                     return `$${Math.abs(origNum).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+                                  }
+
+                                  // For existing zeroed schedules, try to get from replacement schedule
+                                  if (isZeroed) {
+                                    const replacement = chain.find(c => c.linked === cs.schedule_id);
+                                    if (replacement) {
+                                      const baseAmt = replacement.basePayment || replacement.payment_amount;
+                                      if (baseAmt) {
+                                        const num = typeof baseAmt === 'number' ? baseAmt : Number(String(baseAmt).replace(/[^0-9.-]/g, ""));
+                                        if (num && num !== 0) {
+                                          return `$${Math.abs(num).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+                                        }
+                                      }
+                                    }
                                   }
 
                                   // Otherwise show current payment amount
