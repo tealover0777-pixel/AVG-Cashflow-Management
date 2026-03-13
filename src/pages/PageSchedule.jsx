@@ -1062,20 +1062,25 @@ Are you sure you want to continue?`;
                         <div style={{ fontFamily: t.mono, fontSize: 13, fontWeight: 700, color: isDark ? "#60A5FA" : "#4F46E5" }}>
                           {(() => {
                             let displayAmount = cs.payment && cs.payment !== "$0.00" ? cs.payment : (cs.signed_payment_amount || "$0.00");
+                            let isExtracted = false;
                             // If this schedule was zeroed (REPLACED, etc.), find original amount from replacement schedule notes
                             if (ZEROING_STATUSES.includes(cs.status) && (displayAmount === "$0.00" || !displayAmount)) {
                               const replacement = chain.find(c => c.linked === cs.schedule_id);
                               if (replacement) {
-                                const noteMatch = (replacement.notes || "").match(/replacement for.*\$([0-9,]+\.?\d*)/i);
+                                // Match: "replacement for S10041 $1,386.66" - capture the amount right after schedule ID
+                                const noteMatch = (replacement.notes || "").match(/replacement for [^\s]+ \$([0-9,]+\.?\d*)/i);
                                 if (noteMatch) {
                                   const origAmount = noteMatch[1].replace(/,/g, "");
                                   displayAmount = `$${Number(origAmount).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+                                  isExtracted = true;
                                 }
                               }
                             }
-                            return cs.signed_payment_amount && cs.direction === "OUT" && String(cs.signed_payment_amount).includes("-")
-                              ? String(displayAmount).replace("-", "(") + ")"
-                              : displayAmount;
+                            // Only apply parenthesis to original OUT direction amounts with negative sign, not extracted amounts
+                            if (!isExtracted && cs.signed_payment_amount && cs.direction === "OUT" && String(cs.signed_payment_amount).includes("-")) {
+                              return String(displayAmount).replace("-", "(") + ")";
+                            }
+                            return displayAmount;
                           })()}
                         </div>
                       </div>
@@ -1095,20 +1100,25 @@ Are you sure you want to continue?`;
                               <div><span style={{ fontWeight: 600, color: t.textSecondary }}>Total Payment Amount: </span>{
                                 (() => {
                                   let totalAmt = cs.payment && cs.payment !== "$0.00" ? cs.payment : (cs.signed_payment_amount || "$0.00");
+                                  let isExtractedAmt = false;
                                   // If zeroed, show original amount from replacement schedule notes
                                   if (isZeroed && (totalAmt === "$0.00" || !totalAmt)) {
                                     const replacement = chain.find(c => c.linked === cs.schedule_id);
                                     if (replacement) {
-                                      const noteMatch = (replacement.notes || "").match(/replacement for.*\$([0-9,]+\.?\d*)/i);
+                                      // Match: "replacement for S10041 $1,386.66" - capture the amount right after schedule ID
+                                      const noteMatch = (replacement.notes || "").match(/replacement for [^\s]+ \$([0-9,]+\.?\d*)/i);
                                       if (noteMatch) {
                                         const origAmount = noteMatch[1].replace(/,/g, "");
                                         totalAmt = `$${Number(origAmount).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+                                        isExtractedAmt = true;
                                       }
                                     }
                                   }
-                                  return cs.signed_payment_amount && cs.direction === "OUT" && String(totalAmt).includes("-")
-                                    ? String(totalAmt).replace("-", "(") + ")"
-                                    : totalAmt;
+                                  // Only apply parenthesis to original OUT direction amounts with negative sign, not extracted amounts
+                                  if (!isExtractedAmt && cs.signed_payment_amount && cs.direction === "OUT" && String(cs.signed_payment_amount).includes("-")) {
+                                    return String(totalAmt).replace("-", "(") + ")";
+                                  }
+                                  return totalAmt;
                                 })()
                               }</div>
                             </div>
