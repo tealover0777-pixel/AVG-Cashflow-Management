@@ -152,26 +152,34 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
       const hasDates = !!(currentData.term_start && currentData.term_end);
 
       if (isRecurring && hasDates) {
-        // Determine the basis amount based on applied_to field
-        const appliedTo = (fee.applied_to || "").toLowerCase();
-        let basisAmt = Math.abs(unpaid); // Default to payment amount
-
-        if (appliedTo.includes("principal")) {
-          const principalAmt = Number(String(currentData.principal_amount || "").replace(/[^0-9.-]/g, "")) || 0;
-          basisAmt = Math.abs(principalAmt);
-        }
-
-        const periodStart = normalizeDateAtNoon(currentData.term_start);
-        const periodEnd = normalizeDateAtNoon(currentData.term_end);
-        const investDate = normalizeDateAtNoon(contractStartDate);
         const rateNum = Number(String(fee.rate).replace(/[^0-9.]/g, "")) || 0;
 
-        if (contractCalculator === "ACT/360+30/360") {
-          const feeFreqStr = getFeeFrequencyString(fee.fee_charge_at);
-          unsignedAmt = pmtCalculator_ACT360_30360(periodStart, periodEnd, investDate, basisAmt, rateNum / 100, feeFreqStr);
+        // Check if this is a Fixed Amount fee
+        if (fee.method === "Fixed Amount") {
+          // For Fixed Amount fees, just use the rate value directly
+          unsignedAmt = rateNum;
         } else {
-          // Use simple calculation: basis * (rate / 360) * 90
-          unsignedAmt = basisAmt * (rateNum / 100 / 360) * 90;
+          // For Percentage fees, calculate based on the period and basis amount
+          // Determine the basis amount based on applied_to field
+          const appliedTo = (fee.applied_to || "").toLowerCase();
+          let basisAmt = Math.abs(unpaid); // Default to payment amount
+
+          if (appliedTo.includes("principal")) {
+            const principalAmt = Number(String(currentData.principal_amount || "").replace(/[^0-9.-]/g, "")) || 0;
+            basisAmt = Math.abs(principalAmt);
+          }
+
+          const periodStart = normalizeDateAtNoon(currentData.term_start);
+          const periodEnd = normalizeDateAtNoon(currentData.term_end);
+          const investDate = normalizeDateAtNoon(contractStartDate);
+
+          if (contractCalculator === "ACT/360+30/360") {
+            const feeFreqStr = getFeeFrequencyString(fee.fee_charge_at);
+            unsignedAmt = pmtCalculator_ACT360_30360(periodStart, periodEnd, investDate, basisAmt, rateNum / 100, feeFreqStr);
+          } else {
+            // Use simple calculation: basis * (rate / 360) * 90
+            unsignedAmt = basisAmt * (rateNum / 100 / 360) * 90;
+          }
         }
       } else {
         // For one-time fees or when period dates not available, use simple calculation
