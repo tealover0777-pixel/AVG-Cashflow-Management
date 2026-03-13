@@ -13,6 +13,8 @@ const fmtCurr = v => {
   return sign + "$" + Math.abs(n).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 };
 
+const ZEROING_STATUSES = ["Missed", "Cancelled", "VOID", "WAIVED", "REPLACED"];
+
 export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = [], PARTIES = [], PROJECTS = [], DIMENSIONS = [], FEES_DATA = [], collectionPath = "" }) {
   const { hasPermission, isSuperAdmin } = useAuth();
   const canCreate = isSuperAdmin || hasPermission("PAYMENT_SCHEDULE_CREATE");
@@ -297,8 +299,7 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
     const updates = { fee_ids: newFeeIds, notes, signed_payment_amount: fmtCurr(signedAmt), basePayment: baseAmt };
     
     // Status-based zeroing override
-    const zeroingStatuses = ["Missed", "Cancelled", "VOID", "WAIVED", "REPLACED"];
-    if (zeroingStatuses.includes(currentData.status)) {
+    if (ZEROING_STATUSES.includes(currentData.status)) {
       updates.signed_payment_amount = "$0.00";
       // We preserve updates.payment (intended amount) for the Schedule Chain display
       // even if the cashflow (signed amount) is zeroed out.
@@ -807,9 +808,8 @@ Are you sure you want to continue?`;
           <div style={{ fontSize: 11, fontWeight: 700, color: s.direction === "IN" ? (isDark ? "#34D399" : "#059669") : s.direction === "OUT" ? (isDark ? "#F87171" : "#DC2626") : t.textMuted }}>{s.direction || dash}</div>
           <div style={{ fontFamily: t.mono, fontSize: 12, fontWeight: 700, color: isDark ? "#60A5FA" : "#4F46E5" }}>
             {(() => {
-              const zeroing = ["Missed", "Cancelled", "VOID", "WAIVED", "REPLACED"];
               let val = s.signed_payment_amount;
-              if (zeroing.includes(s.status) && (!val || val === dash)) val = "$0.00";
+              if (ZEROING_STATUSES.includes(s.status) && (!val || val === dash)) val = "$0.00";
               if (!val || val === dash) return dash;
               if (s.direction === "OUT" && String(val).includes("-")) return String(val).replace("-", "(") + ")";
               return val;
@@ -827,7 +827,7 @@ Are you sure you want to continue?`;
     <div style={{ marginTop: 16, display: "flex", justifyContent: "space-between", alignItems: "center" }}><span style={{ fontSize: 12, color: t.textSubtle }}>Showing <strong style={{ color: t.textSecondary }}>{paginated.length}</strong> of <strong style={{ color: t.textSecondary }}>{sorted.length}</strong> schedules{sel.size > 0 && <span style={{ color: t.accent, marginLeft: 8 }}>· {sel.size} selected</span>}</span><Pagination totalPages={totalPages} currentPage={page} onPageChange={setPage} t={t} /></div>
     <Modal open={modal.open} onClose={close} title={modal.mode === "add" ? "New Schedule Entry" : modal.mode === "add_late" ? "Replacement Payment Schedule" : modal.mode === "add_partial" ? "Partial Payment Schedule" : "Edit Schedule Entry"} onSave={handleSaveSchedule} width={620} t={t} isDark={isDark}>
       {(() => {
-        const freeze = ["Missed", "Partial", "Cancelled", "VOID", "WAIVED", "REPLACED"].includes(modal.data.status);
+        const freeze = [...ZEROING_STATUSES, "Partial"].includes(modal.data.status);
         return (<>
           {modal.mode === "edit" && (
             <FF label="Schedule ID" t={t}>
@@ -846,9 +846,8 @@ Are you sure you want to continue?`;
               <FSel value={modal.data.status} onChange={e => {
                 const newStatus = e.target.value;
                 const oldStatus = modal.data.status;
-                const zeroing = ["Missed", "Cancelled", "VOID", "WAIVED", "REPLACED"];
-                const isNewZero = zeroing.includes(newStatus);
-                const isOldZero = zeroing.includes(oldStatus);
+                const isNewZero = ZEROING_STATUSES.includes(newStatus);
+                const isOldZero = ZEROING_STATUSES.includes(oldStatus);
 
                 let updates = { status: newStatus };
                 if (isNewZero && !isOldZero) {
@@ -884,7 +883,7 @@ Are you sure you want to continue?`;
             <FF label="Applied To" t={t}><FSel value={modal.data.applied_to || "Principal Amount"} onChange={e => setF("applied_to", e.target.value)} options={["Principal Amount", "Interest Amount", "Total Amount", "Balance"]} t={t} disabled={freeze} /></FF>
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14 }}>
-            <FF label="Payment Amount" t={t}><FIn value={(zeroing.includes(modal.data.status) && modal.data.payment !== "$0.00") ? "$0.00" : (modal.data.payment || "")} onChange={e => {
+            <FF label="Payment Amount" t={t}><FIn value={(ZEROING_STATUSES.includes(modal.data.status) && modal.data.payment !== "$0.00") ? "$0.00" : (modal.data.payment || "")} onChange={e => {
               const val = e.target.value;
               const raw = Number(String(val).replace(/[^0-9.-]/g, "")) || 0;
               const base = Math.abs(raw);
@@ -1074,8 +1073,7 @@ Are you sure you want to continue?`;
                         <div><span style={{ fontWeight: 600, color: t.textSecondary }}>Applied To: </span>{cs.applied_to || (feeIds[0] ? (FEES_DATA.find(f => f.id === feeIds[0])?.applied_to || "—") : "—")}</div>
                       </div>
                       {(() => {
-                        const zeroing = ["Missed", "Cancelled", "VOID", "WAIVED", "REPLACED"];
-                        const isZeroed = zeroing.includes(cs.status);
+                        const isZeroed = ZEROING_STATUSES.includes(cs.status);
                         if (cs.principal_amount || isZeroed) {
                           return (
                             <div style={{ fontSize: 11, color: t.textMuted, marginTop: 6, display: "flex", gap: 15 }}>
