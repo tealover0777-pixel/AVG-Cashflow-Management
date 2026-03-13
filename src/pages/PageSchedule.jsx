@@ -108,6 +108,18 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
     const paidNum = Number(String(paidVal).replace(/[^0-9.]/g, "")) || 0;
     let unpaid = isP ? Math.max(baseAmt - paidNum, 0) : baseAmt;
 
+    // DEBUG: Log unpaid calculation
+    console.log(`💰 Base payment calculation:`, {
+      isPartial: isP,
+      isLate: isL,
+      payment: currentData.payment,
+      basePayment: currentData.basePayment,
+      baseAmt: baseAmt,
+      paidNum: paidNum,
+      unpaid: unpaid,
+      principalAmount: currentData.principal_amount
+    });
+
     // For FEE payment types, the payment amount is the sum of fees only (no base payment)
     const isFeePaymentType = (currentData.payment_type || currentData.type || "").toUpperCase() === "FEE";
     if (isFeePaymentType && newFeeIds.length > 0) {
@@ -173,13 +185,33 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
         // Determine the basis amount for percentage calculation
         let basisForCalc = Math.abs(unpaid);
         const appliedTo = (fee.applied_to || "").toLowerCase();
+
+        // DEBUG: Log fee calculation details
+        console.log(`🔍 Fee ${fee.id} (${fee.name}) calculation:`, {
+          feeId: fee.id,
+          feeName: fee.name,
+          method: fee.method,
+          rate: fee.rate,
+          appliedTo: fee.applied_to,
+          appliedToLower: appliedTo,
+          unpaid: unpaid,
+          basisBeforeCheck: basisForCalc,
+          principalAmount: currentData.principal_amount,
+          paymentAmount: currentData.payment,
+          basePayment: currentData.basePayment
+        });
+
         if (appliedTo.includes("principal")) {
           // Use principal amount for fees applied to principal
           const principalAmt = Number(String(currentData.principal_amount || "").replace(/[^0-9.-]/g, "")) || 0;
           basisForCalc = Math.abs(principalAmt);
+          console.log(`  ✓ Using PRINCIPAL amount: ${principalAmt} (basis: ${basisForCalc})`);
+        } else {
+          console.log(`  ✓ Using UNPAID amount: ${unpaid} (basis: ${basisForCalc})`);
         }
 
         unsignedAmt = fee.method === "Fixed Amount" ? rateNum : basisForCalc * rateNum / 100;
+        console.log(`  → Calculated fee amount: ${unsignedAmt} (${fee.method === "Fixed Amount" ? "fixed" : `${rateNum}% of ${basisForCalc}`})`);
       }
 
       // Apply fee's direction: IN fees are positive (added), OUT fees are negative (subtracted)
