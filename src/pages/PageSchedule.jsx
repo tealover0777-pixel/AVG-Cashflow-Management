@@ -313,13 +313,6 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
     const hasSnapshot = !!s._undo_snapshot;
     const isReplacementSchedule = !!(s.linked || s.linked_schedule_id);
 
-    console.log('🔄 UNDO CLICKED:', s.schedule_id, {
-      hasSnapshot,
-      isReplacementSchedule,
-      linked: s.linked,
-      linked_schedule_id: s.linked_schedule_id
-    });
-
     // Allow undo if:
     // 1. Has an undo snapshot (was edited), OR
     // 2. Is a replacement schedule (has linked field) even if newly created
@@ -329,21 +322,14 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
     const childId = s.linked_schedule_id;
     const childSchedule = childId ? SCHEDULES.find(x => x.schedule_id === childId) : null;
 
-    console.log('  → Child:', childId, childSchedule ? `(found: ${childSchedule.schedule_id})` : '(not found)');
-
     // Check if the child schedule itself has been used to create another schedule
     const hasGrandchild = childSchedule && (childSchedule.linked_schedule_id ||
       SCHEDULES.some(x => (x.linked || x.linked_schedule_id) === childSchedule.schedule_id));
 
-    console.log('  → Has grandchild?', hasGrandchild, childSchedule?.linked_schedule_id);
-
     if (hasGrandchild) {
-      console.log('  ❌ BLOCKING: Has grandchild');
       alert(`Cannot undo ${s.schedule_id} because it has subsequent linked schedules.\n\nLinked chain: ${s.schedule_id} → ${childSchedule.schedule_id} → ${childSchedule.linked_schedule_id || '...'}\n\nPlease undo the most recent schedule first, or delete them manually in reverse order.`);
       return;
     }
-
-    console.log('  ✅ SHOWING CONFIRMATION DIALOG');
 
     // Find parent schedule if this is a replacement schedule
     const parentId = s.linked;
@@ -425,7 +411,6 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
       principal_amount: d.principal_amount ? Number(String(d.principal_amount).replace(/[^0-9.-]/g, "")) || null : null,
       signed_payment_amount: d.signed_payment_amount ? Number(String(d.signed_payment_amount).replace(/[^0-9.-]/g, "")) || null : null,
       fee_id: Array.isArray(d.fee_ids) ? d.fee_ids.join(",") : (d.fee_id || null),
-      linked_schedule_id: d.linked || null,
       status: d.status || "Due",
       notes: d.notes || "",
       applied_to: d.applied_to || "",
@@ -433,6 +418,12 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
       term_end: d.term_end || null,
       updated_at: serverTimestamp(),
     };
+
+    // Add link fields for replacement schedules
+    if (modal.mode === "add_late" || modal.mode === "add_partial") {
+      payload.linked_to_parent = d.linked || null; // Backward link to parent
+      payload.linked_schedule_id = null; // Forward link (will be set when child is created)
+    }
 
     // Snapshot logic for Undo
     if (modal.mode === "edit") {
@@ -450,7 +441,8 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
           principal_amount: unformat(original.principal_amount),
           notes: original.notes || "",
           applied_to: original.applied_to || "",
-          linked_schedule_id: original.linked_schedule_id || original.linked || null,
+          linked_to_parent: original.linked || null,
+          linked_schedule_id: original.linked_schedule_id || null,
           fee_id: original.fee_id || null,
           due_date: original.dueDate || null,
           term_start: original.term_start || null,

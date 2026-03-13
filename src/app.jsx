@@ -228,7 +228,9 @@ function AppContent() {
         principal_amount: fmtCurr(principal),
         project_id: d.project_id || "",
         signed_payment_amount: fmtCurr(signed),
-        linked: d.linked_schedule_id || "", notes: d.notes || "",
+        linked: d.linked_to_parent || d.linked || "", // Backward link to parent
+        linked_schedule_id: d.linked_schedule_id || "", // Forward link to child
+        notes: d.notes || "",
         applied_to: d.applied_to || "",
         term_start: fmtDate(d.term_start), term_end: fmtDate(d.term_end),
         _undo_snapshot: d._undo_snapshot || null,
