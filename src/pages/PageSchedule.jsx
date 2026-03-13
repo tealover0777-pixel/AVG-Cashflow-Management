@@ -459,7 +459,21 @@ Are you sure you want to continue?`;
     const original = SCHEDULES.find(x => x.docId === d.docId || x.schedule_id === d.schedule_id);
     if (modal.mode === "add" || (original && !original.original_payment_amount)) {
       // For new schedules or existing ones without original_payment_amount
-      const paymentValue = unformat(d.payment);
+      let paymentValue = unformat(d.payment);
+
+      // For zeroed schedules, try to get original amount from replacement schedule or basePayment
+      if ((!paymentValue || paymentValue === 0) && ZEROING_STATUSES.includes(d.status)) {
+        // Try to get from replacement schedule
+        const replacement = SCHEDULES.find(s => s.linked === d.schedule_id);
+        if (replacement) {
+          paymentValue = replacement.basePayment || replacement.payment_amount;
+        }
+        // Fallback to basePayment from modal data
+        if (!paymentValue && d.basePayment) {
+          paymentValue = d.basePayment;
+        }
+      }
+
       if (paymentValue && paymentValue !== 0) {
         payload.original_payment_amount = paymentValue;
       }
