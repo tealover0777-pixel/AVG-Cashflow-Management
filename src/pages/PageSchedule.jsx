@@ -455,15 +455,13 @@ Are you sure you want to continue?`;
       updated_at: serverTimestamp(),
     };
 
-    // Save original_payment_amount when transitioning to a zeroing status
-    if (modal.mode === "edit" && ZEROING_STATUSES.includes(d.status)) {
-      const original = SCHEDULES.find(x => x.docId === d.docId || x.schedule_id === d.schedule_id);
-      if (original && !original.original_payment_amount) {
-        // Only save if we haven't saved it before
-        const origPayment = original.payment_amount || unformat(original.payment) || 0;
-        if (origPayment && origPayment !== 0) {
-          payload.original_payment_amount = origPayment;
-        }
+    // Set original_payment_amount for all schedules (if not already set)
+    const original = SCHEDULES.find(x => x.docId === d.docId || x.schedule_id === d.schedule_id);
+    if (modal.mode === "add" || (original && !original.original_payment_amount)) {
+      // For new schedules or existing ones without original_payment_amount
+      const paymentValue = unformat(d.payment);
+      if (paymentValue && paymentValue !== 0) {
+        payload.original_payment_amount = paymentValue;
       }
     }
 
@@ -554,11 +552,12 @@ Are you sure you want to continue?`;
         onConfirm: async () => {
           setConfirmAction(null);
           try {
-            // Get original payment amount before updating
+            // Get original payment amount from original_payment_amount field or current payment
             const originalSchedule = SCHEDULES.find(x => x.docId === d.docId || x.schedule_id === d.schedule_id);
-            const origPaymentAmt = originalSchedule ? (originalSchedule.payment || d.payment) : d.payment;
-            const origPaymentNum = Math.abs(Number(String(origPaymentAmt).replace(/[^0-9.-]/g, ""))) || 0;
-            const formattedOrigAmt = `$${origPaymentNum.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+            const origPaymentNum = originalSchedule?.original_payment_amount ||
+                                   originalSchedule?.payment_amount ||
+                                   Math.abs(Number(String(originalSchedule?.payment || d.payment || 0).replace(/[^0-9.-]/g, "")));
+            const formattedOrigAmt = `$${Math.abs(origPaymentNum).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
             const ref = d._path ? doc(db, d._path) : doc(db, collectionPath, d.docId);
             await updateDoc(ref, payload);
@@ -573,7 +572,7 @@ Are you sure you want to continue?`;
               dueDate: nextDueDate,
               term_start: getNextDay(d.dueDate),
               term_end: nextDueDate,
-              basePayment: origPaymentNum,
+              basePayment: Math.abs(origPaymentNum),
               notes: `Missed payment replacement for ${d.schedule_id} ${formattedOrigAmt}`,
             };
             const updates = recalcReplacement(initialData, []);
@@ -597,11 +596,12 @@ Are you sure you want to continue?`;
         onConfirm: async () => {
           setConfirmAction(null);
           try {
-            // Get original payment amount before updating
+            // Get original payment amount from original_payment_amount field or current payment
             const originalSchedule = SCHEDULES.find(x => x.docId === d.docId || x.schedule_id === d.schedule_id);
-            const origPaymentAmt = originalSchedule ? (originalSchedule.payment || d.payment) : d.payment;
-            const origPaymentNum = Math.abs(Number(String(origPaymentAmt).replace(/[^0-9.-]/g, ""))) || 0;
-            const formattedOrigAmt = `$${origPaymentNum.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+            const origPaymentNum = originalSchedule?.original_payment_amount ||
+                                   originalSchedule?.payment_amount ||
+                                   Math.abs(Number(String(originalSchedule?.payment || d.payment || 0).replace(/[^0-9.-]/g, "")));
+            const formattedOrigAmt = `$${Math.abs(origPaymentNum).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
             const ref = d._path ? doc(db, d._path) : doc(db, collectionPath, d.docId);
             await updateDoc(ref, payload);
@@ -617,7 +617,7 @@ Are you sure you want to continue?`;
               term_start: getNextDay(d.dueDate),
               term_end: nextDueDatePartial,
               partialPaid: "",
-              basePayment: origPaymentNum,
+              basePayment: Math.abs(origPaymentNum),
               notes: `Partial payment replacement for ${d.schedule_id} ${formattedOrigAmt}`,
             };
             const updatesPartial = recalcReplacement(initialDataPartial, []);
@@ -1085,14 +1085,14 @@ Are you sure you want to continue?`;
                         </div>
                         <div style={{ fontFamily: t.mono, fontSize: 13, fontWeight: 700, color: isDark ? "#60A5FA" : "#4F46E5" }}>
                           {(() => {
-                            // If has original_payment_amount, show it with label
-                            if (cs.original_payment_amount) {
+                            // For zeroed schedules, show original payment amount
+                            if (ZEROING_STATUSES.includes(cs.status) && cs.original_payment_amount) {
                               const origNum = Number(cs.original_payment_amount);
                               const formatted = `$${Math.abs(origNum).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
                               return `Original Payment: ${formatted}`;
                             }
 
-                            // For existing zeroed schedules, try to get original amount from replacement schedule
+                            // Fallback for existing zeroed schedules without original_payment_amount
                             if (ZEROING_STATUSES.includes(cs.status)) {
                               const replacement = chain.find(c => c.linked === cs.schedule_id);
                               if (replacement) {
@@ -1107,10 +1107,10 @@ Are you sure you want to continue?`;
                               }
                             }
 
-                            // Otherwise show current payment amount
+                            // Otherwise show current payment amount normally
                             let displayAmount = cs.payment && cs.payment !== "$0.00" ? cs.payment : (cs.signed_payment_amount || "$0.00");
 
-                            // Add parenthesis for negative amounts
+                            // Add parenthesis for negative OUT amounts
                             if (String(displayAmount).includes("-")) {
                               return String(displayAmount).replace("-", "(") + ")";
                             }
@@ -1133,13 +1133,13 @@ Are you sure you want to continue?`;
                               <div><span style={{ fontWeight: 600, color: t.textSecondary }}>Principal: </span>{cs.principal_amount || dash}</div>
                               <div><span style={{ fontWeight: 600, color: t.textSecondary }}>Total Payment Amount: </span>{
                                 (() => {
-                                  // If has original_payment_amount, show it
-                                  if (cs.original_payment_amount) {
+                                  // For zeroed schedules, show original payment amount
+                                  if (isZeroed && cs.original_payment_amount) {
                                     const origNum = Number(cs.original_payment_amount);
                                     return `$${Math.abs(origNum).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
                                   }
 
-                                  // For existing zeroed schedules, try to get from replacement schedule
+                                  // Fallback for existing zeroed schedules without original_payment_amount
                                   if (isZeroed) {
                                     const replacement = chain.find(c => c.linked === cs.schedule_id);
                                     if (replacement) {

@@ -225,6 +225,7 @@ export default function PageContracts({ t, isDark, CONTRACTS = [], PROJECTS = []
           due_date: startDate.toISOString().slice(0, 10), payment_type: initialPaymentType, fee_id: "",
           period_number: 1, principal_amount: principal, payment_amount: principal,
           signed_payment_amount: ds1.signed, direction_from_company: ds1.direction,
+          original_payment_amount: principal,
           applied_to: "Principal Amount",
           term_start: startDate.toISOString().slice(0, 10), term_end: startDate.toISOString().slice(0, 10),
           status: "Due", notes: `Initial for ${c.id}`, created_at: serverTimestamp(),
@@ -276,6 +277,7 @@ export default function PageContracts({ t, isDark, CONTRACTS = [], PROJECTS = []
               due_date: dDate.toISOString().slice(0, 10), payment_type: PT_FEE, fee_id: fid,
               period_number: 1, principal_amount: principal, payment_amount: feeAmt,
               signed_payment_amount: signedFeeAmt, direction_from_company: feeDir,
+              original_payment_amount: feeAmt,
               term_start: startDate.toISOString().slice(0, 10), term_end: dDate.toISOString().slice(0, 10),
               applied_to: fInfo.applied_to || "Principal Amount",
               fee_name: fInfo.name || "Fee",
@@ -328,12 +330,14 @@ export default function PageContracts({ t, isDark, CONTRACTS = [], PROJECTS = []
           if (!isNaN(interest)) {
             const interestPT = isDisbursement ? PT_BOR_INTEREST : PT_INTEREST;
             const ds2 = getDirectionAndSigned(interestPT, interest);
+            const roundedInterest = Math.round(interest * 100) / 100;
             entries.push({
               schedule_id: `S${currentIdNum++}`,
               contract_id: c.id, project_id: c.project_id || "", party_id: c.party_id || "",
               due_date: pEnd.toISOString().slice(0, 10), payment_type: interestPT, fee_id: "",
-              period_number: periodNum, principal_amount: principal, payment_amount: Math.round(interest * 100) / 100,
+              period_number: periodNum, principal_amount: principal, payment_amount: roundedInterest,
               signed_payment_amount: ds2.signed, direction_from_company: ds2.direction,
+              original_payment_amount: roundedInterest,
               term_start: pStart.toISOString().slice(0, 10), term_end: pEnd.toISOString().slice(0, 10),
               applied_to: "Interest Amount",
               status: "Due", notes: `Interest Period ${periodNum} for ${c.id}`, created_at: serverTimestamp(),
@@ -410,12 +414,14 @@ export default function PageContracts({ t, isDark, CONTRACTS = [], PROJECTS = []
                     // Normal periods: use standard logic based on fee_charge_at
                     feeDueDate = ca.includes("start") ? pStart : pEnd;
                   }
+                  const roundedFeeAmt = Math.round(feeAmt * 100) / 100;
                   entries.push({
                     schedule_id: `S${currentIdNum++}`,
                     contract_id: c.id, project_id: c.project_id || "", party_id: c.party_id || "",
                     due_date: feeDueDate.toISOString().slice(0, 10), payment_type: PT_FEE, fee_id: fid,
-                    period_number: periodNum, principal_amount: principal, payment_amount: Math.round(feeAmt * 100) / 100,
+                    period_number: periodNum, principal_amount: principal, payment_amount: roundedFeeAmt,
                     signed_payment_amount: signedFeeAmt, direction_from_company: feeDir,
+                    original_payment_amount: roundedFeeAmt,
                     term_start: pStart.toISOString().slice(0, 10), term_end: pEnd.toISOString().slice(0, 10),
                     applied_to: fInfo.applied_to || "Principal Amount",
                     fee_name: fInfo.name || "Fee",
@@ -442,6 +448,7 @@ export default function PageContracts({ t, isDark, CONTRACTS = [], PROJECTS = []
           due_date: matDate.toISOString().slice(0, 10), payment_type: repaymentPT, fee_id: "",
           period_number: periodNum, principal_amount: principal, payment_amount: principal,
           signed_payment_amount: ds3.signed, direction_from_company: ds3.direction,
+          original_payment_amount: principal,
           term_start: startDate.toISOString().slice(0, 10), term_end: matDate.toISOString().slice(0, 10),
           applied_to: "Principal Amount",
           status: "Due", notes: `Repayment for ${c.id}`, created_at: serverTimestamp(),
