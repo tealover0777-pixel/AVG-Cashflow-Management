@@ -434,6 +434,15 @@ Are you sure you want to continue?`;
       return isNaN(n) ? null : n;
     };
 
+    // Store original payment amount before zeroing for ZEROING_STATUSES
+    let originalPaymentAmt = null;
+    if (modal.mode === "edit" && ZEROING_STATUSES.includes(d.status) && !ZEROING_STATUSES.includes(d.originalStatus)) {
+      const original = SCHEDULES.find(x => x.docId === d.docId || x.schedule_id === d.schedule_id);
+      if (original && original.payment && original.payment !== "$0.00") {
+        originalPaymentAmt = unformat(original.payment);
+      }
+    }
+
     const payload = {
       schedule_id: d.schedule_id,
       contract_id: d.contract || "",
@@ -454,6 +463,11 @@ Are you sure you want to continue?`;
       term_end: d.term_end || null,
       updated_at: serverTimestamp(),
     };
+
+    // Add original_payment_amount if transitioning to a zeroing status
+    if (originalPaymentAmt !== null) {
+      payload.original_payment_amount = originalPaymentAmt;
+    }
 
     // Add link fields for replacement schedules
     if (modal.mode === "add_late" || modal.mode === "add_partial") {
@@ -542,6 +556,12 @@ Are you sure you want to continue?`;
         onConfirm: async () => {
           setConfirmAction(null);
           try {
+            // Get original payment amount before updating
+            const originalSchedule = SCHEDULES.find(x => x.docId === d.docId || x.schedule_id === d.schedule_id);
+            const origPaymentAmt = originalSchedule ? (originalSchedule.payment || d.payment) : d.payment;
+            const origPaymentNum = Math.abs(Number(String(origPaymentAmt).replace(/[^0-9.-]/g, ""))) || 0;
+            const formattedOrigAmt = `$${origPaymentNum.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
             const ref = d._path ? doc(db, d._path) : doc(db, collectionPath, d.docId);
             await updateDoc(ref, payload);
             const lateId = getNextScheduleId();
@@ -555,8 +575,8 @@ Are you sure you want to continue?`;
               dueDate: nextDueDate,
               term_start: getNextDay(d.dueDate),
               term_end: nextDueDate,
-              basePayment: Math.abs(Number(String(d._prevPayment || d.basePayment || d.payment || 0).replace(/[^0-9.-]/g, ""))),
-              notes: `Missed payment replacement for ${d.schedule_id}`,
+              basePayment: origPaymentNum,
+              notes: `Missed payment replacement for ${d.schedule_id} ${formattedOrigAmt}`,
             };
             const updates = recalcReplacement(initialData, []);
             setModal({
@@ -579,6 +599,12 @@ Are you sure you want to continue?`;
         onConfirm: async () => {
           setConfirmAction(null);
           try {
+            // Get original payment amount before updating
+            const originalSchedule = SCHEDULES.find(x => x.docId === d.docId || x.schedule_id === d.schedule_id);
+            const origPaymentAmt = originalSchedule ? (originalSchedule.payment || d.payment) : d.payment;
+            const origPaymentNum = Math.abs(Number(String(origPaymentAmt).replace(/[^0-9.-]/g, ""))) || 0;
+            const formattedOrigAmt = `$${origPaymentNum.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
             const ref = d._path ? doc(db, d._path) : doc(db, collectionPath, d.docId);
             await updateDoc(ref, payload);
             const partialId = getNextScheduleId();
@@ -593,8 +619,8 @@ Are you sure you want to continue?`;
               term_start: getNextDay(d.dueDate),
               term_end: nextDueDatePartial,
               partialPaid: "",
-              basePayment: Math.abs(Number(String(d.basePayment || d.payment || 0).replace(/[^0-9.-]/g, ""))),
-              notes: `Partial payment replacement for ${d.schedule_id}`,
+              basePayment: origPaymentNum,
+              notes: `Partial payment replacement for ${d.schedule_id} ${formattedOrigAmt}`,
             };
             const updatesPartial = recalcReplacement(initialDataPartial, []);
             setModal({
@@ -1062,20 +1088,32 @@ Are you sure you want to continue?`;
                         <div style={{ fontFamily: t.mono, fontSize: 13, fontWeight: 700, color: isDark ? "#60A5FA" : "#4F46E5" }}>
                           {(() => {
                             let displayAmount = cs.payment && cs.payment !== "$0.00" ? cs.payment : (cs.signed_payment_amount || "$0.00");
-                            // If this schedule was zeroed (REPLACED, etc.), find original amount from replacement schedule notes
+                            let showAsOriginal = false;
+
+                            // If this schedule was zeroed (REPLACED, etc.), find original amount
                             if (ZEROING_STATUSES.includes(cs.status)) {
-                              const replacement = chain.find(c => c.linked === cs.schedule_id);
-                              if (replacement && replacement.notes) {
-                                // Try multiple regex patterns to extract the original amount
-                                let noteMatch = replacement.notes.match(/replacement for [^\s]+ \$([0-9,]+\.?\d*)/i);
-                                if (!noteMatch) {
-                                  noteMatch = replacement.notes.match(/for.*\$([0-9,]+\.?\d*)/i);
-                                }
-                                if (noteMatch) {
-                                  const origAmount = noteMatch[1].replace(/,/g, "");
-                                  displayAmount = `$${Number(origAmount).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+                              // First try to get from stored original_payment_amount field
+                              if (cs.original_payment_amount) {
+                                const origNum = Number(cs.original_payment_amount);
+                                displayAmount = `$${Math.abs(origNum).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+                                showAsOriginal = true;
+                              } else {
+                                // Fall back to extracting from replacement schedule notes
+                                const replacement = chain.find(c => c.linked === cs.schedule_id);
+                                if (replacement && replacement.notes) {
+                                  let noteMatch = replacement.notes.match(/for [^\s]+ \$([0-9,]+\.?\d*)/i);
+                                  if (noteMatch) {
+                                    const origAmount = noteMatch[1].replace(/,/g, "");
+                                    displayAmount = `$${Number(origAmount).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+                                    showAsOriginal = true;
+                                  }
                                 }
                               }
+                            }
+
+                            // Format display
+                            if (showAsOriginal) {
+                              return `Original Value: ${displayAmount}`;
                             }
                             // Only add parenthesis if displayAmount itself contains a negative sign
                             if (String(displayAmount).includes("-")) {
@@ -1101,18 +1139,21 @@ Are you sure you want to continue?`;
                               <div><span style={{ fontWeight: 600, color: t.textSecondary }}>Total Payment Amount: </span>{
                                 (() => {
                                   let totalAmt = cs.payment && cs.payment !== "$0.00" ? cs.payment : (cs.signed_payment_amount || "$0.00");
-                                  // If zeroed, show original amount from replacement schedule notes
+                                  // If zeroed, show original amount
                                   if (isZeroed) {
-                                    const replacement = chain.find(c => c.linked === cs.schedule_id);
-                                    if (replacement && replacement.notes) {
-                                      // Try multiple regex patterns to extract the original amount
-                                      let noteMatch = replacement.notes.match(/replacement for [^\s]+ \$([0-9,]+\.?\d*)/i);
-                                      if (!noteMatch) {
-                                        noteMatch = replacement.notes.match(/for.*\$([0-9,]+\.?\d*)/i);
-                                      }
-                                      if (noteMatch) {
-                                        const origAmount = noteMatch[1].replace(/,/g, "");
-                                        totalAmt = `$${Number(origAmount).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+                                    // First try to get from stored original_payment_amount field
+                                    if (cs.original_payment_amount) {
+                                      const origNum = Number(cs.original_payment_amount);
+                                      totalAmt = `$${Math.abs(origNum).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+                                    } else {
+                                      // Fall back to extracting from replacement schedule notes
+                                      const replacement = chain.find(c => c.linked === cs.schedule_id);
+                                      if (replacement && replacement.notes) {
+                                        let noteMatch = replacement.notes.match(/for [^\s]+ \$([0-9,]+\.?\d*)/i);
+                                        if (noteMatch) {
+                                          const origAmount = noteMatch[1].replace(/,/g, "");
+                                          totalAmt = `$${Number(origAmount).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+                                        }
                                       }
                                     }
                                   }
