@@ -336,12 +336,16 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
     const parentSchedule = parentId ? SCHEDULES.find(x => x.schedule_id === parentId) : null;
 
     let message;
+    let title = "Undo Last Action";
+
     if (hasSnapshot) {
       // This schedule was edited - restore it
-      const deleteMsg = childSchedule
-        ? ` and delete the linked schedule ${childSchedule.schedule_id}`
-        : "";
-      message = `This will restore ${s.schedule_id} to its previous state${deleteMsg}.`;
+      if (childSchedule) {
+        title = "⚠️ Warning: This Will Delete Linked Schedule";
+        message = `Undoing ${s.schedule_id} will:\n\n1. Restore ${s.schedule_id} to its previous state\n2. DELETE the linked schedule ${childSchedule.schedule_id}\n\nThis action cannot be undone.\n\nAre you sure you want to continue?`;
+      } else {
+        message = `This will restore ${s.schedule_id} to its previous state.`;
+      }
     } else {
       // This is a newly created replacement schedule - delete it
       const clearParentMsg = parentSchedule
@@ -351,8 +355,8 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
     }
 
     setConfirmAction({
-      title: "Undo Last Action",
-      message: `Are you sure you want to undo the last action?\n\n${message}`,
+      title: title,
+      message: message,
       onConfirm: async () => {
         setConfirmAction(null);
         try {
