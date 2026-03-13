@@ -16,6 +16,18 @@ const fmtCurr = v => {
 const ZEROING_STATUSES = ["Missed", "Cancelled", "VOID", "WAIVED", "REPLACED"];
 
 export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = [], PARTIES = [], PROJECTS = [], DIMENSIONS = [], FEES_DATA = [], collectionPath = "" }) {
+  // Debug: Check S10005 data
+  const s10005 = SCHEDULES.find(s => s.schedule_id === "S10005");
+  if (s10005) {
+    console.log("PageSchedule - S10005 data:", {
+      schedule_id: s10005.schedule_id,
+      original_payment_amount: s10005.original_payment_amount,
+      payment: s10005.payment,
+      status: s10005.status,
+      allFields: Object.keys(s10005)
+    });
+  }
+
   const { hasPermission, isSuperAdmin } = useAuth();
   const canCreate = isSuperAdmin || hasPermission("PAYMENT_SCHEDULE_CREATE");
   const canDelete = isSuperAdmin || hasPermission("PAYMENT_SCHEDULE_DELETE");
