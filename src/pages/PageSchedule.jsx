@@ -1092,22 +1092,38 @@ Are you sure you want to continue?`;
 
                             // If this schedule was zeroed (REPLACED, etc.), find original amount
                             if (ZEROING_STATUSES.includes(cs.status)) {
-                              // First try to get from stored original_payment_amount field
+                              let foundAmount = null;
+
+                              // 1. Try to get from stored original_payment_amount field
                               if (cs.original_payment_amount) {
-                                const origNum = Number(cs.original_payment_amount);
-                                displayAmount = `$${Math.abs(origNum).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-                                showAsOriginal = true;
-                              } else {
-                                // Fall back to extracting from replacement schedule notes
+                                foundAmount = Number(cs.original_payment_amount);
+                              }
+
+                              // 2. Try to extract from replacement schedule
+                              if (!foundAmount) {
                                 const replacement = chain.find(c => c.linked === cs.schedule_id);
-                                if (replacement && replacement.notes) {
-                                  let noteMatch = replacement.notes.match(/for [^\s]+ \$([0-9,]+\.?\d*)/i);
-                                  if (noteMatch) {
-                                    const origAmount = noteMatch[1].replace(/,/g, "");
-                                    displayAmount = `$${Number(origAmount).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-                                    showAsOriginal = true;
+                                if (replacement) {
+                                  // 2a. Try notes with amount format
+                                  if (replacement.notes) {
+                                    let noteMatch = replacement.notes.match(/for [^\s]+ \$([0-9,]+\.?\d*)/i);
+                                    if (noteMatch) {
+                                      foundAmount = Number(noteMatch[1].replace(/,/g, ""));
+                                    }
+                                  }
+                                  // 2b. Try basePayment field
+                                  if (!foundAmount && replacement.basePayment) {
+                                    foundAmount = Number(String(replacement.basePayment).replace(/[^0-9.-]/g, ""));
+                                  }
+                                  // 2c. Try payment field if not $0
+                                  if (!foundAmount && replacement.payment && replacement.payment !== "$0.00") {
+                                    foundAmount = Number(String(replacement.payment).replace(/[^0-9.-]/g, ""));
                                   }
                                 }
+                              }
+
+                              if (foundAmount) {
+                                displayAmount = `$${Math.abs(foundAmount).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+                                showAsOriginal = true;
                               }
                             }
 
@@ -1141,20 +1157,37 @@ Are you sure you want to continue?`;
                                   let totalAmt = cs.payment && cs.payment !== "$0.00" ? cs.payment : (cs.signed_payment_amount || "$0.00");
                                   // If zeroed, show original amount
                                   if (isZeroed) {
-                                    // First try to get from stored original_payment_amount field
+                                    let foundAmount = null;
+
+                                    // 1. Try to get from stored original_payment_amount field
                                     if (cs.original_payment_amount) {
-                                      const origNum = Number(cs.original_payment_amount);
-                                      totalAmt = `$${Math.abs(origNum).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-                                    } else {
-                                      // Fall back to extracting from replacement schedule notes
+                                      foundAmount = Number(cs.original_payment_amount);
+                                    }
+
+                                    // 2. Try to extract from replacement schedule
+                                    if (!foundAmount) {
                                       const replacement = chain.find(c => c.linked === cs.schedule_id);
-                                      if (replacement && replacement.notes) {
-                                        let noteMatch = replacement.notes.match(/for [^\s]+ \$([0-9,]+\.?\d*)/i);
-                                        if (noteMatch) {
-                                          const origAmount = noteMatch[1].replace(/,/g, "");
-                                          totalAmt = `$${Number(origAmount).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+                                      if (replacement) {
+                                        // 2a. Try notes with amount format
+                                        if (replacement.notes) {
+                                          let noteMatch = replacement.notes.match(/for [^\s]+ \$([0-9,]+\.?\d*)/i);
+                                          if (noteMatch) {
+                                            foundAmount = Number(noteMatch[1].replace(/,/g, ""));
+                                          }
+                                        }
+                                        // 2b. Try basePayment field
+                                        if (!foundAmount && replacement.basePayment) {
+                                          foundAmount = Number(String(replacement.basePayment).replace(/[^0-9.-]/g, ""));
+                                        }
+                                        // 2c. Try payment field if not $0
+                                        if (!foundAmount && replacement.payment && replacement.payment !== "$0.00") {
+                                          foundAmount = Number(String(replacement.payment).replace(/[^0-9.-]/g, ""));
                                         }
                                       }
+                                    }
+
+                                    if (foundAmount) {
+                                      totalAmt = `$${Math.abs(foundAmount).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
                                     }
                                   }
                                   // Only add parenthesis if totalAmt itself contains a negative sign
