@@ -361,9 +361,23 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
     const childId = s.linked_schedule_id || s.linked;
     const childSchedule = childId ? SCHEDULES.find(x => x.schedule_id === childId) : null;
 
+    console.log('🔍 Undo check for', s.schedule_id, {
+      schedule_id: s.schedule_id,
+      linked: s.linked,
+      linked_schedule_id: s.linked_schedule_id,
+      childId,
+      childSchedule: childSchedule ? {
+        schedule_id: childSchedule.schedule_id,
+        linked: childSchedule.linked,
+        linked_schedule_id: childSchedule.linked_schedule_id
+      } : null
+    });
+
     // Check if the child schedule itself has been used to create another schedule
     const hasGrandchild = childSchedule && (childSchedule.linked_schedule_id ||
       SCHEDULES.some(x => (x.linked || x.linked_schedule_id) === childSchedule.schedule_id));
+
+    console.log('🚨 Grandchild check:', { hasGrandchild, childHasLink: childSchedule?.linked_schedule_id });
 
     if (hasGrandchild) {
       alert(`Cannot undo ${s.schedule_id} because it has subsequent linked schedules.\n\nLinked chain: ${s.schedule_id} → ${childSchedule.schedule_id} → ${childSchedule.linked_schedule_id || '...'}\n\nPlease undo the most recent schedule first, or delete them manually in reverse order.`);
