@@ -173,22 +173,32 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
       console.log(`  🔄 Fee frequency check:`, { feeFrequency, isRecurring, hasDates, fee_charge_at: fee.fee_charge_at });
 
       if (isRecurring && hasDates) {
-        console.log(`  ⚠️ TAKING RECURRING PATH - Always uses Principal Amount regardless of applied_to!`);
-        const principalAmt = Number(String(currentData.principal_amount || "").replace(/[^0-9.-]/g, "")) || 0;
+        console.log(`  ✓ RECURRING PATH - Now respecting applied_to field`);
+
+        // Determine the basis amount based on applied_to field
+        const appliedTo = (fee.applied_to || "").toLowerCase();
+        let basisAmt = Math.abs(unpaid); // Default to payment amount
+
+        if (appliedTo.includes("principal")) {
+          const principalAmt = Number(String(currentData.principal_amount || "").replace(/[^0-9.-]/g, "")) || 0;
+          basisAmt = Math.abs(principalAmt);
+          console.log(`  → Using PRINCIPAL amount: ${basisAmt} (applied_to="${fee.applied_to}")`);
+        } else {
+          console.log(`  → Using PAYMENT amount: ${basisAmt} (applied_to="${fee.applied_to}")`);
+        }
+
         const periodStart = normalizeDateAtNoon(currentData.term_start);
         const periodEnd = normalizeDateAtNoon(currentData.term_end);
         const investDate = normalizeDateAtNoon(contractStartDate);
         const rateNum = Number(String(fee.rate).replace(/[^0-9.]/g, "")) || 0;
 
-        console.log(`  💥 BUG: Using principalAmt=${principalAmt} instead of unpaid=${unpaid} (applied_to="${fee.applied_to}" is IGNORED)`);
-
         if (contractCalculator === "ACT/360+30/360") {
           const feeFreqStr = getFeeFrequencyString(fee.fee_charge_at);
-          unsignedAmt = pmtCalculator_ACT360_30360(periodStart, periodEnd, investDate, principalAmt, rateNum / 100, feeFreqStr);
+          unsignedAmt = pmtCalculator_ACT360_30360(periodStart, periodEnd, investDate, basisAmt, rateNum / 100, feeFreqStr);
           console.log(`  → Calculated using ACT/360: ${unsignedAmt}`);
         } else {
-          // Use simple calculation: principal * (rate / 360) * 90
-          unsignedAmt = principalAmt * (rateNum / 100 / 360) * 90;
+          // Use simple calculation: basis * (rate / 360) * 90
+          unsignedAmt = basisAmt * (rateNum / 100 / 360) * 90;
           console.log(`  → Calculated using simple: ${unsignedAmt}`);
         }
       } else {
