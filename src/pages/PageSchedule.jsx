@@ -156,7 +156,7 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
       // Infer fee frequency if not set
       // If fee_charge_at is Contract_Start/Contract_End, treat as One_Time
       // Otherwise, treat as Recurring
-      let feeFrequency = fee.frequency;
+      let feeFrequency = fee.fee_frequency || fee.frequency; // Check both field names
       if (!feeFrequency) {
         const chargeAt = (fee.fee_charge_at || "").toLowerCase();
         if (chargeAt.includes("contract_start") || chargeAt.includes("contract_end")) {
