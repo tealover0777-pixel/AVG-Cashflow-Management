@@ -323,13 +323,7 @@ export default function PageParties({ t, isDark, PARTIES = [], CONTRACTS = [], S
                                     <td style={{ padding: "10px 14px", fontSize: 11, fontFamily: t.mono, color: t.textMuted }}>{s.dueDate}</td>
                                     <td style={{ padding: "10px 14px", fontSize: 11, color: t.textSecondary }}>{s.type}{s.fee_id ? ` · ${s.fee_id}` : ""}</td>
                                     <td style={{ padding: "10px 14px", fontSize: 10, fontWeight: 600, color: s.direction === "IN" ? "#10B981" : "#EF4444" }}>{s.direction}</td>
-                                    <td style={{ padding: "10px 14px", fontSize: 11.5, fontWeight: 600 }}>{(() => {
-                                      let val = s.signed_payment_amount;
-                                      if (val == null || val === "" || val === undefined) val = s.payment;
-                                      if (val == null || val === "" || val === undefined) return "$0.00";
-                                      if (s.direction === "OUT" && String(val).includes("-")) return String(val).replace("-", "(") + ")";
-                                      return String(val);
-                                    })()}</td>
+                                    <td style={{ padding: "10px 14px", fontSize: 11.5, fontWeight: 600 }}>{s.signed_payment_amount}</td>
                                     <td style={{ padding: "10px 14px" }}><span style={{ fontSize: 9, fontWeight: 700, padding: "3px 8px", borderRadius: 20, background: sbg, color: sc, border: `1px solid ${sbrd}` }}>{s.status}</span></td>
                                   </tr>
                                 );
