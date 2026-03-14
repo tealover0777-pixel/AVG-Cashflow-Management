@@ -323,7 +323,7 @@ export default function PageParties({ t, isDark, PARTIES = [], CONTRACTS = [], S
                                     <td style={{ padding: "10px 14px", fontSize: 11, fontFamily: t.mono, color: t.textMuted }}>{s.dueDate}</td>
                                     <td style={{ padding: "10px 14px", fontSize: 11, color: t.textSecondary }}>{s.type}{s.fee_id ? ` · ${s.fee_id}` : ""}</td>
                                     <td style={{ padding: "10px 14px", fontSize: 10, fontWeight: 600, color: s.direction === "IN" ? "#10B981" : "#EF4444" }}>{s.direction}</td>
-                                    <td style={{ padding: "10px 14px", fontSize: 11.5, fontWeight: 600 }}>{s.payment}</td>
+                                    <td style={{ padding: "10px 14px", fontSize: 11.5, fontWeight: 600 }}>{s.signed_payment_amount || s.payment}</td>
                                     <td style={{ padding: "10px 14px" }}><span style={{ fontSize: 9, fontWeight: 700, padding: "3px 8px", borderRadius: 20, background: sbg, color: sc, border: `1px solid ${sbrd}` }}>{s.status}</span></td>
                                   </tr>
                                 );
