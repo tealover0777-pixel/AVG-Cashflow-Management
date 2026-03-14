@@ -458,9 +458,14 @@ Are you sure you want to continue?`;
 
     // Set original_payment_amount for all schedules (if not already set)
     const original = SCHEDULES.find(x => x.docId === d.docId || x.schedule_id === d.schedule_id);
-    if (modal.mode === "add" || (original && !original.original_payment_amount)) {
+    if (["add", "add_late", "add_partial"].includes(modal.mode) || (original && !original.original_payment_amount)) {
       // For new schedules or existing ones without original_payment_amount
       let paymentValue = unformat(d.payment);
+
+      // If we are zeroing it out right now, use the previous payment value
+      if (modal.mode === "edit" && d._prevPayment) {
+        paymentValue = unformat(d._prevPayment);
+      }
 
       // For zeroed schedules, try to get original amount from replacement schedule or basePayment
       if ((!paymentValue || paymentValue === 0) && ZEROING_STATUSES.includes(d.status)) {
@@ -569,10 +574,11 @@ Are you sure you want to continue?`;
           try {
             // Get original payment amount from original_payment_amount field or current payment
             const originalSchedule = SCHEDULES.find(x => x.docId === d.docId || x.schedule_id === d.schedule_id);
-            const origPaymentNum = originalSchedule?.original_payment_amount ||
-                                   originalSchedule?.payment_amount ||
-                                   Math.abs(Number(String(originalSchedule?.payment || d.payment || 0).replace(/[^0-9.-]/g, "")));
-            const formattedOrigAmt = `$${Math.abs(origPaymentNum).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+            const rawOrigAmt = originalSchedule?.original_payment_amount ||
+                               originalSchedule?.payment_amount ||
+                               originalSchedule?.payment || d.payment || 0;
+            const origPaymentNum = Math.abs(Number(String(rawOrigAmt).replace(/[^0-9.-]/g, "")));
+            const formattedOrigAmt = `$${origPaymentNum.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
             const ref = d._path ? doc(db, d._path) : doc(db, collectionPath, d.docId);
             await updateDoc(ref, payload);
@@ -613,10 +619,11 @@ Are you sure you want to continue?`;
           try {
             // Get original payment amount from original_payment_amount field or current payment
             const originalSchedule = SCHEDULES.find(x => x.docId === d.docId || x.schedule_id === d.schedule_id);
-            const origPaymentNum = originalSchedule?.original_payment_amount ||
-                                   originalSchedule?.payment_amount ||
-                                   Math.abs(Number(String(originalSchedule?.payment || d.payment || 0).replace(/[^0-9.-]/g, "")));
-            const formattedOrigAmt = `$${Math.abs(origPaymentNum).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+            const rawOrigAmt = originalSchedule?.original_payment_amount ||
+                               originalSchedule?.payment_amount ||
+                               originalSchedule?.payment || d.payment || 0;
+            const origPaymentNum = Math.abs(Number(String(rawOrigAmt).replace(/[^0-9.-]/g, "")));
+            const formattedOrigAmt = `$${origPaymentNum.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
             const ref = d._path ? doc(db, d._path) : doc(db, collectionPath, d.docId);
             await updateDoc(ref, payload);
