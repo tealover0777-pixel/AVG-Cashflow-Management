@@ -594,6 +594,8 @@ Are you sure you want to continue?`;
               term_start: getNextDay(d.dueDate),
               term_end: nextDueDate,
               basePayment: Math.abs(origPaymentNum),
+              payment_amount: originalSchedule?.payment_amount || originalSchedule?.original_payment_amount || d.payment || "$0.00",
+              original_payment_amount: originalSchedule?.original_payment_amount || originalSchedule?.payment_amount || d.payment || "$0.00",
               notes: `Missed payment replacement for ${d.schedule_id} ${formattedOrigAmt}`,
             };
             const updates = recalcReplacement(initialData, []);
@@ -640,6 +642,8 @@ Are you sure you want to continue?`;
               term_end: nextDueDatePartial,
               partialPaid: "",
               basePayment: Math.abs(origPaymentNum),
+              payment_amount: originalSchedule?.payment_amount || originalSchedule?.original_payment_amount || d.payment || "$0.00",
+              original_payment_amount: originalSchedule?.original_payment_amount || originalSchedule?.payment_amount || d.payment || "$0.00",
               notes: `Partial payment replacement for ${d.schedule_id} ${formattedOrigAmt}`,
             };
             const updatesPartial = recalcReplacement(initialDataPartial, []);
