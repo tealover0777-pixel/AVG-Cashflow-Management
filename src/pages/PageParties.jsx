@@ -225,6 +225,7 @@ export default function PageParties({ t, isDark, PARTIES = [], CONTRACTS = [], S
         return isMatched || partyContracts.some(c => c.id === s.contract);
       }).sort((a, b) => (a.dueDate || '').localeCompare(b.dueDate || ''));
       const totalValue = partyContracts.reduce((sum, c) => sum + Number(String(c.amount || 0).replace(/[^0-9.-]/g, '')), 0);
+      console.log("[PartyDetail] partySchedules:", partySchedules.map(s => ({ sid: s.schedule_id, due: s.dueDate, type: s.type, status: s.status, dir: s.direction, payment: s.payment, signed: s.signed_payment_amount, payment_amount: s.payment_amount })));
       return (
         <div style={{ position: "fixed", inset: 0, zIndex: 1100, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center" }}>
           <div style={{ background: isDark ? "#1C1917" : "#fff", borderRadius: 18, padding: 0, maxWidth: 720, width: "92%", maxHeight: "85vh", display: "flex", flexDirection: "column", boxShadow: "0 24px 60px rgba(0,0,0,0.3)", border: `1px solid ${t.surfaceBorder}` }}>
