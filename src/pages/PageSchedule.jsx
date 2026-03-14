@@ -1110,12 +1110,8 @@ Are you sure you want to continue?`;
                             const isReplacedStatus = [...ZEROING_STATUSES, "Partial"].includes(cs.status);
                             let origAmount = cs.original_payment_amount;
 
-                            if (isReplacedStatus && origAmount != null) {
-                              const origNum = typeof origAmount === 'number' ? origAmount : Number(String(origAmount).replace(/[^0-9.-]/g, ""));
-                              if (origNum && origNum !== 0) {
-                                const formatted = `$${Math.abs(origNum).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-                                return `Original Payment: ${formatted}`;
-                              }
+                            if (isReplacedStatus && origAmount != null && origAmount !== "") {
+                              return `Original Payment: ${String(origAmount)}`;
                             }
                             
                             // Otherwise show current payment amount normally
@@ -1147,11 +1143,8 @@ Are you sure you want to continue?`;
                                   const isReplacedStatus = [...ZEROING_STATUSES, "Partial"].includes(cs.status);
                                   let origAmount = cs.original_payment_amount;
 
-                                  if (isReplacedStatus && origAmount != null) {
-                                    const origNum = typeof origAmount === 'number' ? origAmount : Number(String(origAmount).replace(/[^0-9.-]/g, ""));
-                                    if (origNum && origNum !== 0) {
-                                      return `$${Math.abs(origNum).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-                                    }
+                                  if (isReplacedStatus && origAmount != null && origAmount !== "") {
+                                    return String(origAmount);
                                   }
 
                                   // Otherwise show current payment amount
