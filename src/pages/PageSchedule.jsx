@@ -16,14 +16,6 @@ const fmtCurr = v => {
 const ZEROING_STATUSES = ["Missed", "Cancelled", "VOID", "WAIVED", "REPLACED"];
 
 export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = [], PARTIES = [], PROJECTS = [], DIMENSIONS = [], FEES_DATA = [], collectionPath = "" }) {
-  // Debug: Check S10005 data
-  const s10005 = SCHEDULES.find(s => s.schedule_id === "S10005");
-  if (s10005) {
-    console.log("PageSchedule - S10005 FIELD NAMES:", Object.keys(s10005).sort());
-    console.log("PageSchedule - S10005 original_payment_amount:", s10005.original_payment_amount);
-    console.log("PageSchedule - S10005 has 'original_payment_amount'?", 'original_payment_amount' in s10005);
-    console.log("PageSchedule - S10005 has 'originalPaymentAmount'?", 'originalPaymentAmount' in s10005);
-  }
 
   const { hasPermission, isSuperAdmin } = useAuth();
   const canCreate = isSuperAdmin || hasPermission("PAYMENT_SCHEDULE_CREATE");
@@ -1108,42 +1100,20 @@ Are you sure you want to continue?`;
                         </div>
                         <div style={{ fontFamily: t.mono, fontSize: 13, fontWeight: 700, color: isDark ? "#60A5FA" : "#4F46E5" }}>
                           {(() => {
-                            // Debug logging for S10005
-                            if (cs.schedule_id === "S10005") {
-                              console.log("S10005 Debug:", {
-                                status: cs.status,
-                                original_payment_amount: cs.original_payment_amount,
-                                isZeroingStatus: ZEROING_STATUSES.includes(cs.status),
-                                payment: cs.payment,
-                                signed_payment_amount: cs.signed_payment_amount
-                              });
-                            }
+                            const isReplacedStatus = [...ZEROING_STATUSES, "Partial"].includes(cs.status);
+                            let origAmount = cs.original_payment_amount;
 
-                            // For zeroed schedules, show original payment amount
-                            if (ZEROING_STATUSES.includes(cs.status) && cs.original_payment_amount) {
-                              const origNum = Number(cs.original_payment_amount);
-                              const formatted = `$${Math.abs(origNum).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-                              return `Original Payment: ${formatted}`;
-                            }
-
-                            // Fallback for existing zeroed schedules without original_payment_amount
-                            if (ZEROING_STATUSES.includes(cs.status)) {
-                              const replacement = chain.find(c => c.linked === cs.schedule_id);
-                              if (replacement) {
-                                const baseAmt = replacement.basePayment || replacement.payment_amount;
-                                if (baseAmt) {
-                                  const num = typeof baseAmt === 'number' ? baseAmt : Number(String(baseAmt).replace(/[^0-9.-]/g, ""));
-                                  if (num && num !== 0) {
-                                    const formatted = `$${Math.abs(num).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-                                    return `Original Payment: ${formatted}`;
-                                  }
-                                }
+                            if (isReplacedStatus && origAmount != null) {
+                              const origNum = typeof origAmount === 'number' ? origAmount : Number(String(origAmount).replace(/[^0-9.-]/g, ""));
+                              if (origNum && origNum !== 0) {
+                                const formatted = `$${Math.abs(origNum).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+                                return `Original Payment: ${formatted}`;
                               }
                             }
-
+                            
                             // Otherwise show current payment amount normally
                             let displayAmount = cs.payment && cs.payment !== "$0.00" ? cs.payment : (cs.signed_payment_amount || "$0.00");
-
+                            
                             // Add parenthesis for negative OUT amounts
                             if (String(displayAmount).includes("-")) {
                               return String(displayAmount).replace("-", "(") + ")";
@@ -1167,23 +1137,13 @@ Are you sure you want to continue?`;
                               <div><span style={{ fontWeight: 600, color: t.textSecondary }}>Principal: </span>{cs.principal_amount || dash}</div>
                               <div><span style={{ fontWeight: 600, color: t.textSecondary }}>Total Payment Amount: </span>{
                                 (() => {
-                                  // For zeroed schedules, show original payment amount
-                                  if (isZeroed && cs.original_payment_amount) {
-                                    const origNum = Number(cs.original_payment_amount);
-                                    return `$${Math.abs(origNum).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-                                  }
+                                  const isReplacedStatus = [...ZEROING_STATUSES, "Partial"].includes(cs.status);
+                                  let origAmount = cs.original_payment_amount;
 
-                                  // Fallback for existing zeroed schedules without original_payment_amount
-                                  if (isZeroed) {
-                                    const replacement = chain.find(c => c.linked === cs.schedule_id);
-                                    if (replacement) {
-                                      const baseAmt = replacement.basePayment || replacement.payment_amount;
-                                      if (baseAmt) {
-                                        const num = typeof baseAmt === 'number' ? baseAmt : Number(String(baseAmt).replace(/[^0-9.-]/g, ""));
-                                        if (num && num !== 0) {
-                                          return `$${Math.abs(num).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-                                        }
-                                      }
+                                  if (isReplacedStatus && origAmount != null) {
+                                    const origNum = typeof origAmount === 'number' ? origAmount : Number(String(origAmount).replace(/[^0-9.-]/g, ""));
+                                    if (origNum && origNum !== 0) {
+                                      return `$${Math.abs(origNum).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
                                     }
                                   }
 
