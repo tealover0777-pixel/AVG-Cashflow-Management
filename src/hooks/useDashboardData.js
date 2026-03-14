@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { useAuth } from '../AuthContext';
 
-export function useDashboardData({ PROJECTS = [], CONTRACTS = [], PARTIES = [], SCHEDULES = [], PAYMENTS = [], MONTHLY = [] }) {
+export function useDashboardData({ PROJECTS = [], CONTRACTS = [], PARTIES = [], SCHEDULES = [], PAYMENTS = [], MONTHLY = [], DIMENSIONS = [] }) {
     const { profile, isSuperAdmin, isTenantAdmin, isMember, isGlobalRole } = useAuth();
 
     const dashboardData = useMemo(() => {
@@ -35,7 +35,18 @@ export function useDashboardData({ PROJECTS = [], CONTRACTS = [], PARTIES = [], 
             })
             : SCHEDULES;
 
-        const liveSchedules = allFilteredSchedules.filter(s => ["Due", "Paid", "Partial"].includes(s.status));
+        // Derive valid Payment Status values dynamically from Dimensions
+        const paymentStatusDim = DIMENSIONS.find(d => d.name === "Payment Status");
+        // Statuses considered "zeroed out" — excluded from metric/chart calculations
+        const ZEROED_STATUSES = new Set(["Missed", "Cancelled", "VOID", "Waived", "Replaced"]);
+        // All valid statuses from Dimensions (or fallback to what's actually in the data)
+        const allValidStatuses = paymentStatusDim?.items?.length
+            ? new Set(paymentStatusDim.items.map(i => typeof i === 'string' ? i : i.value || i.label || i.name).filter(Boolean))
+            : new Set(allFilteredSchedules.map(s => s.status).filter(Boolean));
+        // liveStatuses = all valid statuses minus the zeroed-out ones (used for metrics)
+        const liveStatuses = [...allValidStatuses].filter(s => !ZEROED_STATUSES.has(s));
+
+        const liveSchedules = allFilteredSchedules.filter(s => liveStatuses.includes(s.status));
 
         // 2. Calculate Key Metrics
         const totalAUM = filteredContracts.reduce((sum, c) => sum + Number(String(c.amount || 0).replace(/[^0-9.-]/g, '')), 0);
@@ -170,13 +181,13 @@ export function useDashboardData({ PROJECTS = [], CONTRACTS = [], PARTIES = [], 
                 cashflow: quarters,
                 diversification: pieData
             },
-            recentActivity: liveSchedules
+            recentActivity: allFilteredSchedules
                 .sort((a, b) => (a.dueDate || '').localeCompare(b.dueDate || '')),
             contracts: filteredContracts,
             isMember,
             myParty
         };
-    }, [PROJECTS, CONTRACTS, PARTIES, SCHEDULES, PAYMENTS, profile, isSuperAdmin, isTenantAdmin, isMember]);
+    }, [PROJECTS, CONTRACTS, PARTIES, SCHEDULES, PAYMENTS, DIMENSIONS, profile, isSuperAdmin, isTenantAdmin, isMember]);
 
     return dashboardData;
 }

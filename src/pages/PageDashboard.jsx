@@ -11,8 +11,8 @@ import {
 } from 'lucide-react';
 
 export default function PageDashboard(props) {
-  const { t, isDark, setActivePage } = props;
-  const data = useDashboardData(props);
+  const { t, isDark, setActivePage, DIMENSIONS = [] } = props;
+  const data = useDashboardData({ ...props, DIMENSIONS });
   const { metrics, charts, recentActivity, contracts, isMember, myParty } = data;
 
   const topCards = [
