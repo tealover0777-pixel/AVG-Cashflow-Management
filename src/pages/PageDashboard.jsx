@@ -222,7 +222,7 @@ export default function PageDashboard(props) {
                       <td style={{ padding: '14px 24px', fontSize: 12, fontFamily: t.mono, color: t.textMuted }}>{s.dueDate}</td>
                       <td style={{ padding: '14px 24px', fontSize: 12, color: t.textSecondary }}>{s.type}</td>
                       <td style={{ padding: '14px 24px', fontSize: 11, fontWeight: 600, color: s.direction === 'IN' ? '#10B981' : '#EF4444' }}>{s.direction}</td>
-                      <td style={{ padding: '14px 24px', fontSize: 12.5, fontWeight: 600 }}>{s.payment}</td>
+                      <td style={{ padding: '14px 24px', fontSize: 12.5, fontWeight: 600 }}>{s.signed_payment_amount}</td>
                       <td style={{ padding: '14px 24px' }}>
                         <span style={{ fontSize: 10, fontWeight: 700, padding: '4px 10px', borderRadius: 20, background: bg, color, border: `1px solid ${brd}` }}>{s.status}</span>
                       </td>
