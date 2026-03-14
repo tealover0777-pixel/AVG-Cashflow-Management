@@ -236,6 +236,8 @@ function AppContent() {
         signed_payment_amount: fmtCurr(signed),
         linked: d.linked_to_parent || d.linked || "", // Backward link to parent
         linked_schedule_id: d.linked_schedule_id || "", // Forward link to child
+        original_payment_amount: d.original_payment_amount,
+        payment_amount: d.payment_amount,
         notes: d.notes || "",
         applied_to: d.applied_to || "",
         term_start: fmtDate(d.term_start), term_end: fmtDate(d.term_end),
