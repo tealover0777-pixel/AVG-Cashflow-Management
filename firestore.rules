@@ -101,6 +101,22 @@ service cloud.firestore {
       allow write: if isGlobalRole() || isCompanySuperAdmin() || isTenantAdmin(request.auth.token.tenantId);
     }
 
+    // === AI Assistant / Help System Rules ===
+    match /system/{docId} {
+      // Anyone can read the system knowledge base or config
+      allow read: if request.auth != null;
+      // Only Super Admins can update it (we'll assume super admins can edit)
+      allow write: if isCompanySuperAdmin() || isGlobalRole();
+    }
+    
+    match /help_conversations/{docId} {
+      // Anyone can add a conversation to history
+      allow create: if request.auth != null;
+      // Users can read/update their own feedback, Admins can read/update all
+      allow read, update: if request.auth != null && (request.auth.uid == resource.data.user_id || isCompanySuperAdmin() || isGlobalRole());
+      allow delete: if isCompanySuperAdmin() || isGlobalRole();
+    }
+
     // Rules for data within a tenant.
     match /tenants/{tenantId}/{document=**} {
       allow read, write: if isCompanySuperAdmin() || isSecretAdmin() || isGlobalRole();
