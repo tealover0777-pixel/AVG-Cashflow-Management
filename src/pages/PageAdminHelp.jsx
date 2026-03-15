@@ -98,6 +98,21 @@ export default function PageAdminHelp({ t, isDark }) {
     }
   };
 
+  const handleMarkResolved = async () => {
+    if (!selectedConv) return;
+    try {
+      setLoading(true);
+      await updateDoc(doc(db, "help_conversations", selectedConv.id), { status: "resolved" });
+      setConversations(prev => prev.map(c => c.id === selectedConv.id ? { ...c, status: "resolved" } : c));
+      setSelectedConv(null);
+      setNewRule("");
+    } catch (err) {
+      alert("Failed to mark as resolved.");
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
   if (!isGlobalRole && !isCompanySuperAdmin) {
     return <div style={{ padding: 40, textAlign: "center", color: t.text }}>Access Denied. You must be an Admin to view this page.</div>;
   }
@@ -208,6 +223,14 @@ export default function PageAdminHelp({ t, isDark }) {
                 onChange={e => setNewRule(e.target.value)}
                 style={{ width: "100%", height: 100, padding: 12, borderRadius: 8, border: `1px solid ${t.surfaceBorder}`, background: isDark ? "rgba(0,0,0,0.2)" : "#fff", color: t.text, fontSize: 14, resize: "none", outline: "none" }}
               />
+              <div style={{ display: "flex", gap: 10, marginTop: 12 }}>
+                <button onClick={handleMarkResolved} disabled={loading} style={{ flex: 1, padding: "10px 0", borderRadius: 8, border: `1px solid ${t.surfaceBorder}`, background: t.chipBg, color: t.text, fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
+                  ✓ Mark as Resolved (no rule)
+                </button>
+                <button onClick={handleResolveIssue} disabled={loading || !newRule.trim()} style={{ flex: 1, padding: "10px 0", borderRadius: 8, border: "none", background: newRule.trim() ? t.accentGrad : (isDark ? "rgba(255,255,255,0.05)" : "#e5e7eb"), color: newRule.trim() ? "#fff" : t.textMuted, fontSize: 13, fontWeight: 600, cursor: newRule.trim() ? "pointer" : "not-allowed" }}>
+                  ➕ Add Rule &amp; Resolve
+                </button>
+              </div>
             </div>
           </div>
         )}
