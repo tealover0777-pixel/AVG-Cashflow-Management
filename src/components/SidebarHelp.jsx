@@ -86,7 +86,7 @@ export default function SidebarHelp({ open, onClose, t, isDark }) {
 
     } catch (err) {
       console.error("Error from AI/Firestore:", err);
-      setMessages(prev => [...prev, { id: Date.now().toString(), role: "model", text: "I'm sorry, I encountered an error answering that. Please try again." }]);
+      setMessages(prev => [...prev, { id: Date.now().toString(), role: "model", text: `I'm sorry, I encountered an error: ${err.message || String(err)}` }]);
     } finally {
       setLoading(false);
     }

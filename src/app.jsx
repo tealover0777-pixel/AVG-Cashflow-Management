@@ -25,7 +25,7 @@ import PageDimensions from "./pages/PageDimensions";
 import PageReports from "./pages/PageReports";
 import { Tooltip } from "./components";
 import SidebarHelp from "./components/SidebarHelp";
-
+import PageAdminHelp from "./pages/PageAdminHelp";
 // ─────────────────────────────────────────────────────────────────────────────
 // ERROR BOUNDARY
 // ─────────────────────────────────────────────────────────────────────────────
@@ -516,6 +516,7 @@ function AppContent() {
                   {activePage === "Profile" && <PageProfile t={t} isDark={isDark} setIsDark={setIsDark} ROLES={rawRoles} collectionPath={fetchPaths.users} activeTenantId={activeTenantId} />}
                   {activePage === "Dimensions" && <PageDimensions t={t} isDark={isDark} DIMENSIONS={DIMENSIONS} rawDimensions={rawDimensions} collectionPath={fetchPaths.dimensions} />}
                   {activePage === "Reports" && <PageReports t={t} isDark={isDark} MONTHLY={MONTHLY} activeTenantId={activeTenantId} />}
+                  {activePage === "AI Admin" && <PageAdminHelp t={t} isDark={isDark} />}
                 </>
               )}
         </div>
