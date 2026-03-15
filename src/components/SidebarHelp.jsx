@@ -23,14 +23,14 @@ export default function SidebarHelp({ open, onClose, t, isDark }) {
           kbText = docSnap.data().content;
         }
         setModelOptions({
-          model: "gemini-1.5-flash",
+          model: "gemini-2.5-flash-lite",
           systemInstruction: kbText,
         });
       } catch (err) {
         console.error("Failed to load KB:", err);
         // Fallback options
         setModelOptions({
-          model: "gemini-1.5-flash",
+          model: "gemini-2.5-flash-lite",
           systemInstruction: "You are a helpful assistant for AVG Cashflow Management.",
         });
       }
