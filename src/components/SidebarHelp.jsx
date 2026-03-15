@@ -105,20 +105,15 @@ export default function SidebarHelp({ open, onClose, t, isDark }) {
   if (!open) return null;
 
   return (
-    <>
-      <div 
-        style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.3)", backdropFilter: "blur(2px)", zIndex: 9998 }} 
-        onClick={onClose} 
-      />
-      <div style={{
-        position: "fixed", top: 0, bottom: 0, right: 0, width: 420, maxWidth: "100%",
-        background: isDark ? "#1C1917" : "#FFFFFF",
-        borderLeft: `1px solid ${t.surfaceBorder}`,
-        boxShadow: "-10px 0 40px rgba(0,0,0,0.2)",
-        display: "flex", flexDirection: "column",
-        zIndex: 9999,
-        transform: "translateX(0)", // Assuming it unmounts when not open, so we don't need a CSS transition here if we just render conditionally
-      }}>
+    <div style={{
+      position: "fixed", top: 0, bottom: 0, right: 0, width: 420, maxWidth: "100%",
+      background: isDark ? "#1C1917" : "#FFFFFF",
+      borderLeft: `1px solid ${t.surfaceBorder}`,
+      boxShadow: "-10px 0 40px rgba(0,0,0,0.2)",
+      display: "flex", flexDirection: "column",
+      zIndex: 9999,
+      animation: "slideInFromRight 0.25s ease",
+    }}>
         {/* Header */}
         <div style={{ padding: "20px 24px", borderBottom: `1px solid ${t.surfaceBorder}`, display: "flex", alignItems: "center", justifyContent: "space-between", background: t.topbar }}>
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
@@ -227,8 +222,8 @@ export default function SidebarHelp({ open, onClose, t, isDark }) {
         <style>{`
           @keyframes spin { 100% { transform: rotate(360deg); } }
           .animate-spin { animation: spin 1s linear infinite; }
+          @keyframes slideInFromRight { from { transform: translateX(100%); } to { transform: translateX(0); } }
         `}</style>
       </div>
-    </>
   );
 }
