@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { getGenerativeModel } from "firebase/vertexai";
+import { getGenerativeModel } from "@firebase/vertexai";
 import { collection, addDoc, doc, getDoc, updateDoc, serverTimestamp } from "firebase/firestore";
 import { vertexAI, db } from "../firebase";
 import { Send, X, ThumbsUp, ThumbsDown, Bot, Loader2 } from "lucide-react";
