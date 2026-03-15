@@ -520,8 +520,8 @@ function AppContent() {
                 </>
               )}
         </div>
-        <SidebarHelp open={helpOpen} onClose={() => setHelpOpen(false)} t={t} isDark={isDark} />
       </div>
+      <SidebarHelp open={helpOpen} onClose={() => setHelpOpen(false)} t={t} isDark={isDark} />
     </div>
   );
 }

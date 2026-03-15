@@ -106,13 +106,13 @@ export default function SidebarHelp({ open, onClose, t, isDark }) {
 
   return (
     <div style={{
-      position: "fixed", top: 0, bottom: 0, right: 0, width: 420, maxWidth: "100%",
+      width: 380, flexShrink: 0,
       background: isDark ? "#1C1917" : "#FFFFFF",
       borderLeft: `1px solid ${t.surfaceBorder}`,
-      boxShadow: "-10px 0 40px rgba(0,0,0,0.2)",
+      boxShadow: "-6px 0 24px rgba(0,0,0,0.1)",
       display: "flex", flexDirection: "column",
-      zIndex: 9999,
-      animation: "slideInFromRight 0.25s ease",
+      overflow: "hidden",
+      animation: "slideInFromRight 0.2s ease",
     }}>
         {/* Header */}
         <div style={{ padding: "20px 24px", borderBottom: `1px solid ${t.surfaceBorder}`, display: "flex", alignItems: "center", justifyContent: "space-between", background: t.topbar }}>
