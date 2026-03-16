@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { collection, query, orderBy, getDocs, doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
+import { collection, query, orderBy, getDocs, doc, getDoc, setDoc, updateDoc, deleteDoc } from "firebase/firestore";
 import { db } from "../firebase";
 import { useAuth } from "../AuthContext";
 import { TblHead, TblFilterRow, Tooltip, Modal, FIn, Bdg } from "../components";
@@ -77,8 +77,8 @@ export default function PageAdminHelp({ t, isDark }) {
     try {
       setLoading(true);
       
-      // 1. Append rule to knowledge base
-      const updatedKb = `${kbContent}\n\n=== Rule Added for issue: '${selectedConv.question}' ===\n${newRule}`;
+      // 1. Append rule to knowledge base in Q:/A: format which Gemini understands best
+      const updatedKb = `${kbContent}\n\nQ: ${selectedConv.question}\nA: ${newRule}`;
       await setDoc(doc(db, "system", "knowledge_base"), { content: updatedKb }, { merge: true });
       setKbContent(updatedKb);
       
@@ -95,6 +95,19 @@ export default function PageAdminHelp({ t, isDark }) {
       console.error(err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDeleteConv = async (id, e) => {
+    e?.stopPropagation();
+    if (!window.confirm("Delete this conversation record?")) return;
+    try {
+      await deleteDoc(doc(db, "help_conversations", id));
+      setConversations(prev => prev.filter(c => c.id !== id));
+      if (selectedConv?.id === id) { setSelectedConv(null); setNewRule(""); }
+    } catch (err) {
+      alert("Failed to delete.");
+      console.error(err);
     }
   };
 
@@ -118,11 +131,12 @@ export default function PageAdminHelp({ t, isDark }) {
   }
 
   const cols = [
-    { k: "date", l: "Date", w: "150px" },
-    { k: "user", l: "User", w: "200px" },
+    { k: "date", l: "Date", w: "130px" },
+    { k: "user", l: "User", w: "170px" },
     { k: "question", l: "Question", w: "1fr" },
-    { k: "feedback", l: "Feedback", w: "100px" },
-    { k: "status", l: "Status", w: "100px" },
+    { k: "feedback", l: "Feedback", w: "90px" },
+    { k: "status", l: "Status", w: "90px" },
+    { k: null, l: "", w: "50px" },
   ];
 
   return (
@@ -156,17 +170,20 @@ export default function PageAdminHelp({ t, isDark }) {
                  <div style={{ padding: 40, textAlign: "center", color: t.textMuted }}>No conversations recorded yet.</div>
                ) : (
                  conversations.map(c => (
-                   <div key={c.id} className="data-row" onClick={() => setSelectedConv(c)} style={{ display: "grid", gridTemplateColumns: cols.map(c => c.w).join(" "), padding: "14px 22px", borderBottom: `1px solid ${t.rowDivider}`, alignItems: "center", background: c.status === "pending" && c.feedback === "down" ? (isDark ? "rgba(239, 68, 68, 0.05)" : "#FEF2F2") : "transparent" }}>
-                     <div style={{ fontSize: 12, color: t.textMuted }}>{c.date.split(',')[0]}</div>
-                     <div style={{ fontSize: 13, color: t.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.user_email}</div>
-                     <div style={{ fontSize: 13, color: t.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontWeight: 500 }}>&quot;{c.question}&quot;</div>
-                     <div>
-                       {c.feedback === "up" ? <div style={{ color: "#10B981" }}><ThumbsUp size={16} /></div> : c.feedback === "down" ? <div style={{ color: "#EF4444" }}><ThumbsDown size={16} /></div> : <span style={{ color: t.textMuted, fontSize: 12 }}>None</span>}
-                     </div>
-                     <div>
-                       {c.status === "resolved" ? <Bdg status="Resolved" isDark={isDark} /> : <Bdg status="Pending" isDark={isDark} />}
-                     </div>
-                   </div>
+                    <div key={c.id} className="data-row" onClick={() => setSelectedConv(c)} style={{ display: "grid", gridTemplateColumns: cols.map(c => c.w).join(" "), padding: "14px 22px", borderBottom: `1px solid ${t.rowDivider}`, alignItems: "center", background: c.status === "pending" && c.feedback === "down" ? (isDark ? "rgba(239, 68, 68, 0.05)" : "#FEF2F2") : "transparent" }}>
+                      <div style={{ fontSize: 12, color: t.textMuted }}>{c.date.split(',')[0]}</div>
+                      <div style={{ fontSize: 13, color: t.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.user_email}</div>
+                      <div style={{ fontSize: 13, color: t.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontWeight: 500 }}>&quot;{c.question}&quot;</div>
+                      <div>
+                        {c.feedback === "up" ? <div style={{ color: "#10B981" }}><ThumbsUp size={16} /></div> : c.feedback === "down" ? <div style={{ color: "#EF4444" }}><ThumbsDown size={16} /></div> : <span style={{ color: t.textMuted, fontSize: 12 }}>None</span>}
+                      </div>
+                      <div>
+                        {c.status === "resolved" ? <Bdg status="Resolved" isDark={isDark} /> : <Bdg status="Pending" isDark={isDark} />}
+                      </div>
+                      <div onClick={e => handleDeleteConv(c.id, e)} style={{ display: "flex", justifyContent: "center" }}>
+                        <button style={{ background: "transparent", border: "none", color: isDark ? "#F87171" : "#DC2626", cursor: "pointer", fontSize: 16, lineHeight: 1, padding: "2px 6px", borderRadius: 4, opacity: 0.6 }} title="Delete">×</button>
+                      </div>
+                    </div>
                  ))
                )}
              </div>
