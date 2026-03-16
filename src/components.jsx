@@ -214,11 +214,13 @@ export const Modal = ({ open, onClose, title, onSave, saveLabel, danger, width, 
           <Tooltip text="Cancel without saving" t={t}>
             <button onClick={onClose} disabled={loading} style={{ padding: "10px 22px", borderRadius: 10, fontSize: 13, fontWeight: 500, background: t.chipBg, color: t.textSecondary, border: `1px solid ${t.chipBorder}`, cursor: loading ? "default" : "pointer", opacity: loading ? 0.5 : 1 }}>Cancel</button>
           </Tooltip>
-          <Tooltip text={danger ? "Confirm deletion" : (saveLabel || "Save changes")} t={t}>
-            <button onClick={onSave} disabled={loading} className="primary-btn" style={{ padding: "10px 22px", borderRadius: 10, fontSize: 13, fontWeight: 600, background: danger ? "rgba(248,113,113,0.15)" : t.accentGrad, color: danger ? (isDark ? "#F87171" : "#DC2626") : "#fff", border: danger ? `1px solid ${isDark ? "rgba(248,113,113,0.3)" : "#FECACA"}` : "none", boxShadow: danger ? "none" : `0 4px 14px ${t.accentShadow}`, cursor: loading ? "default" : "pointer", opacity: loading ? 0.6 : 1 }}>
-              {loading ? "..." : (saveLabel || "Save")}
-            </button>
-          </Tooltip>
+          {onSave && (
+            <Tooltip text={danger ? "Confirm deletion" : (saveLabel || "Save changes")} t={t}>
+              <button onClick={onSave} disabled={loading} className="primary-btn" style={{ padding: "10px 22px", borderRadius: 10, fontSize: 13, fontWeight: 600, background: danger ? "rgba(248,113,113,0.15)" : t.accentGrad, color: danger ? (isDark ? "#F87171" : "#DC2626") : "#fff", border: danger ? `1px solid ${isDark ? "rgba(248,113,113,0.3)" : "#FECACA"}` : "none", boxShadow: danger ? "none" : `0 4px 14px ${t.accentShadow}`, cursor: loading ? "default" : "pointer", opacity: loading ? 0.6 : 1 }}>
+                {loading ? "..." : (saveLabel || "Save")}
+              </button>
+            </Tooltip>
+          )}
         </div>
       </div>
     </div>
