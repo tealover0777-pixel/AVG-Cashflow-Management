@@ -16,9 +16,12 @@ export default function SidebarHelp({ open, onClose, t, isDark }) {
   // Fetch knowledge base text and initialize model options
   useEffect(() => {
     async function fetchKB() {
+      if (!open || !user?.uid) return;
+      
       try {
+        console.log("Refreshing Knowledge Base for User:", user.email);
         const docSnap = await getDoc(doc(db, "system", "knowledge_base"));
-        let kbText = "You are a helpful assistant for AVG Cashflow Management. Answer questions concisely and professionally. You assist users with Projects, Parties, Schedules, and Payments.";
+        let kbText = "You are a helpful assistant for AVG Cashflow Management. Answer questions concisely and professionally. You assist users with Projects, Parties, Schedules, and Payments. If you don't know an answer, tell the user to contact the admin at admin@avg-cashflow.com.";
         if (docSnap.exists() && docSnap.data().content) {
           kbText = docSnap.data().content;
         }
@@ -26,18 +29,18 @@ export default function SidebarHelp({ open, onClose, t, isDark }) {
           model: "gemini-2.5-flash",
           systemInstruction: kbText,
         });
-        console.log("Model Initialized for User:", user?.uid, " (Model: gemini-2.5-flash)");
+        console.log("Model Initialized with latest KB.");
       } catch (err) {
-        console.error("Failed to load KB:", err);
+        console.error("Failed to load KB from Firestore:", err);
         // Fallback options
         setModelOptions({
           model: "gemini-2.5-flash",
-          systemInstruction: "You are a helpful assistant for AVG Cashflow Management.",
+          systemInstruction: "You are a helpful assistant for AVG Cashflow Management. You provide information about Projects, Parties, and Schedules. If you don't know the answer, politely suggest contacting the admin.",
         });
       }
     }
     fetchKB();
-  }, []);
+  }, [open, user?.uid]);
 
   // Auto-scroll to bottom of chat
   useEffect(() => {
