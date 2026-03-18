@@ -47,9 +47,10 @@ Firestore rules (`firestore.rules`) enforce multi-tenancy at the database level 
 
 1. `src/app.jsx` — root router/state manager, fetches all collections via `useFirestoreCollection.js`, filters by `activeTenantId`
 2. `src/hooks/useDashboardData.js` — computes dashboard metrics (Total Income, Missed Payments, Active Contracts, Avg Yield, quarterly charts) from the fetched data
-3. `src/pages/*.jsx` — 14 page components; navigation and visible pages are gated by `hasPermission()` checks
-4. `src/components.jsx` — shared UI components (cards, tables, buttons)
-5. `functions/index.js` — Cloud Functions for `inviteUser` (creates Auth user, sets claims, creates Firestore profiles), `resendVerification`, `createFirstAdmin`
+3. `src/pages/*.jsx` — 15 page components (Dashboard, Deals, Parties, Contracts, Schedule, Payments, Fees, Reports, Tenants, UserProfiles, Roles, SuperAdmin, Profile, Dimensions, AdminHelp); navigation and visible pages are gated by `hasPermission()` checks
+4. `src/components.jsx` — shared UI components (cards, tables, buttons, tooltips, pagination)
+5. `src/components/SidebarHelp.jsx` — contextual help sidebar component
+6. `functions/index.js` — Cloud Functions for `inviteUser` (creates Auth user, sets claims, creates Firestore profiles), `resendVerification`, `createFirstAdmin`
 
 ### Key Files
 
@@ -69,6 +70,12 @@ Firestore rules (`firestore.rules`) enforce multi-tenancy at the database level 
 
 11 Firebase Extensions auto-export Firestore collection changes to BigQuery in real-time (deals, parties, contracts, paymentSchedules, payments, fees, tenant-users). Configured in `firebase.json` under `extensions`.
 
+**Note:** One extension is still named `firestore-bigquery-export-projects` but exports the `deals/` collection (reflects legacy naming from projects → deals refactoring).
+
 ### Firebase Data Connect
 
 `dataconnect/` contains a PostgreSQL schema (Cloud SQL instance `avgcashflowmanagement-fdc`) and auto-generated SDK in `src/dataconnect-generated/`. This is separate from the primary Firestore database.
+
+## Recent Changes
+
+- **Projects → Deals Terminology**: The codebase has undergone a refactoring to rename "Projects" to "Deals" throughout the application. The Firestore collection is now `deals/`, and all components reference `DEALS` instead of `PROJECTS`. See `scripts/README.md` for migration details.
