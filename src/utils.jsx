@@ -97,7 +97,7 @@ const NAV_ITEMS = [
     ]
   },
   {
-    label: "Super Admin",
+    label: "Administration",
     icon: "🔐",
     expandable: true,
     children: [
