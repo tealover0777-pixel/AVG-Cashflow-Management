@@ -112,6 +112,9 @@
   text-transform: capitalize;
   font-family: 'DM Sans', 'Segoe UI', sans-serif;
   justify-content: flex-start;
+  gap: 8px; /* Consistent spacing between text and icons */
+  display: flex;
+  align-items: center;
 }
 
 .ag-theme-custom .ag-header-cell {
@@ -121,15 +124,29 @@
   align-items: center;
 }
 
-/* Sort indicator styling */
+/* Icon and Indicator styling */
+.ag-theme-custom .ag-icon {
+  font-size: 14px; /* Enhanced visibility */
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+}
+
 .ag-theme-custom .ag-header-icon {
   color: var(--ag-header-foreground-color);
-  font-size: 10px;
+  opacity: 0.5; /* Muted by default */
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+}
+
+.ag-theme-custom .ag-header-cell:hover .ag-header-icon {
+  opacity: 1; /* More visible on hover */
 }
 
 /* Sort indicator active state */
-.ag-theme-custom .ag-sort-ascending-icon,
-.ag-theme-custom .ag-sort-descending-icon {
+.ag-theme-custom .ag-header-icon:not(.ag-hidden) {
+  opacity: 1;
   color: var(--ag-input-focus-border-color);
 }
 
