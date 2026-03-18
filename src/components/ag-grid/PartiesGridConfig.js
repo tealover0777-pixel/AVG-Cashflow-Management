@@ -13,8 +13,7 @@ export const getColumnDefs = (permissions, isDark, t) => {
       sortable: true,
       filter: "agTextColumnFilter",
       filterParams: {
-        filterOptions: ["contains"],
-        suppressAndOrCondition: true,
+        filterOptions: ["contains", "notContains", "equals", "notEqual", "startsWith", "endsWith"],
         trimInput: true,
         debounceMs: 300
       },
@@ -32,8 +31,7 @@ export const getColumnDefs = (permissions, isDark, t) => {
       sortable: true,
       filter: "agTextColumnFilter",
       filterParams: {
-        filterOptions: ["contains"],
-        suppressAndOrCondition: true,
+        filterOptions: ["contains", "notContains", "equals", "notEqual", "startsWith", "endsWith"],
         trimInput: true,
         debounceMs: 300
       },
@@ -84,8 +82,7 @@ export const getColumnDefs = (permissions, isDark, t) => {
       sortable: true,
       filter: "agTextColumnFilter",
       filterParams: {
-        filterOptions: ["contains"],
-        suppressAndOrCondition: true,
+        filterOptions: ["contains", "notContains", "equals", "notEqual", "startsWith", "endsWith"],
         trimInput: true,
         debounceMs: 300
       },
@@ -98,8 +95,7 @@ export const getColumnDefs = (permissions, isDark, t) => {
       sortable: true,
       filter: "agTextColumnFilter",
       filterParams: {
-        filterOptions: ["contains"],
-        suppressAndOrCondition: true,
+        filterOptions: ["contains", "notContains", "equals", "notEqual", "startsWith", "endsWith"],
         trimInput: true,
         debounceMs: 300
       },
@@ -118,8 +114,7 @@ export const getColumnDefs = (permissions, isDark, t) => {
       sortable: true,
       filter: "agTextColumnFilter",
       filterParams: {
-        filterOptions: ["contains"],
-        suppressAndOrCondition: true,
+        filterOptions: ["contains", "notContains", "equals", "notEqual", "startsWith", "endsWith"],
         trimInput: true,
         debounceMs: 300
       },
@@ -139,8 +134,7 @@ export const getColumnDefs = (permissions, isDark, t) => {
       sortable: true,
       filter: "agTextColumnFilter",
       filterParams: {
-        filterOptions: ["contains"],
-        suppressAndOrCondition: true,
+        filterOptions: ["contains", "notContains", "equals", "notEqual", "startsWith", "endsWith"],
         trimInput: true,
         debounceMs: 300
       },
@@ -159,8 +153,7 @@ export const getColumnDefs = (permissions, isDark, t) => {
       sortable: true,
       filter: "agTextColumnFilter",
       filterParams: {
-        filterOptions: ["contains"],
-        suppressAndOrCondition: true,
+        filterOptions: ["contains", "notContains", "equals", "notEqual", "startsWith", "endsWith"],
         trimInput: true,
         debounceMs: 300
       },
