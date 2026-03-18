@@ -1,0 +1,365 @@
+/* ============================================================================
+   AG Grid Custom Theme for AVG Cashflow Management
+   Excel-like Data Grid with True Vertical Dividers
+   ============================================================================ */
+
+/* Base Theme Structure */
+.ag-theme-custom {
+  --ag-borders: solid 1px;
+  --ag-borders-row: solid 1px;
+  --ag-borders-side-button: none;
+  --ag-cell-horizontal-padding: 22px;
+  --ag-header-height: 48px;
+  --ag-row-height: 56px;
+  border-radius: 16px;
+  overflow: hidden;
+
+  /* Font Settings */
+  font-family: 'DM Sans', 'Segoe UI', sans-serif;
+  font-size: 13.5px;
+}
+
+/* Dark Mode Variables */
+.ag-theme-custom.dark-mode {
+  --ag-background-color: rgba(255, 255, 255, 0.02);
+  --ag-header-background-color: rgba(255, 255, 255, 0.04);
+  --ag-odd-row-background-color: transparent;
+  --ag-row-hover-color: rgba(255, 255, 255, 0.04);
+  --ag-selected-row-background-color: rgba(52, 211, 153, 0.08);
+
+  --ag-row-border-color: rgba(255, 255, 255, 0.04);
+  --ag-border-color: rgba(255, 255, 255, 0.07);
+  --ag-cell-horizontal-border: rgba(255, 255, 255, 0.06);
+
+  --ag-foreground-color: #e2e8f0;
+  --ag-header-foreground-color: #ffffff;
+  --ag-secondary-foreground-color: rgba(255, 255, 255, 0.7);
+  --ag-disabled-foreground-color: rgba(255, 255, 255, 0.3);
+
+  --ag-input-border-color: rgba(255, 255, 255, 0.1);
+  --ag-input-focus-border-color: #34D399;
+
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  backdrop-filter: blur(20px);
+}
+
+/* Light Mode Variables */
+.ag-theme-custom.light-mode {
+  --ag-background-color: #FFFFFF;
+  --ag-header-background-color: #FAFAF9;
+  --ag-odd-row-background-color: transparent;
+  --ag-row-hover-color: #FAFAF9;
+  --ag-selected-row-background-color: #EFF6FF;
+
+  --ag-row-border-color: #F5F4F1;
+  --ag-border-color: #EAE8E4;
+  --ag-cell-horizontal-border: #E8E6E2;
+
+  --ag-foreground-color: #1C1917;
+  --ag-header-foreground-color: #1C1917;
+  --ag-secondary-foreground-color: #57534E;
+  --ag-disabled-foreground-color: #A8A29E;
+
+  --ag-input-border-color: #E5E3DF;
+  --ag-input-focus-border-color: #4F46E5;
+
+  border: 1px solid #EAE8E4;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
+}
+
+/* ============================================================================
+   EXCEL-LIKE VERTICAL DIVIDERS (CRITICAL)
+   ============================================================================ */
+
+/* Vertical borders on all cells */
+.ag-theme-custom .ag-cell {
+  border-right: 1px solid var(--ag-cell-horizontal-border);
+}
+
+/* Vertical borders on all header cells */
+.ag-theme-custom .ag-header-cell {
+  border-right: 1px solid var(--ag-cell-horizontal-border);
+}
+
+/* Remove border on last column */
+.ag-theme-custom .ag-cell:last-child,
+.ag-theme-custom .ag-header-cell:last-child {
+  border-right: none !important;
+}
+
+/* ============================================================================
+   HEADER STYLING
+   ============================================================================ */
+
+.ag-theme-custom .ag-header {
+  border-bottom: 1px solid var(--ag-border-color);
+}
+
+.ag-theme-custom .ag-header-cell-label {
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  font-family: 'JetBrains Mono', monospace;
+  justify-content: flex-start;
+}
+
+.ag-theme-custom .ag-header-cell {
+  padding-left: 22px;
+  padding-right: 22px;
+  display: flex;
+  align-items: center;
+}
+
+/* Sort indicator styling */
+.ag-theme-custom .ag-header-icon {
+  color: var(--ag-header-foreground-color);
+  font-size: 10px;
+}
+
+/* Sort indicator active state */
+.ag-theme-custom .ag-sort-ascending-icon,
+.ag-theme-custom .ag-sort-descending-icon {
+  color: var(--ag-input-focus-border-color);
+}
+
+/* ============================================================================
+   ROW STYLING
+   ============================================================================ */
+
+.ag-theme-custom .ag-row {
+  border-bottom: 1px solid var(--ag-row-border-color);
+  transition: background-color 0.15s ease;
+}
+
+.ag-theme-custom .ag-row:hover {
+  background-color: var(--ag-row-hover-color) !important;
+}
+
+.ag-theme-custom .ag-row:last-child {
+  border-bottom: none;
+}
+
+/* Odd/Even row alternation (disabled for cleaner look) */
+.ag-theme-custom .ag-row-odd {
+  background-color: var(--ag-odd-row-background-color);
+}
+
+/* ============================================================================
+   CELL STYLING
+   ============================================================================ */
+
+.ag-theme-custom .ag-cell {
+  display: flex;
+  align-items: center;
+  line-height: 56px;
+  padding-left: 22px;
+  padding-right: 22px;
+}
+
+/* Disable cell focus outline */
+.ag-theme-custom .ag-cell-focus,
+.ag-theme-custom .ag-cell-no-focus {
+  border: none !important;
+  outline: none !important;
+}
+
+/* Remove cell range selection borders */
+.ag-theme-custom .ag-cell-range-selected:not(.ag-cell-focus) {
+  background-color: transparent;
+  border: none;
+}
+
+/* ============================================================================
+   FILTER STYLING
+   ============================================================================ */
+
+.ag-theme-custom .ag-filter-input {
+  font-size: 11px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-family: inherit;
+}
+
+.ag-theme-custom.dark-mode .ag-filter-input {
+  background: rgba(30, 58, 138, 0.3);
+  color: rgba(255, 255, 255, 0.8);
+  border: 1px solid var(--ag-input-border-color);
+}
+
+.ag-theme-custom.light-mode .ag-filter-input {
+  background: rgba(219, 234, 254, 0.7);
+  color: #44403C;
+  border: 1px solid var(--ag-input-border-color);
+}
+
+.ag-theme-custom .ag-filter-input:focus {
+  border-color: var(--ag-input-focus-border-color);
+  outline: none;
+}
+
+/* Filter panel styling */
+.ag-theme-custom .ag-filter-panel {
+  padding: 8px;
+}
+
+.ag-theme-custom .ag-filter-body-wrapper {
+  padding: 8px 0;
+}
+
+/* ============================================================================
+   SCROLLBAR STYLING
+   ============================================================================ */
+
+.ag-theme-custom .ag-body-horizontal-scroll {
+  height: 12px;
+}
+
+.ag-theme-custom .ag-body-vertical-scroll {
+  width: 12px;
+}
+
+.ag-theme-custom.dark-mode ::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+
+.ag-theme-custom.dark-mode ::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.ag-theme-custom.dark-mode ::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+}
+
+.ag-theme-custom.dark-mode ::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.ag-theme-custom.light-mode ::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+
+.ag-theme-custom.light-mode ::-webkit-scrollbar-track {
+  background: #F1F0EE;
+}
+
+.ag-theme-custom.light-mode ::-webkit-scrollbar-thumb {
+  background: #D1CFC9;
+  border-radius: 6px;
+}
+
+.ag-theme-custom.light-mode ::-webkit-scrollbar-thumb:hover {
+  background: #B8B5AF;
+}
+
+/* ============================================================================
+   REMOVE UNWANTED AG GRID ELEMENTS
+   ============================================================================ */
+
+/* Hide pagination panel (using custom pagination) */
+.ag-theme-custom .ag-paging-panel {
+  display: none;
+}
+
+/* Remove default shadows */
+.ag-theme-custom .ag-root-wrapper {
+  box-shadow: none;
+}
+
+/* Remove grid border (handled by container) */
+.ag-theme-custom .ag-root {
+  border: none;
+}
+
+/* ============================================================================
+   PINNED COLUMNS STYLING
+   ============================================================================ */
+
+/* Right pinned column (Actions) styling */
+.ag-theme-custom .ag-pinned-right-cols-container {
+  border-left: 1px solid var(--ag-border-color);
+}
+
+.ag-theme-custom .ag-pinned-right-header {
+  border-left: 1px solid var(--ag-border-color);
+}
+
+/* ============================================================================
+   LOADING OVERLAY
+   ============================================================================ */
+
+.ag-theme-custom .ag-overlay-loading-wrapper {
+  background-color: var(--ag-background-color);
+  padding: 20px;
+}
+
+.ag-theme-custom .ag-overlay-loading-center {
+  font-size: 14px;
+  color: var(--ag-foreground-color);
+}
+
+/* ============================================================================
+   NO ROWS OVERLAY
+   ============================================================================ */
+
+.ag-theme-custom .ag-overlay-no-rows-center {
+  font-size: 14px;
+  color: var(--ag-secondary-foreground-color);
+  padding: 40px;
+}
+
+/* ============================================================================
+   RESIZE HANDLE
+   ============================================================================ */
+
+.ag-theme-custom .ag-header-cell-resize {
+  width: 6px;
+  cursor: col-resize;
+}
+
+.ag-theme-custom .ag-header-cell-resize::after {
+  content: "";
+  position: absolute;
+  top: 25%;
+  bottom: 25%;
+  left: 50%;
+  width: 1px;
+  background-color: var(--ag-border-color);
+}
+
+/* ============================================================================
+   RESPONSIVE ADJUSTMENTS
+   ============================================================================ */
+
+@media (max-width: 768px) {
+  .ag-theme-custom {
+    --ag-cell-horizontal-padding: 12px;
+    --ag-header-height: 42px;
+    --ag-row-height: 48px;
+  }
+
+  .ag-theme-custom .ag-header-cell-label {
+    font-size: 9.5px;
+  }
+}
+
+/* ============================================================================
+   CUSTOM CELL RENDERER SUPPORT
+   ============================================================================ */
+
+/* Ensure custom renderers fill cell height */
+.ag-theme-custom .ag-cell-wrapper {
+  height: 100%;
+}
+
+/* Action buttons styling within cells */
+.ag-theme-custom .action-btn {
+  transition: all 0.15s ease;
+}
+
+.ag-theme-custom .action-btn:hover {
+  transform: scale(1.05);
+}

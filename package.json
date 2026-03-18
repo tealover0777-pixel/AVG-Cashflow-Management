@@ -21,6 +21,8 @@
     "@dataconnect/admin-generated": "file:src/dataconnect-admin-generated",
     "@dataconnect/generated": "file:src/dataconnect-generated",
     "@firebase/vertexai": "^1.2.4",
+    "ag-grid-community": "^33.3.2",
+    "ag-grid-react": "^33.3.2",
     "firebase": "^12.10.0",
     "firebase-admin": "^13.7.0",
     "lucide-react": "^0.575.0",

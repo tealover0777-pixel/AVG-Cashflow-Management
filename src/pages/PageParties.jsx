@@ -1,9 +1,13 @@
-import { useState } from "react";
+import { useState, useMemo, useRef } from "react";
+import { AgGridReact } from 'ag-grid-react';
+import 'ag-grid-community/styles/ag-grid.css';
+import '../components/ag-grid/ag-grid-theme.css';
+import { getColumnDefs } from '../components/ag-grid/PartiesGridConfig';
 import { db, functions } from "../firebase";
 import { doc, setDoc, updateDoc, deleteDoc, serverTimestamp } from "firebase/firestore";
 import { httpsCallable } from "firebase/functions";
 import { initials, av, badge, sortData, fmtCurr } from "../utils";
-import { StatCard, Pagination, ActBtns, useResizableColumns, TblHead, TblFilterRow, Modal, FF, FIn, FSel, DelModal, Tooltip } from "../components";
+import { StatCard, Pagination, ActBtns, Modal, FF, FIn, FSel, DelModal, Tooltip } from "../components";
 import { useAuth } from "../AuthContext";
 
 export default function PageParties({ t, isDark, PARTIES = [], CONTRACTS = [], SCHEDULES = [], DEALS = [], collectionPath = "", DIMENSIONS = [], tenantId = "" }) {
@@ -15,12 +19,9 @@ export default function PageParties({ t, isDark, PARTIES = [], CONTRACTS = [], S
   const roleOpts = (DIMENSIONS.find(d => d.name === "PartyRole") || {}).items || ["Investor", "Borrower"];
   const partyTypeOpts = (DIMENSIONS.find(d => d.name === "PartyType") || {}).items || ["Individual", "Company", "Trust", "Partnership"];
   const investorTypeOpts = (DIMENSIONS.find(d => d.name === "InvestorType") || {}).items || ["Fixed", "Equity", "Both"];
-  const [hov, setHov] = useState(null); const [chip, setChip] = useState("All");
+  const [chip, setChip] = useState("All");
   const [modal, setModal] = useState({ open: false, mode: "add", data: {} });
   const [delT, setDelT] = useState(null);
-  const [sort, setSort] = useState({ key: null, direction: "asc" });
-  const [page, setPage] = useState(1);
-  const onSort = k => { setSort(s => ({ key: k, direction: s.key === k && s.direction === "asc" ? "desc" : "asc" })); setPage(1); };
   const nextPartyId = (() => {
     if (PARTIES.length === 0) return "M10001";
     const maxNum = Math.max(...PARTIES.map(p => { const m = String(p.id).match(/^M(\d+)$/); return m ? Number(m[1]) : 0; }));
@@ -104,20 +105,38 @@ export default function PageParties({ t, isDark, PARTIES = [], CONTRACTS = [], S
       setProcessing(false);
     }
   };
-  const [colFilters, setColFilters] = useState({});
-  const setColFilter = (key, val) => { setColFilters(f => ({ ...f, [key]: val })); setPage(1); };
   const chips = ["All", "Investors", "Borrowers", "Companies"];
-  const cols = [{ l: "PARTY ID", w: "90px", k: "id" }, { l: "NAME", w: "1fr", k: "name" }, { l: "TYPE", w: "100px", k: "type" }, { l: "ROLE", w: "90px", k: "role" }, { l: "INV TYPE", w: "80px", k: "investor_type" }, { l: "EMAIL", w: "1fr", k: "email" }, { l: "PHONE", w: "120px", k: "phone" }, { l: "ADDRESS", w: "1fr", k: "address" }, { l: "TAX ID", w: "110px", k: "tax_id" }, { l: "BANK INFO", w: "1fr", k: "bank_information" }, { l: "CREATED", w: "95px", k: "created_at" }, { l: "UPDATED", w: "95px", k: "updated_at" }, { l: "ACTIONS", w: "120px" }];
-  const { gridTemplate, headerRef, onResizeStart } = useResizableColumns(cols);
-  const filtered = PARTIES.filter(p => {
-    if (chip === "Investors" && p.role !== "Investor") return false;
-    if (chip === "Borrowers" && p.role !== "Borrower") return false;
-    if (chip === "Companies" && p.type !== "Company") return false;
-    return cols.every(c => { if (!c.k || !colFilters[c.k]) return true; return String(p[c.k] || "").toLowerCase().includes(colFilters[c.k].toLowerCase()); });
-  });
-  const sorted = sortData(filtered, sort);
-  const paginated = sorted.slice((page - 1) * 20, page * 20);
-  const totalPages = Math.ceil(sorted.length / 20);
+  const gridRef = useRef(null);
+
+  // AG Grid: Chip filtering (pre-filter data before passing to grid)
+  const getFilteredData = () => {
+    return PARTIES.filter(p => {
+      if (chip === "Investors" && p.role !== "Investor") return false;
+      if (chip === "Borrowers" && p.role !== "Borrower") return false;
+      if (chip === "Companies" && p.type !== "Company") return false;
+      return true;
+    });
+  };
+
+  // AG Grid: Column definitions
+  const permissions = { canUpdate, canDelete, canInvite };
+  const columnDefs = useMemo(() => {
+    return getColumnDefs(permissions, isDark, t);
+  }, [permissions, isDark, t]);
+
+  // AG Grid: Context for cell renderers
+  const context = useMemo(() => ({
+    isDark,
+    t,
+    permissions,
+    callbacks: {
+      onEdit: openEdit,
+      onDelete: (target) => setDelT(target),
+      onInvite: handleInviteParty,
+      onNameClick: (party) => setDetailParty(party)
+    },
+    invitingId
+  }), [isDark, t, permissions, invitingId]);
   return (<>
     {/* Full-screen Loading Overlay (Freeze) */}
     {processing && (
@@ -137,52 +156,48 @@ export default function PageParties({ t, isDark, PARTIES = [], CONTRACTS = [], S
     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
       <div style={{ display: "flex", gap: 8 }}>{chips.map((c, i) => { const isA = chip === c; return (<span key={c} className="filter-chip" onClick={() => setChip(c)} style={{ fontSize: 12, fontWeight: isA ? 600 : 500, padding: "5px 14px", borderRadius: 20, background: isA ? t.accent : t.chipBg, color: isA ? "#fff" : t.textSecondary, border: `1px solid ${isA ? t.accent : t.chipBorder}`, cursor: "pointer" }}>{c}</span>); })}</div>
     </div>
-    <div style={{ background: t.surface, borderRadius: 16, border: `1px solid ${t.surfaceBorder}`, overflow: "auto", backdropFilter: isDark ? "blur(20px)" : "none", boxShadow: t.tableShadow }}>
-      <TblHead cols={cols} t={t} isDark={isDark} sortConfig={sort} onSort={onSort} gridTemplate={gridTemplate} headerRef={headerRef} onResizeStart={onResizeStart} />
-      <TblFilterRow cols={cols} colFilters={colFilters} onFilterChange={setColFilter} onClear={() => setColFilters({})} gridTemplate={gridTemplate} t={t} isDark={isDark} />
-      {paginated.map((p, i) => {
-        const isHov = hov === p.id; const a = av(p.name, isDark); const [rb, rc, rbr] = badge(p.role, isDark);
-        const cellBorder = (colIndex) => ({ borderRight: colIndex < cols.length - 1 ? `1px solid ${t.columnDivider}` : "none" });
-        return (<div key={p.id} className="data-row" onMouseEnter={() => setHov(p.id)} onMouseLeave={() => setHov(null)} style={{ display: "grid", gridTemplateColumns: gridTemplate, padding: "12px 22px", borderBottom: i < paginated.length - 1 ? `1px solid ${t.rowDivider}` : "none", alignItems: "center", background: isHov ? t.rowHover : "transparent", transition: "all 0.15s ease" }}>
-          <div style={{ fontFamily: t.mono, fontSize: 11, color: t.idText, ...cellBorder(0) }}>{p.id}</div>
-          <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0, ...cellBorder(1) }}><div style={{ width: 32, height: 32, borderRadius: 9, background: a.bg, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700, color: a.c, flexShrink: 0, border: `1px solid ${a.c}${isDark ? "44" : "22"}` }}>{initials(p.name)}</div><a onClick={(e) => { e.preventDefault(); setDetailParty(p); }} href="#" style={{ fontSize: 13.5, fontWeight: 600, color: isDark ? "#60A5FA" : "#4F46E5", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", cursor: "pointer" }}>{p.name}</a></div>
-          <div style={{ fontSize: 12.5, color: p.type === "Company" ? (isDark ? "#A78BFA" : "#7C3AED") : t.textMuted, ...cellBorder(2) }}>{p.type === "Company" ? "◈ Company" : "◎ Individual"}</div>
-          <div style={{ ...cellBorder(3) }}><span style={{ fontSize: 11.5, fontWeight: 600, padding: "4px 11px", borderRadius: 20, background: rb, color: rc, border: `1px solid ${rbr}` }}>{p.role}</span></div>
-          <div style={{ fontSize: 11.5, color: t.textMuted, ...cellBorder(4) }}>{p.investor_type || <span style={{ color: isDark ? "rgba(255,255,255,0.12)" : "#D4D0CB" }}>—</span>}</div>
-          <div style={{ fontSize: 12.5, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0, ...cellBorder(5) }}>{p.email ? <span style={{ color: isDark ? "#60A5FA" : "#4F46E5" }}>{p.email}</span> : <span style={{ color: isDark ? "rgba(255,255,255,0.12)" : "#D4D0CB" }}>—</span>}</div>
-          <div style={{ fontFamily: t.mono, fontSize: 11, color: t.textMuted, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", ...cellBorder(6) }}>{p.phone || <span style={{ color: isDark ? "rgba(255,255,255,0.12)" : "#D4D0CB" }}>—</span>}</div>
-          <div style={{ fontSize: 12, color: t.textMuted, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0, ...cellBorder(7) }}>{p.address || <span style={{ color: isDark ? "rgba(255,255,255,0.12)" : "#D4D0CB" }}>—</span>}</div>
-          <div style={{ fontFamily: t.mono, fontSize: 11, color: t.textMuted, ...cellBorder(8) }}>{p.tax_id || <span style={{ color: isDark ? "rgba(255,255,255,0.12)" : "#D4D0CB" }}>—</span>}</div>
-          <div style={{ fontSize: 12, color: t.textMuted, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0, ...cellBorder(9) }}>{p.bank_information || <span style={{ color: isDark ? "rgba(255,255,255,0.12)" : "#D4D0CB" }}>—</span>}</div>
-          <div style={{ fontFamily: t.mono, fontSize: 10.5, color: t.idText, ...cellBorder(10) }}>{p.created_at || <span style={{ color: isDark ? "rgba(255,255,255,0.12)" : "#D4D0CB" }}>—</span>}</div>
-          <div style={{ fontFamily: t.mono, fontSize: 10.5, color: t.idText, ...cellBorder(11) }}>{p.updated_at || <span style={{ color: isDark ? "rgba(255,255,255,0.12)" : "#D4D0CB" }}>—</span>}</div>
-          <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-            <ActBtns show={isHov && (canUpdate || canDelete)} t={t} onEdit={canUpdate ? () => openEdit(p) : null} onDel={canDelete ? () => setDelT({ id: p.id, name: p.name, docId: p.docId }) : null} />
-            {isHov && canInvite && (
-              <Tooltip text="Invite as Member (R10001)" t={t}>
-                <button
-                  onClick={() => handleInviteParty(p)}
-                  disabled={invitingId === p.id}
-                  style={{
-                    background: "none",
-                    border: `1px solid ${t.border}`,
-                    borderRadius: 7,
-                    padding: "5px 8px",
-                    cursor: invitingId === p.id ? "default" : "pointer",
-                    fontSize: 13,
-                    color: t.textMuted,
-                    opacity: (invitingId === p.id || !p.email) ? 0.5 : 1
-                  }}
-                >
-                  {invitingId === p.id ? "..." : "✉️"}
-                </button>
-              </Tooltip>
-            )}
-          </div>
-        </div>);
-      })}
+    <div
+      className={`ag-theme-custom ${isDark ? 'dark-mode' : 'light-mode'}`}
+      style={{ height: 'calc(100vh - 480px)', minHeight: '500px' }}
+    >
+      <AgGridReact
+        ref={gridRef}
+        rowData={getFilteredData()}
+        columnDefs={columnDefs}
+        context={context}
+        rowHeight={56}
+        headerHeight={48}
+        animateRows={true}
+        pagination={true}
+        paginationPageSize={20}
+        suppressPaginationPanel={true}
+        suppressCellFocus={true}
+        onRowClicked={(event) => {
+          // Only open detail modal if not clicking on action buttons
+          if (!event.event.target.closest('.action-btn')) {
+            setDetailParty(event.data);
+          }
+        }}
+        onColumnResized={(event) => {
+          // Persist column widths to localStorage
+          if (event.finished) {
+            const columnState = event.api.getColumnState();
+            localStorage.setItem('partiesColumnState', JSON.stringify(columnState));
+          }
+        }}
+        onGridReady={(params) => {
+          // Restore saved column widths from localStorage
+          const savedState = localStorage.getItem('partiesColumnState');
+          if (savedState) {
+            params.api.applyColumnState({
+              state: JSON.parse(savedState),
+              applyOrder: false
+            });
+          }
+        }}
+      />
     </div>
-    <div style={{ marginTop: 16, display: "flex", justifyContent: "space-between", alignItems: "center" }}><span style={{ fontSize: 12, color: t.textSubtle }}>Showing <strong style={{ color: t.textSecondary }}>{paginated.length}</strong> of <strong style={{ color: t.textSecondary }}>{sorted.length}</strong> parties</span><Pagination totalPages={totalPages} currentPage={page} onPageChange={setPage} t={t} /></div>
+    <div style={{ marginTop: 16, display: "flex", justifyContent: "space-between", alignItems: "center" }}><span style={{ fontSize: 12, color: t.textSubtle }}>Showing <strong style={{ color: t.textSecondary }}>{Math.min(getFilteredData().length, 20)}</strong> of <strong style={{ color: t.textSecondary }}>{getFilteredData().length}</strong> parties</span><Pagination totalPages={Math.ceil(getFilteredData().length / 20)} currentPage={1} onPageChange={(newPage) => gridRef.current?.api.paginationGoToPage(newPage - 1)} t={t} /></div>
     <Modal open={modal.open} onClose={close} title={modal.mode === "add" ? "New Party" : "Edit Party"} onSave={handleSaveParty} width={600} t={t} isDark={isDark}>
       <FF label="Party ID" t={t}>
         <div style={{ fontFamily: t.mono, fontSize: 13, color: t.idText, background: isDark ? "rgba(255,255,255,0.04)" : "#F5F4F1", border: `1px solid ${t.surfaceBorder}`, borderRadius: 9, padding: "10px 13px", letterSpacing: "0.5px" }}>{modal.data.id}</div>

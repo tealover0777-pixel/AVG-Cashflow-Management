@@ -1,0 +1,224 @@
+import PartyNameCellRenderer from './PartyNameCellRenderer';
+import PartyTypeCellRenderer from './PartyTypeCellRenderer';
+import PartyRoleCellRenderer from './PartyRoleCellRenderer';
+import PartyEmailCellRenderer from './PartyEmailCellRenderer';
+import PartyActionsCellRenderer from './PartyActionsCellRenderer';
+
+export const getColumnDefs = (permissions, isDark, t) => {
+  const baseCols = [
+    {
+      headerName: "PARTY ID",
+      field: "id",
+      width: 90,
+      sortable: true,
+      filter: "agTextColumnFilter",
+      filterParams: {
+        filterOptions: ["contains"],
+        suppressAndOrCondition: true,
+        trimInput: true,
+        debounceMs: 300
+      },
+      cellStyle: {
+        fontFamily: t.mono,
+        fontSize: '11px',
+        color: t.idText
+      }
+    },
+    {
+      headerName: "NAME",
+      field: "name",
+      flex: 1,
+      minWidth: 200,
+      sortable: true,
+      filter: "agTextColumnFilter",
+      filterParams: {
+        filterOptions: ["contains"],
+        suppressAndOrCondition: true,
+        trimInput: true,
+        debounceMs: 300
+      },
+      cellRenderer: PartyNameCellRenderer
+    },
+    {
+      headerName: "TYPE",
+      field: "type",
+      width: 100,
+      sortable: true,
+      filter: "agSetColumnFilter",
+      filterParams: {
+        values: ["Individual", "Company", "Trust", "Partnership"]
+      },
+      cellRenderer: PartyTypeCellRenderer
+    },
+    {
+      headerName: "ROLE",
+      field: "role",
+      width: 90,
+      sortable: true,
+      filter: "agSetColumnFilter",
+      filterParams: {
+        values: ["Investor", "Borrower"]
+      },
+      cellRenderer: PartyRoleCellRenderer
+    },
+    {
+      headerName: "INV TYPE",
+      field: "investor_type",
+      width: 80,
+      sortable: true,
+      filter: "agSetColumnFilter",
+      filterParams: {
+        values: ["Fixed", "Equity", "Both", "Other"]
+      },
+      cellStyle: {
+        fontSize: '11.5px',
+        color: t.textMuted
+      },
+      valueFormatter: (params) => params.value || "—"
+    },
+    {
+      headerName: "EMAIL",
+      field: "email",
+      flex: 1,
+      minWidth: 200,
+      sortable: true,
+      filter: "agTextColumnFilter",
+      filterParams: {
+        filterOptions: ["contains"],
+        suppressAndOrCondition: true,
+        trimInput: true,
+        debounceMs: 300
+      },
+      cellRenderer: PartyEmailCellRenderer
+    },
+    {
+      headerName: "PHONE",
+      field: "phone",
+      width: 120,
+      sortable: true,
+      filter: "agTextColumnFilter",
+      filterParams: {
+        filterOptions: ["contains"],
+        suppressAndOrCondition: true,
+        trimInput: true,
+        debounceMs: 300
+      },
+      cellStyle: {
+        fontFamily: t.mono,
+        fontSize: '11px',
+        color: t.textMuted
+      },
+      valueFormatter: (params) => params.value || "—"
+    },
+    {
+      headerName: "ADDRESS",
+      field: "address",
+      flex: 1,
+      minWidth: 200,
+      sortable: true,
+      filter: "agTextColumnFilter",
+      filterParams: {
+        filterOptions: ["contains"],
+        suppressAndOrCondition: true,
+        trimInput: true,
+        debounceMs: 300
+      },
+      cellStyle: {
+        fontSize: '12px',
+        color: t.textMuted,
+        overflow: 'hidden',
+        textOverflow: 'ellipsis',
+        whiteSpace: 'nowrap'
+      },
+      valueFormatter: (params) => params.value || "—"
+    },
+    {
+      headerName: "TAX ID",
+      field: "tax_id",
+      width: 110,
+      sortable: true,
+      filter: "agTextColumnFilter",
+      filterParams: {
+        filterOptions: ["contains"],
+        suppressAndOrCondition: true,
+        trimInput: true,
+        debounceMs: 300
+      },
+      cellStyle: {
+        fontFamily: t.mono,
+        fontSize: '11px',
+        color: t.textMuted
+      },
+      valueFormatter: (params) => params.value || "—"
+    },
+    {
+      headerName: "BANK INFO",
+      field: "bank_information",
+      flex: 1,
+      minWidth: 200,
+      sortable: true,
+      filter: "agTextColumnFilter",
+      filterParams: {
+        filterOptions: ["contains"],
+        suppressAndOrCondition: true,
+        trimInput: true,
+        debounceMs: 300
+      },
+      cellStyle: {
+        fontSize: '12px',
+        color: t.textMuted,
+        overflow: 'hidden',
+        textOverflow: 'ellipsis',
+        whiteSpace: 'nowrap'
+      },
+      valueFormatter: (params) => params.value || "—"
+    },
+    {
+      headerName: "CREATED",
+      field: "created_at",
+      width: 95,
+      sortable: true,
+      filter: "agDateColumnFilter",
+      cellStyle: {
+        fontFamily: t.mono,
+        fontSize: '10.5px',
+        color: t.idText
+      },
+      valueFormatter: (params) => params.value || "—"
+    },
+    {
+      headerName: "UPDATED",
+      field: "updated_at",
+      width: 95,
+      sortable: true,
+      filter: "agDateColumnFilter",
+      cellStyle: {
+        fontFamily: t.mono,
+        fontSize: '10.5px',
+        color: t.idText
+      },
+      valueFormatter: (params) => params.value || "—"
+    }
+  ];
+
+  // Conditionally add Actions column if user has any action permission
+  if (permissions.canUpdate || permissions.canDelete || permissions.canInvite) {
+    baseCols.push({
+      headerName: "ACTIONS",
+      field: "actions",
+      width: 120,
+      pinned: "right",
+      sortable: false,
+      filter: false,
+      resizable: false,
+      cellRenderer: PartyActionsCellRenderer,
+      cellStyle: {
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center'
+      }
+    });
+  }
+
+  return baseCols;
+};
