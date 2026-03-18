@@ -68,7 +68,7 @@ function AppContent() {
   const [activePage, setActivePage] = useState("Dashboard");
   const [activeTenantId, setActiveTenantId] = useState("");
   const [helpOpen, setHelpOpen] = useState(false);
-  const [expandedMenus, setExpandedMenus] = useState({ Settings: true, "Super Admin": true }); // Track which menus are expanded
+  const [expandedMenus, setExpandedMenus] = useState({}); // Track which menus are expanded (all collapsed by default)
   const t = mkTheme(isDark);
 
   useEffect(() => {

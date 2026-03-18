@@ -75,11 +75,18 @@ export const mkTheme = (isDark) => isDark ? {
 
 const NAV_ITEMS = [
   { label: "Dashboard", icon: "⬡" },
-  { label: "Deals", icon: "▦" },
-  { label: "Parties", icon: "◎" },
-  { label: "Contracts", icon: "◈" },
-  { label: "Payment Schedule", icon: "▤" },
-  { label: "Payments", icon: "◇" },
+  {
+    label: "Investor Portal",
+    icon: "💼",
+    expandable: true,
+    children: [
+      { label: "Deals", icon: "▦" },
+      { label: "Parties", icon: "◎" },
+      { label: "Contracts", icon: "◈" },
+      { label: "Payment Schedule", icon: "▤" },
+      { label: "Payments", icon: "◇" },
+    ]
+  },
   {
     label: "Settings",
     icon: "⚙",
