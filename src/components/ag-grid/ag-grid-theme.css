@@ -30,9 +30,9 @@
   --ag-row-hover-color: rgba(255, 255, 255, 0.04);
   --ag-selected-row-background-color: rgba(52, 211, 153, 0.1); 
 
-  --ag-row-border-color: rgba(255, 255, 255, 0.25); /* Light gray horizontal dividers */
-  --ag-border-color: rgba(255, 255, 255, 0.15);
-  --ag-cell-horizontal-border: rgba(255, 255, 255, 0.25); /* Light gray vertical dividers */
+  --ag-row-border-color: rgba(255, 255, 255, 0.4); /* High-visibility light gray horizontal */
+  --ag-border-color: rgba(255, 255, 255, 0.25);
+  --ag-cell-horizontal-border: rgba(255, 255, 255, 0.4); /* High-visibility light gray vertical */
 
   --ag-foreground-color: #e2e8f0;
   --ag-header-foreground-color: #ffffff; /* Forced pure white */
@@ -196,11 +196,11 @@
   padding-right: 16px;
 }
 
-/* Disable cell focus outline */
+/* Disable cell focus outline but keep grid lines */
 .ag-theme-custom .ag-cell-focus,
 .ag-theme-custom .ag-cell-no-focus {
-  border: none !important;
   outline: none !important;
+  box-shadow: none !important;
 }
 
 /* Remove cell range selection borders */
