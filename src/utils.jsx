@@ -84,7 +84,7 @@ const NAV_ITEMS = [
   { label: "Tenants", icon: "🏢" },
   { label: "User Profiles", icon: "👥" },
   { label: "Role Types", icon: "🛡️" },
-  { label: "Super Admin", icon: "⚡" },
+  { label: "User Admin", icon: "⚡" },
   { label: "AI Admin", icon: "🤖" },
   { label: "Dimensions", icon: "⊞" },
   { label: "Reports", icon: "╱╲" },
@@ -95,8 +95,8 @@ export const getNav = (isSuper, isAdmin, hasPermission, isR10010) => {
   return NAV_ITEMS.filter(item => {
     if (item.hidden) return false;
 
-    // Super Admin section is restricted ONLY to R10010 role
-    if (item.label === "Super Admin") return isR10010;
+    // User Admin section is restricted ONLY to R10010 role
+    if (item.label === "User Admin") return isR10010;
     
     // AI Admin restricted to Super Admins (you can change this to global roles if needed)
     if (item.label === "AI Admin") return isSuper;
