@@ -80,24 +80,39 @@ const NAV_ITEMS = [
   { label: "Contracts", icon: "◈" },
   { label: "Payment Schedule", icon: "▤" },
   { label: "Payments", icon: "◇" },
-  { label: "Fees", icon: "◉" },
-  { label: "Tenants", icon: "🏢" },
-  { label: "User Profiles", icon: "👥" },
-  { label: "Role Types", icon: "🛡️" },
-  { label: "User Admin", icon: "⚡" },
-  { label: "AI Admin", icon: "🤖" },
-  { label: "Dimensions", icon: "⊞" },
-  { label: "Reports", icon: "╱╲" },
+  {
+    label: "Settings",
+    icon: "⚙",
+    expandable: true,
+    children: [
+      { label: "Fees", icon: "◉" },
+      { label: "User Profiles", icon: "👥" },
+    ]
+  },
+  {
+    label: "Super Admin",
+    icon: "🔐",
+    expandable: true,
+    children: [
+      { label: "Tenants", icon: "🏢" },
+      { label: "Role Types", icon: "🛡️" },
+      { label: "User Admin", icon: "⚡" },
+      { label: "AI Admin", icon: "🤖" },
+      { label: "Dimensions", icon: "⊞" },
+      { label: "Reports", icon: "📊" },
+    ]
+  },
   { label: "Profile", icon: "👤", hidden: true },
 ];
 
 export const getNav = (isSuper, isAdmin, hasPermission, isR10010) => {
-  return NAV_ITEMS.filter(item => {
+  // Helper function to check if a single item should be visible
+  const isItemVisible = (item) => {
     if (item.hidden) return false;
 
     // User Admin section is restricted ONLY to R10010 role
     if (item.label === "User Admin") return isR10010;
-    
+
     // AI Admin restricted to Super Admins (you can change this to global roles if needed)
     if (item.label === "AI Admin") return isSuper;
 
@@ -120,7 +135,19 @@ export const getNav = (isSuper, isAdmin, hasPermission, isR10010) => {
     if (item.label === "Reports" && !hasPermission("REPORT_VIEW")) return false;
 
     return true;
-  });
+  };
+
+  // Process items and filter children
+  return NAV_ITEMS.map(item => {
+    // If item has children, filter them
+    if (item.children) {
+      const visibleChildren = item.children.filter(isItemVisible);
+      // Only include parent if it has visible children
+      if (visibleChildren.length === 0) return null;
+      return { ...item, children: visibleChildren };
+    }
+    return item;
+  }).filter(item => item && isItemVisible(item));
 };
 
 // ─────────────────────────────────────────────────────────────────────────────

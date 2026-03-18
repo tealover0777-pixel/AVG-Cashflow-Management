@@ -68,6 +68,7 @@ function AppContent() {
   const [activePage, setActivePage] = useState("Dashboard");
   const [activeTenantId, setActiveTenantId] = useState("");
   const [helpOpen, setHelpOpen] = useState(false);
+  const [expandedMenus, setExpandedMenus] = useState({ Settings: true, "Super Admin": true }); // Track which menus are expanded
   const t = mkTheme(isDark);
 
   useEffect(() => {
@@ -400,9 +401,71 @@ function AppContent() {
         <nav style={{ padding: isDark ? "16px 12px" : "0 12px", flex: 1, display: "flex", flexDirection: "column", gap: isDark ? 2 : 1, marginTop: isDark ? 0 : 12, overflowY: "auto" }}>
           {nav.map(item => {
             const isActive = activePage === item.label;
+            const isExpanded = expandedMenus[item.label];
+
+            // Expandable parent item
+            if (item.expandable && item.children) {
+              return (
+                <div key={item.label}>
+                  {/* Parent item */}
+                  <div
+                    className="nav-item"
+                    onClick={() => setExpandedMenus(prev => ({ ...prev, [item.label]: !prev[item.label] }))}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 10,
+                      padding: "10px 12px",
+                      background: "transparent",
+                      borderLeft: "2px solid transparent",
+                      color: t.navText,
+                      fontSize: 13.5,
+                      fontWeight: 500,
+                      cursor: "pointer",
+                      position: "relative"
+                    }}
+                  >
+                    <span style={{ fontSize: 13, opacity: isDark ? 0.8 : 0.6 }}>{item.icon}</span>
+                    <span style={{ flex: 1 }}>{item.label}</span>
+                    <span style={{ fontSize: 11, transition: "transform 0.2s", transform: isExpanded ? "rotate(180deg)" : "rotate(0deg)" }}>▼</span>
+                  </div>
+
+                  {/* Child items */}
+                  {isExpanded && item.children.map(child => {
+                    const isChildActive = activePage === child.label;
+                    return (
+                      <div
+                        key={child.label}
+                        className="nav-item"
+                        onClick={() => setActivePage(child.label)}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 10,
+                          padding: "10px 12px 10px 36px",
+                          background: isChildActive ? t.navActive : "transparent",
+                          borderLeft: `2px solid ${isChildActive ? t.navActivePill : "transparent"}`,
+                          color: isChildActive ? t.navActiveText : t.navText,
+                          fontSize: 13,
+                          fontWeight: isChildActive ? 600 : 400,
+                          cursor: "pointer",
+                          position: "relative"
+                        }}
+                      >
+                        {!isDark && isChildActive && <div style={{ position: "absolute", left: 0, top: "20%", bottom: "20%", width: 3, borderRadius: "0 3px 3px 0", background: t.navActivePill }} />}
+                        <span style={{ fontSize: 12, opacity: isChildActive ? 1 : (isDark ? 0.8 : 0.6) }}>{child.icon}</span>
+                        {child.label}
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            }
+
+            // Regular non-expandable item
             return (
               <div key={item.label} className="nav-item" onClick={() => setActivePage(item.label)}
-                style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", background: isActive ? t.navActive : "transparent", borderLeft: `2px solid ${isActive ? t.navActivePill : "transparent"}`, color: isActive ? t.navActiveText : t.navText, fontSize: 13.5, fontWeight: isActive ? 600 : 400, position: "relative" }}>
+                style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", background: isActive ? t.navActive : "transparent", borderLeft: `2px solid ${isActive ? t.navActivePill : "transparent"}`, color: isActive ? t.navActiveText : t.navText, fontSize: 13.5, fontWeight: isActive ? 600 : 400, position: "relative", cursor: "pointer" }}>
                 {!isDark && isActive && <div style={{ position: "absolute", left: 0, top: "20%", bottom: "20%", width: 3, borderRadius: "0 3px 3px 0", background: t.navActivePill }} />}
                 <span style={{ fontSize: 13, opacity: isActive ? 1 : (isDark ? 0.8 : 0.6) }}>{item.icon}</span>
                 {item.label}
