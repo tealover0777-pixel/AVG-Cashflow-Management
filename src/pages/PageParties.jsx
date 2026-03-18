@@ -1,5 +1,9 @@
 import { useState, useMemo, useRef } from "react";
 import { AgGridReact } from 'ag-grid-react';
+import { ModuleRegistry, AllCommunityModule } from 'ag-grid-community';
+
+ModuleRegistry.registerModules([AllCommunityModule]);
+
 import 'ag-grid-community/styles/ag-grid.css';
 import '../components/ag-grid/ag-grid-theme.css';
 import { getColumnDefs } from '../components/ag-grid/PartiesGridConfig';
