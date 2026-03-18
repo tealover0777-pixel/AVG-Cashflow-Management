@@ -6,7 +6,7 @@ const PartyEmailCellRenderer = (props) => {
 
   return (
     <div style={{
-      fontSize: 12.5,
+      fontSize: 11,
       overflow: 'hidden',
       textOverflow: 'ellipsis',
       whiteSpace: 'nowrap',

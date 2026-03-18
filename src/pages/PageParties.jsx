@@ -169,8 +169,6 @@ export default function PageParties({ t, isDark, PARTIES = [], CONTRACTS = [], S
         rowData={getFilteredData()}
         columnDefs={columnDefs}
         context={context}
-        rowHeight={56}
-        headerHeight={48}
         animateRows={true}
         pagination={true}
         paginationPageSize={20}

@@ -71,7 +71,7 @@ export const getColumnDefs = (permissions, isDark, t) => {
         values: ["Fixed", "Equity", "Both", "Other"]
       },
       cellStyle: {
-        fontSize: '11.5px',
+        fontSize: '11px',
         color: t.textMuted
       },
       valueFormatter: (params) => params.value || "—"
@@ -124,7 +124,7 @@ export const getColumnDefs = (permissions, isDark, t) => {
         debounceMs: 300
       },
       cellStyle: {
-        fontSize: '12px',
+        fontSize: '11px',
         color: t.textMuted,
         overflow: 'hidden',
         textOverflow: 'ellipsis',
@@ -165,7 +165,7 @@ export const getColumnDefs = (permissions, isDark, t) => {
         debounceMs: 300
       },
       cellStyle: {
-        fontSize: '12px',
+        fontSize: '11px',
         color: t.textMuted,
         overflow: 'hidden',
         textOverflow: 'ellipsis',

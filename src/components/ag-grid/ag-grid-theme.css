@@ -8,38 +8,38 @@
   --ag-borders: none;
   --ag-borders-row: solid 1px;
   --ag-borders-side-button: none;
-  --ag-cell-horizontal-padding: 16px;
-  --ag-header-height: 50px;
-  --ag-row-height: 52px;
-  border-radius: 8px;
+  --ag-cell-horizontal-padding: 12px;
+  --ag-header-height: 40px;
+  --ag-row-height: 44px;
+  border-radius: 6px;
   overflow: hidden;
 
   /* Font Settings */
-  font-family: 'DM Sans', 'Segoe UI', sans-serif;
-  font-size: 13px;
+  font-family: inherit;
+  font-size: 11px;
 }
 
 /* Dark Mode Variables */
 .ag-theme-custom.dark-mode {
   --ag-background-color: transparent;
-  --ag-header-background-color: rgba(255, 255, 255, 0.02);
+  --ag-header-background-color: rgba(255, 255, 255, 0.03);
   --ag-odd-row-background-color: transparent;
-  --ag-row-hover-color: rgba(255, 255, 255, 0.03);
-  --ag-selected-row-background-color: rgba(56, 189, 248, 0.1); /* light blue accent for selection */
+  --ag-row-hover-color: rgba(255, 255, 255, 0.05);
+  --ag-selected-row-background-color: rgba(56, 189, 248, 0.1); 
 
-  --ag-row-border-color: rgba(255, 255, 255, 0.08);
-  --ag-border-color: rgba(255, 255, 255, 0.12);
-  --ag-cell-horizontal-border: rgba(255, 255, 255, 0.08); /* subtle vertical dividers */
+  --ag-row-border-color: rgba(255, 255, 255, 0.15);
+  --ag-border-color: rgba(255, 255, 255, 0.2);
+  --ag-cell-horizontal-border: rgba(255, 255, 255, 0.15); /* Visible vertical dividers like Excel */
 
   --ag-foreground-color: #f1f5f9;
-  --ag-header-foreground-color: #94a3b8; /* muted header */
+  --ag-header-foreground-color: #94a3b8;
   --ag-secondary-foreground-color: #94a3b8;
   --ag-disabled-foreground-color: rgba(255, 255, 255, 0.3);
 
   --ag-input-border-color: rgba(255, 255, 255, 0.1);
   --ag-input-focus-border-color: #38bdf8;
 
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 /* Light Mode Variables */
@@ -50,20 +50,20 @@
   --ag-row-hover-color: #F3F4F6;
   --ag-selected-row-background-color: #E0F2FE;
 
-  --ag-row-border-color: #F1F5F9;
-  --ag-border-color: #E5E7EB;
-  --ag-cell-horizontal-border: #F1F5F9; /* visible but subtle vertical dividers */
+  --ag-row-border-color: #E5E7EB; /* Distinct horizontal lines like Excel */
+  --ag-border-color: #D1D5DB;
+  --ag-cell-horizontal-border: #E5E7EB; /* Distinct vertical lines like Excel */
 
   --ag-foreground-color: #111827;
-  --ag-header-foreground-color: #6B7280;
+  --ag-header-foreground-color: #4B5563;
   --ag-secondary-foreground-color: #6B7280;
   --ag-disabled-foreground-color: #9CA3AF;
 
-  --ag-input-border-color: #E5E7EB;
-  --ag-input-focus-border-color: #0EA5E9;
+  --ag-input-border-color: #D1D5DB;
+  --ag-input-focus-border-color: #2563EB;
 
-  border: 1px solid #E5E7EB;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  border: 1px solid #D1D5DB;
+  box-shadow: none;
 }
 
 /* ============================================================================
