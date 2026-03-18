@@ -35,8 +35,8 @@
   --ag-cell-horizontal-border: rgba(255, 255, 255, 0.12); /* Visible dark gray vertical dividers */
 
   --ag-foreground-color: #e2e8f0;
-  --ag-header-foreground-color: rgba(255, 255, 255, 0.7);
-  --ag-secondary-foreground-color: rgba(255, 255, 255, 0.6);
+  --ag-header-foreground-color: #f8fafc; /* Brightened for better visibility */
+  --ag-secondary-foreground-color: #94a3b8;
   --ag-disabled-foreground-color: rgba(255, 255, 255, 0.3);
 
   --ag-input-border-color: rgba(255, 255, 255, 0.1);
