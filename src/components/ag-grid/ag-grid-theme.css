@@ -19,50 +19,51 @@
   font-size: 11px;
 }
 
-/* Dark Mode Variables */
+/* Dark Mode Variables (Synced with mkTheme) */
 .ag-theme-custom.dark-mode {
-  --ag-background-color: transparent;
-  --ag-header-background-color: rgba(255, 255, 255, 0.03);
+  --ag-background-color: rgba(255, 255, 255, 0.02);
+  --ag-header-background-color: rgba(255, 255, 255, 0.04);
   --ag-odd-row-background-color: transparent;
-  --ag-row-hover-color: rgba(255, 255, 255, 0.05);
-  --ag-selected-row-background-color: rgba(56, 189, 248, 0.1); 
+  --ag-row-hover-color: rgba(255, 255, 255, 0.04);
+  --ag-selected-row-background-color: rgba(52, 211, 153, 0.1); 
 
-  --ag-row-border-color: rgba(255, 255, 255, 0.15);
-  --ag-border-color: rgba(255, 255, 255, 0.2);
-  --ag-cell-horizontal-border: rgba(255, 255, 255, 0.15); /* Visible vertical dividers like Excel */
+  --ag-row-border-color: rgba(255, 255, 255, 0.08);
+  --ag-border-color: rgba(255, 255, 255, 0.07);
+  --ag-cell-horizontal-border: rgba(255, 255, 255, 0.12); /* Visible dark gray vertical dividers */
 
-  --ag-foreground-color: #f1f5f9;
-  --ag-header-foreground-color: #94a3b8;
-  --ag-secondary-foreground-color: #94a3b8;
+  --ag-foreground-color: #e2e8f0;
+  --ag-header-foreground-color: rgba(255, 255, 255, 0.7);
+  --ag-secondary-foreground-color: rgba(255, 255, 255, 0.6);
   --ag-disabled-foreground-color: rgba(255, 255, 255, 0.3);
 
   --ag-input-border-color: rgba(255, 255, 255, 0.1);
-  --ag-input-focus-border-color: #38bdf8;
+  --ag-input-focus-border-color: #34D399;
 
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  border: 1px solid var(--ag-border-color);
+  backdrop-filter: blur(20px);
 }
 
-/* Light Mode Variables */
+/* Light Mode Variables (Synced with mkTheme) */
 .ag-theme-custom.light-mode {
   --ag-background-color: #FFFFFF;
-  --ag-header-background-color: #F9FAFB;
+  --ag-header-background-color: #FAFAF9;
   --ag-odd-row-background-color: transparent;
-  --ag-row-hover-color: #F3F4F6;
-  --ag-selected-row-background-color: #E0F2FE;
+  --ag-row-hover-color: #FAFAF9;
+  --ag-selected-row-background-color: #F0FDF4;
 
-  --ag-row-border-color: #E5E7EB; /* Distinct horizontal lines like Excel */
-  --ag-border-color: #D1D5DB;
-  --ag-cell-horizontal-border: #E5E7EB; /* Distinct vertical lines like Excel */
+  --ag-row-border-color: #F5F4F1;
+  --ag-border-color: #EAE8E4;
+  --ag-cell-horizontal-border: #E8E6E2; /* Distinct light gray vertical lines */
 
-  --ag-foreground-color: #111827;
-  --ag-header-foreground-color: #4B5563;
-  --ag-secondary-foreground-color: #6B7280;
+  --ag-foreground-color: #1C1917;
+  --ag-header-foreground-color: #57534E;
+  --ag-secondary-foreground-color: #78716C;
   --ag-disabled-foreground-color: #9CA3AF;
 
-  --ag-input-border-color: #D1D5DB;
-  --ag-input-focus-border-color: #2563EB;
+  --ag-input-border-color: #E5E3DF;
+  --ag-input-focus-border-color: #4F46E5;
 
-  border: 1px solid #D1D5DB;
+  border: 1px solid var(--ag-border-color);
   box-shadow: none;
 }
 
