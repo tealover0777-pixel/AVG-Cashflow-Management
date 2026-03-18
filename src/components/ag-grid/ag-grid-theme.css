@@ -53,6 +53,18 @@
   background-color: transparent !important;
 }
 
+/* --- Force White Headers in Dark Mode --- */
+.dark-mode.ag-theme-custom .ag-header-cell,
+.dark-mode.ag-theme-custom .ag-header-cell-label,
+.dark-mode.ag-theme-custom .ag-header-cell-text,
+.dark-mode.ag-theme-custom .ag-header-icon,
+.dark-mode.ag-theme-custom .ag-icon {
+  color: #FFFFFF !important;
+  fill: #FFFFFF !important;
+  opacity: 1 !important;
+  --ag-header-foreground-color: #FFFFFF !important;
+}
+
 /* Light Mode Variables (Synced with mkTheme) */
 .ag-theme-custom.light-mode {
   --ag-background-color: #FFFFFF;
