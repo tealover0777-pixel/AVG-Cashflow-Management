@@ -9,14 +9,14 @@
   --ag-borders-row: solid 1px;
   --ag-borders-side-button: none;
   --ag-cell-horizontal-padding: 16px;
-  --ag-header-height: 44px;
-  --ag-row-height: 48px;
+  --ag-header-height: 50px;
+  --ag-row-height: 52px;
   border-radius: 8px;
   overflow: hidden;
 
   /* Font Settings */
   font-family: 'DM Sans', 'Segoe UI', sans-serif;
-  font-size: 13.5px;
+  font-size: 13px;
 }
 
 /* Dark Mode Variables */
@@ -27,9 +27,9 @@
   --ag-row-hover-color: rgba(255, 255, 255, 0.03);
   --ag-selected-row-background-color: rgba(56, 189, 248, 0.1); /* light blue accent for selection */
 
-  --ag-row-border-color: rgba(255, 255, 255, 0.06);
-  --ag-border-color: rgba(255, 255, 255, 0.08);
-  --ag-cell-horizontal-border: transparent; /* no vertical borders */
+  --ag-row-border-color: rgba(255, 255, 255, 0.08);
+  --ag-border-color: rgba(255, 255, 255, 0.12);
+  --ag-cell-horizontal-border: rgba(255, 255, 255, 0.08); /* subtle vertical dividers */
 
   --ag-foreground-color: #f1f5f9;
   --ag-header-foreground-color: #94a3b8; /* muted header */
@@ -39,44 +39,50 @@
   --ag-input-border-color: rgba(255, 255, 255, 0.1);
   --ag-input-focus-border-color: #38bdf8;
 
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
 }
 
 /* Light Mode Variables */
 .ag-theme-custom.light-mode {
   --ag-background-color: #FFFFFF;
-  --ag-header-background-color: #F8FAFC;
+  --ag-header-background-color: #F9FAFB;
   --ag-odd-row-background-color: transparent;
-  --ag-row-hover-color: #F1F5F9;
+  --ag-row-hover-color: #F3F4F6;
   --ag-selected-row-background-color: #E0F2FE;
 
-  --ag-row-border-color: #E2E8F0;
-  --ag-border-color: #CBD5E1;
-  --ag-cell-horizontal-border: transparent; /* no vertical borders */
+  --ag-row-border-color: #F1F5F9;
+  --ag-border-color: #E5E7EB;
+  --ag-cell-horizontal-border: #F1F5F9; /* visible but subtle vertical dividers */
 
-  --ag-foreground-color: #0F172A;
-  --ag-header-foreground-color: #64748B;
-  --ag-secondary-foreground-color: #64748B;
-  --ag-disabled-foreground-color: #94A3B8;
+  --ag-foreground-color: #111827;
+  --ag-header-foreground-color: #6B7280;
+  --ag-secondary-foreground-color: #6B7280;
+  --ag-disabled-foreground-color: #9CA3AF;
 
-  --ag-input-border-color: #E2E8F0;
-  --ag-input-focus-border-color: #0284C7;
+  --ag-input-border-color: #E5E7EB;
+  --ag-input-focus-border-color: #0EA5E9;
 
-  border: 1px solid #E2E8F0;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  border: 1px solid #E5E7EB;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
 /* ============================================================================
-   NO VERTICAL DIVIDERS
+   VERTICAL DIVIDERS
    ============================================================================ */
 
-/* Remove vertical borders on all cells */
+/* Vertical borders on all cells */
 .ag-theme-custom .ag-cell {
-  border-right: none !important;
+  border-right: 1px solid var(--ag-cell-horizontal-border) !important;
 }
 
-/* Remove vertical borders on all header cells */
+/* Vertical borders on all header cells */
 .ag-theme-custom .ag-header-cell {
+  border-right: 1px solid var(--ag-cell-horizontal-border) !important;
+}
+
+/* Remove border on last column */
+.ag-theme-custom .ag-cell:last-child,
+.ag-theme-custom .ag-header-cell:last-child {
   border-right: none !important;
 }
 
@@ -98,8 +104,8 @@
 }
 
 .ag-theme-custom .ag-header-cell {
-  padding-left: 22px;
-  padding-right: 22px;
+  padding-left: 16px;
+  padding-right: 16px;
   display: flex;
   align-items: center;
 }
@@ -145,9 +151,9 @@
 .ag-theme-custom .ag-cell {
   display: flex;
   align-items: center;
-  line-height: 56px;
-  padding-left: 22px;
-  padding-right: 22px;
+  line-height: inherit;
+  padding-left: 16px;
+  padding-right: 16px;
 }
 
 /* Disable cell focus outline */

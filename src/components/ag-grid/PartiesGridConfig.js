@@ -7,7 +7,7 @@ import PartyActionsCellRenderer from './PartyActionsCellRenderer';
 export const getColumnDefs = (permissions, isDark, t) => {
   const baseCols = [
     {
-      headerName: "PARTY ID",
+      headerName: "Party ID",
       field: "id",
       width: 90,
       sortable: true,
@@ -25,7 +25,7 @@ export const getColumnDefs = (permissions, isDark, t) => {
       }
     },
     {
-      headerName: "NAME",
+      headerName: "Name",
       field: "name",
       flex: 1,
       minWidth: 200,
@@ -40,7 +40,7 @@ export const getColumnDefs = (permissions, isDark, t) => {
       cellRenderer: PartyNameCellRenderer
     },
     {
-      headerName: "TYPE",
+      headerName: "Type",
       field: "type",
       width: 100,
       sortable: true,
@@ -51,7 +51,7 @@ export const getColumnDefs = (permissions, isDark, t) => {
       cellRenderer: PartyTypeCellRenderer
     },
     {
-      headerName: "ROLE",
+      headerName: "Role",
       field: "role",
       width: 90,
       sortable: true,
@@ -62,7 +62,7 @@ export const getColumnDefs = (permissions, isDark, t) => {
       cellRenderer: PartyRoleCellRenderer
     },
     {
-      headerName: "INV TYPE",
+      headerName: "Inv Type",
       field: "investor_type",
       width: 80,
       sortable: true,
@@ -77,7 +77,7 @@ export const getColumnDefs = (permissions, isDark, t) => {
       valueFormatter: (params) => params.value || "—"
     },
     {
-      headerName: "EMAIL",
+      headerName: "Email",
       field: "email",
       flex: 1,
       minWidth: 200,
@@ -92,7 +92,7 @@ export const getColumnDefs = (permissions, isDark, t) => {
       cellRenderer: PartyEmailCellRenderer
     },
     {
-      headerName: "PHONE",
+      headerName: "Phone",
       field: "phone",
       width: 120,
       sortable: true,
@@ -111,7 +111,7 @@ export const getColumnDefs = (permissions, isDark, t) => {
       valueFormatter: (params) => params.value || "—"
     },
     {
-      headerName: "ADDRESS",
+      headerName: "Address",
       field: "address",
       flex: 1,
       minWidth: 200,
@@ -133,7 +133,7 @@ export const getColumnDefs = (permissions, isDark, t) => {
       valueFormatter: (params) => params.value || "—"
     },
     {
-      headerName: "TAX ID",
+      headerName: "Tax ID",
       field: "tax_id",
       width: 110,
       sortable: true,
@@ -152,7 +152,7 @@ export const getColumnDefs = (permissions, isDark, t) => {
       valueFormatter: (params) => params.value || "—"
     },
     {
-      headerName: "BANK INFO",
+      headerName: "Bank Info",
       field: "bank_information",
       flex: 1,
       minWidth: 200,
@@ -174,7 +174,7 @@ export const getColumnDefs = (permissions, isDark, t) => {
       valueFormatter: (params) => params.value || "—"
     },
     {
-      headerName: "CREATED",
+      headerName: "Created",
       field: "created_at",
       width: 95,
       sortable: true,
@@ -187,7 +187,7 @@ export const getColumnDefs = (permissions, isDark, t) => {
       valueFormatter: (params) => params.value || "—"
     },
     {
-      headerName: "UPDATED",
+      headerName: "Updated",
       field: "updated_at",
       width: 95,
       sortable: true,
@@ -204,7 +204,7 @@ export const getColumnDefs = (permissions, isDark, t) => {
   // Conditionally add Actions column if user has any action permission
   if (permissions.canUpdate || permissions.canDelete || permissions.canInvite) {
     baseCols.push({
-      headerName: "ACTIONS",
+      headerName: "Actions",
       field: "actions",
       width: 120,
       pinned: "right",
