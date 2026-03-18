@@ -30,9 +30,9 @@
   --ag-row-hover-color: rgba(255, 255, 255, 0.04);
   --ag-selected-row-background-color: rgba(52, 211, 153, 0.1); 
 
-  --ag-row-border-color: rgba(255, 255, 255, 0.4); /* High-visibility light gray horizontal */
-  --ag-border-color: rgba(255, 255, 255, 0.25);
-  --ag-cell-horizontal-border: rgba(255, 255, 255, 0.4); /* High-visibility light gray vertical */
+  --ag-row-border-color: #FFFFFF; /* High-visibility solid white horizontal */
+  --ag-border-color: #FFFFFF;
+  --ag-cell-horizontal-border: #FFFFFF; /* High-visibility solid white vertical */
 
   --ag-foreground-color: #e2e8f0;
   --ag-header-foreground-color: #ffffff; /* Forced pure white */
@@ -53,7 +53,7 @@
   background-color: transparent !important;
 }
 
-/* --- Force White Headers in Dark Mode --- */
+/* --- Force White Headers and Dividers in Dark Mode --- */
 .dark-mode.ag-theme-custom .ag-header-cell,
 .dark-mode.ag-theme-custom .ag-header-cell-label,
 .dark-mode.ag-theme-custom .ag-header-cell-text,
@@ -63,6 +63,20 @@
   fill: #FFFFFF !important;
   opacity: 1 !important;
   --ag-header-foreground-color: #FFFFFF !important;
+}
+
+.dark-mode.ag-theme-custom .ag-cell,
+.dark-mode.ag-theme-custom .ag-header-cell {
+  border-right: 1px solid #FFFFFF !important;
+}
+
+.dark-mode.ag-theme-custom .ag-row,
+.dark-mode.ag-theme-custom .ag-header-row,
+.dark-mode.ag-theme-custom .ag-header,
+.dark-mode.ag-theme-custom .ag-pinned-right-cols-container,
+.dark-mode.ag-theme-custom .ag-pinned-right-header {
+  border-bottom: 1px solid #FFFFFF !important;
+  border-left-color: #FFFFFF !important;
 }
 
 /* Light Mode Variables (Synced with mkTheme) */
