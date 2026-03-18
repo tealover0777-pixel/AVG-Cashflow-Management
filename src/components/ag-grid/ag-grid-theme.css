@@ -32,7 +32,7 @@
 
   --ag-row-border-color: #CBD5E1; /* Professional light gray horizontal */
   --ag-border-color: #CBD5E1;
-  --ag-cell-horizontal-border: #CBD5E1; /* Professional light gray vertical */
+  --ag-cell-horizontal-border: #FFFFFF; /* Reverted to white for vertical visibility */
 
   --ag-foreground-color: #e2e8f0;
   --ag-header-foreground-color: #ffffff; /* Forced pure white */
@@ -66,9 +66,16 @@
   --ag-header-foreground-color: #FFFFFF !important;
 }
 
+/* General rule for both modes (primarily for Light Mode visibility) */
 .ag-theme-custom .ag-cell,
 .ag-theme-custom .ag-header-cell {
-  border-right: 1px solid #CBD5E1 !important;
+  border-right: 1px solid #94A3B8 !important; /* Stronger gray for light mode */
+}
+
+/* Specific override for Dark Mode (Reverted to White for visibility) */
+.dark-mode.ag-theme-custom .ag-cell,
+.dark-mode.ag-theme-custom .ag-header-cell {
+  border-right: 1px solid #FFFFFF !important;
 }
 
 .ag-theme-custom .ag-row,
@@ -90,7 +97,7 @@
 
   --ag-row-border-color: #CBD5E1;
   --ag-border-color: #CBD5E1;
-  --ag-cell-horizontal-border: #CBD5E1; /* Consistent light gray vertical lines */
+  --ag-cell-horizontal-border: #94A3B8; /* Stronger gray for vertical visibility */
 
   --ag-foreground-color: #1C1917;
   --ag-header-foreground-color: #57534E;
