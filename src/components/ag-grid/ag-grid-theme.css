@@ -30,9 +30,9 @@
   --ag-row-hover-color: rgba(255, 255, 255, 0.04);
   --ag-selected-row-background-color: rgba(52, 211, 153, 0.1); 
 
-  --ag-row-border-color: #FFFFFF; /* High-visibility solid white horizontal */
-  --ag-border-color: #FFFFFF;
-  --ag-cell-horizontal-border: #FFFFFF; /* High-visibility solid white vertical */
+  --ag-row-border-color: #CBD5E1; /* Professional light gray horizontal */
+  --ag-border-color: #CBD5E1;
+  --ag-cell-horizontal-border: #CBD5E1; /* Professional light gray vertical */
 
   --ag-foreground-color: #e2e8f0;
   --ag-header-foreground-color: #ffffff; /* Forced pure white */
@@ -53,7 +53,8 @@
   background-color: transparent !important;
 }
 
-/* --- Force White Headers and Dividers in Dark Mode --- */
+/* --- Force Visible Dividers in Dark & Light Mode --- */
+/* Dark Mode Overrides */
 .dark-mode.ag-theme-custom .ag-header-cell,
 .dark-mode.ag-theme-custom .ag-header-cell-label,
 .dark-mode.ag-theme-custom .ag-header-cell-text,
@@ -65,18 +66,18 @@
   --ag-header-foreground-color: #FFFFFF !important;
 }
 
-.dark-mode.ag-theme-custom .ag-cell,
-.dark-mode.ag-theme-custom .ag-header-cell {
-  border-right: 1px solid #FFFFFF !important;
+.ag-theme-custom .ag-cell,
+.ag-theme-custom .ag-header-cell {
+  border-right: 1px solid #CBD5E1 !important;
 }
 
-.dark-mode.ag-theme-custom .ag-row,
-.dark-mode.ag-theme-custom .ag-header-row,
-.dark-mode.ag-theme-custom .ag-header,
-.dark-mode.ag-theme-custom .ag-pinned-right-cols-container,
-.dark-mode.ag-theme-custom .ag-pinned-right-header {
-  border-bottom: 1px solid #FFFFFF !important;
-  border-left-color: #FFFFFF !important;
+.ag-theme-custom .ag-row,
+.ag-theme-custom .ag-header-row,
+.ag-theme-custom .ag-header,
+.ag-theme-custom .ag-pinned-right-cols-container,
+.ag-theme-custom .ag-pinned-right-header {
+  border-bottom: 1px solid #CBD5E1 !important;
+  border-left-color: #CBD5E1 !important;
 }
 
 /* Light Mode Variables (Synced with mkTheme) */
@@ -87,9 +88,9 @@
   --ag-row-hover-color: #FAFAF9;
   --ag-selected-row-background-color: #F0FDF4;
 
-  --ag-row-border-color: #F5F4F1;
-  --ag-border-color: #EAE8E4;
-  --ag-cell-horizontal-border: #E8E6E2; /* Distinct light gray vertical lines */
+  --ag-row-border-color: #CBD5E1;
+  --ag-border-color: #CBD5E1;
+  --ag-cell-horizontal-border: #CBD5E1; /* Consistent light gray vertical lines */
 
   --ag-foreground-color: #1C1917;
   --ag-header-foreground-color: #57534E;
