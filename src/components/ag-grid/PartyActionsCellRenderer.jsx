@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ActBtns, Tooltip } from '../components';
+import { ActBtns, Tooltip } from '../../components';
 
 const PartyActionsCellRenderer = (props) => {
   const { data, context } = props;
