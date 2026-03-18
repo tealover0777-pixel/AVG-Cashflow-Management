@@ -16,7 +16,7 @@ const PartyEmailCellRenderer = (props) => {
       height: '100%'
     }}>
       {value ? (
-        <span style={{ color: isDark ? "#60A5FA" : "#4F46E5" }}>{value}</span>
+        <span style={{ color: isDark ? "#cbd5e1" : "#334155" }}>{value}</span>
       ) : (
         <span style={{ color: isDark ? "rgba(255,255,255,0.12)" : "#D4D0CB" }}>—</span>
       )}

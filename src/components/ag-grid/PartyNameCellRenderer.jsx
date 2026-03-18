@@ -45,9 +45,9 @@ const PartyNameCellRenderer = (props) => {
         onClick={handleClick}
         href="#"
         style={{
-          fontSize: 13.5,
-          fontWeight: 600,
-          color: isDark ? '#60A5FA' : '#4F46E5',
+          fontSize: 13,
+          fontWeight: 500,
+          color: isDark ? '#f8fafc' : '#0f172a',
           overflow: 'hidden',
           textOverflow: 'ellipsis',
           whiteSpace: 'nowrap',
