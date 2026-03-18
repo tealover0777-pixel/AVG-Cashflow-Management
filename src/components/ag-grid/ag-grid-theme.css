@@ -35,7 +35,7 @@
   --ag-cell-horizontal-border: rgba(255, 255, 255, 0.12); /* Visible dark gray vertical dividers */
 
   --ag-foreground-color: #e2e8f0;
-  --ag-header-foreground-color: #f8fafc; /* Brightened for better visibility */
+  --ag-header-foreground-color: #ffffff; /* Forced pure white */
   --ag-secondary-foreground-color: #94a3b8;
   --ag-disabled-foreground-color: rgba(255, 255, 255, 0.3);
 
@@ -108,7 +108,7 @@
 .ag-theme-custom .ag-header-cell-label {
   font-size: 13px;
   font-weight: 500;
-  color: var(--ag-header-foreground-color);
+  color: var(--ag-header-foreground-color) !important; /* Force color */
   text-transform: capitalize;
   font-family: 'DM Sans', 'Segoe UI', sans-serif;
   justify-content: flex-start;
