@@ -15,7 +15,7 @@ const fmtCurr = v => {
 
 const ZEROING_STATUSES = ["Missed", "Cancelled", "VOID", "WAIVED", "REPLACED"];
 
-export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = [], PARTIES = [], PROJECTS = [], DIMENSIONS = [], FEES_DATA = [], collectionPath = "" }) {
+export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = [], PARTIES = [], DEALS = [], DIMENSIONS = [], FEES_DATA = [], collectionPath = "" }) {
 
   const { hasPermission, isSuperAdmin } = useAuth();
   const canCreate = isSuperAdmin || hasPermission("PAYMENT_SCHEDULE_CREATE");
@@ -438,7 +438,7 @@ Are you sure you want to continue?`;
     const payload = {
       schedule_id: d.schedule_id,
       contract_id: d.contract || "",
-      project_id: d.project_id || "",
+      deal_id: d.deal_id || "",
       party_id: d.party_id || "",
       due_date: d.dueDate || null,
       payment_type: d.type || "",
@@ -514,7 +514,7 @@ Are you sure you want to continue?`;
           term_start: original.term_start || null,
           term_end: original.term_end || null,
           payment_type: original.type || null,
-          project_id: original.project_id || null,
+          deal_id: original.deal_id || null,
           party_id: original.party_id || null,
           contract_id: original.contract || null,
           period_number: original.period_number ? Number(original.period_number) : null,
@@ -770,7 +770,7 @@ Are you sure you want to continue?`;
       }
     });
   };
-  const cols = [{ l: "", w: "36px" }, { l: "SCHEDULE ID", w: "80px", k: "schedule_id" }, { l: "LINKED", w: "80px", k: "linked" }, { l: "CONTRACT", w: "85px", k: "contract" }, { l: "PROJECT ID", w: "85px", k: "project_id" }, { l: "PARTY ID", w: "80px", k: "party_id" }, { l: "PERIOD", w: "58px", k: "period_number" }, { l: "DUE DATE", w: "98px", k: "dueDate" }, { l: "TYPE", w: "minmax(60px, 0.33fr)", k: "type" }, { l: "FEE", w: "260px", k: "fee_id" }, { l: "APPLIED TO", w: "120px", k: "applied_to" }, { l: "DIR", w: "50px", k: "direction" }, { l: "SIGNED AMT", w: "110px", k: "signed_payment_amount" }, { l: "PRINCIPAL", w: "110px", k: "principal_amount" }, { l: "STATUS", w: "90px", k: "status" }, { l: "NOTES", w: "minmax(80px, 1fr)", k: "notes" }, { l: "ACTIONS", w: "76px" }];
+  const cols = [{ l: "", w: "36px" }, { l: "SCHEDULE ID", w: "80px", k: "schedule_id" }, { l: "LINKED", w: "80px", k: "linked" }, { l: "CONTRACT", w: "85px", k: "contract" }, { l: "DEAL ID", w: "85px", k: "project_id" }, { l: "PARTY ID", w: "80px", k: "party_id" }, { l: "PERIOD", w: "58px", k: "period_number" }, { l: "DUE DATE", w: "98px", k: "dueDate" }, { l: "TYPE", w: "minmax(60px, 0.33fr)", k: "type" }, { l: "FEE", w: "260px", k: "fee_id" }, { l: "APPLIED TO", w: "120px", k: "applied_to" }, { l: "DIR", w: "50px", k: "direction" }, { l: "SIGNED AMT", w: "110px", k: "signed_payment_amount" }, { l: "PRINCIPAL", w: "110px", k: "principal_amount" }, { l: "STATUS", w: "90px", k: "status" }, { l: "NOTES", w: "minmax(80px, 1fr)", k: "notes" }, { l: "ACTIONS", w: "76px" }];
   const { gridTemplate, headerRef, onResizeStart } = useResizableColumns(cols);
   const [colFilters, setColFilters] = useState({});
   const setColFilter = (key, val) => { setColFilters(f => ({ ...f, [key]: val })); setPage(1); };
@@ -816,7 +816,7 @@ Are you sure you want to continue?`;
           <div style={{ fontFamily: t.mono, fontSize: 11.5, color: isDark ? "#60A5FA" : "#4F46E5", fontWeight: 500 }}>
             <a href="#" onClick={e => { e.preventDefault(); e.stopPropagation(); const c = CONTRACTS.find(x => (x.contract_id || x.id) === s.contract); if (c) setDrillContract(c); }} style={{ color: "inherit", textDecoration: "none" }}>{s.contract}</a>
           </div>
-          <div style={{ fontFamily: t.mono, fontSize: 11, color: t.idText }}>{s.project_id || dash}</div>
+          <div style={{ fontFamily: t.mono, fontSize: 11, color: t.idText }}>{s.deal_id || dash}</div>
           <div style={{ fontFamily: t.mono, fontSize: 11, color: t.idText }}>
             {s.party_id ? (
               <a href="#" onClick={e => { e.preventDefault(); e.stopPropagation(); const p = PARTIES.find(x => x.id === s.party_id); if (p) setDetailParty(p); }} style={{ color: isDark ? "#60A5FA" : "#4F46E5", textDecoration: "none", fontWeight: 600 }}>{s.party_id}</a>
@@ -886,7 +886,7 @@ Are you sure you want to continue?`;
           )}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14 }}>
             <FF label="Contract" t={t}><FSel value={modal.data.contract} onChange={e => setF("contract", e.target.value)} options={CONTRACTS.map(c => c.id)} t={t} disabled={freeze} /></FF>
-            <FF label="Project ID" t={t}><FIn value={modal.data.project_id || ""} onChange={e => setF("project_id", e.target.value)} placeholder="P10000" t={t} disabled={freeze} /></FF>
+            <FF label="Deal ID" t={t}><FIn value={modal.data.deal_id || ""} onChange={e => setF("project_id", e.target.value)} placeholder="P10000" t={t} disabled={freeze} /></FF>
             <FF label="Party ID" t={t}><FIn value={modal.data.party_id || ""} onChange={e => setF("party_id", e.target.value)} placeholder="M10000" t={t} disabled={freeze} /></FF>
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14 }}>
@@ -1202,11 +1202,11 @@ Are you sure you want to continue?`;
       <Modal open={!!drillContract} onClose={() => setDrillContract(null)} title="Contract Summary" saveLabel="OK" onSave={() => setDrillContract(null)} width={580} t={t} isDark={isDark}>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px 24px", padding: "10px 0" }}>
           <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
-            <span style={{ fontSize: 10, fontWeight: 700, color: t.textSecondary, textTransform: "uppercase", letterSpacing: "0.8px", fontFamily: t.mono }}>Contract ID / Project ID</span>
+            <span style={{ fontSize: 10, fontWeight: 700, color: t.textSecondary, textTransform: "uppercase", letterSpacing: "0.8px", fontFamily: t.mono }}>Contract ID / Deal ID</span>
             <div style={{ fontSize: 13.5, fontWeight: 700, color: isDark ? "#fff" : "#1C1917", display: "flex", gap: 8, alignItems: "center" }}>
               <span style={{ fontFamily: t.mono }}>{drillContract.contract_id || drillContract.id}</span>
               <span style={{ color: t.surfaceBorder }}>|</span>
-              <span style={{ fontFamily: t.mono, color: t.idText }}>{drillContract.project_id || "—"}</span>
+              <span style={{ fontFamily: t.mono, color: t.idText }}>{drillContract.deal_id || "—"}</span>
             </div>
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
@@ -1390,7 +1390,7 @@ Are you sure you want to continue?`;
                 const schedulesByProject = {};
                 partySchedules.forEach(s => {
                   const contract = partyContracts.find(c => c.id === s.contract);
-                  const proj = PROJECTS.find(p => p.id === s.project_id);
+                  const proj = DEALS.find(p => p.id === s.deal_id);
                   const key = contract?.project || proj?.name || "Unassigned";
                   (schedulesByProject[key] = schedulesByProject[key] || []).push(s);
                 });

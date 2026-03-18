@@ -6,7 +6,7 @@ import { initials, av, badge, sortData, fmtCurr } from "../utils";
 import { StatCard, Pagination, ActBtns, useResizableColumns, TblHead, TblFilterRow, Modal, FF, FIn, FSel, DelModal, Tooltip } from "../components";
 import { useAuth } from "../AuthContext";
 
-export default function PageParties({ t, isDark, PARTIES = [], CONTRACTS = [], SCHEDULES = [], PROJECTS = [], collectionPath = "", DIMENSIONS = [], tenantId = "" }) {
+export default function PageParties({ t, isDark, PARTIES = [], CONTRACTS = [], SCHEDULES = [], DEALS = [], collectionPath = "", DIMENSIONS = [], tenantId = "" }) {
   const { hasPermission, isSuperAdmin } = useAuth();
   const canCreate = hasPermission("PARTY_CREATE");
   const canUpdate = hasPermission("PARTY_UPDATE");
@@ -289,7 +289,7 @@ export default function PageParties({ t, isDark, PARTIES = [], CONTRACTS = [], S
                 const schedulesByProject = {};
                 partySchedules.forEach(s => {
                   const contract = partyContracts.find(c => c.id === s.contract);
-                  const proj = PROJECTS.find(p => p.id === s.project_id);
+                  const proj = DEALS.find(p => p.id === s.deal_id);
                   const key = contract?.project || proj?.name || "Unassigned";
                   (schedulesByProject[key] = schedulesByProject[key] || []).push(s);
                 });

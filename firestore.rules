@@ -133,11 +133,11 @@ service cloud.firestore {
         allow delete: if isTenantMember(tenantId) && (hasPermission('USER_DELETE') || hasPermission('USER_PROFILE_DELETE'));
     }
 
-    match /tenants/{tenantId}/projects/{docId} {
-        allow read: if isTenantMember(tenantId) && hasPermission('PROJECT_VIEW');
-        allow create: if isTenantMember(tenantId) && hasPermission('PROJECT_CREATE');
-        allow update: if isTenantMember(tenantId) && hasPermission('PROJECT_UPDATE');
-        allow delete: if isTenantMember(tenantId) && hasPermission('PROJECT_DELETE');
+    match /tenants/{tenantId}/deals/{docId} {
+        allow read: if isTenantMember(tenantId) && hasPermission('DEAL_VIEW');
+        allow create: if isTenantMember(tenantId) && hasPermission('DEAL_CREATE');
+        allow update: if isTenantMember(tenantId) && hasPermission('DEAL_UPDATE');
+        allow delete: if isTenantMember(tenantId) && hasPermission('DEAL_DELETE');
     }
 
     match /tenants/{tenantId}/contracts/{docId} {

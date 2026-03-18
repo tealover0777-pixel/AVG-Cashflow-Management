@@ -10,7 +10,7 @@ import { doc, getDoc } from "firebase/firestore";
 import { useFirestoreCollection } from "./useFirestoreCollection";
 import { mkTheme, getNav, getCollectionPaths, DIM_STYLES, DEFAULT_DIM_STYLE, MONTHLY, initials, av, fmtCurr } from "./utils";
 import PageDashboard from "./pages/PageDashboard";
-import PageProjects from "./pages/PageProjects";
+import PageDeals from "./pages/PageDeals";
 import PageParties from "./pages/PageParties";
 import PageContracts from "./pages/PageContracts";
 import PageSchedule from "./pages/PageSchedule";
@@ -83,7 +83,7 @@ function AppContent() {
   // Super admins/Global roles can fetch "GLOBAL" which uses group queries.
   const fetchPaths = getCollectionPaths(isGlobalConsolidated ? "" : (activeTenantId || "T_PENDING"));
 
-  const { data: rawProjects, loading: l1, error: e1 } = useFirestoreCollection(isGlobalConsolidated ? "projects" : (activeTenantId ? fetchPaths.projects : null), isGlobalConsolidated);
+  const { data: rawDeals, loading: l1, error: e1 } = useFirestoreCollection(isGlobalConsolidated ? "deals" : (activeTenantId ? fetchPaths.deals : null), isGlobalConsolidated);
   const { data: rawParties, loading: l2, error: e2 } = useFirestoreCollection(isGlobalConsolidated ? "parties" : (activeTenantId ? fetchPaths.parties : null), isGlobalConsolidated);
   const { data: rawContracts, loading: l3, error: e3 } = useFirestoreCollection(isGlobalConsolidated ? "contracts" : (activeTenantId ? fetchPaths.contracts : null), isGlobalConsolidated);
   const { data: rawSchedules, loading: l4, error: e4 } = useFirestoreCollection(isGlobalConsolidated ? "paymentSchedules" : (activeTenantId ? fetchPaths.paymentSchedules : null), isGlobalConsolidated);
@@ -97,7 +97,7 @@ function AppContent() {
   const shouldFetch = !!activeTenantId || isGlobalRole;
 
   const loading = authLoading || (shouldFetch && (l1 || l2 || l3 || l4 || l5 || l6)) || (isSuperAdmin && l8) || (activeTenantId && (isSuperAdmin || isTenantAdmin || hasPermission("USER_PROFILE_*") || hasPermission("ROLE_TYPE_*")) && (l9 || l10)) || (user && l7);
-  const dataPresent = rawProjects.length > 0 || rawContracts.length > 0;
+  const dataPresent = rawDeals.length > 0 || rawContracts.length > 0;
   const showLoading = loading && !dataPresent;
 
   const firstError = e1 || e2 || e3 || e4 || e5 || e6 || e7 || e8 || e9 || e10;
@@ -133,18 +133,18 @@ function AppContent() {
     return String(v);
   };
 
-  const PROJECTS = rawProjects
+  const DEALS = rawDeals
     .filter(d => {
       if (!forceFilter) return true;
       if (!memberPartyId) return false;
       const mId = String(memberPartyId).trim();
-      return rawContracts.some(c => (c.project_id === d.id || c.project_name === d.project_name) && (String(c.party_id || "").trim() === mId || String(c.counterparty_id || "").trim() === mId));
+      return rawContracts.some(c => (c.deal_id === d.id || c.deal_name === d.deal_name) && (String(c.party_id || "").trim() === mId || String(c.counterparty_id || "").trim() === mId));
     })
     .map(d => ({
       id: d.id,
       docId: d.doc_id || d.id,
       _path: d._path,
-      name: d.project_name || "",
+      name: d.deal_name || "",
       status: d.status || "",
       currency: d.currency || "",
       description: d.description || "",
@@ -183,8 +183,8 @@ function AppContent() {
       docId: d.doc_id || d.id,
       _path: d._path,
       contract_id: d.contract_id || "",
-      project: d.project_name || d.project_id || "",
-      project_id: d.project_id || "",
+      deal: d.deal_name || d.deal_id || "",
+      deal_id: d.deal_id || "",
       party: d.party_name || d.party_id || "",
       party_id: d.party_id || "",
       type: d.contract_type || "",
@@ -234,7 +234,7 @@ function AppContent() {
         party_id: d.party_id || "",
         period_number: d.period_number != null ? String(d.period_number) : "",
         principal_amount: fmtCurr(principal),
-        project_id: d.project_id || "",
+        deal_id: d.deal_id || "",
         signed_payment_amount: fmtCurr(signed),
         linked: d.linked_to_parent || d.linked || "", // Backward link to parent
         linked_schedule_id: d.linked_schedule_id || "", // Forward link to child
@@ -502,11 +502,11 @@ function AppContent() {
               </div>
               : (
                 <>
-                  {activePage === "Dashboard" && <PageDashboard t={t} isDark={isDark} PROJECTS={PROJECTS} CONTRACTS={CONTRACTS} PARTIES={PARTIES} SCHEDULES={SCHEDULES} PAYMENTS={PAYMENTS} MONTHLY={MONTHLY} DIMENSIONS={DIMENSIONS} setActivePage={setActivePage} />}
-                  {activePage === "Projects" && <PageProjects t={t} isDark={isDark} PROJECTS={PROJECTS} FEES_DATA={FEES_DATA} collectionPath={isGlobalConsolidated ? "GROUP:projects" : fetchPaths.projects} />}
-                  {activePage === "Parties" && <PageParties t={t} isDark={isDark} PARTIES={PARTIES} CONTRACTS={CONTRACTS} SCHEDULES={SCHEDULES} PROJECTS={PROJECTS} collectionPath={isGlobalConsolidated ? "GROUP:parties" : fetchPaths.parties} DIMENSIONS={DIMENSIONS} tenantId={activeTenantId} />}
-                  {activePage === "Contracts" && <PageContracts t={t} isDark={isDark} CONTRACTS={CONTRACTS} PROJECTS={PROJECTS} PARTIES={PARTIES} DIMENSIONS={DIMENSIONS} FEES_DATA={FEES_DATA} SCHEDULES={SCHEDULES} collectionPath={isGlobalConsolidated ? "GROUP:contracts" : fetchPaths.contracts} schedulePath={isGlobalConsolidated ? "GROUP:paymentSchedules" : fetchPaths.paymentSchedules} />}
-                  {activePage === "Payment Schedule" && <PageSchedule t={t} isDark={isDark} SCHEDULES={SCHEDULES} CONTRACTS={CONTRACTS} PARTIES={PARTIES} PROJECTS={PROJECTS} DIMENSIONS={DIMENSIONS} FEES_DATA={FEES_DATA} collectionPath={isGlobalConsolidated ? "GROUP:paymentSchedules" : fetchPaths.paymentSchedules} />}
+                  {activePage === "Dashboard" && <PageDashboard t={t} isDark={isDark} DEALS={DEALS} CONTRACTS={CONTRACTS} PARTIES={PARTIES} SCHEDULES={SCHEDULES} PAYMENTS={PAYMENTS} MONTHLY={MONTHLY} DIMENSIONS={DIMENSIONS} setActivePage={setActivePage} />}
+                  {activePage === "Deals" && <PageDeals t={t} isDark={isDark} DEALS={DEALS} FEES_DATA={FEES_DATA} collectionPath={isGlobalConsolidated ? "GROUP:deals" : fetchPaths.deals} />}
+                  {activePage === "Parties" && <PageParties t={t} isDark={isDark} PARTIES={PARTIES} CONTRACTS={CONTRACTS} SCHEDULES={SCHEDULES} DEALS={DEALS} collectionPath={isGlobalConsolidated ? "GROUP:parties" : fetchPaths.parties} DIMENSIONS={DIMENSIONS} tenantId={activeTenantId} />}
+                  {activePage === "Contracts" && <PageContracts t={t} isDark={isDark} CONTRACTS={CONTRACTS} DEALS={DEALS} PARTIES={PARTIES} DIMENSIONS={DIMENSIONS} FEES_DATA={FEES_DATA} SCHEDULES={SCHEDULES} collectionPath={isGlobalConsolidated ? "GROUP:contracts" : fetchPaths.contracts} schedulePath={isGlobalConsolidated ? "GROUP:paymentSchedules" : fetchPaths.paymentSchedules} />}
+                  {activePage === "Payment Schedule" && <PageSchedule t={t} isDark={isDark} SCHEDULES={SCHEDULES} CONTRACTS={CONTRACTS} PARTIES={PARTIES} DEALS={DEALS} DIMENSIONS={DIMENSIONS} FEES_DATA={FEES_DATA} collectionPath={isGlobalConsolidated ? "GROUP:paymentSchedules" : fetchPaths.paymentSchedules} />}
                   {activePage === "Payments" && <PagePayments t={t} isDark={isDark} PAYMENTS={PAYMENTS} collectionPath={isGlobalConsolidated ? "GROUP:payments" : fetchPaths.payments} />}
                   {activePage === "Fees" && <PageFees t={t} isDark={isDark} FEES_DATA={FEES_DATA} DIMENSIONS={DIMENSIONS} collectionPath={isGlobalConsolidated ? "GROUP:fees" : fetchPaths.fees} />}
                   {activePage === "Tenants" && <PageTenants t={t} isDark={isDark} TENANTS={TENANTS} collectionPath={fetchPaths.tenants} />}

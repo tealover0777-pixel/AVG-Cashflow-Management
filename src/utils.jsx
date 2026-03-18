@@ -75,7 +75,7 @@ export const mkTheme = (isDark) => isDark ? {
 
 const NAV_ITEMS = [
   { label: "Dashboard", icon: "⬡" },
-  { label: "Projects", icon: "▦" },
+  { label: "Deals", icon: "▦" },
   { label: "Parties", icon: "◎" },
   { label: "Contracts", icon: "◈" },
   { label: "Payment Schedule", icon: "▤" },
@@ -107,7 +107,7 @@ export const getNav = (isSuper, isAdmin, hasPermission, isR10010) => {
 
     // Granular RBAC per section
     if (item.label === "Dashboard" && !hasPermission("DASHBOARD_VIEW")) return false;
-    if (item.label === "Projects" && !hasPermission("PROJECT_VIEW")) return false;
+    if (item.label === "Deals" && !hasPermission("DEAL_VIEW")) return false;
     if (item.label === "Parties" && !hasPermission("PARTY_VIEW")) return false;
     if (item.label === "Contracts" && !hasPermission("CONTRACT_VIEW")) return false;
     if (item.label === "Payment Schedule" && !hasPermission("PAYMENT_SCHEDULE_VIEW")) return false;
@@ -129,7 +129,7 @@ export const getNav = (isSuper, isAdmin, hasPermission, isR10010) => {
 export const getCollectionPaths = (tenantId) => {
   const tenantPath = `tenants/${tenantId}`;
   return {
-    projects: `${tenantPath}/projects`,
+    deals: `${tenantPath}/deals`,
     parties: `${tenantPath}/parties`,
     contracts: `${tenantPath}/contracts`,
     paymentSchedules: `${tenantPath}/paymentSchedules`,

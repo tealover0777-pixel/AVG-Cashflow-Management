@@ -5,7 +5,7 @@ import { normalizeDateAtNoon, hybridDays, pmtCalculator_ACT360_30360, feeCalcula
 import { Bdg, StatCard, Pagination, ActBtns, useResizableColumns, TblHead, TblFilterRow, Modal, FF, FIn, FSel, DelModal, Tooltip } from "../components";
 import { useAuth } from "../AuthContext";
 
-export default function PageContracts({ t, isDark, CONTRACTS = [], PROJECTS = [], PARTIES = [], DIMENSIONS = [], FEES_DATA = [], SCHEDULES = [], collectionPath = "", schedulePath = "" }) {
+export default function PageContracts({ t, isDark, CONTRACTS = [], DEALS = [], PARTIES = [], DIMENSIONS = [], FEES_DATA = [], SCHEDULES = [], collectionPath = "", schedulePath = "" }) {
   const { hasPermission, isSuperAdmin } = useAuth();
   const canCreate = isSuperAdmin || hasPermission("CONTRACT_CREATE");
   const canUpdate = isSuperAdmin || hasPermission("CONTRACT_UPDATE");
@@ -31,9 +31,9 @@ export default function PageContracts({ t, isDark, CONTRACTS = [], PROJECTS = []
     });
     const nextId = `C${maxIdNum + 1}`;
 
-    const firstProj = PROJECTS[0];
-    const sd = firstProj ? firstProj.startDate : "";
-    const ed = firstProj ? firstProj.endDate : "";
+    const firstDeal = DEALS[0];
+    const sd = firstDeal ? firstDeal.startDate : "";
+    const ed = firstDeal ? firstDeal.endDate : "";
     let termM = "";
     if (sd && ed) { const s = new Date(sd); const e = new Date(ed); if (!isNaN(s) && !isNaN(e)) termM = String((e.getFullYear() - s.getFullYear()) * 12 + e.getMonth() - s.getMonth()); }
     setModal({
@@ -41,8 +41,8 @@ export default function PageContracts({ t, isDark, CONTRACTS = [], PROJECTS = []
       mode: "add",
       data: {
         id: nextId,
-        project: firstProj ? firstProj.name : "",
-        project_id: firstProj ? (firstProj.project_id || firstProj.id) : "",
+        deal: firstDeal ? firstDeal.name : "",
+        deal_id: firstDeal ? (firstDeal.deal_id || firstDeal.id) : "",
         party: "",
         type: "",
         amount: "",
@@ -60,11 +60,11 @@ export default function PageContracts({ t, isDark, CONTRACTS = [], PROJECTS = []
   const close = () => setModal(m => ({ ...m, open: false }));
   const handleSaveContract = async () => {
     const d = modal.data;
-    const pObj = PROJECTS.find(p => p.name === d.project);
+    const dealObj = DEALS.find(p => p.name === d.deal);
     const parObj = PARTIES.find(p => p.name === d.party);
     const payload = {
-      project_name: d.project || "",
-      project_id: pObj ? pObj.id : (d.project_id || ""),
+      deal_name: d.deal || "",
+      deal_id: dealObj ? dealObj.id : (d.deal_id || ""),
       party_name: d.party || "",
       party_id: parObj ? parObj.id : (d.party_id || ""),
       contract_type: d.type || "",
@@ -221,7 +221,7 @@ export default function PageContracts({ t, isDark, CONTRACTS = [], PROJECTS = []
         const ds1 = getDirectionAndSigned(initialPaymentType, principal);
         const newEntry = {
           schedule_id: `S${currentIdNum++}`,
-          contract_id: c.id, project_id: c.project_id || "", party_id: c.party_id || "",
+          contract_id: c.id, deal_id: c.deal_id || "", party_id: c.party_id || "",
           due_date: startDate.toISOString().slice(0, 10), payment_type: initialPaymentType, fee_id: "",
           period_number: 1, principal_amount: principal, payment_amount: principal,
           signed_payment_amount: ds1.signed, direction_from_company: ds1.direction,
@@ -275,7 +275,7 @@ export default function PageContracts({ t, isDark, CONTRACTS = [], PROJECTS = []
             const signedFeeAmt = feeDir === "OUT" ? -Math.abs(feeAmt) : Math.abs(feeAmt);
             entries.push({
               schedule_id: `S${currentIdNum++}`,
-              contract_id: c.id, project_id: c.project_id || "", party_id: c.party_id || "",
+              contract_id: c.id, deal_id: c.deal_id || "", party_id: c.party_id || "",
               due_date: dDate.toISOString().slice(0, 10), payment_type: PT_FEE, fee_id: fid,
               period_number: 1, principal_amount: principal, payment_amount: feeAmt,
               signed_payment_amount: signedFeeAmt, direction_from_company: feeDir,
@@ -335,7 +335,7 @@ export default function PageContracts({ t, isDark, CONTRACTS = [], PROJECTS = []
             const roundedInterest = Math.round(interest * 100) / 100;
             entries.push({
               schedule_id: `S${currentIdNum++}`,
-              contract_id: c.id, project_id: c.project_id || "", party_id: c.party_id || "",
+              contract_id: c.id, deal_id: c.deal_id || "", party_id: c.party_id || "",
               due_date: pEnd.toISOString().slice(0, 10), payment_type: interestPT, fee_id: "",
               period_number: periodNum, principal_amount: principal, payment_amount: roundedInterest,
               signed_payment_amount: ds2.signed, direction_from_company: ds2.direction,
@@ -419,7 +419,7 @@ export default function PageContracts({ t, isDark, CONTRACTS = [], PROJECTS = []
                   const roundedFeeAmt = Math.round(feeAmt * 100) / 100;
                   entries.push({
                     schedule_id: `S${currentIdNum++}`,
-                    contract_id: c.id, project_id: c.project_id || "", party_id: c.party_id || "",
+                    contract_id: c.id, deal_id: c.deal_id || "", party_id: c.party_id || "",
                     due_date: feeDueDate.toISOString().slice(0, 10), payment_type: PT_FEE, fee_id: fid,
                     period_number: periodNum, principal_amount: principal, payment_amount: roundedFeeAmt,
                     signed_payment_amount: signedFeeAmt, direction_from_company: feeDir,
@@ -446,7 +446,7 @@ export default function PageContracts({ t, isDark, CONTRACTS = [], PROJECTS = []
         const ds3 = getDirectionAndSigned(repaymentPT, principal);
         entries.push({
           schedule_id: `S${currentIdNum++}`,
-          contract_id: c.id, project_id: c.project_id || "", party_id: c.party_id || "",
+          contract_id: c.id, deal_id: c.deal_id || "", party_id: c.party_id || "",
           due_date: matDate.toISOString().slice(0, 10), payment_type: repaymentPT, fee_id: "",
           period_number: periodNum, principal_amount: principal, payment_amount: principal,
           signed_payment_amount: ds3.signed, direction_from_company: ds3.direction,
@@ -593,14 +593,14 @@ export default function PageContracts({ t, isDark, CONTRACTS = [], PROJECTS = []
   };
   const setF = (k, v) => setModal(m => {
     const next = { ...m, data: { ...m.data, [k]: v } };
-    // When project changes in "add" mode, default start/maturity to project dates
-    if (k === "project" && m.mode === "add") {
-      const proj = PROJECTS.find(p => p.name === v);
-      if (proj) {
-        next.data.start_date = proj.startDate || next.data.start_date;
-        next.data.maturity_date = proj.endDate || next.data.maturity_date;
-        if (proj.startDate && proj.endDate) {
-          const s = new Date(proj.startDate); const e = new Date(proj.endDate);
+    // When deal changes in "add" mode, default start/maturity to deal dates
+    if (k === "deal" && m.mode === "add") {
+      const deal = DEALS.find(p => p.name === v);
+      if (deal) {
+        next.data.start_date = deal.startDate || next.data.start_date;
+        next.data.maturity_date = deal.endDate || next.data.maturity_date;
+        if (deal.startDate && deal.endDate) {
+          const s = new Date(deal.startDate); const e = new Date(deal.endDate);
           if (!isNaN(s) && !isNaN(e)) next.data.term_months = String((e.getFullYear() - s.getFullYear()) * 12 + e.getMonth() - s.getMonth());
         }
       }
@@ -643,7 +643,7 @@ export default function PageContracts({ t, isDark, CONTRACTS = [], PROJECTS = []
     return opts.length > 0 ? opts : ["Loan", "Mortgage", "Equity"];
   };
   const toggleRow = id => { const n = new Set(sel); n.has(id) ? n.delete(id) : n.add(id); setSel(n); };
-  const cols = [{ l: "", w: "36px" }, { l: "CONTRACT ID", w: "78px", k: "id" }, { l: "PROJECT ID", w: "78px", k: "project_id" }, { l: "PROJECT", w: "minmax(0,0.64fr)", k: "project" }, { l: "PARTY", w: "minmax(0,0.64fr)", k: "party" }, { l: "TYPE", w: "104px", k: "type" }, { l: "AMOUNT", w: "100px", k: "amount" }, { l: "RATE", w: "60px", k: "rate" }, { l: "FREQ", w: "80px", k: "freq" }, { l: "TERM", w: "52px", k: "term_months" }, { l: "FEES", w: "minmax(120px, 1.2fr)", k: "feeIds" }, { l: "START", w: "84px", k: "start_date" }, { l: "MATURITY", w: "84px", k: "maturity_date" }, { l: "STATUS", w: "72px", k: "status" }, { l: "CREATED", w: "84px", k: "created_at" }, { l: "UPDATED", w: "84px", k: "updated_at" }, { l: "ACTIONS", w: "72px" }];
+  const cols = [{ l: "", w: "36px" }, { l: "CONTRACT ID", w: "78px", k: "id" }, { l: "DEAL ID", w: "78px", k: "deal_id" }, { l: "DEAL", w: "minmax(0,0.64fr)", k: "deal" }, { l: "PARTY", w: "minmax(0,0.64fr)", k: "party" }, { l: "TYPE", w: "104px", k: "type" }, { l: "AMOUNT", w: "100px", k: "amount" }, { l: "RATE", w: "60px", k: "rate" }, { l: "FREQ", w: "80px", k: "freq" }, { l: "TERM", w: "52px", k: "term_months" }, { l: "FEES", w: "minmax(120px, 1.2fr)", k: "feeIds" }, { l: "START", w: "84px", k: "start_date" }, { l: "MATURITY", w: "84px", k: "maturity_date" }, { l: "STATUS", w: "72px", k: "status" }, { l: "CREATED", w: "84px", k: "created_at" }, { l: "UPDATED", w: "84px", k: "updated_at" }, { l: "ACTIONS", w: "72px" }];
   const { gridTemplate, headerRef, onResizeStart } = useResizableColumns(cols);
   const [colFilters, setColFilters] = useState({});
   const setColFilter = (key, val) => { setColFilters(f => ({ ...f, [key]: val })); setPage(1); };
@@ -714,8 +714,8 @@ export default function PageContracts({ t, isDark, CONTRACTS = [], PROJECTS = []
           <div style={{ fontFamily: t.mono, fontSize: 11, color: t.idText }}>
             <a href="#" onClick={e => { e.preventDefault(); e.stopPropagation(); setDrillContract(c); }} style={{ color: isDark ? "#60A5FA" : "#4F46E5", textDecoration: "none", fontWeight: 600 }}>{c.id}</a>
           </div>
-          <div style={{ fontFamily: t.mono, fontSize: 11, color: t.idText }}>{c.project_id || <span style={{ color: isDark ? "rgba(255,255,255,0.12)" : "#D4D0CB" }}>—</span>}</div>
-          <div style={{ fontSize: 12.5, color: isDark ? "rgba(255,255,255,0.7)" : "#44403C", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", paddingRight: 8, minWidth: 0 }}>{c.project}</div>
+          <div style={{ fontFamily: t.mono, fontSize: 11, color: t.idText }}>{c.deal_id || <span style={{ color: isDark ? "rgba(255,255,255,0.12)" : "#D4D0CB" }}>—</span>}</div>
+          <div style={{ fontSize: 12.5, color: isDark ? "rgba(255,255,255,0.7)" : "#44403C", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", paddingRight: 8, minWidth: 0 }}>{c.deal}</div>
           <div style={{ fontSize: 12.5, fontWeight: 500, color: isDark ? "rgba(255,255,255,0.85)" : "#1C1917", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", paddingRight: 8, minWidth: 0 }}>{c.party}</div>
           <div style={{ fontSize: 12.5, fontWeight: 500, color: typC[c.type] || t.textMuted }}>{c.type}</div>
           <div style={{ fontFamily: t.mono, fontSize: 12, fontWeight: 600, color: isDark ? "#60A5FA" : "#4F46E5" }}>{c.amount}</div>
@@ -746,12 +746,12 @@ export default function PageContracts({ t, isDark, CONTRACTS = [], PROJECTS = []
           <FF label="Contract ID" t={t}>
             <div style={{ fontFamily: t.mono, fontSize: 13, color: t.idText, background: isDark ? "rgba(255,255,255,0.04)" : "#F5F4F1", border: `1px solid ${t.surfaceBorder}`, borderRadius: 9, padding: "10px 13px" }}>{modal.data.id}</div>
           </FF>
-          <FF label="Project ID" t={t}>
-            <div style={{ fontFamily: t.mono, fontSize: 13, color: t.idText, background: isDark ? "rgba(255,255,255,0.04)" : "#F5F4F1", border: `1px solid ${t.surfaceBorder}`, borderRadius: 9, padding: "10px 13px" }}>{modal.data.project_id}</div>
+          <FF label="Deal ID" t={t}>
+            <div style={{ fontFamily: t.mono, fontSize: 13, color: t.idText, background: isDark ? "rgba(255,255,255,0.04)" : "#F5F4F1", border: `1px solid ${t.surfaceBorder}`, borderRadius: 9, padding: "10px 13px" }}>{modal.data.deal_id}</div>
           </FF>
         </div>
       )}
-      <FF label="Project" t={t}><FSel value={modal.data.project} onChange={e => setF("project", e.target.value)} options={PROJECTS.map(p => p.name)} t={t} /></FF>
+      <FF label="Deal" t={t}><FSel value={modal.data.deal} onChange={e => setF("deal", e.target.value)} options={DEALS.map(p => p.name)} t={t} /></FF>
       <FF label="Party" t={t}><FSel value={modal.data.party} onChange={e => setF("party", e.target.value)} options={PARTIES.map(p => p.name)} t={t} /></FF>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14 }}>
         <FF label="Type" t={t}><FSel value={modal.data.type} onChange={e => setF("type", e.target.value)} options={getTypeOpts()} t={t} /></FF>
@@ -820,11 +820,11 @@ export default function PageContracts({ t, isDark, CONTRACTS = [], PROJECTS = []
       <Modal open={!!drillContract} onClose={() => setDrillContract(null)} title="Contract Summary" saveLabel="OK" onSave={() => setDrillContract(null)} width={580} t={t} isDark={isDark}>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px 24px", padding: "10px 0" }}>
           <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
-            <span style={{ fontSize: 10, fontWeight: 700, color: t.textSecondary, textTransform: "uppercase", letterSpacing: "0.8px", fontFamily: t.mono }}>Contract ID / Project ID</span>
+            <span style={{ fontSize: 10, fontWeight: 700, color: t.textSecondary, textTransform: "uppercase", letterSpacing: "0.8px", fontFamily: t.mono }}>Contract ID / Deal ID</span>
             <div style={{ fontSize: 13.5, fontWeight: 700, color: isDark ? "#fff" : "#1C1917", display: "flex", gap: 8, alignItems: "center" }}>
               <span style={{ fontFamily: t.mono }}>{drillContract.contract_id || drillContract.id}</span>
               <span style={{ color: t.surfaceBorder }}>|</span>
-              <span style={{ fontFamily: t.mono, color: t.idText }}>{drillContract.project_id || "—"}</span>
+              <span style={{ fontFamily: t.mono, color: t.idText }}>{drillContract.deal_id || "—"}</span>
             </div>
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
@@ -840,8 +840,8 @@ export default function PageContracts({ t, isDark, CONTRACTS = [], PROJECTS = []
             })() }}>{drillContract.status}</span> : "—"}</div>
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
-            <span style={{ fontSize: 10, fontWeight: 700, color: t.textSecondary, textTransform: "uppercase", letterSpacing: "0.8px", fontFamily: t.mono }}>Project Name</span>
-            <div style={{ fontSize: 13, color: isDark ? "rgba(255,255,255,0.8)" : "#44403C" }}>{drillContract.project_name || drillContract.project || "—"}</div>
+            <span style={{ fontSize: 10, fontWeight: 700, color: t.textSecondary, textTransform: "uppercase", letterSpacing: "0.8px", fontFamily: t.mono }}>Deal Name</span>
+            <div style={{ fontSize: 13, color: isDark ? "rgba(255,255,255,0.8)" : "#44403C" }}>{drillContract.deal_name || drillContract.deal || "—"}</div>
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
             <span style={{ fontSize: 10, fontWeight: 700, color: t.textSecondary, textTransform: "uppercase", letterSpacing: "0.8px", fontFamily: t.mono }}>Party Name</span>

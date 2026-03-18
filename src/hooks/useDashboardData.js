@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { useAuth } from '../AuthContext';
 
-export function useDashboardData({ PROJECTS = [], CONTRACTS = [], PARTIES = [], SCHEDULES = [], PAYMENTS = [], MONTHLY = [], DIMENSIONS = [] }) {
+export function useDashboardData({ DEALS = [], CONTRACTS = [], PARTIES = [], SCHEDULES = [], PAYMENTS = [], MONTHLY = [], DIMENSIONS = [] }) {
     const { profile, isSuperAdmin, isTenantAdmin, isMember, isGlobalRole } = useAuth();
 
     const dashboardData = useMemo(() => {
@@ -22,7 +22,7 @@ export function useDashboardData({ PROJECTS = [], CONTRACTS = [], PARTIES = [], 
             : CONTRACTS;
 
         const filteredProjects = isMember
-            ? PROJECTS.filter(p => filteredContracts.some(c => c.project_id === p.id))
+            ? PROJECTS.filter(p => filteredContracts.some(c => c.deal_id === p.id))
             : PROJECTS;
 
         const allFilteredSchedules = isMember

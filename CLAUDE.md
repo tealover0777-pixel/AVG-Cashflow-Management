@@ -28,7 +28,7 @@ The build uses `vite-plugin-singlefile` to bundle the entire app into a single H
 ### Multi-Tenant Data Model
 
 All tenant data lives under `tenants/{tenantId}/` in Firestore:
-- `users/`, `projects/`, `parties/`, `contracts/`, `paymentSchedules/`, `payments/`, `fees/`, `roles/`, `dimensions/`
+- `users/`, `deals/`, `parties/`, `contracts/`, `paymentSchedules/`, `payments/`, `fees/`, `roles/`, `dimensions/`
 
 Global collections: `global_users/`, `role_types/`, `dimensions/`
 
@@ -67,7 +67,7 @@ Firestore rules (`firestore.rules`) enforce multi-tenancy at the database level 
 
 ### BigQuery Integration
 
-11 Firebase Extensions auto-export Firestore collection changes to BigQuery in real-time (projects, parties, contracts, paymentSchedules, payments, fees, tenant-users). Configured in `firebase.json` under `extensions`.
+11 Firebase Extensions auto-export Firestore collection changes to BigQuery in real-time (deals, parties, contracts, paymentSchedules, payments, fees, tenant-users). Configured in `firebase.json` under `extensions`.
 
 ### Firebase Data Connect
 
