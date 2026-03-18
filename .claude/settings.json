@@ -1,8 +1,9 @@
 {
-  "model": "sonnet",
   "permissions": {
     "allow": [
-      "Bash(wc *)"
+      "Bash(wc *)",
+      "Read(//Users/kyuahn/Documents/AVG/**)"
     ]
-  }
+  },
+  "model": "sonnet"
 }

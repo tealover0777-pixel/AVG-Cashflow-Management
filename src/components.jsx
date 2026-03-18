@@ -142,11 +142,11 @@ export function useResizableColumns(cols) {
 export const TblHead = ({ cols, t, isDark, sortConfig, onSort, children, gridTemplate, headerRef, onResizeStart }) => (
   <div ref={headerRef} style={{ display: "grid", gridTemplateColumns: gridTemplate || cols.map(c => c.w).join(" "), padding: "12px 22px", background: t.tableHeader, borderBottom: `1px solid ${t.surfaceBorder}`, alignItems: "center" }}>
     {cols.map((c, i) => {
-      if (i === 0 && children) return <div key="prefix" style={{ display: "flex", alignItems: "center", position: "relative" }}>{children}{onResizeStart && i < cols.length - 1 && <div onMouseDown={e => onResizeStart(i, e)} style={{ position: "absolute", right: -3, top: 0, bottom: 0, width: 6, cursor: "col-resize", zIndex: 2 }} />}</div>;
+      if (i === 0 && children) return <div key="prefix" style={{ display: "flex", alignItems: "center", position: "relative", borderRight: i < cols.length - 1 ? `1px solid ${t.columnDivider}` : "none" }}>{children}{onResizeStart && i < cols.length - 1 && <div onMouseDown={e => onResizeStart(i, e)} style={{ position: "absolute", right: -3, top: 0, bottom: 0, width: 6, cursor: "col-resize", zIndex: 2 }} />}</div>;
       const isS = !!c.k, isSorted = sortConfig?.key === c.k;
       return (
         <div key={c.l || i} onClick={() => isS && onSort && onSort(c.k)}
-          style={{ fontSize: 10.5, fontWeight: 600, letterSpacing: "1px", color: isSorted ? t.accent : (isDark ? "#FFFFFF" : "#1C1917"), textTransform: "uppercase", fontFamily: t.mono, cursor: isS ? "pointer" : "default", display: "flex", alignItems: "center", gap: 4, userSelect: "none", position: "relative" }}>
+          style={{ fontSize: 10.5, fontWeight: 600, letterSpacing: "1px", color: isSorted ? t.accent : (isDark ? "#FFFFFF" : "#1C1917"), textTransform: "uppercase", fontFamily: t.mono, cursor: isS ? "pointer" : "default", display: "flex", alignItems: "center", gap: 4, userSelect: "none", position: "relative", borderRight: i < cols.length - 1 ? `1px solid ${t.columnDivider}` : "none" }}>
           {c.l}
           {isS && isSorted && <span style={{ fontSize: 10 }}>{sortConfig.direction === "asc" ? "▲" : "▼"}</span>}
           {onResizeStart && i < cols.length - 1 && <div onMouseDown={e => { e.stopPropagation(); onResizeStart(i, e); }} style={{ position: "absolute", right: -3, top: 0, bottom: 0, width: 6, cursor: "col-resize", zIndex: 2 }} />}
@@ -158,16 +158,17 @@ export const TblHead = ({ cols, t, isDark, sortConfig, onSort, children, gridTem
 
 export const TblFilterRow = ({ cols, colFilters, onFilterChange, onClear, gridTemplate, t, isDark }) => (
   <div style={{ display: "grid", gridTemplateColumns: gridTemplate || cols.map(c => c.w).join(" "), padding: "6px 22px", borderBottom: `1px solid ${t.rowDivider}`, background: isDark ? "rgba(255,255,255,0.015)" : "#FDFDFC" }}>
-    {cols.map(c => c.k ? (
-      <input
-        key={c.k}
-        value={colFilters[c.k] || ""}
-        onChange={e => onFilterChange(c.k, e.target.value)}
-        placeholder="Filter..."
-        style={{ fontSize: 11, padding: "4px 8px", borderRadius: 6, border: `1px solid ${t.surfaceBorder}`, background: isDark ? "rgba(30, 58, 138, 0.3)" : "rgba(219, 234, 254, 0.7)", color: isDark ? "rgba(255,255,255,0.8)" : "#44403C", outline: "none", width: "100%", boxSizing: "border-box", fontFamily: "inherit" }}
-      />
+    {cols.map((c, i) => c.k ? (
+      <div key={c.k} style={{ borderRight: i < cols.length - 1 ? `1px solid ${t.columnDivider}` : "none", width: "100%", boxSizing: "border-box" }}>
+        <input
+          value={colFilters[c.k] || ""}
+          onChange={e => onFilterChange(c.k, e.target.value)}
+          placeholder="Filter..."
+          style={{ fontSize: 11, padding: "4px 8px", borderRadius: 6, border: `1px solid ${t.surfaceBorder}`, background: isDark ? "rgba(30, 58, 138, 0.3)" : "rgba(219, 234, 254, 0.7)", color: isDark ? "rgba(255,255,255,0.8)" : "#44403C", outline: "none", width: "100%", boxSizing: "border-box", fontFamily: "inherit" }}
+        />
+      </div>
     ) : (
-      <div key={c.l || "nofilter"} style={{ display: "flex", justifyContent: "center", alignItems: "center" }}>
+      <div key={c.l || "nofilter"} style={{ display: "flex", justifyContent: "center", alignItems: "center", borderRight: "none" }}>
         {c.l === "ACTIONS" && Object.values(colFilters).some(v => v !== "") && (
           <Tooltip text="Clear all filters" t={t}>
             <button
