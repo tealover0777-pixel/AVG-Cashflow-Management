@@ -22,8 +22,8 @@ export function useDashboardData({ DEALS = [], CONTRACTS = [], PARTIES = [], SCH
             : CONTRACTS;
 
         const filteredProjects = isMember
-            ? PROJECTS.filter(p => filteredContracts.some(c => c.deal_id === p.id))
-            : PROJECTS;
+            ? DEALS.filter(p => filteredContracts.some(c => c.deal_id === p.id))
+            : DEALS;
 
         const allFilteredSchedules = isMember
             ? SCHEDULES.filter(s => {
@@ -187,7 +187,7 @@ export function useDashboardData({ DEALS = [], CONTRACTS = [], PARTIES = [], SCH
             isMember,
             myParty
         };
-    }, [PROJECTS, CONTRACTS, PARTIES, SCHEDULES, PAYMENTS, DIMENSIONS, profile, isSuperAdmin, isTenantAdmin, isMember]);
+    }, [DEALS, CONTRACTS, PARTIES, SCHEDULES, PAYMENTS, DIMENSIONS, profile, isSuperAdmin, isTenantAdmin, isMember]);
 
     return dashboardData;
 }

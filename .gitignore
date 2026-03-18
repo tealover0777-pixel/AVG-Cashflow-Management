@@ -47,3 +47,6 @@ appsscript.json.backup
 .env.production.local
 .env*.local
 node_modules
+
+# Firebase Data Connect generated files
+dataconnect/.dataconnect
