@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import { AgGridReact } from 'ag-grid-react';
 import { ModuleRegistry, AllCommunityModule } from 'ag-grid-community';
 
@@ -111,6 +111,25 @@ export default function PageParties({ t, isDark, PARTIES = [], CONTRACTS = [], S
   };
   const chips = ["All", "Investors", "Borrowers", "Companies"];
   const gridRef = useRef(null);
+  const [pageSize, setPageSize] = useState(20);
+
+  // Dynamically calculate page size based on available vertical space
+  useEffect(() => {
+    const calculatePageSize = () => {
+      const rowHeight = 42; // AG Grid default row height
+      const headerHeight = 48; // AG Grid header height
+      const viewportHeight = window.innerHeight;
+      const reservedSpace = 480; // Space for page header, stats, filters, pagination
+      const availableHeight = viewportHeight - reservedSpace;
+      const calculatedRows = Math.floor((availableHeight - headerHeight) / rowHeight);
+      const newPageSize = Math.max(20, calculatedRows); // Minimum 20 rows
+      setPageSize(newPageSize);
+    };
+
+    calculatePageSize();
+    window.addEventListener('resize', calculatePageSize);
+    return () => window.removeEventListener('resize', calculatePageSize);
+  }, []);
 
   // AG Grid: Chip filtering (pre-filter data before passing to grid)
   const getFilteredData = () => {
@@ -171,7 +190,7 @@ export default function PageParties({ t, isDark, PARTIES = [], CONTRACTS = [], S
         context={context}
         animateRows={true}
         pagination={true}
-        paginationPageSize={20}
+        paginationPageSize={pageSize}
         suppressPaginationPanel={true}
         suppressCellFocus={true}
         onRowClicked={(event) => {
@@ -197,7 +216,7 @@ export default function PageParties({ t, isDark, PARTIES = [], CONTRACTS = [], S
         }}
       />
     </div>
-    <div style={{ marginTop: 16, display: "flex", justifyContent: "space-between", alignItems: "center" }}><span style={{ fontSize: 12, color: t.textSubtle }}>Showing <strong style={{ color: t.textSecondary }}>{Math.min(getFilteredData().length, 20)}</strong> of <strong style={{ color: t.textSecondary }}>{getFilteredData().length}</strong> parties</span><Pagination totalPages={Math.ceil(getFilteredData().length / 20)} currentPage={1} onPageChange={(newPage) => gridRef.current?.api.paginationGoToPage(newPage - 1)} t={t} /></div>
+    <div style={{ marginTop: 16, display: "flex", justifyContent: "space-between", alignItems: "center" }}><span style={{ fontSize: 12, color: t.textSubtle }}>Showing <strong style={{ color: t.textSecondary }}>{Math.min(getFilteredData().length, pageSize)}</strong> of <strong style={{ color: t.textSecondary }}>{getFilteredData().length}</strong> parties</span><Pagination totalPages={Math.ceil(getFilteredData().length / pageSize)} currentPage={1} onPageChange={(newPage) => gridRef.current?.api.paginationGoToPage(newPage - 1)} t={t} /></div>
     <Modal open={modal.open} onClose={close} title={modal.mode === "add" ? "New Party" : "Edit Party"} onSave={handleSaveParty} width={600} t={t} isDark={isDark}>
       <FF label="Party ID" t={t}>
         <div style={{ fontFamily: t.mono, fontSize: 13, color: t.idText, background: isDark ? "rgba(255,255,255,0.04)" : "#F5F4F1", border: `1px solid ${t.surfaceBorder}`, borderRadius: 9, padding: "10px 13px", letterSpacing: "0.5px" }}>{modal.data.id}</div>
