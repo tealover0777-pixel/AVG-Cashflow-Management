@@ -42,9 +42,11 @@ export const getColumnDefs = (permissions, isDark, t) => {
       field: "type",
       width: 100,
       sortable: true,
-      filter: "agSetColumnFilter",
+      filter: "agTextColumnFilter",
       filterParams: {
-        values: ["Individual", "Company", "Trust", "Partnership"]
+        filterOptions: ["contains", "notContains", "equals", "notEqual", "startsWith", "endsWith"],
+        trimInput: true,
+        debounceMs: 300
       },
       cellRenderer: PartyTypeCellRenderer
     },
@@ -53,9 +55,11 @@ export const getColumnDefs = (permissions, isDark, t) => {
       field: "role",
       width: 90,
       sortable: true,
-      filter: "agSetColumnFilter",
+      filter: "agTextColumnFilter",
       filterParams: {
-        values: ["Investor", "Borrower"]
+        filterOptions: ["contains", "notContains", "equals", "notEqual", "startsWith", "endsWith"],
+        trimInput: true,
+        debounceMs: 300
       },
       cellRenderer: PartyRoleCellRenderer
     },
@@ -64,9 +68,11 @@ export const getColumnDefs = (permissions, isDark, t) => {
       field: "investor_type",
       width: 80,
       sortable: true,
-      filter: "agSetColumnFilter",
+      filter: "agTextColumnFilter",
       filterParams: {
-        values: ["Fixed", "Equity", "Both", "Other"]
+        filterOptions: ["contains", "notContains", "equals", "notEqual", "startsWith", "endsWith"],
+        trimInput: true,
+        debounceMs: 300
       },
       cellStyle: {
         fontSize: '11px',

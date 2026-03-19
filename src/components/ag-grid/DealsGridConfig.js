@@ -41,9 +41,11 @@ export const getColumnDefs = (permissions, isDark, t) => {
       field: "status",
       width: 100,
       sortable: true,
-      filter: "agSetColumnFilter",
+      filter: "agTextColumnFilter",
       filterParams: {
-        values: ["Active", "Closed"]
+        filterOptions: ["contains", "notContains", "equals", "notEqual", "startsWith", "endsWith"],
+        trimInput: true,
+        debounceMs: 300
       },
       cellRenderer: DealStatusCellRenderer
     },

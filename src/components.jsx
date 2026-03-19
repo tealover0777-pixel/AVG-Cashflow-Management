@@ -100,18 +100,22 @@ export const Tooltip = ({ children, text, position = "top", delay = 300, t }) =>
 
 export const ActBtns = ({ show, t, onEdit, onDel, onUndo }) => {
   return (
-    <div style={{ display: "flex", gap: 6, opacity: show ? 1 : 0, transition: "opacity 0.15s ease" }}>
+    <div style={{ display: "flex", gap: 6, opacity: show ? 1 : 0, transition: "opacity 0.15s ease", pointerEvents: show ? "auto" : "none" }}>
       {onUndo && (
         <Tooltip text="Undo last action" t={t}>
-          <button className="action-btn" onClick={e => { e.stopPropagation(); onUndo(); }} style={{ width: 30, height: 30, borderRadius: 7, background: t.chipBg, color: t.accent, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, border: `1px solid ${t.chipBorder}` }}>↺</button>
+          <button className="action-btn" onClick={e => { e.stopPropagation(); onUndo(e); }} style={{ width: 30, height: 30, borderRadius: 7, background: t.chipBg, color: t.accent, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, border: `1px solid ${t.chipBorder}` }}>↺</button>
         </Tooltip>
       )}
-      <Tooltip text="Edit this record" t={t}>
-        <button className="action-btn" onClick={e => { e.stopPropagation(); onEdit && onEdit(); }} style={{ width: 30, height: 30, borderRadius: 7, background: t.editBtn[0], color: t.editBtn[1], display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13 }}>✎</button>
-      </Tooltip>
-      <Tooltip text="Delete this record" t={t}>
-        <button className="action-btn" onClick={e => { e.stopPropagation(); onDel && onDel(); }} style={{ width: 30, height: 30, borderRadius: 7, background: t.deleteBtn[0], color: t.deleteBtn[1], display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13 }}>⊗</button>
-      </Tooltip>
+      {onEdit && (
+        <Tooltip text="Edit this record" t={t}>
+          <button className="action-btn" onClick={e => { e.stopPropagation(); onEdit(e); }} style={{ width: 30, height: 30, borderRadius: 7, background: t.editBtn[0], color: t.editBtn[1], display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13 }}>✎</button>
+        </Tooltip>
+      )}
+      {onDel && (
+        <Tooltip text="Delete this record" t={t}>
+          <button className="action-btn" onClick={e => { e.stopPropagation(); onDel(e); }} style={{ width: 30, height: 30, borderRadius: 7, background: t.deleteBtn[0], color: t.deleteBtn[1], display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13 }}>⊗</button>
+        </Tooltip>
+      )}
     </div>
   );
 };

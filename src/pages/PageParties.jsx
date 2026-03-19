@@ -175,7 +175,6 @@ export default function PageParties({ t, isDark, PARTIES = [], CONTRACTS = [], S
         suppressPaginationPanel={true}
         suppressCellFocus={true}
         onRowClicked={(event) => {
-          // Only open detail modal if not clicking on action buttons
           if (!event.event.target.closest('.action-btn')) {
             setDetailParty(event.data);
           }

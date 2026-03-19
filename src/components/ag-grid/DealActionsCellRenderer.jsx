@@ -8,12 +8,12 @@ const DealActionsCellRenderer = (props) => {
   const [isHovered, setIsHovered] = useState(false);
 
   const handleEdit = (e) => {
-    e.stopPropagation();
+    if (e && e.stopPropagation) e.stopPropagation();
     callbacks.onEdit(data);
   };
 
   const handleDelete = (e) => {
-    e.stopPropagation();
+    if (e && e.stopPropagation) e.stopPropagation();
     callbacks.onDelete({
       id: data.id,
       name: data.name,

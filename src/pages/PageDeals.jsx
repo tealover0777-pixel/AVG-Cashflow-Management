@@ -101,6 +101,11 @@ export default function PageDeals({ t, isDark, DEALS = [], FEES_DATA = [], colle
         paginationPageSize={20}
         suppressPaginationPanel={true}
         suppressCellFocus={true}
+        onRowClicked={(event) => {
+          if (!event.event.target.closest('.action-btn')) {
+            setEditDeal(event.data);
+          }
+        }}
         onColumnResized={(event) => {
           if (event.finished) {
             const columnState = event.api.getColumnState();
