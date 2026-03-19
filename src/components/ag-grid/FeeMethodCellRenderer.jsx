@@ -20,8 +20,8 @@ export default function FeeMethodCellRenderer(props) {
   return (
     <span style={{
       fontSize: '11.5px',
-      fontWeight: 600,
-      padding: '4px 11px',
+      fontWeight: 500,
+      padding: '2px 10px',
       borderRadius: '20px',
       background: bg,
       color,

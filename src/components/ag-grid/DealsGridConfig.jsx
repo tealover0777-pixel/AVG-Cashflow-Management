@@ -49,7 +49,7 @@ export const getColumnDefs = (permissions, isDark, t) => {
       },
       cellRenderer: (params) => (
         <div style={{ display: 'flex', alignItems: 'center', height: '100%' }}>
-          <span style={{ fontSize: '12.5px', fontWeight: 500, color: params.context.isDark ? "#A78BFA" : "#7C3AED", background: params.context.isDark ? "rgba(167,139,250,0.1)" : "#F5F3FF", padding: "2px 10px", borderRadius: 20, border: `1px solid ${params.context.isDark ? "rgba(167,139,250,0.2)" : "#DDD6FE"}` }}>{params.value || "—"}</span>
+          <span style={{ fontSize: '11.5px', fontWeight: 500, color: params.context.isDark ? "#A78BFA" : "#7C3AED", background: params.context.isDark ? "rgba(167,139,250,0.1)" : "#F5F3FF", padding: "2px 10px", borderRadius: 20, border: `1px solid ${params.context.isDark ? "rgba(167,139,250,0.2)" : "#DDD6FE"}` }}>{params.value || "—"}</span>
         </div>
       )
     },
@@ -100,7 +100,7 @@ export const getColumnDefs = (permissions, isDark, t) => {
       filter: "agNumberColumnFilter",
       cellStyle: {
         fontFamily: t.mono,
-        fontSize: '12px',
+        fontSize: '11.5px',
         fontWeight: 600,
         color: isDark ? "#60A5FA" : "#4F46E5"
       },
@@ -123,7 +123,7 @@ export const getColumnDefs = (permissions, isDark, t) => {
         debounceMs: 300
       },
       cellStyle: {
-        fontSize: '12px',
+        fontSize: '11.5px',
         color: t.textMuted,
         overflow: 'hidden',
         textOverflow: 'ellipsis',

@@ -11,7 +11,7 @@ import { db, functions } from "../firebase";
 import { doc, setDoc, updateDoc, deleteDoc, serverTimestamp } from "firebase/firestore";
 import { httpsCallable } from "firebase/functions";
 import { initials, av, badge, sortData, fmtCurr } from "../utils";
-import { StatCard, Pagination, ActBtns, Modal, FF, FIn, FSel, DelModal, Tooltip } from "../components";
+import { StatCard, Bdg, Pagination, ActBtns, Modal, FF, FIn, FSel, DelModal, Tooltip } from "../components";
 import { useAuth } from "../AuthContext";
 
 export default function PageParties({ t, isDark, PARTIES = [], CONTRACTS = [], SCHEDULES = [], DEALS = [], collectionPath = "", DIMENSIONS = [], tenantId = "" }) {
@@ -288,7 +288,7 @@ export default function PageParties({ t, isDark, PARTIES = [], CONTRACTS = [], S
                   <div style={{ fontSize: 17, fontWeight: 700, color: isDark ? "#fff" : "#1C1917" }}>{dp.name}</div>
                   <div style={{ fontSize: 12, color: t.textMuted, display: "flex", gap: 10, marginTop: 2 }}>
                     <span style={{ fontFamily: t.mono }}>{dp.id}</span>
-                    <span>{(() => { const [bg, color, brd] = badge(dp.role, isDark); return <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 20, background: bg, color, border: `1px solid ${brd}` }}>{dp.role}</span>; })()}</span>
+                    <span><Bdg status={dp.role} isDark={isDark} /></span>
                   </div>
                 </div>
               </div>
@@ -322,7 +322,7 @@ export default function PageParties({ t, isDark, PARTIES = [], CONTRACTS = [], S
                                 <div style={{ flex: 1, minWidth: 0 }}>
                                   <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 3 }}>
                                     <span style={{ fontFamily: t.mono, fontSize: 12, fontWeight: 600, color: isDark ? "#fff" : "#1C1917" }}>{c.id}</span>
-                                    <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 20, background: bg, color, border: `1px solid ${brd}` }}>{c.status}</span>
+                                    <Bdg status={c.status} isDark={isDark} />
                                   </div>
                                   <div style={{ fontSize: 11, color: t.textMuted }}>{c.type || "—"} · {c.rate || "—"} · {c.freq || "—"} · {c.start_date || "—"} ~ {c.maturity_date || "—"}</div>
                                 </div>
@@ -376,7 +376,7 @@ export default function PageParties({ t, isDark, PARTIES = [], CONTRACTS = [], S
                                     <td style={{ padding: "10px 14px", fontSize: 11, color: t.textSecondary }}>{s.type}{s.fee_id ? ` · ${s.fee_id}` : ""}</td>
                                     <td style={{ padding: "10px 14px", fontSize: 10, fontWeight: 600, color: s.direction === "IN" ? "#10B981" : "#EF4444" }}>{s.direction}</td>
                                     <td style={{ padding: "10px 14px", fontSize: 11.5, fontWeight: 600 }}>{s.signed_payment_amount}</td>
-                                    <td style={{ padding: "10px 14px" }}><span style={{ fontSize: 9, fontWeight: 700, padding: "3px 8px", borderRadius: 20, background: sbg, color: sc, border: `1px solid ${sbrd}` }}>{s.status}</span></td>
+                                    <td style={{ padding: "10px 14px" }}><Bdg status={s.status} isDark={isDark} /></td>
                                   </tr>
                                 );
                               })}

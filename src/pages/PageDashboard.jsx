@@ -1,6 +1,6 @@
 import React from "react";
 import { badge, fmtCurr } from "../utils";
-import { StatCard } from "../components";
+import { StatCard, Bdg, ActBtns } from "../components";
 import { useDashboardData } from "../hooks/useDashboardData";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
@@ -177,7 +177,7 @@ export default function PageDashboard(props) {
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3 }}>
                       <span style={{ fontSize: 12.5, fontWeight: 600, color: isDark ? '#fff' : '#1C1917' }}>{c.id}</span>
-                      <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 20, background: bg, color, border: `1px solid ${brd}` }}>{c.status}</span>
+                      <Bdg status={c.status} isDark={isDark} />
                     </div>
                     <div style={{ fontSize: 11, color: t.textMuted, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {c.type || '—'} · {rate}% · {c.freq || '—'}
@@ -224,7 +224,7 @@ export default function PageDashboard(props) {
                       <td style={{ padding: '14px 24px', fontSize: 11, fontWeight: 600, color: s.direction === 'IN' ? '#10B981' : '#EF4444' }}>{s.direction}</td>
                       <td style={{ padding: '14px 24px', fontSize: 12.5, fontWeight: 600 }}>{s.signed_payment_amount}</td>
                       <td style={{ padding: '14px 24px' }}>
-                        <span style={{ fontSize: 10, fontWeight: 700, padding: '4px 10px', borderRadius: 20, background: bg, color, border: `1px solid ${brd}` }}>{s.status}</span>
+                        <Bdg status={s.status} isDark={isDark} />
                       </td>
                     </tr>
                   );

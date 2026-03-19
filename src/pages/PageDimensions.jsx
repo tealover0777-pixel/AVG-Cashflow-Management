@@ -94,7 +94,7 @@ export default function PageDimensions({ t, isDark, DIMENSIONS = [], rawDimensio
             <div style={{ padding: "16px 20px", borderBottom: `1px solid ${t.surfaceBorder}`, display: "flex", justifyContent: "space-between", alignItems: "center", background: bg }}>
               <div><div style={{ fontSize: 13.5, fontWeight: 700, color: accent }}>{g.name}</div></div>
               <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                <span style={{ fontFamily: t.mono, fontSize: 11, color: accent, background: isDark ? "rgba(255,255,255,0.08)" : "#fff", padding: "2px 8px", borderRadius: 20, border: `1px solid ${border}` }}>{g.items.length} values</span>
+                <span style={{ fontFamily: t.mono, fontSize: 11.5, color: accent, background: isDark ? "rgba(255,255,255,0.08)" : "#fff", padding: "2px 10px", borderRadius: 20, border: `1px solid ${border}`, fontWeight: 500 }}>{g.items.length} values</span>
                 {canUpdate && (
                   <button onClick={() => setEditing(isEd ? null : g.name)} style={{ width: 28, height: 28, borderRadius: 7, background: isEd ? accent : t.editBtn[0], color: isEd ? (isDark ? "#050c15" : "#fff") : t.editBtn[1], display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, border: "none", cursor: "pointer" }}>
                     {isEd ? "✓" : "✎"}
@@ -104,7 +104,7 @@ export default function PageDimensions({ t, isDark, DIMENSIONS = [], rawDimensio
             </div>
             <div style={{ padding: "16px 20px", display: "flex", flexWrap: "wrap", gap: 8 }}>
               {g.items.map(item => (
-                <div key={item} style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 12.5, fontWeight: 500, padding: "5px 12px", borderRadius: 20, background: t.tagBg, color: t.tagColor, border: `1px solid ${t.tagBorder}` }}>
+                <div key={item} style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 11.5, fontWeight: 500, padding: "2px 10px", borderRadius: 20, background: t.tagBg, color: t.tagColor, border: `1px solid ${t.tagBorder}`, whiteSpace: "nowrap" }}>
                   {item}
                   {isEd && <span onClick={() => handleRemove(g.name, item)} style={{ fontSize: 13, color: isDark ? "#F87171" : "#DC2626", fontWeight: 700, lineHeight: 1, marginLeft: 2, cursor: "pointer" }}>×</span>}
                 </div>

@@ -25,7 +25,18 @@ const StatusBadge = ({ status, t, isDark }) => {
     const color = isPending ? "#F59E0B" : "#22C55E";
     const border = isPending ? "1px solid rgba(245,158,11,0.35)" : "1px solid rgba(34,197,94,0.35)";
     return (
-        <span style={{ display: "inline-block", padding: "3px 10px", borderRadius: 20, fontSize: 11, fontWeight: 600, background: bg, color, border, letterSpacing: "0.04em", whiteSpace: "nowrap" }}>
+        <span style={{ 
+            display: "inline-block", 
+            padding: "2px 10px", 
+            borderRadius: 20, 
+            fontSize: 11.5, 
+            fontWeight: 500, 
+            background: bg, 
+            color, 
+            border, 
+            letterSpacing: "0.02em", 
+            whiteSpace: "nowrap" 
+        }}>
             {isPending ? "⏳ Pending" : "✓ Active"}
         </span>
     );

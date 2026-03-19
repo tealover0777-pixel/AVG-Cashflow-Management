@@ -7,7 +7,7 @@ import { badge } from "./utils";
 
 export const Bdg = ({ status, isDark }) => {
   const [bg, color, border] = badge(status, isDark);
-  return <span style={{ fontSize: 11.5, fontWeight: 600, padding: "4px 11px", borderRadius: 20, background: bg, color, border: `1px solid ${border}` }}>{status}</span>;
+  return <span style={{ fontSize: 11.5, fontWeight: 500, padding: "2px 10px", borderRadius: 20, background: bg, color, border: `1px solid ${border}` }}>{status}</span>;
 };
 
 // ─────────────────────────────────────────────────────────────────────────────

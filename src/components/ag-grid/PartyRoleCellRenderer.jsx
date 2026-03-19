@@ -15,8 +15,8 @@ const PartyRoleCellRenderer = (props) => {
     }}>
       <span style={{
         fontSize: 11.5,
-        fontWeight: 600,
-        padding: "4px 11px",
+        fontWeight: 500,
+        padding: "2px 10px",
         borderRadius: 20,
         background: bg,
         color: color,

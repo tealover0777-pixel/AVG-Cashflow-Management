@@ -2,7 +2,7 @@ import { useState } from "react";
 import { db } from "../firebase";
 import { collection, doc, addDoc, updateDoc, deleteDoc, serverTimestamp } from "firebase/firestore";
 import { sortData, badge, initials, av, pmtCalculator_ACT360_30360, getFeeFrequencyString, normalizeDateAtNoon } from "../utils";
-import { StatCard, Pagination, ActBtns, useResizableColumns, TblHead, TblFilterRow, Modal, FF, FIn, FSel, DelModal, Tooltip } from "../components";
+import { StatCard, Bdg, ActBtns, Pagination, useResizableColumns, TblHead, TblFilterRow, Modal, FF, FIn, FSel, DelModal, Tooltip } from "../components";
 import { useAuth } from "../AuthContext";
 
 const fmtCurr = v => {
@@ -868,7 +868,7 @@ Are you sure you want to continue?`;
           <div style={{ fontFamily: t.mono, fontSize: 11.5, color: t.textMuted }}>
             {s.principal_amount || dash}
           </div>
-          <div><span style={{ fontSize: 11.5, fontWeight: 600, padding: "4px 11px", borderRadius: 20, background: bg, color, border: `1px solid ${border}` }}>{s.status}</span></div>
+          <div><Bdg status={s.status} isDark={isDark} /></div>
           <div style={{ fontSize: 11.5, color: t.textMuted, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0 }}>{s.notes || dash}</div>
           <ActBtns show={isHov || !!s._undo_snapshot || !!(s.linked || s.linked_schedule_id)} t={t} onEdit={() => openEdit(s)} onDel={canDelete ? (() => setDelT({ schedule_id: s.schedule_id, name: s.schedule_id, docId: s.docId, _path: s._path })) : null} onUndo={(s._undo_snapshot || s.linked) ? () => handleUndo(s) : null} />
         </div>);
@@ -1105,9 +1105,9 @@ Are you sure you want to continue?`;
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
                         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                           <span style={{ fontFamily: t.mono, fontSize: 13, fontWeight: 700, color: isDark ? "#fff" : "#1C1917" }}>{cs.schedule_id}</span>
-                          <span style={{ fontSize: 11.5, fontWeight: 600, padding: "3px 10px", borderRadius: 20, background: sbg, color: sc, border: `1px solid ${sbrd}` }}>{cs.status}</span>
-                          {isOriginal && <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 20, background: isDark ? "rgba(96,165,250,0.12)" : "#DBEAFE", color: isDark ? "#60A5FA" : "#2563EB", border: `1px solid ${isDark ? "rgba(96,165,250,0.3)" : "#93C5FD"}` }}>ORIGINAL</span>}
-                          {idx > 0 && <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 20, background: isDark ? "rgba(251,191,36,0.12)" : "#FEF3C7", color: isDark ? "#FBBF24" : "#D97706", border: `1px solid ${isDark ? "rgba(251,191,36,0.3)" : "#FDE68A"}` }}>REPLACEMENT</span>}
+                          <Bdg status={cs.status} isDark={isDark} />
+                          {isOriginal && <span style={{ fontSize: 10, fontWeight: 500, padding: "2px 8px", borderRadius: 20, background: isDark ? "rgba(96,165,250,0.12)" : "#DBEAFE", color: isDark ? "#60A5FA" : "#2563EB", border: `1px solid ${isDark ? "rgba(96,165,250,0.3)" : "#93C5FD"}`, letterSpacing: "0.02em" }}>ORIGINAL</span>}
+                          {idx > 0 && <span style={{ fontSize: 10, fontWeight: 500, padding: "2px 8px", borderRadius: 20, background: isDark ? "rgba(251,191,36,0.12)" : "#FEF3C7", color: isDark ? "#FBBF24" : "#D97706", border: `1px solid ${isDark ? "rgba(251,191,36,0.3)" : "#FDE68A"}`, letterSpacing: "0.02em" }}>REPLACEMENT</span>}
                         </div>
                         <div style={{ fontFamily: t.mono, fontSize: 13, fontWeight: 700, color: isDark ? "#60A5FA" : "#4F46E5" }}>
                           {(() => {
@@ -1211,7 +1211,7 @@ Are you sure you want to continue?`;
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
             <span style={{ fontSize: 10, fontWeight: 700, color: t.textSecondary, textTransform: "uppercase", letterSpacing: "0.8px", fontFamily: t.mono }}>Status</span>
-            <div>{drillContract.status ? <span style={{ fontSize: 11.5, fontWeight: 600, padding: "3px 12px", borderRadius: 20, ...(() => { const [bg, c, br] = badge(drillContract.status, isDark); return { background: bg, color: c, border: `1px solid ${br}` }; })() }}>{drillContract.status}</span> : "—"}</div>
+            <div>{drillContract.status ? <Bdg status={drillContract.status} isDark={isDark} /> : "—"}</div>
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
             <span style={{ fontSize: 10, fontWeight: 700, color: t.textSecondary, textTransform: "uppercase", letterSpacing: "0.8px", fontFamily: t.mono }}>Project Name</span>
@@ -1252,7 +1252,7 @@ Are you sure you want to continue?`;
                 const fids = String(drillContract.fees || drillContract.feeIds || "").split(",").filter(Boolean);
                 return fids.length > 0 ? fids.map(fid => {
                   const f = FEES_DATA.find(x => x.id === fid);
-                  return <span key={fid} style={{ fontSize: 11, fontWeight: 600, padding: "3px 10px", borderRadius: 20, background: isDark ? "rgba(52,211,153,0.12)" : "#ECFDF5", color: isDark ? "#34D399" : "#059669", border: `1px solid ${isDark ? "rgba(52,211,153,0.25)" : "#A7F3D0"}` }}>{f?.name || fid} {f?.rate ? `(${f.rate})` : ""} · {f?.applied_to || "No applied to"}</span>;
+                  return <span key={fid} style={{ fontSize: 11, fontWeight: 500, padding: "2px 10px", borderRadius: 20, background: isDark ? "rgba(52,211,153,0.12)" : "#ECFDF5", color: isDark ? "#34D399" : "#059669", border: `1px solid ${isDark ? "rgba(52,211,153,0.25)" : "#A7F3D0"}` }}>{f?.name || fid} {f?.rate ? `(${f.rate})` : ""} · {f?.applied_to || "No applied to"}</span>;
                 }) : <span style={{ fontSize: 12, color: t.textMuted, fontStyle: "italic" }}>No applicable fees</span>;
               })()}
             </div>
@@ -1337,7 +1337,7 @@ Are you sure you want to continue?`;
                   <div style={{ fontSize: 17, fontWeight: 700, color: isDark ? "#fff" : "#1C1917" }}>{dp.name}</div>
                   <div style={{ fontSize: 12, color: t.textMuted, display: "flex", gap: 10, marginTop: 2 }}>
                     <span style={{ fontFamily: t.mono }}>{dp.id}</span>
-                    <span>{(() => { const [bg, color, brd] = badge(dp.role, isDark); return <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 20, background: bg, color, border: `1px solid ${brd}` }}>{dp.role}</span>; })()}</span>
+                    <span><Bdg status={dp.role} isDark={isDark} /></span>
                   </div>
                 </div>
               </div>
@@ -1371,7 +1371,7 @@ Are you sure you want to continue?`;
                                 <div style={{ flex: 1, minWidth: 0 }}>
                                   <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 3 }}>
                                     <span style={{ fontFamily: t.mono, fontSize: 12, fontWeight: 600, color: isDark ? "#fff" : "#1C1917" }}>{c.id}</span>
-                                    <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 20, background: bg, color, border: `1px solid ${brd}` }}>{c.status}</span>
+                                    <Bdg status={c.status} isDark={isDark} />
                                   </div>
                                   <div style={{ fontSize: 11, color: t.textMuted }}>{c.type || "—"} · {c.rate || "—"} · {c.freq || "—"} · {c.start_date || "—"} ~ {c.maturity_date || "—"}</div>
                                 </div>
@@ -1425,7 +1425,7 @@ Are you sure you want to continue?`;
                                     <td style={{ padding: "10px 14px", fontSize: 11, color: t.textSecondary }}>{s.type}{s.fee_id ? ` · ${s.fee_id}` : ""}</td>
                                     <td style={{ padding: "10px 14px", fontSize: 10, fontWeight: 600, color: s.direction === "IN" ? "#10B981" : "#EF4444" }}>{s.direction}</td>
                                     <td style={{ padding: "10px 14px", fontSize: 11.5, fontWeight: 600 }}>{s.signed_payment_amount}</td>
-                                    <td style={{ padding: "10px 14px" }}><span style={{ fontSize: 9, fontWeight: 700, padding: "3px 8px", borderRadius: 20, background: sbg, color: sc, border: `1px solid ${sbrd}` }}>{s.status}</span></td>
+                                    <td style={{ padding: "10px 14px" }}><Bdg status={s.status} isDark={isDark} /></td>
                                   </tr>
                                 );
                               })}

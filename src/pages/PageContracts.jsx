@@ -10,7 +10,7 @@ import { getColumnDefs } from '../components/ag-grid/ContractsGridConfig';
 import { db } from "../firebase";
 import { collection, doc, addDoc, updateDoc, deleteDoc, serverTimestamp } from "firebase/firestore";
 import { normalizeDateAtNoon, hybridDays, pmtCalculator_ACT360_30360, feeCalculator_ACT360_30360, getFrequencyValue, fmtCurr } from "../utils";
-import { StatCard, Pagination, Modal, FF, FIn, FSel, DelModal, Tooltip } from "../components";
+import { StatCard, Bdg, Pagination, Modal, FF, FIn, FSel, DelModal, Tooltip } from "../components";
 import { useAuth } from "../AuthContext";
 
 export default function PageContracts({ t, isDark, CONTRACTS = [], DEALS = [], PARTIES = [], DIMENSIONS = [], FEES_DATA = [], SCHEDULES = [], collectionPath = "", schedulePath = "" }) {
@@ -889,15 +889,7 @@ export default function PageContracts({ t, isDark, CONTRACTS = [], DEALS = [], P
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
             <span style={{ fontSize: 10, fontWeight: 700, color: t.textSecondary, textTransform: "uppercase", letterSpacing: "0.8px", fontFamily: t.mono }}>Status</span>
-            <div>{drillContract.status ? <span style={{ fontSize: 11.5, fontWeight: 600, padding: "3px 12px", borderRadius: 20, ...(() => {
-              const b = (s, d) => {
-                if (s === "Active") return [d ? "rgba(52,211,153,0.12)" : "#ECFDF5", d ? "#34D399" : "#059669", d ? "rgba(52,211,153,0.25)" : "#A7F3D0"];
-                if (s === "Closed") return [d ? "rgba(240,240,240,0.06)" : "#F5F5F4", d ? "rgba(255,255,255,0.4)" : "#78716C", d ? "rgba(255,255,255,0.1)" : "#E7E5E4"];
-                return [d ? "rgba(96,165,250,0.12)" : "#EFF6FF", d ? "#60A5FA" : "#2563EB", d ? "rgba(96,165,250,0.25)" : "#BFDBFE"];
-              };
-              const [bg, c, br] = b(drillContract.status, isDark);
-              return { background: bg, color: c, border: `1px solid ${br}` };
-            })() }}>{drillContract.status}</span> : "—"}</div>
+            <div>{drillContract.status ? <Bdg status={drillContract.status} isDark={isDark} /> : "—"}</div>
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
             <span style={{ fontSize: 10, fontWeight: 700, color: t.textSecondary, textTransform: "uppercase", letterSpacing: "0.8px", fontFamily: t.mono }}>Deal Name</span>

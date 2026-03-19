@@ -80,7 +80,7 @@ export const getColumnDefs = (permissions, isDark, t, selection, onToggleRow, on
         debounceMs: 300
       },
       cellStyle: {
-        fontSize: '12.5px',
+        fontSize: '11.5px',
         color: isDark ? 'rgba(255,255,255,0.7)' : '#44403C',
         overflow: 'hidden',
         textOverflow: 'ellipsis',
@@ -100,7 +100,7 @@ export const getColumnDefs = (permissions, isDark, t, selection, onToggleRow, on
         debounceMs: 300
       },
       cellStyle: {
-        fontSize: '12.5px',
+        fontSize: '11.5px',
         fontWeight: 500,
         color: isDark ? 'rgba(255,255,255,0.85)' : '#1C1917',
         overflow: 'hidden',
@@ -129,7 +129,7 @@ export const getColumnDefs = (permissions, isDark, t, selection, onToggleRow, on
       filter: "agNumberColumnFilter",
       cellStyle: {
         fontFamily: t.mono,
-        fontSize: '12px',
+        fontSize: '11.5px',
         fontWeight: 600,
         color: isDark ? '#60A5FA' : '#4F46E5'
       }
@@ -147,7 +147,7 @@ export const getColumnDefs = (permissions, isDark, t, selection, onToggleRow, on
       },
       cellStyle: {
         fontFamily: t.mono,
-        fontSize: '12px',
+        fontSize: '11.5px',
         color: t.textMuted
       }
     },
@@ -163,7 +163,7 @@ export const getColumnDefs = (permissions, isDark, t, selection, onToggleRow, on
         debounceMs: 300
       },
       cellStyle: {
-        fontSize: '11.5px',
+        fontSize: '11px',
         color: t.textMuted
       }
     },
@@ -175,7 +175,7 @@ export const getColumnDefs = (permissions, isDark, t, selection, onToggleRow, on
       filter: "agNumberColumnFilter",
       cellStyle: {
         fontFamily: t.mono,
-        fontSize: '11.5px',
+        fontSize: '11px',
         color: isDark ? '#FFFFFF' : '#292524'
       },
       valueFormatter: (params) => params.value ? `${params.value}mo` : "—"
