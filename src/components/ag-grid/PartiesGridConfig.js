@@ -214,7 +214,7 @@ export const getColumnDefs = (permissions, isDark, t) => {
       cellStyle: {
         display: 'flex',
         alignItems: 'center',
-        justifyContent: 'center'
+        justifyContent: 'flex-start'
       }
     });
   }

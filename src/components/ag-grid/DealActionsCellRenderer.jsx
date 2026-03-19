@@ -23,8 +23,6 @@ const DealActionsCellRenderer = (props) => {
 
   return (
     <div
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
       style={{
         display: 'flex',
         gap: 6,
@@ -34,7 +32,7 @@ const DealActionsCellRenderer = (props) => {
       }}
     >
       <ActBtns
-        show={isHovered && (canUpdate || canDelete)}
+        show={canUpdate || canDelete}
         t={t}
         onEdit={canUpdate ? handleEdit : null}
         onDel={canDelete ? handleDelete : null}

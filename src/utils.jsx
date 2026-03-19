@@ -83,8 +83,6 @@ const NAV_ITEMS = [
       { label: "Deals", icon: "▦" },
       { label: "Parties", icon: "◎" },
       { label: "Contracts", icon: "◈" },
-      { label: "Payment Schedule", icon: "▤" },
-      { label: "Payments", icon: "◇" },
     ]
   },
   {
@@ -107,6 +105,8 @@ const NAV_ITEMS = [
       { label: "AI Admin", icon: "🤖" },
       { label: "Dimensions", icon: "⊞" },
       { label: "Reports", icon: "📊" },
+      { label: "Payment Schedule", icon: "▤" },
+      { label: "Payments", icon: "◇" },
     ]
   },
   { label: "Profile", icon: "👤", hidden: true },

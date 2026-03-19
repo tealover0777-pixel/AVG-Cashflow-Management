@@ -28,24 +28,22 @@ const PartyActionsCellRenderer = (props) => {
 
   return (
     <div
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
       style={{
         display: 'flex',
         gap: 6,
         alignItems: 'center',
         height: '100%',
-        justifyContent: 'center'
+        justifyContent: 'flex-start'
       }}
     >
       <ActBtns
-        show={isHovered && (canUpdate || canDelete)}
+        show={canUpdate || canDelete}
         t={t}
         onEdit={canUpdate ? handleEdit : null}
         onDel={canDelete ? handleDelete : null}
       />
 
-      {isHovered && canInvite && data.email && (
+      {canInvite && data.email && (
         <Tooltip text="Invite as Member (R10001)" t={t}>
           <button
             onClick={handleInvite}
