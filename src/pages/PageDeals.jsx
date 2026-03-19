@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import { AgGridReact } from 'ag-grid-react';
 import { ModuleRegistry, AllCommunityModule } from 'ag-grid-community';
 
@@ -62,6 +62,41 @@ export default function PageDeals({ t, isDark, DEALS = [], FEES_DATA = [], colle
   };
 
   const gridRef = useRef(null);
+  const [pageSize, setPageSize] = useState(30);
+
+  // Dynamically calculate page size based on available vertical space
+  useEffect(() => {
+    const calculatePageSize = () => {
+      const rowHeight = 42; // AG Grid default row height
+      const headerHeight = 56; // AG Grid header height + padding
+      const viewportHeight = window.innerHeight;
+
+      // Grid container matches: calc(100vh - 420px)
+      const gridContainerHeight = viewportHeight - 420;
+      const availableForRows = gridContainerHeight - headerHeight;
+      const calculatedRows = Math.floor(availableForRows / rowHeight);
+
+      const newPageSize = Math.max(30, calculatedRows); // Minimum 30 rows
+      setPageSize(newPageSize);
+    };
+
+    // Initial calculation with a slight delay to ensure layout is settled
+    const timer = setTimeout(calculatePageSize, 100);
+
+    calculatePageSize();
+    window.addEventListener('resize', calculatePageSize);
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener('resize', calculatePageSize);
+    };
+  }, []);
+
+  // Update grid when pageSize changes
+  useEffect(() => {
+    if (gridRef.current?.api) {
+      gridRef.current.api.paginationSetPageSize(pageSize);
+    }
+  }, [pageSize]);
 
   // AG Grid: Column definitions
   const permissions = { canUpdate, canDelete };
@@ -98,7 +133,7 @@ export default function PageDeals({ t, isDark, DEALS = [], FEES_DATA = [], colle
         context={context}
         animateRows={true}
         pagination={true}
-        paginationPageSize={20}
+        paginationPageSize={pageSize}
         suppressPaginationPanel={true}
         suppressCellFocus={true}
         onRowClicked={(event) => {
@@ -124,7 +159,7 @@ export default function PageDeals({ t, isDark, DEALS = [], FEES_DATA = [], colle
       />
     </div>
 
-    <div style={{ marginTop: 16, display: "flex", justifyContent: "space-between", alignItems: "center" }}><span style={{ fontSize: 12, color: t.textSubtle }}>Showing <strong style={{ color: t.textSecondary }}>{Math.min(DEALS.length, 20)}</strong> of <strong style={{ color: t.textSecondary }}>{DEALS.length}</strong> deals</span><Pagination totalPages={Math.ceil(DEALS.length / 20)} currentPage={1} onPageChange={(newPage) => gridRef.current?.api.paginationGoToPage(newPage - 1)} t={t} /></div>
+    <div style={{ marginTop: 16, display: "flex", justifyContent: "space-between", alignItems: "center" }}><span style={{ fontSize: 12, color: t.textSubtle }}>Showing <strong style={{ color: t.textSecondary }}>{Math.min(DEALS.length, pageSize)}</strong> of <strong style={{ color: t.textSecondary }}>{DEALS.length}</strong> deals</span><Pagination totalPages={Math.ceil(DEALS.length / pageSize)} currentPage={1} onPageChange={(newPage) => gridRef.current?.api.paginationGoToPage(newPage - 1)} t={t} /></div>
     
     <Modal open={modal.open} onClose={close} title={modal.mode === "add" ? "New Deal" : "Edit Deal"} onSave={handleSaveDeal} width={580} t={t} isDark={isDark}>
       <FF label="Deal ID" t={t}>

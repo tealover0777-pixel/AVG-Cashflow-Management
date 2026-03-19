@@ -1,8 +1,16 @@
-import { useState } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
+import { AgGridReact } from 'ag-grid-react';
+import { ModuleRegistry, AllCommunityModule } from 'ag-grid-community';
+
+ModuleRegistry.registerModules([AllCommunityModule]);
+
+import 'ag-grid-community/styles/ag-grid.css';
+import '../components/ag-grid/ag-grid-theme.css';
+import { getColumnDefs } from '../components/ag-grid/ContractsGridConfig';
 import { db } from "../firebase";
 import { collection, doc, addDoc, updateDoc, deleteDoc, serverTimestamp } from "firebase/firestore";
-import { normalizeDateAtNoon, hybridDays, pmtCalculator_ACT360_30360, feeCalculator_ACT360_30360, getFrequencyValue, sortData, fmtCurr } from "../utils";
-import { Bdg, StatCard, Pagination, ActBtns, useResizableColumns, TblHead, TblFilterRow, Modal, FF, FIn, FSel, DelModal, Tooltip } from "../components";
+import { normalizeDateAtNoon, hybridDays, pmtCalculator_ACT360_30360, feeCalculator_ACT360_30360, getFrequencyValue, fmtCurr } from "../utils";
+import { StatCard, Pagination, Modal, FF, FIn, FSel, DelModal, Tooltip } from "../components";
 import { useAuth } from "../AuthContext";
 
 export default function PageContracts({ t, isDark, CONTRACTS = [], DEALS = [], PARTIES = [], DIMENSIONS = [], FEES_DATA = [], SCHEDULES = [], collectionPath = "", schedulePath = "" }) {
@@ -11,15 +19,50 @@ export default function PageContracts({ t, isDark, CONTRACTS = [], DEALS = [], P
   const canUpdate = isSuperAdmin || hasPermission("CONTRACT_UPDATE");
   const canDelete = isSuperAdmin || hasPermission("CONTRACT_DELETE") || hasPermission("CONTRACTS_DELETE");
   const canGenerate = isSuperAdmin || hasPermission("PAYMENT_SCHEDULE_CREATE");
-  const [hov, setHov] = useState(null); const [sel, setSel] = useState(new Set()); const [chip, setChip] = useState("All"); const [generating, setGenerating] = useState(false);
+  const [sel, setSel] = useState(new Set());
+  const [chip, setChip] = useState("All");
+  const [generating, setGenerating] = useState(false);
   const [modal, setModal] = useState({ open: false, mode: "add", data: {} });
   const [delT, setDelT] = useState(null);
   const [genConfirm, setGenConfirm] = useState(null);
   const [genResult, setGenResult] = useState(null); // { title, message }
   const [drillContract, setDrillContract] = useState(null);
-  const [sort, setSort] = useState({ key: null, direction: "asc" });
-  const [page, setPage] = useState(1);
-  const onSort = k => { setSort(s => ({ key: k, direction: s.key === k && s.direction === "asc" ? "desc" : "asc" })); setPage(1); };
+  const gridRef = useRef(null);
+  const [pageSize, setPageSize] = useState(30);
+
+  // Dynamically calculate page size based on available vertical space
+  useEffect(() => {
+    const calculatePageSize = () => {
+      const rowHeight = 42; // AG Grid default row height
+      const headerHeight = 56; // AG Grid header height + padding
+      const viewportHeight = window.innerHeight;
+
+      // Grid container matches: calc(100vh - 520px)
+      const gridContainerHeight = viewportHeight - 520;
+      const availableForRows = gridContainerHeight - headerHeight;
+      const calculatedRows = Math.floor(availableForRows / rowHeight);
+
+      const newPageSize = Math.max(30, calculatedRows); // Minimum 30 rows
+      setPageSize(newPageSize);
+    };
+
+    // Initial calculation with a slight delay to ensure layout is settled
+    const timer = setTimeout(calculatePageSize, 100);
+
+    calculatePageSize();
+    window.addEventListener('resize', calculatePageSize);
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener('resize', calculatePageSize);
+    };
+  }, []);
+
+  // Update grid when pageSize changes
+  useEffect(() => {
+    if (gridRef.current?.api) {
+      gridRef.current.api.paginationSetPageSize(pageSize);
+    }
+  }, [pageSize]);
   const openAdd = () => {
     let maxIdNum = 10000;
     CONTRACTS.forEach(c => {
@@ -643,20 +686,41 @@ export default function PageContracts({ t, isDark, CONTRACTS = [], DEALS = [], P
     return opts.length > 0 ? opts : ["Loan", "Mortgage", "Equity"];
   };
   const toggleRow = id => { const n = new Set(sel); n.has(id) ? n.delete(id) : n.add(id); setSel(n); };
-  const cols = [{ l: "", w: "36px" }, { l: "CONTRACT ID", w: "78px", k: "id" }, { l: "DEAL ID", w: "78px", k: "deal_id" }, { l: "DEAL", w: "minmax(0,0.64fr)", k: "deal" }, { l: "PARTY", w: "minmax(0,0.64fr)", k: "party" }, { l: "TYPE", w: "104px", k: "type" }, { l: "AMOUNT", w: "100px", k: "amount" }, { l: "RATE", w: "60px", k: "rate" }, { l: "FREQ", w: "80px", k: "freq" }, { l: "TERM", w: "52px", k: "term_months" }, { l: "FEES", w: "minmax(120px, 1.2fr)", k: "feeIds" }, { l: "START", w: "84px", k: "start_date" }, { l: "MATURITY", w: "84px", k: "maturity_date" }, { l: "STATUS", w: "72px", k: "status" }, { l: "CREATED", w: "84px", k: "created_at" }, { l: "UPDATED", w: "84px", k: "updated_at" }, { l: "ACTIONS", w: "72px" }];
-  const { gridTemplate, headerRef, onResizeStart } = useResizableColumns(cols);
-  const [colFilters, setColFilters] = useState({});
-  const setColFilter = (key, val) => { setColFilters(f => ({ ...f, [key]: val })); setPage(1); };
-  const filtered = CONTRACTS.filter(c => {
-    if (chip === "Deposit" && (c.type || "").toUpperCase() !== "DEPOSIT") return false;
-    if (chip === "Disbursement" && (c.type || "").toUpperCase() !== "DISBURSEMENT") return false;
-    if (chip === "Selected" && !sel.has(c.id)) return false;
-    return cols.every(col => { if (!col.k || !colFilters[col.k]) return true; return String(c[col.k] || "").toLowerCase().includes(colFilters[col.k].toLowerCase()); });
-  });
-  const sorted = sortData(filtered, sort);
-  const paginated = sorted.slice((page - 1) * 20, page * 20);
-  const totalPages = Math.ceil(sorted.length / 20);
-  const typC = { Loan: isDark ? "#60A5FA" : "#2563EB", Mortgage: isDark ? "#A78BFA" : "#7C3AED", Equity: isDark ? "#FBBF24" : "#D97706" };
+  const toggleAll = () => { setSel(sel.size === filtered.length ? new Set() : new Set(filtered.map(c => c.id))); };
+
+  // AG Grid: Chip filtering (pre-filter data before passing to grid)
+  const getFilteredData = () => {
+    return CONTRACTS.filter(c => {
+      if (chip === "Deposit" && (c.type || "").toUpperCase() !== "DEPOSIT") return false;
+      if (chip === "Disbursement" && (c.type || "").toUpperCase() !== "DISBURSEMENT") return false;
+      if (chip === "Active" && c.status !== "Active") return false;
+      return true;
+    });
+  };
+
+  const filtered = getFilteredData();
+
+  // AG Grid: Column definitions
+  const permissions = { canUpdate, canDelete };
+  const columnDefs = useMemo(() => {
+    return getColumnDefs(permissions, isDark, t, sel, toggleRow, toggleAll, filtered.length);
+  }, [permissions, isDark, t, sel, filtered.length]);
+
+  // AG Grid: Context for cell renderers
+  const context = useMemo(() => ({
+    isDark,
+    t,
+    permissions,
+    selection: sel,
+    feesData: FEES_DATA,
+    callbacks: {
+      onEdit: openEdit,
+      onDelete: (target) => setDelT({ id: target.id, name: target.id, docId: target.docId }),
+      onDrillDown: (contract) => setDrillContract(contract),
+      onToggleRow: toggleRow,
+      onToggleAll: toggleAll
+    }
+  }), [isDark, t, permissions, sel, FEES_DATA]);
   return (<>
     <div style={{ marginBottom: 28, display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}><div><h1 style={{ fontFamily: t.titleFont, fontWeight: t.titleWeight, fontSize: t.titleSize, color: isDark ? "#fff" : "#1C1917", letterSpacing: t.titleTracking, lineHeight: 1, marginBottom: 6 }}>Contracts</h1><p style={{ fontSize: 13.5, color: t.textMuted }}>Manage investment contracts</p></div>
       <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
@@ -697,49 +761,45 @@ export default function PageContracts({ t, isDark, CONTRACTS = [], DEALS = [], P
     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
       <div style={{ display: "flex", gap: 8, alignItems: "center" }}>{["All", "Deposit", "Disbursement", "Active"].map(f => {
         const isA = chip === f;
-        const displayLabel = f === "Active" ? "Active" : f; // Renamed for UI consistency
-        return <span key={f} className="filter-chip" onClick={() => { setChip(f); setPage(1); }} style={{ fontSize: 12, fontWeight: isA ? 600 : 500, padding: "5px 14px", borderRadius: 20, background: isA ? t.accent : t.chipBg, color: isA ? "#fff" : t.textSecondary, border: `1px solid ${isA ? t.accent : t.chipBorder}`, cursor: "pointer" }}>{displayLabel}</span>;
+        return <span key={f} className="filter-chip" onClick={() => setChip(f)} style={{ fontSize: 12, fontWeight: isA ? 600 : 500, padding: "5px 14px", borderRadius: 20, background: isA ? t.accent : t.chipBg, color: isA ? "#fff" : t.textSecondary, border: `1px solid ${isA ? t.accent : t.chipBorder}`, cursor: "pointer" }}>{f}</span>;
       })}
         {sel.size > 0 && <><div style={{ width: 1, height: 18, background: t.surfaceBorder, marginLeft: 4 }} /><span onClick={() => setSel(new Set())} style={{ fontSize: 12, fontWeight: 500, padding: "5px 14px", borderRadius: 20, background: isDark ? "rgba(248,113,113,0.12)" : "#FEF2F2", color: isDark ? "#F87171" : "#DC2626", border: `1px solid ${isDark ? "rgba(248,113,113,0.25)" : "#FECACA"}`, cursor: "pointer" }}>Clear</span></>}
       </div>
     </div>
-    <div style={{ background: t.surface, borderRadius: 16, border: `1px solid ${t.surfaceBorder}`, overflow: "auto", backdropFilter: isDark ? "blur(20px)" : "none", boxShadow: t.tableShadow }}>
-      <TblHead cols={cols} t={t} isDark={isDark} sortConfig={sort} onSort={onSort} gridTemplate={gridTemplate} headerRef={headerRef} onResizeStart={onResizeStart}>
-        {canUpdate && <input type="checkbox" checked={sel.size === filtered.length && filtered.length > 0} onChange={() => setSel(sel.size === filtered.length ? new Set() : new Set(filtered.map(c => c.id)))} style={{ accentColor: t.checkActive, width: 14, height: 14 }} />}
-      </TblHead>
-      <TblFilterRow cols={cols} colFilters={colFilters} onFilterChange={setColFilter} onClear={() => setColFilters({})} gridTemplate={gridTemplate} t={t} isDark={isDark} />
-      {paginated.map((c, i) => {
-        const isHov = hov === c.id; const isSel = sel.has(c.id); return (<div key={c.id} className="data-row" onMouseEnter={() => setHov(c.id)} onMouseLeave={() => setHov(null)} style={{ display: "grid", gridTemplateColumns: gridTemplate, padding: "12px 22px", borderBottom: i < paginated.length - 1 ? `1px solid ${t.rowDivider}` : "none", alignItems: "center", background: isSel ? (isDark ? "rgba(52,211,153,0.05)" : "#F0FDF4") : isHov ? t.rowHover : "transparent", transition: "all 0.15s ease" }}>
-          {canUpdate ? <input type="checkbox" checked={isSel} onChange={() => toggleRow(c.id)} style={{ accentColor: t.checkActive, width: 14, height: 14 }} onClick={e => e.stopPropagation()} /> : <div />}
-          <div style={{ fontFamily: t.mono, fontSize: 11, color: t.idText }}>
-            <a href="#" onClick={e => { e.preventDefault(); e.stopPropagation(); setDrillContract(c); }} style={{ color: isDark ? "#60A5FA" : "#4F46E5", textDecoration: "none", fontWeight: 600 }}>{c.id}</a>
-          </div>
-          <div style={{ fontFamily: t.mono, fontSize: 11, color: t.idText }}>{c.deal_id || <span style={{ color: isDark ? "rgba(255,255,255,0.12)" : "#D4D0CB" }}>—</span>}</div>
-          <div style={{ fontSize: 12.5, color: isDark ? "rgba(255,255,255,0.7)" : "#44403C", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", paddingRight: 8, minWidth: 0 }}>{c.deal}</div>
-          <div style={{ fontSize: 12.5, fontWeight: 500, color: isDark ? "rgba(255,255,255,0.85)" : "#1C1917", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", paddingRight: 8, minWidth: 0 }}>{c.party}</div>
-          <div style={{ fontSize: 12.5, fontWeight: 500, color: typC[c.type] || t.textMuted }}>{c.type}</div>
-          <div style={{ fontFamily: t.mono, fontSize: 12, fontWeight: 600, color: isDark ? "#60A5FA" : "#4F46E5" }}>{c.amount}</div>
-          <div style={{ fontFamily: t.mono, fontSize: 12, color: t.textMuted }}>{c.rate}</div>
-          <div style={{ fontSize: 11.5, color: t.textMuted }}>{c.freq}</div>
-          <div style={{ fontFamily: t.mono, fontSize: 11.5, color: c.term_months ? (isDark ? "#FFFFFF" : "#292524") : (isDark ? "rgba(255,255,255,0.12)" : "#D4D0CB") }}>{c.term_months ? `${c.term_months}mo` : <span style={{ color: isDark ? "rgba(255,255,255,0.12)" : "#D4D0CB" }}>—</span>}</div>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
-            {(() => {
-              const appliedFees = (c.feeIds || []).map(fid => FEES_DATA.find(f => f.id === fid)).filter(Boolean);
-              return appliedFees.length > 0
-                ? appliedFees.map(f => <span key={f.id} style={{ fontSize: 10.5, fontWeight: 600, padding: "2px 8px", borderRadius: 20, background: isDark ? "rgba(52,211,153,0.12)" : "#ECFDF5", color: isDark ? "#34D399" : "#059669", border: `1px solid ${isDark ? "rgba(52,211,153,0.25)" : "#A7F3D0"}`, whiteSpace: "nowrap" }}>{f.name}</span>)
-                : <span style={{ color: isDark ? "rgba(255,255,255,0.15)" : "#D4D0CB", fontSize: 12 }}>—</span>;
-            })()}
-          </div>
-          <div style={{ fontFamily: t.mono, fontSize: 10.5, color: t.idText }}>{c.start_date || <span style={{ color: isDark ? "rgba(255,255,255,0.12)" : "#D4D0CB" }}>—</span>}</div>
-          <div style={{ fontFamily: t.mono, fontSize: 10.5, color: t.idText }}>{c.maturity_date || <span style={{ color: isDark ? "rgba(255,255,255,0.12)" : "#D4D0CB" }}>—</span>}</div>
-          <div><Bdg status={c.status} isDark={isDark} /></div>
-          <div style={{ fontFamily: t.mono, fontSize: 10.5, color: t.idText }}>{c.created_at || <span style={{ color: isDark ? "rgba(255,255,255,0.12)" : "#D4D0CB" }}>—</span>}</div>
-          <div style={{ fontFamily: t.mono, fontSize: 10.5, color: t.idText }}>{c.updated_at || <span style={{ color: isDark ? "rgba(255,255,255,0.12)" : "#D4D0CB" }}>—</span>}</div>
-          <ActBtns show={isHov && (canUpdate || canDelete)} t={t} onEdit={canUpdate ? () => openEdit(c) : null} onDel={canDelete ? () => setDelT({ id: c.id, name: c.id, docId: c.docId }) : null} />
-        </div>);
-      })}
+
+    <div
+      className={`ag-theme-custom ${isDark ? 'dark-mode' : 'light-mode'}`}
+      style={{ height: 'calc(100vh - 520px)', minHeight: '500px' }}
+    >
+      <AgGridReact
+        ref={gridRef}
+        rowData={filtered}
+        columnDefs={columnDefs}
+        context={context}
+        animateRows={true}
+        pagination={true}
+        paginationPageSize={pageSize}
+        suppressPaginationPanel={true}
+        suppressCellFocus={true}
+        onColumnResized={(event) => {
+          if (event.finished) {
+            const columnState = event.api.getColumnState();
+            localStorage.setItem('contractsColumnState', JSON.stringify(columnState));
+          }
+        }}
+        onGridReady={(params) => {
+          const savedState = localStorage.getItem('contractsColumnState');
+          if (savedState) {
+            params.api.applyColumnState({
+              state: JSON.parse(savedState),
+              applyOrder: false
+            });
+          }
+        }}
+      />
     </div>
-    <div style={{ marginTop: 16, display: "flex", justifyContent: "space-between", alignItems: "center" }}><span style={{ fontSize: 12, color: t.textMuted }}>Showing <strong style={{ color: t.textSecondary }}>{paginated.length}</strong> of <strong style={{ color: t.textSecondary }}>{sorted.length}</strong> contracts{sel.size > 0 && <span style={{ color: t.accent, marginLeft: 8 }}>· {sel.size} selected</span>}</span><Pagination totalPages={totalPages} currentPage={page} onPageChange={setPage} t={t} /></div>
+
+    <div style={{ marginTop: 16, display: "flex", justifyContent: "space-between", alignItems: "center" }}><span style={{ fontSize: 12, color: t.textMuted }}>Showing <strong style={{ color: t.textSecondary }}>{Math.min(filtered.length, pageSize)}</strong> of <strong style={{ color: t.textSecondary }}>{filtered.length}</strong> contracts{sel.size > 0 && <span style={{ color: t.accent, marginLeft: 8 }}>· {sel.size} selected</span>}</span><Pagination totalPages={Math.ceil(filtered.length / pageSize)} currentPage={1} onPageChange={(newPage) => gridRef.current?.api.paginationGoToPage(newPage - 1)} t={t} /></div>
     <Modal open={modal.open} onClose={close} title={modal.mode === "add" ? "New Contract" : "Edit Contract"} onSave={handleSaveContract} width={620} t={t} isDark={isDark}>
       {(modal.mode === "edit" || (modal.mode === "add" && modal.data.id)) && (
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>

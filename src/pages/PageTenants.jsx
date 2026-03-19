@@ -1,8 +1,15 @@
-import { useState } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
+import { AgGridReact } from 'ag-grid-react';
+import { ModuleRegistry, AllCommunityModule } from 'ag-grid-community';
+
+ModuleRegistry.registerModules([AllCommunityModule]);
+
+import 'ag-grid-community/styles/ag-grid.css';
+import '../components/ag-grid/ag-grid-theme.css';
+import { getColumnDefs } from '../components/ag-grid/TenantsGridConfig';
 import { db } from "../firebase";
 import { doc, setDoc, updateDoc, deleteDoc, serverTimestamp } from "firebase/firestore";
-import { sortData } from "../utils";
-import { Bdg, StatCard, Pagination, ActBtns, useResizableColumns, TblHead, TblFilterRow, Modal, FF, FIn, DelModal, Tooltip } from "../components";
+import { StatCard, Pagination, Modal, FF, FIn, DelModal, Tooltip } from "../components";
 import { useAuth } from "../AuthContext";
 
 export default function PageTenants({ t, isDark, TENANTS = [], collectionPath = "" }) {
@@ -10,12 +17,37 @@ export default function PageTenants({ t, isDark, TENANTS = [], collectionPath = 
     const canCreate = isSuperAdmin || hasPermission("PLATFORM_TENANT_CREATE") || hasPermission("TENANT_CREATE");
     const canUpdate = isSuperAdmin || hasPermission("PLATFORM_TENANT_UPDATE") || hasPermission("TENANT_UPDATE");
     const canDelete = isSuperAdmin || hasPermission("PLATFORM_TENANT_DELETE") || hasPermission("TENANT_DELETE");
-    const [hov, setHov] = useState(null);
     const [modal, setModal] = useState({ open: false, mode: "add", data: {} });
     const [delT, setDelT] = useState(null);
-    const [sort, setSort] = useState({ key: null, direction: "asc" });
-    const [page, setPage] = useState(1);
-    const onSort = k => { setSort(s => ({ key: k, direction: s.key === k && s.direction === "asc" ? "desc" : "asc" })); setPage(1); };
+    const gridRef = useRef(null);
+    const [pageSize, setPageSize] = useState(30);
+
+    // Dynamically calculate page size based on available vertical space
+    useEffect(() => {
+        const calculatePageSize = () => {
+            const rowHeight = 42;
+            const headerHeight = 56;
+            const viewportHeight = window.innerHeight;
+            const gridContainerHeight = viewportHeight - 420;
+            const availableForRows = gridContainerHeight - headerHeight;
+            const calculatedRows = Math.floor(availableForRows / rowHeight);
+            const newPageSize = Math.max(30, calculatedRows);
+            setPageSize(newPageSize);
+        };
+        const timer = setTimeout(calculatePageSize, 100);
+        calculatePageSize();
+        window.addEventListener('resize', calculatePageSize);
+        return () => {
+            clearTimeout(timer);
+            window.removeEventListener('resize', calculatePageSize);
+        };
+    }, []);
+
+    useEffect(() => {
+        if (gridRef.current?.api) {
+            gridRef.current.api.paginationSetPageSize(pageSize);
+        }
+    }, [pageSize]);
 
     const nextTenantId = (() => {
         if (TENANTS.length === 0) return "T10001";
@@ -76,29 +108,6 @@ export default function PageTenants({ t, isDark, TENANTS = [], collectionPath = 
         reader.readAsDataURL(file);
     };
 
-    const cols = [
-        { l: "TENANT ID", w: "110px", k: "id" },
-        { l: "NAME", w: "1fr", k: "name" },
-        { l: "LOGO", w: "100px", k: "logo" },
-        { l: "OWNER ID", w: "100px", k: "owner_id" },
-        { l: "EMAIL", w: "1.2fr", k: "email" },
-        { l: "PHONE", w: "120px", k: "phone" },
-        { l: "NOTES", w: "1.2fr", k: "notes" },
-        { l: "CREATED", w: "95px", k: "created_at" },
-        { l: "UPDATED", w: "95px", k: "updated_at" },
-        { l: "ACTIONS", w: "80px" }
-    ];
-    const { gridTemplate, headerRef, onResizeStart } = useResizableColumns(cols);
-    const [colFilters, setColFilters] = useState({});
-    const setColFilter = (key, val) => { setColFilters(f => ({ ...f, [key]: val })); setPage(1); };
-    const filtered = TENANTS.filter(p => cols.every(c => {
-        if (!c.k || !colFilters[c.k]) return true;
-        return String(p[c.k] || "").toLowerCase().includes(colFilters[c.k].toLowerCase());
-    }));
-    const sorted = sortData(filtered, sort);
-    const paginated = sorted.slice((page - 1) * 20, page * 20);
-    const totalPages = Math.ceil(sorted.length / 20);
-
     const handleDeleteTenant = async () => {
         if (!delT || !delT.docId) return;
         try {
@@ -106,6 +115,23 @@ export default function PageTenants({ t, isDark, TENANTS = [], collectionPath = 
             setDelT(null);
         } catch (err) { console.error("Delete tenant error:", err); }
     };
+
+    // AG Grid: Column definitions
+    const permissions = { canUpdate, canDelete };
+    const columnDefs = useMemo(() => {
+        return getColumnDefs(permissions, isDark, t);
+    }, [permissions, isDark, t]);
+
+    // AG Grid: Context for cell renderers
+    const context = useMemo(() => ({
+        isDark,
+        t,
+        permissions,
+        callbacks: {
+            onEdit: openEdit,
+            onDelete: (target) => setDelT({ id: target.id, name: target.name, docId: target.docId })
+        }
+    }), [isDark, t, permissions]);
 
     return (<>
         <div style={{ marginBottom: 28, display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
@@ -126,36 +152,41 @@ export default function PageTenants({ t, isDark, TENANTS = [], collectionPath = 
             {[{ label: "Total Tenants", value: TENANTS.length, accent: isDark ? "#60A5FA" : "#3B82F6", bg: isDark ? "rgba(96,165,250,0.08)" : "#EFF6FF", border: isDark ? "rgba(96,165,250,0.15)" : "#BFDBFE" }].map(s => <StatCard key={s.label} {...s} titleFont={t.titleFont} isDark={isDark} />)}
         </div>
 
-        <div style={{ background: t.surface, borderRadius: 16, border: `1px solid ${t.surfaceBorder}`, overflow: "auto", backdropFilter: isDark ? "blur(20px)" : "none", boxShadow: t.tableShadow }}>
-            <TblHead cols={cols} t={t} isDark={isDark} sortConfig={sort} onSort={onSort} gridTemplate={gridTemplate} headerRef={headerRef} onResizeStart={onResizeStart} />
-            <TblFilterRow cols={cols} colFilters={colFilters} onFilterChange={setColFilter} onClear={() => setColFilters({})} gridTemplate={gridTemplate} t={t} isDark={isDark} />
-            {paginated.map((p, i) => {
-                const isHov = hov === p.id;
-                const isImg = p.logo && (p.logo.startsWith("http") || p.logo.startsWith("data:image"));
-                return (<div key={p.id} className="data-row" onMouseEnter={() => setHov(p.id)} onMouseLeave={() => setHov(null)} style={{ display: "grid", gridTemplateColumns: gridTemplate, padding: "12px 22px", borderBottom: i < paginated.length - 1 ? `1px solid ${t.rowDivider}` : "none", alignItems: "center", background: isHov ? t.rowHover : "transparent", transition: "all 0.15s ease" }}>
-                    <div style={{ fontFamily: t.mono, fontSize: 11, color: t.idText }}>{p.id}</div>
-                    <div style={{ fontSize: 13.5, fontWeight: 500, color: isDark ? "rgba(255,255,255,0.85)" : (isHov ? "#1C1917" : "#44403C"), overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", paddingRight: 8 }}>{p.name}</div>
-                    <div>
-                        {isImg ? (
-                            <img src={p.logo} alt="Logo" style={{ height: 24, maxWidth: "100%", borderRadius: 4, objectFit: "contain" }} />
-                        ) : (
-                            <div style={{ fontSize: 10, color: t.textMuted, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.logo || <span style={{ color: isDark ? "rgba(255,255,255,0.15)" : "#D4D0CB" }}>—</span>}</div>
-                        )}
-                    </div>
-                    <div style={{ fontFamily: t.mono, fontSize: 11, color: t.idText }}>{p.owner_id || <span style={{ color: isDark ? "rgba(255,255,255,0.15)" : "#D4D0CB" }}>—</span>}</div>
-                    <div style={{ fontSize: 12.5, color: isDark ? "#60A5FA" : "#4F46E5", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.email || <span style={{ color: isDark ? "rgba(255,255,255,0.15)" : "#D4D0CB" }}>—</span>}</div>
-                    <div style={{ fontFamily: t.mono, fontSize: 11, color: t.textMuted }}>{p.phone || <span style={{ color: isDark ? "rgba(255,255,255,0.15)" : "#D4D0CB" }}>—</span>}</div>
-                    <div style={{ fontSize: 12, color: t.textMuted, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", paddingRight: 8 }}>{p.notes || <span style={{ color: isDark ? "rgba(255,255,255,0.15)" : "#D4D0CB" }}>—</span>}</div>
-                    <div style={{ fontFamily: t.mono, fontSize: 10.5, color: t.idText }}>{p.created_at || <span style={{ color: isDark ? "rgba(255,255,255,0.12)" : "#D4D0CB" }}>—</span>}</div>
-                    <div style={{ fontFamily: t.mono, fontSize: 10.5, color: t.idText }}>{p.updated_at || <span style={{ color: isDark ? "rgba(255,255,255,0.12)" : "#D4D0CB" }}>—</span>}</div>
-                    <ActBtns show={isHov && (canUpdate || canDelete)} t={t} onEdit={canUpdate ? () => openEdit(p) : null} onDel={canDelete ? () => setDelT({ id: p.id, name: p.name, docId: p.docId }) : null} />
-                </div>);
-            })}
+        <div
+            className={`ag-theme-custom ${isDark ? 'dark-mode' : 'light-mode'}`}
+            style={{ height: 'calc(100vh - 420px)', minHeight: '500px' }}
+        >
+            <AgGridReact
+                ref={gridRef}
+                rowData={TENANTS}
+                columnDefs={columnDefs}
+                context={context}
+                animateRows={true}
+                pagination={true}
+                paginationPageSize={pageSize}
+                suppressPaginationPanel={true}
+                suppressCellFocus={true}
+                onColumnResized={(event) => {
+                    if (event.finished) {
+                        const columnState = event.api.getColumnState();
+                        localStorage.setItem('tenantsColumnState', JSON.stringify(columnState));
+                    }
+                }}
+                onGridReady={(params) => {
+                    const savedState = localStorage.getItem('tenantsColumnState');
+                    if (savedState) {
+                        params.api.applyColumnState({
+                            state: JSON.parse(savedState),
+                            applyOrder: false
+                        });
+                    }
+                }}
+            />
         </div>
 
         <div style={{ marginTop: 16, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <span style={{ fontSize: 12, color: t.textSubtle }}>Showing <strong style={{ color: t.textSecondary }}>{paginated.length}</strong> of <strong style={{ color: t.textSecondary }}>{sorted.length}</strong> tenants</span>
-            <Pagination totalPages={totalPages} currentPage={page} onPageChange={setPage} t={t} />
+            <span style={{ fontSize: 12, color: t.textSubtle }}>Showing <strong style={{ color: t.textSecondary }}>{Math.min(TENANTS.length, pageSize)}</strong> of <strong style={{ color: t.textSecondary }}>{TENANTS.length}</strong> tenants</span>
+            <Pagination totalPages={Math.ceil(TENANTS.length / pageSize)} currentPage={1} onPageChange={(newPage) => gridRef.current?.api.paginationGoToPage(newPage - 1)} t={t} />
         </div>
 
         <Modal open={modal.open} onClose={close} title={modal.mode === "add" ? "New Tenant" : "Edit Tenant"} onSave={handleSaveTenant} width={580} t={t} isDark={isDark}>
