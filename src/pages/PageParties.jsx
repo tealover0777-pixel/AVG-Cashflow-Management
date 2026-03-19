@@ -117,18 +117,27 @@ export default function PageParties({ t, isDark, PARTIES = [], CONTRACTS = [], S
   useEffect(() => {
     const calculatePageSize = () => {
       const rowHeight = 42; // AG Grid default row height
-      const headerHeight = 48; // AG Grid header height
+      const headerHeight = 56; // AG Grid header height + padding
       const viewportHeight = window.innerHeight;
-      const reservedSpace = 480; // Space for page header, stats, filters, pagination
-      const availableHeight = viewportHeight - reservedSpace;
-      const calculatedRows = Math.floor((availableHeight - headerHeight) / rowHeight);
+
+      // Grid container matches: calc(100vh - 480px)
+      const gridContainerHeight = viewportHeight - 480;
+      const availableForRows = gridContainerHeight - headerHeight;
+      const calculatedRows = Math.floor(availableForRows / rowHeight);
+
       const newPageSize = Math.max(20, calculatedRows); // Minimum 20 rows
       setPageSize(newPageSize);
     };
 
+    // Initial calculation with a slight delay to ensure layout is settled
+    const timer = setTimeout(calculatePageSize, 100);
+
     calculatePageSize();
     window.addEventListener('resize', calculatePageSize);
-    return () => window.removeEventListener('resize', calculatePageSize);
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener('resize', calculatePageSize);
+    };
   }, []);
 
   // AG Grid: Chip filtering (pre-filter data before passing to grid)
