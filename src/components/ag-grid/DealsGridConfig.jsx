@@ -54,7 +54,7 @@ export const getColumnDefs = (permissions, isDark, t) => {
       )
     },
     {
-      headerName: "Deal state",
+      headerName: "Deal Stage",
       field: "status",
       width: 100,
       sortable: true,
