@@ -26,6 +26,7 @@ import PageReports from "./pages/PageReports";
 import { Tooltip } from "./components";
 import SidebarHelp from "./components/SidebarHelp";
 import PageAdminHelp from "./pages/PageAdminHelp";
+import PageDealSummary from "./pages/PageDealSummary";
 // ─────────────────────────────────────────────────────────────────────────────
 // ERROR BOUNDARY
 // ─────────────────────────────────────────────────────────────────────────────
@@ -66,6 +67,7 @@ function AppContent() {
     return saved !== null ? saved === "dark" : true;
   });
   const [activePage, setActivePage] = useState("Dashboard");
+  const [selectedDealId, setSelectedDealId] = useState(null);
   const [activeTenantId, setActiveTenantId] = useState("");
   const [helpOpen, setHelpOpen] = useState(false);
   const [expandedMenus, setExpandedMenus] = useState({}); // Track which menus are expanded (all collapsed by default)
@@ -596,7 +598,8 @@ function AppContent() {
               : (
                 <>
                   {activePage === "Dashboard" && <PageDashboard t={t} isDark={isDark} DEALS={DEALS} CONTRACTS={CONTRACTS} PARTIES={PARTIES} SCHEDULES={SCHEDULES} PAYMENTS={PAYMENTS} MONTHLY={MONTHLY} DIMENSIONS={DIMENSIONS} setActivePage={setActivePage} />}
-                  {activePage === "Deals" && <PageDeals t={t} isDark={isDark} DEALS={DEALS} FEES_DATA={FEES_DATA} DIMENSIONS={DIMENSIONS} collectionPath={isGlobalConsolidated ? "GROUP:deals" : fetchPaths.deals} />}
+                  {activePage === "Deals" && <PageDeals t={t} isDark={isDark} DEALS={DEALS} FEES_DATA={FEES_DATA} DIMENSIONS={DIMENSIONS} collectionPath={isGlobalConsolidated ? "GROUP:deals" : fetchPaths.deals} setActivePage={setActivePage} setSelectedDealId={setSelectedDealId} />}
+                  {activePage === "Deal Summary" && <PageDealSummary t={t} isDark={isDark} dealId={selectedDealId} DEALS={DEALS} CONTRACTS={CONTRACTS} PARTIES={PARTIES} setActivePage={setActivePage} />}
                   {activePage === "Parties" && <PageParties t={t} isDark={isDark} PARTIES={PARTIES} CONTRACTS={CONTRACTS} SCHEDULES={SCHEDULES} DEALS={DEALS} collectionPath={isGlobalConsolidated ? "GROUP:parties" : fetchPaths.parties} DIMENSIONS={DIMENSIONS} tenantId={activeTenantId} />}
                   {activePage === "Contracts" && <PageContracts t={t} isDark={isDark} CONTRACTS={CONTRACTS} DEALS={DEALS} PARTIES={PARTIES} DIMENSIONS={DIMENSIONS} FEES_DATA={FEES_DATA} SCHEDULES={SCHEDULES} collectionPath={isGlobalConsolidated ? "GROUP:contracts" : fetchPaths.contracts} schedulePath={isGlobalConsolidated ? "GROUP:paymentSchedules" : fetchPaths.paymentSchedules} />}
                   {activePage === "Payment Schedule" && <PageSchedule t={t} isDark={isDark} SCHEDULES={SCHEDULES} CONTRACTS={CONTRACTS} PARTIES={PARTIES} DEALS={DEALS} DIMENSIONS={DIMENSIONS} FEES_DATA={FEES_DATA} collectionPath={isGlobalConsolidated ? "GROUP:paymentSchedules" : fetchPaths.paymentSchedules} />}

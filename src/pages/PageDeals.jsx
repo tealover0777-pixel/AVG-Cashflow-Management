@@ -14,7 +14,7 @@ import { sortData } from "../utils";
 import { Bdg, StatCard, Pagination, Modal, FF, FIn, FSel, DelModal, Tooltip } from "../components";
 import { useAuth } from "../AuthContext";
 
-export default function PageDeals({ t, isDark, DEALS = [], FEES_DATA = [], DIMENSIONS = [], collectionPath = "" }) {
+export default function PageDeals({ t, isDark, DEALS = [], FEES_DATA = [], DIMENSIONS = [], collectionPath = "", setActivePage, setSelectedDealId }) {
   const { hasPermission, isSuperAdmin } = useAuth();
   const canCreate = isSuperAdmin || hasPermission("DEAL_CREATE");
   const canUpdate = isSuperAdmin || hasPermission("DEAL_UPDATE");
@@ -216,7 +216,11 @@ export default function PageDeals({ t, isDark, DEALS = [], FEES_DATA = [], DIMEN
     feesData: FEES_DATA,
     callbacks: {
       onEdit: openEdit,
-      onDelete: (target) => setDelT(target)
+      onDelete: (target) => setDelT(target),
+      onSelectDeal: (data) => {
+        setSelectedDealId(data.id);
+        setActivePage("Deal Summary");
+      }
     }
   }), [isDark, t, permissions, FEES_DATA]);
 
@@ -241,9 +245,7 @@ export default function PageDeals({ t, isDark, DEALS = [], FEES_DATA = [], DIMEN
         suppressPaginationPanel={true}
         suppressCellFocus={true}
         onRowClicked={(event) => {
-          if (!event.event?.target?.closest?.('.action-btn')) {
-            openEdit(event.data);
-          }
+          // Row click behavior disabled in favor of specific link clicks on ID/Name
         }}
         onColumnResized={(event) => {
           if (event.finished) {

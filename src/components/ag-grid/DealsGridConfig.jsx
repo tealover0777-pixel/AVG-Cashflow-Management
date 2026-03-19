@@ -1,4 +1,5 @@
 import DealNameCellRenderer from './DealNameCellRenderer';
+import DealIDCellRenderer from './DealIDCellRenderer';
 import DealStatusCellRenderer from './DealStatusCellRenderer';
 import DealFeesCellRenderer from './DealFeesCellRenderer';
 import DealActionsCellRenderer from './DealActionsCellRenderer';
@@ -20,10 +21,11 @@ export const getColumnDefs = (permissions, isDark, t) => {
         fontFamily: t.mono,
         fontSize: '11px',
         color: t.idText
-      }
+      },
+      cellRenderer: DealIDCellRenderer
     },
     {
-      headerName: "Name",
+      headerName: "Deal Name",
       field: "name",
       width: 180,
       flex: 1,

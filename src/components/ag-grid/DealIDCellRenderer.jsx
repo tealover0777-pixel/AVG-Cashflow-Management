@@ -1,6 +1,6 @@
 import React from 'react';
 
-const DealNameCellRenderer = (props) => {
+const DealIDCellRenderer = (props) => {
   const { value, data, context } = props;
   const { isDark, t, callbacks } = context;
 
@@ -20,12 +20,10 @@ const DealNameCellRenderer = (props) => {
         onClick={handleClick}
         href="#"
         style={{
-          fontSize: 11.5,
+          fontFamily: t.mono,
+          fontSize: 11,
           fontWeight: 500,
           color: isDark ? '#f8fafc' : '#2563EB',
-          overflow: 'hidden',
-          textOverflow: 'ellipsis',
-          whiteSpace: 'nowrap',
           cursor: 'pointer',
           textDecoration: 'none'
         }}
@@ -36,4 +34,4 @@ const DealNameCellRenderer = (props) => {
   );
 };
 
-export default DealNameCellRenderer;
+export default DealIDCellRenderer;
