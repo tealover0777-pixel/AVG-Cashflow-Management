@@ -1,8 +1,16 @@
-import { useState } from "react";
+import { useState, useMemo, useRef } from "react";
+import { AgGridReact } from 'ag-grid-react';
+import { ModuleRegistry, AllCommunityModule } from 'ag-grid-community';
+
+ModuleRegistry.registerModules([AllCommunityModule]);
+
+import 'ag-grid-community/styles/ag-grid.css';
+import '../components/ag-grid/ag-grid-theme.css';
+import { getColumnDefs } from '../components/ag-grid/DealsGridConfig';
 import { db } from "../firebase";
 import { doc, setDoc, updateDoc, deleteDoc, serverTimestamp } from "firebase/firestore";
 import { sortData } from "../utils";
-import { Bdg, StatCard, Pagination, ActBtns, useResizableColumns, TblHead, TblFilterRow, Modal, FF, FIn, FSel, DelModal, Tooltip } from "../components";
+import { Bdg, StatCard, Pagination, Modal, FF, FIn, FSel, DelModal, Tooltip } from "../components";
 import { useAuth } from "../AuthContext";
 
 export default function PageDeals({ t, isDark, DEALS = [], FEES_DATA = [], collectionPath = "" }) {
@@ -10,12 +18,8 @@ export default function PageDeals({ t, isDark, DEALS = [], FEES_DATA = [], colle
   const canCreate = isSuperAdmin || hasPermission("DEAL_CREATE");
   const canUpdate = isSuperAdmin || hasPermission("DEAL_UPDATE");
   const canDelete = isSuperAdmin || hasPermission("DEAL_DELETE");
-  const [hov, setHov] = useState(null);
   const [modal, setModal] = useState({ open: false, mode: "add", data: {} });
   const [delT, setDelT] = useState(null);
-  const [sort, setSort] = useState({ key: null, direction: "asc" });
-  const [page, setPage] = useState(1);
-  const onSort = k => { setSort(s => ({ key: k, direction: s.key === k && s.direction === "asc" ? "desc" : "asc" })); setPage(1); };
   const nextDealId = (() => {
     if (DEALS.length === 0) return "D10001";
     const maxNum = Math.max(...DEALS.map(p => { const m = String(p.id).match(/^D(\d+)$/); return m ? Number(m[1]) : 0; }));
@@ -50,14 +54,6 @@ export default function PageDeals({ t, isDark, DEALS = [], FEES_DATA = [], colle
     }
     close();
   };
-  const cols = [{ l: "DEAL ID", w: "110px", k: "id" }, { l: "NAME", w: "1fr", k: "name" }, { l: "STATUS", w: "100px", k: "status" }, { l: "CCY", w: "60px", k: "currency" }, { l: "START DATE", w: "104px", k: "startDate" }, { l: "END DATE", w: "104px", k: "endDate" }, { l: "VALUATION", w: "120px", k: "valuation" }, { l: "DESCRIPTION", w: "1fr", k: "description" }, { l: "FEES", w: "minmax(120px,1.2fr)", k: "feeIds" }, { l: "ACTIONS", w: "80px" }];
-  const { gridTemplate, headerRef, onResizeStart } = useResizableColumns(cols);
-  const [colFilters, setColFilters] = useState({});
-  const setColFilter = (key, val) => { setColFilters(f => ({ ...f, [key]: val })); setPage(1); };
-  const filtered = DEALS.filter(p => cols.every(c => { if (!c.k || !colFilters[c.k]) return true; return String(p[c.k] || "").toLowerCase().includes(colFilters[c.k].toLowerCase()); }));
-  const sorted = sortData(filtered, sort);
-  const paginated = sorted.slice((page - 1) * 20, page * 20);
-  const totalPages = Math.ceil(sorted.length / 20);
   const handleDeleteDeal = async () => {
     if (!delT || !delT.docId) return;
     try {
@@ -66,36 +62,66 @@ export default function PageDeals({ t, isDark, DEALS = [], FEES_DATA = [], colle
     } catch (err) { console.error("Delete deal error:", err); }
   };
 
+  const gridRef = useRef(null);
+
+  // AG Grid: Column definitions
+  const permissions = { canUpdate, canDelete };
+  const columnDefs = useMemo(() => {
+    return getColumnDefs(permissions, isDark, t);
+  }, [permissions, isDark, t]);
+
+  // AG Grid: Context for cell renderers
+  const context = useMemo(() => ({
+    isDark,
+    t,
+    permissions,
+    feesData: FEES_DATA,
+    callbacks: {
+      onEdit: openEdit,
+      onDelete: (target) => setDelT(target)
+    }
+  }), [isDark, t, permissions, FEES_DATA]);
+
   return (<>
     <div style={{ marginBottom: 28, display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}><div><h1 style={{ fontFamily: t.titleFont, fontWeight: t.titleWeight, fontSize: t.titleSize, color: isDark ? "#fff" : "#1C1917", letterSpacing: t.titleTracking, lineHeight: 1, marginBottom: 6 }}>Deals</h1><p style={{ fontSize: 13.5, color: t.textMuted }}>Manage your investment deals</p></div>{canCreate && <Tooltip text="Create a new investment deal" t={t}><button className="primary-btn" onClick={openAdd} style={{ background: t.accentGrad, color: "#fff", padding: "11px 22px", borderRadius: 11, fontSize: 13.5, fontWeight: 600, boxShadow: `0 4px 16px ${t.accentShadow}`, display: "flex", alignItems: "center", gap: 7 }}><span style={{ fontSize: 18, lineHeight: 1 }}>+</span> New Deal</button></Tooltip>}</div>
     <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 16, marginBottom: 28 }}>
       {[{ label: "Total", value: DEALS.length, accent: isDark ? "#60A5FA" : "#3B82F6", bg: isDark ? "rgba(96,165,250,0.08)" : "#EFF6FF", border: isDark ? "rgba(96,165,250,0.15)" : "#BFDBFE" }, { label: "Active", value: DEALS.filter(p => p.status === "Active").length, accent: isDark ? "#34D399" : "#059669", bg: isDark ? "rgba(52,211,153,0.08)" : "#ECFDF5", border: isDark ? "rgba(52,211,153,0.15)" : "#A7F3D0" }, { label: "Closed", value: DEALS.filter(p => p.status === "Closed").length, accent: isDark ? "rgba(255,255,255,0.4)" : "#6B7280", bg: isDark ? "rgba(255,255,255,0.05)" : "#F9FAFB", border: isDark ? "rgba(255,255,255,0.1)" : "#E5E7EB" }, { label: "USD", value: DEALS.filter(p => p.currency === "USD").length, accent: isDark ? "#A78BFA" : "#7C3AED", bg: isDark ? "rgba(167,139,250,0.08)" : "#F5F3FF", border: isDark ? "rgba(167,139,250,0.15)" : "#DDD6FE" }].map(s => <StatCard key={s.label} {...s} titleFont={t.titleFont} isDark={isDark} />)}
     </div>
-    <div style={{ background: t.surface, borderRadius: 16, border: `1px solid ${t.surfaceBorder}`, overflow: "auto", backdropFilter: isDark ? "blur(20px)" : "none", boxShadow: t.tableShadow }}>
-      <TblHead cols={cols} t={t} isDark={isDark} sortConfig={sort} onSort={onSort} gridTemplate={gridTemplate} headerRef={headerRef} onResizeStart={onResizeStart} />
-      <TblFilterRow cols={cols} colFilters={colFilters} onFilterChange={setColFilter} onClear={() => setColFilters({})} gridTemplate={gridTemplate} t={t} isDark={isDark} />
-      {paginated.map((p, i) => {
-        const isHov = hov === p.id;
-        const appliedFees = (p.feeIds || []).map(fid => FEES_DATA.find(f => f.id === fid)).filter(Boolean);
-        return (<div key={p.id} className="data-row" onMouseEnter={() => setHov(p.id)} onMouseLeave={() => setHov(null)} style={{ display: "grid", gridTemplateColumns: gridTemplate, padding: "12px 22px", borderBottom: i < paginated.length - 1 ? `1px solid ${t.rowDivider}` : "none", alignItems: "center", background: isHov ? t.rowHover : "transparent", transition: "all 0.15s ease" }}>
-          <div style={{ fontFamily: t.mono, fontSize: 11, color: t.idText }}>{p.id}</div>
-          <div style={{ fontSize: 13.5, fontWeight: 500, color: isDark ? "rgba(255,255,255,0.85)" : (isHov ? "#1C1917" : "#44403C"), overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", paddingRight: 8 }}>{p.name}</div>
-          <div><Bdg status={p.status} isDark={isDark} /></div>
-          <div style={{ fontFamily: t.mono, fontSize: 11.5, color: t.textMuted }}>{p.currency}</div>
-          <div style={{ fontFamily: t.mono, fontSize: 11, color: t.idText }}>{p.startDate || <span style={{ color: isDark ? "rgba(255,255,255,0.15)" : "#D4D0CB" }}>—</span>}</div>
-          <div style={{ fontFamily: t.mono, fontSize: 11, color: t.idText }}>{p.endDate || <span style={{ color: isDark ? "rgba(255,255,255,0.15)" : "#D4D0CB" }}>—</span>}</div>
-          <div style={{ fontFamily: t.mono, fontSize: 12, fontWeight: 600, color: isDark ? "#60A5FA" : "#4F46E5" }}>{p.valuation ? `$${Number(String(p.valuation).replace(/[^0-9.]/g, "")).toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 2 })}` : <span style={{ color: isDark ? "rgba(255,255,255,0.15)" : "#D4D0CB" }}>—</span>}</div>
-          <div style={{ fontSize: 12, color: t.textMuted, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", paddingRight: 8 }}>{p.description || <span style={{ color: isDark ? "rgba(255,255,255,0.15)" : "#D4D0CB" }}>—</span>}</div>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
-            {appliedFees.length > 0
-              ? appliedFees.map(f => <span key={f.id} style={{ fontSize: 10.5, fontWeight: 600, padding: "2px 8px", borderRadius: 20, background: isDark ? "rgba(52,211,153,0.12)" : "#ECFDF5", color: isDark ? "#34D399" : "#059669", border: `1px solid ${isDark ? "rgba(52,211,153,0.25)" : "#A7F3D0"}`, whiteSpace: "nowrap" }}>{f.name}</span>)
-              : <span style={{ color: isDark ? "rgba(255,255,255,0.15)" : "#D4D0CB", fontSize: 12 }}>—</span>}
-          </div>
-          <ActBtns show={isHov && (canUpdate || canDelete)} t={t} onEdit={canUpdate ? () => openEdit(p) : null} onDel={canDelete ? () => setDelT({ id: p.id, name: p.name, docId: p.docId }) : null} />
-        </div>);
-      })}
+    
+    <div
+      className={`ag-theme-custom ${isDark ? 'dark-mode' : 'light-mode'}`}
+      style={{ height: 'calc(100vh - 420px)', minHeight: '500px' }}
+    >
+      <AgGridReact
+        ref={gridRef}
+        rowData={DEALS}
+        columnDefs={columnDefs}
+        context={context}
+        animateRows={true}
+        pagination={true}
+        paginationPageSize={20}
+        suppressPaginationPanel={true}
+        suppressCellFocus={true}
+        onColumnResized={(event) => {
+          if (event.finished) {
+            const columnState = event.api.getColumnState();
+            localStorage.setItem('dealsColumnState', JSON.stringify(columnState));
+          }
+        }}
+        onGridReady={(params) => {
+          const savedState = localStorage.getItem('dealsColumnState');
+          if (savedState) {
+            params.api.applyColumnState({
+              state: JSON.parse(savedState),
+              applyOrder: false
+            });
+          }
+        }}
+      />
     </div>
-    <div style={{ marginTop: 16, display: "flex", justifyContent: "space-between", alignItems: "center" }}><span style={{ fontSize: 12, color: t.textSubtle }}>Showing <strong style={{ color: t.textSecondary }}>{paginated.length}</strong> of <strong style={{ color: t.textSecondary }}>{sorted.length}</strong> deals</span><Pagination totalPages={totalPages} currentPage={page} onPageChange={setPage} t={t} /></div>
+
+    <div style={{ marginTop: 16, display: "flex", justifyContent: "space-between", alignItems: "center" }}><span style={{ fontSize: 12, color: t.textSubtle }}>Showing <strong style={{ color: t.textSecondary }}>{Math.min(DEALS.length, 20)}</strong> of <strong style={{ color: t.textSecondary }}>{DEALS.length}</strong> deals</span><Pagination totalPages={Math.ceil(DEALS.length / 20)} currentPage={1} onPageChange={(newPage) => gridRef.current?.api.paginationGoToPage(newPage - 1)} t={t} /></div>
+    
     <Modal open={modal.open} onClose={close} title={modal.mode === "add" ? "New Deal" : "Edit Deal"} onSave={handleSaveDeal} width={580} t={t} isDark={isDark}>
       <FF label="Deal ID" t={t}>
         <div style={{ fontFamily: t.mono, fontSize: 13, color: t.idText, background: isDark ? "rgba(255,255,255,0.04)" : "#F5F4F1", border: `1px solid ${t.surfaceBorder}`, borderRadius: 9, padding: "10px 13px", letterSpacing: "0.5px" }}>{modal.data.id}</div>
