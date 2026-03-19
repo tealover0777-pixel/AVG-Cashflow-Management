@@ -25,7 +25,7 @@
 /* Dark Mode Variables (Synced with mkTheme) */
 .ag-theme-custom.dark-mode {
   --ag-background-color: #050c15; /* Solid dark background to prevent white bleed */
-  --ag-header-background-color: #0F172A; /* Rich deep navy from screenshot */
+  --ag-header-background-color: rgba(255, 255, 255, 0.05); /* Matching 'Closed' scorecard in Deals */
   --ag-odd-row-background-color: transparent;
   --ag-row-hover-color: rgba(255, 255, 255, 0.04);
   --ag-selected-row-background-color: rgba(52, 211, 153, 0.1); 

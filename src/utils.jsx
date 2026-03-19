@@ -23,7 +23,7 @@ export const mkTheme = (isDark) => isDark ? {
   sidebar: "rgba(255,255,255,0.03)", sidebarBorder: "rgba(255,255,255,0.06)",
   topbar: "rgba(255,255,255,0.02)", topbarBorder: "rgba(255,255,255,0.06)",
   surface: "rgba(255,255,255,0.02)", surfaceBorder: "rgba(255,255,255,0.07)",
-  tableHeader: "#0F172A", rowDivider: "rgba(255,255,255,0.04)", columnDivider: "rgba(255,255,255,0.06)", rowHover: "rgba(255,255,255,0.04)",
+  tableHeader: "rgba(255, 255, 255, 0.05)", rowDivider: "rgba(255,255,255,0.04)", columnDivider: "rgba(255,255,255,0.06)", rowHover: "rgba(255,255,255,0.04)",
   text: "#e2e8f0", textMuted: "rgba(255,255,255,0.7)", textSubtle: "rgba(255,255,255,0.6)", textSecondary: "rgba(255,255,255,0.75)",
   accent: "#34D399", accentGrad: "linear-gradient(135deg,#34D399,#059669)", accentShadow: "rgba(52,211,153,0.35)",
   logoGrad: "linear-gradient(135deg,#34D399,#059669)", logoShadow: "0 4px 12px rgba(52,211,153,0.3)",
