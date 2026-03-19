@@ -153,6 +153,7 @@ function AppContent() {
       startDate: fmtDate(d.start_date),
       endDate: fmtDate(d.end_date),
       valuation: fmtCurr(d.valuation_amount),
+      type: d.deal_type || "",
       feeIds: typeof d.fees === "string" && d.fees ? d.fees.split(",").map(s => s.trim()) : [],
     }));
 
@@ -566,7 +567,7 @@ function AppContent() {
               : (
                 <>
                   {activePage === "Dashboard" && <PageDashboard t={t} isDark={isDark} DEALS={DEALS} CONTRACTS={CONTRACTS} PARTIES={PARTIES} SCHEDULES={SCHEDULES} PAYMENTS={PAYMENTS} MONTHLY={MONTHLY} DIMENSIONS={DIMENSIONS} setActivePage={setActivePage} />}
-                  {activePage === "Deals" && <PageDeals t={t} isDark={isDark} DEALS={DEALS} FEES_DATA={FEES_DATA} collectionPath={isGlobalConsolidated ? "GROUP:deals" : fetchPaths.deals} />}
+                  {activePage === "Deals" && <PageDeals t={t} isDark={isDark} DEALS={DEALS} FEES_DATA={FEES_DATA} DIMENSIONS={DIMENSIONS} collectionPath={isGlobalConsolidated ? "GROUP:deals" : fetchPaths.deals} />}
                   {activePage === "Parties" && <PageParties t={t} isDark={isDark} PARTIES={PARTIES} CONTRACTS={CONTRACTS} SCHEDULES={SCHEDULES} DEALS={DEALS} collectionPath={isGlobalConsolidated ? "GROUP:parties" : fetchPaths.parties} DIMENSIONS={DIMENSIONS} tenantId={activeTenantId} />}
                   {activePage === "Contracts" && <PageContracts t={t} isDark={isDark} CONTRACTS={CONTRACTS} DEALS={DEALS} PARTIES={PARTIES} DIMENSIONS={DIMENSIONS} FEES_DATA={FEES_DATA} SCHEDULES={SCHEDULES} collectionPath={isGlobalConsolidated ? "GROUP:contracts" : fetchPaths.contracts} schedulePath={isGlobalConsolidated ? "GROUP:paymentSchedules" : fetchPaths.paymentSchedules} />}
                   {activePage === "Payment Schedule" && <PageSchedule t={t} isDark={isDark} SCHEDULES={SCHEDULES} CONTRACTS={CONTRACTS} PARTIES={PARTIES} DEALS={DEALS} DIMENSIONS={DIMENSIONS} FEES_DATA={FEES_DATA} collectionPath={isGlobalConsolidated ? "GROUP:paymentSchedules" : fetchPaths.paymentSchedules} />}

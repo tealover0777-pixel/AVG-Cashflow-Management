@@ -6,14 +6,14 @@ ModuleRegistry.registerModules([AllCommunityModule]);
 
 import 'ag-grid-community/styles/ag-grid.css';
 import '../components/ag-grid/ag-grid-theme.css';
-import { getColumnDefs } from '../components/ag-grid/DealsGridConfig';
+import { getColumnDefs } from '../components/ag-grid/DealsGridConfig.jsx';
 import { db } from "../firebase";
 import { doc, setDoc, updateDoc, deleteDoc, serverTimestamp } from "firebase/firestore";
 import { sortData } from "../utils";
 import { Bdg, StatCard, Pagination, Modal, FF, FIn, FSel, DelModal, Tooltip } from "../components";
 import { useAuth } from "../AuthContext";
 
-export default function PageDeals({ t, isDark, DEALS = [], FEES_DATA = [], collectionPath = "" }) {
+export default function PageDeals({ t, isDark, DEALS = [], FEES_DATA = [], DIMENSIONS = [], collectionPath = "" }) {
   const { hasPermission, isSuperAdmin } = useAuth();
   const canCreate = isSuperAdmin || hasPermission("DEAL_CREATE");
   const canUpdate = isSuperAdmin || hasPermission("DEAL_UPDATE");
@@ -25,7 +25,7 @@ export default function PageDeals({ t, isDark, DEALS = [], FEES_DATA = [], colle
     const maxNum = Math.max(...DEALS.map(p => { const m = String(p.id).match(/^D(\d+)$/); return m ? Number(m[1]) : 0; }));
     return "D" + (maxNum + 1);
   })();
-  const openAdd = () => setModal({ open: true, mode: "add", data: { id: nextDealId, name: "", status: "Active", startDate: "", endDate: "", valuation: "", description: "" } });
+  const openAdd = () => setModal({ open: true, mode: "add", data: { id: nextDealId, name: "", status: "Active", type: "", startDate: "", endDate: "", valuation: "", description: "" } });
   const openEdit = r => setModal({ open: true, mode: "edit", data: { ...r } });
   const close = () => setModal(m => ({ ...m, open: false }));
   const setF = (k, v) => setModal(m => ({ ...m, data: { ...m.data, [k]: v } }));
@@ -35,6 +35,7 @@ export default function PageDeals({ t, isDark, DEALS = [], FEES_DATA = [], colle
     const payload = {
       deal_name: d.name || "",
       status: d.status || "Active",
+      deal_type: d.type || "",
       description: d.description || "",
       start_date: d.startDate || null,
       end_date: d.endDate || null,
@@ -116,6 +117,9 @@ export default function PageDeals({ t, isDark, DEALS = [], FEES_DATA = [], colle
     }
   }), [isDark, t, permissions, FEES_DATA]);
 
+  const dealStatuses = DIMENSIONS.find(d => d.name === "Deal Status" || d.name === "DealStatus")?.items || ["Active", "Closed"];
+  const dealTypes = DIMENSIONS.find(d => d.name === "Deal Type" || d.name === "DealType")?.items || [];
+
   return (<>
     <div style={{ marginBottom: 28, display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}><div><h1 style={{ fontFamily: t.titleFont, fontWeight: t.titleWeight, fontSize: t.titleSize, color: isDark ? "#fff" : "#1C1917", letterSpacing: t.titleTracking, lineHeight: 1, marginBottom: 6 }}>Deals</h1><p style={{ fontSize: 13.5, color: t.textMuted }}>Manage your investment deals</p></div>{canCreate && <Tooltip text="Create a new investment deal" t={t}><button className="primary-btn" onClick={openAdd} style={{ background: t.accentGrad, color: "#fff", padding: "11px 22px", borderRadius: 11, fontSize: 13.5, fontWeight: 600, boxShadow: `0 4px 16px ${t.accentShadow}`, display: "flex", alignItems: "center", gap: 7 }}><span style={{ fontSize: 18, lineHeight: 1 }}>+</span> New Deal</button></Tooltip>}</div>
     <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 16, marginBottom: 28 }}>
@@ -167,13 +171,14 @@ export default function PageDeals({ t, isDark, DEALS = [], FEES_DATA = [], colle
       </FF>
       <FF label="Deal Name" t={t}><FIn value={modal.data.name} onChange={e => setF("name", e.target.value)} placeholder="e.g. Palm Springs Villas" t={t} /></FF>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
-        <FF label="Status" t={t}><FSel value={modal.data.status} onChange={e => setF("status", e.target.value)} options={["Active", "Closed"]} t={t} /></FF>
+        <FF label="Deal state" t={t}><FSel value={modal.data.status} onChange={e => setF("status", e.target.value)} options={dealStatuses} t={t} /></FF>
+        <FF label="Deal type" t={t}><FSel value={modal.data.type} onChange={e => setF("type", e.target.value)} options={dealTypes} t={t} /></FF>
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
         <FF label="Start Date" t={t}><FIn value={modal.data.startDate || ""} onChange={e => setF("startDate", e.target.value)} t={t} type="date" /></FF>
         <FF label="End Date" t={t}><FIn value={modal.data.endDate || ""} onChange={e => setF("endDate", e.target.value)} t={t} type="date" /></FF>
       </div>
-      <FF label="Valuation Amount" t={t}><FIn value={modal.data.valuation || ""} onChange={e => setF("valuation", e.target.value)} placeholder="e.g. 2,500,000" t={t} /></FF>
+      <FF label="Fundraising Target" t={t}><FIn value={modal.data.valuation || ""} onChange={e => setF("valuation", e.target.value)} placeholder="e.g. 2,500,000" t={t} /></FF>
       <FF label="Description" t={t}><FIn value={modal.data.description} onChange={e => setF("description", e.target.value)} placeholder="Brief description..." t={t} /></FF>
       {FEES_DATA.filter(f => f.name !== "Late Fee").length > 0 && (
         <FF label="Applicable Fees" t={t}>

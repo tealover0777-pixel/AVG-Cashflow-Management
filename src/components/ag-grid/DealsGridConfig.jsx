@@ -37,7 +37,24 @@ export const getColumnDefs = (permissions, isDark, t) => {
       cellRenderer: DealNameCellRenderer
     },
     {
-      headerName: "Status",
+      headerName: "Deal type",
+      field: "type",
+      width: 130,
+      sortable: true,
+      filter: "agTextColumnFilter",
+      filterParams: {
+        filterOptions: ["contains", "notContains", "equals", "notEqual", "startsWith", "endsWith"],
+        trimInput: true,
+        debounceMs: 300
+      },
+      cellRenderer: (params) => (
+        <div style={{ display: 'flex', alignItems: 'center', height: '100%' }}>
+          <span style={{ fontSize: '12.5px', fontWeight: 500, color: params.context.isDark ? "#A78BFA" : "#7C3AED", background: params.context.isDark ? "rgba(167,139,250,0.1)" : "#F5F3FF", padding: "2px 10px", borderRadius: 20, border: `1px solid ${params.context.isDark ? "rgba(167,139,250,0.2)" : "#DDD6FE"}` }}>{params.value || "—"}</span>
+        </div>
+      )
+    },
+    {
+      headerName: "Deal state",
       field: "status",
       width: 100,
       sortable: true,
@@ -76,7 +93,7 @@ export const getColumnDefs = (permissions, isDark, t) => {
       valueFormatter: (params) => params.value || "—"
     },
     {
-      headerName: "Valuation",
+      headerName: "Fundraising Target",
       field: "valuation",
       width: 120,
       sortable: true,
