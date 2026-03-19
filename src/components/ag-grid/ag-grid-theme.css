@@ -66,25 +66,41 @@
   --ag-header-foreground-color: #FFFFFF !important;
 }
 
-/* General rule for both modes (primarily for Light Mode visibility) */
+/* --- Force Visible Dividers --- */
 .ag-theme-custom .ag-cell,
 .ag-theme-custom .ag-header-cell {
-  border-right: 1px solid #94A3B8 !important; /* Stronger gray for light mode */
+  border-right: 1px solid #CBD5E1 !important; /* Professional light gray vertical - matches horizontal */
 }
 
-/* Specific override for Dark Mode (Reverted to White for visibility) */
 .dark-mode.ag-theme-custom .ag-cell,
 .dark-mode.ag-theme-custom .ag-header-cell {
-  border-right: 1px solid #FFFFFF !important;
+  border-right: 1px solid #FFFFFF !important; /* Pure white for dark mode visibility */
 }
 
+/* Row Dividers (Horizontal) */
 .ag-theme-custom .ag-row,
 .ag-theme-custom .ag-header-row,
 .ag-theme-custom .ag-header,
 .ag-theme-custom .ag-pinned-right-cols-container,
 .ag-theme-custom .ag-pinned-right-header {
   border-bottom: 1px solid #CBD5E1 !important;
-  border-left-color: #CBD5E1 !important;
+}
+
+/* Remove border on last column */
+.ag-theme-custom .ag-cell:last-child,
+.ag-theme-custom .ag-header-cell:last-child {
+  border-right: none !important;
+}
+
+/* Specific override for pinned columns */
+.ag-theme-custom .ag-pinned-right-cols-container .ag-cell,
+.ag-theme-custom .ag-pinned-right-header .ag-header-cell {
+  border-left: 1px solid #CBD5E1 !important;
+}
+
+.dark-mode.ag-theme-custom .ag-pinned-right-cols-container .ag-cell,
+.dark-mode.ag-theme-custom .ag-pinned-right-header .ag-header-cell {
+  border-left: 1px solid #FFFFFF !important;
 }
 
 /* Light Mode Variables (Synced with mkTheme) */
@@ -97,7 +113,6 @@
 
   --ag-row-border-color: #CBD5E1;
   --ag-border-color: #CBD5E1;
-  --ag-cell-horizontal-border: #94A3B8; /* Stronger gray for vertical visibility */
 
   --ag-foreground-color: #1C1917;
   --ag-header-foreground-color: #57534E;
@@ -109,26 +124,6 @@
 
   border: 1px solid var(--ag-border-color);
   box-shadow: none;
-}
-
-/* ============================================================================
-   VERTICAL DIVIDERS
-   ============================================================================ */
-
-/* Vertical borders on all cells */
-.ag-theme-custom .ag-cell {
-  border-right: 1px solid var(--ag-cell-horizontal-border) !important;
-}
-
-/* Vertical borders on all header cells */
-.ag-theme-custom .ag-header-cell {
-  border-right: 1px solid var(--ag-cell-horizontal-border) !important;
-}
-
-/* Remove border on last column */
-.ag-theme-custom .ag-cell:last-child,
-.ag-theme-custom .ag-header-cell:last-child {
-  border-right: none !important;
 }
 
 /* ============================================================================

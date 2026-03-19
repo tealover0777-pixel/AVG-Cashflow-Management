@@ -18,7 +18,7 @@ const PartyEmailCellRenderer = (props) => {
       {value ? (
         <span style={{ color: isDark ? "#cbd5e1" : "#334155" }}>{value}</span>
       ) : (
-        <span style={{ color: isDark ? "rgba(255,255,255,0.12)" : "#D4D0CB" }}>—</span>
+        <span style={{ color: isDark ? "#FFFFFF" : "#D4D0CB" }}>—</span>
       )}
     </div>
   );
