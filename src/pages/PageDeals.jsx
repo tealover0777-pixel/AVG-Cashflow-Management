@@ -102,7 +102,7 @@ export default function PageDeals({ t, isDark, DEALS = [], FEES_DATA = [], colle
         suppressPaginationPanel={true}
         suppressCellFocus={true}
         onRowClicked={(event) => {
-          if (!event.event.target.closest('.action-btn')) {
+          if (!event.event?.target?.closest?.('.action-btn')) {
             setEditDeal(event.data);
           }
         }}
