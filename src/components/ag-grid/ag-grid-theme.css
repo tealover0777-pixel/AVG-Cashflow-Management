@@ -22,6 +22,11 @@
   background-color: var(--ag-background-color) !important;
 }
 
+/* Ensure horizontal dividers extend all the way if columns don't fill the space */
+.ag-theme-custom .ag-center-cols-container {
+  min-width: 100%;
+}
+
 /* Dark Mode Variables (Synced with mkTheme) */
 .ag-theme-custom.dark-mode {
   --ag-background-color: #050c15; /* Solid dark background to prevent white bleed */

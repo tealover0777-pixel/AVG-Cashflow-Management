@@ -141,21 +141,49 @@ function AppContent() {
       const mId = String(memberPartyId).trim();
       return rawContracts.some(c => (c.deal_id === d.id || c.deal_name === d.deal_name) && (String(c.party_id || "").trim() === mId || String(c.counterparty_id || "").trim() === mId));
     })
-    .map(d => ({
-      id: d.id,
-      docId: d.doc_id || d.id,
-      _path: d._path,
-      name: d.deal_name || "",
-      status: d.status || "",
-      currency: d.currency || "",
-      description: d.description || "",
-      created: fmtDate(d.created_at),
-      startDate: fmtDate(d.start_date),
-      endDate: fmtDate(d.end_date),
-      valuation: fmtCurr(d.valuation_amount),
-      type: d.deal_type || "",
-      feeIds: typeof d.fees === "string" && d.fees ? d.fees.split(",").map(s => s.trim()) : [],
-    }));
+    .map(d => {
+      const dealId = d.id;
+      const valuation = Number(String(d.valuation_amount || 0).replace(/[^0-9.]/g, "")) || 0;
+      
+      // Calculate Fundraising Progress from associated contracts
+      const dealContracts = rawContracts.filter(c => c.deal_id === dealId || c.deal_name === d.deal_name);
+      const totalCommitted = dealContracts.reduce((sum, c) => sum + (Number(String(c.amount || 0).replace(/[^0-9.-]/g, "")) || 0), 0);
+      const fundraisingProgress = valuation > 0 ? (totalCommitted / valuation) * 100 : 0;
+
+      // Calculate Fund Balance from associated payments
+      // Payments can be linked to contracts that belong to this deal
+      const dealContractIds = new Set(dealContracts.map(c => c.contract_id || c.id));
+      const dealPayments = rawPayments.filter(p => {
+        if (p.deal_id === dealId || p.deal_name === d.deal_name) return true;
+        if (p.contract_id && dealContractIds.has(p.contract_id)) return true;
+        return false;
+      });
+      const fundBalance = dealPayments.reduce((sum, p) => {
+        const amt = Number(String(p.amount || 0).replace(/[^0-9.-]/g, "")) || 0;
+        const dir = p.direction === "Received" ? 1 : (p.direction === "Disbursed" ? -1 : 0);
+        return sum + (amt * dir);
+      }, 0);
+
+      return {
+        id: dealId,
+        docId: d.doc_id || d.id,
+        _path: d._path,
+        name: d.deal_name || "",
+        status: d.status || "",
+        currency: d.currency || "",
+        description: d.description || "",
+        created: fmtDate(d.created_at),
+        startDate: fmtDate(d.start_date),
+        endDate: fmtDate(d.end_date),
+        valuation: fmtCurr(d.valuation_amount),
+        valuationRaw: valuation,
+        fundraisingProgress,
+        fundBalance: fmtCurr(fundBalance),
+        fundBalanceRaw: fundBalance,
+        type: d.deal_type || "",
+        feeIds: typeof d.fees === "string" && d.fees ? d.fees.split(",").map(s => s.trim()) : [],
+      };
+    });
 
   const PARTIES = rawParties
     .filter(d => {
