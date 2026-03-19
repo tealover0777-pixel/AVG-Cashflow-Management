@@ -137,7 +137,7 @@ export default function PageParties({ t, isDark, PARTIES = [], CONTRACTS = [], S
       onEdit: openEdit,
       onDelete: (target) => setDelT(target),
       onInvite: handleInviteParty,
-      onNameClick: (party) => openEdit(party)
+      onNameClick: (party) => setDetailParty(party)
     },
     invitingId
   }), [isDark, t, permissions, invitingId]);
@@ -175,9 +175,8 @@ export default function PageParties({ t, isDark, PARTIES = [], CONTRACTS = [], S
         suppressPaginationPanel={true}
         suppressCellFocus={true}
         onRowClicked={(event) => {
-          if (!event.event?.target?.closest?.('.action-btn')) {
-            openEdit(event.data);
-          }
+          // Row click action removed per latest request. 
+          // Summary opens on ID/Name click via cell renderers.
         }}
         onColumnResized={(event) => {
           // Persist column widths to localStorage
