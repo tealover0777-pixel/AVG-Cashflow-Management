@@ -48,21 +48,6 @@ export const getColumnDefs = (permissions, isDark, t) => {
       cellRenderer: DealStatusCellRenderer
     },
     {
-      headerName: "CCY",
-      field: "currency",
-      width: 60,
-      sortable: true,
-      filter: "agSetColumnFilter",
-      filterParams: {
-        values: ["USD", "CAD", "EUR", "TWD"]
-      },
-      cellStyle: {
-        fontFamily: t.mono,
-        fontSize: '11.5px',
-        color: t.textMuted
-      }
-    },
-    {
       headerName: "Start Date",
       field: "startDate",
       width: 104,
