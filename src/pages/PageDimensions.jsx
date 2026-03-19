@@ -1,13 +1,18 @@
 import { useState } from "react";
 import { db } from "../firebase";
-import { doc, updateDoc } from "firebase/firestore";
+import { doc, updateDoc, collection, addDoc } from "firebase/firestore";
 import { useAuth } from "../AuthContext";
+import { Modal, FIn, FF } from "../components";
 
 export default function PageDimensions({ t, isDark, DIMENSIONS = [], rawDimensions = [], collectionPath = "" }) {
   const { hasPermission } = useAuth();
   const canUpdate = hasPermission("DIMENTION_UPDATE");
   const [editing, setEditing] = useState(null);
   const [newVals, setNewVals] = useState({});
+  const [showNewModal, setShowNewModal] = useState(false);
+  const [newName, setNewName] = useState("");
+  const [newValuesStr, setNewValuesStr] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const getRawDoc = (name) => rawDimensions.find(d => (d.category || d.name || d.id) === name);
   const getItemsField = (rawDoc) => {
@@ -46,8 +51,42 @@ export default function PageDimensions({ t, isDark, DIMENSIONS = [], rawDimensio
     }
   };
 
+  const handleCreate = async () => {
+    if (!newName.trim()) return;
+    setLoading(true);
+    try {
+      const items = newValuesStr.split(",").map(v => v.trim()).filter(Boolean);
+      await addDoc(collection(db, collectionPath), {
+        category: newName.trim(),
+        items: items,
+        created_at: new Date()
+      });
+      setShowNewModal(false);
+      setNewName("");
+      setNewValuesStr("");
+    } catch (err) {
+      console.error("Create dimension error:", err);
+      alert("Failed to create dimension: " + (err.message || err));
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (<>
-    <div style={{ marginBottom: 28 }}><h1 style={{ fontFamily: t.titleFont, fontWeight: t.titleWeight, fontSize: t.titleSize, color: isDark ? "#fff" : "#1C1917", letterSpacing: t.titleTracking, lineHeight: 1, marginBottom: 6 }}>Dimensions</h1><p style={{ fontSize: 13.5, color: t.textMuted }}>Reference data · <strong style={{ color: t.textSecondary }}>{DIMENSIONS.length}</strong> groups · <strong style={{ color: t.textSecondary }}>{DIMENSIONS.reduce((s, g) => s + g.items.length, 0)}</strong> values</p></div>
+    <div style={{ marginBottom: 28, display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
+      <div>
+        <h1 style={{ fontFamily: t.titleFont, fontWeight: t.titleWeight, fontSize: t.titleSize, color: isDark ? "#fff" : "#1C1917", letterSpacing: t.titleTracking, lineHeight: 1, marginBottom: 6 }}>Dimensions</h1>
+        <p style={{ fontSize: 13.5, color: t.textMuted }}>Reference data · <strong style={{ color: t.textSecondary }}>{DIMENSIONS.length}</strong> groups · <strong style={{ color: t.textSecondary }}>{DIMENSIONS.reduce((s, g) => s + g.items.length, 0)}</strong> values</p>
+      </div>
+      {canUpdate && (
+        <button
+          onClick={() => setShowNewModal(true)}
+          className="primary-btn"
+          style={{ padding: "10px 20px", borderRadius: 10, background: t.accentGrad, color: "#fff", fontSize: 13, fontWeight: 600, boxShadow: `0 4px 12px ${t.accentShadow}` }}>
+          + New Dimension
+        </button>
+      )}
+    </div>
     <div style={{ display: "grid", gridTemplateColumns: "repeat(2,1fr)", gap: 20 }}>
       {DIMENSIONS.map(g => {
         const accent = g.accent(isDark), bg = g.bg(isDark), border = g.border(isDark), isEd = editing === g.name; return (
@@ -76,5 +115,32 @@ export default function PageDimensions({ t, isDark, DIMENSIONS = [], rawDimensio
         );
       })}
     </div>
+
+    <Modal
+      open={showNewModal}
+      onClose={() => setShowNewModal(false)}
+      title="Create New Dimension"
+      onSave={handleCreate}
+      saveLabel="Create"
+      loading={loading}
+      t={t}
+      isDark={isDark}
+    >
+      <FF label="Dimension Name" t={t}>
+        <FIn value={newName} onChange={e => setNewName(e.target.value)} placeholder="e.g. Asset Class, Priority..." t={t} />
+      </FF>
+      <FF label="Initial Values" t={t}>
+        <textarea
+          value={newValuesStr}
+          onChange={e => setNewValuesStr(e.target.value)}
+          placeholder="Comma-separated values (e.g. High, Medium, Low)"
+          style={{
+            width: "100%", height: 100, background: t.searchBg, border: `1px solid ${t.searchBorder}`,
+            borderRadius: 9, padding: "10px 13px", color: t.searchText, fontSize: 13.5, fontFamily: "inherit", outline: "none", resize: "none"
+          }}
+        />
+        <div style={{ fontSize: 11, color: t.textMuted, marginTop: 4 }}>Separate items with commas.</div>
+      </FF>
+    </Modal>
   </>);
 }
