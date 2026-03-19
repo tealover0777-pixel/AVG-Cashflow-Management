@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { collection, query, orderBy, getDocs, doc, getDoc, setDoc, updateDoc, deleteDoc } from "firebase/firestore";
 import { db } from "../firebase";
 import { useAuth } from "../AuthContext";
-import { TblHead, TblFilterRow, Tooltip, Modal, FIn, Bdg } from "../components";
+import { TblHead, TblFilterRow, Tooltip, Modal, FIn, Bdg, ActBtns, DelModal } from "../components";
 import { Bot, ThumbsUp, ThumbsDown, Search, Trash2 } from "lucide-react";
 
 // ── Similarity helper ──────────────────────────────────────────────────────────
@@ -34,6 +34,7 @@ export default function PageAdminHelp({ t, isDark }) {
   // ── Bulk Delete State ────────────────────────────────────────────────────────
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [isBulkDeleting, setIsBulkDeleting] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState(null);
 
   // ── Column Filters State ─────────────────────────────────────────────────────
   const [colFilters, setColFilters] = useState({});
@@ -127,17 +128,25 @@ export default function PageAdminHelp({ t, isDark }) {
   };
 
   // ── Single Delete ────────────────────────────────────────────────────────────
-  const handleDeleteConv = async (id, e) => {
+  const handleDeleteConv = (conv, e) => {
     e?.stopPropagation();
-    if (!window.confirm("Delete this conversation record?")) return;
+    setDeleteTarget({ id: conv.id, name: conv.question || "this conversation" });
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deleteTarget) return;
     try {
-      await deleteDoc(doc(db, "help_conversations", id));
-      setConversations(prev => prev.filter(c => c.id !== id));
-      setSelectedIds(prev => { const next = new Set(prev); next.delete(id); return next; });
-      if (selectedConv?.id === id) { setSelectedConv(null); setNewRule(""); }
+      setLoading(true);
+      await deleteDoc(doc(db, "help_conversations", deleteTarget.id));
+      setConversations(prev => prev.filter(c => c.id !== deleteTarget.id));
+      setSelectedIds(prev => { const next = new Set(prev); next.delete(deleteTarget.id); return next; });
+      if (selectedConv?.id === deleteTarget.id) { setSelectedConv(null); setNewRule(""); }
+      setDeleteTarget(null);
     } catch (err) {
       alert("Failed to delete.");
       console.error(err);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -228,7 +237,7 @@ export default function PageAdminHelp({ t, isDark }) {
     { k: "question",  l: "Question",  w: "1fr"   },
     { k: "feedback",  l: "Feedback",  w: "90px"  },
     { k: "status",    l: "Status",    w: "90px"  },
-    { k: null,        l: "",          w: "50px"  },   // delete btn
+    { k: null,        l: "Actions",   w: "80px"  },   // actions btn
   ];
   const gridTemplate = cols.map(c => c.w).join(" ");
 
@@ -352,7 +361,6 @@ export default function PageAdminHelp({ t, isDark }) {
                     <div
                       key={c.id}
                       className="data-row"
-                      onClick={() => setSelectedConv(c)}
                       style={{
                         display: "grid",
                         gridTemplateColumns: gridTemplate,
@@ -387,8 +395,13 @@ export default function PageAdminHelp({ t, isDark }) {
                       <div>
                         {c.status === "resolved" ? <Bdg status="Resolved" isDark={isDark} /> : <Bdg status="Pending" isDark={isDark} />}
                       </div>
-                      <div onClick={e => handleDeleteConv(c.id, e)} style={{ display: "flex", justifyContent: "center" }}>
-                        <button style={{ background: "transparent", border: "none", color: isDark ? "#F87171" : "#DC2626", cursor: "pointer", fontSize: 16, lineHeight: 1, padding: "2px 6px", borderRadius: 4, opacity: 0.6 }} title="Delete">×</button>
+                      <div style={{ display: "flex", justifyContent: "flex-start", alignItems: "center", height: "100%" }}>
+                        <ActBtns
+                          show={true}
+                          t={t}
+                          onEdit={(e) => { e.stopPropagation(); setSelectedConv(c); }}
+                          onDel={(e) => handleDeleteConv(c, e)}
+                        />
                       </div>
                     </div>
                   );
@@ -461,6 +474,14 @@ export default function PageAdminHelp({ t, isDark }) {
         )}
       </Modal>
 
+      <DelModal
+        target={deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={handleConfirmDelete}
+        label="This conversation record"
+        t={t}
+        isDark={isDark}
+      />
     </div>
   );
 }
