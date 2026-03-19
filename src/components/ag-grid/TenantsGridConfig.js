@@ -95,7 +95,7 @@ export const getColumnDefs = (permissions, isDark, t) => {
       filter: false,
       resizable: false,
       cellRenderer: TenantActionsCellRenderer,
-      cellStyle: { display: 'flex', alignItems: 'center', justifyContent: 'center' }
+      cellStyle: { display: 'flex', alignItems: 'center', justifyContent: 'flex-start' }
     });
   }
 

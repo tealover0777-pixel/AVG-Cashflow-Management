@@ -28,7 +28,7 @@ const DealActionsCellRenderer = (props) => {
         gap: 6,
         alignItems: 'center',
         height: '100%',
-        justifyContent: 'center'
+        justifyContent: 'flex-start'
       }}
     >
       <ActBtns

@@ -270,7 +270,7 @@ export const getColumnDefs = (permissions, isDark, t, selection, onToggleRow, on
       cellStyle: {
         display: 'flex',
         alignItems: 'center',
-        justifyContent: 'center'
+        justifyContent: 'flex-start'
       }
     });
   }
