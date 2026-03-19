@@ -111,7 +111,7 @@ export default function PageParties({ t, isDark, PARTIES = [], CONTRACTS = [], S
   };
   const chips = ["All", "Investors", "Borrowers", "Companies"];
   const gridRef = useRef(null);
-  const [pageSize, setPageSize] = useState(20);
+  const [pageSize, setPageSize] = useState(30);
 
   // Dynamically calculate page size based on available vertical space
   useEffect(() => {
@@ -125,7 +125,7 @@ export default function PageParties({ t, isDark, PARTIES = [], CONTRACTS = [], S
       const availableForRows = gridContainerHeight - headerHeight;
       const calculatedRows = Math.floor(availableForRows / rowHeight);
 
-      const newPageSize = Math.max(20, calculatedRows); // Minimum 20 rows
+      const newPageSize = Math.max(30, calculatedRows); // Minimum 30 rows
       setPageSize(newPageSize);
     };
 
@@ -139,6 +139,13 @@ export default function PageParties({ t, isDark, PARTIES = [], CONTRACTS = [], S
       window.removeEventListener('resize', calculatePageSize);
     };
   }, []);
+
+  // Update grid when pageSize changes
+  useEffect(() => {
+    if (gridRef.current?.api) {
+      gridRef.current.api.paginationSetPageSize(pageSize);
+    }
+  }, [pageSize]);
 
   // AG Grid: Chip filtering (pre-filter data before passing to grid)
   const getFilteredData = () => {
