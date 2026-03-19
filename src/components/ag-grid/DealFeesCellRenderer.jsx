@@ -15,7 +15,7 @@ const DealFeesCellRenderer = (props) => {
   }
 
   return (
-    <div style={{ display: "flex", flexWrap: "wrap", gap: 4, alignItems: 'center', height: '100%' }}>
+    <div style={{ display: "flex", flexWrap: "nowrap", gap: 6, alignItems: 'center', height: '100%', overflow: 'hidden' }}>
       {appliedFees.map(f => (
         <span 
           key={f.id} 

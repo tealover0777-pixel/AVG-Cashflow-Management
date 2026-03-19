@@ -155,7 +155,7 @@ export default function PageDeals({ t, isDark, DEALS = [], FEES_DATA = [], DIMEN
         suppressCellFocus={true}
         onRowClicked={(event) => {
           if (!event.event?.target?.closest?.('.action-btn')) {
-            setEditDeal(event.data);
+            openEdit(event.data);
           }
         }}
         onColumnResized={(event) => {

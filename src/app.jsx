@@ -177,6 +177,7 @@ function AppContent() {
         endDate: fmtDate(d.end_date),
         valuation: fmtCurr(d.valuation_amount),
         valuationRaw: valuation,
+        fundraisingAmount: totalCommitted,
         fundraisingProgress,
         fundBalance: fmtCurr(fundBalance),
         fundBalanceRaw: fundBalance,

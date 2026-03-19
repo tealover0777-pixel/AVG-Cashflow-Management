@@ -8,7 +8,7 @@ export const getColumnDefs = (permissions, isDark, t) => {
     {
       headerName: "Deal ID",
       field: "id",
-      width: 100,
+      width: 90,
       sortable: true,
       filter: "agTextColumnFilter",
       filterParams: {
@@ -25,8 +25,9 @@ export const getColumnDefs = (permissions, isDark, t) => {
     {
       headerName: "Name",
       field: "name",
-      width: 220,
+      width: 180,
       flex: 1,
+      minWidth: 150,
       sortable: true,
       filter: "agTextColumnFilter",
       filterParams: {
@@ -39,7 +40,7 @@ export const getColumnDefs = (permissions, isDark, t) => {
     {
       headerName: "Deal type",
       field: "type",
-      width: 180,
+      width: 160,
       sortable: true,
       filter: "agTextColumnFilter",
       filterParams: {
@@ -56,7 +57,7 @@ export const getColumnDefs = (permissions, isDark, t) => {
     {
       headerName: "Deal Stage",
       field: "status",
-      width: 120,
+      width: 110,
       sortable: true,
       filter: "agTextColumnFilter",
       filterParams: {
@@ -69,7 +70,7 @@ export const getColumnDefs = (permissions, isDark, t) => {
     {
       headerName: "Start Date",
       field: "startDate",
-      width: 110,
+      width: 95,
       sortable: true,
       filter: "agDateColumnFilter",
       cellStyle: {
@@ -82,7 +83,7 @@ export const getColumnDefs = (permissions, isDark, t) => {
     {
       headerName: "End Date",
       field: "endDate",
-      width: 110,
+      width: 95,
       sortable: true,
       filter: "agDateColumnFilter",
       cellStyle: {
@@ -95,20 +96,25 @@ export const getColumnDefs = (permissions, isDark, t) => {
     {
       headerName: "Fundraising progress",
       field: "fundraisingProgress",
-      width: 160,
+      width: 180,
       sortable: true,
       filter: "agNumberColumnFilter",
       cellRenderer: (params) => {
-        if (params.value === undefined || params.value === null) return "—";
-        const val = params.value;
+        const val = params.value || 0;
+        const amount = params.data.fundraisingAmount || 0;
         const color = val >= 100 ? (isDark ? "#34D399" : "#059669") : (isDark ? "#60A5FA" : "#3B82F6");
-        const bg = val >= 100 ? (isDark ? "rgba(52,211,153,0.1)" : "#ECFDF5") : (isDark ? "rgba(96,165,250,0.1)" : "#EFF6FF");
+        
         return (
-          <div style={{ display: 'flex', alignItems: 'center', height: '100%', gap: 8 }}>
-            <div style={{ flex: 1, height: 6, background: isDark ? "rgba(255,255,255,0.06)" : "#F3F4F6", borderRadius: 3, overflow: 'hidden' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', height: '100%', gap: 2, padding: '4px 0' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <span style={{ fontSize: '11.5px', fontWeight: 600, color: isDark ? "#fff" : "#1C1917" }}>
+                ${amount.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+              </span>
+              <span style={{ fontSize: '10px', fontWeight: 700, opacity: 0.8, color: color }}>({val.toFixed(1)}%)</span>
+            </div>
+            <div style={{ width: '100%', height: 4, background: isDark ? "rgba(255,255,255,0.06)" : "#F3F4F6", borderRadius: 2, overflow: 'hidden' }}>
               <div style={{ width: `${Math.min(100, val)}%`, height: '100%', background: color }} />
             </div>
-            <span style={{ fontSize: '11px', fontWeight: 700, minWidth: 36, color: color, background: bg, padding: '1px 6px', borderRadius: 4 }}>{val.toFixed(1)}%</span>
           </div>
         );
       }
@@ -116,7 +122,7 @@ export const getColumnDefs = (permissions, isDark, t) => {
     {
       headerName: "Fund balance",
       field: "fundBalance",
-      width: 120,
+      width: 130,
       sortable: true,
       filter: "agNumberColumnFilter",
       cellStyle: {
@@ -130,7 +136,7 @@ export const getColumnDefs = (permissions, isDark, t) => {
     {
       headerName: "Fundraising Target",
       field: "valuation",
-      width: 150,
+      width: 140,
       sortable: true,
       filter: "agNumberColumnFilter",
       cellStyle: {
@@ -148,7 +154,7 @@ export const getColumnDefs = (permissions, isDark, t) => {
     {
       headerName: "Description",
       field: "description",
-      width: 250,
+      width: 180,
       flex: 1,
       minWidth: 150,
       sortable: true,
@@ -170,7 +176,9 @@ export const getColumnDefs = (permissions, isDark, t) => {
     {
       headerName: "Fees",
       field: "feeIds",
-      width: 220,
+      width: 200,
+      flex: 1,
+      minWidth: 180,
       sortable: false,
       filter: false,
       cellRenderer: DealFeesCellRenderer
