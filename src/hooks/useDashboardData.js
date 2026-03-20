@@ -31,7 +31,7 @@ export function useDashboardData({ DEALS = [], INVESTMENTS = [], CONTACTS = [], 
                 const targetId = String(myContact?.id || "").trim();
                 const targetDocId = String(myContact?.docId || "").trim();
                 const isDirectMatch = pId === targetId || (targetDocId && pId === targetDocId);
-                return isDirectMatch || filteredInvestments.some(c => c.id === s.contract);
+                return isDirectMatch || filteredInvestments.some(c => c.id === s.investment);
             })
             : SCHEDULES;
 

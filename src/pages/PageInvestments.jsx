@@ -245,13 +245,13 @@ export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [
         const matDate = normalizeDateAtNoon(c.maturity_date);
 
         if (!startDate || !matDate || matDate <= startDate) {
-          console.warn(`Skipping contract ${c.id}: Invalid dates`, { startDate: c.start_date, matDate: c.maturity_date });
+          console.warn(`Skipping investment ${c.id}: Invalid dates`, { startDate: c.start_date, matDate: c.maturity_date });
           skipped.push(`${c.id} (Invalid Dates)`);
           continue;
         }
 
         if (principal <= 0) {
-          console.warn(`Skipping contract ${c.id}: Principal is 0 or invalid`, { principal: c.amount });
+          console.warn(`Skipping investment ${c.id}: Principal is 0 or invalid`, { principal: c.amount });
           skipped.push(`${c.id} (Zero Amount)`);
           continue;
         }
@@ -301,7 +301,7 @@ export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [
           let feeFrequency = fInfo.frequency;
           if (!feeFrequency) {
             const chargeAt = (fInfo.fee_charge_at || "").toLowerCase();
-            if (chargeAt.includes("contract_start") || chargeAt.includes("contract_end")) {
+            if (chargeAt.includes("investment_start") || chargeAt.includes("investment_end")) {
               feeFrequency = "One_Time";
             } else {
               feeFrequency = "Recurring";
@@ -398,7 +398,7 @@ export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [
             let feeFrequency = fInfo.frequency;
             if (!feeFrequency) {
               const chargeAt = (fInfo.fee_charge_at || "").toLowerCase();
-              if (chargeAt.includes("contract_start") || chargeAt.includes("contract_end")) {
+              if (chargeAt.includes("investment_start") || chargeAt.includes("investment_end")) {
                 feeFrequency = "One_Time";
               } else {
                 feeFrequency = "Recurring";
@@ -412,8 +412,8 @@ export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [
               // Term-based (every period)
               if (ca.includes("term_start") || ca.includes("term_end")) should = true;
               // Investment start/end (only first/last period)
-              else if (ca.includes("contract_start") && periodNum === 1) should = true;
-              else if (ca.includes("contract_end") && isLast) should = true;
+              else if (ca.includes("investment_start") && periodNum === 1) should = true;
+              else if (ca.includes("investment_end") && isLast) should = true;
               // Monthly (every period)
               else if (ca.includes("month")) should = true;
               // Quarterly (Mar, Jun, Sep, Dec)
@@ -445,14 +445,14 @@ export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [
                   const signedFeeAmt = feeDir === "OUT" ? -Math.abs(feeAmt) : Math.abs(feeAmt);
 
                   // Determine due date based on period and fee_charge_at
-                  // This ensures fees are charged on actual contract dates, not theoretical calendar dates
+                  // This ensures fees are charged on actual investment dates, not theoretical calendar dates
                   let feeDueDate;
                   if (isLast) {
                     // Last period: always use maturity date (pEnd), regardless of fee_charge_at
                     // Example: Year_End with Jan 10 maturity → charges on Jan 10, not Dec 31
                     feeDueDate = pEnd;
                   } else if (periodNum === 1 && ca.includes("start")) {
-                    // First period with "start" fees: use contract start date
+                    // First period with "start" fees: use investment start date
                     // Example: Quarter_Start with Mar 15 start → charges on Mar 15, not Apr 1
                     feeDueDate = startDate;
                   } else {
@@ -499,15 +499,15 @@ export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [
           status: "Due", notes: `Repayment for ${c.id}`, created_at: serverTimestamp(),
         });
 
-        // --- 4. Post-process Fee Merging for this contract ---
+        // --- 4. Post-process Fee Merging for this investment ---
         const feeGroups = {}; // key: due_date|applied_to|direction
         const nonFeeEntries = [];
-        const contractEntries = entries.filter(e => e.investment_id === c.id);
+        const investmentEntries = entries.filter(e => e.investment_id === c.id);
         
         // Remove temporary entries from main list to rebuild
-        const otherContractsEntries = entries.filter(e => e.investment_id !== c.id);
+        const otherInvestmentsEntries = entries.filter(e => e.investment_id !== c.id);
         
-        contractEntries.forEach(e => {
+        investmentEntries.forEach(e => {
           if (e.payment_type !== PT_FEE) {
             nonFeeEntries.push(e);
             return;
@@ -574,10 +574,10 @@ export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [
         });
 
         // Re-assign grouped list back to entries
-        const finalContractEntries = [...nonFeeEntries, ...mergedFees];
+        const finalInvestmentEntries = [...nonFeeEntries, ...mergedFees];
         // Clear and rebuild entries
         entries.length = 0;
-        entries.push(...otherContractsEntries, ...finalContractEntries);
+        entries.push(...otherInvestmentsEntries, ...finalInvestmentEntries);
       }
 
       console.log(`Generated ${entries.length} entries. Skipped:`, skipped);
@@ -585,7 +585,7 @@ export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [
       // Build a set of existing schedule keys for duplicate detection
       const existingKeys = new Set();
       SCHEDULES.forEach(s => {
-        const key = `${s.investment_id || s.contract}|${s.due_date || s.dueDate}|${s.payment_type || s.type}|${s.fee_id || ""}`;
+        const key = `${s.investment_id || s.investment}|${s.due_date || s.dueDate}|${s.payment_type || s.type}|${s.fee_id || ""}`;
         existingKeys.add(key);
       });
 
@@ -855,7 +855,7 @@ export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [
         <div style={{ width: 52, height: 52, borderRadius: 14, background: isDark ? "rgba(96,165,250,0.15)" : "#EFF6FF", border: `1px solid ${isDark ? "rgba(96,165,250,0.25)" : "#BFDBFE"}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, color: isDark ? "#60A5FA" : "#2563EB" }}>▤</div>
         <div>
           <div style={{ fontSize: 15, fontWeight: 600, color: isDark ? "#fff" : "#1C1917", marginBottom: 8 }}>Generate Payment Schedules?</div>
-          <div style={{ fontSize: 13, color: t.textMuted, lineHeight: 1.7 }}>This will generate payment schedules for {genConfirm?.count || 0} contract(s).</div>
+          <div style={{ fontSize: 13, color: t.textMuted, lineHeight: 1.7 }}>This will generate payment schedules for {genConfirm?.count || 0} investment(s).</div>
         </div>
       </div>
     </Modal>

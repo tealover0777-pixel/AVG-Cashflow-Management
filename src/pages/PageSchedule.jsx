@@ -67,7 +67,7 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
   const [sort, setSort] = useState({ key: "dueDate", direction: "asc" });
   const [page, setPage] = useState(1);
   const onSort = k => { setSort(s => ({ key: k, direction: s.key === k && s.direction === "asc" ? "desc" : "asc" })); setPage(1); };
-  const openAdd = () => setModal({ open: true, mode: "add", data: { schedule_id: getNextScheduleId(), contract: "C10001", dueDate: "", type: "Interest", payment: "", status: "Due", notes: "New Manual Schedule ", fee_ids: [], basePayment: 0 } });
+  const openAdd = () => setModal({ open: true, mode: "add", data: { schedule_id: getNextScheduleId(), investment: "", dueDate: "", type: "Interest", payment: "", status: "Due", notes: "New Manual Schedule ", fee_ids: [], basePayment: 0 } });
   const openEdit = r => {
     const fee_ids = r.fee_id ? String(r.fee_id).split(",").filter(Boolean) : [];
     let basePayment = 0;
@@ -117,18 +117,18 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
       unpaid = 0;
     }
 
-    // Find the related contract for this schedule entry
-    // Check multiple possible field names: investment_id, contract, contractId
-    const contractIdField = currentData.investment_id || currentData.contract || currentData.contractId;
-    const relatedContract = INVESTMENTS.find(c =>
-      c.id === contractIdField ||
-      c.investment_id === contractIdField ||
-      c.contractId === contractIdField ||
-      (c.investment_id && String(c.investment_id).toLowerCase() === String(contractIdField).toLowerCase()) ||
-      (c.id && String(c.id).toLowerCase() === String(contractIdField).toLowerCase())
+    // Find the related investment for this schedule entry
+    // Check multiple possible field names: investment_id, investment, investmentId
+    const investmentIdField = currentData.investment_id || currentData.investment || currentData.investmentId;
+    const relatedInvestment = INVESTMENTS.find(c =>
+      c.id === investmentIdField ||
+      c.investment_id === investmentIdField ||
+      c.investmentId === investmentIdField ||
+      (c.investment_id && String(c.investment_id).toLowerCase() === String(investmentIdField).toLowerCase()) ||
+      (c.id && String(c.id).toLowerCase() === String(investmentIdField).toLowerCase())
     );
-    const contractCalculator = relatedContract?.calculator || "ACT/360+30/360";
-    const contractStartDate = relatedContract?.start_date || currentData.term_start;
+    const investmentCalculator = relatedInvestment?.calculator || "ACT/360+30/360";
+    const investmentStartDate = relatedInvestment?.start_date || currentData.term_start;
 
     const feeAmts = newFeeIds.map(fid => {
       const fee = FEES_DATA.find(ff => ff.id === fid);
@@ -138,19 +138,19 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
       let unsignedAmt = 0;
 
       // Infer fee frequency if not set
-      // If fee_charge_at is Contract_Start/Contract_End, treat as One_Time
+      // If fee_charge_at is Investment_Start/Investment_End, treat as One_Time
       // Otherwise, treat as Recurring
       let feeFrequency = fee.fee_frequency || fee.frequency; // Check both field names
       if (!feeFrequency) {
         const chargeAt = (fee.fee_charge_at || "").toLowerCase();
-        if (chargeAt.includes("contract_start") || chargeAt.includes("contract_end")) {
+        if (chargeAt.includes("investment_start") || chargeAt.includes("investment_end")) {
           feeFrequency = "One_Time";
         } else {
           feeFrequency = "Recurring";
         }
       }
 
-      // Use contract's calculator and frequency for recurring fees
+      // Use investment's calculator and frequency for recurring fees
       const isRecurring = feeFrequency === "Recurring";
       const hasDates = !!(currentData.term_start && currentData.term_end);
 
@@ -174,9 +174,9 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
 
           const periodStart = normalizeDateAtNoon(currentData.term_start);
           const periodEnd = normalizeDateAtNoon(currentData.term_end);
-          const investDate = normalizeDateAtNoon(contractStartDate);
+          const investDate = normalizeDateAtNoon(investmentStartDate);
 
-          if (contractCalculator === "ACT/360+30/360") {
+          if (investmentCalculator === "ACT/360+30/360") {
             const feeFreqStr = getFeeFrequencyString(fee.fee_charge_at);
             unsignedAmt = pmtCalculator_ACT360_30360(periodStart, periodEnd, investDate, basisAmt, rateNum / 100, feeFreqStr);
           } else {
@@ -437,7 +437,7 @@ Are you sure you want to continue?`;
 
     const payload = {
       schedule_id: d.schedule_id,
-      investment_id: d.contract || "",
+      investment_id: d.investment || "",
       deal_id: d.deal_id || "",
       party_id: d.party_id || "",
       due_date: d.dueDate || null,
@@ -516,17 +516,17 @@ Are you sure you want to continue?`;
           payment_type: original.type || null,
           deal_id: original.deal_id || null,
           party_id: original.party_id || null,
-          investment_id: original.contract || null,
+          investment_id: original.investment || null,
           period_number: original.period_number ? Number(original.period_number) : null,
         };
       }
     }
 
-    // Calculate next term due date based on contract frequency
-    const getNextTermDate = (currentDueDate, contractId) => {
+    // Calculate next term due date based on investment frequency
+    const getNextTermDate = (currentDueDate, investmentId) => {
       if (!currentDueDate) return "";
-      const contract = INVESTMENTS.find(c => c.id === contractId);
-      const freq = contract ? (contract.freq || "").toLowerCase() : "";
+      const investment = INVESTMENTS.find(c => c.id === investmentId);
+      const freq = investment ? (investment.freq || "").toLowerCase() : "";
       let monthsToAdd = 1;
       if (freq.includes("quart")) monthsToAdd = 3;
       else if (freq.includes("semi")) monthsToAdd = 6;
@@ -583,7 +583,7 @@ Are you sure you want to continue?`;
             const ref = d._path ? doc(db, d._path) : doc(db, collectionPath, d.docId);
             await updateDoc(ref, payload);
             const lateId = getNextScheduleId();
-            const nextDueDate = getNextTermDate(d.dueDate, d.contract);
+            const nextDueDate = getNextTermDate(d.dueDate, d.investment);
             const initialData = {
               ...d,
               schedule_id: lateId,
@@ -630,7 +630,7 @@ Are you sure you want to continue?`;
             const ref = d._path ? doc(db, d._path) : doc(db, collectionPath, d.docId);
             await updateDoc(ref, payload);
             const partialId = getNextScheduleId();
-            const nextDueDatePartial = getNextTermDate(d.dueDate, d.contract);
+            const nextDueDatePartial = getNextTermDate(d.dueDate, d.investment);
             const initialDataPartial = {
               ...d,
               schedule_id: partialId,
@@ -770,7 +770,7 @@ Are you sure you want to continue?`;
       }
     });
   };
-  const cols = [{ l: "", w: "36px" }, { l: "SCHEDULE ID", w: "80px", k: "schedule_id" }, { l: "LINKED", w: "80px", k: "linked" }, { l: "INVESTMENT", w: "85px", k: "contract" }, { l: "DEAL ID", w: "85px", k: "project_id" }, { l: "CONTACT ID", w: "80px", k: "party_id" }, { l: "PERIOD", w: "58px", k: "period_number" }, { l: "DUE DATE", w: "98px", k: "dueDate" }, { l: "TYPE", w: "minmax(60px, 0.33fr)", k: "type" }, { l: "FEE", w: "260px", k: "fee_id" }, { l: "APPLIED TO", w: "120px", k: "applied_to" }, { l: "DIR", w: "50px", k: "direction" }, { l: "SIGNED AMT", w: "110px", k: "signed_payment_amount" }, { l: "PRINCIPAL", w: "110px", k: "principal_amount" }, { l: "STATUS", w: "90px", k: "status" }, { l: "NOTES", w: "minmax(80px, 1fr)", k: "notes" }, { l: "ACTIONS", w: "76px" }];
+  const cols = [{ l: "", w: "36px" }, { l: "SCHEDULE ID", w: "80px", k: "schedule_id" }, { l: "LINKED", w: "80px", k: "linked" }, { l: "INVESTMENT", w: "85px", k: "investment" }, { l: "DEAL ID", w: "85px", k: "project_id" }, { l: "CONTACT ID", w: "80px", k: "party_id" }, { l: "PERIOD", w: "58px", k: "period_number" }, { l: "DUE DATE", w: "98px", k: "dueDate" }, { l: "TYPE", w: "minmax(60px, 0.33fr)", k: "type" }, { l: "FEE", w: "260px", k: "fee_id" }, { l: "APPLIED TO", w: "120px", k: "applied_to" }, { l: "DIR", w: "50px", k: "direction" }, { l: "SIGNED AMT", w: "110px", k: "signed_payment_amount" }, { l: "PRINCIPAL", w: "110px", k: "principal_amount" }, { l: "STATUS", w: "90px", k: "status" }, { l: "NOTES", w: "minmax(80px, 1fr)", k: "notes" }, { l: "ACTIONS", w: "76px" }];
   const { gridTemplate, headerRef, onResizeStart } = useResizableColumns(cols);
   const [colFilters, setColFilters] = useState({});
   const setColFilter = (key, val) => { setColFilters(f => ({ ...f, [key]: val })); setPage(1); };
@@ -814,7 +814,7 @@ Are you sure you want to continue?`;
           <div style={{ fontFamily: t.mono, fontSize: 11, color: t.idText }}>{hasLink(s) ? <a href="#" onClick={e => { e.preventDefault(); e.stopPropagation(); setDrillSchedule(s); }} style={{ color: isDark ? "#60A5FA" : "#4F46E5", textDecoration: "none", fontWeight: 600 }}>{s.schedule_id}</a> : s.schedule_id}</div>
           <div style={{ fontFamily: t.mono, fontSize: 11, color: t.textMuted }}>{s.linked ? <a href="#" onClick={e => { e.preventDefault(); e.stopPropagation(); const linked = SCHEDULES.find(x => x.schedule_id === s.linked); if (linked) setDrillSchedule(linked); }} style={{ color: isDark ? "#60A5FA" : "#4F46E5", textDecoration: "none" }}>{s.linked}</a> : dash}</div>
           <div style={{ fontFamily: t.mono, fontSize: 11.5, color: isDark ? "#60A5FA" : "#4F46E5", fontWeight: 500 }}>
-            <a href="#" onClick={e => { e.preventDefault(); e.stopPropagation(); const c = CONTRACTS.find(x => (x.investment_id || x.id) === s.contract); if (c) setDrillInvestment(c); }} style={{ color: "inherit", textDecoration: "none" }}>{s.contract}</a>
+            <a href="#" onClick={e => { e.preventDefault(); e.stopPropagation(); const c = INVESTMENTS.find(x => (x.investment_id || x.id) === s.investment); if (c) setDrillInvestment(c); }} style={{ color: "inherit", textDecoration: "none" }}>{s.investment}</a>
           </div>
           <div style={{ fontFamily: t.mono, fontSize: 11, color: t.idText }}>{s.deal_id || dash}</div>
           <div style={{ fontFamily: t.mono, fontSize: 11, color: t.idText }}>
@@ -885,7 +885,7 @@ Are you sure you want to continue?`;
             </FF>
           )}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14 }}>
-            <FF label="Contract" t={t}><FSel value={modal.data.contract} onChange={e => setF("contract", e.target.value)} options={CONTRACTS.map(c => c.id)} t={t} disabled={freeze} /></FF>
+            <FF label="Investment" t={t}><FSel value={modal.data.investment} onChange={e => setF("investment", e.target.value)} options={INVESTMENTS.map(c => c.id)} t={t} disabled={freeze} /></FF>
             <FF label="Deal ID" t={t}><FIn value={modal.data.deal_id || ""} onChange={e => setF("project_id", e.target.value)} placeholder="P10000" t={t} disabled={freeze} /></FF>
             <FF label="Contact ID" t={t}><FIn value={modal.data.party_id || ""} onChange={e => setF("party_id", e.target.value)} placeholder="M10000" t={t} disabled={freeze} /></FF>
           </div>
@@ -1072,7 +1072,7 @@ Are you sure you want to continue?`;
               <div>
                 <div style={{ fontSize: 17, fontWeight: 700, color: isDark ? "#fff" : "#1C1917", fontFamily: t.titleFont }}>Schedule Chain</div>
                 <div style={{ fontSize: 12, color: t.textMuted, display: "flex", gap: 10, marginTop: 4 }}>
-                  <span style={{ fontFamily: t.mono }}>{drillSchedule.contract}</span>
+                  <span style={{ fontFamily: t.mono }}>{drillSchedule.investment}</span>
                   <span style={{ fontFamily: t.mono }}>{drillSchedule.party_id || ""}</span>
                   <span style={{ fontWeight: 600, color: drillSchedule.direction === "IN" ? (isDark ? "#34D399" : "#059669") : (isDark ? "#F87171" : "#DC2626") }}>{drillSchedule.direction}</span>
                 </div>
@@ -1316,16 +1316,16 @@ Are you sure you want to continue?`;
       const dp = detailContact;
       const dpId = String(dp.id || "").trim();
       const dpDocId = String(dp.docId || "").trim();
-      const partyContracts = CONTRACTS.filter(c => {
+      const partyInvestments = INVESTMENTS.filter(c => {
         const cPId = String(c.party_id || "").trim();
         return (cPId === dpId || (dpDocId && cPId === dpDocId));
       });
       const partySchedules = SCHEDULES.filter(s => {
         const sPId = String(s.party_id || "").trim();
         const isMatched = sPId === dpId || (dpDocId && sPId === dpDocId);
-        return isMatched || partyContracts.some(c => c.id === s.contract);
+        return isMatched || partyInvestments.some(c => c.id === s.investment);
       }).sort((a, b) => (a.dueDate || "").localeCompare(b.dueDate || ""));
-      const totalValue = partyContracts.reduce((sum, c) => sum + Number(String(c.amount || 0).replace(/[^0-9.-]/g, "")), 0);
+      const totalValue = partyInvestments.reduce((sum, c) => sum + Number(String(c.amount || 0).replace(/[^0-9.-]/g, "")), 0);
       return (
         <div style={{ position: "fixed", inset: 0, zIndex: 1100, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center" }}>
           <div style={{ background: isDark ? "#1C1917" : "#fff", borderRadius: 18, padding: 0, maxWidth: 720, width: "92%", maxHeight: "85vh", display: "flex", flexDirection: "column", boxShadow: "0 24px 60px rgba(0,0,0,0.3)", border: `1px solid ${t.surfaceBorder}` }}>
@@ -1345,26 +1345,26 @@ Are you sure you want to continue?`;
             </div>
             {/* Body */}
             <div style={{ flex: 1, overflow: "auto", padding: "20px 28px" }}>
-              {/* Contracts grouped by project */}
+              {/* Investments grouped by project */}
               {(() => {
-                const contractsByProject = {};
-                partyContracts.forEach(c => {
+                const investmentsByProject = {};
+                partyInvestments.forEach(c => {
                   const key = c.project || "Unassigned";
-                  (contractsByProject[key] = contractsByProject[key] || []).push(c);
+                  (investmentsByProject[key] = investmentsByProject[key] || []).push(c);
                 });
-                const projectNames = Object.keys(contractsByProject);
+                const projectNames = Object.keys(investmentsByProject);
                 return (
                   <div style={{ marginBottom: 24 }}>
                     <div style={{ fontSize: 13, fontWeight: 700, color: isDark ? "#fff" : "#1C1917", marginBottom: 10, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                      <span>Contracts ({partyContracts.length})</span>
+                      <span>Investments ({partyInvestments.length})</span>
                       <span style={{ fontSize: 12, fontWeight: 600, color: t.accent }}>{fmtCurr(totalValue)}</span>
                     </div>
-                    {partyContracts.length === 0 && <div style={{ fontSize: 12, color: t.textMuted, padding: "12px 0" }}>No contracts</div>}
+                    {partyInvestments.length === 0 && <div style={{ fontSize: 12, color: t.textMuted, padding: "12px 0" }}>No investments found</div>}
                     {projectNames.map(projName => (
                       <div key={projName} style={{ marginBottom: 12 }}>
                         <div style={{ fontSize: 11, fontWeight: 700, color: t.accent, marginBottom: 6, padding: "4px 0", borderBottom: `1px solid ${t.surfaceBorder}` }}>{projName}</div>
                         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                          {contractsByProject[projName].map(c => {
+                          {investmentsByProject[projName].map(c => {
                             const [bg, color, brd] = badge(c.status, isDark);
                             return (
                               <div key={c.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 14px", borderRadius: 12, background: isDark ? "rgba(255,255,255,0.03)" : "#F9FAFB", border: `1px solid ${isDark ? "rgba(255,255,255,0.05)" : "#F3F4F6"}` }}>
@@ -1389,9 +1389,9 @@ Are you sure you want to continue?`;
               {(() => {
                 const schedulesByProject = {};
                 partySchedules.forEach(s => {
-                  const contract = partyContracts.find(c => c.id === s.contract);
+                  const investment = partyInvestments.find(c => c.id === s.investment);
                   const proj = DEALS.find(p => p.id === s.deal_id);
-                  const key = contract?.project || proj?.name || "Unassigned";
+                  const key = investment?.project || proj?.name || "Unassigned";
                   (schedulesByProject[key] = schedulesByProject[key] || []).push(s);
                 });
                 const projectNames = Object.keys(schedulesByProject);
@@ -1406,7 +1406,7 @@ Are you sure you want to continue?`;
                           <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left" }}>
                             <thead style={{ background: isDark ? "rgba(255,255,255,0.03)" : "#FAFAFA" }}>
                               <tr>
-                                <th style={{ padding: "10px 14px", fontSize: 10, fontWeight: 700, color: t.textMuted }}>CONTRACT</th>
+                                <th style={{ padding: "10px 14px", fontSize: 10, fontWeight: 700, color: t.textMuted }}>INVESTMENT</th>
                                 <th style={{ padding: "10px 14px", fontSize: 10, fontWeight: 700, color: t.textMuted }}>DUE DATE</th>
                                 <th style={{ padding: "10px 14px", fontSize: 10, fontWeight: 700, color: t.textMuted }}>TYPE</th>
                                 <th style={{ padding: "10px 14px", fontSize: 10, fontWeight: 700, color: t.textMuted }}>DIR</th>
@@ -1420,7 +1420,7 @@ Are you sure you want to continue?`;
                                 const [sbg, sc, sbrd] = badge(s.status, isDark);
                                 return (
                                   <tr key={s.schedule_id || i} style={{ borderBottom: i < arr.length - 1 ? `1px solid ${t.surfaceBorder}` : "none" }}>
-                                    <td style={{ padding: "10px 14px", fontSize: 11.5, fontFamily: t.mono, fontWeight: 500 }}>{s.contract}</td>
+                                    <td style={{ padding: "10px 14px", fontSize: 11.5, fontFamily: t.mono, fontWeight: 500 }}>{s.investment}</td>
                                     <td style={{ padding: "10px 14px", fontSize: 11, fontFamily: t.mono, color: t.textMuted }}>{s.dueDate}</td>
                                     <td style={{ padding: "10px 14px", fontSize: 11, color: t.textSecondary }}>{s.type}{s.fee_id ? ` · ${s.fee_id}` : ""}</td>
                                     <td style={{ padding: "10px 14px", fontSize: 10, fontWeight: 600, color: s.direction === "IN" ? "#10B981" : "#EF4444" }}>{s.direction}</td>

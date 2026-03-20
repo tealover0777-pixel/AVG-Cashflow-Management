@@ -261,7 +261,7 @@ function AppContent() {
       const isPrincipal = principalPTs.includes(d.payment_type);
       
       return {
-        schedule_id: d.schedule_id || d.id, docId: d.doc_id || d.id, _path: d._path, contract: d.investment_id || "", dueDate: fmtDate(d.due_date),
+        schedule_id: d.schedule_id || d.id, docId: d.doc_id || d.id, _path: d._path, investment: d.investment_id || "", dueDate: fmtDate(d.due_date),
         type: d.payment_type || "", 
         payment: fmtCurr(d.payment_amount != null ? d.payment_amount : (Math.abs(d.signed_payment_amount || 0) || (isPrincipal ? d.principal_amount : 0))),
         status: d.status || "", direction: dir, fee_id: d.fee_id || "",
@@ -303,7 +303,7 @@ function AppContent() {
       }
       return {
         id: d.id, docId: d.doc_id || d.id, _path: d._path,
-        contract: d.investment_id || "",
+        investment: d.investment_id || "",
         party: d.party_name || "",
         party_id: d.party_id || "",
         type: d.payment_type || "",

@@ -285,16 +285,16 @@ export default function PageContacts({ t, isDark, CONTACTS = [], INVESTMENTS = [
       const dp = detailContact;
       const dpId = String(dp.id || "").trim();
       const dpDocId = String(dp.docId || "").trim();
-      const partyContracts = INVESTMENTS.filter(c => {
+      const partyInvestments = INVESTMENTS.filter(c => {
         const cPId = String(c.party_id || "").trim();
         return (cPId === dpId || (dpDocId && cPId === dpDocId));
       });
       const partySchedules = SCHEDULES.filter(s => {
         const sPId = String(s.party_id || "").trim();
         const isMatched = sPId === dpId || (dpDocId && sPId === dpDocId);
-        return isMatched || partyContracts.some(c => c.id === s.contract);
+        return isMatched || partyInvestments.some(c => c.id === s.investment);
       }).sort((a, b) => (a.dueDate || '').localeCompare(b.dueDate || ''));
-      const totalValue = partyContracts.reduce((sum, c) => sum + Number(String(c.amount || 0).replace(/[^0-9.-]/g, '')), 0);
+      const totalValue = partyInvestments.reduce((sum, c) => sum + Number(String(c.amount || 0).replace(/[^0-9.-]/g, '')), 0);
       return (
         <div style={{ position: "fixed", inset: 0, zIndex: 1100, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center" }}>
           <div style={{ background: isDark ? "#1C1917" : "#fff", borderRadius: 18, padding: 0, maxWidth: 720, width: "92%", maxHeight: "85vh", display: "flex", flexDirection: "column", boxShadow: "0 24px 60px rgba(0,0,0,0.3)", border: `1px solid ${t.surfaceBorder}` }}>
@@ -314,26 +314,26 @@ export default function PageContacts({ t, isDark, CONTACTS = [], INVESTMENTS = [
             </div>
             {/* Body */}
             <div style={{ flex: 1, overflow: "auto", padding: "20px 28px" }}>
-              {/* Contracts grouped by project */}
+              {/* Investments grouped by project */}
               {(() => {
-                const contractsByProject = {};
-                partyContracts.forEach(c => {
+                const investmentsByProject = {};
+                partyInvestments.forEach(c => {
                   const key = c.project || "Unassigned";
-                  (contractsByProject[key] = contractsByProject[key] || []).push(c);
+                  (investmentsByProject[key] = investmentsByProject[key] || []).push(c);
                 });
-                const projectNames = Object.keys(contractsByProject);
+                const projectNames = Object.keys(investmentsByProject);
                 return (
                   <div style={{ marginBottom: 24 }}>
                     <div style={{ fontSize: 13, fontWeight: 700, color: isDark ? "#fff" : "#1C1917", marginBottom: 10, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                      <span>Investments ({partyContracts.length})</span>
+                      <span>Investments ({partyInvestments.length})</span>
                       <span style={{ fontSize: 12, fontWeight: 600, color: t.accent }}>{fmtCurr(totalValue)}</span>
                     </div>
-                    {partyContracts.length === 0 && <div style={{ fontSize: 12, color: t.textMuted, padding: "12px 0" }}>No investments</div>}
+                    {partyInvestments.length === 0 && <div style={{ fontSize: 12, color: t.textMuted, padding: "12px 0" }}>No investments</div>}
                     {projectNames.map(projName => (
                       <div key={projName} style={{ marginBottom: 12 }}>
                         <div style={{ fontSize: 11, fontWeight: 700, color: t.accent, marginBottom: 6, padding: "4px 0", borderBottom: `1px solid ${t.surfaceBorder}` }}>{projName}</div>
                         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                          {contractsByProject[projName].map(c => {
+                          {investmentsByProject[projName].map(c => {
                             const [bg, color, brd] = badge(c.status, isDark);
                             return (
                               <div key={c.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 14px", borderRadius: 12, background: isDark ? "rgba(255,255,255,0.03)" : "#F9FAFB", border: `1px solid ${isDark ? "rgba(255,255,255,0.05)" : "#F3F4F6"}` }}>
@@ -358,9 +358,9 @@ export default function PageContacts({ t, isDark, CONTACTS = [], INVESTMENTS = [
               {(() => {
                 const schedulesByProject = {};
                 partySchedules.forEach(s => {
-                  const contract = partyContracts.find(c => c.id === s.contract);
+                  const investment = partyInvestments.find(c => c.id === s.investment);
                   const proj = DEALS.find(p => p.id === s.deal_id);
-                  const key = contract?.project || proj?.name || "Unassigned";
+                  const key = investment?.project || proj?.name || "Unassigned";
                   (schedulesByProject[key] = schedulesByProject[key] || []).push(s);
                 });
                 const projectNames = Object.keys(schedulesByProject);
@@ -389,7 +389,7 @@ export default function PageContacts({ t, isDark, CONTACTS = [], INVESTMENTS = [
                                 const [sbg, sc, sbrd] = badge(s.status, isDark);
                                 return (
                                   <tr key={s.schedule_id || i} style={{ borderBottom: i < arr.length - 1 ? `1px solid ${t.surfaceBorder}` : "none" }}>
-                                    <td style={{ padding: "10px 14px", fontSize: 11.5, fontFamily: t.mono, fontWeight: 500 }}>{s.contract}</td>
+                                    <td style={{ padding: "10px 14px", fontSize: 11.5, fontFamily: t.mono, fontWeight: 500 }}>{s.investment}</td>
                                     <td style={{ padding: "10px 14px", fontSize: 11, fontFamily: t.mono, color: t.textMuted }}>{s.dueDate}</td>
                                     <td style={{ padding: "10px 14px", fontSize: 11, color: t.textSecondary }}>{s.type}{s.fee_id ? ` · ${s.fee_id}` : ""}</td>
                                     <td style={{ padding: "10px 14px", fontSize: 10, fontWeight: 600, color: s.direction === "IN" ? "#10B981" : "#EF4444" }}>{s.direction}</td>

@@ -166,7 +166,7 @@ export default function PageFees({ t, isDark, FEES_DATA = [], DIMENSIONS = [], c
           let appliedTo = "Principal Amount"; // default
           if (feeType === "Late Fee") appliedTo = "Payment Amount";
           else if (feeType === "Partial-Pay Penalty") appliedTo = "Outstanding Balance";
-          else if (feeType === "Contract Initiation") appliedTo = "Principal Amount";
+          else if (feeType === "Investment Initiation") appliedTo = "Principal Amount";
           setModal(m => ({ ...m, data: { ...m.data, fee_type: feeType, applied_to: appliedTo } }));
         }} options={feeTypeOpts} t={t} /></FF>
         <FF label="Applied To" t={t}><FSel value={modal.data.applied_to || "Principal Amount"} onChange={e => setF("applied_to", e.target.value)} options={["Principal Amount", "Payment Amount", "Outstanding Balance", "Interest Amount"]} t={t} /></FF>

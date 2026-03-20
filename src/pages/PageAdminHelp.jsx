@@ -456,7 +456,7 @@ export default function PageAdminHelp({ t, isDark }) {
               <div style={{ fontSize: 14, fontWeight: 600, color: t.text, marginBottom: 8 }}>Is this response incorrect or missing info?</div>
               <p style={{ fontSize: 13, color: t.textMuted, marginBottom: 12 }}>Write the correct answer below. It will be saved to the Knowledge Base as:<br /><code style={{ fontSize: 12, fontFamily: t.mono, opacity: 0.8 }}>Q: {selectedConv?.question}</code><br /><code style={{ fontSize: 12, fontFamily: t.mono, opacity: 0.8 }}>A: [your answer]</code></p>
               <textarea
-                placeholder="e.g., 'The contract amount is $200,000 with a 7.75% quarterly interest rate, starting 2025-02-10...'"
+                placeholder="e.g., 'The investment amount is $200,000 with a 7.75% quarterly interest rate, starting 2025-02-10...'"
                 value={newRule}
                 onChange={e => setNewRule(e.target.value)}
                 style={{ width: "100%", height: 100, padding: 12, borderRadius: 8, border: `1px solid ${t.surfaceBorder}`, background: isDark ? "rgba(0,0,0,0.2)" : "#fff", color: t.text, fontSize: 14, resize: "none", outline: "none" }}

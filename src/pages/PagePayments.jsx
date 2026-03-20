@@ -16,7 +16,7 @@ export default function PagePayments({ t, isDark, PAYMENTS = [], collectionPath 
   const [sort, setSort] = useState({ key: null, direction: "asc" });
   const [page, setPage] = useState(1);
   const onSort = k => { setSort(s => ({ key: k, direction: s.key === k && s.direction === "asc" ? "desc" : "asc" })); setPage(1); };
-  const openAdd = () => setModal({ open: true, mode: "add", data: { contract: "", party: "", type: "Interest", amount: "", date: "", method: "Wire", direction: "Received", note: "" } });
+  const openAdd = () => setModal({ open: true, mode: "add", data: { investment: "", party: "", type: "Interest", amount: "", date: "", method: "Wire", direction: "Received", note: "" } });
   const openEdit = r => setModal({ open: true, mode: "edit", data: { ...r } });
   const close = () => setModal(m => ({ ...m, open: false }));
   const setF = (k, v) => setModal(m => ({ ...m, data: { ...m.data, [k]: v } }));
@@ -32,7 +32,7 @@ export default function PagePayments({ t, isDark, PAYMENTS = [], collectionPath 
   const handleSavePayment = async () => {
     const d = modal.data;
     const payload = {
-      investment_id: d.contract || "",
+      investment_id: d.investment || "",
       party_name: d.party || "",
       payment_type: d.type || "",
       amount: d.amount ? Number(String(d.amount).replace(/[^0-9.-]/g, "")) || null : null,
@@ -51,7 +51,7 @@ export default function PagePayments({ t, isDark, PAYMENTS = [], collectionPath 
     } catch (err) { console.error("Save payment error:", err); }
     close();
   };
-  const cols = [{ l: "PAY ID", w: "110px", k: "id" }, { l: "CONTRACT", w: "90px", k: "contract" }, { l: "PARTY", w: "1fr", k: "party" }, { l: "TYPE", w: "110px", k: "type" }, { l: "AMOUNT", w: "120px", k: "amount" }, { l: "DATE", w: "110px", k: "date" }, { l: "METHOD", w: "90px", k: "method" }, { l: "ACTIONS", w: "80px" }];
+  const cols = [{ l: "PAY ID", w: "110px", k: "id" }, { l: "INVESTMENT", w: "90px", k: "investment" }, { l: "PARTY", w: "1fr", k: "party" }, { l: "TYPE", w: "110px", k: "type" }, { l: "AMOUNT", w: "120px", k: "amount" }, { l: "DATE", w: "110px", k: "date" }, { l: "METHOD", w: "90px", k: "method" }, { l: "ACTIONS", w: "80px" }];
   const { gridTemplate, headerRef, onResizeStart } = useResizableColumns(cols);
   const [colFilters, setColFilters] = useState({});
   const setColFilter = (key, val) => { setColFilters(f => ({ ...f, [key]: val })); setPage(1); };
@@ -72,7 +72,7 @@ export default function PagePayments({ t, isDark, PAYMENTS = [], collectionPath 
       {paginated.map((p, i) => {
         const isHov = hov === p.id; const isIn = p.direction === "Received"; return (<div key={p.id} className="data-row" onMouseEnter={() => setHov(p.id)} onMouseLeave={() => setHov(null)} style={{ display: "grid", gridTemplateColumns: gridTemplate, padding: "12px 22px", borderBottom: i < paginated.length - 1 ? `1px solid ${t.rowDivider}` : "none", alignItems: "center", background: isHov ? t.rowHover : "transparent", transition: "all 0.15s ease" }}>
           <div style={{ fontFamily: t.mono, fontSize: 10.5, color: t.idText }}>{p.id}</div>
-          <div style={{ fontFamily: t.mono, fontSize: 11.5, color: isDark ? "#60A5FA" : "#4F46E5", fontWeight: 500 }}>{p.contract || <span style={{ color: isDark ? "rgba(255,255,255,0.15)" : "#D4D0CB" }}>—</span>}</div>
+          <div style={{ fontFamily: t.mono, fontSize: 11.5, color: isDark ? "#60A5FA" : "#4F46E5", fontWeight: 500 }}>{p.investment || <span style={{ color: isDark ? "rgba(255,255,255,0.15)" : "#D4D0CB" }}>—</span>}</div>
           <div style={{ fontSize: 13, fontWeight: 500, color: isDark ? "rgba(255,255,255,0.85)" : "#1C1917", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", paddingRight: 8 }}>{p.party}</div>
           <div style={{ fontSize: 12, color: t.textMuted }}>{p.type}</div>
           <div style={{ fontFamily: t.mono, fontSize: 12.5, fontWeight: 700, color: isIn ? (isDark ? "#34D399" : "#059669") : (isDark ? "#F87171" : "#DC2626") }}>{fmtCurr(isIn ? Math.abs(p.amount) : -Math.abs(p.amount))}</div>
@@ -89,7 +89,7 @@ export default function PagePayments({ t, isDark, PAYMENTS = [], collectionPath 
         <FF label="Payment Type" t={t}><FSel value={modal.data.type} onChange={e => setF("type", e.target.value)} options={["Interest", "Principal", "Interest + Principal", "Disbursement", "Fee"]} t={t} /></FF>
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
-        <FF label="Contract" t={t}><FIn value={modal.data.contract} onChange={e => setF("contract", e.target.value)} placeholder="C10001" t={t} /></FF>
+        <FF label="Investment" t={t}><FIn value={modal.data.investment} onChange={e => setF("investment", e.target.value)} placeholder="I10001" t={t} /></FF>
         <FF label="Contact" t={t}><FIn value={modal.data.party} onChange={e => setF("party", e.target.value)} placeholder="Contact name" t={t} /></FF>
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
