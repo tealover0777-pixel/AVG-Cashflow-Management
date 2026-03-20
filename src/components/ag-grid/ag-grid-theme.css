@@ -128,8 +128,8 @@
   --ag-background-color: #FFFFFF;
   --ag-header-background-color: #FAFAF9;
   --ag-odd-row-background-color: transparent;
-  --ag-row-hover-color: #F8FAFC; /* Slate 50 */
-  --ag-column-hover-color: #FAFAFA;
+  --ag-row-hover-color: #F1F5F9; /* Slate 100 - more visible */
+  --ag-column-hover-color: #F8FAFC; /* Slate 50 */
   --ag-selected-row-background-color: #F0FDF4;
 
   --ag-row-border-color: #CBD5E1;
@@ -147,15 +147,22 @@
   box-shadow: none;
 }
 
-/* Hover Indicators */
-.ag-theme-custom .ag-row-hover {
+/* Hover Indicators - increased specificity to override base row transparency */
+.ag-theme-custom .ag-row.ag-row-hover,
+.ag-theme-custom.dark-mode .ag-row.ag-row-hover,
+.ag-theme-custom.light-mode .ag-row.ag-row-hover {
   background-color: var(--ag-row-hover-color) !important;
 }
-.ag-theme-custom .ag-column-hover {
+
+.ag-theme-custom .ag-cell.ag-column-hover,
+.ag-theme-custom .ag-header-cell.ag-column-hover {
   background-color: var(--ag-column-hover-color) !important;
 }
-.ag-theme-custom .ag-row-hover .ag-column-hover {
-  background-color: var(--ag-selected-row-background-color) !important; /* Visual 'crosshair' effect */
+
+/* Visual 'crosshair' highlight */
+.ag-theme-custom .ag-row.ag-row-hover .ag-cell.ag-column-hover {
+  background-color: var(--ag-selected-row-background-color) !important;
+  transition: background-color 0.1s ease;
 }
 
 /* ============================================================================

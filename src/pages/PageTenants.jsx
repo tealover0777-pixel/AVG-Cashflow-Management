@@ -166,6 +166,8 @@ export default function PageTenants({ t, isDark, TENANTS = [], collectionPath = 
                 paginationPageSize={pageSize}
                 suppressPaginationPanel={true}
                 suppressCellFocus={true}
+                columnHoverHighlight={true}
+                theme="legacy"
                 onColumnResized={(event) => {
                     if (event.finished) {
                         const columnState = event.api.getColumnState();

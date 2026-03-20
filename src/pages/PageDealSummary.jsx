@@ -293,8 +293,8 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
             pagination={true}
             paginationPageSize={20}
             suppressCellFocus={true}
-            rowHover={true}
-            columnHover={true}
+            columnHoverHighlight={true}
+            theme="legacy"
           />
         </div>
       ) : activeTab === "Assets" ? (
