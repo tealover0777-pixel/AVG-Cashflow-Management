@@ -31,14 +31,29 @@ export default function PageContacts({ t, isDark, CONTACTS = [], CONTRACTS = [],
     const maxNum = Math.max(...CONTACTS.map(p => { const m = String(p.id).match(/^M(\d+)$/); return m ? Number(m[1]) : 0; }));
     return "M" + (maxNum + 1);
   })();
-  const openAdd = () => setModal({ open: true, mode: "add", data: { id: nextContactId, name: "", type: "Individual", role: "Investor", email: "" } });
-  const openEdit = r => setModal({ open: true, mode: "edit", data: { ...r } });
+  const openAdd = () => setModal({ open: true, mode: "add", data: { id: nextContactId, first_name: "", last_name: "", type: "Individual", role: "Investor", email: "" } });
+  const openEdit = r => {
+    let fn = r.first_name || "";
+    let ln = r.last_name || "";
+    if (!fn && !ln && r.name) {
+      const parts = r.name.trim().split(/\s+/);
+      if (parts.length > 1) {
+        ln = parts.pop();
+        fn = parts.join(" ");
+      } else {
+        fn = parts[0] || "";
+      }
+    }
+    setModal({ open: true, mode: "edit", data: { ...r, first_name: fn, last_name: ln } });
+  };
   const close = () => setModal(m => ({ ...m, open: false }));
   const setF = (k, v) => setModal(m => ({ ...m, data: { ...m.data, [k]: v } }));
   const handleSaveContact = async () => {
     const d = modal.data;
     const payload = {
-      party_name: d.name || "",
+      party_name: `${d.first_name || ""} ${d.last_name || ""}`.trim() || d.name || "",
+      first_name: d.first_name || "",
+      last_name: d.last_name || "",
       party_type: d.type || "",
       role_type: d.role || "",
       investor_type: d.investor_type || "",
@@ -237,7 +252,10 @@ export default function PageContacts({ t, isDark, CONTACTS = [], CONTRACTS = [],
       <FF label="Contact ID" t={t}>
         <div style={{ fontFamily: t.mono, fontSize: 13, color: t.idText, background: isDark ? "rgba(255,255,255,0.04)" : "#F5F4F1", border: `1px solid ${t.surfaceBorder}`, borderRadius: 9, padding: "10px 13px", letterSpacing: "0.5px" }}>{modal.data.id}</div>
       </FF>
-      <FF label="Full Name" t={t}><FIn value={modal.data.name || ""} onChange={e => setF("name", e.target.value)} placeholder="e.g. Pao Fu Chen" t={t} /></FF>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+        <FF label="First Name" t={t}><FIn value={modal.data.first_name || ""} onChange={e => setF("first_name", e.target.value)} placeholder="e.g. Pao Fu" t={t} /></FF>
+        <FF label="Last Name" t={t}><FIn value={modal.data.last_name || ""} onChange={e => setF("last_name", e.target.value)} placeholder="e.g. Chen" t={t} /></FF>
+      </div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
         <FF label="Contact Type" t={t}><FSel value={modal.data.type || "Individual"} onChange={e => setF("type", e.target.value)} options={partyTypeOpts} t={t} /></FF>
         <FF label="Role" t={t}><FSel value={modal.data.role || "Investor"} onChange={e => setF("role", e.target.value)} options={roleOpts} t={t} /></FF>
