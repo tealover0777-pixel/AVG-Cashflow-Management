@@ -82,7 +82,7 @@ const NAV_ITEMS = [
     children: [
       { label: "Deals", icon: "▦" },
       { label: "Contacts", icon: "◎" },
-      { label: "Contracts", icon: "◈" },
+      { label: "Investments", icon: "◈" },
     ]
   },
   {
@@ -130,8 +130,8 @@ export const getNav = (isSuper, isAdmin, hasPermission, isR10010) => {
     // Granular RBAC per section
     if (item.label === "Dashboard" && !hasPermission("DASHBOARD_VIEW")) return false;
     if (item.label === "Deals" && !hasPermission("DEAL_VIEW")) return false;
-    if (item.label === "Contacts" && !hasPermission("PARTY_VIEW")) return false;
-    if (item.label === "Contracts" && !hasPermission("CONTRACT_VIEW")) return false;
+    if (item.label === "Contacts" && !hasPermission("CONTACT_VIEW")) return false;
+    if (item.label === "Investments" && !hasPermission("INVESTMENT_VIEW")) return false;
     if (item.label === "Payment Schedule" && !hasPermission("PAYMENT_SCHEDULE_VIEW")) return false;
     if (item.label === "Payments" && !hasPermission("PAYMENT_VIEW")) return false;
     if (item.label === "Fees" && !hasPermission("FEE_VIEW")) return false;
@@ -177,10 +177,10 @@ export const getCollectionPaths = (tenantId) => {
 };
 // Dimension styling config — items come from Firestore, colors are local
 export const DIM_STYLES = {
-  "Contract Type": { accent: d => d ? "#60A5FA" : "#3B82F6", bg: d => d ? "rgba(96,165,250,0.08)" : "#EFF6FF", border: d => d ? "rgba(96,165,250,0.15)" : "#BFDBFE" },
+  "Investment Type": { accent: d => d ? "#60A5FA" : "#3B82F6", bg: d => d ? "rgba(96,165,250,0.08)" : "#EFF6FF", border: d => d ? "rgba(96,165,250,0.15)" : "#BFDBFE" },
   "Payment Frequency": { accent: d => d ? "#34D399" : "#059669", bg: d => d ? "rgba(52,211,153,0.08)" : "#ECFDF5", border: d => d ? "rgba(52,211,153,0.15)" : "#A7F3D0" },
   "Payment Status": { accent: d => d ? "#FBBF24" : "#D97706", bg: d => d ? "rgba(251,191,36,0.08)" : "#FFFBEB", border: d => d ? "rgba(251,191,36,0.15)" : "#FDE68A" },
-  "Contract Status": { accent: d => d ? "#A78BFA" : "#7C3AED", bg: d => d ? "rgba(167,139,250,0.08)" : "#F5F3FF", border: d => d ? "rgba(167,139,250,0.15)" : "#DDD6FE" },
+  "Investment Status": { accent: d => d ? "#A78BFA" : "#7C3AED", bg: d => d ? "rgba(167,139,250,0.08)" : "#F5F3FF", border: d => d ? "rgba(167,139,250,0.15)" : "#DDD6FE" },
   "Payment Type": { accent: d => d ? "#F472B6" : "#BE185D", bg: d => d ? "rgba(244,114,182,0.08)" : "#FDF2F8", border: d => d ? "rgba(244,114,182,0.15)" : "#FBCFE8" },
   "Calculation Method": { accent: d => d ? "#2DD4BF" : "#0F766E", bg: d => d ? "rgba(45,212,191,0.08)" : "#F0FDFA", border: d => d ? "rgba(45,212,191,0.15)" : "#99F6E4" },
   "Currency": { accent: d => d ? "#FB923C" : "#C2410C", bg: d => d ? "rgba(251,146,60,0.08)" : "#FFF7ED", border: d => d ? "rgba(251,146,60,0.15)" : "#FED7AA" },

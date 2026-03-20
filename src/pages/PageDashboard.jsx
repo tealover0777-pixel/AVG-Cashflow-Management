@@ -13,7 +13,7 @@ import {
 export default function PageDashboard(props) {
   const { t, isDark, setActivePage, DIMENSIONS = [] } = props;
   const data = useDashboardData({ ...props, DIMENSIONS });
-  const { metrics, charts, recentActivity, contracts, isMember, myContact } = data;
+  const { metrics, charts, recentActivity, investments, isMember, myContact } = data;
 
   const topCards = [
     {
@@ -34,8 +34,8 @@ export default function PageDashboard(props) {
       icon: <AlertCircle size={16} />
     },
     {
-      label: "Active Contracts",
-      value: metrics.activeContractsCount,
+      label: "Active Investments",
+      value: metrics.activeInvestmentsCount,
       accent: t.accent,
       bg: isDark ? "rgba(99,102,241,0.08)" : "#EEF2FF",
       border: isDark ? "rgba(99,102,241,0.15)" : "#E0E7FF",
@@ -163,12 +163,12 @@ export default function PageDashboard(props) {
 
         <div style={{ background: t.surface, borderRadius: 20, padding: 24, border: `1px solid ${t.surfaceBorder}`, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-            <h3 style={{ fontSize: 15, fontWeight: 700, color: isDark ? '#fff' : '#1C1917' }}>{isMember ? 'My Contracts' : 'Contracts'}</h3>
-            {!isMember && <button onClick={() => setActivePage("Contracts")} style={{ fontSize: 11, color: t.accent, background: 'none', border: 'none', fontWeight: 600, cursor: 'pointer' }}>View All →</button>}
+            <h3 style={{ fontSize: 15, fontWeight: 700, color: isDark ? '#fff' : '#1C1917' }}>{isMember ? 'My Investments' : 'Investments'}</h3>
+            {!isMember && <button onClick={() => setActivePage("Investments")} style={{ fontSize: 11, color: t.accent, background: 'none', border: 'none', fontWeight: 600, cursor: 'pointer' }}>View All →</button>}
           </div>
           <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {contracts.length === 0 && <div style={{ fontSize: 12, color: t.textMuted, textAlign: 'center', padding: 20 }}>No contracts found</div>}
-            {contracts.slice(0, 8).map(c => {
+            {investments.length === 0 && <div style={{ fontSize: 12, color: t.textMuted, textAlign: 'center', padding: 20 }}>No investments found</div>}
+            {investments.slice(0, 8).map(c => {
               const amt = Number(String(c.amount || 0).replace(/[^0-9.-]/g, ''));
               const rate = Number(String(c.rate || 0).replace(/[^0-9.-]/g, ''));
               const [bg, color, brd] = badge(c.status, isDark);
@@ -205,7 +205,7 @@ export default function PageDashboard(props) {
             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
               <thead style={{ background: isDark ? 'rgba(255,255,255,0.02)' : '#FAFAFA', position: 'sticky', top: 0, zIndex: 1 }}>
                 <tr>
-                  <th style={{ padding: '12px 24px', fontSize: 11, fontWeight: 700, color: t.textMuted, background: isDark ? t.surface : '#FAFAFA' }}>CONTRACT</th>
+                  <th style={{ padding: '12px 24px', fontSize: 11, fontWeight: 700, color: t.textMuted, background: isDark ? t.surface : '#FAFAFA' }}>INVESTMENT</th>
                   <th style={{ padding: '12px 24px', fontSize: 11, fontWeight: 700, color: t.textMuted, background: isDark ? t.surface : '#FAFAFA' }}>DUE DATE</th>
                   <th style={{ padding: '12px 24px', fontSize: 11, fontWeight: 700, color: t.textMuted, background: isDark ? t.surface : '#FAFAFA' }}>TYPE</th>
                   <th style={{ padding: '12px 24px', fontSize: 11, fontWeight: 700, color: t.textMuted, background: isDark ? t.surface : '#FAFAFA' }}>DIR</th>

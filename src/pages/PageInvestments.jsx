@@ -6,18 +6,18 @@ ModuleRegistry.registerModules([AllCommunityModule]);
 
 import 'ag-grid-community/styles/ag-grid.css';
 import '../components/ag-grid/ag-grid-theme.css';
-import { getColumnDefs } from '../components/ag-grid/ContractsGridConfig';
+import { getColumnDefs } from '../components/ag-grid/InvestmentsGridConfig';
 import { db } from "../firebase";
 import { collection, doc, addDoc, updateDoc, deleteDoc, serverTimestamp } from "firebase/firestore";
 import { normalizeDateAtNoon, hybridDays, pmtCalculator_ACT360_30360, feeCalculator_ACT360_30360, getFrequencyValue, fmtCurr } from "../utils";
 import { StatCard, Bdg, Pagination, Modal, FF, FIn, FSel, DelModal, Tooltip } from "../components";
 import { useAuth } from "../AuthContext";
 
-export default function PageContracts({ t, isDark, CONTRACTS = [], DEALS = [], CONTACTS = [], DIMENSIONS = [], FEES_DATA = [], SCHEDULES = [], collectionPath = "", schedulePath = "" }) {
+export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [], CONTACTS = [], DIMENSIONS = [], FEES_DATA = [], SCHEDULES = [], collectionPath = "", schedulePath = "" }) {
   const { hasPermission, isSuperAdmin } = useAuth();
-  const canCreate = isSuperAdmin || hasPermission("CONTRACT_CREATE");
-  const canUpdate = isSuperAdmin || hasPermission("CONTRACT_UPDATE");
-  const canDelete = isSuperAdmin || hasPermission("CONTRACT_DELETE") || hasPermission("CONTRACTS_DELETE");
+  const canCreate = isSuperAdmin || hasPermission("INVESTMENT_CREATE");
+  const canUpdate = isSuperAdmin || hasPermission("INVESTMENT_UPDATE");
+  const canDelete = isSuperAdmin || hasPermission("INVESTMENT_DELETE") || hasPermission("INVESTMENTS_DELETE");
   const canGenerate = isSuperAdmin || hasPermission("PAYMENT_SCHEDULE_CREATE");
   const [sel, setSel] = useState(new Set());
   const [chip, setChip] = useState("All");
@@ -26,7 +26,7 @@ export default function PageContracts({ t, isDark, CONTRACTS = [], DEALS = [], C
   const [delT, setDelT] = useState(null);
   const [genConfirm, setGenConfirm] = useState(null);
   const [genResult, setGenResult] = useState(null); // { title, message }
-  const [drillContract, setDrillContract] = useState(null);
+  const [drillInvestment, setDrillInvestment] = useState(null);
   const gridRef = useRef(null);
   const [pageSize, setPageSize] = useState(30);
 
@@ -65,14 +65,14 @@ export default function PageContracts({ t, isDark, CONTRACTS = [], DEALS = [], C
   }, [pageSize]);
   const openAdd = () => {
     let maxIdNum = 10000;
-    CONTRACTS.forEach(c => {
-      const cid = c.contract_id || c.id;
-      if (cid && cid.startsWith("C")) {
+    INVESTMENTS.forEach(c => {
+      const cid = c.investment_id || c.id;
+      if (cid && cid.startsWith("I")) {
         const num = parseInt(cid.substring(1), 10);
         if (!isNaN(num) && num > maxIdNum) maxIdNum = num;
       }
     });
-    const nextId = `C${maxIdNum + 1}`;
+    const nextId = `I${maxIdNum + 1}`;
 
     const firstDeal = DEALS[0];
     const sd = firstDeal ? firstDeal.startDate : "";
@@ -101,7 +101,7 @@ export default function PageContracts({ t, isDark, CONTRACTS = [], DEALS = [], C
   };
   const openEdit = r => setModal({ open: true, mode: "edit", data: { ...r } });
   const close = () => setModal(m => ({ ...m, open: false }));
-  const handleSaveContract = async () => {
+  const handleSaveInvestment = async () => {
     const d = modal.data;
     const dealObj = DEALS.find(p => p.name === d.deal);
     const parObj = CONTACTS.find(p => p.name === d.party);
@@ -128,25 +128,25 @@ export default function PageContracts({ t, isDark, CONTRACTS = [], DEALS = [], C
       } else {
         await addDoc(collection(db, collectionPath), { ...payload, contract_id: d.id || "", created_at: serverTimestamp() });
       }
-    } catch (err) { console.error("Save contract error:", err); }
+    } catch (err) { console.error("Save investment error:", err); }
     close();
   };
 
-  const handleDeleteContract = async () => {
+  const handleDeleteInvestment = async () => {
     if (!delT || !delT.docId) return;
     try {
       await deleteDoc(doc(db, collectionPath, delT.docId));
       setDelT(null);
-    } catch (err) { console.error("Delete contract error:", err); }
+    } catch (err) { console.error("Delete investment error:", err); }
   };
-  const contractStatusOpts = ["Open", "Active", "Closed"];
+  const investmentStatusOpts = ["Open", "Active", "Closed"];
   const [bulkStatus, setBulkStatus] = useState("");
   const handleBulkStatus = async (status) => {
     if (!status || sel.size === 0) return;
-    if (!window.confirm(`Are you sure you want to update status to "${status}" for ${sel.size} contract(s)?`)) return;
+    if (!window.confirm(`Are you sure you want to update status to "${status}" for ${sel.size} investment(s)?`)) return;
     try {
       await Promise.all([...sel].map(id => {
-        const c = CONTRACTS.find(c => c.id === id);
+        const c = INVESTMENTS.find(c => c.id === id);
         if (c && c.docId) return updateDoc(doc(db, collectionPath, c.docId), { status, updated_at: serverTimestamp() });
         return Promise.resolve();
       }));
@@ -155,10 +155,10 @@ export default function PageContracts({ t, isDark, CONTRACTS = [], DEALS = [], C
   };
   const handleBulkDelete = async () => {
     if (sel.size === 0) return;
-    if (!window.confirm(`Are you sure you want to delete ${sel.size} contract(s)? This action cannot be undone.`)) return;
+    if (!window.confirm(`Are you sure you want to delete ${sel.size} investment(s)? This action cannot be undone.`)) return;
     try {
       await Promise.all([...sel].map(id => {
-        const c = CONTRACTS.find(c => c.id === id);
+        const c = INVESTMENTS.find(c => c.id === id);
         if (c && c.docId) return deleteDoc(doc(db, collectionPath, c.docId));
         return Promise.resolve();
       }));
@@ -167,13 +167,13 @@ export default function PageContracts({ t, isDark, CONTRACTS = [], DEALS = [], C
   };
   const handleGenerate = () => {
     if (sel.size === 0) return;
-    const selected = CONTRACTS.filter(c => sel.has(c.id));
+    const selected = INVESTMENTS.filter(c => sel.has(c.id));
     setGenConfirm({ count: selected.length });
   };
 
   const executeGenerate = async () => {
     setGenConfirm(null);
-    const selected = CONTRACTS.filter(c => sel.has(c.id));
+    const selected = INVESTMENTS.filter(c => sel.has(c.id));
     if (selected.length === 0) return;
 
     // 1. Preparation - Load mapping from DIMENSIONS
@@ -213,7 +213,7 @@ export default function PageContracts({ t, isDark, CONTRACTS = [], DEALS = [], C
       feeInfoMap[f.id] = { name: f.name, method: f.method, rate: f.rate, frequency: f.fee_frequency, fee_charge_at: f.fee_charge_at, applied_to: f.applied_to || "Principal Amount", direction: f.direction || "IN" };
     });
     setGenerating(true);
-    console.log("Starting generation for contracts:", selected.map(c => c.id));
+    console.log("Starting generation for investments:", selected.map(c => c.id));
 
     try {
       if (!schedulePath || schedulePath.startsWith("GROUP:")) {
@@ -604,15 +604,15 @@ export default function PageContracts({ t, isDark, CONTRACTS = [], DEALS = [], C
 
       if (newEntries.length === 0 && entries.length > 0) {
         const lines = ["No new schedules were generated — all schedules already exist."];
-        if (skipped.length > 0) lines.push(`Skipped contracts: ${skipped.join(", ")}`);
+        if (skipped.length > 0) lines.push(`Skipping investments: ${skipped.join(", ")}`);
         lines.push(`Duplicate schedules skipped: ${duplicates.length}`);
         setGenResult({ title: "No New Schedules", lines });
       } else if (newEntries.length === 0) {
         const lines = ["No entries were generated."];
         if (selected.length > 0 && skipped.length === selected.length) {
-          lines.push("All selected contracts were skipped. Please ensure they have a valid Amount, Start Date, and Maturity Date.");
+          lines.push("All selected investments were skipped. Please ensure they have a valid Amount, Start Date, and Maturity Date.");
         } else if (skipped.length > 0) {
-          lines.push(`Skipped contracts: ${skipped.join(", ")}`);
+          lines.push(`Skipping investments: ${skipped.join(", ")}`);
         }
         setGenResult({ title: "No Entries", lines });
       } else {
@@ -621,7 +621,7 @@ export default function PageContracts({ t, isDark, CONTRACTS = [], DEALS = [], C
           await addDoc(collection(db, schedulePath), entry);
         }
         setSel(new Set());
-        const lines = [`Successfully generated ${newEntries.length} schedule entries for ${selected.length} contract(s).`];
+        const lines = [`Successfully generated ${newEntries.length} schedule entries for ${selected.length} investment(s).`];
         if (duplicates.length > 0) {
           lines.push(`${duplicates.length} schedule(s) already existed and were skipped.`);
         }
@@ -666,10 +666,10 @@ export default function PageContracts({ t, isDark, CONTRACTS = [], DEALS = [], C
     return next;
   });
   const calculatorOpts = (DIMENSIONS.find(d => d.name === "Calculator") || {}).items || ["ACT/360+30/360"];
-  const investorEditTypeOpts = (DIMENSIONS.find(d => d.name === "InvestorContractEditType") || {}).items || [];
-  const borrowerEditTypeOpts = (DIMENSIONS.find(d => d.name === "BorrowerContractEditType") || {}).items || [];
-  const investorNewTypeOpts = (DIMENSIONS.find(d => d.name === "InvestorContractNewType") || {}).items || [];
-  const borrowerNewTypeOpts = (DIMENSIONS.find(d => d.name === "BorrowerContractNewType") || {}).items || [];
+  const investorEditTypeOpts = (DIMENSIONS.find(d => d.name === "InvestorInvestmentEditType") || {}).items || [];
+  const borrowerEditTypeOpts = (DIMENSIONS.find(d => d.name === "BorrowerInvestmentEditType") || {}).items || [];
+  const investorNewTypeOpts = (DIMENSIONS.find(d => d.name === "InvestorInvestmentNewType") || {}).items || [];
+  const borrowerNewTypeOpts = (DIMENSIONS.find(d => d.name === "BorrowerInvestmentNewType") || {}).items || [];
   const selectedContact = CONTACTS.find(p => p.name === modal.data.party);
   const partyRole = selectedContact ? selectedContact.role : "";
   const getTypeOpts = () => {
@@ -690,7 +690,7 @@ export default function PageContracts({ t, isDark, CONTRACTS = [], DEALS = [], C
 
   // AG Grid: Chip filtering (pre-filter data before passing to grid)
   const getFilteredData = () => {
-    return CONTRACTS.filter(c => {
+    return INVESTMENTS.filter(c => {
       if (chip === "Deposit" && (c.type || "").toUpperCase() !== "DEPOSIT") return false;
       if (chip === "Disbursement" && (c.type || "").toUpperCase() !== "DISBURSEMENT") return false;
       if (chip === "Active" && c.status !== "Active") return false;
@@ -716,13 +716,13 @@ export default function PageContracts({ t, isDark, CONTRACTS = [], DEALS = [], C
     callbacks: {
       onEdit: openEdit,
       onDelete: (target) => setDelT({ id: target.id, name: target.id, docId: target.docId }),
-      onDrillDown: (contract) => setDrillContract(contract),
+      onDrillDown: (investment) => setDrillInvestment(investment),
       onToggleRow: toggleRow,
       onToggleAll: toggleAll
     }
   }), [isDark, t, permissions, sel, FEES_DATA]);
   return (<>
-    <div style={{ marginBottom: 28, display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}><div><h1 style={{ fontFamily: t.titleFont, fontWeight: t.titleWeight, fontSize: t.titleSize, color: isDark ? "#fff" : "#1C1917", letterSpacing: t.titleTracking, lineHeight: 1, marginBottom: 6 }}>Contracts</h1><p style={{ fontSize: 13.5, color: t.textMuted }}>Manage investment contracts</p></div>
+    <div style={{ marginBottom: 28, display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}><div><h1 style={{ fontFamily: t.titleFont, fontWeight: t.titleWeight, fontSize: t.titleSize, color: isDark ? "#fff" : "#1C1917", letterSpacing: t.titleTracking, lineHeight: 1, marginBottom: 6 }}>Investments</h1><p style={{ fontSize: 13.5, color: t.textMuted }}>Manage investments</p></div>
       <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
         {sel.size > 0 && <div style={{ display: "flex", gap: 8, alignItems: "center", background: isDark ? "rgba(255,255,255,0.04)" : "#F9FAFB", padding: "8px 14px", borderRadius: 10, border: `1px solid ${t.surfaceBorder}` }}>
           <span style={{ fontSize: 12, fontWeight: 600, color: t.textSecondary }}>{sel.size} selected</span>
@@ -730,7 +730,7 @@ export default function PageContracts({ t, isDark, CONTRACTS = [], DEALS = [], C
           {canUpdate && <>
             <select value={bulkStatus} onChange={e => setBulkStatus(e.target.value)} style={{ fontSize: 12, padding: "4px 8px", borderRadius: 7, border: `1px solid ${t.surfaceBorder}`, background: t.searchBg, color: t.searchText, cursor: "pointer" }}>
               <option value="">Update status...</option>
-              {contractStatusOpts.map(s => <option key={s} value={s}>{s}</option>)}
+              {investmentStatusOpts.map(s => <option key={s} value={s}>{s}</option>)}
             </select>
             <button onClick={() => handleBulkStatus(bulkStatus)} disabled={!bulkStatus} style={{ fontSize: 12, fontWeight: 600, padding: "5px 12px", borderRadius: 8, background: bulkStatus ? t.accentGrad : (isDark ? "rgba(255,255,255,0.06)" : "#E5E7EB"), color: bulkStatus ? "#fff" : t.textMuted, border: "none", cursor: bulkStatus ? "pointer" : "default" }}>Apply</button>
           </>}
@@ -740,7 +740,7 @@ export default function PageContracts({ t, isDark, CONTRACTS = [], DEALS = [], C
           {canDelete && <button onClick={handleBulkDelete} style={{ fontSize: 12, fontWeight: 600, padding: "5px 12px", borderRadius: 8, background: isDark ? "rgba(248,113,113,0.15)" : "#FEF2F2", color: isDark ? "#F87171" : "#DC2626", border: `1px solid ${isDark ? "rgba(248,113,113,0.3)" : "#FECACA"}`, cursor: "pointer" }}>Delete ({sel.size})</button>}
         </div>}
         {canGenerate && <button className="success-btn" onClick={handleGenerate} disabled={sel.size === 0} style={{ background: t.successGrad, color: "#fff", padding: "11px 20px", borderRadius: 11, fontSize: 13, fontWeight: 600, boxShadow: `0 4px 16px ${t.successShadow}`, display: "flex", alignItems: "center", gap: 6, opacity: sel.size === 0 ? 0.45 : 1 }}>▤ Generate{sel.size > 0 ? ` (${sel.size})` : ""}</button>}
-        {canCreate && <Tooltip text="Create a new investment contract" t={t}><button className="primary-btn" onClick={openAdd} style={{ background: t.accentGrad, color: "#fff", padding: "11px 22px", borderRadius: 11, fontSize: 13.5, fontWeight: 600, boxShadow: `0 4px 16px ${t.accentShadow}`, display: "flex", alignItems: "center", gap: 7 }}><span style={{ fontSize: 18, lineHeight: 1 }}>+</span> New Contract</button></Tooltip>}
+        {canCreate && <Tooltip text="Create a new investment" t={t}><button className="primary-btn" onClick={openAdd} style={{ background: t.accentGrad, color: "#fff", padding: "11px 22px", borderRadius: 11, fontSize: 13.5, fontWeight: 600, boxShadow: `0 4px 16px ${t.accentShadow}`, display: "flex", alignItems: "center", gap: 7 }}><span style={{ fontSize: 18, lineHeight: 1 }}>+</span> New Investment</button></Tooltip>}
       </div>
     </div>
     <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 16, marginBottom: 28 }}>
@@ -784,11 +784,11 @@ export default function PageContracts({ t, isDark, CONTRACTS = [], DEALS = [], C
         onColumnResized={(event) => {
           if (event.finished) {
             const columnState = event.api.getColumnState();
-            localStorage.setItem('contractsColumnState', JSON.stringify(columnState));
+            localStorage.setItem('investmentsColumnState', JSON.stringify(columnState));
           }
         }}
         onGridReady={(params) => {
-          const savedState = localStorage.getItem('contractsColumnState');
+          const savedState = localStorage.getItem('investmentsColumnState');
           if (savedState) {
             params.api.applyColumnState({
               state: JSON.parse(savedState),

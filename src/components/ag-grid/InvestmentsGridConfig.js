@@ -1,10 +1,10 @@
-import ContractIdCellRenderer from './ContractIdCellRenderer';
-import ContractTypeCellRenderer from './ContractTypeCellRenderer';
-import ContractStatusCellRenderer from './ContractStatusCellRenderer';
-import ContractFeesCellRenderer from './ContractFeesCellRenderer';
-import ContractActionsCellRenderer from './ContractActionsCellRenderer';
-import ContractCheckboxCellRenderer from './ContractCheckboxCellRenderer';
-import ContractCheckboxHeaderRenderer from './ContractCheckboxHeaderRenderer';
+import InvestmentIdCellRenderer from './InvestmentIdCellRenderer';
+import InvestmentTypeCellRenderer from './InvestmentTypeCellRenderer';
+import InvestmentStatusCellRenderer from './InvestmentStatusCellRenderer';
+import InvestmentFeesCellRenderer from './InvestmentFeesCellRenderer';
+import InvestmentActionsCellRenderer from './InvestmentActionsCellRenderer';
+import InvestmentCheckboxCellRenderer from './InvestmentCheckboxCellRenderer';
+import InvestmentCheckboxHeaderRenderer from './InvestmentCheckboxHeaderRenderer';
 
 export const getColumnDefs = (permissions, isDark, t, selection, onToggleRow, onToggleAll, totalCount) => {
   const baseCols = [];
@@ -19,13 +19,13 @@ export const getColumnDefs = (permissions, isDark, t, selection, onToggleRow, on
       filter: false,
       resizable: false,
       pinned: "left",
-      headerComponent: ContractCheckboxHeaderRenderer,
+      headerComponent: InvestmentCheckboxHeaderRenderer,
       headerComponentParams: {
         selection,
         totalCount,
         onToggleAll
       },
-      cellRenderer: ContractCheckboxCellRenderer,
+      cellRenderer: InvestmentCheckboxCellRenderer,
       cellStyle: {
         display: 'flex',
         alignItems: 'center',
@@ -36,7 +36,7 @@ export const getColumnDefs = (permissions, isDark, t, selection, onToggleRow, on
 
   baseCols.push(
     {
-      headerName: "Contract ID",
+      headerName: "Investment ID",
       field: "id",
       width: 110,
       sortable: true,
@@ -46,7 +46,7 @@ export const getColumnDefs = (permissions, isDark, t, selection, onToggleRow, on
         trimInput: true,
         debounceMs: 300
       },
-      cellRenderer: ContractIdCellRenderer,
+      cellRenderer: InvestmentIdCellRenderer,
       pinned: "left"
     },
     {
@@ -119,7 +119,7 @@ export const getColumnDefs = (permissions, isDark, t, selection, onToggleRow, on
         trimInput: true,
         debounceMs: 300
       },
-      cellRenderer: ContractTypeCellRenderer
+      cellRenderer: InvestmentTypeCellRenderer
     },
     {
       headerName: "Amount",
@@ -187,7 +187,7 @@ export const getColumnDefs = (permissions, isDark, t, selection, onToggleRow, on
       minWidth: 180,
       sortable: false,
       filter: false,
-      cellRenderer: ContractFeesCellRenderer
+      cellRenderer: InvestmentFeesCellRenderer
     },
     {
       headerName: "Start",
@@ -226,7 +226,7 @@ export const getColumnDefs = (permissions, isDark, t, selection, onToggleRow, on
         trimInput: true,
         debounceMs: 300
       },
-      cellRenderer: ContractStatusCellRenderer
+      cellRenderer: InvestmentStatusCellRenderer
     },
     {
       headerName: "Created",
@@ -266,7 +266,7 @@ export const getColumnDefs = (permissions, isDark, t, selection, onToggleRow, on
       sortable: false,
       filter: false,
       resizable: false,
-      cellRenderer: ContractActionsCellRenderer,
+      cellRenderer: InvestmentActionsCellRenderer,
       cellStyle: {
         display: 'flex',
         alignItems: 'center',

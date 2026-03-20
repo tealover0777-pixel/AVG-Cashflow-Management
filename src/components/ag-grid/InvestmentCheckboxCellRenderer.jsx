@@ -1,4 +1,4 @@
-export default function ContractCheckboxCellRenderer(props) {
+export default function InvestmentCheckboxCellRenderer(props) {
   const { data, context } = props;
   const { t, selection, callbacks } = context;
 

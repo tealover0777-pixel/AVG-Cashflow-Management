@@ -1,6 +1,6 @@
 import { forwardRef, useImperativeHandle } from 'react';
 
-const ContractCheckboxHeaderRenderer = forwardRef((props, ref) => {
+const InvestmentCheckboxHeaderRenderer = forwardRef((props, ref) => {
   const { selection, totalCount, onToggleAll, context } = props;
   const { t } = context || {};
 
@@ -33,6 +33,6 @@ const ContractCheckboxHeaderRenderer = forwardRef((props, ref) => {
   );
 });
 
-ContractCheckboxHeaderRenderer.displayName = 'ContractCheckboxHeaderRenderer';
+InvestmentCheckboxHeaderRenderer.displayName = 'InvestmentCheckboxHeaderRenderer';
 
-export default ContractCheckboxHeaderRenderer;
+export default InvestmentCheckboxHeaderRenderer;

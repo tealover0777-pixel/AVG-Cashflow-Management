@@ -16,9 +16,9 @@ import { useAuth } from "../AuthContext";
 
 export default function PageContacts({ t, isDark, CONTACTS = [], CONTRACTS = [], SCHEDULES = [], DEALS = [], collectionPath = "", DIMENSIONS = [], tenantId = "" }) {
   const { hasPermission, isSuperAdmin } = useAuth();
-  const canCreate = hasPermission("PARTY_CREATE");
-  const canUpdate = hasPermission("PARTY_UPDATE");
-  const canDelete = hasPermission("PARTY_DELETE");
+  const canCreate = hasPermission("CONTACT_CREATE");
+  const canUpdate = hasPermission("CONTACT_UPDATE");
+  const canDelete = hasPermission("CONTACT_DELETE");
   const canInvite = isSuperAdmin || hasPermission("USER_INVITE") || hasPermission("USER_CREATE");
   const roleOpts = (DIMENSIONS.find(d => d.name === "ContactRole") || {}).items || ["Investor", "Borrower"];
   const partyTypeOpts = (DIMENSIONS.find(d => d.name === "ContactType") || {}).items || ["Individual", "Company", "Trust", "Partnership"];
@@ -70,7 +70,7 @@ export default function PageContacts({ t, isDark, CONTACTS = [], CONTRACTS = [],
       } else {
         await setDoc(doc(db, collectionPath, d.id), { ...payload, created_at: serverTimestamp() });
       }
-    } catch (err) { console.error("Save party error:", err); }
+    } catch (err) { console.error("Save contact error:", err); }
     close();
   };
 
@@ -79,7 +79,7 @@ export default function PageContacts({ t, isDark, CONTACTS = [], CONTRACTS = [],
     try {
       await deleteDoc(doc(db, collectionPath, delT.docId));
       setDelT(null);
-    } catch (err) { console.error("Delete party error:", err); }
+    } catch (err) { console.error("Delete contact error:", err); }
   };
   const [detailContact, setDetailContact] = useState(null);
   const [invitingId, setInvitingId] = useState(null);
@@ -88,7 +88,7 @@ export default function PageContacts({ t, isDark, CONTACTS = [], CONTRACTS = [],
   const [inviteConfirm, setInviteConfirm] = useState(null);
   const handleInviteContact = (party) => {
     if (!party.email) {
-      alert("This party has no email address. Please add a valid email first.");
+      alert("This contact has no email address. Please add a valid email first.");
       return;
     }
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -117,7 +117,7 @@ export default function PageContacts({ t, isDark, CONTACTS = [], CONTRACTS = [],
       });
       setInviteResult({ email: party.email, user_id: result.data.user_id, link: result.data.link });
     } catch (err) {
-      console.error("Invite party error:", err);
+      console.error("Invite contact error:", err);
       alert("Invite failed: " + (err.message || "Unknown error"));
     } finally {
       setInvitingId(null);
@@ -247,7 +247,7 @@ export default function PageContacts({ t, isDark, CONTACTS = [], CONTRACTS = [],
         }}
       />
     </div>
-    <div style={{ marginTop: 16, display: "flex", justifyContent: "space-between", alignItems: "center" }}><span style={{ fontSize: 12, color: t.textSubtle }}>Showing <strong style={{ color: t.textSecondary }}>{Math.min(getFilteredData().length, pageSize)}</strong> of <strong style={{ color: t.textSecondary }}>{getFilteredData().length}</strong> parties</span><Pagination totalPages={Math.ceil(getFilteredData().length / pageSize)} currentPage={1} onPageChange={(newPage) => gridRef.current?.api.paginationGoToPage(newPage - 1)} t={t} /></div>
+    <div style={{ marginTop: 16, display: "flex", justifyContent: "space-between", alignItems: "center" }}><span style={{ fontSize: 12, color: t.textSubtle }}>Showing <strong style={{ color: t.textSecondary }}>{Math.min(getFilteredData().length, pageSize)}</strong> of <strong style={{ color: t.textSecondary }}>{getFilteredData().length}</strong> contacts</span><Pagination totalPages={Math.ceil(getFilteredData().length / pageSize)} currentPage={1} onPageChange={(newPage) => gridRef.current?.api.paginationGoToPage(newPage - 1)} t={t} /></div>
     <Modal open={modal.open} onClose={close} title={modal.mode === "add" ? "New Contact" : "Edit Contact"} onSave={handleSaveContact} width={600} t={t} isDark={isDark}>
       <FF label="Contact ID" t={t}>
         <div style={{ fontFamily: t.mono, fontSize: 13, color: t.idText, background: isDark ? "rgba(255,255,255,0.04)" : "#F5F4F1", border: `1px solid ${t.surfaceBorder}`, borderRadius: 9, padding: "10px 13px", letterSpacing: "0.5px" }}>{modal.data.id}</div>
@@ -271,7 +271,7 @@ export default function PageContacts({ t, isDark, CONTACTS = [], CONTRACTS = [],
       <FF label="Address" t={t}><FIn value={modal.data.address || ""} onChange={e => setF("address", e.target.value)} placeholder="Full address" t={t} /></FF>
       <FF label="Bank Information" t={t}><FIn value={modal.data.bank_information || ""} onChange={e => setF("bank_information", e.target.value)} placeholder="e.g. Citibank" t={t} /></FF>
     </Modal>
-    <DelModal target={delT} onClose={() => setDelT(null)} onConfirm={handleDeleteContact} label="This party" t={t} isDark={isDark} />
+    <DelModal target={delT} onClose={() => setDelT(null)} onConfirm={handleDeleteContact} label="This contact" t={t} isDark={isDark} />
     <Modal open={!!inviteConfirm} onClose={() => setInviteConfirm(null)} title="Invite as Member" onSave={executeInvite} saveLabel="Invite" t={t} isDark={isDark}>
       <div style={{ display: "flex", flexDirection: "column", gap: 16, alignItems: "center", textAlign: "center", padding: "8px 0" }}>
         <div style={{ width: 52, height: 52, borderRadius: 14, background: isDark ? "rgba(96,165,250,0.15)" : "#EFF6FF", border: `1px solid ${isDark ? "rgba(96,165,250,0.25)" : "#BFDBFE"}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, color: isDark ? "#60A5FA" : "#2563EB" }}>✉️</div>
@@ -325,10 +325,10 @@ export default function PageContacts({ t, isDark, CONTACTS = [], CONTRACTS = [],
                 return (
                   <div style={{ marginBottom: 24 }}>
                     <div style={{ fontSize: 13, fontWeight: 700, color: isDark ? "#fff" : "#1C1917", marginBottom: 10, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                      <span>Contracts ({partyContracts.length})</span>
+                      <span>Investments ({partyContracts.length})</span>
                       <span style={{ fontSize: 12, fontWeight: 600, color: t.accent }}>{fmtCurr(totalValue)}</span>
                     </div>
-                    {partyContracts.length === 0 && <div style={{ fontSize: 12, color: t.textMuted, padding: "12px 0" }}>No contracts</div>}
+                    {partyContracts.length === 0 && <div style={{ fontSize: 12, color: t.textMuted, padding: "12px 0" }}>No investments</div>}
                     {projectNames.map(projName => (
                       <div key={projName} style={{ marginBottom: 12 }}>
                         <div style={{ fontSize: 11, fontWeight: 700, color: t.accent, marginBottom: 6, padding: "4px 0", borderBottom: `1px solid ${t.surfaceBorder}` }}>{projName}</div>
@@ -375,7 +375,7 @@ export default function PageContacts({ t, isDark, CONTACTS = [], CONTRACTS = [],
                           <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left" }}>
                             <thead style={{ background: isDark ? "rgba(255,255,255,0.03)" : "#FAFAFA" }}>
                               <tr>
-                                <th style={{ padding: "10px 14px", fontSize: 10, fontWeight: 700, color: t.textMuted }}>CONTRACT</th>
+                                <th style={{ padding: "10px 14px", fontSize: 10, fontWeight: 700, color: t.textMuted }}>INVESTMENT</th>
                                 <th style={{ padding: "10px 14px", fontSize: 10, fontWeight: 700, color: t.textMuted }}>DUE DATE</th>
                                 <th style={{ padding: "10px 14px", fontSize: 10, fontWeight: 700, color: t.textMuted }}>TYPE</th>
                                 <th style={{ padding: "10px 14px", fontSize: 10, fontWeight: 700, color: t.textMuted }}>DIR</th>

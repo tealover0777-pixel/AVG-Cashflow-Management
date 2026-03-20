@@ -12,7 +12,7 @@ import { mkTheme, getNav, getCollectionPaths, DIM_STYLES, DEFAULT_DIM_STYLE, MON
 import PageDashboard from "./pages/PageDashboard";
 import PageDeals from "./pages/PageDeals";
 import PageContacts from "./pages/PageContacts";
-import PageContracts from "./pages/PageContracts";
+import PageInvestments from "./pages/PageInvestments";
 import PageSchedule from "./pages/PageSchedule";
 import PagePayments from "./pages/PagePayments";
 import PageFees from "./pages/PageFees";
@@ -88,7 +88,7 @@ function AppContent() {
 
   const { data: rawDeals, loading: l1, error: e1 } = useFirestoreCollection(isGlobalConsolidated ? "deals" : (activeTenantId ? fetchPaths.deals : null), isGlobalConsolidated);
   const { data: rawContacts, loading: l2, error: e2 } = useFirestoreCollection(isGlobalConsolidated ? "parties" : (activeTenantId ? fetchPaths.parties : null), isGlobalConsolidated);
-  const { data: rawContracts, loading: l3, error: e3 } = useFirestoreCollection(isGlobalConsolidated ? "contracts" : (activeTenantId ? fetchPaths.contracts : null), isGlobalConsolidated);
+  const { data: rawInvestments, loading: l3, error: e3 } = useFirestoreCollection(isGlobalConsolidated ? "contracts" : (activeTenantId ? fetchPaths.contracts : null), isGlobalConsolidated);
   const { data: rawSchedules, loading: l4, error: e4 } = useFirestoreCollection(isGlobalConsolidated ? "paymentSchedules" : (activeTenantId ? fetchPaths.paymentSchedules : null), isGlobalConsolidated);
   const { data: rawPayments, loading: l5, error: e5 } = useFirestoreCollection(isGlobalConsolidated ? "payments" : (activeTenantId ? fetchPaths.payments : null), isGlobalConsolidated);
   const { data: rawFees, loading: l6, error: e6 } = useFirestoreCollection(isGlobalConsolidated ? "fees" : (activeTenantId ? fetchPaths.fees : null), isGlobalConsolidated);
@@ -100,7 +100,7 @@ function AppContent() {
   const shouldFetch = !!activeTenantId || isGlobalRole;
 
   const loading = authLoading || (shouldFetch && (l1 || l2 || l3 || l4 || l5 || l6)) || (isSuperAdmin && l8) || (activeTenantId && (isSuperAdmin || isTenantAdmin || hasPermission("USER_PROFILE_*") || hasPermission("ROLE_TYPE_*")) && (l9 || l10)) || (user && l7);
-  const dataPresent = rawDeals.length > 0 || rawContracts.length > 0;
+  const dataPresent = rawDeals.length > 0 || rawInvestments.length > 0;
   const showLoading = loading && !dataPresent;
 
   const firstError = e1 || e2 || e3 || e4 || e5 || e6 || e7 || e8 || e9 || e10;
@@ -141,23 +141,23 @@ function AppContent() {
       if (!forceFilter) return true;
       if (!memberContactId) return false;
       const mId = String(memberContactId).trim();
-      return rawContracts.some(c => (c.deal_id === d.id || c.deal_name === d.deal_name) && (String(c.party_id || "").trim() === mId || String(c.counterparty_id || "").trim() === mId));
+      return rawInvestments.some(c => (c.deal_id === d.id || c.deal_name === d.deal_name) && (String(c.party_id || "").trim() === mId || String(c.counterparty_id || "").trim() === mId));
     })
     .map(d => {
       const dealId = d.id;
       const valuation = Number(String(d.valuation_amount || 0).replace(/[^0-9.]/g, "")) || 0;
       
-      // Calculate Fundraising Progress from associated contracts
-      const dealContracts = rawContracts.filter(c => c.deal_id === dealId || c.deal_name === d.deal_name);
-      const totalCommitted = dealContracts.reduce((sum, c) => sum + (Number(String(c.amount || 0).replace(/[^0-9.-]/g, "")) || 0), 0);
+      // Calculate Fundraising Progress from associated investments
+      const dealInvestments = rawInvestments.filter(c => c.deal_id === dealId || c.deal_name === d.deal_name);
+      const totalCommitted = dealInvestments.reduce((sum, c) => sum + (Number(String(c.amount || 0).replace(/[^0-9.-]/g, "")) || 0), 0);
       const fundraisingProgress = valuation > 0 ? (totalCommitted / valuation) * 100 : 0;
 
       // Calculate Fund Balance from associated payments
-      // Payments can be linked to contracts that belong to this deal
-      const dealContractIds = new Set(dealContracts.map(c => c.contract_id || c.id));
+      // Payments can be linked to investments that belong to this deal
+      const dealInvestmentIds = new Set(dealInvestments.map(c => c.contract_id || c.id));
       const dealPayments = rawPayments.filter(p => {
         if (p.deal_id === dealId || p.deal_name === d.deal_name) return true;
-        if (p.contract_id && dealContractIds.has(p.contract_id)) return true;
+        if (p.contract_id && dealInvestmentIds.has(p.contract_id)) return true;
         return false;
       });
       const fundBalance = dealPayments.reduce((sum, p) => {
@@ -201,8 +201,8 @@ function AppContent() {
       address: d.address || "", bank_information: d.bank_information || "", tax_id: d.tax_id || "",
       created_at: fmtDate(d.created_at), updated_at: fmtDate(d.updated_at),
     }));
-
-  const CONTRACTS = rawContracts
+ 
+  const INVESTMENTS = rawInvestments
     .filter(d => {
       if (!forceFilter) return true;
       if (!memberContactId) return false;
@@ -216,7 +216,7 @@ function AppContent() {
       id: d.contract_id || d.id,
       docId: d.doc_id || d.id,
       _path: d._path,
-      contract_id: d.contract_id || "",
+      investment_id: d.contract_id || "",
       deal: d.deal_name || d.deal_id || "",
       deal_id: d.deal_id || "",
       party: d.party_name || d.party_id || "",
@@ -292,7 +292,7 @@ function AppContent() {
       const dPId = String(d.party_id || "").trim();
       if (dPId === mId || (mDocId && dPId === mDocId)) return true;
       if (d.contract_id) {
-        return rawContracts.some(c => (c.contract_id === d.contract_id || c.id === d.contract_id) && (String(c.party_id || "").trim() === mId || (mDocId && String(c.party_id || "").trim() === mDocId)));
+        return rawInvestments.some(c => (c.contract_id === d.contract_id || c.id === d.contract_id) && (String(c.party_id || "").trim() === mId || (mDocId && String(c.party_id || "").trim() === mDocId)));
       }
       return false;
     })
@@ -598,12 +598,12 @@ function AppContent() {
               </div>
               : (
                 <>
-                  {activePage === "Dashboard" && <PageDashboard t={t} isDark={isDark} DEALS={DEALS} CONTRACTS={CONTRACTS} CONTACTS={CONTACTS} SCHEDULES={SCHEDULES} PAYMENTS={PAYMENTS} MONTHLY={MONTHLY} DIMENSIONS={DIMENSIONS} setActivePage={setActivePage} />}
+                  {activePage === "Dashboard" && <PageDashboard t={t} isDark={isDark} DEALS={DEALS} INVESTMENTS={INVESTMENTS} CONTACTS={CONTACTS} SCHEDULES={SCHEDULES} PAYMENTS={PAYMENTS} MONTHLY={MONTHLY} DIMENSIONS={DIMENSIONS} setActivePage={setActivePage} />}
                   {activePage === "Deals" && <PageDeals t={t} isDark={isDark} DEALS={DEALS} FEES_DATA={FEES_DATA} DIMENSIONS={DIMENSIONS} collectionPath={isGlobalConsolidated ? "GROUP:deals" : fetchPaths.deals} setActivePage={setActivePage} setSelectedDealId={setSelectedDealId} />}
-                  {activePage === "Deal Summary" && <PageDealSummary t={t} isDark={isDark} dealId={selectedDealId} DEALS={DEALS} CONTRACTS={CONTRACTS} CONTACTS={CONTACTS} DIMENSIONS={DIMENSIONS} FEES_DATA={FEES_DATA} setActivePage={setActivePage} />}
-                  {activePage === "Contacts" && <PageContacts t={t} isDark={isDark} CONTACTS={CONTACTS} CONTRACTS={CONTRACTS} SCHEDULES={SCHEDULES} DEALS={DEALS} collectionPath={isGlobalConsolidated ? "GROUP:parties" : fetchPaths.parties} DIMENSIONS={DIMENSIONS} tenantId={activeTenantId} />}
-                  {activePage === "Contracts" && <PageContracts t={t} isDark={isDark} CONTRACTS={CONTRACTS} DEALS={DEALS} CONTACTS={CONTACTS} DIMENSIONS={DIMENSIONS} FEES_DATA={FEES_DATA} SCHEDULES={SCHEDULES} collectionPath={isGlobalConsolidated ? "GROUP:contracts" : fetchPaths.contracts} schedulePath={isGlobalConsolidated ? "GROUP:paymentSchedules" : fetchPaths.paymentSchedules} />}
-                  {activePage === "Payment Schedule" && <PageSchedule t={t} isDark={isDark} SCHEDULES={SCHEDULES} CONTRACTS={CONTRACTS} CONTACTS={CONTACTS} DEALS={DEALS} DIMENSIONS={DIMENSIONS} FEES_DATA={FEES_DATA} collectionPath={isGlobalConsolidated ? "GROUP:paymentSchedules" : fetchPaths.paymentSchedules} />}
+                  {activePage === "Deal Summary" && <PageDealSummary t={t} isDark={isDark} dealId={selectedDealId} DEALS={DEALS} INVESTMENTS={INVESTMENTS} CONTACTS={CONTACTS} DIMENSIONS={DIMENSIONS} FEES_DATA={FEES_DATA} setActivePage={setActivePage} />}
+                  {activePage === "Contacts" && <PageContacts t={t} isDark={isDark} CONTACTS={CONTACTS} INVESTMENTS={INVESTMENTS} SCHEDULES={SCHEDULES} DEALS={DEALS} collectionPath={isGlobalConsolidated ? "GROUP:parties" : fetchPaths.parties} DIMENSIONS={DIMENSIONS} tenantId={activeTenantId} />}
+                  {activePage === "Investments" && <PageInvestments t={t} isDark={isDark} INVESTMENTS={INVESTMENTS} DEALS={DEALS} CONTACTS={CONTACTS} DIMENSIONS={DIMENSIONS} FEES_DATA={FEES_DATA} SCHEDULES={SCHEDULES} collectionPath={isGlobalConsolidated ? "GROUP:contracts" : fetchPaths.contracts} schedulePath={isGlobalConsolidated ? "GROUP:paymentSchedules" : fetchPaths.paymentSchedules} />}
+                  {activePage === "Payment Schedule" && <PageSchedule t={t} isDark={isDark} SCHEDULES={SCHEDULES} INVESTMENTS={INVESTMENTS} CONTACTS={CONTACTS} DEALS={DEALS} DIMENSIONS={DIMENSIONS} FEES_DATA={FEES_DATA} collectionPath={isGlobalConsolidated ? "GROUP:paymentSchedules" : fetchPaths.paymentSchedules} />}
                   {activePage === "Payments" && <PagePayments t={t} isDark={isDark} PAYMENTS={PAYMENTS} collectionPath={isGlobalConsolidated ? "GROUP:payments" : fetchPaths.payments} />}
                   {activePage === "Fees" && <PageFees t={t} isDark={isDark} FEES_DATA={FEES_DATA} DIMENSIONS={DIMENSIONS} collectionPath={isGlobalConsolidated ? "GROUP:fees" : fetchPaths.fees} />}
                   {activePage === "Tenants" && <PageTenants t={t} isDark={isDark} TENANTS={TENANTS} collectionPath={fetchPaths.tenants} />}

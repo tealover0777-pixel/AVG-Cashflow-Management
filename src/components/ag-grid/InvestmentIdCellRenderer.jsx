@@ -1,4 +1,4 @@
-export default function ContractIdCellRenderer(props) {
+export default function InvestmentIdCellRenderer(props) {
   const { value, context } = props;
   const { isDark, t, callbacks } = context;
 

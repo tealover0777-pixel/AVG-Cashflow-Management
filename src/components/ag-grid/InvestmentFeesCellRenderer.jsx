@@ -1,4 +1,4 @@
-export default function ContractFeesCellRenderer(props) {
+export default function InvestmentFeesCellRenderer(props) {
   const { value, context, data } = props;
   const { isDark, feesData } = context;
 

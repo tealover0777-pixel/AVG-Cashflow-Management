@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { useAuth } from '../AuthContext';
 
-export function useDashboardData({ DEALS = [], CONTRACTS = [], PARTIES = [], SCHEDULES = [], PAYMENTS = [], MONTHLY = [], DIMENSIONS = [] }) {
+export function useDashboardData({ DEALS = [], INVESTMENTS = [], CONTACTS = [], SCHEDULES = [], PAYMENTS = [], MONTHLY = [], DIMENSIONS = [] }) {
     const { profile, isSuperAdmin, isTenantAdmin, isMember, isGlobalRole } = useAuth();
 
     const dashboardData = useMemo(() => {
@@ -9,20 +9,20 @@ export function useDashboardData({ DEALS = [], CONTRACTS = [], PARTIES = [], SCH
 
         // Find the Contact record for the member to filter their data
         const myContact = isMember
-            ? (PARTIES.find(p => p.id === profile?.party_id || p.email === profile?.email || p.id === (profile?.notes || '').split(' — ')[1]) || { id: profile?.party_id })
+            ? (CONTACTS.find(p => p.id === profile?.party_id || p.email === profile?.email || p.id === (profile?.notes || '').split(' — ')[1]) || { id: profile?.party_id })
             : null;
 
-        const filteredContracts = isMember
-            ? CONTRACTS.filter(c => {
+        const filteredInvestments = isMember
+            ? INVESTMENTS.filter(c => {
                 const pId = String(c.party_id || "").trim();
                 const targetId = String(myContact?.id || "").trim();
                 const targetDocId = String(myContact?.docId || "").trim();
                 return pId === targetId || (targetDocId && pId === targetDocId);
             })
-            : CONTRACTS;
+            : INVESTMENTS;
 
         const filteredProjects = isMember
-            ? DEALS.filter(p => filteredContracts.some(c => c.deal_id === p.id))
+            ? DEALS.filter(p => filteredInvestments.some(c => c.deal_id === p.id))
             : DEALS;
 
         const allFilteredSchedules = isMember
@@ -31,7 +31,7 @@ export function useDashboardData({ DEALS = [], CONTRACTS = [], PARTIES = [], SCH
                 const targetId = String(myContact?.id || "").trim();
                 const targetDocId = String(myContact?.docId || "").trim();
                 const isDirectMatch = pId === targetId || (targetDocId && pId === targetDocId);
-                return isDirectMatch || filteredContracts.some(c => c.id === s.contract);
+                return isDirectMatch || filteredInvestments.some(c => c.id === s.contract);
             })
             : SCHEDULES;
 
@@ -49,7 +49,7 @@ export function useDashboardData({ DEALS = [], CONTRACTS = [], PARTIES = [], SCH
         const liveSchedules = allFilteredSchedules.filter(s => liveStatuses.includes(s.status));
 
         // 2. Calculate Key Metrics
-        const totalAUM = filteredContracts.reduce((sum, c) => sum + Number(String(c.amount || 0).replace(/[^0-9.-]/g, '')), 0);
+        const totalAUM = filteredInvestments.reduce((sum, c) => sum + Number(String(c.amount || 0).replace(/[^0-9.-]/g, '')), 0);
 
         const totalIncome = liveSchedules
             .filter(s => s.direction === 'IN')
@@ -58,16 +58,16 @@ export function useDashboardData({ DEALS = [], CONTRACTS = [], PARTIES = [], SCH
         const missedPayments = allFilteredSchedules.filter(s => s.status === 'Missed');
         const missedValue = missedPayments.reduce((sum, s) => sum + Number(String(s.payment || 0).replace(/[^0-9.-]/g, '')), 0);
 
-        const activeContracts = filteredContracts.filter(c => c.status === 'Active');
-        const avgYield = activeContracts.length > 0
-            ? activeContracts.reduce((sum, c) => sum + Number(String(c.rate || 0).replace(/[^0-9.-]/g, '')), 0) / activeContracts.length
+        const activeInvestments = filteredInvestments.filter(c => c.status === 'Active');
+        const avgYield = activeInvestments.length > 0
+            ? activeInvestments.reduce((sum, c) => sum + Number(String(c.rate || 0).replace(/[^0-9.-]/g, '')), 0) / activeInvestments.length
             : 0;
 
         // 2b. Calculate Trends
         const now = new Date();
         const startOfThisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
-        const prevAUM = filteredContracts
+        const prevAUM = filteredInvestments
             .filter(c => {
                 const created = new Date(c.created_at);
                 return created < startOfThisMonth;
@@ -169,7 +169,7 @@ export function useDashboardData({ DEALS = [], CONTRACTS = [], PARTIES = [], SCH
                 missedCount: missedPayments.length,
                 missedValue,
                 avgYield,
-                activeContractsCount: activeContracts.length,
+                activeInvestmentsCount: activeInvestments.length,
                 aumTrend,
                 dueThisMonthCount,
                 projectedMonthlyIncome,
@@ -183,11 +183,11 @@ export function useDashboardData({ DEALS = [], CONTRACTS = [], PARTIES = [], SCH
             },
             recentActivity: allFilteredSchedules
                 .sort((a, b) => (a.dueDate || '').localeCompare(b.dueDate || '')),
-            contracts: filteredContracts,
+            investments: filteredInvestments,
             isMember,
             myContact
         };
-    }, [DEALS, CONTRACTS, PARTIES, SCHEDULES, PAYMENTS, DIMENSIONS, profile, isSuperAdmin, isTenantAdmin, isMember]);
+    }, [DEALS, INVESTMENTS, CONTACTS, SCHEDULES, PAYMENTS, DIMENSIONS, profile, isSuperAdmin, isTenantAdmin, isMember]);
 
     return dashboardData;
 }

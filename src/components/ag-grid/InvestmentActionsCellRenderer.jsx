@@ -1,7 +1,7 @@
 import React from 'react';
 import { ActBtns } from '../../components';
 
-export default function ContractActionsCellRenderer(props) {
+export default function InvestmentActionsCellRenderer(props) {
   const { context, data } = props;
   const { isDark, t, permissions, callbacks } = context;
 

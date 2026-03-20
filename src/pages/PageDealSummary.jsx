@@ -11,11 +11,11 @@ ModuleRegistry.registerModules([AllCommunityModule]);
 import 'ag-grid-community/styles/ag-grid.css';
 import '../components/ag-grid/ag-grid-theme.css';
 
-export default function PageDealSummary({ t, isDark, dealId, DEALS = [], CONTRACTS = [], CONTACTS = [], DIMENSIONS = [], FEES_DATA = [], setActivePage }) {
+export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTMENTS = [], CONTACTS = [], DIMENSIONS = [], FEES_DATA = [], setActivePage }) {
   const { hasPermission, isSuperAdmin } = useAuth();
-  const canUpdate = isSuperAdmin || hasPermission("CONTRACT_UPDATE");
-  const canDelete = isSuperAdmin || hasPermission("CONTRACT_DELETE") || hasPermission("CONTRACTS_DELETE");
-  const canCreate = isSuperAdmin || hasPermission("CONTRACT_CREATE");
+  const canUpdate = isSuperAdmin || hasPermission("INVESTMENT_UPDATE");
+  const canDelete = isSuperAdmin || hasPermission("INVESTMENT_DELETE") || hasPermission("INVESTMENTS_DELETE");
+  const canCreate = isSuperAdmin || hasPermission("INVESTMENT_CREATE");
 
   const deal = useMemo(() => DEALS.find(d => d.id === dealId) || {}, [dealId, DEALS]);
   const [activeTab, setActiveTab] = useState("Investments");
@@ -31,18 +31,18 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], CONTRAC
     }
   }, [deal.id]);
 
-  const dealContracts = useMemo(() => 
-    CONTRACTS.filter(c => c.deal_id === dealId || c.deal === deal.name)
-  , [dealId, deal.name, CONTRACTS]);
+  const dealInvestments = useMemo(() => 
+    INVESTMENTS.filter(c => c.deal_id === dealId || c.deal === deal.name)
+  , [dealId, deal.name, INVESTMENTS]);
 
   const gridRef = useRef();
   const tabs = ["Investments", "Assets", "Distributions", "Documents", "Valuation forms", "Contacts"];
 
   const openAdd = () => {
     let maxIdNum = 10000;
-    CONTRACTS.forEach(c => {
-      const cid = c.contract_id || c.id;
-      if (cid && cid.startsWith("C")) {
+    INVESTMENTS.forEach(c => {
+      const cid = c.investment_id || c.id;
+      if (cid && cid.startsWith("I")) {
         const num = parseInt(cid.substring(1), 10);
         if (!isNaN(num) && num > maxIdNum) maxIdNum = num;
       }
@@ -51,7 +51,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], CONTRAC
       open: true,
       mode: "add",
       data: {
-        id: `C${maxIdNum + 1}`,
+        id: `I${maxIdNum + 1}`,
         deal: deal.name || "",
         deal_id: deal.id || "",
         party: "",
@@ -70,7 +70,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], CONTRAC
 
   const openEdit = (r) => setModal({ open: true, mode: "edit", data: { ...r } });
   
-  const handleSaveContract = async () => {
+  const handleSaveInvestment = async () => {
     const d = modal.data;
     const dealObj = DEALS.find(p => p.name === d.deal);
     const parObj = CONTACTS.find(p => p.name === d.party);
@@ -97,15 +97,15 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], CONTRAC
         await addDoc(collection(db, "contracts"), { ...payload, contract_id: d.id || "", created_at: serverTimestamp() });
       }
       setModal(m => ({ ...m, open: false }));
-    } catch (err) { console.error("Save contract error:", err); }
+    } catch (err) { console.error("Save investment error:", err); }
   };
 
-  const handleDeleteContract = async () => {
+  const handleDeleteInvestment = async () => {
     if (!delT || !delT.docId) return;
     try {
       await deleteDoc(doc(db, "contracts", delT.docId));
       setDelT(null);
-    } catch (err) { console.error("Delete contract error:", err); }
+    } catch (err) { console.error("Delete investment error:", err); }
   };
 
   const columnDefs = useMemo(() => {
@@ -257,7 +257,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], CONTRAC
         <div className={`ag-theme-custom ${isDark ? 'dark-mode' : 'light-mode'}`} style={{ height: '500px', width: '100%', borderRadius: 12, overflow: 'hidden' }}>
           <AgGridReact
             ref={gridRef}
-            rowData={dealContracts}
+            rowData={dealInvestments}
             columnDefs={columnDefs}
             animateRows={true}
             pagination={true}
@@ -283,7 +283,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], CONTRAC
         open={modal.open} 
         onClose={() => setModal(m => ({ ...m, open: false }))} 
         title={modal.mode === "add" ? "New Investment" : "Edit Investment"} 
-        onSave={handleSaveContract} 
+        onSave={handleSaveInvestment} 
         width={500} 
         t={t} 
         isDark={isDark}
@@ -307,7 +307,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], CONTRAC
           <FF label="Status" t={t}><FSel value={modal.data.status} onChange={e => setModal(m => ({ ...m, data: { ...m.data, status: e.target.value } }))} options={["Open", "Active", "Closed"]} t={t} /></FF>
         </div>
       </Modal>
-      <DelModal target={delT} onClose={() => setDelT(null)} onConfirm={handleDeleteContract} label="this investment" t={t} isDark={isDark} />
+      <DelModal target={delT} onClose={() => setDelT(null)} onConfirm={handleDeleteInvestment} label="this investment" t={t} isDark={isDark} />
     </div>
   );
 }

@@ -15,7 +15,7 @@ const fmtCurr = v => {
 
 const ZEROING_STATUSES = ["Missed", "Cancelled", "VOID", "WAIVED", "REPLACED"];
 
-export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = [], CONTACTS = [], DEALS = [], DIMENSIONS = [], FEES_DATA = [], collectionPath = "" }) {
+export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = [], CONTACTS = [], DEALS = [], DIMENSIONS = [], FEES_DATA = [], collectionPath = "" }) {
 
   const { hasPermission, isSuperAdmin } = useAuth();
   const canCreate = isSuperAdmin || hasPermission("PAYMENT_SCHEDULE_CREATE");
@@ -37,7 +37,7 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
   const [delT, setDelT] = useState(null);
   const [confirmAction, setConfirmAction] = useState(null); // { title, message, onConfirm }
   const [drillSchedule, setDrillSchedule] = useState(null);
-  const [drillContract, setDrillContract] = useState(null);
+  const [drillInvestment, setDrillInvestment] = useState(null);
   const [drillFee, setDrillFee] = useState(null);
   const [detailContact, setDetailContact] = useState(null);
   const buildChain = (scheduleId) => {
@@ -120,7 +120,7 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
     // Find the related contract for this schedule entry
     // Check multiple possible field names: contract_id, contract, contractId
     const contractIdField = currentData.contract_id || currentData.contract || currentData.contractId;
-    const relatedContract = CONTRACTS.find(c =>
+    const relatedContract = INVESTMENTS.find(c =>
       c.id === contractIdField ||
       c.contract_id === contractIdField ||
       c.contractId === contractIdField ||
@@ -525,7 +525,7 @@ Are you sure you want to continue?`;
     // Calculate next term due date based on contract frequency
     const getNextTermDate = (currentDueDate, contractId) => {
       if (!currentDueDate) return "";
-      const contract = CONTRACTS.find(c => c.id === contractId);
+      const contract = INVESTMENTS.find(c => c.id === contractId);
       const freq = contract ? (contract.freq || "").toLowerCase() : "";
       let monthsToAdd = 1;
       if (freq.includes("quart")) monthsToAdd = 3;
@@ -770,7 +770,7 @@ Are you sure you want to continue?`;
       }
     });
   };
-  const cols = [{ l: "", w: "36px" }, { l: "SCHEDULE ID", w: "80px", k: "schedule_id" }, { l: "LINKED", w: "80px", k: "linked" }, { l: "CONTRACT", w: "85px", k: "contract" }, { l: "DEAL ID", w: "85px", k: "project_id" }, { l: "PARTY ID", w: "80px", k: "party_id" }, { l: "PERIOD", w: "58px", k: "period_number" }, { l: "DUE DATE", w: "98px", k: "dueDate" }, { l: "TYPE", w: "minmax(60px, 0.33fr)", k: "type" }, { l: "FEE", w: "260px", k: "fee_id" }, { l: "APPLIED TO", w: "120px", k: "applied_to" }, { l: "DIR", w: "50px", k: "direction" }, { l: "SIGNED AMT", w: "110px", k: "signed_payment_amount" }, { l: "PRINCIPAL", w: "110px", k: "principal_amount" }, { l: "STATUS", w: "90px", k: "status" }, { l: "NOTES", w: "minmax(80px, 1fr)", k: "notes" }, { l: "ACTIONS", w: "76px" }];
+  const cols = [{ l: "", w: "36px" }, { l: "SCHEDULE ID", w: "80px", k: "schedule_id" }, { l: "LINKED", w: "80px", k: "linked" }, { l: "INVESTMENT", w: "85px", k: "contract" }, { l: "DEAL ID", w: "85px", k: "project_id" }, { l: "CONTACT ID", w: "80px", k: "party_id" }, { l: "PERIOD", w: "58px", k: "period_number" }, { l: "DUE DATE", w: "98px", k: "dueDate" }, { l: "TYPE", w: "minmax(60px, 0.33fr)", k: "type" }, { l: "FEE", w: "260px", k: "fee_id" }, { l: "APPLIED TO", w: "120px", k: "applied_to" }, { l: "DIR", w: "50px", k: "direction" }, { l: "SIGNED AMT", w: "110px", k: "signed_payment_amount" }, { l: "PRINCIPAL", w: "110px", k: "principal_amount" }, { l: "STATUS", w: "90px", k: "status" }, { l: "NOTES", w: "minmax(80px, 1fr)", k: "notes" }, { l: "ACTIONS", w: "76px" }];
   const { gridTemplate, headerRef, onResizeStart } = useResizableColumns(cols);
   const [colFilters, setColFilters] = useState({});
   const setColFilter = (key, val) => { setColFilters(f => ({ ...f, [key]: val })); setPage(1); };
@@ -814,7 +814,7 @@ Are you sure you want to continue?`;
           <div style={{ fontFamily: t.mono, fontSize: 11, color: t.idText }}>{hasLink(s) ? <a href="#" onClick={e => { e.preventDefault(); e.stopPropagation(); setDrillSchedule(s); }} style={{ color: isDark ? "#60A5FA" : "#4F46E5", textDecoration: "none", fontWeight: 600 }}>{s.schedule_id}</a> : s.schedule_id}</div>
           <div style={{ fontFamily: t.mono, fontSize: 11, color: t.textMuted }}>{s.linked ? <a href="#" onClick={e => { e.preventDefault(); e.stopPropagation(); const linked = SCHEDULES.find(x => x.schedule_id === s.linked); if (linked) setDrillSchedule(linked); }} style={{ color: isDark ? "#60A5FA" : "#4F46E5", textDecoration: "none" }}>{s.linked}</a> : dash}</div>
           <div style={{ fontFamily: t.mono, fontSize: 11.5, color: isDark ? "#60A5FA" : "#4F46E5", fontWeight: 500 }}>
-            <a href="#" onClick={e => { e.preventDefault(); e.stopPropagation(); const c = CONTRACTS.find(x => (x.contract_id || x.id) === s.contract); if (c) setDrillContract(c); }} style={{ color: "inherit", textDecoration: "none" }}>{s.contract}</a>
+            <a href="#" onClick={e => { e.preventDefault(); e.stopPropagation(); const c = CONTRACTS.find(x => (x.contract_id || x.id) === s.contract); if (c) setDrillInvestment(c); }} style={{ color: "inherit", textDecoration: "none" }}>{s.contract}</a>
           </div>
           <div style={{ fontFamily: t.mono, fontSize: 11, color: t.idText }}>{s.deal_id || dash}</div>
           <div style={{ fontFamily: t.mono, fontSize: 11, color: t.idText }}>
@@ -1198,58 +1198,58 @@ Are you sure you want to continue?`;
         </div>
       );
     })()}
-    {drillContract && (
-      <Modal open={!!drillContract} onClose={() => setDrillContract(null)} title="Contract Summary" saveLabel="OK" onSave={() => setDrillContract(null)} width={580} t={t} isDark={isDark}>
+    {drillInvestment && (
+      <Modal open={!!drillInvestment} onClose={() => setDrillInvestment(null)} title="Investment Summary" saveLabel="OK" onSave={() => setDrillInvestment(null)} width={580} t={t} isDark={isDark}>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px 24px", padding: "10px 0" }}>
           <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
-            <span style={{ fontSize: 10, fontWeight: 700, color: t.textSecondary, textTransform: "uppercase", letterSpacing: "0.8px", fontFamily: t.mono }}>Contract ID / Deal ID</span>
+            <span style={{ fontSize: 10, fontWeight: 700, color: t.textSecondary, textTransform: "uppercase", letterSpacing: "0.8px", fontFamily: t.mono }}>Investment ID / Deal ID</span>
             <div style={{ fontSize: 13.5, fontWeight: 700, color: isDark ? "#fff" : "#1C1917", display: "flex", gap: 8, alignItems: "center" }}>
-              <span style={{ fontFamily: t.mono }}>{drillContract.contract_id || drillContract.id}</span>
+              <span style={{ fontFamily: t.mono }}>{drillInvestment.contract_id || drillInvestment.id}</span>
               <span style={{ color: t.surfaceBorder }}>|</span>
-              <span style={{ fontFamily: t.mono, color: t.idText }}>{drillContract.deal_id || "—"}</span>
+              <span style={{ fontFamily: t.mono, color: t.idText }}>{drillInvestment.deal_id || "—"}</span>
             </div>
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
             <span style={{ fontSize: 10, fontWeight: 700, color: t.textSecondary, textTransform: "uppercase", letterSpacing: "0.8px", fontFamily: t.mono }}>Status</span>
-            <div>{drillContract.status ? <Bdg status={drillContract.status} isDark={isDark} /> : "—"}</div>
+            <div>{drillInvestment.status ? <Bdg status={drillInvestment.status} isDark={isDark} /> : "—"}</div>
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
             <span style={{ fontSize: 10, fontWeight: 700, color: t.textSecondary, textTransform: "uppercase", letterSpacing: "0.8px", fontFamily: t.mono }}>Project Name</span>
-            <div style={{ fontSize: 13, color: isDark ? "rgba(255,255,255,0.8)" : "#44403C" }}>{drillContract.project_name || drillContract.project || "—"}</div>
+            <div style={{ fontSize: 13, color: isDark ? "rgba(255,255,255,0.8)" : "#44403C" }}>{drillInvestment.project_name || drillInvestment.project || "—"}</div>
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
             <span style={{ fontSize: 10, fontWeight: 700, color: t.textSecondary, textTransform: "uppercase", letterSpacing: "0.8px", fontFamily: t.mono }}>Contact Name</span>
-            <div style={{ fontSize: 13, fontWeight: 600, color: isDark ? "#fff" : "#1C1917" }}>{drillContract.party_name || drillContract.party || "—"}</div>
+            <div style={{ fontSize: 13, fontWeight: 600, color: isDark ? "#fff" : "#1C1917" }}>{drillInvestment.party_name || drillInvestment.party || "—"}</div>
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
             <span style={{ fontSize: 10, fontWeight: 700, color: t.textSecondary, textTransform: "uppercase", letterSpacing: "0.8px", fontFamily: t.mono }}>Amount</span>
-            <div style={{ fontSize: 15, fontWeight: 700, color: isDark ? "#60A5FA" : "#2563EB", fontFamily: t.mono }}>{drillContract.amount || "—"}</div>
+            <div style={{ fontSize: 15, fontWeight: 700, color: isDark ? "#60A5FA" : "#2563EB", fontFamily: t.mono }}>{drillInvestment.amount || "—"}</div>
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
             <span style={{ fontSize: 10, fontWeight: 700, color: t.textSecondary, textTransform: "uppercase", letterSpacing: "0.8px", fontFamily: t.mono }}>Interest Rate / Frequency</span>
-            <div style={{ fontSize: 13, color: isDark ? "rgba(255,255,255,0.8)" : "#44403C", fontWeight: 500 }}>{drillContract.interest_rate || drillContract.rate || "—"} / {drillContract.payment_frequency || drillContract.freq || "—"}</div>
+            <div style={{ fontSize: 13, color: isDark ? "rgba(255,255,255,0.8)" : "#44403C", fontWeight: 500 }}>{drillInvestment.interest_rate || drillInvestment.rate || "—"} / {drillInvestment.payment_frequency || drillInvestment.freq || "—"}</div>
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
             <span style={{ fontSize: 10, fontWeight: 700, color: t.textSecondary, textTransform: "uppercase", letterSpacing: "0.8px", fontFamily: t.mono }}>Term (months)</span>
-            <div style={{ fontSize: 13, color: isDark ? "#fff" : "#1C1917", fontWeight: 600 }}>{drillContract.term_months ? `${drillContract.term_months} Months` : "—"}</div>
+            <div style={{ fontSize: 13, color: isDark ? "#fff" : "#1C1917", fontWeight: 600 }}>{drillInvestment.term_months ? `${drillInvestment.term_months} Months` : "—"}</div>
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
-            <span style={{ fontSize: 10, fontWeight: 700, color: t.textSecondary, textTransform: "uppercase", letterSpacing: "0.8px", fontFamily: t.mono }}>Contract Type</span>
-            <div style={{ fontSize: 13, color: isDark ? "#fff" : "#1C1917", fontWeight: 600 }}>{drillContract.contract_type || drillContract.type || "—"}</div>
+            <span style={{ fontSize: 10, fontWeight: 700, color: t.textSecondary, textTransform: "uppercase", letterSpacing: "0.8px", fontFamily: t.mono }}>Investment Type</span>
+            <div style={{ fontSize: 13, color: isDark ? "#fff" : "#1C1917", fontWeight: 600 }}>{drillInvestment.contract_type || drillInvestment.type || "—"}</div>
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
             <span style={{ fontSize: 10, fontWeight: 700, color: t.textSecondary, textTransform: "uppercase", letterSpacing: "0.8px", fontFamily: t.mono }}>Start Date</span>
-            <div style={{ fontSize: 13, color: isDark ? "rgba(255,255,255,0.8)" : "#44403C", fontFamily: t.mono }}>{drillContract.start_date || "—"}</div>
+            <div style={{ fontSize: 13, color: isDark ? "rgba(255,255,255,0.8)" : "#44403C", fontFamily: t.mono }}>{drillInvestment.start_date || "—"}</div>
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
             <span style={{ fontSize: 10, fontWeight: 700, color: t.textSecondary, textTransform: "uppercase", letterSpacing: "0.8px", fontFamily: t.mono }}>Maturity Date</span>
-            <div style={{ fontSize: 13, color: isDark ? "rgba(255,255,255,0.8)" : "#44403C", fontFamily: t.mono }}>{drillContract.maturity_date || "—"}</div>
+            <div style={{ fontSize: 13, color: isDark ? "rgba(255,255,255,0.8)" : "#44403C", fontFamily: t.mono }}>{drillInvestment.maturity_date || "—"}</div>
           </div>
           <div style={{ gridColumn: "span 2", display: "flex", flexDirection: "column", gap: 8, marginTop: 4 }}>
             <span style={{ fontSize: 10, fontWeight: 700, color: t.textSecondary, textTransform: "uppercase", letterSpacing: "0.8px", fontFamily: t.mono }}>Applicable Fees</span>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
               {(() => {
-                const fids = String(drillContract.fees || drillContract.feeIds || "").split(",").filter(Boolean);
+                const fids = String(drillInvestment.fees || drillInvestment.feeIds || "").split(",").filter(Boolean);
                 return fids.length > 0 ? fids.map(fid => {
                   const f = FEES_DATA.find(x => x.id === fid);
                   return <span key={fid} style={{ fontSize: 11, fontWeight: 500, padding: "2px 10px", borderRadius: 20, background: isDark ? "rgba(52,211,153,0.12)" : "#ECFDF5", color: isDark ? "#34D399" : "#059669", border: `1px solid ${isDark ? "rgba(52,211,153,0.25)" : "#A7F3D0"}` }}>{f?.name || fid} {f?.rate ? `(${f.rate})` : ""} · {f?.applied_to || "No applied to"}</span>;
