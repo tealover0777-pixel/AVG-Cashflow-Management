@@ -127,7 +127,8 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
         return p?.email || "—";
       }
     },
-    { headerName: "Date placed", field: "start_date", width: 100 },
+    { headerName: "Start Date", field: "start_date", width: 100 },
+    { headerName: "Maturity Date", field: "maturity_date", width: 100 },
     { 
       headerName: "Type", 
       field: "type",
