@@ -107,6 +107,17 @@
   border-left: 1px solid #FFFFFF !important;
 }
 
+/* Left pinned column (Investment ID etc) divider */
+.ag-theme-custom .ag-pinned-left-cols-container,
+.ag-theme-custom .ag-pinned-left-header {
+  border-right: 1px solid #CBD5E1 !important;
+}
+
+.dark-mode.ag-theme-custom .ag-pinned-left-cols-container,
+.dark-mode.ag-theme-custom .ag-pinned-left-header {
+  border-right: 1px solid #FFFFFF !important;
+}
+
 /* Light Mode Variables (Synced with mkTheme) */
 .ag-theme-custom.light-mode {
   --ag-background-color: #FFFFFF;
