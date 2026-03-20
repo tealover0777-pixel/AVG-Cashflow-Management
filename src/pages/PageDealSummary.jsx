@@ -11,6 +11,7 @@ ModuleRegistry.registerModules([AllCommunityModule]);
 import 'ag-grid-community/styles/ag-grid.css';
 import '../components/ag-grid/ag-grid-theme.css';
 import InvestmentFeesCellRenderer from '../components/ag-grid/InvestmentFeesCellRenderer';
+import InvestmentTypeCellRenderer from "../components/ag-grid/InvestmentTypeCellRenderer";
 
 export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTMENTS = [], CONTACTS = [], DIMENSIONS = [], FEES_DATA = [], setActivePage, investmentCollection = "investments" }) {
   const { hasPermission, isSuperAdmin } = useAuth();
@@ -112,15 +113,10 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
   const columnDefs = useMemo(() => {
     const cols = [
     { 
-      headerName: "Investor name & profile", 
+      headerName: "Investor Name", 
       field: "party", 
-      flex: 1.5,
-      cellRenderer: (params) => (
-        <div style={{ display: 'flex', flexDirection: 'column', height: '100%', justifyContent: 'center' }}>
-          <div style={{ fontSize: '11.5px', fontWeight: 600, color: isDark ? "#60A5FA" : "#2563EB" }}>{params.value}</div>
-          <div style={{ fontSize: '10px', color: t.textMuted }}>{params.data.type || "Investor"}</div>
-        </div>
-      )
+      flex: 1,
+      cellStyle: { fontWeight: 600, color: isDark ? "#60A5FA" : "#2563EB", fontSize: '11.5px' }
     },
     { 
       headerName: "Email address", 
@@ -131,7 +127,13 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
         return p?.email || "—";
       }
     },
-    { headerName: "Date placed", field: "start_date", flex: 0.8 },
+    { headerName: "Date placed", field: "start_date", width: 100 },
+    { 
+      headerName: "Type", 
+      field: "type",
+      width: 100,
+      cellRenderer: InvestmentTypeCellRenderer
+    },
     { 
       headerName: "Capital Amount", 
       field: "amount",
