@@ -132,7 +132,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
     },
     { headerName: "Date placed", field: "start_date", flex: 0.8 },
     { 
-      headerName: "Invested amount", 
+      headerName: "Capital Amount", 
       field: "amount",
       flex: 1,
       cellStyle: { fontWeight: 600 },
@@ -142,7 +142,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
             <span ref="eMenu" class="ag-header-icon ag-header-cell-menu-button"></span>
             <div ref="eLabel" class="ag-header-cell-label" role="presentation">
               <span ref="eText" class="ag-header-cell-text"></span>
-              <div style="font-size: 9px; opacity: 0.6; font-weight: 400;">Total: ${fmtCurrency(deal.fundraisingAmount || 0)}</div>
+              <div style="font-size: 9px; opacity: 0.6; font-weight: 400;">Capital Amount: ${fmtCurrency(deal.fundraisingAmount || 0)}</div>
             </div>
           </div>
          `
