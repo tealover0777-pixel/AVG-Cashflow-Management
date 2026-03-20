@@ -1,8 +1,17 @@
-import { useState } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
+import { AgGridReact } from 'ag-grid-react';
+import { ModuleRegistry, AllCommunityModule } from 'ag-grid-community';
+
+ModuleRegistry.registerModules([AllCommunityModule]);
+
+import 'ag-grid-community/styles/ag-grid.css';
+import '../components/ag-grid/ag-grid-theme.css';
+import { getScheduleColumnDefs } from '../components/ag-grid/ScheduleGridConfig';
+
 import { db } from "../firebase";
 import { collection, doc, addDoc, updateDoc, deleteDoc, serverTimestamp } from "firebase/firestore";
 import { sortData, badge, initials, av, pmtCalculator_ACT360_30360, getFeeFrequencyString, normalizeDateAtNoon, mkId } from "../utils";
-import { StatCard, Bdg, ActBtns, Pagination, useResizableColumns, TblHead, TblFilterRow, Modal, FF, FIn, FSel, DelModal, Tooltip } from "../components";
+import { StatCard, Bdg, Pagination, Modal, FF, FIn, FSel, DelModal, Tooltip } from "../components";
 import { useAuth } from "../AuthContext";
 
 const fmtCurr = v => {
@@ -799,26 +808,94 @@ Are you sure you want to continue?`;
       }
     });
   };
-  const cols = [{ l: "", w: "36px" }, { l: "SCHEDULE ID", w: "80px", k: "schedule_id" }, { l: "LINKED", w: "80px", k: "linked" }, { l: "INVESTMENT", w: "85px", k: "investment" }, { l: "DEAL ID", w: "85px", k: "project_id" }, { l: "CONTACT ID", w: "80px", k: "party_id" }, { l: "PERIOD", w: "58px", k: "period_number" }, { l: "DUE DATE", w: "98px", k: "dueDate" }, { l: "TYPE", w: "minmax(60px, 0.33fr)", k: "type" }, { l: "FEE", w: "260px", k: "fee_id" }, { l: "APPLIED TO", w: "120px", k: "applied_to" }, { l: "DIR", w: "50px", k: "direction" }, { l: "SIGNED AMT", w: "110px", k: "signed_payment_amount" }, { l: "PRINCIPAL", w: "110px", k: "principal_amount" }, { l: "STATUS", w: "90px", k: "status" }, { l: "NOTES", w: "minmax(80px, 1fr)", k: "notes" }, { l: "ACTIONS", w: "76px" }];
-  const { gridTemplate, headerRef, onResizeStart } = useResizableColumns(cols);
-  const [colFilters, setColFilters] = useState({});
-  const setColFilter = (key, val) => { setColFilters(f => ({ ...f, [key]: val })); setPage(1); };
-  const filtered = SCHEDULES.filter(s => {
-    // Versioning filter: by default show only active versions. If showHistory is true, show all.
-    if (!showHistory && s.active_version === false) return false;
-    
-    // Status chip filter
-    if (chip !== "All" && s.status !== chip) return false;
-    
-    // Column search filters
-    return cols.every(c => {
-      if (!c.k || !colFilters[c.k]) return true;
-      return String(s[c.k] || "").toLowerCase().includes(colFilters[c.k].toLowerCase());
+  // AG Grid setup
+  const gridRef = useRef(null);
+  const [pageSize, setPageSize] = useState(30);
+
+  // Dynamically calculate page size based on available vertical space
+  useEffect(() => {
+    const calculatePageSize = () => {
+      const rowHeight = 42;
+      const headerHeight = 56;
+      const viewportHeight = window.innerHeight;
+      const gridContainerHeight = viewportHeight - 500; // Adjusted for schedule page layout
+      const availableForRows = gridContainerHeight - headerHeight;
+      const calculatedRows = Math.floor(availableForRows / rowHeight);
+      const newPageSize = Math.max(30, calculatedRows);
+      setPageSize(newPageSize);
+    };
+
+    const timer = setTimeout(calculatePageSize, 100);
+    calculatePageSize();
+    window.addEventListener('resize', calculatePageSize);
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener('resize', calculatePageSize);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (gridRef.current?.api) {
+      gridRef.current.api.paginationSetPageSize(pageSize);
+    }
+  }, [pageSize]);
+
+  // Filter data for AG Grid
+  const rowData = useMemo(() => {
+    return SCHEDULES.filter(s => {
+      // Versioning filter
+      if (!showHistory && s.active_version === false) return false;
+      // Status chip filter
+      if (chip !== "All" && s.status !== chip) return false;
+      return true;
     });
-  });
-  const sorted = sortData(filtered, sort);
-  const paginated = sorted.slice((page - 1) * 20, page * 20);
-  const totalPages = Math.ceil(sorted.length / 20);
+  }, [SCHEDULES, showHistory, chip]);
+
+  // Column definitions
+  const permissions = { canUpdate, canDelete };
+  const columnDefs = useMemo(() => {
+    return getScheduleColumnDefs(permissions, isDark, t, canUpdate);
+  }, [permissions, isDark, t, canUpdate]);
+
+  // Context for cell renderers
+  const context = useMemo(() => ({
+    isDark,
+    t,
+    permissions,
+    feesData: FEES_DATA,
+    callbacks: {
+      hasLink,
+      onScheduleClick: setDrillSchedule,
+      onLinkedClick: (linkedId) => {
+        const linked = SCHEDULES.find(x => x.schedule_id === linkedId);
+        if (linked) setDrillSchedule(linked);
+      },
+      onInvestmentClick: (investmentId) => {
+        const investment = INVESTMENTS.find(x => (x.investment_id || x.id) === investmentId);
+        if (investment) setDrillInvestment(investment);
+      },
+      onContactClick: (partyId) => {
+        const contact = CONTACTS.find(x => x.id === partyId);
+        if (contact) setDetailContact(contact);
+      },
+      onFeeClick: (feeId) => {
+        const fids = String(feeId).split(",").filter(Boolean);
+        if (fids.length > 0) {
+          const fees = fids.map(id => FEES_DATA.find(x => x.id === id)).filter(Boolean);
+          if (fees.length > 0) setDrillFee(fees);
+        }
+      },
+      onEdit: openEdit,
+      onDelete: setDelT,
+      onUndo: handleUndo
+    }
+  }), [isDark, t, permissions, FEES_DATA, SCHEDULES, INVESTMENTS, CONTACTS]);
+
+  // Handle row selection
+  const onSelectionChanged = (event) => {
+    const selectedRows = event.api.getSelectedRows();
+    setSel(new Set(selectedRows.map(row => row.schedule_id)));
+  };
   const statsData = [{ label: "Total", value: SCHEDULES.length, accent: isDark ? "#60A5FA" : "#3B82F6", bg: isDark ? "rgba(96,165,250,0.08)" : "#EFF6FF", border: isDark ? "rgba(96,165,250,0.15)" : "#BFDBFE" }, { label: "Due", value: SCHEDULES.filter(s => s.status === "Due").length, accent: isDark ? "#FBBF24" : "#D97706", bg: isDark ? "rgba(251,191,36,0.08)" : "#FFFBEB", border: isDark ? "rgba(251,191,36,0.15)" : "#FDE68A" }, { label: "Paid", value: SCHEDULES.filter(s => s.status === "Paid").length, accent: isDark ? "#34D399" : "#059669", bg: isDark ? "rgba(52,211,153,0.08)" : "#ECFDF5", border: isDark ? "rgba(52,211,153,0.15)" : "#A7F3D0" }, { label: "Missed", value: SCHEDULES.filter(s => s.status === "Missed").length, accent: isDark ? "#F87171" : "#DC2626", bg: isDark ? "rgba(248,113,113,0.08)" : "#FEF2F2", border: isDark ? "rgba(248,113,113,0.15)" : "#FECACA" }];
   return (<>
     <div style={{ marginBottom: 28, display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}><div><h1 style={{ fontFamily: t.titleFont, fontWeight: t.titleWeight, fontSize: t.titleSize, color: isDark ? "#fff" : "#1C1917", letterSpacing: t.titleTracking, lineHeight: 1, marginBottom: 6 }}>Payment Schedule</h1><p style={{ fontSize: 13.5, color: t.textMuted }}>Manage payment schedules and statuses</p></div>
@@ -848,80 +925,48 @@ Are you sure you want to continue?`;
         </div>
       </div>
     </div>
-    <div style={{ background: t.surface, borderRadius: 16, border: `1px solid ${t.surfaceBorder}`, overflow: "auto", backdropFilter: isDark ? "blur(20px)" : "none", boxShadow: t.tableShadow }}>
-      <TblHead cols={cols} t={t} isDark={isDark} sortConfig={sort} onSort={onSort} gridTemplate={gridTemplate} headerRef={headerRef} onResizeStart={onResizeStart}>
-        {canUpdate && <input type="checkbox" checked={sel.size === filtered.length && filtered.length > 0} onChange={() => setSel(sel.size === filtered.length ? new Set() : new Set(filtered.map(s => s.schedule_id)))} style={{ accentColor: t.checkActive, width: 14, height: 14 }} />}
-      </TblHead>
-      <TblFilterRow cols={cols} colFilters={colFilters} onFilterChange={setColFilter} onClear={() => setColFilters({})} gridTemplate={gridTemplate} t={t} isDark={isDark} />
-      {paginated.map((s, i) => {
-        const isHov = hov === s.schedule_id; const isSel = sel.has(s.schedule_id); const [bg, color, border] = badge(s.status, isDark);
-        const dash = <span style={{ color: isDark ? "rgba(255,255,255,0.12)" : "#D4D0CB" }}>—</span>;
-        return (<div key={s.schedule_id} className="data-row" onMouseEnter={() => setHov(s.schedule_id)} onMouseLeave={() => setHov(null)} style={{ display: "grid", gridTemplateColumns: gridTemplate, padding: "12px 22px", borderBottom: i < paginated.length - 1 ? `1px solid ${t.rowDivider}` : "none", alignItems: "center", background: isSel ? (isDark ? "rgba(52,211,153,0.04)" : "#F0FDF4") : isHov ? t.rowHover : "transparent", transition: "all 0.15s ease" }}>
-          {canUpdate ? <input type="checkbox" checked={isSel} onChange={() => { const n = new Set(sel); n.has(s.schedule_id) ? n.delete(s.schedule_id) : n.add(s.schedule_id); setSel(n); }} style={{ accentColor: t.checkActive, width: 14, height: 14 }} onClick={e => e.stopPropagation()} /> : <div />}
-          <div style={{ fontFamily: t.mono, fontSize: 11, color: t.idText }}>{hasLink(s) ? <a href="#" onClick={e => { e.preventDefault(); e.stopPropagation(); setDrillSchedule(s); }} style={{ color: isDark ? "#60A5FA" : "#4F46E5", textDecoration: "none", fontWeight: 600 }}>{s.schedule_id}</a> : s.schedule_id}</div>
-          <div style={{ fontFamily: t.mono, fontSize: 11, color: t.textMuted }}>{s.linked ? <a href="#" onClick={e => { e.preventDefault(); e.stopPropagation(); const linked = SCHEDULES.find(x => x.schedule_id === s.linked); if (linked) setDrillSchedule(linked); }} style={{ color: isDark ? "#60A5FA" : "#4F46E5", textDecoration: "none" }}>{s.linked}</a> : dash}</div>
-          <div style={{ fontFamily: t.mono, fontSize: 11.5, color: isDark ? "#60A5FA" : "#4F46E5", fontWeight: 500 }}>
-            <a href="#" onClick={e => { e.preventDefault(); e.stopPropagation(); const c = INVESTMENTS.find(x => (x.investment_id || x.id) === s.investment); if (c) setDrillInvestment(c); }} style={{ color: "inherit", textDecoration: "none" }}>{s.investment}</a>
-          </div>
-          <div style={{ fontFamily: t.mono, fontSize: 11, color: t.idText }}>{s.deal_id || dash}</div>
-          <div style={{ fontFamily: t.mono, fontSize: 11, color: t.idText }}>
-            {s.party_id ? (
-              <a href="#" onClick={e => { e.preventDefault(); e.stopPropagation(); const p = CONTACTS.find(x => x.id === s.party_id); if (p) setDetailContact(p); }} style={{ color: isDark ? "#60A5FA" : "#4F46E5", textDecoration: "none", fontWeight: 600 }}>{s.party_id}</a>
-            ) : dash}
-          </div>
-          <div style={{ fontFamily: t.mono, fontSize: 11.5, color: t.textMuted, textAlign: "center" }}>{s.period_number || dash}</div>
-          <div style={{ fontFamily: t.mono, fontSize: 11, color: isDark ? "rgba(255,255,255,0.7)" : "#44403C" }}>{s.dueDate}</div>
-          <div style={{ fontSize: 11.5, color: String(s.type || "").toLowerCase() === "fee" ? (isDark ? "#60A5FA" : "#4F46E5") : t.textMuted, cursor: String(s.type || "").toLowerCase() === "fee" ? "pointer" : "default", fontWeight: String(s.type || "").toLowerCase() === "fee" ? 600 : 400, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} onClick={() => {
-            if (String(s.type || "").toLowerCase() === "fee") {
-              const fids = String(s.fee_id || "").split(",").filter(Boolean);
-              if (fids.length > 0) {
-                const fees = fids.map(id => FEES_DATA.find(x => x.id === id)).filter(Boolean);
-                if (fees.length > 0) setDrillFee(fees);
-              }
-            }
-          }}>{s.type}</div>
-          <div style={{ fontSize: 10.5, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-            {s.fee_id
-              ? String(s.fee_id).split(",").filter(Boolean).map((fid, idx, arr) => (
-                <span key={fid}>
-                  <span style={{ fontFamily: t.mono, color: t.idText }}>{fid}</span>
-                  <span style={{ color: t.textMuted }}> - {(FEES_DATA.find(f => f.id === fid) || {}).name || ""}</span>
-                  {idx < arr.length - 1 ? "; " : ""}
-                </span>
-              ))
-              : dash}
-          </div>
-          <div style={{ fontSize: 11, color: t.textSecondary }}>
-            {(() => {
-              if (s.applied_to) return s.applied_to;
-              if (s.fee_id) {
-                const fid = String(s.fee_id).split(",")[0];
-                const fee = FEES_DATA.find(f => f.id === fid);
-                if (fee?.applied_to) return fee.applied_to;
-              }
-              return dash;
-            })()}
-          </div>
-          <div style={{ fontSize: 11, fontWeight: 700, color: s.direction === "IN" ? (isDark ? "#34D399" : "#059669") : s.direction === "OUT" ? (isDark ? "#F87171" : "#DC2626") : t.textMuted }}>{s.direction || dash}</div>
-          <div style={{ fontFamily: t.mono, fontSize: 12, fontWeight: 700, color: isDark ? "#60A5FA" : "#4F46E5" }}>
-            {(() => {
-              let val = s.signed_payment_amount;
-              if (ZEROING_STATUSES.includes(s.status) && (!val || val === dash)) val = "$0.00";
-              if (!val || val === dash) return dash;
-              if (s.direction === "OUT" && String(val).includes("-")) return String(val).replace("-", "(") + ")";
-              return val;
-            })()}
-          </div>
-          <div style={{ fontFamily: t.mono, fontSize: 11.5, color: t.textMuted }}>
-            {s.principal_amount || dash}
-          </div>
-          <div><Bdg status={s.status} isDark={isDark} /></div>
-          <div style={{ fontSize: 11.5, color: t.textMuted, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0 }}>{s.notes || dash}</div>
-          <ActBtns show={isHov || !!s._undo_snapshot || !!(s.linked || s.linked_schedule_id)} t={t} onEdit={() => openEdit(s)} onDel={canDelete ? (() => setDelT({ schedule_id: s.schedule_id, name: s.schedule_id, docId: s.docId, _path: s._path })) : null} onUndo={(s._undo_snapshot || s.linked) ? () => handleUndo(s) : null} />
-        </div>);
-      })}
+    <div
+      className={`ag-theme-custom ${isDark ? 'dark-mode' : 'light-mode'}`}
+      style={{ height: "calc(100vh - 500px)", minHeight: "500px" }}
+    >
+      <AgGridReact
+        ref={gridRef}
+        rowData={rowData}
+        columnDefs={columnDefs}
+        context={context}
+        animateRows={true}
+        pagination={true}
+        paginationPageSize={pageSize}
+        suppressPaginationPanel={true}
+        suppressCellFocus={true}
+        columnHoverHighlight={true}
+        theme="legacy"
+        rowSelection="multiple"
+        onSelectionChanged={onSelectionChanged}
+        suppressRowClickSelection={true}
+        onColumnResized={(event) => {
+          if (event.finished) {
+            const columnState = event.api.getColumnState();
+            localStorage.setItem('scheduleColumnState', JSON.stringify(columnState));
+          }
+        }}
+        onGridReady={(params) => {
+          const savedState = localStorage.getItem('scheduleColumnState');
+          if (savedState) {
+            params.api.applyColumnState({
+              state: JSON.parse(savedState),
+              applyOrder: false
+            });
+          }
+        }}
+      />
     </div>
-    <div style={{ marginTop: 16, display: "flex", justifyContent: "space-between", alignItems: "center" }}><span style={{ fontSize: 12, color: t.textSubtle }}>Showing <strong style={{ color: t.textSecondary }}>{paginated.length}</strong> of <strong style={{ color: t.textSecondary }}>{sorted.length}</strong> schedules{sel.size > 0 && <span style={{ color: t.accent, marginLeft: 8 }}>· {sel.size} selected</span>}</span><Pagination totalPages={totalPages} currentPage={page} onPageChange={setPage} t={t} /></div>
+    <div style={{ marginTop: 16, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+      <span style={{ fontSize: 12, color: t.textSubtle }}>
+        Showing <strong style={{ color: t.textSecondary }}>{Math.min(rowData.length, pageSize)}</strong> of <strong style={{ color: t.textSecondary }}>{rowData.length}</strong> schedules{sel.size > 0 && <span style={{ color: t.accent, marginLeft: 8 }}>· {sel.size} selected</span>}
+      </span>
+      <Pagination totalPages={Math.ceil(rowData.length / pageSize)} currentPage={1} onPageChange={(newPage) => gridRef.current?.api.paginationGoToPage(newPage - 1)} t={t} />
+    </div>
     <Modal open={modal.open} onClose={close} title={modal.mode === "add" ? "New Schedule Entry" : modal.mode === "add_late" ? "Replacement Payment Schedule" : modal.mode === "add_partial" ? "Partial Payment Schedule" : "Edit Schedule Entry"} onSave={handleSaveSchedule} width={620} t={t} isDark={isDark}>
       {(() => {
         const freeze = [...ZEROING_STATUSES, "Partial"].includes(modal.data.status);
