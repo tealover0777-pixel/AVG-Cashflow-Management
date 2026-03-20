@@ -11,7 +11,7 @@ ModuleRegistry.registerModules([AllCommunityModule]);
 import 'ag-grid-community/styles/ag-grid.css';
 import '../components/ag-grid/ag-grid-theme.css';
 
-export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTMENTS = [], CONTACTS = [], DIMENSIONS = [], FEES_DATA = [], setActivePage }) {
+export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTMENTS = [], CONTACTS = [], DIMENSIONS = [], FEES_DATA = [], setActivePage, investmentCollection = "investments" }) {
   const { hasPermission, isSuperAdmin } = useAuth();
   const canUpdate = isSuperAdmin || hasPermission("INVESTMENT_UPDATE");
   const canDelete = isSuperAdmin || hasPermission("INVESTMENT_DELETE") || hasPermission("INVESTMENTS_DELETE");
@@ -79,7 +79,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
       deal_id: dealObj ? dealObj.id : (d.deal_id || ""),
       party_name: d.party || "",
       party_id: parObj ? parObj.id : (d.party_id || ""),
-      contract_type: d.type || "",
+      investment_type: d.type || "",
       amount: d.amount ? Number(String(d.amount).replace(/[^0-9.-]/g, "")) || null : null,
       interest_rate: d.rate ? Number(String(d.rate).replace(/[^0-9.-]/g, "")) || null : null,
       payment_frequency: d.freq || "",
@@ -92,9 +92,9 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
     };
     try {
       if (modal.mode === "edit" && d.docId) {
-        await updateDoc(doc(db, "contracts", d.docId), payload);
+        await updateDoc(doc(db, investmentCollection, d.docId), payload);
       } else {
-        await addDoc(collection(db, "contracts"), { ...payload, contract_id: d.id || "", created_at: serverTimestamp() });
+        await addDoc(collection(db, investmentCollection), { ...payload, investment_id: d.id || "", created_at: serverTimestamp() });
       }
       setModal(m => ({ ...m, open: false }));
     } catch (err) { console.error("Save investment error:", err); }
@@ -103,7 +103,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
   const handleDeleteInvestment = async () => {
     if (!delT || !delT.docId) return;
     try {
-      await deleteDoc(doc(db, "contracts", delT.docId));
+      await deleteDoc(doc(db, investmentCollection, delT.docId));
       setDelT(null);
     } catch (err) { console.error("Delete investment error:", err); }
   };

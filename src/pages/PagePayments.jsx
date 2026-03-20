@@ -32,7 +32,7 @@ export default function PagePayments({ t, isDark, PAYMENTS = [], collectionPath 
   const handleSavePayment = async () => {
     const d = modal.data;
     const payload = {
-      contract_id: d.contract || "",
+      investment_id: d.contract || "",
       party_name: d.party || "",
       payment_type: d.type || "",
       amount: d.amount ? Number(String(d.amount).replace(/[^0-9.-]/g, "")) || null : null,

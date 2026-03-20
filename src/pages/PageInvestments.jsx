@@ -110,7 +110,7 @@ export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [
       deal_id: dealObj ? dealObj.id : (d.deal_id || ""),
       party_name: d.party || "",
       party_id: parObj ? parObj.id : (d.party_id || ""),
-      contract_type: d.type || "",
+      investment_type: d.type || "",
       amount: d.amount ? Number(String(d.amount).replace(/[^0-9.-]/g, "")) || null : null,
       interest_rate: d.rate ? Number(String(d.rate).replace(/[^0-9.-]/g, "")) || null : null,
       payment_frequency: d.freq || "",
@@ -126,7 +126,7 @@ export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [
       if (modal.mode === "edit" && d.docId) {
         await updateDoc(doc(db, collectionPath, d.docId), payload);
       } else {
-        await addDoc(collection(db, collectionPath), { ...payload, contract_id: d.id || "", created_at: serverTimestamp() });
+        await addDoc(collection(db, collectionPath), { ...payload, investment_id: d.id || "", created_at: serverTimestamp() });
       }
     } catch (err) { console.error("Save investment error:", err); }
     close();
@@ -264,7 +264,7 @@ export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [
         const ds1 = getDirectionAndSigned(initialPaymentType, principal);
         const newEntry = {
           schedule_id: `S${currentIdNum++}`,
-          contract_id: c.id, deal_id: c.deal_id || "", party_id: c.party_id || "",
+          investment_id: c.id, deal_id: c.deal_id || "", party_id: c.party_id || "",
           due_date: startDate.toISOString().slice(0, 10), payment_type: initialPaymentType, fee_id: "",
           period_number: 1, principal_amount: principal, payment_amount: principal,
           signed_payment_amount: ds1.signed, direction_from_company: ds1.direction,
@@ -318,7 +318,7 @@ export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [
             const signedFeeAmt = feeDir === "OUT" ? -Math.abs(feeAmt) : Math.abs(feeAmt);
             entries.push({
               schedule_id: `S${currentIdNum++}`,
-              contract_id: c.id, deal_id: c.deal_id || "", party_id: c.party_id || "",
+              investment_id: c.id, deal_id: c.deal_id || "", party_id: c.party_id || "",
               due_date: dDate.toISOString().slice(0, 10), payment_type: PT_FEE, fee_id: fid,
               period_number: 1, principal_amount: principal, payment_amount: feeAmt,
               signed_payment_amount: signedFeeAmt, direction_from_company: feeDir,
@@ -378,7 +378,7 @@ export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [
             const roundedInterest = Math.round(interest * 100) / 100;
             entries.push({
               schedule_id: `S${currentIdNum++}`,
-              contract_id: c.id, deal_id: c.deal_id || "", party_id: c.party_id || "",
+              investment_id: c.id, deal_id: c.deal_id || "", party_id: c.party_id || "",
               due_date: pEnd.toISOString().slice(0, 10), payment_type: interestPT, fee_id: "",
               period_number: periodNum, principal_amount: principal, payment_amount: roundedInterest,
               signed_payment_amount: ds2.signed, direction_from_company: ds2.direction,
@@ -462,7 +462,7 @@ export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [
                   const roundedFeeAmt = Math.round(feeAmt * 100) / 100;
                   entries.push({
                     schedule_id: `S${currentIdNum++}`,
-                    contract_id: c.id, deal_id: c.deal_id || "", party_id: c.party_id || "",
+                    investment_id: c.id, deal_id: c.deal_id || "", party_id: c.party_id || "",
                     due_date: feeDueDate.toISOString().slice(0, 10), payment_type: PT_FEE, fee_id: fid,
                     period_number: periodNum, principal_amount: principal, payment_amount: roundedFeeAmt,
                     signed_payment_amount: signedFeeAmt, direction_from_company: feeDir,
@@ -489,7 +489,7 @@ export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [
         const ds3 = getDirectionAndSigned(repaymentPT, principal);
         entries.push({
           schedule_id: `S${currentIdNum++}`,
-          contract_id: c.id, deal_id: c.deal_id || "", party_id: c.party_id || "",
+          investment_id: c.id, deal_id: c.deal_id || "", party_id: c.party_id || "",
           due_date: matDate.toISOString().slice(0, 10), payment_type: repaymentPT, fee_id: "",
           period_number: periodNum, principal_amount: principal, payment_amount: principal,
           signed_payment_amount: ds3.signed, direction_from_company: ds3.direction,
@@ -502,10 +502,10 @@ export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [
         // --- 4. Post-process Fee Merging for this contract ---
         const feeGroups = {}; // key: due_date|applied_to|direction
         const nonFeeEntries = [];
-        const contractEntries = entries.filter(e => e.contract_id === c.id);
+        const contractEntries = entries.filter(e => e.investment_id === c.id);
         
         // Remove temporary entries from main list to rebuild
-        const otherContractsEntries = entries.filter(e => e.contract_id !== c.id);
+        const otherContractsEntries = entries.filter(e => e.investment_id !== c.id);
         
         contractEntries.forEach(e => {
           if (e.payment_type !== PT_FEE) {
@@ -585,7 +585,7 @@ export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [
       // Build a set of existing schedule keys for duplicate detection
       const existingKeys = new Set();
       SCHEDULES.forEach(s => {
-        const key = `${s.contract_id || s.contract}|${s.due_date || s.dueDate}|${s.payment_type || s.type}|${s.fee_id || ""}`;
+        const key = `${s.investment_id || s.contract}|${s.due_date || s.dueDate}|${s.payment_type || s.type}|${s.fee_id || ""}`;
         existingKeys.add(key);
       });
 
@@ -593,9 +593,9 @@ export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [
       const newEntries = [];
       const duplicates = [];
       for (const entry of entries) {
-        const key = `${entry.contract_id}|${entry.due_date}|${entry.payment_type}|${entry.fee_id || ""}`;
+        const key = `${entry.investment_id}|${entry.due_date}|${entry.payment_type}|${entry.fee_id || ""}`;
         if (existingKeys.has(key)) {
-          duplicates.push(`${entry.contract_id} / ${entry.due_date} / ${entry.payment_type}${entry.fee_id ? ` / ${entry.fee_id}` : ""}`);
+          duplicates.push(`${entry.investment_id} / ${entry.due_date} / ${entry.payment_type}${entry.fee_id ? ` / ${entry.fee_id}` : ""}`);
         } else {
           newEntries.push(entry);
           existingKeys.add(key); // prevent duplicate within same batch
@@ -882,7 +882,7 @@ export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [
           <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
             <span style={{ fontSize: 10, fontWeight: 700, color: t.textSecondary, textTransform: "uppercase", letterSpacing: "0.8px", fontFamily: t.mono }}>Investment ID / Deal ID</span>
             <div style={{ fontSize: 13.5, fontWeight: 700, color: isDark ? "#fff" : "#1C1917", display: "flex", gap: 8, alignItems: "center" }}>
-              <span style={{ fontFamily: t.mono }}>{drillInvestment.contract_id || drillInvestment.id}</span>
+              <span style={{ fontFamily: t.mono }}>{drillInvestment.investment_id || drillInvestment.id}</span>
               <span style={{ color: t.surfaceBorder }}>|</span>
               <span style={{ fontFamily: t.mono, color: t.idText }}>{drillInvestment.deal_id || "—"}</span>
             </div>
@@ -913,7 +913,7 @@ export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
             <span style={{ fontSize: 10, fontWeight: 700, color: t.textSecondary, textTransform: "uppercase", letterSpacing: "0.8px", fontFamily: t.mono }}>Investment Type</span>
-            <div style={{ fontSize: 13, color: isDark ? "#fff" : "#1C1917", fontWeight: 600 }}>{drillInvestment.contract_type || drillInvestment.type || "—"}</div>
+            <div style={{ fontSize: 13, color: isDark ? "#fff" : "#1C1917", fontWeight: 600 }}>{drillInvestment.investment_type || drillInvestment.type || "—"}</div>
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
             <span style={{ fontSize: 10, fontWeight: 700, color: t.textSecondary, textTransform: "uppercase", letterSpacing: "0.8px", fontFamily: t.mono }}>Start Date</span>

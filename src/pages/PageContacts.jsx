@@ -14,7 +14,7 @@ import { initials, av, badge, sortData, fmtCurr } from "../utils";
 import { StatCard, Bdg, Pagination, ActBtns, Modal, FF, FIn, FSel, DelModal, Tooltip } from "../components";
 import { useAuth } from "../AuthContext";
 
-export default function PageContacts({ t, isDark, CONTACTS = [], CONTRACTS = [], SCHEDULES = [], DEALS = [], collectionPath = "", DIMENSIONS = [], tenantId = "" }) {
+export default function PageContacts({ t, isDark, CONTACTS = [], INVESTMENTS = [], SCHEDULES = [], DEALS = [], collectionPath = "", DIMENSIONS = [], tenantId = "" }) {
   const { hasPermission, isSuperAdmin } = useAuth();
   const canCreate = hasPermission("CONTACT_CREATE");
   const canUpdate = hasPermission("CONTACT_UPDATE");
@@ -285,7 +285,7 @@ export default function PageContacts({ t, isDark, CONTACTS = [], CONTRACTS = [],
       const dp = detailContact;
       const dpId = String(dp.id || "").trim();
       const dpDocId = String(dp.docId || "").trim();
-      const partyContracts = CONTRACTS.filter(c => {
+      const partyContracts = INVESTMENTS.filter(c => {
         const cPId = String(c.party_id || "").trim();
         return (cPId === dpId || (dpDocId && cPId === dpDocId));
       });

@@ -118,13 +118,13 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
     }
 
     // Find the related contract for this schedule entry
-    // Check multiple possible field names: contract_id, contract, contractId
-    const contractIdField = currentData.contract_id || currentData.contract || currentData.contractId;
+    // Check multiple possible field names: investment_id, contract, contractId
+    const contractIdField = currentData.investment_id || currentData.contract || currentData.contractId;
     const relatedContract = INVESTMENTS.find(c =>
       c.id === contractIdField ||
-      c.contract_id === contractIdField ||
+      c.investment_id === contractIdField ||
       c.contractId === contractIdField ||
-      (c.contract_id && String(c.contract_id).toLowerCase() === String(contractIdField).toLowerCase()) ||
+      (c.investment_id && String(c.investment_id).toLowerCase() === String(contractIdField).toLowerCase()) ||
       (c.id && String(c.id).toLowerCase() === String(contractIdField).toLowerCase())
     );
     const contractCalculator = relatedContract?.calculator || "ACT/360+30/360";
@@ -437,7 +437,7 @@ Are you sure you want to continue?`;
 
     const payload = {
       schedule_id: d.schedule_id,
-      contract_id: d.contract || "",
+      investment_id: d.contract || "",
       deal_id: d.deal_id || "",
       party_id: d.party_id || "",
       due_date: d.dueDate || null,
@@ -516,7 +516,7 @@ Are you sure you want to continue?`;
           payment_type: original.type || null,
           deal_id: original.deal_id || null,
           party_id: original.party_id || null,
-          contract_id: original.contract || null,
+          investment_id: original.contract || null,
           period_number: original.period_number ? Number(original.period_number) : null,
         };
       }
@@ -814,7 +814,7 @@ Are you sure you want to continue?`;
           <div style={{ fontFamily: t.mono, fontSize: 11, color: t.idText }}>{hasLink(s) ? <a href="#" onClick={e => { e.preventDefault(); e.stopPropagation(); setDrillSchedule(s); }} style={{ color: isDark ? "#60A5FA" : "#4F46E5", textDecoration: "none", fontWeight: 600 }}>{s.schedule_id}</a> : s.schedule_id}</div>
           <div style={{ fontFamily: t.mono, fontSize: 11, color: t.textMuted }}>{s.linked ? <a href="#" onClick={e => { e.preventDefault(); e.stopPropagation(); const linked = SCHEDULES.find(x => x.schedule_id === s.linked); if (linked) setDrillSchedule(linked); }} style={{ color: isDark ? "#60A5FA" : "#4F46E5", textDecoration: "none" }}>{s.linked}</a> : dash}</div>
           <div style={{ fontFamily: t.mono, fontSize: 11.5, color: isDark ? "#60A5FA" : "#4F46E5", fontWeight: 500 }}>
-            <a href="#" onClick={e => { e.preventDefault(); e.stopPropagation(); const c = CONTRACTS.find(x => (x.contract_id || x.id) === s.contract); if (c) setDrillInvestment(c); }} style={{ color: "inherit", textDecoration: "none" }}>{s.contract}</a>
+            <a href="#" onClick={e => { e.preventDefault(); e.stopPropagation(); const c = CONTRACTS.find(x => (x.investment_id || x.id) === s.contract); if (c) setDrillInvestment(c); }} style={{ color: "inherit", textDecoration: "none" }}>{s.contract}</a>
           </div>
           <div style={{ fontFamily: t.mono, fontSize: 11, color: t.idText }}>{s.deal_id || dash}</div>
           <div style={{ fontFamily: t.mono, fontSize: 11, color: t.idText }}>
@@ -1204,7 +1204,7 @@ Are you sure you want to continue?`;
           <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
             <span style={{ fontSize: 10, fontWeight: 700, color: t.textSecondary, textTransform: "uppercase", letterSpacing: "0.8px", fontFamily: t.mono }}>Investment ID / Deal ID</span>
             <div style={{ fontSize: 13.5, fontWeight: 700, color: isDark ? "#fff" : "#1C1917", display: "flex", gap: 8, alignItems: "center" }}>
-              <span style={{ fontFamily: t.mono }}>{drillInvestment.contract_id || drillInvestment.id}</span>
+              <span style={{ fontFamily: t.mono }}>{drillInvestment.investment_id || drillInvestment.id}</span>
               <span style={{ color: t.surfaceBorder }}>|</span>
               <span style={{ fontFamily: t.mono, color: t.idText }}>{drillInvestment.deal_id || "—"}</span>
             </div>
@@ -1235,7 +1235,7 @@ Are you sure you want to continue?`;
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
             <span style={{ fontSize: 10, fontWeight: 700, color: t.textSecondary, textTransform: "uppercase", letterSpacing: "0.8px", fontFamily: t.mono }}>Investment Type</span>
-            <div style={{ fontSize: 13, color: isDark ? "#fff" : "#1C1917", fontWeight: 600 }}>{drillInvestment.contract_type || drillInvestment.type || "—"}</div>
+            <div style={{ fontSize: 13, color: isDark ? "#fff" : "#1C1917", fontWeight: 600 }}>{drillInvestment.investment_type || drillInvestment.type || "—"}</div>
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
             <span style={{ fontSize: 10, fontWeight: 700, color: t.textSecondary, textTransform: "uppercase", letterSpacing: "0.8px", fontFamily: t.mono }}>Start Date</span>
