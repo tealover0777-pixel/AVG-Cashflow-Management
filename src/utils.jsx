@@ -15,6 +15,7 @@ export const fmtCurr = n => {
 };
 
 
+export const mkId = (pre = "S") => `${pre}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
 
 // THEME TOKENS
 // ─────────────────────────────────────────────────────────────────────────────
@@ -106,6 +107,7 @@ const NAV_ITEMS = [
       { label: "Dimensions", icon: "⊞" },
       { label: "Reports", icon: "📊" },
       { label: "Payment Schedule", icon: "▤" },
+      { label: "Distribution Schedule", icon: "▥" },
       { label: "Payments", icon: "◇" },
     ]
   },
@@ -130,8 +132,14 @@ export const getNav = (isSuper, isAdmin, hasPermission, isR10010) => {
     // Granular RBAC per section
     if (item.label === "Dashboard" && !hasPermission("DASHBOARD_VIEW")) return false;
     if (item.label === "Deals" && !hasPermission("DEAL_VIEW")) return false;
-    if (item.label === "Contacts" && !hasPermission("CONTACT_VIEW")) return false;
-    if (item.label === "Investments" && !hasPermission("INVESTMENT_VIEW")) return false;
+    if (item.label === "Contacts") {
+      const hasContact = hasPermission("CONTACT_VIEW") || hasPermission("PARTY_VIEW");
+      if (!hasContact) return false;
+    }
+    if (item.label === "Investments") {
+      const hasInvest = hasPermission("INVESTMENT_VIEW") || hasPermission("CONTRACT_VIEW");
+      if (!hasInvest) return false;
+    }
     if (item.label === "Payment Schedule" && !hasPermission("PAYMENT_SCHEDULE_VIEW")) return false;
     if (item.label === "Payments" && !hasPermission("PAYMENT_VIEW")) return false;
     if (item.label === "Fees" && !hasPermission("FEE_VIEW")) return false;
@@ -145,7 +153,7 @@ export const getNav = (isSuper, isAdmin, hasPermission, isR10010) => {
   };
 
   // Process items and filter children
-  return NAV_ITEMS.map(item => {
+  const nav = NAV_ITEMS.map(item => {
     // If item has children, filter them
     if (item.children) {
       const visibleChildren = item.children.filter(isItemVisible);
@@ -155,6 +163,9 @@ export const getNav = (isSuper, isAdmin, hasPermission, isR10010) => {
     }
     return item;
   }).filter(item => item && isItemVisible(item));
+
+  if (typeof window !== 'undefined') window.__NAV__ = nav;
+  return nav;
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -170,6 +181,9 @@ export const getCollectionPaths = (tenantId) => {
     payments: `${tenantPath}/payments`,
     fees: `${tenantPath}/fees`,
     users: `${tenantPath}/users`,
+    achBatches: `${tenantPath}/achBatches`,
+    ledger: `${tenantPath}/ledger`,
+    distributionBatches: `${tenantPath}/distributionBatches`,
     roles: "role_types",
     tenants: "tenants",
     dimensions: "dimensions",
@@ -178,8 +192,10 @@ export const getCollectionPaths = (tenantId) => {
 // Dimension styling config — items come from Firestore, colors are local
 export const DIM_STYLES = {
   "Investment Type": { accent: d => d ? "#60A5FA" : "#3B82F6", bg: d => d ? "rgba(96,165,250,0.08)" : "#EFF6FF", border: d => d ? "rgba(96,165,250,0.15)" : "#BFDBFE" },
-  "Payment Frequency": { accent: d => d ? "#34D399" : "#059669", bg: d => d ? "rgba(52,211,153,0.08)" : "#ECFDF5", border: d => d ? "rgba(52,211,153,0.15)" : "#A7F3D0" },
-  "Payment Status": { accent: d => d ? "#FBBF24" : "#D97706", bg: d => d ? "rgba(251,191,36,0.08)" : "#FFFBEB", border: d => d ? "rgba(251,191,36,0.15)" : "#FDE68A" },
+  "ScheduleFrequency": { accent: d => d ? "#34D399" : "#059669", bg: d => d ? "rgba(52,211,153,0.08)" : "#ECFDF5", border: d => d ? "rgba(52,211,153,0.15)" : "#A7F3D0" },
+  "ScheduleStatus": { accent: d => d ? "#FBBF24" : "#D97706", bg: d => d ? "rgba(251,191,36,0.08)" : "#FFFBEB", border: d => d ? "rgba(251,191,36,0.15)" : "#FDE68A" },
+  "PaymentStatus": { accent: d => d ? "#10B981" : "#059669", bg: d => d ? "rgba(16,185,129,0.08)" : "#ECFDF5", border: d => d ? "rgba(16,185,129,0.15)" : "#A7F3D0" },
+  "ACHBatchStatus": { accent: d => d ? "#6366F1" : "#4338CA", bg: d => d ? "rgba(99,102,241,0.08)" : "#EEF2FF", border: d => d ? "rgba(99,102,241,0.15)" : "#C7D2FE" },
   "Investment Status": { accent: d => d ? "#A78BFA" : "#7C3AED", bg: d => d ? "rgba(167,139,250,0.08)" : "#F5F3FF", border: d => d ? "rgba(167,139,250,0.15)" : "#DDD6FE" },
   "Payment Type": { accent: d => d ? "#F472B6" : "#BE185D", bg: d => d ? "rgba(244,114,182,0.08)" : "#FDF2F8", border: d => d ? "rgba(244,114,182,0.15)" : "#FBCFE8" },
   "Calculation Method": { accent: d => d ? "#2DD4BF" : "#0F766E", bg: d => d ? "rgba(45,212,191,0.08)" : "#F0FDFA", border: d => d ? "rgba(45,212,191,0.15)" : "#99F6E4" },

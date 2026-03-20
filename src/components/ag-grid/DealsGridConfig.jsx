@@ -7,6 +7,17 @@ import DealActionsCellRenderer from './DealActionsCellRenderer';
 export const getColumnDefs = (permissions, isDark, t) => {
   const baseCols = [
     {
+      headerName: "",
+      width: 45,
+      pinned: "left",
+      checkboxSelection: true,
+      headerCheckboxSelection: true,
+      sortable: false,
+      filter: false,
+      resizable: false,
+      suppressMenu: true,
+    },
+    {
       headerName: "Deal ID",
       field: "id",
       width: 90,

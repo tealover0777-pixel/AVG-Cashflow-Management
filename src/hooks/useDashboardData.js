@@ -35,12 +35,12 @@ export function useDashboardData({ DEALS = [], INVESTMENTS = [], CONTACTS = [], 
             })
             : SCHEDULES;
 
-        // Derive valid Payment Status values dynamically from Dimensions
-        const paymentStatusDim = DIMENSIONS.find(d => d.name === "Payment Status");
+        // Derive valid Schedule Status values dynamically from Dimensions
+        const scheduleStatusDim = DIMENSIONS.find(d => d.name === "ScheduleStatus" || d.name === "Schedule Status");
         // Statuses considered "zeroed out" — excluded from metric/chart calculations
         const ZEROED_STATUSES = new Set(["Missed", "Cancelled", "VOID", "Waived", "Replaced"]);
         // All valid statuses from Dimensions (or fallback to what's actually in the data)
-        const allValidStatuses = paymentStatusDim?.items?.length
+        const allValidStatuses = scheduleStatusDim?.items?.length
             ? new Set(paymentStatusDim.items.map(i => typeof i === 'string' ? i : i.value || i.label || i.name).filter(Boolean))
             : new Set(allFilteredSchedules.map(s => s.status).filter(Boolean));
         // liveStatuses = all valid statuses minus the zeroed-out ones (used for metrics)

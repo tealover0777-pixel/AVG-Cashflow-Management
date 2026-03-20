@@ -8,13 +8,21 @@ import 'ag-grid-community/styles/ag-grid.css';
 import '../components/ag-grid/ag-grid-theme.css';
 import { getColumnDefs } from '../components/ag-grid/DealsGridConfig.jsx';
 import { db, storage } from "../firebase";
-import { doc, setDoc, updateDoc, deleteDoc, serverTimestamp, collection, getDocs } from "firebase/firestore";
+import { doc, setDoc, updateDoc, deleteDoc, serverTimestamp, collection, addDoc, getDocs } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
-import { sortData } from "../utils";
+import { sortData, mkId, fmtCurr, normalizeDateAtNoon, pmtCalculator_ACT360_30360, feeCalculator_ACT360_30360 } from "../utils";
 import { Bdg, StatCard, Pagination, Modal, FF, FIn, FSel, DelModal, Tooltip } from "../components";
 import { useAuth } from "../AuthContext";
 
-export default function PageDeals({ t, isDark, DEALS = [], FEES_DATA = [], DIMENSIONS = [], collectionPath = "", setActivePage, setSelectedDealId }) {
+const PT_INTEREST = "Interest_Payment";
+const PT_PRINCIPAL = "Principal_Payment";
+const PT_FEE = "Fee_Payment";
+const PT_INV_FUND = "Investment_Funding";
+const PT_INV_REPAYMENT = "Investment_Repayment";
+const PT_BOR_RECEIVED = "Loan_Proceeds_Received";
+const PT_BOR_PAYBACK = "Loan_Payback";
+
+export default function PageDeals({ t, isDark, DEALS = [], INVESTMENTS = [], FEES_DATA = [], DIMENSIONS = [], collectionPath = "", setActivePage, setSelectedDealId, DISTRIBUTIONS = [] }) {
   const { hasPermission, isSuperAdmin } = useAuth();
   const canCreate = isSuperAdmin || hasPermission("DEAL_CREATE");
   const canUpdate = isSuperAdmin || hasPermission("DEAL_UPDATE");
@@ -24,6 +32,8 @@ export default function PageDeals({ t, isDark, DEALS = [], FEES_DATA = [], DIMEN
   const [assetImages, setAssetImages] = useState([]); // { url, name, id }
   const [newFiles, setNewFiles] = useState([]); // { file, preview }
   const [isUploading, setIsUploading] = useState(false);
+  const [selectedRows, setSelectedRows] = useState([]);
+  const [distModal, setDistModal] = useState({ open: false, data: { calculator: "ACT/360", startDate: "", endDate: "", notes: "" } });
   
   const fetchImages = async (did) => {
     try {
@@ -165,6 +175,91 @@ export default function PageDeals({ t, isDark, DEALS = [], FEES_DATA = [], DIMEN
     } catch (err) { console.error("Delete deal error:", err); }
   };
 
+  const handleGenerateDistribution = async () => {
+    if (selectedRows.length === 0) return;
+    setIsUploading(true);
+    try {
+      const batchId = mkId("DIST");
+      const tenantPath = collectionPath.split("/deals")[0];
+      const schedulePath = `${tenantPath}/paymentSchedules`;
+      const batchPath = `${tenantPath}/distributionBatches`;
+
+      let totalAmount = 0;
+      let recipientCount = 0;
+      const processedInvestments = new Set();
+
+      for (const deal of selectedRows) {
+        // Find investments for this deal
+        const dealInvestments = INVESTMENTS.filter(inv => inv.deal_id === deal.id || inv.deal_id === deal.docId);
+        
+        for (const inv of dealInvestments) {
+          processedInvestments.add(inv.id);
+          recipientCount++;
+
+          // Simplified generation for the batch
+          // In a real app, this would use the robust logic from PageInvestments.jsx
+          const startDate = normalizeDateAtNoon(new Date(distModal.data.startDate || inv.startDate || new Date()));
+          const endDate = normalizeDateAtNoon(new Date(distModal.data.endDate || inv.endDate || new Date()));
+          const amount = parseFloat(String(inv.amount || 0).replace(/[^0-9.-]/g, ""));
+          const rate = parseFloat(String(inv.rate || 0).replace(/[^0-9.-]/g, "")) / 100;
+
+          // Generate one interest entry for this period
+          const interestAmt = pmtCalculator_ACT360_30360(startDate, endDate, startDate, amount, rate, "Monthly");
+          const sId = mkId("S");
+          const payload = {
+            schedule_id: sId,
+            version_num: 1,
+            version_id: `${sId}-V1`,
+            payment_id: `${sId}-P`,
+            active_version: true,
+            investment_id: inv.id,
+            deal_id: deal.id,
+            party_id: inv.party_id || "",
+            due_date: endDate.toISOString().slice(0, 10),
+            payment_type: PT_INTEREST,
+            payment_amount: Math.round(interestAmt * 100) / 100,
+            signed_payment_amount: -Math.abs(interestAmt), // Assuming OUT for distribution
+            direction_from_company: "OUT",
+            status: "Due",
+            notes: `Distribution Batch ${batchId}: ${distModal.data.notes || ""}`,
+            created_at: serverTimestamp(),
+            term_start: startDate.toISOString().slice(0, 10),
+            term_end: endDate.toISOString().slice(0, 10),
+            batch_id: batchId
+          };
+          
+          await addDoc(collection(db, schedulePath), payload);
+          totalAmount += Math.abs(interestAmt);
+        }
+      }
+
+      // Create batch record
+      await addDoc(collection(db, batchPath), {
+        batch_id: batchId,
+        deal_names: selectedRows.map(d => d.name).join(", "),
+        amount: totalAmount,
+        status: "Draft",
+        method: distModal.data.calculator,
+        recipient_count: recipientCount,
+        notes: distModal.data.notes,
+        created_at: serverTimestamp(),
+        start_date: distModal.data.startDate,
+        end_date: distModal.data.endDate,
+        deal_ids: selectedRows.map(d => d.id)
+      });
+
+      setDistModal({ ...distModal, open: false });
+      setSelectedRows([]);
+      if (gridRef.current?.api) gridRef.current.api.deselectAll();
+      setActivePage("Distribution Schedule");
+    } catch (err) {
+      console.error("Distribution generation error:", err);
+      alert("Failed to generate distribution: " + err.message);
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
   const gridRef = useRef(null);
   const [pageSize, setPageSize] = useState(30);
 
@@ -225,7 +320,22 @@ export default function PageDeals({ t, isDark, DEALS = [], FEES_DATA = [], DIMEN
   }), [isDark, t, permissions, FEES_DATA]);
 
   return (<>
-    <div style={{ marginBottom: 28, display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}><div><h1 style={{ fontFamily: t.titleFont, fontWeight: t.titleWeight, fontSize: t.titleSize, color: isDark ? "#fff" : "#1C1917", letterSpacing: t.titleTracking, lineHeight: 1, marginBottom: 6 }}>Deals</h1><p style={{ fontSize: 13.5, color: t.textMuted }}>Manage your investment deals</p></div>{canCreate && <Tooltip text="Create a new investment deal" t={t}><button className="primary-btn" onClick={openAdd} style={{ background: t.accentGrad, color: "#fff", padding: "11px 22px", borderRadius: 11, fontSize: 13.5, fontWeight: 600, boxShadow: `0 4px 16px ${t.accentShadow}`, display: "flex", alignItems: "center", gap: 7 }}><span style={{ fontSize: 18, lineHeight: 1 }}>+</span> New Deal</button></Tooltip>}</div>
+    <div style={{ marginBottom: 28, display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
+      <div>
+        <h1 style={{ fontFamily: t.titleFont, fontWeight: t.titleWeight, fontSize: t.titleSize, color: isDark ? "#fff" : "#1C1917", letterSpacing: t.titleTracking, lineHeight: 1, marginBottom: 6 }}>Deals</h1>
+        <p style={{ fontSize: 13.5, color: t.textMuted }}>Manage your investment deals</p>
+      </div>
+      <div style={{ display: "flex", gap: 12 }}>
+        {selectedRows.length > 0 && (
+          <Tooltip text="Generate distribution schedules for selected deals" t={t}>
+            <button className="primary-btn" onClick={() => setDistModal({ ...distModal, open: true })} style={{ background: "linear-gradient(135deg, #10B981 0%, #059669 100%)", color: "#fff", padding: "11px 22px", borderRadius: 11, fontSize: 13.5, fontWeight: 600, boxShadow: `0 4px 16px rgba(16, 185, 129, 0.25)`, display: "flex", alignItems: "center", gap: 7 }}>
+              <span style={{ fontSize: 16 }}>📊</span> Generate Distribution Schedule
+            </button>
+          </Tooltip>
+        )}
+        {canCreate && <Tooltip text="Create a new investment deal" t={t}><button className="primary-btn" onClick={openAdd} style={{ background: t.accentGrad, color: "#fff", padding: "11px 22px", borderRadius: 11, fontSize: 13.5, fontWeight: 600, boxShadow: `0 4px 16px ${t.accentShadow}`, display: "flex", alignItems: "center", gap: 7 }}><span style={{ fontSize: 18, lineHeight: 1 }}>+</span> New Deal</button></Tooltip>}
+      </div>
+    </div>
     <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 16, marginBottom: 28 }}>
       {[{ label: "Total", value: DEALS.length, accent: isDark ? "#60A5FA" : "#3B82F6", bg: isDark ? "rgba(96,165,250,0.08)" : "#EFF6FF", border: isDark ? "rgba(96,165,250,0.15)" : "#BFDBFE" }, { label: "Active", value: DEALS.filter(p => p.status !== "Closed" && p.status !== "Liquidated").length, accent: isDark ? "#34D399" : "#059669", bg: isDark ? "rgba(52,211,153,0.08)" : "#ECFDF5", border: isDark ? "rgba(52,211,153,0.15)" : "#A7F3D0" }, { label: "Closed", value: DEALS.filter(p => p.status === "Closed" || p.status === "Liquidated").length, accent: isDark ? "rgba(255,255,255,0.4)" : "#6B7280", bg: isDark ? "rgba(255,255,255,0.05)" : "#F9FAFB", border: isDark ? "rgba(255,255,255,0.1)" : "#E5E7EB" }].map(s => <StatCard key={s.label} {...s} titleFont={t.titleFont} isDark={isDark} />)}
     </div>
@@ -246,6 +356,11 @@ export default function PageDeals({ t, isDark, DEALS = [], FEES_DATA = [], DIMEN
         suppressCellFocus={true}
         columnHoverHighlight={true}
         theme="legacy"
+        rowSelection="multiple"
+        onSelectionChanged={() => {
+          const rows = gridRef.current.api.getSelectedRows();
+          setSelectedRows(rows);
+        }}
         onRowClicked={(event) => {
           // Row click behavior disabled in favor of specific link clicks on ID/Name
         }}
@@ -398,5 +513,20 @@ export default function PageDeals({ t, isDark, DEALS = [], FEES_DATA = [], DIMEN
       )}
     </Modal>
     <DelModal target={delT} onClose={() => setDelT(null)} onConfirm={handleDeleteDeal} label="This deal" t={t} isDark={isDark} />
+    
+    {/* Generate Distribution Modal */}
+    <Modal open={distModal.open} onClose={() => setDistModal({ ...distModal, open: false })} title="Generate Distribution Schedule" onSave={handleGenerateDistribution} width={450} t={t} isDark={isDark} saveLabel={isUploading ? "Generating..." : "Create"} loading={isUploading}>
+      <div style={{ marginBottom: 16 }}>
+        <div style={{ fontSize: 13, color: t.textMuted, marginBottom: 12 }}>You have selected <strong style={{ color: t.textSecondary }}>{selectedRows.length}</strong> deals for distribution generation.</div>
+        <FF label="Calculator Method" t={t}>
+          <FSel value={distModal.data.calculator} onChange={e => setDistModal({ ...distModal, data: { ...distModal.data, calculator: e.target.value } })} options={["ACT/360", "30/360", "ACT/ACT", "Hybrid"]} t={t} />
+        </FF>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+          <FF label="Start Date" t={t}><FIn value={distModal.data.startDate} onChange={e => setDistModal({ ...distModal, data: { ...distModal.data, startDate: e.target.value } })} t={t} type="date" /></FF>
+          <FF label="End Date" t={t}><FIn value={distModal.data.endDate} onChange={e => setDistModal({ ...distModal, data: { ...distModal.data, endDate: e.target.value } })} t={t} type="date" /></FF>
+        </div>
+        <FF label="Notes" t={t}><FIn value={distModal.data.notes} onChange={e => setDistModal({ ...distModal, data: { ...distModal.data, notes: e.target.value } })} placeholder="Optional processing notes..." t={t} /></FF>
+      </div>
+    </Modal>
   </>);
 }

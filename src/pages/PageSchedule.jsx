@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { db } from "../firebase";
 import { collection, doc, addDoc, updateDoc, deleteDoc, serverTimestamp } from "firebase/firestore";
-import { sortData, badge, initials, av, pmtCalculator_ACT360_30360, getFeeFrequencyString, normalizeDateAtNoon } from "../utils";
+import { sortData, badge, initials, av, pmtCalculator_ACT360_30360, getFeeFrequencyString, normalizeDateAtNoon, mkId } from "../utils";
 import { StatCard, Bdg, ActBtns, Pagination, useResizableColumns, TblHead, TblFilterRow, Modal, FF, FIn, FSel, DelModal, Tooltip } from "../components";
 import { useAuth } from "../AuthContext";
 
@@ -21,18 +21,10 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
   const canCreate = isSuperAdmin || hasPermission("PAYMENT_SCHEDULE_CREATE");
   const canDelete = isSuperAdmin || hasPermission("PAYMENT_SCHEDULE_DELETE");
   const canUpdate = isSuperAdmin || hasPermission("PAYMENT_SCHEDULE_UPDATE");
-  const getNextScheduleId = () => {
-    let maxNum = 10000;
-    SCHEDULES.forEach(s => {
-      if (s.schedule_id && s.schedule_id.startsWith("S")) {
-        const num = parseInt(s.schedule_id.substring(1), 10);
-        if (!isNaN(num) && num > maxNum) maxNum = num;
-      }
-    });
-    return `S${maxNum + 1}`;
-  };
-  const paymentStatusOpts = (DIMENSIONS.find(d => d.name === "Payment Status" || d.name === "PaymentStatus") || {}).items || ["Due", "Paid", "Partial", "Missed", "Cancelled"];
+  const getNextScheduleId = () => mkId("S");
+  const paymentStatusOpts = (DIMENSIONS.find(d => d.name === "ScheduleStatus" || d.name === "Schedule Status") || {}).items || ["Due", "Paid", "Partial", "Missed", "Cancelled"];
   const [hov, setHov] = useState(null); const [sel, setSel] = useState(new Set()); const [chip, setChip] = useState("All");
+  const [showHistory, setShowHistory] = useState(false);
   const [modal, setModal] = useState({ open: false, mode: "add", data: {} });
   const [delT, setDelT] = useState(null);
   const [confirmAction, setConfirmAction] = useState(null); // { title, message, onConfirm }
@@ -67,7 +59,26 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
   const [sort, setSort] = useState({ key: "dueDate", direction: "asc" });
   const [page, setPage] = useState(1);
   const onSort = k => { setSort(s => ({ key: k, direction: s.key === k && s.direction === "asc" ? "desc" : "asc" })); setPage(1); };
-  const openAdd = () => setModal({ open: true, mode: "add", data: { schedule_id: getNextScheduleId(), investment: "", dueDate: "", type: "Interest", payment: "", status: "Due", notes: "New Manual Schedule ", fee_ids: [], basePayment: 0 } });
+  const openAdd = () => {
+    const sId = getNextScheduleId();
+    setModal({
+      open: true, mode: "add", data: {
+        schedule_id: sId,
+        version_num: 1,
+        version_id: `${sId}-V1`,
+        payment_id: `${sId}-P`,
+        active_version: true,
+        investment: "",
+        dueDate: "",
+        type: "Interest",
+        payment: "",
+        status: "Due",
+        notes: "New Manual Schedule ",
+        fee_ids: [],
+        basePayment: 0
+      }
+    });
+  };
   const openEdit = r => {
     const fee_ids = r.fee_id ? String(r.fee_id).split(",").filter(Boolean) : [];
     let basePayment = 0;
@@ -453,6 +464,11 @@ Are you sure you want to continue?`;
       applied_to: d.applied_to || "",
       term_start: d.term_start || null,
       term_end: d.term_end || null,
+      term_end: d.term_end || null,
+      version_num: d.version_num || 1,
+      version_id: d.version_id || `${d.schedule_id}-V${d.version_num || 1}`,
+      payment_id: d.payment_id || `${d.schedule_id}-P`,
+      active_version: d.active_version !== undefined ? d.active_version : true,
       updated_at: serverTimestamp(),
     };
 
@@ -605,7 +621,21 @@ Are you sure you want to continue?`;
               originalDocId: d.docId,
               data: { ...initialData, ...updates }
             });
-          } catch (err) { console.error("Update missed error:", err); }
+            if (modal.mode === "edit" || modal.mode === "add_late" || modal.mode === "add_partial") {
+              const ledgerPath = `${collectionPath.split("/paymentSchedules")[0]}/ledger`;
+              await addDoc(collection(db, ledgerPath), {
+                entity_type: "Schedule",
+                entity_id: d.schedule_id,
+                amount: payload.payment_amount,
+                currency: "USD",
+                notes: `Schedule ${d.schedule_id} ${modal.mode === "edit" ? "updated" : "replacement created"} - Status: ${payload.status}`,
+                created_at: serverTimestamp(),
+                user_id: user?.uid || "system"
+              });
+            }
+
+            close();
+          } catch (err) { console.error("Save schedule error:", err); }
         }
       });
       return;
@@ -774,7 +804,19 @@ Are you sure you want to continue?`;
   const { gridTemplate, headerRef, onResizeStart } = useResizableColumns(cols);
   const [colFilters, setColFilters] = useState({});
   const setColFilter = (key, val) => { setColFilters(f => ({ ...f, [key]: val })); setPage(1); };
-  const filtered = SCHEDULES.filter(s => chip === "All" || s.status === chip).filter(s => cols.every(c => { if (!c.k || !colFilters[c.k]) return true; return String(s[c.k] || "").toLowerCase().includes(colFilters[c.k].toLowerCase()); }));
+  const filtered = SCHEDULES.filter(s => {
+    // Versioning filter: by default show only active versions. If showHistory is true, show all.
+    if (!showHistory && s.active_version === false) return false;
+    
+    // Status chip filter
+    if (chip !== "All" && s.status !== chip) return false;
+    
+    // Column search filters
+    return cols.every(c => {
+      if (!c.k || !colFilters[c.k]) return true;
+      return String(s[c.k] || "").toLowerCase().includes(colFilters[c.k].toLowerCase());
+    });
+  });
   const sorted = sortData(filtered, sort);
   const paginated = sorted.slice((page - 1) * 20, page * 20);
   const totalPages = Math.ceil(sorted.length / 20);
@@ -799,6 +841,12 @@ Are you sure you want to continue?`;
     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
       <div style={{ display: "flex", gap: 8, alignItems: "center" }}>{["All", "Due", "Paid", "Missed"].map(f => { const isA = chip === f; return <span key={f} className="filter-chip" onClick={() => setChip(f)} style={{ fontSize: 12, fontWeight: isA ? 600 : 500, padding: "5px 14px", borderRadius: 20, background: isA ? t.accent : t.chipBg, color: isA ? "#fff" : t.textSecondary, border: `1px solid ${isA ? t.accent : t.chipBorder}`, cursor: "pointer" }}>{f}</span>; })}
         {sel.size > 0 && <><div style={{ width: 1, height: 18, background: t.surfaceBorder, marginLeft: 4 }} /><span onClick={() => setSel(new Set())} style={{ fontSize: 12, fontWeight: 500, padding: "5px 14px", borderRadius: 20, background: isDark ? "rgba(248,113,113,0.12)" : "#FEF2F2", color: isDark ? "#F87171" : "#DC2626", border: `1px solid ${isDark ? "rgba(248,113,113,0.25)" : "#FECACA"}`, cursor: "pointer" }}>Clear</span></>}
+      </div>
+      <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+        <span style={{ fontSize: 12, color: t.textMuted, fontWeight: 500 }}>Show Version History</span>
+        <div onClick={() => setShowHistory(!showHistory)} style={{ width: 34, height: 18, borderRadius: 20, background: showHistory ? t.accent : (isDark ? "rgba(255,255,255,0.1)" : "#E5E7EB"), position: "relative", cursor: "pointer", transition: "all 0.2s" }}>
+          <div style={{ width: 14, height: 14, borderRadius: "50%", background: "#fff", position: "absolute", top: 2, left: showHistory ? 18 : 2, transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)", boxShadow: "0 1px 3px rgba(0,0,0,0.2)" }} />
+        </div>
       </div>
     </div>
     <div style={{ background: t.surface, borderRadius: 16, border: `1px solid ${t.surfaceBorder}`, overflow: "auto", backdropFilter: isDark ? "blur(20px)" : "none", boxShadow: t.tableShadow }}>

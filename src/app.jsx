@@ -15,6 +15,7 @@ import PageContacts from "./pages/PageContacts";
 import PageInvestments from "./pages/PageInvestments";
 import PageSchedule from "./pages/PageSchedule";
 import PagePayments from "./pages/PagePayments";
+import PageDistributionSchedule from "./pages/PageDistributionSchedule";
 import PageFees from "./pages/PageFees";
 import PageTenants from "./pages/PageTenants";
 import PageUserProfiles from "./pages/PageUserProfiles";
@@ -96,14 +97,17 @@ function AppContent() {
   const { data: rawUsers, loading: l9, error: e9 } = useFirestoreCollection((activeTenantId && (isSuperAdmin || isTenantAdmin || hasPermission("USER_PROFILE_*")) && !isGlobalConsolidated) ? fetchPaths.users : null);
   const { data: rawRoles, loading: l10, error: e10 } = useFirestoreCollection((activeTenantId && (isSuperAdmin || isTenantAdmin || hasPermission("ROLE_TYPE_*")) && !isGlobalConsolidated) ? fetchPaths.roles : null);
   const { data: rawDimensions, loading: l7, error: e7 } = useFirestoreCollection(user ? fetchPaths.dimensions : null);
+  const { data: rawACHBatches, loading: l11, error: e11 } = useFirestoreCollection(isGlobalConsolidated ? "achBatches" : (activeTenantId ? fetchPaths.achBatches : null), isGlobalConsolidated);
+  const { data: rawLedger, loading: l12, error: e12 } = useFirestoreCollection(isGlobalConsolidated ? "ledger" : (activeTenantId ? fetchPaths.ledger : null), isGlobalConsolidated);
+  const { data: rawDistributionBatches, loading: l13, error: e13 } = useFirestoreCollection(isGlobalConsolidated ? "distributionBatches" : (activeTenantId ? fetchPaths.distributionBatches : null), isGlobalConsolidated);
 
   const shouldFetch = !!activeTenantId || isGlobalRole;
 
-  const loading = authLoading || (shouldFetch && (l1 || l2 || l3 || l4 || l5 || l6)) || (isSuperAdmin && l8) || (activeTenantId && (isSuperAdmin || isTenantAdmin || hasPermission("USER_PROFILE_*") || hasPermission("ROLE_TYPE_*")) && (l9 || l10)) || (user && l7);
+  const loading = authLoading || (shouldFetch && (l1 || l2 || l3 || l4 || l5 || l6 || l13)) || (isSuperAdmin && l8) || (activeTenantId && (isSuperAdmin || isTenantAdmin || hasPermission("USER_PROFILE_*") || hasPermission("ROLE_TYPE_*")) && (l9 || l10)) || (user && l7);
   const dataPresent = rawDeals.length > 0 || rawInvestments.length > 0;
   const showLoading = loading && !dataPresent;
 
-  const firstError = e1 || e2 || e3 || e4 || e5 || e6 || e7 || e8 || e9 || e10;
+  const firstError = e1 || e2 || e3 || e4 || e5 || e6 || e7 || e8 || e9 || e10 || e11 || e12 || e13;
 
   // Auto-select first tenant for Super Admins if none selected
   useEffect(() => {
@@ -319,6 +323,15 @@ function AppContent() {
     id: d.id, docId: d.doc_id || d.id, name: d.fee_name || "", fee_type: d.fee_type || "", method: d.calculation_method || "",
     rate: d.default_rate || "", applied_to: d.applied_to || "Principal Amount", direction: d.direction || "IN", fee_charge_at: d.fee_charge_at || "", fee_frequency: d.fee_frequency || "",
     description: d.description || "",
+  }));
+  const ACH_BATCHES = rawACHBatches.map(d => ({
+    id: d.batch_id || d.id, docId: d.doc_id || d.id, _path: d._path, batch_id: d.batch_id || "", status: d.status || "", created_at: d.created_at, updated_at: d.updated_at,
+  }));
+  const LEDGER = rawLedger.map(d => ({
+    id: d.ledger_id || d.id, docId: d.doc_id || d.id, _path: d._path, entity_type: d.entity_type || "", entity_id: d.entity_id || "", amount: d.amount || 0, currency: d.currency || "", note: d.notes || "", created_at: d.created_at,
+  }));
+  const DISTRIBUTION_BATCHES = rawDistributionBatches.map(d => ({
+    id: d.batch_id || d.id, docId: d.doc_id || d.id, _path: d._path, batch_id: d.batch_id || "", status: d.status || "", created_at: d.created_at, updated_at: d.updated_at,
   }));
 
   const TENANTS = rawTenants.map(d => ({
@@ -599,12 +612,13 @@ function AppContent() {
               : (
                 <>
                   {activePage === "Dashboard" && <PageDashboard t={t} isDark={isDark} DEALS={DEALS} INVESTMENTS={INVESTMENTS} CONTACTS={CONTACTS} SCHEDULES={SCHEDULES} PAYMENTS={PAYMENTS} MONTHLY={MONTHLY} DIMENSIONS={DIMENSIONS} setActivePage={setActivePage} />}
-                  {activePage === "Deals" && <PageDeals t={t} isDark={isDark} DEALS={DEALS} FEES_DATA={FEES_DATA} DIMENSIONS={DIMENSIONS} collectionPath={isGlobalConsolidated ? "GROUP:deals" : fetchPaths.deals} setActivePage={setActivePage} setSelectedDealId={setSelectedDealId} />}
+                  {activePage === "Deals" && <PageDeals t={t} isDark={isDark} DEALS={DEALS} FEES_DATA={FEES_DATA} DIMENSIONS={DIMENSIONS} collectionPath={isGlobalConsolidated ? "GROUP:deals" : fetchPaths.deals} setActivePage={setActivePage} setSelectedDealId={setSelectedDealId} DISTRIBUTIONS={DISTRIBUTION_BATCHES} />}
                   {activePage === "Deal Summary" && <PageDealSummary t={t} isDark={isDark} dealId={selectedDealId} DEALS={DEALS} INVESTMENTS={INVESTMENTS} CONTACTS={CONTACTS} DIMENSIONS={DIMENSIONS} FEES_DATA={FEES_DATA} setActivePage={setActivePage} investmentCollection={isGlobalConsolidated ? "investments" : fetchPaths.investments} />}
                   {activePage === "Contacts" && <PageContacts t={t} isDark={isDark} CONTACTS={CONTACTS} INVESTMENTS={INVESTMENTS} SCHEDULES={SCHEDULES} DEALS={DEALS} collectionPath={isGlobalConsolidated ? "GROUP:parties" : fetchPaths.parties} DIMENSIONS={DIMENSIONS} tenantId={activeTenantId} />}
                   {activePage === "Investments" && <PageInvestments t={t} isDark={isDark} INVESTMENTS={INVESTMENTS} DEALS={DEALS} CONTACTS={CONTACTS} DIMENSIONS={DIMENSIONS} FEES_DATA={FEES_DATA} SCHEDULES={SCHEDULES} collectionPath={isGlobalConsolidated ? "GROUP:investments" : fetchPaths.investments} schedulePath={isGlobalConsolidated ? "GROUP:paymentSchedules" : fetchPaths.paymentSchedules} />}
                   {activePage === "Payment Schedule" && <PageSchedule t={t} isDark={isDark} SCHEDULES={SCHEDULES} INVESTMENTS={INVESTMENTS} CONTACTS={CONTACTS} DEALS={DEALS} DIMENSIONS={DIMENSIONS} FEES_DATA={FEES_DATA} collectionPath={isGlobalConsolidated ? "GROUP:paymentSchedules" : fetchPaths.paymentSchedules} />}
-                  {activePage === "Payments" && <PagePayments t={t} isDark={isDark} PAYMENTS={PAYMENTS} collectionPath={isGlobalConsolidated ? "GROUP:payments" : fetchPaths.payments} />}
+                  {activePage === "Distribution Schedule" && <PageDistributionSchedule t={t} isDark={isDark} DEALS={DEALS} SCHEDULES={SCHEDULES} DIMENSIONS={DIMENSIONS} DISTRIBUTIONS={DISTRIBUTION_BATCHES} collectionPath={isGlobalConsolidated ? "GROUP:distributionBatches" : fetchPaths.distributionBatches} />}
+                  {activePage === "Payments" && <PagePayments t={t} isDark={isDark} PAYMENTS={PAYMENTS} INVESTMENTS={INVESTMENTS} CONTACTS={CONTACTS} SCHEDULES={SCHEDULES} DIMENSIONS={DIMENSIONS} ACH_BATCHES={ACH_BATCHES} LEDGER={LEDGER} collectionPath={isGlobalConsolidated ? "GROUP:payments" : fetchPaths.payments} achBatchPath={isGlobalConsolidated ? "GROUP:achBatches" : fetchPaths.achBatches} ledgerPath={isGlobalConsolidated ? "GROUP:ledger" : fetchPaths.ledger} />}
                   {activePage === "Fees" && <PageFees t={t} isDark={isDark} FEES_DATA={FEES_DATA} DIMENSIONS={DIMENSIONS} collectionPath={isGlobalConsolidated ? "GROUP:fees" : fetchPaths.fees} />}
                   {activePage === "Tenants" && <PageTenants t={t} isDark={isDark} TENANTS={TENANTS} collectionPath={fetchPaths.tenants} />}
                   {activePage === "User Profiles" && <PageUserProfiles t={t} isDark={isDark} USERS={rawUsers} ROLES={rawRoles} collectionPath={fetchPaths.users} DIMENSIONS={DIMENSIONS} tenantId={activeTenantId} TENANTS={TENANTS} CONTACTS={CONTACTS} />}

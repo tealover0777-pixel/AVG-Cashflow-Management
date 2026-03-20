@@ -15,9 +15,9 @@ import { useAuth } from "../AuthContext";
 
 export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [], CONTACTS = [], DIMENSIONS = [], FEES_DATA = [], SCHEDULES = [], collectionPath = "", schedulePath = "" }) {
   const { hasPermission, isSuperAdmin } = useAuth();
-  const canCreate = isSuperAdmin || hasPermission("INVESTMENT_CREATE");
-  const canUpdate = isSuperAdmin || hasPermission("INVESTMENT_UPDATE");
-  const canDelete = isSuperAdmin || hasPermission("INVESTMENT_DELETE") || hasPermission("INVESTMENTS_DELETE");
+  const canCreate = isSuperAdmin || hasPermission("INVESTMENT_CREATE") || hasPermission("CONTRACT_CREATE");
+  const canUpdate = isSuperAdmin || hasPermission("INVESTMENT_UPDATE") || hasPermission("CONTRACT_UPDATE");
+  const canDelete = isSuperAdmin || hasPermission("INVESTMENT_DELETE") || hasPermission("INVESTMENTS_DELETE") || hasPermission("CONTRACT_DELETE");
   const canGenerate = isSuperAdmin || hasPermission("PAYMENT_SCHEDULE_CREATE");
   const [sel, setSel] = useState(new Set());
   const [chip, setChip] = useState("All");
@@ -95,7 +95,8 @@ export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [
         start_date: sd,
         maturity_date: ed,
         term_months: termM,
-        calculator: ""
+        calculator: "",
+        rollover: false
       }
     });
   };
@@ -120,6 +121,7 @@ export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [
       maturity_date: d.maturity_date || null,
       status: d.status || "",
       fees: (d.feeIds || []).join(","),
+      rollover: !!d.rollover,
       updated_at: serverTimestamp(),
     };
     try {
@@ -220,16 +222,8 @@ export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [
         throw new Error(`Invalid schedule path: "${schedulePath}". Please select a specific tenant first.`);
       }
 
-      // --- ID Generation Logic ---
-      let maxIdNum = 10000;
-      SCHEDULES.forEach(s => {
-        const sid = s.schedule_id || s.id;
-        if (sid && sid.startsWith("S")) {
-          const num = parseInt(sid.substring(1), 10);
-          if (!isNaN(num) && num > maxIdNum) maxIdNum = num;
-        }
-      });
-      let currentIdNum = maxIdNum + 1;
+      // Helper for random IDs
+      const mkId = (pre = "S") => `${pre}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
 
       const entries = [];
       const skipped = [];
@@ -262,8 +256,13 @@ export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [
         // --- 1. Initial Deposit/Disbursement ---
         const initialPaymentType = isDisbursement ? PT_BOR_DISBURSEMENT : PT_DEPOSIT;
         const ds1 = getDirectionAndSigned(initialPaymentType, principal);
+        const sId1 = mkId("S");
         const newEntry = {
-          schedule_id: `S${currentIdNum++}`,
+          schedule_id: sId1,
+          version_num: 1,
+          version_id: `${sId1}-V1`,
+          payment_id: `${sId1}-P`,
+          active_version: true,
           investment_id: c.id, deal_id: c.deal_id || "", party_id: c.party_id || "",
           due_date: startDate.toISOString().slice(0, 10), payment_type: initialPaymentType, fee_id: "",
           period_number: 1, principal_amount: principal, payment_amount: principal,
@@ -316,8 +315,13 @@ export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [
             // Use fee's direction instead of PT_FEE default
             const feeDir = fInfo.direction || "OUT";
             const signedFeeAmt = feeDir === "OUT" ? -Math.abs(feeAmt) : Math.abs(feeAmt);
+            const sIdFee = mkId("S");
             entries.push({
-              schedule_id: `S${currentIdNum++}`,
+              schedule_id: sIdFee,
+              version_num: 1,
+              version_id: `${sIdFee}-V1`,
+              payment_id: `${sIdFee}-P`,
+              active_version: true,
               investment_id: c.id, deal_id: c.deal_id || "", party_id: c.party_id || "",
               due_date: dDate.toISOString().slice(0, 10), payment_type: PT_FEE, fee_id: fid,
               period_number: 1, principal_amount: principal, payment_amount: feeAmt,
@@ -376,8 +380,13 @@ export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [
             const interestPT = isDisbursement ? PT_BOR_INTEREST : PT_INTEREST;
             const ds2 = getDirectionAndSigned(interestPT, interest);
             const roundedInterest = Math.round(interest * 100) / 100;
+            const sIdInt = mkId("S");
             entries.push({
-              schedule_id: `S${currentIdNum++}`,
+              schedule_id: sIdInt,
+              version_num: 1,
+              version_id: `${sIdInt}-V1`,
+              payment_id: `${sIdInt}-P`,
+              active_version: true,
               investment_id: c.id, deal_id: c.deal_id || "", party_id: c.party_id || "",
               due_date: pEnd.toISOString().slice(0, 10), payment_type: interestPT, fee_id: "",
               period_number: periodNum, principal_amount: principal, payment_amount: roundedInterest,
@@ -460,8 +469,13 @@ export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [
                     feeDueDate = ca.includes("start") ? pStart : pEnd;
                   }
                   const roundedFeeAmt = Math.round(feeAmt * 100) / 100;
+                  const sIdRecFee = mkId("S");
                   entries.push({
-                    schedule_id: `S${currentIdNum++}`,
+                    schedule_id: sIdRecFee,
+                    version_num: 1,
+                    version_id: `${sIdRecFee}-V1`,
+                    payment_id: `${sIdRecFee}-P`,
+                    active_version: true,
                     investment_id: c.id, deal_id: c.deal_id || "", party_id: c.party_id || "",
                     due_date: feeDueDate.toISOString().slice(0, 10), payment_type: PT_FEE, fee_id: fid,
                     period_number: periodNum, principal_amount: principal, payment_amount: roundedFeeAmt,
@@ -487,8 +501,15 @@ export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [
         // --- 3. Principal Repayment/Received ---
         const repaymentPT = isDisbursement ? PT_BOR_RECEIVED : PT_INV_REPAYMENT;
         const ds3 = getDirectionAndSigned(repaymentPT, principal);
+        const sIdRepay = mkId("S");
+        // If investment is set to rollover (needs property on c), status is "ROLLOVER"
+        const isRollover = !!c.rollover;
         entries.push({
-          schedule_id: `S${currentIdNum++}`,
+          schedule_id: sIdRepay,
+          version_num: 1,
+          version_id: `${sIdRepay}-V1`,
+          payment_id: `${sIdRepay}-P`,
+          active_version: true,
           investment_id: c.id, deal_id: c.deal_id || "", party_id: c.party_id || "",
           due_date: matDate.toISOString().slice(0, 10), payment_type: repaymentPT, fee_id: "",
           period_number: periodNum, principal_amount: principal, payment_amount: principal,
@@ -496,7 +517,9 @@ export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [
           original_payment_amount: principal,
           term_start: startDate.toISOString().slice(0, 10), term_end: matDate.toISOString().slice(0, 10),
           applied_to: "Principal Amount",
-          status: "Due", notes: `Repayment for ${c.id}`, created_at: serverTimestamp(),
+          status: isRollover ? "ROLLOVER" : "Due", 
+          notes: isRollover ? `Rollover for ${c.id}` : `Repayment for ${c.id}`, 
+          created_at: serverTimestamp(),
         });
 
         // --- 4. Post-process Fee Merging for this investment ---
@@ -672,6 +695,7 @@ export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [
   const borrowerEditTypeOpts = (DIMENSIONS.find(d => d.name === "BorrowerInvestmentEditType") || {}).items || [];
   const investorNewTypeOpts = (DIMENSIONS.find(d => d.name === "InvestorInvestmentNewType") || {}).items || [];
   const borrowerNewTypeOpts = (DIMENSIONS.find(d => d.name === "BorrowerInvestmentNewType") || {}).items || [];
+  const scheduleFrequencyOpts = (DIMENSIONS.find(d => d.name === "ScheduleFrequency" || d.name === "Schedule Frequency") || {}).items || ["Monthly", "Quarterly", "Semi-Annual", "Annual", "At Maturity"];
   const selectedContact = CONTACTS.find(p => p.name === modal.data.party);
   const contactRole = selectedContact ? selectedContact.role : "";
   const getTypeOpts = () => {
@@ -823,9 +847,15 @@ export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [
         <FF label="Rate" t={t}><FIn value={modal.data.rate} onChange={e => setF("rate", e.target.value)} placeholder="10%" t={t} /></FF>
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14 }}>
-        <FF label="Frequency" t={t}><FSel value={modal.data.freq} onChange={e => setF("freq", e.target.value)} options={["Monthly", "Quarterly", "Semi-Annual", "Annual", "At Maturity"]} t={t} /></FF>
+        <FF label="Frequency" t={t}><FSel value={modal.data.freq} onChange={e => setF("freq", e.target.value)} options={scheduleFrequencyOpts} t={t} /></FF>
         <FF label="Term (months)" t={t}><FIn value={modal.data.term_months || ""} onChange={e => setF("term_months", e.target.value)} placeholder="e.g. 24" t={t} /></FF>
         <FF label="Status" t={t}><FSel value={modal.data.status} onChange={e => setF("status", e.target.value)} options={["Open", "Active", "Closed"]} t={t} /></FF>
+        <FF label="Rollover at Maturity" t={t}>
+          <div style={{ display: "flex", alignItems: "center", height: 38 }}>
+            <input type="checkbox" checked={!!modal.data.rollover} onChange={e => setF("rollover", e.target.checked)} style={{ cursor: "pointer", width: 18, height: 18 }} />
+            <span style={{ marginLeft: 8, fontSize: 13, color: t.textSecondary }}>Rollover Principal</span>
+          </div>
+        </FF>
       </div>
       <FF label="Calculator" t={t}><FSel value={modal.data.calculator || ""} onChange={e => setF("calculator", e.target.value)} options={calculatorOpts} t={t} /></FF>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
