@@ -127,8 +127,15 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
         return p?.email || "—";
       }
     },
-    { headerName: "Start Date", field: "start_date", width: 100 },
-    { headerName: "Maturity Date", field: "maturity_date", width: 100 },
+    { headerName: "Start Date", field: "start_date", width: 100, cellStyle: { fontWeight: 400 } },
+    { headerName: "Maturity Date", field: "maturity_date", width: 100, cellStyle: { fontWeight: 400 } },
+    { 
+      headerName: "Term", 
+      field: "term_months", 
+      width: 80,
+      cellStyle: { fontFamily: t.mono, fontSize: '11px', color: isDark ? '#FFFFFF' : '#292524', fontWeight: 400 },
+      valueFormatter: (params) => params.value ? `${params.value}mo` : "—"
+    },
     { 
       headerName: "Type", 
       field: "type",
@@ -153,13 +160,6 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
       field: "freq", 
       width: 100,
       cellStyle: { fontSize: '11px', color: t.textMuted }
-    },
-    { 
-      headerName: "Term", 
-      field: "term_months", 
-      width: 80,
-      cellStyle: { fontFamily: t.mono, fontSize: '11px', color: isDark ? '#FFFFFF' : '#292524' },
-      valueFormatter: (params) => params.value ? `${params.value}mo` : "—"
     },
     { 
       headerName: "Fees", 

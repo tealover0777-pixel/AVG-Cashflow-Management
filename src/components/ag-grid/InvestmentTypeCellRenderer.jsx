@@ -13,7 +13,6 @@ export default function InvestmentTypeCellRenderer(props) {
   return (
     <div style={{
       fontSize: '12.5px',
-      fontWeight: 500,
       color
     }}>
       {value || '—'}
