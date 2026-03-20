@@ -42,7 +42,7 @@ const StatusBadge = ({ status, t, isDark }) => {
     );
 };
 
-export default function PageUserProfiles({ t, isDark, USERS = [], ROLES = [], collectionPath = "", DIMENSIONS = [], tenantId = "", TENANTS = [], PARTIES = [] }) {
+export default function PageUserProfiles({ t, isDark, USERS = [], ROLES = [], collectionPath = "", DIMENSIONS = [], tenantId = "", TENANTS = [], CONTACTS = [] }) {
     const { hasPermission, isSuperAdmin } = useAuth();
     const canCreate = isSuperAdmin || hasPermission("USER_PROFILE_CREATE") || hasPermission("USER_CREATE");
     const canInvite = isSuperAdmin || hasPermission("USER_PROFILE_CREATE") || hasPermission("USER_INVITE");
@@ -95,10 +95,10 @@ export default function PageUserProfiles({ t, isDark, USERS = [], ROLES = [], co
         const d = modal.data;
         if (!d.email || !d.role_id) return;
 
-        // 1. Email existence check against PARTIES
-        const emailExists = PARTIES.some(p => p.email && p.email.toLowerCase() === d.email.toLowerCase());
+        // 1. Email existence check against CONTACTS
+        const emailExists = CONTACTS.some(p => p.email && p.email.toLowerCase() === d.email.toLowerCase());
         if (!emailExists) {
-            alert("This email does not belong to any existing Party. Please create a Party record first on the Parties page.");
+            alert("This email does not belong to any existing Contact. Please create a Contact record first on the Contacts page.");
             return;
         }
 

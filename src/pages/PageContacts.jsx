@@ -6,7 +6,7 @@ ModuleRegistry.registerModules([AllCommunityModule]);
 
 import 'ag-grid-community/styles/ag-grid.css';
 import '../components/ag-grid/ag-grid-theme.css';
-import { getColumnDefs } from '../components/ag-grid/PartiesGridConfig';
+import { getColumnDefs } from '../components/ag-grid/ContactsGridConfig';
 import { db, functions } from "../firebase";
 import { doc, setDoc, updateDoc, deleteDoc, serverTimestamp } from "firebase/firestore";
 import { httpsCallable } from "firebase/functions";
@@ -14,28 +14,28 @@ import { initials, av, badge, sortData, fmtCurr } from "../utils";
 import { StatCard, Bdg, Pagination, ActBtns, Modal, FF, FIn, FSel, DelModal, Tooltip } from "../components";
 import { useAuth } from "../AuthContext";
 
-export default function PageParties({ t, isDark, PARTIES = [], CONTRACTS = [], SCHEDULES = [], DEALS = [], collectionPath = "", DIMENSIONS = [], tenantId = "" }) {
+export default function PageContacts({ t, isDark, CONTACTS = [], CONTRACTS = [], SCHEDULES = [], DEALS = [], collectionPath = "", DIMENSIONS = [], tenantId = "" }) {
   const { hasPermission, isSuperAdmin } = useAuth();
   const canCreate = hasPermission("PARTY_CREATE");
   const canUpdate = hasPermission("PARTY_UPDATE");
   const canDelete = hasPermission("PARTY_DELETE");
   const canInvite = isSuperAdmin || hasPermission("USER_INVITE") || hasPermission("USER_CREATE");
-  const roleOpts = (DIMENSIONS.find(d => d.name === "PartyRole") || {}).items || ["Investor", "Borrower"];
-  const partyTypeOpts = (DIMENSIONS.find(d => d.name === "PartyType") || {}).items || ["Individual", "Company", "Trust", "Partnership"];
+  const roleOpts = (DIMENSIONS.find(d => d.name === "ContactRole") || {}).items || ["Investor", "Borrower"];
+  const partyTypeOpts = (DIMENSIONS.find(d => d.name === "ContactType") || {}).items || ["Individual", "Company", "Trust", "Partnership"];
   const investorTypeOpts = (DIMENSIONS.find(d => d.name === "InvestorType") || {}).items || ["Fixed", "Equity", "Both"];
   const [chip, setChip] = useState("All");
   const [modal, setModal] = useState({ open: false, mode: "add", data: {} });
   const [delT, setDelT] = useState(null);
-  const nextPartyId = (() => {
-    if (PARTIES.length === 0) return "M10001";
-    const maxNum = Math.max(...PARTIES.map(p => { const m = String(p.id).match(/^M(\d+)$/); return m ? Number(m[1]) : 0; }));
+  const nextContactId = (() => {
+    if (CONTACTS.length === 0) return "M10001";
+    const maxNum = Math.max(...CONTACTS.map(p => { const m = String(p.id).match(/^M(\d+)$/); return m ? Number(m[1]) : 0; }));
     return "M" + (maxNum + 1);
   })();
-  const openAdd = () => setModal({ open: true, mode: "add", data: { id: nextPartyId, name: "", type: "Individual", role: "Investor", email: "" } });
+  const openAdd = () => setModal({ open: true, mode: "add", data: { id: nextContactId, name: "", type: "Individual", role: "Investor", email: "" } });
   const openEdit = r => setModal({ open: true, mode: "edit", data: { ...r } });
   const close = () => setModal(m => ({ ...m, open: false }));
   const setF = (k, v) => setModal(m => ({ ...m, data: { ...m.data, [k]: v } }));
-  const handleSaveParty = async () => {
+  const handleSaveContact = async () => {
     const d = modal.data;
     const payload = {
       party_name: d.name || "",
@@ -59,19 +59,19 @@ export default function PageParties({ t, isDark, PARTIES = [], CONTRACTS = [], S
     close();
   };
 
-  const handleDeleteParty = async () => {
+  const handleDeleteContact = async () => {
     if (!delT || !delT.docId) return;
     try {
       await deleteDoc(doc(db, collectionPath, delT.docId));
       setDelT(null);
     } catch (err) { console.error("Delete party error:", err); }
   };
-  const [detailParty, setDetailParty] = useState(null);
+  const [detailContact, setDetailContact] = useState(null);
   const [invitingId, setInvitingId] = useState(null);
   const [processing, setProcessing] = useState(false);
   const [inviteResult, setInviteResult] = useState(null);
   const [inviteConfirm, setInviteConfirm] = useState(null);
-  const handleInviteParty = (party) => {
+  const handleInviteContact = (party) => {
     if (!party.email) {
       alert("This party has no email address. Please add a valid email first.");
       return;
@@ -98,7 +98,7 @@ export default function PageParties({ t, isDark, PARTIES = [], CONTRACTS = [], S
         user_name: party.name || "",
         phone: party.phone || "",
         partyId: party.id || "",
-        notes: `Invited from Parties page — ${party.id}`,
+        notes: `Invited from Contacts page — ${party.id}`,
       });
       setInviteResult({ email: party.email, user_id: result.data.user_id, link: result.data.link });
     } catch (err) {
@@ -149,7 +149,7 @@ export default function PageParties({ t, isDark, PARTIES = [], CONTRACTS = [], S
 
   // AG Grid: Chip filtering (pre-filter data before passing to grid)
   const getFilteredData = () => {
-    return PARTIES.filter(p => {
+    return CONTACTS.filter(p => {
       if (chip === "Investors" && p.role !== "Investor") return false;
       if (chip === "Borrowers" && p.role !== "Borrower") return false;
       if (chip === "Companies" && p.type !== "Company") return false;
@@ -171,8 +171,8 @@ export default function PageParties({ t, isDark, PARTIES = [], CONTRACTS = [], S
     callbacks: {
       onEdit: openEdit,
       onDelete: (target) => setDelT(target),
-      onInvite: handleInviteParty,
-      onNameClick: (party) => setDetailParty(party)
+      onInvite: handleInviteContact,
+      onNameClick: (party) => setDetailContact(party)
     },
     invitingId
   }), [isDark, t, permissions, invitingId]);
@@ -186,11 +186,11 @@ export default function PageParties({ t, isDark, PARTIES = [], CONTRACTS = [], S
       </div>
     )}
 
-    <div style={{ marginBottom: 28, display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}><div><h1 style={{ fontFamily: t.titleFont, fontWeight: t.titleWeight, fontSize: t.titleSize, color: isDark ? "#fff" : "#1C1917", letterSpacing: t.titleTracking, lineHeight: 1, marginBottom: 6 }}>Parties</h1><p style={{ fontSize: 13.5, color: t.textMuted }}>Manage Investors, Borrowers, and Companies</p></div>
-      {canCreate && <Tooltip text="Add a new investor or borrower" t={t}><button className="primary-btn" onClick={openAdd} style={{ background: t.accentGrad, color: "#fff", padding: "11px 22px", borderRadius: 11, fontSize: 13.5, fontWeight: 600, boxShadow: `0 4px 16px ${t.accentShadow}`, display: "flex", alignItems: "center", gap: 7 }}><span style={{ fontSize: 18, lineHeight: 1 }}>+</span> New Party</button></Tooltip>}
+    <div style={{ marginBottom: 28, display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}><div><h1 style={{ fontFamily: t.titleFont, fontWeight: t.titleWeight, fontSize: t.titleSize, color: isDark ? "#fff" : "#1C1917", letterSpacing: t.titleTracking, lineHeight: 1, marginBottom: 6 }}>Contacts</h1><p style={{ fontSize: 13.5, color: t.textMuted }}>Manage Investors, Borrowers, and Companies</p></div>
+      {canCreate && <Tooltip text="Add a new investor or borrower" t={t}><button className="primary-btn" onClick={openAdd} style={{ background: t.accentGrad, color: "#fff", padding: "11px 22px", borderRadius: 11, fontSize: 13.5, fontWeight: 600, boxShadow: `0 4px 16px ${t.accentShadow}`, display: "flex", alignItems: "center", gap: 7 }}><span style={{ fontSize: 18, lineHeight: 1 }}>+</span> New Contact</button></Tooltip>}
     </div>
     <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 16, marginBottom: 28 }}>
-      {[{ label: "Total Parties", value: PARTIES.length, accent: isDark ? "#60A5FA" : "#3B82F6", bg: isDark ? "rgba(96,165,250,0.08)" : "#EFF6FF", border: isDark ? "rgba(96,165,250,0.15)" : "#BFDBFE" }, { label: "Investors", value: PARTIES.filter(p => p.role === "Investor").length, accent: isDark ? "#34D399" : "#059669", bg: isDark ? "rgba(52,211,153,0.08)" : "#ECFDF5", border: isDark ? "rgba(52,211,153,0.15)" : "#A7F3D0" }, { label: "Borrowers", value: PARTIES.filter(p => p.role === "Borrower").length, accent: isDark ? "#FB923C" : "#C2410C", bg: isDark ? "rgba(251,146,60,0.08)" : "#FFF7ED", border: isDark ? "rgba(251,146,60,0.15)" : "#FED7AA" }, { label: "Companies", value: PARTIES.filter(p => p.type === "Company").length, accent: isDark ? "#A78BFA" : "#7C3AED", bg: isDark ? "rgba(167,139,250,0.08)" : "#F5F3FF", border: isDark ? "rgba(167,139,250,0.15)" : "#DDD6FE" }].map(s => <StatCard key={s.label} {...s} titleFont={t.titleFont} isDark={isDark} />)}
+      {[{ label: "Total Contacts", value: CONTACTS.length, accent: isDark ? "#60A5FA" : "#3B82F6", bg: isDark ? "rgba(96,165,250,0.08)" : "#EFF6FF", border: isDark ? "rgba(96,165,250,0.15)" : "#BFDBFE" }, { label: "Investors", value: CONTACTS.filter(p => p.role === "Investor").length, accent: isDark ? "#34D399" : "#059669", bg: isDark ? "rgba(52,211,153,0.08)" : "#ECFDF5", border: isDark ? "rgba(52,211,153,0.15)" : "#A7F3D0" }, { label: "Borrowers", value: CONTACTS.filter(p => p.role === "Borrower").length, accent: isDark ? "#FB923C" : "#C2410C", bg: isDark ? "rgba(251,146,60,0.08)" : "#FFF7ED", border: isDark ? "rgba(251,146,60,0.15)" : "#FED7AA" }, { label: "Companies", value: CONTACTS.filter(p => p.type === "Company").length, accent: isDark ? "#A78BFA" : "#7C3AED", bg: isDark ? "rgba(167,139,250,0.08)" : "#F5F3FF", border: isDark ? "rgba(167,139,250,0.15)" : "#DDD6FE" }].map(s => <StatCard key={s.label} {...s} titleFont={t.titleFont} isDark={isDark} />)}
     </div>
     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
       <div style={{ display: "flex", gap: 8 }}>{chips.map((c, i) => { const isA = chip === c; return (<span key={c} className="filter-chip" onClick={() => setChip(c)} style={{ fontSize: 12, fontWeight: isA ? 600 : 500, padding: "5px 14px", borderRadius: 20, background: isA ? t.accent : t.chipBg, color: isA ? "#fff" : t.textSecondary, border: `1px solid ${isA ? t.accent : t.chipBorder}`, cursor: "pointer" }}>{c}</span>); })}</div>
@@ -233,13 +233,13 @@ export default function PageParties({ t, isDark, PARTIES = [], CONTRACTS = [], S
       />
     </div>
     <div style={{ marginTop: 16, display: "flex", justifyContent: "space-between", alignItems: "center" }}><span style={{ fontSize: 12, color: t.textSubtle }}>Showing <strong style={{ color: t.textSecondary }}>{Math.min(getFilteredData().length, pageSize)}</strong> of <strong style={{ color: t.textSecondary }}>{getFilteredData().length}</strong> parties</span><Pagination totalPages={Math.ceil(getFilteredData().length / pageSize)} currentPage={1} onPageChange={(newPage) => gridRef.current?.api.paginationGoToPage(newPage - 1)} t={t} /></div>
-    <Modal open={modal.open} onClose={close} title={modal.mode === "add" ? "New Party" : "Edit Party"} onSave={handleSaveParty} width={600} t={t} isDark={isDark}>
-      <FF label="Party ID" t={t}>
+    <Modal open={modal.open} onClose={close} title={modal.mode === "add" ? "New Contact" : "Edit Contact"} onSave={handleSaveContact} width={600} t={t} isDark={isDark}>
+      <FF label="Contact ID" t={t}>
         <div style={{ fontFamily: t.mono, fontSize: 13, color: t.idText, background: isDark ? "rgba(255,255,255,0.04)" : "#F5F4F1", border: `1px solid ${t.surfaceBorder}`, borderRadius: 9, padding: "10px 13px", letterSpacing: "0.5px" }}>{modal.data.id}</div>
       </FF>
       <FF label="Full Name" t={t}><FIn value={modal.data.name || ""} onChange={e => setF("name", e.target.value)} placeholder="e.g. Pao Fu Chen" t={t} /></FF>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
-        <FF label="Party Type" t={t}><FSel value={modal.data.type || "Individual"} onChange={e => setF("type", e.target.value)} options={partyTypeOpts} t={t} /></FF>
+        <FF label="Contact Type" t={t}><FSel value={modal.data.type || "Individual"} onChange={e => setF("type", e.target.value)} options={partyTypeOpts} t={t} /></FF>
         <FF label="Role" t={t}><FSel value={modal.data.role || "Investor"} onChange={e => setF("role", e.target.value)} options={roleOpts} t={t} /></FF>
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
@@ -253,7 +253,7 @@ export default function PageParties({ t, isDark, PARTIES = [], CONTRACTS = [], S
       <FF label="Address" t={t}><FIn value={modal.data.address || ""} onChange={e => setF("address", e.target.value)} placeholder="Full address" t={t} /></FF>
       <FF label="Bank Information" t={t}><FIn value={modal.data.bank_information || ""} onChange={e => setF("bank_information", e.target.value)} placeholder="e.g. Citibank" t={t} /></FF>
     </Modal>
-    <DelModal target={delT} onClose={() => setDelT(null)} onConfirm={handleDeleteParty} label="This party" t={t} isDark={isDark} />
+    <DelModal target={delT} onClose={() => setDelT(null)} onConfirm={handleDeleteContact} label="This party" t={t} isDark={isDark} />
     <Modal open={!!inviteConfirm} onClose={() => setInviteConfirm(null)} title="Invite as Member" onSave={executeInvite} saveLabel="Invite" t={t} isDark={isDark}>
       <div style={{ display: "flex", flexDirection: "column", gap: 16, alignItems: "center", textAlign: "center", padding: "8px 0" }}>
         <div style={{ width: 52, height: 52, borderRadius: 14, background: isDark ? "rgba(96,165,250,0.15)" : "#EFF6FF", border: `1px solid ${isDark ? "rgba(96,165,250,0.25)" : "#BFDBFE"}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, color: isDark ? "#60A5FA" : "#2563EB" }}>✉️</div>
@@ -263,8 +263,8 @@ export default function PageParties({ t, isDark, PARTIES = [], CONTRACTS = [], S
         </div>
       </div>
     </Modal>
-    {detailParty && (() => {
-      const dp = detailParty;
+    {detailContact && (() => {
+      const dp = detailContact;
       const dpId = String(dp.id || "").trim();
       const dpDocId = String(dp.docId || "").trim();
       const partyContracts = CONTRACTS.filter(c => {
@@ -292,7 +292,7 @@ export default function PageParties({ t, isDark, PARTIES = [], CONTRACTS = [], S
                   </div>
                 </div>
               </div>
-              <button onClick={() => setDetailParty(null)} style={{ width: 32, height: 32, borderRadius: 8, background: isDark ? "rgba(255,255,255,0.08)" : "#F5F4F1", border: `1px solid ${t.surfaceBorder}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, cursor: "pointer", color: t.textMuted }}>×</button>
+              <button onClick={() => setDetailContact(null)} style={{ width: 32, height: 32, borderRadius: 8, background: isDark ? "rgba(255,255,255,0.08)" : "#F5F4F1", border: `1px solid ${t.surfaceBorder}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, cursor: "pointer", color: t.textMuted }}>×</button>
             </div>
             {/* Body */}
             <div style={{ flex: 1, overflow: "auto", padding: "20px 28px" }}>

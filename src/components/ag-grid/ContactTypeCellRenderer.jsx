@@ -1,6 +1,6 @@
 import React from 'react';
 
-const PartyTypeCellRenderer = (props) => {
+const ContactTypeCellRenderer = (props) => {
   const { value, context } = props;
   const { isDark, t } = context;
 
@@ -22,4 +22,4 @@ const PartyTypeCellRenderer = (props) => {
   );
 };
 
-export default PartyTypeCellRenderer;
+export default ContactTypeCellRenderer;

@@ -81,7 +81,7 @@ const NAV_ITEMS = [
     expandable: true,
     children: [
       { label: "Deals", icon: "▦" },
-      { label: "Parties", icon: "◎" },
+      { label: "Contacts", icon: "◎" },
       { label: "Contracts", icon: "◈" },
     ]
   },
@@ -130,7 +130,7 @@ export const getNav = (isSuper, isAdmin, hasPermission, isR10010) => {
     // Granular RBAC per section
     if (item.label === "Dashboard" && !hasPermission("DASHBOARD_VIEW")) return false;
     if (item.label === "Deals" && !hasPermission("DEAL_VIEW")) return false;
-    if (item.label === "Parties" && !hasPermission("PARTY_VIEW")) return false;
+    if (item.label === "Contacts" && !hasPermission("PARTY_VIEW")) return false;
     if (item.label === "Contracts" && !hasPermission("CONTRACT_VIEW")) return false;
     if (item.label === "Payment Schedule" && !hasPermission("PAYMENT_SCHEDULE_VIEW")) return false;
     if (item.label === "Payments" && !hasPermission("PAYMENT_VIEW")) return false;
@@ -184,7 +184,7 @@ export const DIM_STYLES = {
   "Payment Type": { accent: d => d ? "#F472B6" : "#BE185D", bg: d => d ? "rgba(244,114,182,0.08)" : "#FDF2F8", border: d => d ? "rgba(244,114,182,0.15)" : "#FBCFE8" },
   "Calculation Method": { accent: d => d ? "#2DD4BF" : "#0F766E", bg: d => d ? "rgba(45,212,191,0.08)" : "#F0FDFA", border: d => d ? "rgba(45,212,191,0.15)" : "#99F6E4" },
   "Currency": { accent: d => d ? "#FB923C" : "#C2410C", bg: d => d ? "rgba(251,146,60,0.08)" : "#FFF7ED", border: d => d ? "rgba(251,146,60,0.15)" : "#FED7AA" },
-  "Party Type": { accent: d => d ? "#F87171" : "#DC2626", bg: d => d ? "rgba(248,113,113,0.08)" : "#FEF2F2", border: d => d ? "rgba(248,113,113,0.15)" : "#FECACA" },
+  "Contact Type": { accent: d => d ? "#F87171" : "#DC2626", bg: d => d ? "rgba(248,113,113,0.08)" : "#FEF2F2", border: d => d ? "rgba(248,113,113,0.15)" : "#FECACA" },
 };
 export const DEFAULT_DIM_STYLE = { accent: d => d ? "#A8A29E" : "#78716C", bg: d => d ? "rgba(255,255,255,0.05)" : "#F9FAFB", border: d => d ? "rgba(255,255,255,0.1)" : "#E5E7EB" };
 export const MONTHLY = [

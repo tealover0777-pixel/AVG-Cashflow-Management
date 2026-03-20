@@ -15,7 +15,7 @@ const fmtCurr = v => {
 
 const ZEROING_STATUSES = ["Missed", "Cancelled", "VOID", "WAIVED", "REPLACED"];
 
-export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = [], PARTIES = [], DEALS = [], DIMENSIONS = [], FEES_DATA = [], collectionPath = "" }) {
+export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = [], CONTACTS = [], DEALS = [], DIMENSIONS = [], FEES_DATA = [], collectionPath = "" }) {
 
   const { hasPermission, isSuperAdmin } = useAuth();
   const canCreate = isSuperAdmin || hasPermission("PAYMENT_SCHEDULE_CREATE");
@@ -39,7 +39,7 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], CONTRACTS = []
   const [drillSchedule, setDrillSchedule] = useState(null);
   const [drillContract, setDrillContract] = useState(null);
   const [drillFee, setDrillFee] = useState(null);
-  const [detailParty, setDetailParty] = useState(null);
+  const [detailContact, setDetailContact] = useState(null);
   const buildChain = (scheduleId) => {
     const visited = new Set();
     const chain = [];
@@ -819,7 +819,7 @@ Are you sure you want to continue?`;
           <div style={{ fontFamily: t.mono, fontSize: 11, color: t.idText }}>{s.deal_id || dash}</div>
           <div style={{ fontFamily: t.mono, fontSize: 11, color: t.idText }}>
             {s.party_id ? (
-              <a href="#" onClick={e => { e.preventDefault(); e.stopPropagation(); const p = PARTIES.find(x => x.id === s.party_id); if (p) setDetailParty(p); }} style={{ color: isDark ? "#60A5FA" : "#4F46E5", textDecoration: "none", fontWeight: 600 }}>{s.party_id}</a>
+              <a href="#" onClick={e => { e.preventDefault(); e.stopPropagation(); const p = CONTACTS.find(x => x.id === s.party_id); if (p) setDetailContact(p); }} style={{ color: isDark ? "#60A5FA" : "#4F46E5", textDecoration: "none", fontWeight: 600 }}>{s.party_id}</a>
             ) : dash}
           </div>
           <div style={{ fontFamily: t.mono, fontSize: 11.5, color: t.textMuted, textAlign: "center" }}>{s.period_number || dash}</div>
@@ -887,7 +887,7 @@ Are you sure you want to continue?`;
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14 }}>
             <FF label="Contract" t={t}><FSel value={modal.data.contract} onChange={e => setF("contract", e.target.value)} options={CONTRACTS.map(c => c.id)} t={t} disabled={freeze} /></FF>
             <FF label="Deal ID" t={t}><FIn value={modal.data.deal_id || ""} onChange={e => setF("project_id", e.target.value)} placeholder="P10000" t={t} disabled={freeze} /></FF>
-            <FF label="Party ID" t={t}><FIn value={modal.data.party_id || ""} onChange={e => setF("party_id", e.target.value)} placeholder="M10000" t={t} disabled={freeze} /></FF>
+            <FF label="Contact ID" t={t}><FIn value={modal.data.party_id || ""} onChange={e => setF("party_id", e.target.value)} placeholder="M10000" t={t} disabled={freeze} /></FF>
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14 }}>
             <FF label="Due Date" t={t}><FIn value={modal.data.dueDate || ""} onChange={e => setF("dueDate", e.target.value)} t={t} type="date" disabled={freeze} /></FF>
@@ -1218,7 +1218,7 @@ Are you sure you want to continue?`;
             <div style={{ fontSize: 13, color: isDark ? "rgba(255,255,255,0.8)" : "#44403C" }}>{drillContract.project_name || drillContract.project || "—"}</div>
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
-            <span style={{ fontSize: 10, fontWeight: 700, color: t.textSecondary, textTransform: "uppercase", letterSpacing: "0.8px", fontFamily: t.mono }}>Party Name</span>
+            <span style={{ fontSize: 10, fontWeight: 700, color: t.textSecondary, textTransform: "uppercase", letterSpacing: "0.8px", fontFamily: t.mono }}>Contact Name</span>
             <div style={{ fontSize: 13, fontWeight: 600, color: isDark ? "#fff" : "#1C1917" }}>{drillContract.party_name || drillContract.party || "—"}</div>
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
@@ -1312,8 +1312,8 @@ Are you sure you want to continue?`;
         </div>
       </Modal>
     )}
-    {detailParty && (() => {
-      const dp = detailParty;
+    {detailContact && (() => {
+      const dp = detailContact;
       const dpId = String(dp.id || "").trim();
       const dpDocId = String(dp.docId || "").trim();
       const partyContracts = CONTRACTS.filter(c => {
@@ -1341,7 +1341,7 @@ Are you sure you want to continue?`;
                   </div>
                 </div>
               </div>
-              <button onClick={() => setDetailParty(null)} style={{ width: 32, height: 32, borderRadius: 8, background: isDark ? "rgba(255,255,255,0.08)" : "#F5F4F1", border: `1px solid ${t.surfaceBorder}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, cursor: "pointer", color: t.textMuted }}>×</button>
+              <button onClick={() => setDetailContact(null)} style={{ width: 32, height: 32, borderRadius: 8, background: isDark ? "rgba(255,255,255,0.08)" : "#F5F4F1", border: `1px solid ${t.surfaceBorder}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, cursor: "pointer", color: t.textMuted }}>×</button>
             </div>
             {/* Body */}
             <div style={{ flex: 1, overflow: "auto", padding: "20px 28px" }}>

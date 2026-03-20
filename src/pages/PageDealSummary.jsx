@@ -10,7 +10,7 @@ ModuleRegistry.registerModules([AllCommunityModule]);
 import 'ag-grid-community/styles/ag-grid.css';
 import '../components/ag-grid/ag-grid-theme.css';
 
-export default function PageDealSummary({ t, isDark, dealId, DEALS = [], CONTRACTS = [], PARTIES = [], setActivePage }) {
+export default function PageDealSummary({ t, isDark, dealId, DEALS = [], CONTRACTS = [], CONTACTS = [], setActivePage }) {
   const deal = useMemo(() => DEALS.find(d => d.id === dealId) || {}, [dealId, DEALS]);
   const [activeTab, setActiveTab] = useState("Investments");
   const [assetImages, setAssetImages] = useState([]);
@@ -29,7 +29,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], CONTRAC
 
   const gridRef = useRef();
   
-  const tabs = ["Investments", "Assets", "Distributions", "Documents", "Valuation forms", "Members"];
+  const tabs = ["Investments", "Assets", "Distributions", "Documents", "Valuation forms", "Contacts"];
 
   const columnDefs = [
     { 
@@ -48,7 +48,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], CONTRAC
       field: "email",
       flex: 1,
       valueGetter: (params) => {
-        const p = PARTIES.find(x => x.name === params.data.party || x.id === params.data.party_id);
+        const p = CONTACTS.find(x => x.name === params.data.party || x.id === params.data.party_id);
         return p?.email || "—";
       }
     },

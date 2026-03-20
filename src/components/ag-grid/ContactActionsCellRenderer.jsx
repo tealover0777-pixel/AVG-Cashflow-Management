@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { ActBtns, Tooltip } from '../../components';
 
-const PartyActionsCellRenderer = (props) => {
+const ContactActionsCellRenderer = (props) => {
   const { data, context } = props;
   const { permissions, t, isDark, callbacks, invitingId } = context;
   const { canUpdate, canDelete, canInvite } = permissions;
@@ -68,4 +68,4 @@ const PartyActionsCellRenderer = (props) => {
   );
 };
 
-export default PartyActionsCellRenderer;
+export default ContactActionsCellRenderer;

@@ -88,7 +88,7 @@ export const getColumnDefs = (permissions, isDark, t, selection, onToggleRow, on
       }
     },
     {
-      headerName: "Party",
+      headerName: "Contact",
       field: "party",
       flex: 1,
       minWidth: 150,

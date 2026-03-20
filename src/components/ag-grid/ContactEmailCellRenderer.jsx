@@ -1,6 +1,6 @@
 import React from 'react';
 
-const PartyEmailCellRenderer = (props) => {
+const ContactEmailCellRenderer = (props) => {
   const { value, context } = props;
   const { isDark } = context;
 
@@ -24,4 +24,4 @@ const PartyEmailCellRenderer = (props) => {
   );
 };
 
-export default PartyEmailCellRenderer;
+export default ContactEmailCellRenderer;

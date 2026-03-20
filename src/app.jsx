@@ -11,7 +11,7 @@ import { useFirestoreCollection } from "./useFirestoreCollection";
 import { mkTheme, getNav, getCollectionPaths, DIM_STYLES, DEFAULT_DIM_STYLE, MONTHLY, initials, av, fmtCurr } from "./utils";
 import PageDashboard from "./pages/PageDashboard";
 import PageDeals from "./pages/PageDeals";
-import PageParties from "./pages/PageParties";
+import PageContacts from "./pages/PageContacts";
 import PageContracts from "./pages/PageContracts";
 import PageSchedule from "./pages/PageSchedule";
 import PagePayments from "./pages/PagePayments";
@@ -87,7 +87,7 @@ function AppContent() {
   const fetchPaths = getCollectionPaths(isGlobalConsolidated ? "" : (activeTenantId || "T_PENDING"));
 
   const { data: rawDeals, loading: l1, error: e1 } = useFirestoreCollection(isGlobalConsolidated ? "deals" : (activeTenantId ? fetchPaths.deals : null), isGlobalConsolidated);
-  const { data: rawParties, loading: l2, error: e2 } = useFirestoreCollection(isGlobalConsolidated ? "parties" : (activeTenantId ? fetchPaths.parties : null), isGlobalConsolidated);
+  const { data: rawContacts, loading: l2, error: e2 } = useFirestoreCollection(isGlobalConsolidated ? "parties" : (activeTenantId ? fetchPaths.parties : null), isGlobalConsolidated);
   const { data: rawContracts, loading: l3, error: e3 } = useFirestoreCollection(isGlobalConsolidated ? "contracts" : (activeTenantId ? fetchPaths.contracts : null), isGlobalConsolidated);
   const { data: rawSchedules, loading: l4, error: e4 } = useFirestoreCollection(isGlobalConsolidated ? "paymentSchedules" : (activeTenantId ? fetchPaths.paymentSchedules : null), isGlobalConsolidated);
   const { data: rawPayments, loading: l5, error: e5 } = useFirestoreCollection(isGlobalConsolidated ? "payments" : (activeTenantId ? fetchPaths.payments : null), isGlobalConsolidated);
@@ -112,7 +112,7 @@ function AppContent() {
     }
   }, [isSuperAdmin, activeTenantId, rawTenants]);
 
-  const memberPartyId = useMemo(() => {
+  const memberContactId = useMemo(() => {
     if (!isMember) return null;
 
     // 1. Check explicit profile field
@@ -120,12 +120,12 @@ function AppContent() {
     // 2. Check notes field
     const noteId = (profile?.notes || "").split(" — ")[1];
     if (noteId) return noteId;
-    // 3. Fallback: Lookup by email in rawParties
-    const foundByEmail = rawParties.find(p => p.email && p.email.toLowerCase() === user?.email?.toLowerCase());
+    // 3. Fallback: Lookup by email in rawContacts
+    const foundByEmail = rawContacts.find(p => p.email && p.email.toLowerCase() === user?.email?.toLowerCase());
     if (foundByEmail) return foundByEmail.id || foundByEmail.doc_id;
 
     return null;
-  }, [profile, user, rawParties, isMember]);
+  }, [profile, user, rawContacts, isMember]);
 
   const forceFilter = isMember;
 
@@ -139,8 +139,8 @@ function AppContent() {
   const DEALS = rawDeals
     .filter(d => {
       if (!forceFilter) return true;
-      if (!memberPartyId) return false;
-      const mId = String(memberPartyId).trim();
+      if (!memberContactId) return false;
+      const mId = String(memberContactId).trim();
       return rawContracts.some(c => (c.deal_id === d.id || c.deal_name === d.deal_name) && (String(c.party_id || "").trim() === mId || String(c.counterparty_id || "").trim() === mId));
     })
     .map(d => {
@@ -188,11 +188,11 @@ function AppContent() {
       };
     });
 
-  const PARTIES = rawParties
+  const CONTACTS = rawContacts
     .filter(d => {
       if (!forceFilter) return true;
-      if (!memberPartyId) return false;
-      return d.id === memberPartyId;
+      if (!memberContactId) return false;
+      return d.id === memberContactId;
     })
     .map(d => ({
       id: d.id, docId: d.doc_id || d.id, _path: d._path, name: d.party_name || "", type: d.party_type || "", role: d.role_type || "",
@@ -204,11 +204,11 @@ function AppContent() {
   const CONTRACTS = rawContracts
     .filter(d => {
       if (!forceFilter) return true;
-      if (!memberPartyId) return false;
-      const mId = String(memberPartyId).trim();
+      if (!memberContactId) return false;
+      const mId = String(memberContactId).trim();
       const dPId = String(d.party_id || "").trim();
-      const mParty = rawParties.find(p => String(p.id || "").trim() === mId);
-      const mDocId = mParty ? String(mParty.doc_id || mParty.id || "").trim() : "";
+      const mContact = rawContacts.find(p => String(p.id || "").trim() === mId);
+      const mDocId = mContact ? String(mContact.doc_id || mContact.id || "").trim() : "";
       return (dPId === mId || (mDocId && dPId === mDocId));
     })
     .map(d => ({
@@ -238,11 +238,11 @@ function AppContent() {
   const SCHEDULES = rawSchedules
     .filter(d => {
       if (!forceFilter) return true;
-      if (!memberPartyId) return false;
-      const mId = String(memberPartyId).trim();
+      if (!memberContactId) return false;
+      const mId = String(memberContactId).trim();
       const dPId = String(d.party_id || "").trim();
-      const mParty = rawParties.find(p => String(p.id || "").trim() === mId);
-      const mDocId = mParty ? String(mParty.doc_id || mParty.id || "").trim() : "";
+      const mContact = rawContacts.find(p => String(p.id || "").trim() === mId);
+      const mDocId = mContact ? String(mContact.doc_id || mContact.id || "").trim() : "";
       return (dPId === mId || (mDocId && dPId === mDocId));
     })
     .map(d => {
@@ -283,10 +283,10 @@ function AppContent() {
   const PAYMENTS = rawPayments
     .filter(d => {
       if (!forceFilter) return true;
-      if (!memberPartyId) return false;
-      const mId = String(memberPartyId).trim();
-      const mParty = rawParties.find(p => String(p.id || "").trim() === mId);
-      const mDocId = mParty ? String(mParty.doc_id || mParty.id || "").trim() : "";
+      if (!memberContactId) return false;
+      const mId = String(memberContactId).trim();
+      const mContact = rawContacts.find(p => String(p.id || "").trim() === mId);
+      const mDocId = mContact ? String(mContact.doc_id || mContact.id || "").trim() : "";
 
       const dPId = String(d.party_id || "").trim();
       if (dPId === mId || (mDocId && dPId === mDocId)) return true;
@@ -597,16 +597,16 @@ function AppContent() {
               </div>
               : (
                 <>
-                  {activePage === "Dashboard" && <PageDashboard t={t} isDark={isDark} DEALS={DEALS} CONTRACTS={CONTRACTS} PARTIES={PARTIES} SCHEDULES={SCHEDULES} PAYMENTS={PAYMENTS} MONTHLY={MONTHLY} DIMENSIONS={DIMENSIONS} setActivePage={setActivePage} />}
+                  {activePage === "Dashboard" && <PageDashboard t={t} isDark={isDark} DEALS={DEALS} CONTRACTS={CONTRACTS} CONTACTS={CONTACTS} SCHEDULES={SCHEDULES} PAYMENTS={PAYMENTS} MONTHLY={MONTHLY} DIMENSIONS={DIMENSIONS} setActivePage={setActivePage} />}
                   {activePage === "Deals" && <PageDeals t={t} isDark={isDark} DEALS={DEALS} FEES_DATA={FEES_DATA} DIMENSIONS={DIMENSIONS} collectionPath={isGlobalConsolidated ? "GROUP:deals" : fetchPaths.deals} setActivePage={setActivePage} setSelectedDealId={setSelectedDealId} />}
-                  {activePage === "Deal Summary" && <PageDealSummary t={t} isDark={isDark} dealId={selectedDealId} DEALS={DEALS} CONTRACTS={CONTRACTS} PARTIES={PARTIES} setActivePage={setActivePage} />}
-                  {activePage === "Parties" && <PageParties t={t} isDark={isDark} PARTIES={PARTIES} CONTRACTS={CONTRACTS} SCHEDULES={SCHEDULES} DEALS={DEALS} collectionPath={isGlobalConsolidated ? "GROUP:parties" : fetchPaths.parties} DIMENSIONS={DIMENSIONS} tenantId={activeTenantId} />}
-                  {activePage === "Contracts" && <PageContracts t={t} isDark={isDark} CONTRACTS={CONTRACTS} DEALS={DEALS} PARTIES={PARTIES} DIMENSIONS={DIMENSIONS} FEES_DATA={FEES_DATA} SCHEDULES={SCHEDULES} collectionPath={isGlobalConsolidated ? "GROUP:contracts" : fetchPaths.contracts} schedulePath={isGlobalConsolidated ? "GROUP:paymentSchedules" : fetchPaths.paymentSchedules} />}
-                  {activePage === "Payment Schedule" && <PageSchedule t={t} isDark={isDark} SCHEDULES={SCHEDULES} CONTRACTS={CONTRACTS} PARTIES={PARTIES} DEALS={DEALS} DIMENSIONS={DIMENSIONS} FEES_DATA={FEES_DATA} collectionPath={isGlobalConsolidated ? "GROUP:paymentSchedules" : fetchPaths.paymentSchedules} />}
+                  {activePage === "Deal Summary" && <PageDealSummary t={t} isDark={isDark} dealId={selectedDealId} DEALS={DEALS} CONTRACTS={CONTRACTS} CONTACTS={CONTACTS} setActivePage={setActivePage} />}
+                  {activePage === "Contacts" && <PageContacts t={t} isDark={isDark} CONTACTS={CONTACTS} CONTRACTS={CONTRACTS} SCHEDULES={SCHEDULES} DEALS={DEALS} collectionPath={isGlobalConsolidated ? "GROUP:parties" : fetchPaths.parties} DIMENSIONS={DIMENSIONS} tenantId={activeTenantId} />}
+                  {activePage === "Contracts" && <PageContracts t={t} isDark={isDark} CONTRACTS={CONTRACTS} DEALS={DEALS} CONTACTS={CONTACTS} DIMENSIONS={DIMENSIONS} FEES_DATA={FEES_DATA} SCHEDULES={SCHEDULES} collectionPath={isGlobalConsolidated ? "GROUP:contracts" : fetchPaths.contracts} schedulePath={isGlobalConsolidated ? "GROUP:paymentSchedules" : fetchPaths.paymentSchedules} />}
+                  {activePage === "Payment Schedule" && <PageSchedule t={t} isDark={isDark} SCHEDULES={SCHEDULES} CONTRACTS={CONTRACTS} CONTACTS={CONTACTS} DEALS={DEALS} DIMENSIONS={DIMENSIONS} FEES_DATA={FEES_DATA} collectionPath={isGlobalConsolidated ? "GROUP:paymentSchedules" : fetchPaths.paymentSchedules} />}
                   {activePage === "Payments" && <PagePayments t={t} isDark={isDark} PAYMENTS={PAYMENTS} collectionPath={isGlobalConsolidated ? "GROUP:payments" : fetchPaths.payments} />}
                   {activePage === "Fees" && <PageFees t={t} isDark={isDark} FEES_DATA={FEES_DATA} DIMENSIONS={DIMENSIONS} collectionPath={isGlobalConsolidated ? "GROUP:fees" : fetchPaths.fees} />}
                   {activePage === "Tenants" && <PageTenants t={t} isDark={isDark} TENANTS={TENANTS} collectionPath={fetchPaths.tenants} />}
-                  {activePage === "User Profiles" && <PageUserProfiles t={t} isDark={isDark} USERS={rawUsers} ROLES={rawRoles} collectionPath={fetchPaths.users} DIMENSIONS={DIMENSIONS} tenantId={activeTenantId} TENANTS={TENANTS} PARTIES={PARTIES} />}
+                  {activePage === "User Profiles" && <PageUserProfiles t={t} isDark={isDark} USERS={rawUsers} ROLES={rawRoles} collectionPath={fetchPaths.users} DIMENSIONS={DIMENSIONS} tenantId={activeTenantId} TENANTS={TENANTS} CONTACTS={CONTACTS} />}
                   {activePage === "Role Types" && <PageRoles t={t} isDark={isDark} collectionPath={fetchPaths.roles} DIMENSIONS={DIMENSIONS} USERS={rawUsers} />}
                   {activePage === "User Admin" && isR10010 && <PageSuperAdmin t={t} isDark={isDark} DIMENSIONS={DIMENSIONS} ROLES={rawRoles} TENANTS={TENANTS} />}
                   {activePage === "Profile" && <PageProfile t={t} isDark={isDark} setIsDark={setIsDark} ROLES={rawRoles} collectionPath={fetchPaths.users} activeTenantId={activeTenantId} />}

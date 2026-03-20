@@ -21,7 +21,7 @@ export default function SidebarHelp({ open, onClose, t, isDark }) {
       try {
         console.log("Refreshing Knowledge Base for User:", user.email);
         const docSnap = await getDoc(doc(db, "system", "knowledge_base"));
-        let kbText = "You are a helpful assistant for AVG Cashflow Management. Answer questions concisely and professionally. You assist users with Projects, Parties, Schedules, and Payments. If you don't know an answer, tell the user to contact the admin at admin@avg-cashflow.com.";
+        let kbText = "You are a helpful assistant for AVG Cashflow Management. Answer questions concisely and professionally. You assist users with Projects, Contacts, Schedules, and Payments. If you don't know an answer, tell the user to contact the admin at admin@avg-cashflow.com.";
         if (docSnap.exists() && docSnap.data().content) {
           kbText = docSnap.data().content;
         }
@@ -35,7 +35,7 @@ export default function SidebarHelp({ open, onClose, t, isDark }) {
         // Fallback options
         setModelOptions({
           model: "gemini-2.5-flash",
-          systemInstruction: "You are a helpful assistant for AVG Cashflow Management. You provide information about Projects, Parties, and Schedules. If you don't know the answer, politely suggest contacting the admin.",
+          systemInstruction: "You are a helpful assistant for AVG Cashflow Management. You provide information about Projects, Contacts, and Schedules. If you don't know the answer, politely suggest contacting the admin.",
         });
       }
     }

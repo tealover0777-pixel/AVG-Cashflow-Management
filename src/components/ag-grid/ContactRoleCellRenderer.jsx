@@ -1,7 +1,7 @@
 import React from 'react';
 import { badge } from '../../utils';
 
-const PartyRoleCellRenderer = (props) => {
+const ContactRoleCellRenderer = (props) => {
   const { value, context } = props;
   const { isDark } = context;
 
@@ -28,4 +28,4 @@ const PartyRoleCellRenderer = (props) => {
   );
 };
 
-export default PartyRoleCellRenderer;
+export default ContactRoleCellRenderer;

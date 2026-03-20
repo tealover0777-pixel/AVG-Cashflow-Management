@@ -1,13 +1,13 @@
-import PartyNameCellRenderer from './PartyNameCellRenderer';
-import PartyTypeCellRenderer from './PartyTypeCellRenderer';
-import PartyRoleCellRenderer from './PartyRoleCellRenderer';
-import PartyEmailCellRenderer from './PartyEmailCellRenderer';
-import PartyActionsCellRenderer from './PartyActionsCellRenderer';
+import ContactNameCellRenderer from './ContactNameCellRenderer';
+import ContactTypeCellRenderer from './ContactTypeCellRenderer';
+import ContactRoleCellRenderer from './ContactRoleCellRenderer';
+import ContactEmailCellRenderer from './ContactEmailCellRenderer';
+import ContactActionsCellRenderer from './ContactActionsCellRenderer';
 
 export const getColumnDefs = (permissions, isDark, t) => {
   const baseCols = [
     {
-      headerName: "Party ID",
+      headerName: "Contact ID",
       field: "id",
       width: 90,
       sortable: true,
@@ -35,7 +35,7 @@ export const getColumnDefs = (permissions, isDark, t) => {
         trimInput: true,
         debounceMs: 300
       },
-      cellRenderer: PartyNameCellRenderer
+      cellRenderer: ContactNameCellRenderer
     },
     {
       headerName: "Type",
@@ -48,7 +48,7 @@ export const getColumnDefs = (permissions, isDark, t) => {
         trimInput: true,
         debounceMs: 300
       },
-      cellRenderer: PartyTypeCellRenderer
+      cellRenderer: ContactTypeCellRenderer
     },
     {
       headerName: "Role",
@@ -61,7 +61,7 @@ export const getColumnDefs = (permissions, isDark, t) => {
         trimInput: true,
         debounceMs: 300
       },
-      cellRenderer: PartyRoleCellRenderer
+      cellRenderer: ContactRoleCellRenderer
     },
     {
       headerName: "Inv Type",
@@ -92,7 +92,7 @@ export const getColumnDefs = (permissions, isDark, t) => {
         trimInput: true,
         debounceMs: 300
       },
-      cellRenderer: PartyEmailCellRenderer
+      cellRenderer: ContactEmailCellRenderer
     },
     {
       headerName: "Phone",
@@ -210,7 +210,7 @@ export const getColumnDefs = (permissions, isDark, t) => {
       sortable: false,
       filter: false,
       resizable: false,
-      cellRenderer: PartyActionsCellRenderer,
+      cellRenderer: ContactActionsCellRenderer,
       cellStyle: {
         display: 'flex',
         alignItems: 'center',

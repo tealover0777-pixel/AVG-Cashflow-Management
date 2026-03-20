@@ -1,7 +1,7 @@
 import React from 'react';
 import { initials, av } from '../../utils';
 
-const PartyNameCellRenderer = (props) => {
+const ContactNameCellRenderer = (props) => {
   const { value, data, context } = props;
   const { isDark, t, callbacks } = context;
 
@@ -61,4 +61,4 @@ const PartyNameCellRenderer = (props) => {
   );
 };
 
-export default PartyNameCellRenderer;
+export default ContactNameCellRenderer;

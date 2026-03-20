@@ -7,16 +7,16 @@ export function useDashboardData({ DEALS = [], CONTRACTS = [], PARTIES = [], SCH
     const dashboardData = useMemo(() => {
         // 1. Resolve User Role & Slicing
 
-        // Find the Party record for the member to filter their data
-        const myParty = isMember
+        // Find the Contact record for the member to filter their data
+        const myContact = isMember
             ? (PARTIES.find(p => p.id === profile?.party_id || p.email === profile?.email || p.id === (profile?.notes || '').split(' — ')[1]) || { id: profile?.party_id })
             : null;
 
         const filteredContracts = isMember
             ? CONTRACTS.filter(c => {
                 const pId = String(c.party_id || "").trim();
-                const targetId = String(myParty?.id || "").trim();
-                const targetDocId = String(myParty?.docId || "").trim();
+                const targetId = String(myContact?.id || "").trim();
+                const targetDocId = String(myContact?.docId || "").trim();
                 return pId === targetId || (targetDocId && pId === targetDocId);
             })
             : CONTRACTS;
@@ -28,8 +28,8 @@ export function useDashboardData({ DEALS = [], CONTRACTS = [], PARTIES = [], SCH
         const allFilteredSchedules = isMember
             ? SCHEDULES.filter(s => {
                 const pId = String(s.party_id || "").trim();
-                const targetId = String(myParty?.id || "").trim();
-                const targetDocId = String(myParty?.docId || "").trim();
+                const targetId = String(myContact?.id || "").trim();
+                const targetDocId = String(myContact?.docId || "").trim();
                 const isDirectMatch = pId === targetId || (targetDocId && pId === targetDocId);
                 return isDirectMatch || filteredContracts.some(c => c.id === s.contract);
             })
@@ -185,7 +185,7 @@ export function useDashboardData({ DEALS = [], CONTRACTS = [], PARTIES = [], SCH
                 .sort((a, b) => (a.dueDate || '').localeCompare(b.dueDate || '')),
             contracts: filteredContracts,
             isMember,
-            myParty
+            myContact
         };
     }, [DEALS, CONTRACTS, PARTIES, SCHEDULES, PAYMENTS, DIMENSIONS, profile, isSuperAdmin, isTenantAdmin, isMember]);
 

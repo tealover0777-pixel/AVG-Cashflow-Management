@@ -65,7 +65,7 @@ export default function PageAdminHelp({ t, isDark }) {
       if (kbSnap.exists() && kbSnap.data().content) {
         setKbContent(kbSnap.data().content);
       } else {
-        setKbContent("You are a helpful assistant for AVG Cashflow Management. Answer questions concisely and professionally. You assist users with Projects, Parties, Schedules, and Payments.");
+        setKbContent("You are a helpful assistant for AVG Cashflow Management. Answer questions concisely and professionally. You assist users with Projects, Contacts, Schedules, and Payments.");
       }
       setKbLoading(false);
     } catch (err) {

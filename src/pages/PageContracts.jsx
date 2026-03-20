@@ -13,7 +13,7 @@ import { normalizeDateAtNoon, hybridDays, pmtCalculator_ACT360_30360, feeCalcula
 import { StatCard, Bdg, Pagination, Modal, FF, FIn, FSel, DelModal, Tooltip } from "../components";
 import { useAuth } from "../AuthContext";
 
-export default function PageContracts({ t, isDark, CONTRACTS = [], DEALS = [], PARTIES = [], DIMENSIONS = [], FEES_DATA = [], SCHEDULES = [], collectionPath = "", schedulePath = "" }) {
+export default function PageContracts({ t, isDark, CONTRACTS = [], DEALS = [], CONTACTS = [], DIMENSIONS = [], FEES_DATA = [], SCHEDULES = [], collectionPath = "", schedulePath = "" }) {
   const { hasPermission, isSuperAdmin } = useAuth();
   const canCreate = isSuperAdmin || hasPermission("CONTRACT_CREATE");
   const canUpdate = isSuperAdmin || hasPermission("CONTRACT_UPDATE");
@@ -104,7 +104,7 @@ export default function PageContracts({ t, isDark, CONTRACTS = [], DEALS = [], P
   const handleSaveContract = async () => {
     const d = modal.data;
     const dealObj = DEALS.find(p => p.name === d.deal);
-    const parObj = PARTIES.find(p => p.name === d.party);
+    const parObj = CONTACTS.find(p => p.name === d.party);
     const payload = {
       deal_name: d.deal || "",
       deal_id: dealObj ? dealObj.id : (d.deal_id || ""),
@@ -670,8 +670,8 @@ export default function PageContracts({ t, isDark, CONTRACTS = [], DEALS = [], P
   const borrowerEditTypeOpts = (DIMENSIONS.find(d => d.name === "BorrowerContractEditType") || {}).items || [];
   const investorNewTypeOpts = (DIMENSIONS.find(d => d.name === "InvestorContractNewType") || {}).items || [];
   const borrowerNewTypeOpts = (DIMENSIONS.find(d => d.name === "BorrowerContractNewType") || {}).items || [];
-  const selectedParty = PARTIES.find(p => p.name === modal.data.party);
-  const partyRole = selectedParty ? selectedParty.role : "";
+  const selectedContact = CONTACTS.find(p => p.name === modal.data.party);
+  const partyRole = selectedContact ? selectedContact.role : "";
   const getTypeOpts = () => {
     const isNew = modal.mode === "add";
     const invOpts = isNew ? investorNewTypeOpts : investorEditTypeOpts;
@@ -812,7 +812,7 @@ export default function PageContracts({ t, isDark, CONTRACTS = [], DEALS = [], P
         </div>
       )}
       <FF label="Deal" t={t}><FSel value={modal.data.deal} onChange={e => setF("deal", e.target.value)} options={DEALS.map(p => p.name)} t={t} /></FF>
-      <FF label="Party" t={t}><FSel value={modal.data.party} onChange={e => setF("party", e.target.value)} options={PARTIES.map(p => p.name)} t={t} /></FF>
+      <FF label="Contact" t={t}><FSel value={modal.data.party} onChange={e => setF("party", e.target.value)} options={CONTACTS.map(p => p.name)} t={t} /></FF>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14 }}>
         <FF label="Type" t={t}><FSel value={modal.data.type} onChange={e => setF("type", e.target.value)} options={getTypeOpts()} t={t} /></FF>
         <FF label="Amount" t={t}><FIn value={modal.data.amount} onChange={e => setF("amount", e.target.value)} placeholder="$0" t={t} /></FF>
@@ -896,7 +896,7 @@ export default function PageContracts({ t, isDark, CONTRACTS = [], DEALS = [], P
             <div style={{ fontSize: 13, color: isDark ? "rgba(255,255,255,0.8)" : "#44403C" }}>{drillContract.deal_name || drillContract.deal || "—"}</div>
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
-            <span style={{ fontSize: 10, fontWeight: 700, color: t.textSecondary, textTransform: "uppercase", letterSpacing: "0.8px", fontFamily: t.mono }}>Party Name</span>
+            <span style={{ fontSize: 10, fontWeight: 700, color: t.textSecondary, textTransform: "uppercase", letterSpacing: "0.8px", fontFamily: t.mono }}>Contact Name</span>
             <div style={{ fontSize: 13, fontWeight: 600, color: isDark ? "#fff" : "#1C1917" }}>{drillContract.party_name || drillContract.party || "—"}</div>
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>

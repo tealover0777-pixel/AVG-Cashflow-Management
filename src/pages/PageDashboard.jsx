@@ -13,7 +13,7 @@ import {
 export default function PageDashboard(props) {
   const { t, isDark, setActivePage, DIMENSIONS = [] } = props;
   const data = useDashboardData({ ...props, DIMENSIONS });
-  const { metrics, charts, recentActivity, contracts, isMember, myParty } = data;
+  const { metrics, charts, recentActivity, contracts, isMember, myContact } = data;
 
   const topCards = [
     {
@@ -63,7 +63,7 @@ export default function PageDashboard(props) {
             Dashboard
           </h1>
           <p style={{ fontSize: 13.5, color: t.textMuted }}>
-            {isMember ? `Welcome back, ${myParty?.name || 'Member'}` : "AVG Cashflow System Overview"}
+            {isMember ? `Welcome back, ${myContact?.name || 'Member'}` : "AVG Cashflow System Overview"}
           </p>
         </div>
         <div style={{ display: "flex", gap: 10 }}>
