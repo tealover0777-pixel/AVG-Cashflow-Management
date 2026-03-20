@@ -194,7 +194,10 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
   }), [isDark, t, FEES_DATA]);
 
   function fmtCurrency(val) {
-    return "$" + Number(val).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+    if (val === null || val === undefined || val === "") return "—";
+    const num = typeof val === 'number' ? val : Number(String(val).replace(/[^0-9.-]/g, ""));
+    if (isNaN(num)) return "—";
+    return "$" + num.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 });
   }
 
   return (
@@ -239,7 +242,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
          <div style={{ background: isDark ? "rgba(255,255,255,0.03)" : "#fff", border: `1px solid ${t.surfaceBorder}`, borderRadius: 16, padding: 24 }}>
             <div style={{ fontSize: 14, color: t.textMuted, marginBottom: 8 }}>Fundraising Progress</div>
             <div style={{ fontSize: 24, fontWeight: 800, color: isDark ? "#fff" : "#1C1917" }}>
-              ${(deal.fundraisingAmount || 0).toLocaleString()} <span style={{ fontSize: 16, color: t.accent }}>({(deal.fundraisingProgress || 0).toFixed(1)}%)</span>
+              {fmtCurrency(deal.fundraisingAmount || 0)} <span style={{ fontSize: 16, color: t.accent }}>({(deal.fundraisingProgress || 0).toFixed(1)}%)</span>
             </div>
          </div>
          <div style={{ background: isDark ? "rgba(255,255,255,0.03)" : "#fff", border: `1px solid ${t.surfaceBorder}`, borderRadius: 16, padding: 24 }}>
