@@ -636,15 +636,17 @@ export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [
   };
   const setF = (k, v) => setModal(m => {
     const next = { ...m, data: { ...m.data, [k]: v } };
-    // When deal changes in "add" mode, default start/maturity to deal dates
-    if (k === "deal" && m.mode === "add") {
+    if (k === "deal") {
       const deal = DEALS.find(p => p.name === v);
       if (deal) {
-        next.data.start_date = deal.startDate || next.data.start_date;
-        next.data.maturity_date = deal.endDate || next.data.maturity_date;
-        if (deal.startDate && deal.endDate) {
-          const s = new Date(deal.startDate); const e = new Date(deal.endDate);
-          if (!isNaN(s) && !isNaN(e)) next.data.term_months = String((e.getFullYear() - s.getFullYear()) * 12 + e.getMonth() - s.getMonth());
+        next.data.deal_id = deal.deal_id || deal.id;
+        if (m.mode === "add") {
+          next.data.start_date = deal.startDate || next.data.start_date;
+          next.data.maturity_date = deal.endDate || next.data.maturity_date;
+          if (deal.startDate && deal.endDate) {
+            const s = new Date(deal.startDate); const e = new Date(deal.endDate);
+            if (!isNaN(s) && !isNaN(e)) next.data.term_months = String((e.getFullYear() - s.getFullYear()) * 12 + e.getMonth() - s.getMonth());
+          }
         }
       }
     }
@@ -804,10 +806,10 @@ export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [
       {(modal.mode === "edit" || (modal.mode === "add" && modal.data.id)) && (
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
           <FF label="Investment ID" t={t}>
-            <div style={{ fontFamily: t.mono, fontSize: 13, color: t.idText, background: isDark ? "rgba(255,255,255,0.04)" : "#F5F4F1", border: `1px solid ${t.surfaceBorder}`, borderRadius: 9, padding: "10px 13px" }}>{modal.data.id}</div>
+            <div style={{ fontFamily: t.mono, fontSize: 13, color: t.idText, background: isDark ? "rgba(255,255,255,0.04)" : "#F5F4F1", border: `1px solid ${t.surfaceBorder}`, borderRadius: 9, padding: "10px 13px", minHeight: 41, display: 'flex', alignItems: 'center' }}>{modal.data.id || "—"}</div>
           </FF>
           <FF label="Deal ID" t={t}>
-            <div style={{ fontFamily: t.mono, fontSize: 13, color: t.idText, background: isDark ? "rgba(255,255,255,0.04)" : "#F5F4F1", border: `1px solid ${t.surfaceBorder}`, borderRadius: 9, padding: "10px 13px" }}>{modal.data.deal_id}</div>
+            <div style={{ fontFamily: t.mono, fontSize: 13, color: t.idText, background: isDark ? "rgba(255,255,255,0.04)" : "#F5F4F1", border: `1px solid ${t.surfaceBorder}`, borderRadius: 9, padding: "10px 13px", minHeight: 41, display: 'flex', alignItems: 'center' }}>{modal.data.deal_id || "—"}</div>
           </FF>
         </div>
       )}
