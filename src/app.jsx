@@ -23,7 +23,8 @@ import PageRoles from "./pages/PageRoles";
 import PageSuperAdmin from "./pages/PageSuperAdmin";
 import PageProfile from "./pages/PageProfile";
 import PageReports from "./pages/PageReports";
-import { 
+import PageDimensions from "./pages/PageDimensions";
+import {
   LayoutDashboard, Briefcase, Users, PieChart, Calendar, 
   CreditCard, BarChart3, Settings, Shield, UserCircle, 
   HelpCircle, LogOut, ChevronDown, Sparkles, Sun, Moon, 
