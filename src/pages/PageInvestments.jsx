@@ -811,7 +811,7 @@ export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [
           </FF>
         </div>
       )}
-      <FF label="Deal" t={t}><FSel value={modal.data.deal} onChange={e => setF("deal", e.target.value)} options={DEALS.map(p => p.name)} t={t} /></FF>
+      <FF label="Deal name" t={t}><FSel value={modal.data.deal} onChange={e => setF("deal", e.target.value)} options={DEALS.map(p => p.name)} t={t} /></FF>
       <FF label="Contact" t={t}><FSel value={modal.data.party} onChange={e => setF("party", e.target.value)} options={CONTACTS.map(p => p.name)} t={t} /></FF>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14 }}>
         <FF label="Type" t={t}><FSel value={modal.data.type} onChange={e => setF("type", e.target.value)} options={getTypeOpts()} t={t} /></FF>

@@ -68,7 +68,7 @@ export const getColumnDefs = (permissions, isDark, t, selection, onToggleRow, on
       valueFormatter: (params) => params.value || "—"
     },
     {
-      headerName: "Deal",
+      headerName: "Deal name",
       field: "deal",
       flex: 1,
       minWidth: 150,
