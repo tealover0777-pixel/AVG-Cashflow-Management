@@ -10,6 +10,7 @@ ModuleRegistry.registerModules([AllCommunityModule]);
 
 import 'ag-grid-community/styles/ag-grid.css';
 import '../components/ag-grid/ag-grid-theme.css';
+import InvestmentFeesCellRenderer from '../components/ag-grid/InvestmentFeesCellRenderer';
 
 export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTMENTS = [], CONTACTS = [], DIMENSIONS = [], FEES_DATA = [], setActivePage, investmentCollection = "investments" }) {
   const { hasPermission, isSuperAdmin } = useAuth();
@@ -135,7 +136,34 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
       headerName: "Capital Amount", 
       field: "amount",
       flex: 1,
-      cellStyle: { fontWeight: 600 }
+      cellStyle: { fontWeight: 600, fontFamily: t.mono, fontSize: '11.5px', color: isDark ? '#60A5FA' : '#4F46E5' },
+      valueFormatter: (params) => params.value ? fmtCurrency(params.value) : "—"
+    },
+    { 
+      headerName: "Rate", 
+      field: "rate", 
+      width: 80,
+      cellStyle: { fontFamily: t.mono, fontSize: '11.5px', color: t.textMuted }
+    },
+    { 
+      headerName: "Freq", 
+      field: "freq", 
+      width: 100,
+      cellStyle: { fontSize: '11px', color: t.textMuted }
+    },
+    { 
+      headerName: "Term", 
+      field: "term_months", 
+      width: 80,
+      cellStyle: { fontFamily: t.mono, fontSize: '11px', color: isDark ? '#FFFFFF' : '#292524' },
+      valueFormatter: (params) => params.value ? `${params.value}mo` : "—"
+    },
+    { 
+      headerName: "Fees", 
+      field: "feeIds", 
+      flex: 1,
+      minWidth: 150,
+      cellRenderer: InvestmentFeesCellRenderer
     }
     ];
 
@@ -157,7 +185,13 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
       });
     }
     return cols;
-  }, [isDark, t, CONTACTS, t.textMuted, canUpdate, canDelete, deal.fundraisingAmount]);
+  }, [isDark, t, CONTACTS, t.textMuted, canUpdate, canDelete]);
+
+  const context = useMemo(() => ({
+    isDark,
+    t,
+    feesData: FEES_DATA
+  }), [isDark, t, FEES_DATA]);
 
   function fmtCurrency(val) {
     return "$" + Number(val).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 });
@@ -248,6 +282,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
             ref={gridRef}
             rowData={dealInvestments}
             columnDefs={columnDefs}
+            context={context}
             animateRows={true}
             pagination={true}
             paginationPageSize={20}
