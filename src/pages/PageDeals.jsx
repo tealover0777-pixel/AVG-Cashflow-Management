@@ -13,7 +13,7 @@ import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { sortData, mkId, fmtCurr, normalizeDateAtNoon, pmtCalculator_ACT360_30360, feeCalculator_ACT360_30360 } from "../utils";
 import { Bdg, StatCard, Pagination, Modal, FF, FIn, FSel, DelModal, Tooltip } from "../components";
 import { useAuth } from "../AuthContext";
-import { Check, Plus } from "lucide-react";
+import { Check, Plus, PieChart } from "lucide-react";
 
 const PT_INTEREST = "Interest_Payment";
 const PT_PRINCIPAL = "Principal_Payment";
@@ -181,56 +181,159 @@ export default function PageDeals({ t, isDark, DEALS = [], INVESTMENTS = [], FEE
     setIsUploading(true);
     try {
       const batchId = mkId("DIST");
-      const tenantPath = collectionPath.split("/deals")[0];
-      const schedulePath = `${tenantPath}/paymentSchedules`;
+      const firstRow = selectedRows[0];
+      const tenantPath = (firstRow._path || collectionPath).split("/deals")[0];
+      if (tenantPath.startsWith("GROUP:")) {
+        alert("Cannot generate distributions from a global group view yet. Please select a specific tenant.");
+        setIsUploading(false);
+        return;
+      }
+      
+      const schedulePathSuffix = "/paymentSchedules";
       const batchPath = `${tenantPath}/distributionBatches`;
 
-      let totalAmount = 0;
+      let totalBatchAmount = 0;
       let recipientCount = 0;
-      const processedInvestments = new Set();
+      const calcMethod = distModal.data.calculator || "ACT/360";
+      const gStart = normalizeDateAtNoon(new Date(distModal.data.startDate || new Date()));
+      const gEnd = normalizeDateAtNoon(new Date(distModal.data.endDate || new Date()));
 
       for (const deal of selectedRows) {
-        // Find investments for this deal
         const dealInvestments = INVESTMENTS.filter(inv => inv.deal_id === deal.id || inv.deal_id === deal.docId);
-        
+        const dealFeeIds = deal.feeIds || [];
+        const dealFees = FEES_DATA.filter(f => dealFeeIds.includes(f.id));
+
         for (const inv of dealInvestments) {
-          processedInvestments.add(inv.id);
           recipientCount++;
-
-          // Simplified generation for the batch
-          // In a real app, this would use the robust logic from PageInvestments.jsx
-          const startDate = normalizeDateAtNoon(new Date(distModal.data.startDate || inv.startDate || new Date()));
-          const endDate = normalizeDateAtNoon(new Date(distModal.data.endDate || inv.endDate || new Date()));
-          const amount = parseFloat(String(inv.amount || 0).replace(/[^0-9.-]/g, ""));
+          const investDate = normalizeDateAtNoon(new Date(inv.start_date || new Date()));
+          const principal = parseFloat(String(inv.amount || 0).replace(/[^0-9.-]/g, ""));
           const rate = parseFloat(String(inv.rate || 0).replace(/[^0-9.-]/g, "")) / 100;
+          
+          const entries = [];
 
-          // Generate one interest entry for this period
-          const interestAmt = pmtCalculator_ACT360_30360(startDate, endDate, startDate, amount, rate, "Monthly");
-          const sId = mkId("S");
-          const payload = {
-            schedule_id: sId,
+          // 1. Interest Payment
+          const interestAmt = pmtCalculator_ACT360_30360(gStart, gEnd, investDate, principal, rate, "Monthly", calcMethod);
+          const roundedInterest = Math.round(interestAmt * 100) / 100;
+          const sIdInt = mkId("S");
+          entries.push({
+            schedule_id: sIdInt,
             version_num: 1,
-            version_id: `${sId}-V1`,
-            payment_id: `${sId}-P`,
+            version_id: `${sIdInt}-V1`,
+            payment_id: `${sIdInt}-P`,
             active_version: true,
-            investment_id: inv.id,
-            deal_id: deal.id,
-            party_id: inv.party_id || "",
-            due_date: endDate.toISOString().slice(0, 10),
+            investment_id: inv.id, deal_id: deal.id, party_id: inv.party_id || "",
+            due_date: gEnd.toISOString().slice(0, 10),
             payment_type: PT_INTEREST,
-            payment_amount: Math.round(interestAmt * 100) / 100,
-            signed_payment_amount: -Math.abs(interestAmt), // Assuming OUT for distribution
+            payment_amount: roundedInterest,
+            signed_payment_amount: -Math.abs(roundedInterest),
             direction_from_company: "OUT",
             status: "Due",
-            notes: `Distribution Batch ${batchId}: ${distModal.data.notes || ""}`,
+            notes: `Interest Distribution [${batchId}]`,
             created_at: serverTimestamp(),
-            term_start: startDate.toISOString().slice(0, 10),
-            term_end: endDate.toISOString().slice(0, 10),
-            batch_id: batchId
-          };
-          
-          await addDoc(collection(db, schedulePath), payload);
-          totalAmount += Math.abs(interestAmt);
+            term_start: gStart.toISOString().slice(0, 10),
+            term_end: gEnd.toISOString().slice(0, 10),
+            batch_id: batchId,
+            principal_amount: principal
+          });
+
+          // 2. Fee Payments
+          for (const fee of dealFees) {
+            const feeAmt = feeCalculator_ACT360_30360(fee, principal, gStart, gEnd, investDate, calcMethod);
+            if (feeAmt === 0 || isNaN(feeAmt)) continue;
+
+            const roundedFee = Math.round(feeAmt * 100) / 100;
+            const sIdFee = mkId("S");
+            entries.push({
+              schedule_id: sIdFee,
+              version_num: 1, version_id: `${sIdFee}-V1`, payment_id: `${sIdFee}-P`, active_version: true,
+              investment_id: inv.id, deal_id: deal.id, party_id: inv.party_id || "",
+              due_date: gEnd.toISOString().slice(0, 10),
+              payment_type: PT_FEE,
+              fee_id: fee.id,
+              fee_name: fee.name || "Fee",
+              fee_rate: fee.rate || "0",
+              fee_method: fee.method || "Fixed Amount",
+              payment_amount: roundedFee,
+              direction_from_company: "OUT",
+              signed_payment_amount: -Math.abs(roundedFee),
+              status: "Due",
+              created_at: serverTimestamp(),
+              term_start: gStart.toISOString().slice(0, 10),
+              term_end: gEnd.toISOString().slice(0, 10),
+              batch_id: batchId,
+              principal_amount: principal,
+              applied_to: fee.applied_to || "Principal Amount"
+            });
+          }
+
+          // 3. Merge Fees for this investment/date
+          const feeGroups = {}; 
+          const finalEntries = [];
+          entries.forEach(e => {
+            if (e.payment_type !== PT_FEE) {
+              finalEntries.push(e);
+              return;
+            }
+            const key = `${e.due_date}|${e.applied_to}|${e.direction_from_company}`;
+            if (!feeGroups[key]) {
+              feeGroups[key] = {
+                ...e,
+                fee_ids: [e.fee_id],
+                fee_names: [e.fee_name],
+                fee_rates: [e.fee_rate],
+                fee_methods: [e.fee_method],
+                payment_amounts: [e.payment_amount],
+                signed_amounts: [e.signed_payment_amount],
+                total_payment: e.payment_amount,
+                total_signed: e.signed_payment_amount
+              };
+            } else {
+              feeGroups[key].fee_ids.push(e.fee_id);
+              feeGroups[key].fee_names.push(e.fee_name);
+              feeGroups[key].fee_rates.push(e.fee_rate);
+              feeGroups[key].fee_methods.push(e.fee_method);
+              feeGroups[key].payment_amounts.push(e.payment_amount);
+              feeGroups[key].signed_amounts.push(e.signed_payment_amount);
+              feeGroups[key].total_payment += e.payment_amount;
+              feeGroups[key].total_signed += e.signed_payment_amount;
+            }
+          });
+
+          Object.values(feeGroups).forEach(g => {
+            const { fee_ids, payment_amounts, signed_amounts, total_payment, total_signed, fee_names, fee_rates, fee_methods, ...rest } = g;
+            const basisAmt = rest.principal_amount || 0;
+            const basisLabel = rest.applied_to || "Principal Amount";
+
+            const stepParts = fee_ids.map((id, i) => {
+              const method = fee_methods[i];
+              const rate = fee_rates[i];
+              const amt = payment_amounts[i];
+              const sign = "-";
+              const absAmt = Math.abs(amt);
+              if (method === "% of Amount") return `${sign}${rate}% of ${fmtCurr(basisAmt)} (${basisLabel}) = ${sign}${fmtCurr(absAmt)}`;
+              return `${sign}Fixed amount of ${fmtCurr(absAmt)} (${fee_names[i]})`;
+            });
+
+            let breakdown = `Fee Breakdown [${batchId}]: `;
+            if (stepParts.length === 1) breakdown += stepParts[0];
+            else breakdown += stepParts.map(p => `[${p}]`).join(" ") + ` = ${fmtCurr(Math.abs(total_signed))}`;
+
+            finalEntries.push({
+              ...rest,
+              fee_id: fee_ids.join(","),
+              payment_amount: Math.round(total_payment * 100) / 100,
+              signed_payment_amount: Math.round(total_signed * 100) / 100,
+              notes: breakdown
+            });
+          });
+
+          // Save to Firestore
+          const dealTenantPath = (deal._path || collectionPath).split("/deals")[0];
+          const dealSchedulePath = `${dealTenantPath}${schedulePathSuffix}`;
+          for (const ent of finalEntries) {
+            await addDoc(collection(db, dealSchedulePath), ent);
+            totalBatchAmount += Math.abs(ent.payment_amount);
+          }
         }
       }
 
@@ -238,9 +341,9 @@ export default function PageDeals({ t, isDark, DEALS = [], INVESTMENTS = [], FEE
       await addDoc(collection(db, batchPath), {
         batch_id: batchId,
         deal_names: selectedRows.map(d => d.name).join(", "),
-        amount: totalAmount,
+        amount: Math.round(totalBatchAmount * 100) / 100,
         status: "Draft",
-        method: distModal.data.calculator,
+        method: calcMethod,
         recipient_count: recipientCount,
         notes: distModal.data.notes,
         created_at: serverTimestamp(),
@@ -330,7 +433,7 @@ export default function PageDeals({ t, isDark, DEALS = [], INVESTMENTS = [], FEE
         {selectedRows.length > 0 && (
           <Tooltip text="Generate distribution schedules for selected deals" t={t}>
             <button className="primary-btn" onClick={() => setDistModal({ ...distModal, open: true })} style={{ background: "linear-gradient(135deg, #10B981 0%, #059669 100%)", color: "#fff", padding: "11px 22px", borderRadius: 11, fontSize: 13.5, fontWeight: 600, boxShadow: `0 4px 16px rgba(16, 185, 129, 0.25)`, display: "flex", alignItems: "center", gap: 7 }}>
-              <span style={{ fontSize: 16 }}>📊</span> Generate Distribution Schedule
+              <PieChart size={16} /> Generate Distribution Schedule
             </button>
           </Tooltip>
         )}

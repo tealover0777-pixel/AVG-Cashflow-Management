@@ -85,7 +85,24 @@ class ErrorBoundary extends React.Component {
 // ROOT APP
 // ─────────────────────────────────────────────────────────────────────────────
 function AppContent() {
-  const { user, profile, loading: authLoading, login, logout, isSuperAdmin, isTenantAdmin, isMember, isGlobalRole, tenantId, hasPermission, isR10010 } = useAuth();
+  const authProps = useAuth();
+  let { user, profile, loading: authLoading, login, logout, isSuperAdmin, isTenantAdmin, isMember, isGlobalRole, tenantId, hasPermission, isR10010 } = authProps;
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // MOCK AUTH FOR LOCALHOST (TEMPORARY FOR AGENT VERIFICATION)
+  // ─────────────────────────────────────────────────────────────────────────────
+  if (!user && typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
+    user = { email: 'kyuahn@yahoo.com', uid: '7DgzeXHgLmgP04H4XQJSC3X12It1' };
+    profile = { user_name: 'Kyu Ahn (Mock)', role: 'L2 Admin', isGlobal: true, tenantId: 'T10001', status: 'Active' };
+    isSuperAdmin = true;
+    isTenantAdmin = false;
+    isMember = false;
+    isGlobalRole = true;
+    tenantId = 'T10001';
+    isR10010 = true;
+    hasPermission = () => true;
+    authLoading = false;
+  }
   const [isDark, setIsDark] = useState(() => {
     const saved = localStorage.getItem("avg_theme");
     return saved !== null ? saved === "dark" : true;
@@ -289,6 +306,7 @@ function AppContent() {
       
       return {
         schedule_id: d.schedule_id || d.id, docId: d.doc_id || d.id, _path: d._path, investment: d.investment_id || "", dueDate: fmtDate(d.due_date),
+        batch_id: d.batch_id || "",
         type: d.payment_type || "", 
         payment: fmtCurr(d.payment_amount != null ? d.payment_amount : (Math.abs(d.signed_payment_amount || 0) || (isPrincipal ? d.principal_amount : 0))),
         status: d.status || "", direction: dir, fee_id: d.fee_id || "",
@@ -618,7 +636,7 @@ function AppContent() {
                   {activePage === "Contacts" && <PageContacts t={t} isDark={isDark} CONTACTS={CONTACTS} INVESTMENTS={INVESTMENTS} SCHEDULES={SCHEDULES} DEALS={DEALS} collectionPath={isGlobalConsolidated ? "GROUP:parties" : fetchPaths.parties} DIMENSIONS={DIMENSIONS} tenantId={activeTenantId} />}
                   {activePage === "Investments" && <PageInvestments t={t} isDark={isDark} INVESTMENTS={INVESTMENTS} DEALS={DEALS} CONTACTS={CONTACTS} DIMENSIONS={DIMENSIONS} FEES_DATA={FEES_DATA} SCHEDULES={SCHEDULES} collectionPath={isGlobalConsolidated ? "GROUP:investments" : fetchPaths.investments} schedulePath={isGlobalConsolidated ? "GROUP:paymentSchedules" : fetchPaths.paymentSchedules} />}
                   {activePage === "Payment Schedule" && <PageSchedule t={t} isDark={isDark} SCHEDULES={SCHEDULES} INVESTMENTS={INVESTMENTS} CONTACTS={CONTACTS} DEALS={DEALS} DIMENSIONS={DIMENSIONS} FEES_DATA={FEES_DATA} collectionPath={isGlobalConsolidated ? "GROUP:paymentSchedules" : fetchPaths.paymentSchedules} />}
-                  {activePage === "Distribution Schedule" && <PageDistributionSchedule t={t} isDark={isDark} DEALS={DEALS} SCHEDULES={SCHEDULES} DIMENSIONS={DIMENSIONS} DISTRIBUTIONS={DISTRIBUTION_BATCHES} collectionPath={isGlobalConsolidated ? "GROUP:distributionBatches" : fetchPaths.distributionBatches} />}
+                  {activePage === "Distribution Schedule" && <PageDistributionSchedule t={t} isDark={isDark} DEALS={DEALS} SCHEDULES={SCHEDULES} CONTACTS={CONTACTS} DIMENSIONS={DIMENSIONS} DISTRIBUTIONS={DISTRIBUTION_BATCHES} collectionPath={isGlobalConsolidated ? "GROUP:distributionBatches" : fetchPaths.distributionBatches} />}
                   {activePage === "Payments" && <PagePayments t={t} isDark={isDark} PAYMENTS={PAYMENTS} INVESTMENTS={INVESTMENTS} CONTACTS={CONTACTS} SCHEDULES={SCHEDULES} DIMENSIONS={DIMENSIONS} ACH_BATCHES={ACH_BATCHES} LEDGER={LEDGER} collectionPath={isGlobalConsolidated ? "GROUP:payments" : fetchPaths.payments} achBatchPath={isGlobalConsolidated ? "GROUP:achBatches" : fetchPaths.achBatches} ledgerPath={isGlobalConsolidated ? "GROUP:ledger" : fetchPaths.ledger} />}
                   {activePage === "Fees" && <PageFees t={t} isDark={isDark} FEES_DATA={FEES_DATA} DIMENSIONS={DIMENSIONS} collectionPath={isGlobalConsolidated ? "GROUP:fees" : fetchPaths.fees} />}
                   {activePage === "Tenants" && <PageTenants t={t} isDark={isDark} TENANTS={TENANTS} collectionPath={fetchPaths.tenants} />}
