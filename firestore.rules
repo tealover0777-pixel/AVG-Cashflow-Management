@@ -175,6 +175,13 @@ service cloud.firestore {
         allow delete: if isTenantMember(tenantId) && hasPermission('PAYMENT_DELETE');
     }
 
+    match /tenants/{tenantId}/investments/{docId} {
+        allow read: if isTenantMember(tenantId) && (hasPermission('INVESTMENT_VIEW') || hasPermission('INVESTMENTS_VIEW') || hasPermission('CONTRACT_VIEW'));
+        allow create: if isTenantMember(tenantId) && (hasPermission('INVESTMENT_CREATE') || hasPermission('INVESTMENTS_CREATE') || hasPermission('CONTRACT_CREATE'));
+        allow update: if isTenantMember(tenantId) && (hasPermission('INVESTMENT_UPDATE') || hasPermission('INVESTMENTS_UPDATE') || hasPermission('CONTRACT_UPDATE'));
+        allow delete: if isTenantMember(tenantId) && (hasPermission('INVESTMENT_DELETE') || hasPermission('INVESTMENTS_DELETE') || hasPermission('CONTRACT_DELETE'));
+    }
+
     match /tenants/{tenantId}/reports/{docId} {
         allow read: if isTenantMember(tenantId) && hasPermission('REPORT_VIEW');
         allow create, update, delete: if isTenantMember(tenantId) && (hasPermission('REPORT_CREATE') || hasPermission('REPORT_UPDATE') || hasPermission('REPORT_DELETE'));

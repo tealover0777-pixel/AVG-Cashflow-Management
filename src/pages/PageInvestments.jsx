@@ -136,9 +136,10 @@ export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [
   };
 
   const handleDeleteInvestment = async () => {
-    if (!delT || !delT.docId) return;
+    if (!delT || (!delT.docId && !delT._path)) return;
     try {
-      await deleteDoc(doc(db, collectionPath, delT.docId));
+      const docRef = delT._path ? doc(db, delT._path) : doc(db, collectionPath, delT.docId);
+      await deleteDoc(docRef);
       setDelT(null);
     } catch (err) { console.error("Delete investment error:", err); }
   };
@@ -162,7 +163,10 @@ export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [
     try {
       await Promise.all([...sel].map(id => {
         const c = INVESTMENTS.find(c => c.id === id);
-        if (c && c.docId) return deleteDoc(doc(db, collectionPath, c.docId));
+        if (c) {
+          const docRef = c._path ? doc(db, c._path) : (c.docId ? doc(db, collectionPath, c.docId) : null);
+          if (docRef) return deleteDoc(docRef);
+        }
         return Promise.resolve();
       }));
       setSel(new Set());
@@ -742,7 +746,7 @@ export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [
     feesData: FEES_DATA,
     callbacks: {
       onEdit: openEdit,
-      onDelete: (target) => setDelT({ id: target.id, name: target.id, docId: target.docId }),
+      onDelete: (target) => setDelT({ id: target.id, name: target.id, docId: target.docId, _path: target._path }),
       onDrillDown: (investment) => setDrillInvestment(investment),
       onToggleRow: toggleRow,
       onToggleAll: toggleAll

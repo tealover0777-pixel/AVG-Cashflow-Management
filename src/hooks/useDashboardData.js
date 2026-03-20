@@ -49,7 +49,9 @@ export function useDashboardData({ DEALS = [], INVESTMENTS = [], CONTACTS = [], 
         const liveSchedules = allFilteredSchedules.filter(s => liveStatuses.includes(s.status));
 
         // 2. Calculate Key Metrics
-        const totalAUM = filteredInvestments.reduce((sum, c) => sum + Number(String(c.amount || 0).replace(/[^0-9.-]/g, '')), 0);
+        const totalAUM = filteredInvestments
+            .filter(c => c.status === 'Active')
+            .reduce((sum, c) => sum + Number(String(c.amount || 0).replace(/[^0-9.-]/g, '')), 0);
 
         const totalIncome = liveSchedules
             .filter(s => s.direction === 'IN')
