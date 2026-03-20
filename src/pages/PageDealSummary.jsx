@@ -112,7 +112,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], CONTRAC
                  <span>‹</span> Back
                </button>
                <h2 style={{ fontSize: 18, color: t.textSecondary, fontWeight: 600 }}>Deal summary</h2>
-               <span style={{ color: t.accent, fontSize: 13, fontWeight: 500 }}>Asset managing</span>
+               <span style={{ color: t.accent, fontSize: 13, fontWeight: 500 }}>{deal.status || "—"}</span>
             </div>
           </div>
           
