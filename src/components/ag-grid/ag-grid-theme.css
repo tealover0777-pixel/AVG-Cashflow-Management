@@ -20,6 +20,10 @@
 
   /* Root background */
   background-color: var(--ag-background-color) !important;
+  
+  /* Hover effects */
+  --ag-row-hover-color: rgba(0, 0, 0, 0.03);
+  --ag-column-hover-color: rgba(0, 0, 0, 0.02);
 }
 
 /* Ensure horizontal dividers extend all the way if columns don't fill the space */
@@ -32,7 +36,8 @@
   --ag-background-color: #050c15; /* Solid dark background to prevent white bleed */
   --ag-header-background-color: #0F172A; /* Reverted to previous navy tint */
   --ag-odd-row-background-color: transparent;
-  --ag-row-hover-color: rgba(255, 255, 255, 0.04);
+  --ag-row-hover-color: rgba(255, 255, 255, 0.08); /* Increased for visibility */
+  --ag-column-hover-color: rgba(255, 255, 255, 0.04);
   --ag-selected-row-background-color: rgba(52, 211, 153, 0.1); 
 
   --ag-row-border-color: rgba(255, 255, 255, 0.08); /* Subtle horizontal */
@@ -123,7 +128,8 @@
   --ag-background-color: #FFFFFF;
   --ag-header-background-color: #FAFAF9;
   --ag-odd-row-background-color: transparent;
-  --ag-row-hover-color: #FAFAF9;
+  --ag-row-hover-color: #F8FAFC; /* Slate 50 */
+  --ag-column-hover-color: #FAFAFA;
   --ag-selected-row-background-color: #F0FDF4;
 
   --ag-row-border-color: #CBD5E1;
@@ -139,6 +145,17 @@
 
   border: 1px solid var(--ag-border-color);
   box-shadow: none;
+}
+
+/* Hover Indicators */
+.ag-theme-custom .ag-row-hover {
+  background-color: var(--ag-row-hover-color) !important;
+}
+.ag-theme-custom .ag-column-hover {
+  background-color: var(--ag-column-hover-color) !important;
+}
+.ag-theme-custom .ag-row-hover .ag-column-hover {
+  background-color: var(--ag-selected-row-background-color) !important; /* Visual 'crosshair' effect */
 }
 
 /* ============================================================================

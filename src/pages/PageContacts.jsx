@@ -224,6 +224,8 @@ export default function PageContacts({ t, isDark, CONTACTS = [], INVESTMENTS = [
         paginationPageSize={pageSize}
         suppressPaginationPanel={true}
         suppressCellFocus={true}
+        rowHover={true}
+        columnHover={true}
         onRowClicked={(event) => {
           // Row click action removed per latest request. 
           // Summary opens on ID/Name click via cell renderers.

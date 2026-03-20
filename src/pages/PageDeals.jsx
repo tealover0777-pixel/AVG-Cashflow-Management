@@ -244,6 +244,8 @@ export default function PageDeals({ t, isDark, DEALS = [], FEES_DATA = [], DIMEN
         paginationPageSize={pageSize}
         suppressPaginationPanel={true}
         suppressCellFocus={true}
+        rowHover={true}
+        columnHover={true}
         onRowClicked={(event) => {
           // Row click behavior disabled in favor of specific link clicks on ID/Name
         }}

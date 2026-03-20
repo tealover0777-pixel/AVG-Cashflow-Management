@@ -135,6 +135,8 @@ export default function PageFees({ t, isDark, FEES_DATA = [], DIMENSIONS = [], c
         paginationPageSize={pageSize}
         suppressPaginationPanel={true}
         suppressCellFocus={true}
+        rowHover={true}
+        columnHover={true}
         onColumnResized={(event) => {
           if (event.finished) {
             const columnState = event.api.getColumnState();

@@ -783,6 +783,8 @@ export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [
         paginationPageSize={pageSize}
         suppressPaginationPanel={true}
         suppressCellFocus={true}
+        rowHover={true}
+        columnHover={true}
         onColumnResized={(event) => {
           if (event.finished) {
             const columnState = event.api.getColumnState();
