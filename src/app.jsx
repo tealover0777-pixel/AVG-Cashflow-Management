@@ -27,15 +27,30 @@ import {
   LayoutDashboard, Briefcase, Users, PieChart, Calendar, 
   CreditCard, BarChart3, Settings, Shield, UserCircle, 
   HelpCircle, LogOut, ChevronDown, Sparkles, Sun, Moon, 
-  TableProperties, Hash
+  TableProperties, Hash, LayoutGrid, Coins, CircleDollarSign,
+  UserSquare, ShieldAlert, Building2, ShieldCheck, UserPlus,
+  Bot, Box, CalendarDays, User, ChevronRight
 } from "lucide-react";
 import { Tooltip } from "./components";
 import SidebarHelp from "./components/SidebarHelp";
 import PageAdminHelp from "./pages/PageAdminHelp";
 import PageDealSummary from "./pages/PageDealSummary";
 
-import "@ag-grid-community/styles/ag-grid.css";
-import "@ag-grid-community/styles/ag-theme-quartz.css";
+import "ag-grid-community/styles/ag-grid.css";
+import "ag-grid-community/styles/ag-theme-quartz.css";
+
+const Icon = ({ name, size = 18, color = "currentColor" }) => {
+  const icons = {
+    LayoutDashboard, Briefcase, LayoutGrid, Users, Coins, Settings, 
+    CircleDollarSign, UserSquare, ShieldAlert, Building2, ShieldCheck, 
+    UserPlus, Bot, Box, BarChart3, CalendarDays, PieChart, CreditCard, 
+    User, ChevronRight, HelpCircle, LogOut, Sparkles, Sun, Moon,
+    Shield, UserCircle, ChevronDown, TableProperties, Hash, Calendar
+  };
+  const LucideIcon = icons[name];
+  return LucideIcon ? <LucideIcon size={size} color={color} style={{ flexShrink: 0 }} /> : null;
+};
+
 // ─────────────────────────────────────────────────────────────────────────────
 // ERROR BOUNDARY
 // ─────────────────────────────────────────────────────────────────────────────
@@ -398,31 +413,6 @@ function AppContent() {
         @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=Syne:wght@700;800&family=Cormorant+Garamond:wght@600;700&family=JetBrains+Mono:wght@400;500&display=swap');
         * { box-sizing: border-box; margin: 0; padding: 0; }
         ::-webkit-scrollbar { width: 5px; }
-        ::-webkit-scrollbar-track { background: ${t.scrollTrack}; }
-        ::-webkit-scrollbar-thumb { background: ${t.scrollThumb}; border-radius: 10px; }
-        .nav-item   { transition: all 0.18s ease; cursor: pointer; border-radius: 10px; }
-        .nav-item:hover { background: ${t.navHover} !important; }
-        .data-row   { transition: all 0.18s ease; cursor: pointer; }
-        .data-row:hover { background: ${t.rowHover} !important; ${isDark ? "transform:translateX(3px);" : ""} }
-        .activity-row { transition: all 0.15s ease; }
-        .activity-row:hover { background: ${isDark ? "rgba(255,255,255,0.03)" : "#FAFAF9"} !important; }
-        .action-btn { transition: all 0.15s ease; cursor: pointer; background: none; border: none; }
-        .action-btn:hover { transform: scale(1.15); opacity: 1 !important; }
-        .primary-btn { transition: all 0.2s ease; cursor: pointer; border: none; }
-        .primary-btn:hover { transform: translateY(-1px); box-shadow: 0 8px 24px ${t.accentShadow} !important; }
-        .success-btn { transition: all 0.2s ease; cursor: pointer; border: none; }
-        .success-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none !important; }
-        .success-btn:not(:disabled):hover { transform: translateY(-1px); }
-        .stat-card  { transition: all 0.2s ease; }
-        .stat-card:hover { transform: translateY(-3px); }
-        .dim-card   { transition: all 0.2s ease; }
-        .dim-card:hover { transform: translateY(-2px); }
-        .filter-chip { transition: all 0.15s ease; cursor: pointer; }
-        .report-tab { transition: all 0.15s ease; cursor: pointer; }
-        .export-btn { transition: all 0.15s ease; }
-        .export-btn:hover { opacity: 0.85; transform: translateY(-1px); }
-        .theme-toggle { transition: all 0.2s ease; cursor: pointer; border: none; }
-        .theme-toggle:hover { opacity: 0.85; transform: scale(1.05); }
         @keyframes tooltipFadeIn {
           from { opacity: 0; transform: translate(-50%, 4px); }
           to { opacity: 1; transform: translate(-50%, 0); }
@@ -479,7 +469,7 @@ function AppContent() {
                       position: "relative"
                     }}
                   >
-                    <span style={{ fontSize: 13, opacity: isDark ? 0.8 : 0.6 }}>{item.icon}</span>
+                    <Icon name={item.icon} size={18} color={t.navText} />
                     <span style={{ flex: 1 }}>{item.label}</span>
                     <ChevronDown size={14} style={{ transition: "transform 0.2s", transform: isExpanded ? "rotate(180deg)" : "rotate(0deg)", opacity: 0.6 }} />
                   </div>
@@ -507,7 +497,7 @@ function AppContent() {
                         }}
                       >
                         {!isDark && isChildActive && <div style={{ position: "absolute", left: 0, top: "20%", bottom: "20%", width: 3, borderRadius: "0 3px 3px 0", background: t.navActivePill }} />}
-                        <span style={{ fontSize: 12, opacity: isChildActive ? 1 : (isDark ? 0.8 : 0.6) }}>{child.icon}</span>
+                        <Icon name={child.icon} size={16} color={isChildActive ? t.navActiveText : t.navText} />
                         {child.label}
                       </div>
                     );
@@ -521,7 +511,7 @@ function AppContent() {
               <div key={item.label} className="nav-item" onClick={() => setActivePage(item.label)}
                 style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", background: isActive ? t.navActive : "transparent", borderLeft: `2px solid ${isActive ? t.navActivePill : "transparent"}`, color: isActive ? t.navActiveText : t.navText, fontSize: 13.5, fontWeight: isActive ? 600 : 400, position: "relative", cursor: "pointer" }}>
                 {!isDark && isActive && <div style={{ position: "absolute", left: 0, top: "20%", bottom: "20%", width: 3, borderRadius: "0 3px 3px 0", background: t.navActivePill }} />}
-                <span style={{ fontSize: 13, opacity: isActive ? 1 : (isDark ? 0.8 : 0.6) }}>{item.icon}</span>
+                <Icon name={item.icon} size={18} color={isActive ? t.navActiveText : t.navText} />
                 {item.label}
               </div>
             );

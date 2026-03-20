@@ -6,7 +6,8 @@ import { useState, useRef } from "react";
 import { badge } from "./utils";
 import { 
   ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, 
-  Pencil, Trash2, RotateCcw, X, Info, Check, Plus, AlertCircle, FileText
+  Pencil, Trash2, RotateCcw, X, Info, Check, Plus, AlertCircle, FileText,
+  ArrowUp, ArrowDown
 } from "lucide-react";
 
 export const Bdg = ({ status, isDark }) => {
@@ -155,6 +156,24 @@ export function useResizableColumns(cols) {
   return { gridTemplate, headerRef, onResizeStart };
 }
 
+export const TblHead = ({ cols, t, isDark, sortConfig, onSort, children, gridTemplate, headerRef, onResizeStart }) => (
+  <div ref={headerRef} style={{ display: "grid", gridTemplateColumns: gridTemplate || cols.map(c => c.w).join(" "), padding: "14px 22px", borderBottom: `1px solid ${t.rowDivider}`, background: isDark ? "rgba(255,255,255,0.02)" : "#FAFAF9", position: "sticky", top: 0, zIndex: 10 }}>
+    {cols.map((c, i) => (
+      <div key={c.k || c.l} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, fontWeight: 700, color: t.textSubtle, textTransform: "uppercase", letterSpacing: "1px", position: "relative", borderRight: i < cols.length - 1 ? `1px solid ${t.columnDivider}` : "none", width: "100%", boxSizing: "border-box" }}>
+        <span onClick={() => c.k && onSort(c.k)} style={{ cursor: c.k ? "pointer" : "default", display: "flex", alignItems: "center", gap: 4 }}>
+          {c.l}
+          {c.k && sortConfig?.key === c.k && (
+            sortConfig.dir === "asc" ? <ArrowUp size={10} /> : <ArrowDown size={10} />
+          )}
+        </span>
+        {c.k && onResizeStart && (
+          <div onMouseDown={(e) => onResizeStart(i, e)} style={{ position: "absolute", right: -3, top: 0, bottom: 0, width: 6, cursor: "col-resize", zIndex: 11 }} />
+        )}
+      </div>
+    ))}
+    {children}
+  </div>
+);
 
 export const TblFilterRow = ({ cols, colFilters, onFilterChange, onClear, gridTemplate, t, isDark }) => (
   <div style={{ display: "grid", gridTemplateColumns: gridTemplate || cols.map(c => c.w).join(" "), padding: "6px 22px", borderBottom: `1px solid ${t.rowDivider}`, background: isDark ? "rgba(255,255,255,0.015)" : "#FDFDFC" }}>
@@ -195,9 +214,6 @@ export const TblFilterRow = ({ cols, colFilters, onFilterChange, onClear, gridTe
   </div>
 );
 
-// ─────────────────────────────────────────────────────────────────────────────
-// MODAL SYSTEM
-// ─────────────────────────────────────────────────────────────────────────────
 export const Modal = ({ open, onClose, title, onSave, saveLabel, secondaryAction, secondaryLabel, danger, width, children, t, isDark, loading }) => {
   if (!open) return null;
   return (

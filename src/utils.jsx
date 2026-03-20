@@ -75,43 +75,43 @@ export const mkTheme = (isDark) => isDark ? {
 };
 
 const NAV_ITEMS = [
-  { label: "Dashboard", icon: "⬡" },
+  { label: "Dashboard", icon: "LayoutDashboard" },
   {
     label: "Investor Portal",
-    icon: "💼",
+    icon: "Briefcase",
     expandable: true,
     children: [
-      { label: "Deals", icon: "▦" },
-      { label: "Contacts", icon: "◎" },
-      { label: "Investments", icon: "◈" },
+      { label: "Deals", icon: "LayoutGrid" },
+      { label: "Contacts", icon: "Users" },
+      { label: "Investments", icon: "Coins" },
     ]
   },
   {
     label: "Settings",
-    icon: "⚙",
+    icon: "Settings",
     expandable: true,
     children: [
-      { label: "Fees", icon: "◉" },
-      { label: "User Profiles", icon: "👥" },
+      { label: "Fees", icon: "CircleDollarSign" },
+      { label: "User Profiles", icon: "UserSquare" },
     ]
   },
   {
     label: "Administration",
-    icon: "🔐",
+    icon: "ShieldAlert",
     expandable: true,
     children: [
-      { label: "Tenants", icon: "🏢" },
-      { label: "Role Types", icon: "🛡️" },
-      { label: "User Admin", icon: "⚡" },
-      { label: "AI Admin", icon: "🤖" },
-      { label: "Dimensions", icon: "⊞" },
-      { label: "Reports", icon: "📊" },
-      { label: "Payment Schedule", icon: "▤" },
-      { label: "Distribution Schedule", icon: "▥" },
-      { label: "Payments", icon: "◇" },
+      { label: "Tenants", icon: "Building2" },
+      { label: "Role Types", icon: "ShieldCheck" },
+      { label: "User Admin", icon: "UserPlus" },
+      { label: "AI Admin", icon: "Bot" },
+      { label: "Dimensions", icon: "Box" },
+      { label: "Reports", icon: "BarChart3" },
+      { label: "Payment Schedule", icon: "CalendarDays" },
+      { label: "Distribution Schedule", icon: "PieChart" },
+      { label: "Payments", icon: "CreditCard" },
     ]
   },
-  { label: "Profile", icon: "👤", hidden: true },
+  { label: "Profile", icon: "User", hidden: true },
 ];
 
 export const getNav = (isSuper, isAdmin, hasPermission, isR10010) => {
