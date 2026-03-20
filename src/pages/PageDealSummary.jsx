@@ -1,6 +1,7 @@
 import { useState, useMemo, useRef, useEffect } from "react";
 import { AgGridReact } from 'ag-grid-react';
 import { ModuleRegistry, AllCommunityModule } from 'ag-grid-community';
+import { db } from "../firebase";
 import { collection, getDocs, doc, setDoc, updateDoc, deleteDoc, addDoc, serverTimestamp } from "firebase/firestore";
 import { Bdg, StatCard, Pagination, Tooltip, ActBtns, Modal, FF, FIn, FSel, DelModal } from "../components";
 import { useAuth } from "../AuthContext";
