@@ -1,19 +1,26 @@
 import { useState, useMemo, useRef, useEffect } from "react";
 import { AgGridReact } from 'ag-grid-react';
 import { ModuleRegistry, AllCommunityModule } from 'ag-grid-community';
-import { db } from "../firebase";
-import { collection, getDocs } from "firebase/firestore";
-import { Bdg, StatCard, Pagination, Tooltip } from "../components";
+import { collection, getDocs, doc, setDoc, updateDoc, deleteDoc, addDoc, serverTimestamp } from "firebase/firestore";
+import { Bdg, StatCard, Pagination, Tooltip, ActBtns, Modal, FF, FIn, FSel, DelModal } from "../components";
+import { useAuth } from "../AuthContext";
 
 ModuleRegistry.registerModules([AllCommunityModule]);
 
 import 'ag-grid-community/styles/ag-grid.css';
 import '../components/ag-grid/ag-grid-theme.css';
 
-export default function PageDealSummary({ t, isDark, dealId, DEALS = [], CONTRACTS = [], CONTACTS = [], setActivePage }) {
+export default function PageDealSummary({ t, isDark, dealId, DEALS = [], CONTRACTS = [], CONTACTS = [], DIMENSIONS = [], FEES_DATA = [], setActivePage }) {
+  const { hasPermission, isSuperAdmin } = useAuth();
+  const canUpdate = isSuperAdmin || hasPermission("CONTRACT_UPDATE");
+  const canDelete = isSuperAdmin || hasPermission("CONTRACT_DELETE") || hasPermission("CONTRACTS_DELETE");
+  const canCreate = isSuperAdmin || hasPermission("CONTRACT_CREATE");
+
   const deal = useMemo(() => DEALS.find(d => d.id === dealId) || {}, [dealId, DEALS]);
   const [activeTab, setActiveTab] = useState("Investments");
   const [assetImages, setAssetImages] = useState([]);
+  const [modal, setModal] = useState({ open: false, mode: "add", data: {} });
+  const [delT, setDelT] = useState(null);
 
   useEffect(() => {
     if (deal.id) {
@@ -28,10 +35,80 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], CONTRAC
   , [dealId, deal.name, CONTRACTS]);
 
   const gridRef = useRef();
-  
   const tabs = ["Investments", "Assets", "Distributions", "Documents", "Valuation forms", "Contacts"];
 
-  const columnDefs = [
+  const openAdd = () => {
+    let maxIdNum = 10000;
+    CONTRACTS.forEach(c => {
+      const cid = c.contract_id || c.id;
+      if (cid && cid.startsWith("C")) {
+        const num = parseInt(cid.substring(1), 10);
+        if (!isNaN(num) && num > maxIdNum) maxIdNum = num;
+      }
+    });
+    setModal({
+      open: true,
+      mode: "add",
+      data: {
+        id: `C${maxIdNum + 1}`,
+        deal: deal.name || "",
+        deal_id: deal.id || "",
+        party: "",
+        type: "Individual",
+        amount: "",
+        rate: "",
+        freq: "Quarterly",
+        status: "Open",
+        start_date: deal.startDate || "",
+        maturity_date: deal.endDate || "",
+        term_months: "",
+        calculator: ""
+      }
+    });
+  };
+
+  const openEdit = (r) => setModal({ open: true, mode: "edit", data: { ...r } });
+  
+  const handleSaveContract = async () => {
+    const d = modal.data;
+    const dealObj = DEALS.find(p => p.name === d.deal);
+    const parObj = CONTACTS.find(p => p.name === d.party);
+    const payload = {
+      deal_name: d.deal || "",
+      deal_id: dealObj ? dealObj.id : (d.deal_id || ""),
+      party_name: d.party || "",
+      party_id: parObj ? parObj.id : (d.party_id || ""),
+      contract_type: d.type || "",
+      amount: d.amount ? Number(String(d.amount).replace(/[^0-9.-]/g, "")) || null : null,
+      interest_rate: d.rate ? Number(String(d.rate).replace(/[^0-9.-]/g, "")) || null : null,
+      payment_frequency: d.freq || "",
+      term_months: d.term_months ? Number(d.term_months) : null,
+      calculator: d.calculator || "",
+      start_date: d.start_date || null,
+      maturity_date: d.maturity_date || null,
+      status: d.status || "",
+      updated_at: serverTimestamp(),
+    };
+    try {
+      if (modal.mode === "edit" && d.docId) {
+        await updateDoc(doc(db, "contracts", d.docId), payload);
+      } else {
+        await addDoc(collection(db, "contracts"), { ...payload, contract_id: d.id || "", created_at: serverTimestamp() });
+      }
+      setModal(m => ({ ...m, open: false }));
+    } catch (err) { console.error("Save contract error:", err); }
+  };
+
+  const handleDeleteContract = async () => {
+    if (!delT || !delT.docId) return;
+    try {
+      await deleteDoc(doc(db, "contracts", delT.docId));
+      setDelT(null);
+    } catch (err) { console.error("Delete contract error:", err); }
+  };
+
+  const columnDefs = useMemo(() => {
+    const cols = [
     { 
       headerName: "Investor name & profile", 
       field: "party", 
@@ -69,18 +146,28 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], CONTRAC
           </div>
          `
       }
-    },
-    {
-      headerName: "Actions",
-      width: 100,
-      pinned: "right",
-      cellRenderer: () => (
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
-          <button className="action-btn" style={{ opacity: 0.4 }}><span style={{ fontSize: 16 }}>📤</span></button>
-        </div>
-      )
     }
-  ];
+    ];
+
+    if (canUpdate || canDelete) {
+      cols.push({
+        headerName: "Actions",
+        width: 100,
+        pinned: "right",
+        cellRenderer: (params) => (
+          <div style={{ display: 'flex', alignItems: 'center', height: '100%' }}>
+            <ActBtns 
+              show={true} 
+              t={t} 
+              onEdit={canUpdate ? () => openEdit(params.data) : null} 
+              onDel={canDelete ? () => setDelT(params.data) : null} 
+            />
+          </div>
+        )
+      });
+    }
+    return cols;
+  }, [isDark, t, CONTACTS, t.textMuted, canUpdate, canDelete, deal.fundraisingAmount]);
 
   function fmtCurrency(val) {
     return "$" + Number(val).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 });
@@ -118,7 +205,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], CONTRAC
           
           <div style={{ display: "flex", gap: 12 }}>
              <button style={{ background: isDark ? "rgba(255,255,255,0.05)" : "#fff", border: `1px solid ${t.surfaceBorder}`, padding: "8px 16px", borderRadius: 8, fontSize: 13, fontWeight: 600, color: t.textSecondary }}>Manage deal</button>
-             <button style={{ background: t.accent, color: "#fff", border: "none", padding: "8px 16px", borderRadius: 8, fontSize: 13, fontWeight: 600 }}>+ Add investment</button>
+             {canCreate && <button onClick={openAdd} style={{ background: t.accent, color: "#fff", border: "none", padding: "8px 16px", borderRadius: 8, fontSize: 13, fontWeight: 600 }}>+ Add investment</button>}
           </div>
         </div>
       </div>
@@ -191,6 +278,35 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], CONTRAC
           Section "{activeTab}" is coming soon.
         </div>
       )}
+      <Modal 
+        open={modal.open} 
+        onClose={() => setModal(m => ({ ...m, open: false }))} 
+        title={modal.mode === "add" ? "New Investment" : "Edit Investment"} 
+        onSave={handleSaveContract} 
+        width={500} 
+        t={t} 
+        isDark={isDark}
+      >
+        <FF label="Investment ID" t={t}>
+          <div style={{ fontFamily: t.mono, fontSize: 13, color: t.idText, background: isDark ? "rgba(255,255,255,0.04)" : "#F5F4F1", border: `1px solid ${t.surfaceBorder}`, borderRadius: 9, padding: "10px 13px" }}>{modal.data.id}</div>
+        </FF>
+        <FF label="Contact (Investor)" t={t}>
+          <FSel value={modal.data.party} onChange={e => setModal(m => ({ ...m, data: { ...m.data, party: e.target.value } }))} options={CONTACTS.map(p => p.name)} t={t} />
+        </FF>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+          <FF label="Invested amount" t={t}><FIn value={modal.data.amount} onChange={e => setModal(m => ({ ...m, data: { ...m.data, amount: e.target.value } }))} placeholder="e.g. 50,000" t={t} /></FF>
+          <FF label="Interest Rate (%)" t={t}><FIn value={modal.data.rate} onChange={e => setModal(m => ({ ...m, data: { ...m.data, rate: e.target.value } }))} placeholder="e.g. 8.5" t={t} /></FF>
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+          <FF label="Start Date" t={t}><FIn value={modal.data.start_date || ""} onChange={e => setModal(m => ({ ...m, data: { ...m.data, start_date: e.target.value } }))} t={t} type="date" /></FF>
+          <FF label="Maturity Date" t={t}><FIn value={modal.data.maturity_date || ""} onChange={e => setModal(m => ({ ...m, data: { ...m.data, maturity_date: e.target.value } }))} t={t} type="date" /></FF>
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+          <FF label="Payment Freq" t={t}><FSel value={modal.data.freq} onChange={e => setModal(m => ({ ...m, data: { ...m.data, freq: e.target.value } }))} options={["Monthly", "Quarterly", "Semi-Annual", "Annual", "At Maturity"]} t={t} /></FF>
+          <FF label="Status" t={t}><FSel value={modal.data.status} onChange={e => setModal(m => ({ ...m, data: { ...m.data, status: e.target.value } }))} options={["Open", "Active", "Closed"]} t={t} /></FF>
+        </div>
+      </Modal>
+      <DelModal target={delT} onClose={() => setDelT(null)} onConfirm={handleDeleteContract} label="this investment" t={t} isDark={isDark} />
     </div>
   );
 }
