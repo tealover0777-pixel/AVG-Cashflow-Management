@@ -196,7 +196,10 @@ export default function PagePayments({ t, isDark, PAYMENTS = [], INVESTMENTS = [
       </div>
     )}
 
-    <div className={(isDark ? "ag-theme-quartz-dark" : "ag-theme-quartz") + " ag-theme-custom"} style={{ height: "calc(100vh - 420px)", width: "100%" }}>
+    <div
+      className={`ag-theme-custom ${isDark ? 'dark-mode' : 'light-mode'}`}
+      style={{ height: "calc(100vh - 420px)", minHeight: "500px" }}
+    >
       <AgGridReact
         ref={gridRef}
         rowData={rowData}
@@ -208,6 +211,24 @@ export default function PagePayments({ t, isDark, PAYMENTS = [], INVESTMENTS = [
         suppressPaginationPanel={true}
         suppressCellFocus={true}
         columnHoverHighlight={true}
+        theme="legacy"
+        onColumnResized={(event) => {
+          // Persist column widths to localStorage
+          if (event.finished) {
+            const columnState = event.api.getColumnState();
+            localStorage.setItem(`paymentsColumnState_${activeTab}`, JSON.stringify(columnState));
+          }
+        }}
+        onGridReady={(params) => {
+          // Restore saved column widths from localStorage
+          const savedState = localStorage.getItem(`paymentsColumnState_${activeTab}`);
+          if (savedState) {
+            params.api.applyColumnState({
+              state: JSON.parse(savedState),
+              applyOrder: false
+            });
+          }
+        }}
       />
     </div>
 

@@ -8,19 +8,29 @@ import { fmtCurr } from '../../utils';
 export const getPaymentColumnDefs = (permissions, isDark, t) => {
   const cols = [
     {
-      headerName: "PAY ID",
+      headerName: "Pay ID",
       field: "id",
       width: 90,
       sortable: true,
       filter: "agTextColumnFilter",
+      filterParams: {
+        filterOptions: ["contains", "notContains", "equals", "notEqual", "startsWith", "endsWith"],
+        trimInput: true,
+        debounceMs: 300
+      },
       cellStyle: { fontFamily: t.mono, fontSize: '10.5px', color: t.idText }
     },
     {
-      headerName: "INVESTMENT",
+      headerName: "Investment",
       field: "investment",
       width: 100,
       sortable: true,
       filter: "agTextColumnFilter",
+      filterParams: {
+        filterOptions: ["contains", "notContains", "equals", "notEqual", "startsWith", "endsWith"],
+        trimInput: true,
+        debounceMs: 300
+      },
       cellStyle: (params) => ({
         fontFamily: t.mono,
         fontSize: '11.5px',
@@ -29,24 +39,34 @@ export const getPaymentColumnDefs = (permissions, isDark, t) => {
       })
     },
     {
-      headerName: "PARTY",
+      headerName: "Party",
       field: "party",
       flex: 1,
       minWidth: 150,
       sortable: true,
       filter: "agTextColumnFilter",
+      filterParams: {
+        filterOptions: ["contains", "notContains", "equals", "notEqual", "startsWith", "endsWith"],
+        trimInput: true,
+        debounceMs: 300
+      },
       cellStyle: { fontSize: '13px', fontWeight: 500, color: isDark ? "rgba(255,255,255,0.85)" : "#1C1917" }
     },
     {
-      headerName: "TYPE",
+      headerName: "Type",
       field: "type",
       width: 110,
       sortable: true,
       filter: "agTextColumnFilter",
+      filterParams: {
+        filterOptions: ["contains", "notContains", "equals", "notEqual", "startsWith", "endsWith"],
+        trimInput: true,
+        debounceMs: 300
+      },
       cellStyle: { fontSize: '12px', color: t.textMuted }
     },
     {
-      headerName: "AMOUNT",
+      headerName: "Amount",
       field: "amount",
       width: 120,
       sortable: true,
@@ -54,7 +74,7 @@ export const getPaymentColumnDefs = (permissions, isDark, t) => {
       cellRenderer: PaymentAmountCellRenderer
     },
     {
-      headerName: "DATE",
+      headerName: "Date",
       field: "date",
       width: 110,
       sortable: true,
@@ -62,25 +82,35 @@ export const getPaymentColumnDefs = (permissions, isDark, t) => {
       cellStyle: { fontFamily: t.mono, fontSize: '11px', color: t.textMuted }
     },
     {
-      headerName: "STATUS",
+      headerName: "Status",
       field: "status",
       width: 100,
       sortable: true,
       filter: "agTextColumnFilter",
+      filterParams: {
+        filterOptions: ["contains", "notContains", "equals", "notEqual", "startsWith", "endsWith"],
+        trimInput: true,
+        debounceMs: 300
+      },
       cellRenderer: PaymentStatusCellRenderer
     }
   ];
 
   if (permissions.canUpdate || permissions.canDelete) {
     cols.push({
-      headerName: "ACTIONS",
+      headerName: "Actions",
       field: "actions",
       width: 80,
       pinned: "right",
       sortable: false,
       filter: false,
       resizable: false,
-      cellRenderer: PaymentActionsCellRenderer
+      cellRenderer: PaymentActionsCellRenderer,
+      cellStyle: {
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'flex-start'
+      }
     });
   }
 
@@ -90,23 +120,33 @@ export const getPaymentColumnDefs = (permissions, isDark, t) => {
 export const getBatchColumnDefs = (permissions, isDark, t) => {
   const cols = [
     {
-      headerName: "BATCH ID",
+      headerName: "Batch ID",
       field: "batch_id",
       width: 130,
       sortable: true,
       filter: "agTextColumnFilter",
+      filterParams: {
+        filterOptions: ["contains", "notContains", "equals", "notEqual", "startsWith", "endsWith"],
+        trimInput: true,
+        debounceMs: 300
+      },
       cellStyle: { fontFamily: t.mono, fontSize: '11px', color: t.idText, fontWeight: 600 }
     },
     {
-      headerName: "STATUS",
+      headerName: "Status",
       field: "status",
       width: 160,
       sortable: true,
       filter: "agTextColumnFilter",
+      filterParams: {
+        filterOptions: ["contains", "notContains", "equals", "notEqual", "startsWith", "endsWith"],
+        trimInput: true,
+        debounceMs: 300
+      },
       cellRenderer: BatchStatusCellRenderer
     },
     {
-      headerName: "CREATED",
+      headerName: "Created",
       field: "created_at",
       width: 120,
       sortable: true,
@@ -114,7 +154,7 @@ export const getBatchColumnDefs = (permissions, isDark, t) => {
       cellStyle: { fontFamily: t.mono, fontSize: '11px', color: t.textMuted }
     },
     {
-      headerName: "UPDATED",
+      headerName: "Updated",
       field: "updated_at",
       width: 120,
       sortable: true,
@@ -123,12 +163,17 @@ export const getBatchColumnDefs = (permissions, isDark, t) => {
       valueFormatter: (params) => params.value || "—"
     },
     {
-      headerName: "NOTES",
+      headerName: "Notes",
       field: "notes",
       flex: 1,
       minWidth: 150,
       sortable: true,
       filter: "agTextColumnFilter",
+      filterParams: {
+        filterOptions: ["contains", "notContains", "equals", "notEqual", "startsWith", "endsWith"],
+        trimInput: true,
+        debounceMs: 300
+      },
       cellStyle: { fontSize: '12px', color: t.textMuted, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
       valueFormatter: (params) => params.value || "—"
     }
@@ -136,14 +181,19 @@ export const getBatchColumnDefs = (permissions, isDark, t) => {
 
   if (permissions.canUpdate || permissions.canDelete) {
     cols.push({
-      headerName: "ACTIONS",
+      headerName: "Actions",
       field: "actions",
       width: 80,
       pinned: "right",
       sortable: false,
       filter: false,
       resizable: false,
-      cellRenderer: BatchActionsCellRenderer
+      cellRenderer: BatchActionsCellRenderer,
+      cellStyle: {
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'flex-start'
+      }
     });
   }
 
@@ -153,7 +203,7 @@ export const getBatchColumnDefs = (permissions, isDark, t) => {
 export const getLedgerColumnDefs = (permissions, isDark, t) => {
   return [
     {
-      headerName: "DATE",
+      headerName: "Date",
       field: "created_at",
       width: 110,
       sortable: true,
@@ -161,23 +211,33 @@ export const getLedgerColumnDefs = (permissions, isDark, t) => {
       cellStyle: { fontFamily: t.mono, fontSize: '11px', color: t.textMuted }
     },
     {
-      headerName: "ENTITY TYPE",
+      headerName: "Entity Type",
       field: "entity_type",
       width: 120,
       sortable: true,
       filter: "agTextColumnFilter",
+      filterParams: {
+        filterOptions: ["contains", "notContains", "equals", "notEqual", "startsWith", "endsWith"],
+        trimInput: true,
+        debounceMs: 300
+      },
       cellStyle: { fontSize: '12px', fontWeight: 500, color: t.textSecondary }
     },
     {
-      headerName: "ENTITY ID",
+      headerName: "Entity ID",
       field: "entity_id",
       width: 130,
       sortable: true,
       filter: "agTextColumnFilter",
+      filterParams: {
+        filterOptions: ["contains", "notContains", "equals", "notEqual", "startsWith", "endsWith"],
+        trimInput: true,
+        debounceMs: 300
+      },
       cellStyle: { fontFamily: t.mono, fontSize: '11px', color: t.idText }
     },
     {
-      headerName: "AMOUNT",
+      headerName: "Amount",
       field: "amount",
       width: 120,
       sortable: true,
@@ -191,12 +251,17 @@ export const getLedgerColumnDefs = (permissions, isDark, t) => {
       valueFormatter: (params) => fmtCurr(params.value)
     },
     {
-      headerName: "NOTE",
+      headerName: "Note",
       field: "note",
       flex: 1,
       minWidth: 150,
       sortable: true,
       filter: "agTextColumnFilter",
+      filterParams: {
+        filterOptions: ["contains", "notContains", "equals", "notEqual", "startsWith", "endsWith"],
+        trimInput: true,
+        debounceMs: 300
+      },
       cellStyle: { fontSize: '12px', color: t.textMuted }
     }
   ];
