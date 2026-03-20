@@ -464,7 +464,6 @@ Are you sure you want to continue?`;
       applied_to: d.applied_to || "",
       term_start: d.term_start || null,
       term_end: d.term_end || null,
-      term_end: d.term_end || null,
       version_num: d.version_num || 1,
       version_id: d.version_id || `${d.schedule_id}-V${d.version_num || 1}`,
       payment_id: d.payment_id || `${d.schedule_id}-P`,

@@ -13,6 +13,7 @@ import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { sortData, mkId, fmtCurr, normalizeDateAtNoon, pmtCalculator_ACT360_30360, feeCalculator_ACT360_30360 } from "../utils";
 import { Bdg, StatCard, Pagination, Modal, FF, FIn, FSel, DelModal, Tooltip } from "../components";
 import { useAuth } from "../AuthContext";
+import { Check, Plus } from "lucide-react";
 
 const PT_INTEREST = "Interest_Payment";
 const PT_PRINCIPAL = "Principal_Payment";
@@ -336,14 +337,12 @@ export default function PageDeals({ t, isDark, DEALS = [], INVESTMENTS = [], FEE
         {canCreate && <Tooltip text="Create a new investment deal" t={t}><button className="primary-btn" onClick={openAdd} style={{ background: t.accentGrad, color: "#fff", padding: "11px 22px", borderRadius: 11, fontSize: 13.5, fontWeight: 600, boxShadow: `0 4px 16px ${t.accentShadow}`, display: "flex", alignItems: "center", gap: 7 }}><span style={{ fontSize: 18, lineHeight: 1 }}>+</span> New Deal</button></Tooltip>}
       </div>
     </div>
+
     <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 16, marginBottom: 28 }}>
       {[{ label: "Total", value: DEALS.length, accent: isDark ? "#60A5FA" : "#3B82F6", bg: isDark ? "rgba(96,165,250,0.08)" : "#EFF6FF", border: isDark ? "rgba(96,165,250,0.15)" : "#BFDBFE" }, { label: "Active", value: DEALS.filter(p => p.status !== "Closed" && p.status !== "Liquidated").length, accent: isDark ? "#34D399" : "#059669", bg: isDark ? "rgba(52,211,153,0.08)" : "#ECFDF5", border: isDark ? "rgba(52,211,153,0.15)" : "#A7F3D0" }, { label: "Closed", value: DEALS.filter(p => p.status === "Closed" || p.status === "Liquidated").length, accent: isDark ? "rgba(255,255,255,0.4)" : "#6B7280", bg: isDark ? "rgba(255,255,255,0.05)" : "#F9FAFB", border: isDark ? "rgba(255,255,255,0.1)" : "#E5E7EB" }].map(s => <StatCard key={s.label} {...s} titleFont={t.titleFont} isDark={isDark} />)}
     </div>
     
-    <div
-      className={`ag-theme-custom ${isDark ? 'dark-mode' : 'light-mode'}`}
-      style={{ height: 'calc(100vh - 420px)', minHeight: '500px' }}
-    >
+    <div className={(isDark ? "ag-theme-quartz-dark" : "ag-theme-quartz") + " ag-theme-custom"} style={{ height: "calc(100vh - 310px)", width: "100%" }}>
       <AgGridReact
         ref={gridRef}
         rowData={DEALS}
@@ -355,7 +354,6 @@ export default function PageDeals({ t, isDark, DEALS = [], INVESTMENTS = [], FEE
         suppressPaginationPanel={true}
         suppressCellFocus={true}
         columnHoverHighlight={true}
-        theme="legacy"
         rowSelection="multiple"
         onSelectionChanged={() => {
           const rows = gridRef.current.api.getSelectedRows();
@@ -402,8 +400,8 @@ export default function PageDeals({ t, isDark, DEALS = [], INVESTMENTS = [], FEE
         <div style={{ position: "absolute", top: "14px", left: "25%", width: modal.step === 2 ? "50%" : "0%", height: 2, background: t.accent, transition: "width 0.3s ease", zIndex: 1 }} />
         
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8, zIndex: 2, width: 80 }}>
-          <div style={{ width: 28, height: 28, borderRadius: "50%", background: modal.step > 1 ? "#34D399" : t.accent, color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 700, border: `2px solid ${modal.step > 1 ? "#34D399" : t.accent}` }}>
-            {modal.step > 1 ? "✓" : "1"}
+          <div style={{ width: 28, height: 28, borderRadius: "50%", background: modal.step > 1 ? "#34D399" : t.accent, color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", border: `2px solid ${modal.step > 1 ? "#34D399" : t.accent}` }}>
+            {modal.step > 1 ? <Check size={14} /> : <span style={{ fontSize: 13, fontWeight: 700 }}>1</span>}
           </div>
           <span style={{ fontSize: 11, fontWeight: 700, color: modal.step >= 1 ? (isDark ? "#fff" : "#1C1917") : t.textMuted }}>Deal</span>
         </div>
@@ -445,7 +443,7 @@ export default function PageDeals({ t, isDark, DEALS = [], INVESTMENTS = [], FEE
                   };
                   return (
                     <div key={f.id} onClick={toggleFee} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12.5, fontWeight: selected ? 600 : 400, padding: "5px 12px", borderRadius: 20, cursor: "pointer", transition: "all 0.15s ease", background: selected ? (isDark ? "rgba(52,211,153,0.15)" : "#ECFDF5") : t.chipBg, color: selected ? (isDark ? "#34D399" : "#059669") : t.textSecondary, border: `1px solid ${selected ? (isDark ? "rgba(52,211,153,0.4)" : "#A7F3D0") : t.chipBorder}` }}>
-                      <span style={{ fontSize: 11, fontWeight: 700, lineHeight: 1 }}>{selected ? "✓" : "+"}</span>
+                      {selected ? <Check size={12} strokeWidth={3} /> : <Plus size={12} />}
                       {f.name}
                       <span style={{ fontFamily: t.mono, fontSize: 10.5, opacity: 0.7 }}>({f.rate})</span>
                     </div>

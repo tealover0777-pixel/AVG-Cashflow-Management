@@ -4,6 +4,10 @@
  */
 import { useState, useRef } from "react";
 import { badge } from "./utils";
+import { 
+  ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, 
+  Pencil, Trash2, RotateCcw, X, Info, Check, Plus, AlertCircle, FileText
+} from "lucide-react";
 
 export const Bdg = ({ status, isDark }) => {
   const [bg, color, border] = badge(status, isDark);
@@ -30,18 +34,20 @@ export const Pagination = ({ totalPages, currentPage, onPageChange, t }) => {
     return Array.from({ length: Math.min(10, totalPages - start + 1) }, (_, i) => start + i);
   };
   const pages = getPages();
-  const btn = (label, target, disabled = false, isAct = false, tooltip = "") => (
-    <Tooltip key={label} text={disabled ? "" : tooltip} t={t}>
-      <span onClick={() => !disabled && onPageChange(target)} style={{ width: 32, height: 32, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: isAct ? 700 : 500, background: isAct ? t.pageBtnActive : (disabled ? "transparent" : t.pageBtnBg), color: isAct ? t.pageBtnActiveTxt : (disabled ? t.textMuted : t.pageBtnText), border: `1px solid ${isAct ? t.pageBtnActive : (disabled ? t.surfaceBorder : t.pageBtnBorder)}`, cursor: disabled ? "default" : "pointer", opacity: disabled ? 0.5 : 1, transition: "all 0.1s ease" }}>{label}</span>
+  const btn = (icon, target, disabled = false, isAct = false, tooltip = "") => (
+    <Tooltip key={tooltip + target} text={disabled ? "" : tooltip} t={t}>
+      <span onClick={() => !disabled && onPageChange(target)} style={{ width: 32, height: 32, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: isAct ? 700 : 500, background: isAct ? t.pageBtnActive : (disabled ? "transparent" : t.pageBtnBg), color: isAct ? t.pageBtnActiveTxt : (disabled ? t.textMuted : t.pageBtnText), border: `1px solid ${isAct ? t.pageBtnActive : (disabled ? t.surfaceBorder : t.pageBtnBorder)}`, cursor: disabled ? "default" : "pointer", opacity: disabled ? 0.5 : 1, transition: "all 0.1s ease" }}>
+        {typeof icon === "string" ? icon : icon}
+      </span>
     </Tooltip>
   );
   return (
     <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-      {btn("««", 1, currentPage === 1, false, "Go to first page")}
-      {btn("«", Math.max(1, currentPage - 10), currentPage <= 10, false, "Go back 10 pages")}
-      {pages.map(p => btn(p, p, false, currentPage === p, `Go to page ${p}`))}
-      {btn("»", Math.min(totalPages, currentPage + 10), currentPage > totalPages - (totalPages % 10 || 10), false, "Go forward 10 pages")}
-      {btn("»»", totalPages, currentPage === totalPages, false, "Go to last page")}
+      {btn(<ChevronsLeft size={14} />, 1, currentPage === 1, false, "Go to first page")}
+      {btn(<ChevronLeft size={14} />, Math.max(1, currentPage - 10), currentPage <= 10, false, "Go back 10 pages")}
+      {pages.map(p => btn(String(p), p, false, currentPage === p, `Go to page ${p}`))}
+      {btn(<ChevronRight size={14} />, Math.min(totalPages, currentPage + 10), currentPage > totalPages - (totalPages % 10 || 10), false, "Go forward 10 pages")}
+      {btn(<ChevronsRight size={14} />, totalPages, currentPage === totalPages, false, "Go to last page")}
     </div>
   );
 };
@@ -103,17 +109,23 @@ export const ActBtns = ({ show, t, onEdit, onDel, onUndo }) => {
     <div style={{ display: "flex", gap: 6, opacity: show ? 1 : 0, transition: "opacity 0.15s ease", pointerEvents: show ? "auto" : "none" }}>
       {onUndo && (
         <Tooltip text="Undo last action" t={t}>
-          <button className="action-btn" onClick={e => { e.stopPropagation(); onUndo(e); }} style={{ width: 30, height: 30, borderRadius: 7, background: t.chipBg, color: t.accent, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, border: `1px solid ${t.chipBorder}` }}>↺</button>
+          <button className="action-btn" onClick={e => { e.stopPropagation(); onUndo(e); }} style={{ width: 30, height: 30, borderRadius: 7, background: t.chipBg, color: t.accent, display: "flex", alignItems: "center", justifyContent: "center", border: `1px solid ${t.chipBorder}` }}>
+            <RotateCcw size={14} />
+          </button>
         </Tooltip>
       )}
       {onEdit && (
         <Tooltip text="Edit this record" t={t}>
-          <button className="action-btn" onClick={e => { e.stopPropagation(); onEdit(e); }} style={{ width: 30, height: 30, borderRadius: 7, background: t.editBtn[0], color: t.editBtn[1], display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13 }}>✎</button>
+          <button className="action-btn" onClick={e => { e.stopPropagation(); onEdit(e); }} style={{ width: 30, height: 30, borderRadius: 7, background: t.editBtn[0], color: t.editBtn[1], display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <Pencil size={14} />
+          </button>
         </Tooltip>
       )}
       {onDel && (
         <Tooltip text="Delete this record" t={t}>
-          <button className="action-btn" onClick={e => { e.stopPropagation(); onDel(e); }} style={{ width: 30, height: 30, borderRadius: 7, background: t.deleteBtn[0], color: t.deleteBtn[1], display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13 }}>⊗</button>
+          <button className="action-btn" onClick={e => { e.stopPropagation(); onDel(e); }} style={{ width: 30, height: 30, borderRadius: 7, background: t.deleteBtn[0], color: t.deleteBtn[1], display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <Trash2 size={14} />
+          </button>
         </Tooltip>
       )}
     </div>
@@ -143,22 +155,6 @@ export function useResizableColumns(cols) {
   return { gridTemplate, headerRef, onResizeStart };
 }
 
-export const TblHead = ({ cols, t, isDark, sortConfig, onSort, children, gridTemplate, headerRef, onResizeStart }) => (
-  <div ref={headerRef} style={{ display: "grid", gridTemplateColumns: gridTemplate || cols.map(c => c.w).join(" "), padding: "12px 22px", background: t.tableHeader, borderBottom: `1px solid ${t.surfaceBorder}`, alignItems: "center" }}>
-    {cols.map((c, i) => {
-      if (i === 0 && children) return <div key="prefix" style={{ display: "flex", alignItems: "center", position: "relative", borderRight: i < cols.length - 1 ? `1px solid ${t.columnDivider}` : "none" }}>{children}{onResizeStart && i < cols.length - 1 && <div onMouseDown={e => onResizeStart(i, e)} style={{ position: "absolute", right: -3, top: 0, bottom: 0, width: 6, cursor: "col-resize", zIndex: 2 }} />}</div>;
-      const isS = !!c.k, isSorted = sortConfig?.key === c.k;
-      return (
-        <div key={c.l || i} onClick={() => isS && onSort && onSort(c.k)}
-          style={{ fontSize: 10.5, fontWeight: 600, letterSpacing: "1px", color: isSorted ? t.accent : (isDark ? "#FFFFFF" : "#1C1917"), textTransform: "uppercase", fontFamily: t.mono, cursor: isS ? "pointer" : "default", display: "flex", alignItems: "center", gap: 4, userSelect: "none", position: "relative", borderRight: i < cols.length - 1 ? `1px solid ${t.columnDivider}` : "none" }}>
-          {c.l}
-          {isS && isSorted && <span style={{ fontSize: 10 }}>{sortConfig.direction === "asc" ? "▲" : "▼"}</span>}
-          {onResizeStart && i < cols.length - 1 && <div onMouseDown={e => { e.stopPropagation(); onResizeStart(i, e); }} style={{ position: "absolute", right: -3, top: 0, bottom: 0, width: 6, cursor: "col-resize", zIndex: 2 }} />}
-        </div>
-      );
-    })}
-  </div>
-);
 
 export const TblFilterRow = ({ cols, colFilters, onFilterChange, onClear, gridTemplate, t, isDark }) => (
   <div style={{ display: "grid", gridTemplateColumns: gridTemplate || cols.map(c => c.w).join(" "), padding: "6px 22px", borderBottom: `1px solid ${t.rowDivider}`, background: isDark ? "rgba(255,255,255,0.015)" : "#FDFDFC" }}>
@@ -213,7 +209,9 @@ export const Modal = ({ open, onClose, title, onSave, saveLabel, secondaryAction
             <span style={{ fontSize: 16, fontWeight: 700, color: isDark ? "#fff" : "#1C1917", fontFamily: t.titleFont, letterSpacing: "-0.4px" }}>{title}</span>
           </div>
           <Tooltip text="Close this dialog" t={t}>
-            <button onClick={onClose} className="action-btn" style={{ width: 28, height: 28, borderRadius: 8, background: t.deleteBtn[0], color: t.deleteBtn[1], display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, border: "none", lineHeight: 1 }}>×</button>
+            <button onClick={onClose} className="action-btn" style={{ width: 28, height: 28, borderRadius: 8, background: t.deleteBtn[0], color: t.deleteBtn[1], display: "flex", alignItems: "center", justifyContent: "center", border: "none" }}>
+              <X size={18} />
+            </button>
           </Tooltip>
         </div>
         <div style={{ padding: "24px 26px", overflowY: "auto", flex: 1 }}>{children}</div>
@@ -283,7 +281,9 @@ export const FMultiSel = ({ value = [], onChange, options, t }) => (
 export const DelModal = ({ target, onClose, onConfirm, label, t, isDark }) => (
   <Modal open={!!target} onClose={onClose} title="Confirm Delete" onSave={onConfirm} saveLabel="Delete" danger t={t} isDark={isDark}>
     <div style={{ display: "flex", flexDirection: "column", gap: 16, alignItems: "center", textAlign: "center", padding: "8px 0" }}>
-      <div style={{ width: 52, height: 52, borderRadius: 14, background: isDark ? "rgba(248,113,113,0.15)" : "#FEF2F2", border: `1px solid ${isDark ? "rgba(248,113,113,0.25)" : "#FECACA"}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, color: isDark ? "#F87171" : "#DC2626" }}>⊗</div>
+      <div style={{ width: 52, height: 52, borderRadius: 14, background: isDark ? "rgba(248,113,113,0.15)" : "#FEF2F2", border: `1px solid ${isDark ? "rgba(248,113,113,0.25)" : "#FECACA"}`, display: "flex", alignItems: "center", justifyContent: "center", color: isDark ? "#F87171" : "#DC2626" }}>
+        <AlertCircle size={28} />
+      </div>
       <div>
         <div style={{ fontSize: 15, fontWeight: 600, color: isDark ? "#fff" : "#1C1917", marginBottom: 8 }}>Delete "{target?.name}"?</div>
         <div style={{ fontSize: 13, color: t.textMuted, lineHeight: 1.7 }}>{label || "This record"} will be permanently removed.<br />This action cannot be undone.</div>

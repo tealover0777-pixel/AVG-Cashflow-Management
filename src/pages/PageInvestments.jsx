@@ -12,6 +12,7 @@ import { collection, doc, addDoc, updateDoc, deleteDoc, serverTimestamp } from "
 import { normalizeDateAtNoon, hybridDays, pmtCalculator_ACT360_30360, feeCalculator_ACT360_30360, getFrequencyValue, fmtCurr } from "../utils";
 import { StatCard, Bdg, Pagination, Modal, FF, FIn, FSel, DelModal, Tooltip } from "../components";
 import { useAuth } from "../AuthContext";
+import { Check, Plus, Construction, AlertTriangle, FileCheck } from "lucide-react";
 
 export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [], CONTACTS = [], DIMENSIONS = [], FEES_DATA = [], SCHEDULES = [], collectionPath = "", schedulePath = "" }) {
   const { hasPermission, isSuperAdmin } = useAuth();
@@ -793,10 +794,7 @@ export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [
       </div>
     </div>
 
-    <div
-      className={`ag-theme-custom ${isDark ? 'dark-mode' : 'light-mode'}`}
-      style={{ height: 'calc(100vh - 520px)', minHeight: '500px' }}
-    >
+    <div className={(isDark ? "ag-theme-quartz-dark" : "ag-theme-quartz") + " ag-theme-custom"} style={{ height: "calc(100vh - 520px)", width: "100%" }}>
       <AgGridReact
         ref={gridRef}
         rowData={filtered}
@@ -808,7 +806,7 @@ export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [
         suppressPaginationPanel={true}
         suppressCellFocus={true}
         columnHoverHighlight={true}
-        theme="legacy"
+        rowSelection="multiple"
         onColumnResized={(event) => {
           if (event.finished) {
             const columnState = event.api.getColumnState();

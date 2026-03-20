@@ -22,12 +22,20 @@ import PageUserProfiles from "./pages/PageUserProfiles";
 import PageRoles from "./pages/PageRoles";
 import PageSuperAdmin from "./pages/PageSuperAdmin";
 import PageProfile from "./pages/PageProfile";
-import PageDimensions from "./pages/PageDimensions";
 import PageReports from "./pages/PageReports";
+import { 
+  LayoutDashboard, Briefcase, Users, PieChart, Calendar, 
+  CreditCard, BarChart3, Settings, Shield, UserCircle, 
+  HelpCircle, LogOut, ChevronDown, Sparkles, Sun, Moon, 
+  TableProperties, Hash
+} from "lucide-react";
 import { Tooltip } from "./components";
 import SidebarHelp from "./components/SidebarHelp";
 import PageAdminHelp from "./pages/PageAdminHelp";
 import PageDealSummary from "./pages/PageDealSummary";
+
+import "@ag-grid-community/styles/ag-grid.css";
+import "@ag-grid-community/styles/ag-theme-quartz.css";
 // ─────────────────────────────────────────────────────────────────────────────
 // ERROR BOUNDARY
 // ─────────────────────────────────────────────────────────────────────────────
@@ -473,7 +481,7 @@ function AppContent() {
                   >
                     <span style={{ fontSize: 13, opacity: isDark ? 0.8 : 0.6 }}>{item.icon}</span>
                     <span style={{ flex: 1 }}>{item.label}</span>
-                    <span style={{ fontSize: 11, transition: "transform 0.2s", transform: isExpanded ? "rotate(180deg)" : "rotate(0deg)" }}>▼</span>
+                    <ChevronDown size={14} style={{ transition: "transform 0.2s", transform: isExpanded ? "rotate(180deg)" : "rotate(0deg)", opacity: 0.6 }} />
                   </div>
 
                   {/* Child items */}
@@ -537,7 +545,9 @@ function AppContent() {
               </div>
             </div>
             <Tooltip text="Sign out of your account" t={t}>
-              <div onClick={logout} style={{ fontSize: 16, color: "#F87171", cursor: "pointer" }}>⎋</div>
+              <div onClick={logout} style={{ color: "#F87171", cursor: "pointer", display: "flex", alignItems: "center" }}>
+                <LogOut size={18} />
+              </div>
             </Tooltip>
           </div>
         </div>
@@ -585,13 +595,14 @@ function AppContent() {
             <Tooltip text="Ask AI Assistant" t={t}>
               <button className="theme-toggle" onClick={() => setHelpOpen(true)}
                 style={{ background: isDark ? "rgba(139, 92, 246, 0.1)" : "#F3E8FF", color: isDark ? "#A78BFA" : "#7C3AED", border: `1px solid ${isDark ? "rgba(139, 92, 246, 0.25)" : "#E9D5FF"}`, padding: "4px 12px", borderRadius: 6, fontSize: 12, fontWeight: 500, display: "flex", alignItems: "center", gap: 6 }}>
-                🤖 Ask AI
+                <Sparkles size={14} /> Ask AI
               </button>
             </Tooltip>
             <Tooltip text={isDark ? "Switch to light theme" : "Switch to dark theme"} t={t}>
               <button className="theme-toggle" onClick={() => setIsDark(!isDark)}
-                style={{ background: isDark ? "rgba(52,211,153,0.1)" : "#EEF2FF", color: isDark ? "#34D399" : "#4F46E5", border: `1px solid ${isDark ? "rgba(52,211,153,0.25)" : "#C7D2FE"}`, padding: "4px 12px", borderRadius: 6, fontSize: 12, fontWeight: 500, display: "flex", alignItems: "center", gap: 5 }}>
-                {isDark ? "☀ Light" : "☽ Dark"}
+                style={{ background: isDark ? "rgba(52,211,153,0.1)" : "#EEF2FF", color: isDark ? "#34D399" : "#4F46E5", border: `1px solid ${isDark ? "rgba(52,211,153,0.25)" : "#C7D2FE"}`, padding: "4px 12px", borderRadius: 6, fontSize: 12, fontWeight: 500, display: "flex", alignItems: "center", gap: 6 }}>
+                {isDark ? <Sun size={14} /> : <Moon size={14} />}
+                {isDark ? "Light" : "Dark"}
               </button>
             </Tooltip>
             <Tooltip text="Sign out of your account" t={t}>

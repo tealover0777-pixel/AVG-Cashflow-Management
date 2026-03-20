@@ -64,15 +64,10 @@
 
 /* --- Force Visible Dividers in Dark & Light Mode --- */
 /* Dark Mode Overrides */
-.dark-mode.ag-theme-custom .ag-header-cell,
-.dark-mode.ag-theme-custom .ag-header-cell-label,
-.dark-mode.ag-theme-custom .ag-header-cell-text,
 .dark-mode.ag-theme-custom .ag-header-icon,
 .dark-mode.ag-theme-custom .ag-icon {
-  color: #FFFFFF !important;
-  fill: #FFFFFF !important;
+  color: var(--ag-header-foreground-color) !important;
   opacity: 1 !important;
-  --ag-header-foreground-color: #FFFFFF !important;
 }
 
 /* --- Force Visible Dividers --- */
@@ -194,10 +189,20 @@
 
 /* Icon and Indicator styling */
 .ag-theme-custom .ag-icon {
-  font-size: 14px; /* Enhanced visibility */
   display: flex !important;
   align-items: center;
   justify-content: center;
+  line-height: 1;
+}
+
+.ag-theme-custom .ag-icon::before {
+  display: none !important; /* Hide potential font icons trying to show as squares */
+}
+
+.ag-theme-custom .ag-icon svg {
+  width: 14px;
+  height: 14px;
+  fill: currentColor;
 }
 
 .ag-theme-custom .ag-header-icon {
