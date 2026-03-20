@@ -944,6 +944,7 @@ Are you sure you want to continue?`;
         rowSelection="multiple"
         onSelectionChanged={onSelectionChanged}
         suppressRowClickSelection={true}
+        floatingFilter={true}
         onColumnResized={(event) => {
           if (event.finished) {
             const columnState = event.api.getColumnState();
