@@ -970,7 +970,7 @@ Are you sure you want to continue?`;
     </div>
     <div
       className={`ag-theme-custom ${isDark ? 'dark-mode' : 'light-mode'}`}
-      style={{ height: "calc(100vh - 500px)", minHeight: "500px" }}
+      style={{ height: "calc(100vh - 500px)", minHeight: "500px", width: "100%" }}
     >
       <AgGridReact
         ref={gridRef}

@@ -71,9 +71,9 @@ export const getScheduleColumnDefs = (permissions, isDark, t, showCheckbox = tru
       cellStyle: { fontFamily: t.mono, fontSize: '11px', color: t.textMuted }
     },
     {
-      headerName: "Vers",
+      headerName: "Versions",
       field: "version_num",
-      width: 60,
+      width: 85,
       sortable: true,
       filter: "agNumberColumnFilter",
       cellRenderer: VersionCellRenderer,
