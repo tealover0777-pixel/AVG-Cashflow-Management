@@ -110,21 +110,21 @@ export const ActBtns = ({ show, t, onEdit, onDel, onUndo }) => {
     <div style={{ display: "flex", gap: 6, opacity: show ? 1 : 0, transition: "opacity 0.15s ease", pointerEvents: show ? "auto" : "none" }}>
       {onUndo && (
         <Tooltip text="Undo last action" t={t}>
-          <button className="action-btn" onClick={e => { e.stopPropagation(); onUndo(e); }} style={{ width: 30, height: 30, borderRadius: 7, background: t.chipBg, color: t.accent, display: "flex", alignItems: "center", justifyContent: "center", border: `1px solid ${t.chipBorder}` }}>
+          <button className="action-btn" onClick={e => { e.stopPropagation(); onUndo(e); }} style={{ width: 30, height: 30, background: "transparent", color: t.accent, display: "flex", alignItems: "center", justifyContent: "center", border: "none", cursor: "pointer" }}>
             <RotateCcw size={14} />
           </button>
         </Tooltip>
       )}
       {onEdit && (
         <Tooltip text="Edit this record" t={t}>
-          <button className="action-btn" onClick={e => { e.stopPropagation(); onEdit(e); }} style={{ width: 30, height: 30, borderRadius: 7, background: t.editBtn[0], color: t.editBtn[1], display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <button className="action-btn" onClick={e => { e.stopPropagation(); onEdit(e); }} style={{ width: 30, height: 30, background: "transparent", color: t.editBtn[1], display: "flex", alignItems: "center", justifyContent: "center", border: "none", cursor: "pointer" }}>
             <Pencil size={14} />
           </button>
         </Tooltip>
       )}
       {onDel && (
         <Tooltip text="Delete this record" t={t}>
-          <button className="action-btn" onClick={e => { e.stopPropagation(); onDel(e); }} style={{ width: 30, height: 30, borderRadius: 7, background: t.deleteBtn[0], color: t.deleteBtn[1], display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <button className="action-btn" onClick={e => { e.stopPropagation(); onDel(e); }} style={{ width: 30, height: 30, background: "transparent", color: t.deleteBtn[1], display: "flex", alignItems: "center", justifyContent: "center", border: "none", cursor: "pointer" }}>
             <Trash2 size={14} />
           </button>
         </Tooltip>

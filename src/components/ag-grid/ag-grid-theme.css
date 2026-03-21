@@ -63,11 +63,22 @@
 }
 
 /* --- Force Visible Dividers in Dark & Light Mode --- */
-/* Dark Mode Overrides */
+/* Dark Mode Overrides - Make icons more visible */
 .dark-mode.ag-theme-custom .ag-header-icon,
 .dark-mode.ag-theme-custom .ag-icon {
   color: var(--ag-header-foreground-color) !important;
-  opacity: 1 !important;
+}
+
+.dark-mode.ag-theme-custom .ag-header-icon {
+  opacity: 0.85 !important; /* More visible in dark mode */
+}
+
+.dark-mode.ag-theme-custom .ag-header-icon.ag-filter-icon {
+  opacity: 0.9 !important; /* Filter icons even more visible in dark mode */
+}
+
+.dark-mode.ag-theme-custom .ag-header-cell:hover .ag-header-icon {
+  opacity: 1 !important; /* Fully visible on hover */
 }
 
 /* --- Force Visible Dividers --- */
@@ -207,14 +218,23 @@
 
 .ag-theme-custom .ag-header-icon {
   color: var(--ag-header-foreground-color);
-  opacity: 0.5; /* Muted by default */
+  opacity: 0.7; /* More visible by default */
   transition: all 0.2s ease;
   display: flex;
   align-items: center;
 }
 
 .ag-theme-custom .ag-header-cell:hover .ag-header-icon {
-  opacity: 1; /* More visible on hover */
+  opacity: 1; /* Fully visible on hover */
+}
+
+/* Filter icon - always visible */
+.ag-theme-custom .ag-header-icon.ag-filter-icon {
+  opacity: 0.8; /* Filter icons more visible */
+}
+
+.ag-theme-custom .ag-header-cell:hover .ag-header-icon.ag-filter-icon {
+  opacity: 1;
 }
 
 /* Sort indicator active state */
