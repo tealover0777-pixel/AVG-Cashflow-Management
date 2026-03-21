@@ -580,3 +580,13 @@
   height: 2px;
   background-color: #fff;
 }
+
+/* Hide header checkbox icon but keep it clickable */
+.ag-theme-custom .ag-header-select-all {
+  opacity: 0 !important;
+  cursor: pointer !important;
+}
+
+.ag-theme-custom .ag-header-cell[col-id="selection"] {
+  cursor: pointer !important;
+}
