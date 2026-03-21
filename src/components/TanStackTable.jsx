@@ -18,7 +18,7 @@ import {
 /**
  * Modern & Reliable TanStack Table (Stable Version)
  */
-export default function TanStackTable({
+const TanStackTable = React.forwardRef(({
   data,
   columns,
   isDark,
@@ -30,10 +30,15 @@ export default function TanStackTable({
   globalFilter,
   setGlobalFilter,
   getRowId,
-}) {
+}, ref) => {
   const [sorting, setSorting] = useState([]);
   const [columnFilters, setColumnFilters] = useState([]);
   const [rowSelection, setRowSelection] = useState({});
+
+  // Reset method for parents
+  React.useImperativeHandle(ref, () => ({
+    resetRowSelection: () => setRowSelection({})
+  }));
 
   // STABILITY FIX: Use docId primarily, then id/schedule_id, then index. 
   // NEVER use Math.random() in a getRowId function as it triggers endless render cycles (Error #185).
@@ -205,4 +210,6 @@ export default function TanStackTable({
       `}</style>
     </div>
   );
-}
+});
+
+export default TanStackTable;

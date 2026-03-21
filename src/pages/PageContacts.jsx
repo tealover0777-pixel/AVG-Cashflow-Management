@@ -1,12 +1,6 @@
 import { useState, useMemo, useRef, useEffect } from "react";
-import { AgGridReact } from 'ag-grid-react';
-import { ModuleRegistry, AllCommunityModule } from 'ag-grid-community';
-
-ModuleRegistry.registerModules([AllCommunityModule]);
-
-import 'ag-grid-community/styles/ag-grid.css';
-import '../components/ag-grid/ag-grid-theme.css';
-import { getColumnDefs } from '../components/ag-grid/ContactsGridConfig';
+import TanStackTable from '../components/TanStackTable';
+import { getContactColumns } from '../components/ContactsTanStackConfig';
 import { db, functions } from "../firebase";
 import { doc, setDoc, updateDoc, deleteDoc, serverTimestamp } from "firebase/firestore";
 import { httpsCallable } from "firebase/functions";
@@ -131,16 +125,14 @@ export default function PageContacts({ t, isDark, CONTACTS = [], INVESTMENTS = [
   // Dynamically calculate page size based on available vertical space
   useEffect(() => {
     const calculatePageSize = () => {
-      const rowHeight = 42; // AG Grid default row height
-      const headerHeight = 56; // AG Grid header height + padding
       const viewportHeight = window.innerHeight;
 
-      // Grid container matches: calc(100vh - 480px)
+      // Table container matches: calc(100vh - 480px)
       const gridContainerHeight = viewportHeight - 480;
-      const availableForRows = gridContainerHeight - headerHeight;
-      const calculatedRows = Math.floor(availableForRows / rowHeight);
+      const availableForRows = gridContainerHeight - 90; // Header + Footer + padding
+      const calculatedRows = Math.floor(availableForRows / 40); // 40px estimated row height
 
-      const newPageSize = Math.max(30, calculatedRows); // Minimum 30 rows
+      const newPageSize = Math.max(20, calculatedRows); 
       setPageSize(newPageSize);
     };
 
@@ -155,31 +147,21 @@ export default function PageContacts({ t, isDark, CONTACTS = [], INVESTMENTS = [
     };
   }, []);
 
-  // Update grid when pageSize changes
-  useEffect(() => {
-    if (gridRef.current?.api) {
-      gridRef.current.api.paginationSetPageSize(pageSize);
-    }
-  }, [pageSize]);
 
-  // AG Grid: Chip filtering (pre-filter data before passing to grid)
-  const getFilteredData = () => {
+  // TanStack Table: Data filtering (memoized)
+  const filteredData = useMemo(() => {
     return CONTACTS.filter(p => {
       if (chip === "Investors" && p.role !== "Investor") return false;
       if (chip === "Borrowers" && p.role !== "Borrower") return false;
       if (chip === "Companies" && p.type !== "Company") return false;
       return true;
     });
-  };
+  }, [CONTACTS, chip]);
 
-  // AG Grid: Column definitions
+  // TanStack Table: Column definitions
   const permissions = { canUpdate, canDelete, canInvite };
-  const columnDefs = useMemo(() => {
-    return getColumnDefs(permissions, isDark, t);
-  }, [permissions, isDark, t]);
-
-  // AG Grid: Context for cell renderers
-  const context = useMemo(() => ({
+  
+  const columnContext = useMemo(() => ({
     isDark,
     t,
     permissions,
@@ -191,6 +173,11 @@ export default function PageContacts({ t, isDark, CONTACTS = [], INVESTMENTS = [
     },
     invitingId
   }), [isDark, t, permissions, invitingId]);
+
+  const columnDefs = useMemo(() => {
+    return getContactColumns(permissions, isDark, t, columnContext);
+  }, [permissions, isDark, t, columnContext]);
+
   return (<>
     {/* Full-screen Loading Overlay (Freeze) */}
     {processing && (
@@ -210,46 +197,16 @@ export default function PageContacts({ t, isDark, CONTACTS = [], INVESTMENTS = [
     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
       <div style={{ display: "flex", gap: 8 }}>{chips.map((c, i) => { const isA = chip === c; return (<span key={c} className="filter-chip" onClick={() => setChip(c)} style={{ fontSize: 12, fontWeight: isA ? 600 : 500, padding: "5px 14px", borderRadius: 20, background: isA ? t.accent : t.chipBg, color: isA ? "#fff" : t.textSecondary, border: `1px solid ${isA ? t.accent : t.chipBorder}`, cursor: "pointer" }}>{c}</span>); })}</div>
     </div>
-    <div
-      className={`ag-theme-custom ${isDark ? 'dark-mode' : 'light-mode'}`}
-      style={{ height: 'calc(100vh - 480px)', minHeight: '500px' }}
-    >
-      <AgGridReact
-        ref={gridRef}
-        rowData={getFilteredData()}
-        columnDefs={columnDefs}
-        context={context}
-        animateRows={true}
-        pagination={true}
-        paginationPageSize={pageSize}
-        suppressPaginationPanel={true}
-        suppressCellFocus={true}
-        columnHoverHighlight={true}
-        theme="legacy"
-        onRowClicked={(event) => {
-          // Row click action removed per latest request. 
-          // Summary opens on ID/Name click via cell renderers.
-        }}
-        onColumnResized={(event) => {
-          // Persist column widths to localStorage
-          if (event.finished) {
-            const columnState = event.api.getColumnState();
-            localStorage.setItem('partiesColumnState', JSON.stringify(columnState));
-          }
-        }}
-        onGridReady={(params) => {
-          // Restore saved column widths from localStorage
-          const savedState = localStorage.getItem('partiesColumnState');
-          if (savedState) {
-            params.api.applyColumnState({
-              state: JSON.parse(savedState),
-              applyOrder: false
-            });
-          }
-        }}
+    <div style={{ height: 'calc(100vh - 480px)', width: '100%', minHeight: '500px' }}>
+      <TanStackTable
+        data={filteredData}
+        columns={columnDefs}
+        isDark={isDark}
+        t={t}
+        pageSize={pageSize}
+        onSelectionChange={(selected) => setSel(new Set(selected.map(r => r.id)))}
       />
     </div>
-    <div style={{ marginTop: 16, display: "flex", justifyContent: "space-between", alignItems: "center" }}><span style={{ fontSize: 12, color: t.textSubtle }}>Showing <strong style={{ color: t.textSecondary }}>{Math.min(getFilteredData().length, pageSize)}</strong> of <strong style={{ color: t.textSecondary }}>{getFilteredData().length}</strong> contacts</span><Pagination totalPages={Math.ceil(getFilteredData().length / pageSize)} currentPage={1} onPageChange={(newPage) => gridRef.current?.api.paginationGoToPage(newPage - 1)} t={t} /></div>
     <Modal open={modal.open} onClose={close} title={modal.mode === "add" ? "New Contact" : "Edit Contact"} onSave={handleSaveContact} width={600} t={t} isDark={isDark}>
       <FF label="Contact ID" t={t}>
         <div style={{ fontFamily: t.mono, fontSize: 13, color: t.idText, background: isDark ? "rgba(255,255,255,0.04)" : "#F5F4F1", border: `1px solid ${t.surfaceBorder}`, borderRadius: 9, padding: "10px 13px", letterSpacing: "0.5px" }}>{modal.data.id}</div>

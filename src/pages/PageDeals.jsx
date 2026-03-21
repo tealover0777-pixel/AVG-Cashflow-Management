@@ -1,12 +1,6 @@
 import { useState, useMemo, useRef, useEffect } from "react";
-import { AgGridReact } from 'ag-grid-react';
-import { ModuleRegistry, AllCommunityModule } from 'ag-grid-community';
-
-ModuleRegistry.registerModules([AllCommunityModule]);
-
-import 'ag-grid-community/styles/ag-grid.css';
-import '../components/ag-grid/ag-grid-theme.css';
-import { getColumnDefs } from '../components/ag-grid/DealsGridConfig.jsx';
+import TanStackTable from '../components/TanStackTable';
+import { getDealColumns } from '../components/DealsTanStackConfig';
 import { db, storage } from "../firebase";
 import { doc, setDoc, updateDoc, deleteDoc, serverTimestamp, collection, addDoc, getDocs } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
@@ -354,7 +348,7 @@ export default function PageDeals({ t, isDark, DEALS = [], INVESTMENTS = [], FEE
 
       setDistModal({ ...distModal, open: false });
       setSelectedRows([]);
-      if (gridRef.current?.api) gridRef.current.api.deselectAll();
+      if (gridRef.current?.resetRowSelection) gridRef.current.resetRowSelection();
       setActivePage("Distribution Schedule");
     } catch (err) {
       console.error("Distribution generation error:", err);
@@ -364,22 +358,29 @@ export default function PageDeals({ t, isDark, DEALS = [], INVESTMENTS = [], FEE
     }
   };
 
-  const gridRef = useRef(null);
-  const [pageSize, setPageSize] = useState(30);
+  // TanStack Table: Data filtering (memoized)
+  const [chip, setChip] = useState("All");
+  const chips = ["All", "Pipeline", "Closed"];
+
+  const filteredData = useMemo(() => {
+    return DEALS.filter(d => {
+      if (chip === "Closed" && (d.status !== "Closed" && d.status !== "Liquidated")) return false;
+      if (chip === "Pipeline" && d.status !== "Pipeline") return false;
+      return true;
+    });
+  }, [DEALS, chip]);
 
   // Dynamically calculate page size based on available vertical space
   useEffect(() => {
     const calculatePageSize = () => {
-      const rowHeight = 42; // AG Grid default row height
-      const headerHeight = 56; // AG Grid header height + padding
       const viewportHeight = window.innerHeight;
 
-      // Grid container matches: calc(100vh - 420px)
+      // Table container matches: calc(100vh - 420px)
       const gridContainerHeight = viewportHeight - 420;
-      const availableForRows = gridContainerHeight - headerHeight;
-      const calculatedRows = Math.floor(availableForRows / rowHeight);
+      const availableForRows = gridContainerHeight - 90; // Header + Footer + padding
+      const calculatedRows = Math.floor(availableForRows / 40); // 40px estimated row height
 
-      const newPageSize = Math.max(30, calculatedRows); // Minimum 30 rows
+      const newPageSize = Math.max(20, calculatedRows); 
       setPageSize(newPageSize);
     };
 
@@ -394,34 +395,28 @@ export default function PageDeals({ t, isDark, DEALS = [], INVESTMENTS = [], FEE
     };
   }, []);
 
-  // Update grid when pageSize changes
-  useEffect(() => {
-    if (gridRef.current?.api) {
-      gridRef.current.api.paginationSetPageSize(pageSize);
-    }
-  }, [pageSize]);
 
-  // AG Grid: Column definitions
+  // TanStack Table: Column definitions
   const permissions = { canUpdate, canDelete };
-  const columnDefs = useMemo(() => {
-    return getColumnDefs(permissions, isDark, t);
-  }, [permissions, isDark, t]);
 
-  // AG Grid: Context for cell renderers
-  const context = useMemo(() => ({
+  const columnContext = useMemo(() => ({
     isDark,
     t,
     permissions,
-    feesData: FEES_DATA,
+    feesData: props.feesData || FEES_DATA, // Use prop if available, fallback to internal
     callbacks: {
       onEdit: openEdit,
-      onDelete: (target) => setDelT(target),
+      onDelete: (deal) => setDelT(deal),
       onSelectDeal: (data) => {
         setSelectedDealId(data.id);
         setActivePage("Deal Summary");
       }
     }
-  }), [isDark, t, permissions, FEES_DATA]);
+  }), [isDark, t, permissions, props.feesData, FEES_DATA, setSelectedDealId, setActivePage]);
+
+  const columnDefs = useMemo(() => {
+    return getDealColumns(permissions, isDark, t, columnContext);
+  }, [permissions, isDark, t, columnContext]);
 
   return (<>
     <div style={{ marginBottom: 28, display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
@@ -445,45 +440,20 @@ export default function PageDeals({ t, isDark, DEALS = [], INVESTMENTS = [], FEE
       {[{ label: "Total", value: DEALS.length, accent: isDark ? "#60A5FA" : "#3B82F6", bg: isDark ? "rgba(96,165,250,0.08)" : "#EFF6FF", border: isDark ? "rgba(96,165,250,0.15)" : "#BFDBFE" }, { label: "Active", value: DEALS.filter(p => p.status !== "Closed" && p.status !== "Liquidated").length, accent: isDark ? "#34D399" : "#059669", bg: isDark ? "rgba(52,211,153,0.08)" : "#ECFDF5", border: isDark ? "rgba(52,211,153,0.15)" : "#A7F3D0" }, { label: "Closed", value: DEALS.filter(p => p.status === "Closed" || p.status === "Liquidated").length, accent: isDark ? "rgba(255,255,255,0.4)" : "#6B7280", bg: isDark ? "rgba(255,255,255,0.05)" : "#F9FAFB", border: isDark ? "rgba(255,255,255,0.1)" : "#E5E7EB" }].map(s => <StatCard key={s.label} {...s} titleFont={t.titleFont} isDark={isDark} />)}
     </div>
     
-    <div className={`ag-theme-custom ${isDark ? 'dark-mode' : 'light-mode'}`} style={{ height: "calc(100vh - 310px)", width: "100%" }}>
-      <AgGridReact
-        ref={gridRef}
-        rowData={DEALS}
-        columnDefs={columnDefs}
-        context={context}
-        animateRows={true}
-        pagination={true}
-        paginationPageSize={pageSize}
-        suppressPaginationPanel={true}
-        suppressCellFocus={true}
-        columnHoverHighlight={true}
-        rowSelection="multiple"
-        onSelectionChanged={() => {
-          const rows = gridRef.current.api.getSelectedRows();
-          setSelectedRows(rows);
-        }}
-        onRowClicked={(event) => {
-          // Row click behavior disabled in favor of specific link clicks on ID/Name
-        }}
-        onColumnResized={(event) => {
-          if (event.finished) {
-            const columnState = event.api.getColumnState();
-            localStorage.setItem('dealsColumnState', JSON.stringify(columnState));
-          }
-        }}
-        onGridReady={(params) => {
-          const savedState = localStorage.getItem('dealsColumnState');
-          if (savedState) {
-            params.api.applyColumnState({
-              state: JSON.parse(savedState),
-              applyOrder: false
-            });
-          }
-        }}
-      />
+    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+      <div style={{ display: "flex", gap: 8 }}>{chips.map((c, i) => { const isA = chip === c; return (<span key={c} className="filter-chip" onClick={() => setChip(c)} style={{ fontSize: 12, fontWeight: isA ? 600 : 500, padding: "5px 14px", borderRadius: 20, background: isA ? t.accent : t.chipBg, color: isA ? "#fff" : t.textSecondary, border: `1px solid ${isA ? t.accent : t.chipBorder}`, cursor: "pointer" }}>{c}</span>); })}</div>
     </div>
 
-    <div style={{ marginTop: 16, display: "flex", justifyContent: "space-between", alignItems: "center" }}><span style={{ fontSize: 12, color: t.textSubtle }}>Showing <strong style={{ color: t.textSecondary }}>{Math.min(DEALS.length, pageSize)}</strong> of <strong style={{ color: t.textSecondary }}>{DEALS.length}</strong> deals</span><Pagination totalPages={Math.ceil(DEALS.length / pageSize)} currentPage={1} onPageChange={(newPage) => gridRef.current?.api.paginationGoToPage(newPage - 1)} t={t} /></div>
+    <div style={{ height: 'calc(100vh - 420px)', width: '100%', minHeight: '500px' }}>
+      <TanStackTable
+        data={filteredData}
+        columns={columnDefs}
+        isDark={isDark}
+        t={t}
+        pageSize={pageSize}
+        onSelectionChange={(selected) => setSelectedRows(selected)}
+      />
+    </div>
     <Modal 
       open={modal.open} 
       onClose={close} 
