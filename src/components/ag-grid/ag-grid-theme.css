@@ -528,65 +528,15 @@
   align-items: center !important;
 }
 
-/* Explicit Checkbox Overrides for premium feel */
-.ag-theme-custom .ag-checkbox-input-wrapper {
-  background-color: transparent !important;
-  border: 1px solid var(--ag-checkbox-unchecked-color);
-  width: 16px;
-  height: 16px;
-  border-radius: 4px;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  transition: all 0.1s ease;
-  position: relative;
-}
 
-/* Hide the default SVG checkmark */
-.ag-theme-custom .ag-checkbox-input-wrapper span {
-  display: none !important;
-}
-
-.ag-theme-custom .ag-checkbox-input-wrapper.ag-checked {
-  background-color: var(--ag-checkbox-checked-color) !important;
-  border-color: var(--ag-checkbox-checked-color) !important;
-}
-
-/* Create a new 'Circle' icon for Checked state */
-.ag-theme-custom .ag-checkbox-input-wrapper.ag-checked::after {
-  content: "";
-  position: absolute;
-  width: 8px;
-  height: 8px;
-  background-color: #fff;
-  border-radius: 50%;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.1);
-  animation: checkPop 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-}
-
-@keyframes checkPop {
-  0% { transform: scale(0); opacity: 0; }
-  100% { transform: scale(1); opacity: 1; }
-}
-
-.ag-theme-custom .ag-checkbox-input-wrapper.ag-indeterminate {
-  background-color: var(--ag-checkbox-checked-color) !important;
-}
-
-.ag-theme-custom .ag-checkbox-input-wrapper.ag-indeterminate::after {
-  content: "";
-  position: absolute;
-  width: 8px;
-  height: 2px;
-  background-color: #fff;
-}
-
-/* Hide header checkbox icon but keep it clickable */
-.ag-theme-custom .ag-header-select-all {
-  opacity: 0 !important;
-  cursor: pointer !important;
-}
-
-.ag-theme-custom .ag-header-cell[col-id="selection"] {
-  cursor: pointer !important;
+/* Maintain white header icons for visibility */
+.ag-theme-custom .ag-icon-filter,
+.ag-theme-custom .ag-icon-menu,
+.ag-theme-custom .ag-icon-filter-active,
+.ag-theme-custom .ag-icon-sort-ascending,
+.ag-theme-custom .ag-icon-sort-descending,
+.ag-theme-custom .ag-icon-search {
+  color: #ffffff !important;
+  opacity: 1 !important;
+  filter: drop-shadow(0 0 1px rgba(255, 255, 255, 0.5));
 }
