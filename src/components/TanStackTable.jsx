@@ -7,12 +7,12 @@ import {
   getPaginationRowModel,
   flexRender,
 } from '@tanstack/react-table';
-import { 
-  ArrowUp, 
-  ArrowDown, 
-  ChevronLeft, 
-  ChevronRight, 
-  ChevronsLeft, 
+import {
+  ArrowUp,
+  ArrowDown,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
   ChevronsRight,
   FilterX
 } from 'lucide-react';
@@ -37,6 +37,7 @@ export default function TanStackTable({
   const [sorting, setSorting] = useState([]);
   const [columnFilters, setColumnFilters] = useState([]);
   const [rowSelection, setRowSelection] = useState({});
+  const [columnSizing, setColumnSizing] = useState({});
 
   const table = useReactTable({
     data,
@@ -46,12 +47,16 @@ export default function TanStackTable({
       columnFilters,
       globalFilter,
       rowSelection,
+      columnSizing,
     },
     enableRowSelection: true,
+    enableColumnResizing: true,
+    columnResizeMode: 'onChange',
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
     onGlobalFilterChange: setGlobalFilter,
     onRowSelectionChange: setRowSelection,
+    onColumnSizingChange: setColumnSizing,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
@@ -109,17 +114,16 @@ export default function TanStackTable({
               <tr key={headerGroup.id}>
                 {headerGroup.headers.map(header => {
                   const isSorted = header.column.getIsSorted();
-                  const width = header.column.columnDef.size || 'auto';
                   const canSort = header.column.getCanSort();
-                  
+
                   return (
-                    <th 
+                    <th
                       key={header.id}
                       style={{
-                        width: width,
-                        minWidth: width,
+                        width: header.getSize(),
+                        minWidth: header.getSize(),
                         padding: '12px 14px',
-                        textAlign: 'left',
+                        textAlign: header.column.id === 'select' ? 'center' : 'left',
                         fontWeight: 700,
                         fontSize: '10.5px',
                         textTransform: 'uppercase',
@@ -135,7 +139,7 @@ export default function TanStackTable({
                       }}
                       onClick={canSort ? header.column.getToggleSortingHandler() : undefined}
                     >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: header.column.getCanFilter() ? '8px' : 0 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: header.column.getCanFilter() ? '8px' : 0, justifyContent: header.column.id === 'select' ? 'center' : 'flex-start' }}>
                         <div onClick={e => e.stopPropagation()} style={{ display: 'flex', alignItems: 'center' }}>
                           {flexRender(header.column.columnDef.header, header.getContext())}
                         </div>
@@ -151,7 +155,7 @@ export default function TanStackTable({
                       {/* Column Filter Input */}
                       {header.column.getCanFilter() && (
                         <div onClick={e => e.stopPropagation()}>
-                           <input 
+                           <input
                             value={(header.column.getFilterValue() ?? '')}
                             onChange={e => header.column.setFilterValue(e.target.value)}
                             placeholder="Filter..."
@@ -171,6 +175,37 @@ export default function TanStackTable({
                            />
                         </div>
                       )}
+
+                      {/* Column Resizer */}
+                      <div
+                        onMouseDown={header.getResizeHandler()}
+                        onTouchStart={header.getResizeHandler()}
+                        className={`resizer ${header.column.getIsResizing() ? 'isResizing' : ''}`}
+                        style={{
+                          position: 'absolute',
+                          right: 0,
+                          top: 0,
+                          height: '100%',
+                          width: '5px',
+                          cursor: 'col-resize',
+                          userSelect: 'none',
+                          touchAction: 'none',
+                          opacity: header.column.getIsResizing() ? 1 : 0,
+                          transition: 'opacity 0.2s',
+                        }}
+                      >
+                        <div style={{
+                          position: 'absolute',
+                          right: '1px',
+                          top: '50%',
+                          transform: 'translateY(-50%)',
+                          width: '3px',
+                          height: '60%',
+                          background: t.accent,
+                          borderRadius: '2px',
+                          opacity: header.column.getIsResizing() ? 1 : 0.4,
+                        }} />
+                      </div>
                     </th>
                   );
                 })}
@@ -191,7 +226,7 @@ export default function TanStackTable({
                 className="table-row-hover"
               >
                 {row.getVisibleCells().map(cell => (
-                  <td 
+                  <td
                     key={cell.id}
                     style={{
                       padding: '10px 14px',
@@ -204,7 +239,7 @@ export default function TanStackTable({
                       ...(cell.column.columnDef.meta?.style || {})
                     }}
                   >
-                    <div onClick={e => e.stopPropagation()} style={{ display: cell.column.id === 'select' ? 'contents' : 'block' }}>
+                    <div onClick={e => e.stopPropagation()} style={{ display: 'flex', alignItems: 'center', justifyContent: cell.column.id === 'select' ? 'center' : 'flex-start' }}>
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}
                     </div>
                   </td>
@@ -290,6 +325,13 @@ export default function TanStackTable({
         .tanstack-table-root th:last-child,
         .tanstack-table-root td:last-child {
           border-right: none;
+        }
+        .tanstack-table-root th:hover .resizer {
+          opacity: 1;
+        }
+        .resizer.isResizing {
+          opacity: 1 !important;
+          background: ${t.accent}20;
         }
         .custom-scrollbar::-webkit-scrollbar {
           width: 8px;

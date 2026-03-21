@@ -12,16 +12,18 @@ export const getScheduleColumns = (permissions, isDark, t, context) => {
         const rows = table.getFilteredRowModel().rows;
         const isAllSelected = rows.length > 0 && rows.every(r => r.getIsSelected());
         const isSomeSelected = rows.some(r => r.getIsSelected());
-        
+
         return (
           <input
             type="checkbox"
             checked={isAllSelected}
             ref={el => { if (el) el.indeterminate = isSomeSelected && !isAllSelected; }}
-            onChange={() => {
+            onChange={(e) => {
+              e.stopPropagation();
               const next = !isAllSelected;
               rows.forEach(r => r.toggleSelected(next));
             }}
+            onClick={(e) => e.stopPropagation()}
             style={{ cursor: 'pointer', accentColor: t.accent }}
           />
         );
@@ -30,7 +32,11 @@ export const getScheduleColumns = (permissions, isDark, t, context) => {
         <input
           type="checkbox"
           checked={row.getIsSelected()}
-          onChange={row.getToggleSelectedHandler()}
+          onChange={(e) => {
+            e.stopPropagation();
+            row.getToggleSelectedHandler()(e);
+          }}
+          onClick={(e) => e.stopPropagation()}
           style={{ cursor: 'pointer', accentColor: t.accent }}
         />
       ),
