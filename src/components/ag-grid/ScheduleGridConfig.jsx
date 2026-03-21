@@ -228,7 +228,9 @@ export const getScheduleColumnDefs = (permissions, isDark, t, showCheckbox = tru
     cols.push({
       headerName: "Actions",
       field: "actions",
-      width: 130,
+      colId: "actions",
+      width: 150,
+      minWidth: 150,
       pinned: "right",
       sortable: false,
       filter: false,
