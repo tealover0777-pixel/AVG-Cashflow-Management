@@ -318,7 +318,7 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
     }
 
     const updates = { fee_ids: newFeeIds, notes, signed_payment_amount: fmtCurr(signedAmt), basePayment: baseAmt };
-    
+
     // Status-based zeroing override
     if (ZEROING_STATUSES.includes(currentData.status)) {
       updates.signed_payment_amount = "$0.00";
@@ -599,8 +599,8 @@ Are you sure you want to continue?`;
             // Get original payment amount from original_payment_amount field or current payment
             const originalSchedule = SCHEDULES.find(x => x.docId === d.docId || x.schedule_id === d.schedule_id);
             const rawOrigAmt = originalSchedule?.original_payment_amount ||
-                               originalSchedule?.payment_amount ||
-                               originalSchedule?.payment || d.payment || 0;
+              originalSchedule?.payment_amount ||
+              originalSchedule?.payment || d.payment || 0;
             const origPaymentNum = Math.abs(Number(String(rawOrigAmt).replace(/[^0-9.-]/g, "")));
             const formattedOrigAmt = `$${origPaymentNum.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
@@ -660,8 +660,8 @@ Are you sure you want to continue?`;
             // Get original payment amount from original_payment_amount field or current payment
             const originalSchedule = SCHEDULES.find(x => x.docId === d.docId || x.schedule_id === d.schedule_id);
             const rawOrigAmt = originalSchedule?.original_payment_amount ||
-                               originalSchedule?.payment_amount ||
-                               originalSchedule?.payment || d.payment || 0;
+              originalSchedule?.payment_amount ||
+              originalSchedule?.payment || d.payment || 0;
             const origPaymentNum = Math.abs(Number(String(rawOrigAmt).replace(/[^0-9.-]/g, "")));
             const formattedOrigAmt = `$${origPaymentNum.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
@@ -699,8 +699,35 @@ Are you sure you want to continue?`;
 
     try {
       if (modal.mode === "edit" && d.docId) {
-        const ref = d._path ? doc(db, d._path) : doc(db, collectionPath, d.docId);
-        await updateDoc(ref, payload);
+        // Versioning Logic:
+        // Instead of updating the document in place, we create a new version 
+        // and mark the old one as "replaced" and inactive.
+        
+        const oldRef = d._path ? doc(db, d._path) : doc(db, collectionPath, d.docId);
+        const newVersionNum = (d.version_num || 1) + 1;
+        
+        // 1. Create the new version
+        const newPayload = {
+          ...payload,
+          version_num: newVersionNum,
+          version_id: `${d.schedule_id}-V${newVersionNum}`,
+          active_version: true,
+          previous_version_id: d.version_id || d.docId,
+          created_at: serverTimestamp(),
+          updated_at: serverTimestamp(),
+          updated_by: user?.uid || "system"
+        };
+        
+        await addDoc(collection(db, collectionPath), newPayload);
+
+        // 2. Mark the old version as replaced and inactive
+        await updateDoc(oldRef, { 
+          active_version: false, 
+          status: "REPLACED", 
+          replaced_at: serverTimestamp(),
+          replaced_by: user?.uid || "system",
+          updated_at: serverTimestamp() 
+        });
       } else {
         const docRef = await addDoc(collection(db, collectionPath), { ...payload, created_at: serverTimestamp() });
         // If this was a late payment, link back to original
@@ -842,13 +869,29 @@ Are you sure you want to continue?`;
 
   // Filter data for AG Grid
   const rowData = useMemo(() => {
-    return SCHEDULES.filter(s => {
-      // Versioning filter
+    let filtered = SCHEDULES.filter(s => {
+      // If history is OFF, only show active versions
       if (!showHistory && s.active_version === false) return false;
       // Status chip filter
       if (chip !== "All" && s.status !== chip) return false;
       return true;
     });
+
+    if (showHistory) {
+      // Group by schedule_id, then sort by version_num DESC within each group
+      // Keep the active version at the top of its schedule group
+      filtered.sort((a, b) => {
+        if (a.schedule_id !== b.schedule_id) {
+          return a.schedule_id.localeCompare(b.schedule_id);
+        }
+        // Within same schedule_id group
+        if (a.active_version && !b.active_version) return -1;
+        if (!a.active_version && b.active_version) return 1;
+        return (b.version_num || 0) - (a.version_num || 0);
+      });
+    }
+
+    return filtered;
   }, [SCHEDULES, showHistory, chip]);
 
   // Column definitions
@@ -945,6 +988,11 @@ Are you sure you want to continue?`;
         onSelectionChanged={onSelectionChanged}
         suppressRowClickSelection={true}
         floatingFilter={true}
+        getRowStyle={(params) => {
+          if (params.data && params.data.active_version === false) {
+            return { background: isDark ? "rgba(255,255,255,0.02)" : "rgba(0,0,0,0.02)", opacity: 0.8 };
+          }
+        }}
         onColumnResized={(event) => {
           if (event.finished) {
             const columnState = event.api.getColumnState();
@@ -978,7 +1026,7 @@ Are you sure you want to continue?`;
             </FF>
           )}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14 }}>
-            <FF label="Investment" t={t}><FSel value={modal.data.investment} onChange={e => setF("investment", e.target.value)} options={INVESTMENTS.map(c => c.id)} t={t} disabled={freeze} /></FF>
+            <FF label="Investment ID" t={t}><FSel value={modal.data.investment} onChange={e => setF("investment", e.target.value)} options={INVESTMENTS.map(c => c.id)} t={t} disabled={freeze} /></FF>
             <FF label="Deal ID" t={t}><FIn value={modal.data.deal_id || ""} onChange={e => setF("project_id", e.target.value)} placeholder="P10000" t={t} disabled={freeze} /></FF>
             <FF label="Contact ID" t={t}><FIn value={modal.data.party_id || ""} onChange={e => setF("party_id", e.target.value)} placeholder="M10000" t={t} disabled={freeze} /></FF>
           </div>
@@ -1210,10 +1258,10 @@ Are you sure you want to continue?`;
                             if (isReplacedStatus && origAmount != null && origAmount !== "") {
                               return `Original Payment: ${String(origAmount)}`;
                             }
-                            
+
                             // Otherwise show current payment amount normally
                             let displayAmount = cs.payment && cs.payment !== "$0.00" ? cs.payment : (cs.signed_payment_amount || "$0.00");
-                            
+
                             // Add parenthesis for negative OUT amounts
                             if (String(displayAmount).includes("-")) {
                               return String(displayAmount).replace("-", "(") + ")";

@@ -322,6 +322,9 @@ function AppContent() {
         payment_amount: d.payment_amount,
         notes: d.notes || "",
         applied_to: d.applied_to || "",
+        active_version: d.active_version,
+        version_num: d.version_num,
+        version_id: d.version_id,
         term_start: fmtDate(d.term_start), term_end: fmtDate(d.term_end),
         _undo_snapshot: d._undo_snapshot || null,
       };

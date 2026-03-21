@@ -371,6 +371,7 @@ export const badge = (status, isDark) => ({
   Partial: [isDark ? "rgba(56,189,248,0.15)" : "#F0F9FF", isDark ? "#38BDF8" : "#0284C7", isDark ? "rgba(56,189,248,0.3)" : "#BAE6FD"],
   Cancelled: [isDark ? "rgba(244,114,182,0.15)" : "#FDF2F8", isDark ? "#F472B6" : "#DB2777", isDark ? "rgba(244,114,182,0.3)" : "#FBCFE8"],
   Waived: [isDark ? "rgba(148,163,184,0.15)" : "#F8FAFC", isDark ? "#94A3B8" : "#475569", isDark ? "rgba(148,163,184,0.3)" : "#CBD5E1"],
+  Rollover: [isDark ? "rgba(79,70,229,0.15)" : "#EEF2FF", isDark ? "#818CF8" : "#4F46E5", isDark ? "rgba(79,70,229,0.3)" : "#C7D2FE"],
   Scheduled: [isDark ? "rgba(45,212,191,0.15)" : "#F0FDFA", isDark ? "#2DD4BF" : "#0D9488", isDark ? "rgba(45,212,191,0.3)" : "#99F6E4"],
   Investor: [isDark ? "rgba(52,211,153,0.15)" : "#ECFDF5", isDark ? "#34D399" : "#059669", isDark ? "rgba(52,211,153,0.3)" : "#A7F3D0"],
   Borrower: [isDark ? "rgba(251,146,60,0.15)" : "#FFF7ED", isDark ? "#FB923C" : "#C2410C", isDark ? "rgba(251,146,60,0.3)" : "#FED7AA"],
