@@ -119,8 +119,9 @@ export default function PageContacts({ t, isDark, CONTACTS = [], INVESTMENTS = [
     }
   };
   const chips = ["All", "Investors", "Borrowers", "Companies"];
-  const gridRef = useRef(null);
   const [pageSize, setPageSize] = useState(30);
+  const [sel, setSel] = useState(new Set());
+  const gridRef = useRef(null);
 
   // Dynamically calculate page size based on available vertical space
   useEffect(() => {
