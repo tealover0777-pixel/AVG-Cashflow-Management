@@ -11,8 +11,8 @@ export const getScheduleColumns = (permissions, isDark, t, context) => {
       header: ({ table }) => (
         <input
           type="checkbox"
-          checked={table.getIsAllFilteredRowsSelected()}
-          onChange={table.getToggleAllFilteredRowsSelectedHandler()}
+          checked={table.getIsAllRowsSelected()}
+          onChange={table.getToggleAllRowsSelectedHandler()}
           style={{ cursor: 'pointer', accentColor: t.accent }}
         />
       ),

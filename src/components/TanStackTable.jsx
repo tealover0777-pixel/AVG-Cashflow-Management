@@ -10,7 +10,6 @@ import {
 import { 
   ArrowUp, 
   ArrowDown, 
-  Search, 
   ChevronLeft, 
   ChevronRight, 
   ChevronsLeft, 
@@ -54,11 +53,6 @@ export default function TanStackTable({
     onRowSelectionChange: (updater) => {
       const next = typeof updater === 'function' ? updater(rowSelection) : updater;
       setRowSelection(next);
-      if (onSelectionChange) {
-        // Find actual data objects for selected indexes
-        const selectedRows = Object.keys(next).map(idx => data[idx]).filter(Boolean);
-        onSelectionChange(selectedRows);
-      }
     },
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
@@ -71,6 +65,14 @@ export default function TanStackTable({
     },
     autoResetRowSelection: false,
   });
+
+  // Notify parent of selection changes
+  useEffect(() => {
+    if (onSelectionChange) {
+      const selectedRows = table.getSelectedRowModel().flatRows.map(row => row.original);
+      onSelectionChange(selectedRows);
+    }
+  }, [rowSelection, onSelectionChange, table]);
 
   const { rows } = table.getRowModel();
 
@@ -122,7 +124,7 @@ export default function TanStackTable({
                         letterSpacing: '0.8px',
                         color: t.textSubtle,
                         borderBottom: `2px solid ${t.surfaceBorder}`,
-                        borderRight: `1px solid ${t.columnDivider || (isDark ? 'rgba(255,255,255,0.06)' : 'rgba(120,113,108,0.1)')}`,
+                        borderRight: `1px solid ${t.columnDivider || (isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)')}`,
                         cursor: header.column.getCanSort() ? 'pointer' : 'default',
                         userSelect: 'none',
                         transition: 'background 0.2s',
@@ -189,8 +191,8 @@ export default function TanStackTable({
                     key={cell.id}
                     style={{
                       padding: '10px 14px',
-                      borderBottom: `1px solid ${t.rowDivider || (isDark ? 'rgba(255,255,255,0.05)' : 'rgba(120,113,108,0.08)')}`,
-                      borderRight: `1px solid ${t.columnDivider || (isDark ? 'rgba(255,255,255,0.05)' : 'rgba(120,113,108,0.08)')}`,
+                      borderBottom: `1px solid ${t.rowDivider || (isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)')}`,
+                      borderRight: `1px solid ${t.columnDivider || (isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)')}`,
                       color: t.textSecondary,
                       whiteSpace: 'nowrap',
                       overflow: 'hidden',
