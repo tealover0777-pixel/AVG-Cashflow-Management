@@ -26,7 +26,7 @@ const ZEROING_STATUSES = ["Missed", "Cancelled", "VOID", "WAIVED", "REPLACED"];
 
 export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = [], CONTACTS = [], DEALS = [], DIMENSIONS = [], FEES_DATA = [], collectionPath = "" }) {
 
-  const { hasPermission, isSuperAdmin } = useAuth();
+  const { user, hasPermission, isSuperAdmin } = useAuth();
   const canCreate = isSuperAdmin || hasPermission("PAYMENT_SCHEDULE_CREATE");
   const canDelete = isSuperAdmin || hasPermission("PAYMENT_SCHEDULE_DELETE");
   const canUpdate = isSuperAdmin || hasPermission("PAYMENT_SCHEDULE_UPDATE");
