@@ -19,6 +19,28 @@ import VersionCellRenderer from './VersionCellRenderer';
 export const getScheduleColumnDefs = (permissions, isDark, t, showCheckbox = true) => {
   const cols = [];
 
+  if (showCheckbox) {
+    cols.push({
+      colId: 'selection',
+      headerName: "",
+      width: 45,
+      pinned: "left",
+      checkboxSelection: true,
+      headerCheckboxSelection: true,
+      headerCheckboxSelectionFilteredOnly: true,
+      sortable: false,
+      filter: false,
+      resizable: false,
+      suppressMenu: true,
+      cellStyle: {
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: 0
+      }
+    });
+  }
+
   cols.push(
     {
       headerName: "Schedule ID",

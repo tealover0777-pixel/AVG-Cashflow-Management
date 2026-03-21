@@ -12,6 +12,7 @@ export const getColumnDefs = (permissions, isDark, t, selection, onToggleRow, on
   // Checkbox column (if canUpdate)
   if (permissions.canUpdate) {
     baseCols.push({
+      colId: 'selection',
       headerName: "",
       field: "checkbox",
       width: 50,

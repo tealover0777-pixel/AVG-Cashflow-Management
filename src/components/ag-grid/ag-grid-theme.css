@@ -540,3 +540,27 @@
   opacity: 1 !important;
   filter: drop-shadow(0 0 1px rgba(255, 255, 255, 0.5));
 }
+/* Fix for redundant internal checkboxes leaking into v33 headers */
+/* These small squares appear because of a theme mismatch/AG Grid v33 default change */
+/* We target every header cell NOT designated for selection and hide any checkboxes leaking into them */
+.ag-header-cell:not([col-id="selection"]):not(.ag-column-select) [class*="ag-checkbox"],
+.ag-header-cell:not([col-id="selection"]):not(.ag-column-select) input[type="checkbox"] {
+  display: none !important;
+}
+
+/* Explicitly ensure our selection column checkbox and AG Grid's native select-all container REMAIN visible */
+.ag-header-cell[col-id="selection"] [class*="ag-checkbox"],
+.ag-header-cell[col-id="selection"] input[type="checkbox"],
+.ag-header-cell .ag-header-select-all {
+  display: flex !important;
+}
+.ag-header-cell .ag-header-select-all [class*="ag-checkbox"] {
+  display: flex !important;
+}
+.ag-header-cell .ag-header-select-all input[type="checkbox"] {
+  display: inline-block !important; /* Keep for accessibility/standard themes */
+}
+
+
+
+

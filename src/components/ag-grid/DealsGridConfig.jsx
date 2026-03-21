@@ -7,6 +7,7 @@ import DealActionsCellRenderer from './DealActionsCellRenderer';
 export const getColumnDefs = (permissions, isDark, t) => {
   const baseCols = [
     {
+      colId: 'selection',
       headerName: "",
       width: 45,
       pinned: "left",

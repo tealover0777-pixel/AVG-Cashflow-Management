@@ -1019,13 +1019,9 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
         suppressCellFocus={true}
         columnHoverHighlight={true}
         theme="legacy"
-        rowSelection={{
-          mode: 'multiRow',
-          headerCheckbox: true,
-          enableClickSelection: false,
-        }}
-        onSelectionChanged={onSelectionChanged}
+        rowSelection="multiple"
         suppressRowClickSelection={true}
+        onSelectionChanged={onSelectionChanged}
         floatingFilter={true}
         defaultColDef={{
           headerCheckboxSelection: false,
