@@ -42,7 +42,7 @@ export const getScheduleColumnDefs = (permissions, isDark, t, showCheckbox = tru
     {
       headerName: "Schedule ID",
       field: "schedule_id",
-      width: 100,
+      width: 90,
       sortable: true,
       filter: "agTextColumnFilter",
       filterParams: {
@@ -56,7 +56,7 @@ export const getScheduleColumnDefs = (permissions, isDark, t, showCheckbox = tru
     {
       headerName: "Linked",
       field: "linked",
-      width: 90,
+      width: 80,
       sortable: true,
       filter: "agTextColumnFilter",
       filterParams: {
@@ -70,7 +70,7 @@ export const getScheduleColumnDefs = (permissions, isDark, t, showCheckbox = tru
     {
       headerName: "Investment",
       field: "investment",
-      width: 100,
+      width: 90,
       sortable: true,
       filter: "agTextColumnFilter",
       filterParams: {
@@ -84,7 +84,7 @@ export const getScheduleColumnDefs = (permissions, isDark, t, showCheckbox = tru
     {
       headerName: "Deal ID",
       field: "deal_id",
-      width: 90,
+      width: 85,
       sortable: true,
       filter: "agTextColumnFilter",
       filterParams: {
@@ -98,7 +98,7 @@ export const getScheduleColumnDefs = (permissions, isDark, t, showCheckbox = tru
     {
       headerName: "Contact ID",
       field: "party_id",
-      width: 95,
+      width: 90,
       sortable: true,
       filter: "agTextColumnFilter",
       filterParams: {
@@ -112,7 +112,7 @@ export const getScheduleColumnDefs = (permissions, isDark, t, showCheckbox = tru
     {
       headerName: "Period",
       field: "period_number",
-      width: 70,
+      width: 60,
       sortable: true,
       filter: "agNumberColumnFilter",
       cellRenderer: SchedulePeriodCellRenderer,
@@ -121,7 +121,7 @@ export const getScheduleColumnDefs = (permissions, isDark, t, showCheckbox = tru
     {
       headerName: "Due Date",
       field: "dueDate",
-      width: 110,
+      width: 105,
       sortable: true,
       filter: "agDateColumnFilter",
       cellStyle: { fontFamily: t.mono, fontSize: '11px', color: isDark ? "rgba(255,255,255,0.7)" : "#44403C" }
@@ -129,7 +129,7 @@ export const getScheduleColumnDefs = (permissions, isDark, t, showCheckbox = tru
     {
       headerName: "Type",
       field: "type",
-      width: 100,
+      width: 160,
       sortable: true,
       filter: "agTextColumnFilter",
       filterParams: {
@@ -142,7 +142,7 @@ export const getScheduleColumnDefs = (permissions, isDark, t, showCheckbox = tru
     {
       headerName: "Fee",
       field: "fee_id",
-      width: 280,
+      width: 240,
       sortable: true,
       filter: "agTextColumnFilter",
       filterParams: {
@@ -155,7 +155,7 @@ export const getScheduleColumnDefs = (permissions, isDark, t, showCheckbox = tru
     {
       headerName: "Applied To",
       field: "applied_to",
-      width: 130,
+      width: 120,
       sortable: true,
       filter: "agTextColumnFilter",
       filterParams: {
@@ -168,7 +168,7 @@ export const getScheduleColumnDefs = (permissions, isDark, t, showCheckbox = tru
     {
       headerName: "Dir",
       field: "direction",
-      width: 60,
+      width: 50,
       sortable: true,
       filter: "agTextColumnFilter",
       filterParams: {
@@ -181,7 +181,7 @@ export const getScheduleColumnDefs = (permissions, isDark, t, showCheckbox = tru
     {
       headerName: "Signed Amt",
       field: "signed_payment_amount",
-      width: 120,
+      width: 110,
       sortable: true,
       filter: "agNumberColumnFilter",
       cellRenderer: ScheduleSignedAmountCellRenderer
@@ -189,7 +189,7 @@ export const getScheduleColumnDefs = (permissions, isDark, t, showCheckbox = tru
     {
       headerName: "Principal",
       field: "principal_amount",
-      width: 120,
+      width: 110,
       sortable: true,
       filter: "agNumberColumnFilter",
       cellRenderer: SchedulePrincipalAmountCellRenderer
@@ -197,7 +197,7 @@ export const getScheduleColumnDefs = (permissions, isDark, t, showCheckbox = tru
     {
       headerName: "Status",
       field: "status",
-      width: 100,
+      width: 90,
       sortable: true,
       filter: "agTextColumnFilter",
       filterParams: {
