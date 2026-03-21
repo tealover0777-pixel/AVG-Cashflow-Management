@@ -191,6 +191,11 @@
   align-items: center;
 }
 
+/* Ensure white header text in dark mode */
+.ag-theme-custom.dark-mode .ag-header-cell-label {
+  color: #ffffff !important;
+}
+
 .ag-theme-custom .ag-header-cell {
   padding-left: 16px;
   padding-right: 16px;
