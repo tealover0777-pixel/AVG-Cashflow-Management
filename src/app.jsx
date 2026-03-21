@@ -414,11 +414,9 @@ function AppContent() {
   const determinedTenantName = resolvedTenant?.name || "";
 
   // Merge Firestore dimensions with local styling
-  console.log("Raw Dimensions from Firestore:", rawDimensions);
   const DIMENSIONS = rawDimensions.map(d => {
     const style = DIM_STYLES[d.category || d.name] || DEFAULT_DIM_STYLE;
     const items = d.options || d.items || [];
-    console.log(`Dimension: ${d.category || d.name || d.id}, Items:`, items, "Raw doc:", d);
     return { name: d.category || d.name || d.id, items, ...style };
   });
 
