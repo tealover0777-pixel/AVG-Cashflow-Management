@@ -1023,6 +1023,9 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
         onSelectionChanged={onSelectionChanged}
         suppressRowClickSelection={true}
         floatingFilter={true}
+        defaultColDef={{
+          headerCheckboxSelection: false,
+        }}
         getRowStyle={(params) => {
           if (params.data && params.data.active_version === false) {
             return { background: isDark ? "rgba(255,255,255,0.02)" : "rgba(0,0,0,0.02)", opacity: 0.8 };
