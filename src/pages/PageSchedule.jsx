@@ -629,8 +629,9 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
               data: { ...initialData, ...updates }
             });
             if (modal.mode === "edit" || modal.mode === "add_late" || modal.mode === "add_partial") {
-              const ledgerPath = `${collectionPath.split("/paymentSchedules")[0]}/ledger`;
-              await addDoc(collection(db, ledgerPath), {
+              const tenantPath = ref.path.split('/paymentSchedules')[0];
+              const ledgerRef = collection(db, tenantPath, 'ledger');
+              await addDoc(ledgerRef, {
                 entity_type: "Schedule",
                 entity_id: d.schedule_id,
                 amount: payload.payment_amount,
@@ -640,9 +641,11 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
                 user_id: user?.uid || "system"
               });
             }
-
-            close();
-          } catch (err) { console.error("Save schedule error:", err); }
+            alert(`Missed status versioned to V${newVersionNum}. Now booking replacement...`);
+          } catch (err) { 
+            console.error("Save schedule error:", err);
+            alert(`Workflow failed: ${err.message}`);
+          }
         }
       });
       return;
