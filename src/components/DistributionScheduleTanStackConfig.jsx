@@ -1,7 +1,6 @@
 import React from 'react';
 import { fmtCurr, initials } from '../utils';
-import Bdg from './Bdg';
-import Tooltip from './Tooltip';
+import { Bdg, Tooltip } from '../components';
 
 export const getDistributionColumns = (isDark, t, CONTACTS, DEALS) => [
   {

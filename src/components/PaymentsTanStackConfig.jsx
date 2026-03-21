@@ -1,10 +1,33 @@
-import React from 'react';
-import ActBtns from './ActBtns';
-import Bdg from './Bdg';
+import { ActBtns, Bdg } from '../components';
 import { fmtCurr } from '../utils';
 
 export const getPaymentColumns = (permissions, isDark, t, onEdit, onDel) => {
   return [
+    {
+      id: 'select',
+      header: ({ table }) => (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%' }}>
+          <input
+            type="checkbox"
+            checked={table.getIsAllPageRowsSelected()}
+            onChange={table.getToggleAllPageRowsSelectedHandler()}
+            style={{ cursor: 'pointer', width: '14px', height: '14px' }}
+          />
+        </div>
+      ),
+      cell: ({ row }) => (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%' }}>
+          <input
+            type="checkbox"
+            checked={row.getIsSelected()}
+            onChange={row.getToggleSelectedHandler()}
+            style={{ cursor: 'pointer', width: '14px', height: '14px' }}
+          />
+        </div>
+      ),
+      size: 40,
+      enableSorting: false,
+    },
     {
       accessorKey: 'id',
       header: 'Pay ID',
@@ -88,6 +111,31 @@ export const getPaymentColumns = (permissions, isDark, t, onEdit, onDel) => {
 
 export const getBatchColumns = (permissions, isDark, t, onEdit, onDel) => {
   return [
+    {
+      id: 'select',
+      header: ({ table }) => (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%' }}>
+          <input
+            type="checkbox"
+            checked={table.getIsAllPageRowsSelected()}
+            onChange={table.getToggleAllPageRowsSelectedHandler()}
+            style={{ cursor: 'pointer', width: '14px', height: '14px' }}
+          />
+        </div>
+      ),
+      cell: ({ row }) => (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%' }}>
+          <input
+            type="checkbox"
+            checked={row.getIsSelected()}
+            onChange={row.getToggleSelectedHandler()}
+            style={{ cursor: 'pointer', width: '14px', height: '14px' }}
+          />
+        </div>
+      ),
+      size: 40,
+      enableSorting: false,
+    },
     {
       accessorKey: 'batch_id',
       header: 'Batch ID',

@@ -1,6 +1,4 @@
-import React from 'react';
-import ActBtns from './ActBtns';
-import Bdg from './Bdg';
+import { ActBtns, Bdg } from '../components';
 import { fmtCurr } from '../utils';
 
 export const getFeeColumns = (permissions, isDark, t, onEdit, onDel) => {

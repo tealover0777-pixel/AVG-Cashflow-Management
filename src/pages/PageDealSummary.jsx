@@ -1,5 +1,10 @@
+import { useState, useEffect, useMemo, useRef } from "react";
+import { db } from "../firebase";
+import { doc, getDocs, collection, updateDoc, addDoc, deleteDoc, serverTimestamp } from "firebase/firestore";
+import { Modal, FF, FIn, FSel, DelModal } from "../components";
+import { useAuth } from "../AuthContext";
 import { getDealInvestmentColumns } from "../components/DealSummaryTanStackConfig";
-import { TanStackTable } from "../components";
+import TanStackTable from "../components/TanStackTable";
 
 export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTMENTS = [], CONTACTS = [], DIMENSIONS = [], FEES_DATA = [], setActivePage, investmentCollection = "investments" }) {
   const { hasPermission, isSuperAdmin } = useAuth();

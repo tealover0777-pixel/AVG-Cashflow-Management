@@ -10,9 +10,22 @@ import {
   ArrowUp, ArrowDown
 } from "lucide-react";
 
-export const Bdg = ({ status, isDark }) => {
-  const [bg, color, border] = badge(status, isDark);
-  return <span style={{ fontSize: 11.5, fontWeight: 500, padding: "2px 10px", borderRadius: 20, background: bg, color, border: `1px solid ${border}` }}>{status}</span>;
+export const Bdg = ({ status, label, isDark, bg, text, border }) => {
+  const actualStatus = status || label || "";
+  const [defaultBg, defaultColor, defaultBorder] = badge(actualStatus, isDark) || [];
+  return (
+    <span style={{ 
+      fontSize: 11.5, 
+      fontWeight: 500, 
+      padding: "2px 10px", 
+      borderRadius: 20, 
+      background: bg || defaultBg, 
+      color: text || defaultColor, 
+      border: `1px solid ${border || defaultBorder || "transparent"}` 
+    }}>
+      {actualStatus}
+    </span>
+  );
 };
 
 // ─────────────────────────────────────────────────────────────────────────────

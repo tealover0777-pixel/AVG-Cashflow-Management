@@ -1,5 +1,4 @@
-import React from 'react';
-import ActBtns from './ActBtns';
+import { ActBtns } from '../components';
 
 export const getTenantColumns = (permissions, isDark, t, onEdit, onDel) => {
   const cols = [

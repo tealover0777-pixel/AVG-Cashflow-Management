@@ -1,5 +1,4 @@
-import React from 'react';
-import ActBtns from './ActBtns';
+import { ActBtns } from '../components';
 
 const StatusBadge = ({ status, t, isDark }) => {
     const isPending = !status || status === "Pending";

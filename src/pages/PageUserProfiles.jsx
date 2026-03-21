@@ -2,7 +2,8 @@ import { useState, useEffect, useMemo } from "react";
 import { db, functions } from "../firebase";
 import { doc, setDoc, updateDoc, deleteDoc, serverTimestamp } from "firebase/firestore";
 import { httpsCallable } from "firebase/functions";
-import { ActBtns, Modal, FF, FIn, DelModal, Tooltip, TanStackTable } from "../components";
+import { ActBtns, Modal, FF, FIn, DelModal, Tooltip } from "../components";
+import TanStackTable from "../components/TanStackTable";
 import { useAuth } from "../AuthContext";
 import { getUserProfileColumns } from "../components/UserProfilesTanStackConfig";
 
