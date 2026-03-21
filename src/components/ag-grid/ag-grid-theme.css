@@ -21,9 +21,14 @@
   /* Root background */
   background-color: var(--ag-background-color) !important;
   
-  /* Hover effects */
   --ag-row-hover-color: rgba(0, 0, 0, 0.03);
   --ag-column-hover-color: rgba(0, 0, 0, 0.02);
+
+  /* Checkbox styling */
+  --ag-checkbox-unchecked-color: #94A3B8;
+  --ag-checkbox-background-color: transparent;
+  --ag-checkbox-checked-color: #34D399; /* Emerald */
+  --ag-checkbox-border-radius: 4px;
 }
 
 /* Ensure horizontal dividers extend all the way if columns don't fill the space */
@@ -38,8 +43,12 @@
   --ag-odd-row-background-color: transparent;
   --ag-row-hover-color: rgba(255, 255, 255, 0.08); /* Increased for visibility */
   --ag-column-hover-color: rgba(255, 255, 255, 0.04);
-  --ag-selected-row-background-color: rgba(52, 211, 153, 0.1); 
+  --ag-selected-row-background-color: rgba(52, 211, 153, 0.15); 
 
+  --ag-checkbox-unchecked-color: rgba(255, 255, 255, 0.4);
+  --ag-checkbox-background-color: rgba(255, 255, 255, 0.05);
+  --ag-checkbox-checked-color: #34D399;
+  --ag-checkbox-input-checked-background-color: #34D399;
   --ag-row-border-color: rgba(255, 255, 255, 0.08); /* Subtle horizontal */
   --ag-border-color: rgba(255, 255, 255, 0.1);
   --ag-cell-horizontal-border: rgba(255, 255, 255, 0.06); /* Subtle vertical */
@@ -139,6 +148,10 @@
   --ag-column-hover-color: #F8FAFC; /* Slate 50 */
   --ag-selected-row-background-color: #F0FDF4;
 
+  --ag-checkbox-unchecked-color: #94A3B8;
+  --ag-checkbox-background-color: #F8FAFC;
+  --ag-checkbox-checked-color: #4F46E5; /* Indigo */
+  --ag-checkbox-input-checked-background-color: #4F46E5;
   --ag-row-border-color: #CBD5E1;
   --ag-border-color: #CBD5E1;
 
