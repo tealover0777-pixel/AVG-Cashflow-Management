@@ -719,7 +719,9 @@ Are you sure you want to continue?`;
           updated_by: user?.uid || "system"
         };
         
-        await addDoc(collection(db, collectionPath), newPayload);
+        // Use the same collection as the predecessor for the new version
+        const collectionRef = oldRef.parent;
+        await addDoc(collectionRef, newPayload);
 
         // 2. Mark the old version as replaced and inactive
         await updateDoc(oldRef, { 
@@ -746,7 +748,6 @@ Are you sure you want to continue?`;
             const dir = orig.direction || d.direction;
             const signedAmt = (dir === "IN") ? partialPaidNum : -partialPaidNum;
             updates.signed_payment_amount = signedAmt;
-            // Also update the formatted payment mapping with specific note
             updates.notes = `partial amount of ${fmtCurr(partialPaidNum)} paid and partial unpaid amount of ${fmtCurr(unpaidAmt)} will be scheduled`;
           }
 
@@ -755,6 +756,7 @@ Are you sure you want to continue?`;
       }
     } catch (err) {
       console.error("Failed to save schedule:", err);
+      alert(`Failed to save schedule: ${err.message || 'Unknown error'}`);
     }
     close();
   };
