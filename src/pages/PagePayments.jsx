@@ -1,17 +1,9 @@
-import { useState, useMemo, useRef, useEffect } from "react";
-import { AgGridReact } from 'ag-grid-react';
-import { ModuleRegistry, AllCommunityModule } from 'ag-grid-community';
-
-ModuleRegistry.registerModules([AllCommunityModule]);
-
-import 'ag-grid-community/styles/ag-grid.css';
-import '../components/ag-grid/ag-grid-theme.css';
-import { getPaymentColumnDefs, getBatchColumnDefs, getLedgerColumnDefs } from '../components/ag-grid/PaymentsGridConfig';
-
+import TanStackTable from "../components/TanStackTable";
+import { getPaymentColumns, getBatchColumns, getLedgerColumns } from "../components/PaymentsTanStackConfig";
 import { db } from "../firebase";
 import { collection, doc, addDoc, updateDoc, deleteDoc, serverTimestamp } from "firebase/firestore";
 import { sortData, fmtCurr } from "../utils";
-import { Pagination, Modal, FF, FIn, FSel, DelModal, Tooltip, Bdg } from "../components";
+import { Modal, FF, FIn, FSel, DelModal, Tooltip, Bdg } from "../components";
 import { useAuth } from "../AuthContext";
 
 export default function PagePayments({ t, isDark, PAYMENTS = [], INVESTMENTS = [], CONTACTS = [], SCHEDULES = [], DIMENSIONS = [], ACH_BATCHES = [], LEDGER = [], collectionPath = "", achBatchPath = "", ledgerPath = "" }) {
@@ -24,22 +16,17 @@ export default function PagePayments({ t, isDark, PAYMENTS = [], INVESTMENTS = [
   const [chip, setChip] = useState("All");
   const [modal, setModal] = useState({ open: false, mode: "add", data: {}, type: "payment" });
   const [delT, setDelT] = useState(null);
+  const [sel, setSel] = useState(new Set());
   
   const gridRef = useRef(null);
   const [pageSize, setPageSize] = useState(30);
 
-  // Dynamically calculate page size based on available vertical space
   useEffect(() => {
     const calculatePageSize = () => {
-      const rowHeight = 42; 
-      const headerHeight = 56; 
       const viewportHeight = window.innerHeight;
-
-      // Grid container matches: calc(100vh - 420px)
       const gridContainerHeight = viewportHeight - 420;
-      const availableForRows = gridContainerHeight - headerHeight;
-      const calculatedRows = Math.floor(availableForRows / rowHeight);
-
+      const availableForRows = gridContainerHeight - 90; 
+      const calculatedRows = Math.floor(availableForRows / 40);
       const newPageSize = Math.max(30, calculatedRows); 
       setPageSize(newPageSize);
     };
@@ -53,19 +40,12 @@ export default function PagePayments({ t, isDark, PAYMENTS = [], INVESTMENTS = [
     };
   }, []);
 
-  useEffect(() => {
-    if (gridRef.current?.api) {
-      gridRef.current.api.paginationSetPageSize(pageSize);
-    }
-  }, [pageSize, activeTab]);
-
   const paymentStatusOpts = (DIMENSIONS.find(d => d.name === "PaymentStatus" || d.name === "Payment Status") || {}).items || ["Pending", "Paid", "Failed"];
   const achBatchStatusOpts = (DIMENSIONS.find(d => d.name === "ACHBatchStatus" || d.name === "ACH Batch Status") || {}).items || ["VERSION_CREATED", "STATUS_UPDATED", "PAYMENT_FAILED"];
 
   const close = () => setModal(m => ({ ...m, open: false }));
   const setF = (k, v) => setModal(m => ({ ...m, data: { ...m.data, [k]: v } }));
 
-  // --- Actions ---
   const openAddPayment = () => setModal({ open: true, mode: "add", type: "payment", data: { investment_id: "", party_name: "", payment_type: "Principal", amount: "", payment_date: "", payment_method: "Wire", direction: "Received", status: "Pending", notes: "" } });
   const openEditPayment = r => setModal({ open: true, mode: "edit", type: "payment", data: { ...r } });
   
@@ -122,13 +102,13 @@ export default function PagePayments({ t, isDark, PAYMENTS = [], INVESTMENTS = [
     } catch (err) { console.error(`Delete ${activeTab} error:`, err); }
   };
 
-  // --- AG Grid Config ---
   const permissions = { canUpdate, canDelete };
-  
   const columnDefs = useMemo(() => {
-    if (activeTab === "Payments") return getPaymentColumnDefs(permissions, isDark, t);
-    if (activeTab === "ACH Batches") return getBatchColumnDefs(permissions, isDark, t);
-    return getLedgerColumnDefs(permissions, isDark, t);
+    const editCb = activeTab === "Payments" ? openEditPayment : openEditBatch;
+    const delCb = (target) => setDelT(target);
+    if (activeTab === "Payments") return getPaymentColumns(permissions, isDark, t, editCb, delCb);
+    if (activeTab === "ACH Batches") return getBatchColumns(permissions, isDark, t, editCb, delCb);
+    return getLedgerColumns(permissions, isDark, t);
   }, [activeTab, permissions, isDark, t]);
 
   const rowData = useMemo(() => {
@@ -142,17 +122,6 @@ export default function PagePayments({ t, isDark, PAYMENTS = [], INVESTMENTS = [
     }
     return baseData;
   }, [activeTab, chip, PAYMENTS, ACH_BATCHES, LEDGER]);
-
-  const context = useMemo(() => ({
-    isDark,
-    t,
-    permissions,
-    dimensions: DIMENSIONS,
-    callbacks: {
-      onEdit: activeTab === "Payments" ? openEditPayment : openEditBatch,
-      onDelete: setDelT
-    }
-  }), [isDark, t, permissions, DIMENSIONS, activeTab]);
 
   return (<>
     <div style={{ marginBottom: 28, display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
@@ -196,47 +165,16 @@ export default function PagePayments({ t, isDark, PAYMENTS = [], INVESTMENTS = [
       </div>
     )}
 
-    <div
-      className={`ag-theme-custom ${isDark ? 'dark-mode' : 'light-mode'}`}
-      style={{ height: "calc(100vh - 420px)", minHeight: "500px" }}
-    >
-      <AgGridReact
+    <div style={{ height: "calc(100vh - 420px)", width: "100%", minHeight: "500px" }}>
+      <TanStackTable
         ref={gridRef}
-        rowData={rowData}
-        columnDefs={columnDefs}
-        context={context}
-        animateRows={true}
-        pagination={true}
-        paginationPageSize={pageSize}
-        suppressPaginationPanel={true}
-        suppressCellFocus={true}
-        columnHoverHighlight={true}
-        theme="legacy"
-        onColumnResized={(event) => {
-          // Persist column widths to localStorage
-          if (event.finished) {
-            const columnState = event.api.getColumnState();
-            localStorage.setItem(`paymentsColumnState_${activeTab}`, JSON.stringify(columnState));
-          }
-        }}
-        onGridReady={(params) => {
-          // Restore saved column widths from localStorage
-          const savedState = localStorage.getItem(`paymentsColumnState_${activeTab}`);
-          if (savedState) {
-            params.api.applyColumnState({
-              state: JSON.parse(savedState),
-              applyOrder: false
-            });
-          }
-        }}
+        data={rowData}
+        columns={columnDefs}
+        pageSize={pageSize}
+        t={t}
+        isDark={isDark}
+        onSelectionChange={(selected) => setSel(new Set(selected.map(r => r.id)))}
       />
-    </div>
-
-    <div style={{ marginTop: 16, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-      <span style={{ fontSize: 12, color: t.textSubtle }}>
-        Showing <strong style={{ color: t.textSecondary }}>{Math.min(rowData.length, pageSize)}</strong> of <strong style={{ color: t.textSecondary }}>{rowData.length}</strong> {activeTab.toLowerCase()}
-      </span>
-      <Pagination totalPages={Math.ceil(rowData.length / pageSize)} currentPage={1} onPageChange={(newPage) => gridRef.current?.api.paginationGoToPage(newPage - 1)} t={t} />
     </div>
 
     {/* Modals */}

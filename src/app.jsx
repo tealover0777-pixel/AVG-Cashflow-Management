@@ -37,8 +37,6 @@ import SidebarHelp from "./components/SidebarHelp";
 import PageAdminHelp from "./pages/PageAdminHelp";
 import PageDealSummary from "./pages/PageDealSummary";
 
-import "ag-grid-community/styles/ag-grid.css";
-import "ag-grid-community/styles/ag-theme-quartz.css";
 
 const Icon = ({ name, size = 18, color = "currentColor" }) => {
   const icons = {

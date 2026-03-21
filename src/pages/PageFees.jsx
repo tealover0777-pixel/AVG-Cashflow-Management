@@ -1,15 +1,8 @@
-import { useState, useMemo, useRef, useEffect } from "react";
-import { AgGridReact } from 'ag-grid-react';
-import { ModuleRegistry, AllCommunityModule } from 'ag-grid-community';
-
-ModuleRegistry.registerModules([AllCommunityModule]);
-
-import 'ag-grid-community/styles/ag-grid.css';
-import '../components/ag-grid/ag-grid-theme.css';
-import { getColumnDefs } from '../components/ag-grid/FeesGridConfig';
+import TanStackTable from "../components/TanStackTable";
+import { getFeeColumns } from "../components/FeesTanStackConfig";
 import { db } from "../firebase";
 import { doc, setDoc, updateDoc, deleteDoc, serverTimestamp } from "firebase/firestore";
-import { StatCard, Pagination, Modal, FF, FIn, FSel, DelModal, Tooltip } from "../components";
+import { StatCard, Modal, FF, FIn, FSel, DelModal, Tooltip } from "../components";
 import { useAuth } from "../AuthContext";
 
 export default function PageFees({ t, isDark, FEES_DATA = [], DIMENSIONS = [], collectionPath = "" }) {
@@ -24,26 +17,23 @@ export default function PageFees({ t, isDark, FEES_DATA = [], DIMENSIONS = [], c
   const [delT, setDelT] = useState(null);
   const gridRef = useRef(null);
   const [pageSize, setPageSize] = useState(30);
+  const [sel, setSel] = useState(new Set());
 
   // Dynamically calculate page size based on available vertical space
   useEffect(() => {
     const calculatePageSize = () => {
-      const rowHeight = 42; // AG Grid default row height
-      const headerHeight = 56; // AG Grid header height + padding
       const viewportHeight = window.innerHeight;
 
       // Grid container matches: calc(100vh - 420px)
       const gridContainerHeight = viewportHeight - 420;
-      const availableForRows = gridContainerHeight - headerHeight;
-      const calculatedRows = Math.floor(availableForRows / rowHeight);
+      const availableForRows = gridContainerHeight - 90; 
+      const calculatedRows = Math.floor(availableForRows / 40);
 
-      const newPageSize = Math.max(30, calculatedRows); // Minimum 30 rows
+      const newPageSize = Math.max(30, calculatedRows); 
       setPageSize(newPageSize);
     };
 
-    // Initial calculation with a slight delay to ensure layout is settled
     const timer = setTimeout(calculatePageSize, 100);
-
     calculatePageSize();
     window.addEventListener('resize', calculatePageSize);
     return () => {
@@ -52,12 +42,6 @@ export default function PageFees({ t, isDark, FEES_DATA = [], DIMENSIONS = [], c
     };
   }, []);
 
-  // Update grid when pageSize changes
-  useEffect(() => {
-    if (gridRef.current?.api) {
-      gridRef.current.api.paginationSetPageSize(pageSize);
-    }
-  }, [pageSize]);
   const nextFeeId = (() => {
     if (FEES_DATA.length === 0) return "F10001";
     const maxNum = Math.max(...FEES_DATA.map(f => { const m = String(f.id).match(/^F(\d+)$/); return m ? Number(m[1]) : 0; }));
@@ -98,22 +82,12 @@ export default function PageFees({ t, isDark, FEES_DATA = [], DIMENSIONS = [], c
       setDelT(null);
     } catch (err) { console.error("Delete fee error:", err); }
   };
-  // AG Grid: Column definitions
+  
   const permissions = { canUpdate, canDelete };
   const columnDefs = useMemo(() => {
-    return getColumnDefs(permissions, isDark, t);
+    return getFeeColumns(permissions, isDark, t, openEdit, (target) => setDelT({ id: target.id, name: target.name, docId: target.docId }));
   }, [permissions, isDark, t]);
 
-  // AG Grid: Context for cell renderers
-  const context = useMemo(() => ({
-    isDark,
-    t,
-    permissions,
-    callbacks: {
-      onEdit: openEdit,
-      onDelete: (target) => setDelT({ id: target.id, name: target.name, docId: target.docId })
-    }
-  }), [isDark, t, permissions]);
   return (<>
     <div style={{ marginBottom: 28, display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}><div><h1 style={{ fontFamily: t.titleFont, fontWeight: t.titleWeight, fontSize: t.titleSize, color: isDark ? "#fff" : "#1C1917", letterSpacing: t.titleTracking, lineHeight: 1, marginBottom: 6 }}>Fees</h1><p style={{ fontSize: 13.5, color: t.textMuted }}>Define and manage fee structures</p></div>
       {canCreate && <Tooltip text="Define a new fee structure" t={t}><button className="primary-btn" onClick={openAdd} style={{ background: t.accentGrad, color: "#fff", padding: "11px 22px", borderRadius: 11, fontSize: 13.5, fontWeight: 600, boxShadow: `0 4px 16px ${t.accentShadow}`, display: "flex", alignItems: "center", gap: 7 }}><span style={{ fontSize: 18, lineHeight: 1 }}>+</span> New Fee</button></Tooltip>}
@@ -121,41 +95,18 @@ export default function PageFees({ t, isDark, FEES_DATA = [], DIMENSIONS = [], c
     <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 16, marginBottom: 28 }}>
       {[{ label: "Total Fees", value: FEES_DATA.length, accent: isDark ? "#60A5FA" : "#3B82F6", bg: isDark ? "rgba(96,165,250,0.08)" : "#EFF6FF", border: isDark ? "rgba(96,165,250,0.15)" : "#BFDBFE" }, { label: "% of Amount", value: FEES_DATA.filter(f => f.method === "% of Amount").length, accent: isDark ? "#34D399" : "#059669", bg: isDark ? "rgba(52,211,153,0.08)" : "#ECFDF5", border: isDark ? "rgba(52,211,153,0.15)" : "#A7F3D0" }, { label: "Fixed Amount", value: FEES_DATA.filter(f => f.method === "Fixed Amount").length, accent: isDark ? "#A78BFA" : "#7C3AED", bg: isDark ? "rgba(167,139,250,0.08)" : "#F5F3FF", border: isDark ? "rgba(167,139,250,0.15)" : "#DDD6FE" }, { label: "Recurring", value: FEES_DATA.filter(f => f.fee_frequency !== "One-time" && f.fee_frequency !== "Per occurrence").length, accent: isDark ? "#FBBF24" : "#D97706", bg: isDark ? "rgba(251,191,36,0.08)" : "#FFFBEB", border: isDark ? "rgba(251,191,36,0.15)" : "#FDE68A" }].map(s => <StatCard key={s.label} {...s} titleFont={t.titleFont} isDark={isDark} />)}
     </div>
-    <div
-      className={`ag-theme-custom ${isDark ? 'dark-mode' : 'light-mode'}`}
-      style={{ height: 'calc(100vh - 420px)', minHeight: '500px' }}
-    >
-      <AgGridReact
+    <div style={{ height: 'calc(100vh - 420px)', width: '100%', minHeight: '500px' }}>
+      <TanStackTable
         ref={gridRef}
-        rowData={FEES_DATA}
-        columnDefs={columnDefs}
-        context={context}
-        animateRows={true}
-        pagination={true}
-        paginationPageSize={pageSize}
-        suppressPaginationPanel={true}
-        suppressCellFocus={true}
-        columnHoverHighlight={true}
-        theme="legacy"
-        onColumnResized={(event) => {
-          if (event.finished) {
-            const columnState = event.api.getColumnState();
-            localStorage.setItem('feesColumnState', JSON.stringify(columnState));
-          }
-        }}
-        onGridReady={(params) => {
-          const savedState = localStorage.getItem('feesColumnState');
-          if (savedState) {
-            params.api.applyColumnState({
-              state: JSON.parse(savedState),
-              applyOrder: false
-            });
-          }
-        }}
+        data={FEES_DATA}
+        columns={columnDefs}
+        pageSize={pageSize}
+        t={t}
+        isDark={isDark}
+        onSelectionChange={(selected) => setSel(new Set(selected.map(r => r.id)))}
       />
     </div>
 
-    <div style={{ marginTop: 16, display: "flex", justifyContent: "space-between", alignItems: "center" }}><span style={{ fontSize: 12, color: t.textSubtle }}>Showing <strong style={{ color: t.textSecondary }}>{Math.min(FEES_DATA.length, pageSize)}</strong> of <strong style={{ color: t.textSecondary }}>{FEES_DATA.length}</strong> fees</span><Pagination totalPages={Math.ceil(FEES_DATA.length / pageSize)} currentPage={1} onPageChange={(newPage) => gridRef.current?.api.paginationGoToPage(newPage - 1)} t={t} /></div>
     <Modal open={modal.open} onClose={close} title={modal.mode === "add" ? "New Fee" : "Edit Fee"} onSave={handleSaveFee} t={t} isDark={isDark}>
       <FF label="Fee ID" t={t}>
         <div style={{ fontFamily: t.mono, fontSize: 13, color: t.idText, background: isDark ? "rgba(255,255,255,0.04)" : "#F5F4F1", border: `1px solid ${t.surfaceBorder}`, borderRadius: 9, padding: "10px 13px", letterSpacing: "0.5px" }}>{modal.data.id}</div>

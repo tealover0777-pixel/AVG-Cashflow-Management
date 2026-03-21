@@ -1,0 +1,163 @@
+import React from 'react';
+import ActBtns from './ActBtns';
+
+const StatusBadge = ({ status, t, isDark }) => {
+    const isPending = !status || status === "Pending";
+    const bg = isPending ? (isDark ? "rgba(251,191,36,0.15)" : "#FFFBEB") : (isDark ? "rgba(34,197,94,0.15)" : "#F0FDF4");
+    const color = isPending ? "#F59E0B" : "#22C55E";
+    const border = isPending ? "1px solid rgba(245,158,11,0.35)" : "1px solid rgba(34,197,94,0.35)";
+    return (
+        <span style={{ 
+            display: "inline-block", 
+            padding: "2px 10px", 
+            borderRadius: 20, 
+            fontSize: 11.5, 
+            fontWeight: 500, 
+            background: bg, 
+            color, 
+            border, 
+            letterSpacing: "0.02em", 
+            whiteSpace: "nowrap" 
+        }}>
+            {isPending ? "⏳ Pending" : "✓ Active"}
+        </span>
+    );
+};
+
+const isSelectedRoleGlobal = (roleId, ROLES) => {
+    const found = ROLES.find(r => (r.id || r.role_id) === roleId);
+    return found && found.IsGlobal === true;
+};
+
+const getRoleName = (role_id, ROLES) => {
+    const found = ROLES.find(r => r.id === role_id || r.role_id === role_id);
+    return found ? (found.role_name || found.name || role_id) : (role_id || "—");
+};
+
+export const getUserProfileColumns = (permissions, isDark, t, onEdit, onDel, onResend, ROLES, isSuperAdmin, tenantId) => {
+  const cols = [
+    {
+      accessorKey: 'user_id',
+      header: 'USER ID',
+      size: 100,
+      cell: ({ getValue }) => <span style={{ fontSize: 13, color: t.textSecondary, fontFamily: t.mono }}>{getValue() || "—"}</span>,
+    },
+    {
+      accessorKey: 'user_name',
+      header: 'NAME',
+      size: 150,
+      cell: ({ row }) => (
+        <span style={{ fontSize: 13.5, fontWeight: 500, color: isDark ? "rgba(255,255,255,0.85)" : "#44403C" }}>
+          {row.original.user_name || row.original.name || "—"}
+        </span>
+      ),
+    },
+    {
+      accessorKey: 'email',
+      header: 'EMAIL',
+      size: 180,
+      cell: ({ getValue }) => <span style={{ fontSize: 12.5, color: t.accent }}>{getValue()}</span>,
+    },
+    {
+      accessorKey: 'role_id',
+      header: 'ROLE',
+      size: 192,
+      cell: ({ getValue }) => {
+        const role_id = getValue();
+        const roleName = getRoleName(role_id, ROLES);
+        return (
+          <div style={{ fontSize: 12 }}>
+            <span style={{ fontFamily: t.mono, fontSize: 11, color: t.textMuted }}>{role_id || "—"}</span>{" "}
+            {roleName}
+          </div>
+        );
+      },
+    },
+    {
+      accessorKey: 'status',
+      header: 'STATUS',
+      size: 110,
+      cell: ({ getValue }) => <StatusBadge status={getValue()} t={t} isDark={isDark} />,
+    },
+    {
+      accessorKey: 'auth_uid',
+      header: 'AUTH UID',
+      size: 240,
+      cell: ({ row }) => {
+        const val = row.original.auth_uid || row.original.id;
+        return (
+          <span style={{ fontFamily: t.mono, fontSize: 10, color: t.textMuted, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={val}>
+            {val || "—"}
+          </span>
+        );
+      },
+    },
+  ];
+
+  if (isSuperAdmin) {
+    cols.push({
+      accessorKey: 'tenantId',
+      header: 'TENANT ID',
+      size: 120,
+      cell: ({ row }) => {
+        const p = row.original;
+        const tid = p.tenantId || p.tenant_id || p.Tenant_ID || tenantId;
+        return (
+          <div style={{ fontFamily: t.mono, fontSize: 12, fontWeight: 600, color: t.text }}>
+            {isSelectedRoleGlobal(p.role_id, ROLES)
+              ? <span style={{ color: "#22C55E", fontWeight: 600 }}>🌐 Global</span>
+              : (tid || <span style={{ color: t.textMuted }}>—</span>)}
+          </div>
+        );
+      },
+    });
+  }
+
+  cols.push(
+    {
+      accessorKey: 'phone',
+      header: 'PHONE',
+      size: 120,
+      cell: ({ getValue }) => <span style={{ fontFamily: t.mono, fontSize: 11, color: t.textMuted }}>{getValue() || "—"}</span>,
+    },
+    {
+      accessorKey: 'notes',
+      header: 'NOTES',
+      size: 180,
+      cell: ({ getValue }) => (
+        <span style={{ fontSize: 12, color: t.textMuted, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={getValue() || ""}>
+          {getValue() || "—"}
+        </span>
+      ),
+    },
+    {
+      id: 'actions',
+      header: 'ACTIONS',
+      size: 100,
+      cell: ({ row }) => {
+        const p = row.original;
+        return (
+          <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+            <ActBtns 
+              show={true} 
+              t={t} 
+              onEdit={permissions.canUpdate ? () => onEdit(p) : null} 
+              onDel={permissions.canDelete ? () => onDel(p) : null} 
+            />
+            {permissions.canInvite && (!p.status || p.status === "Pending") && (
+              <button 
+                onClick={() => onResend(p)} 
+                title="Re-send invite link" 
+                style={{ background: "none", border: `1px solid ${t.border}`, borderRadius: 7, padding: "5px 8px", cursor: "pointer", fontSize: 13, color: t.textMuted }}
+              >
+                ✉️
+              </button>
+            )}
+          </div>
+        );
+      },
+    }
+  );
+
+  return cols;
+};

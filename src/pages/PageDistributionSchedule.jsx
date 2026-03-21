@@ -1,17 +1,10 @@
-import { useState, useMemo, useRef, useEffect } from "react";
-import { AgGridReact } from 'ag-grid-react';
-import { ModuleRegistry, AllCommunityModule } from 'ag-grid-community';
-
-ModuleRegistry.registerModules([AllCommunityModule]);
-
-import 'ag-grid-community/styles/ag-grid.css';
-import '../components/ag-grid/ag-grid-theme.css';
-import { getDistributionColumnDefs } from '../components/ag-grid/DistributionsGridConfig';
-
+import TanStackTable from "../components/TanStackTable";
+import { getDistributionColumns } from "../components/DistributionScheduleTanStackConfig";
 import { db } from "../firebase";
 import { doc, updateDoc, deleteDoc, serverTimestamp } from "firebase/firestore";
 import { fmtCurr } from "../utils";
 import { StatCard, Bdg, Pagination, Modal, FF, FIn, FSel, DelModal, Tooltip } from "../components";
+
 import { useAuth } from "../AuthContext";
 
 export default function PageDistributionSchedule({ t, isDark, DEALS = [], SCHEDULES = [], CONTACTS = [], DIMENSIONS = [], DISTRIBUTIONS = [], collectionPath = "" }) {
@@ -25,6 +18,8 @@ export default function PageDistributionSchedule({ t, isDark, DEALS = [], SCHEDU
 
   const gridRef = useRef(null);
   const [pageSize, setPageSize] = useState(30);
+  const [sel, setSel] = useState(new Set());
+
 
   // Dynamically calculate page size based on available vertical space
   useEffect(() => {
@@ -51,7 +46,8 @@ export default function PageDistributionSchedule({ t, isDark, DEALS = [], SCHEDU
     };
   }, []);
 
-  const columnDefs = useMemo(() => getDistributionColumnDefs(isDark, t, CONTACTS, DEALS), [isDark, t, CONTACTS, DEALS]);
+  const columnDefs = useMemo(() => getDistributionColumns(isDark, t, CONTACTS, DEALS), [isDark, t, CONTACTS, DEALS]);
+
 
   const distributionSchedules = useMemo(() => {
     return SCHEDULES.filter(s => s.batch_id);
@@ -100,30 +96,19 @@ export default function PageDistributionSchedule({ t, isDark, DEALS = [], SCHEDU
       </div>
     </div>
 
-    <div className={`ag-theme-custom ${isDark ? 'dark-mode' : 'light-mode'}`} style={{ height: "calc(100vh - 430px)", width: "100%" }}>
-      <AgGridReact
+    <div style={{ height: 'calc(100vh - 430px)', width: '100%', minHeight: '500px' }}>
+      <TanStackTable
         ref={gridRef}
-        rowData={filteredData}
-        columnDefs={columnDefs}
-        context={context}
-        animateRows={true}
-        pagination={true}
-        paginationPageSize={pageSize}
-        suppressPaginationPanel={true}
-        suppressCellFocus={true}
-        columnHoverHighlight={true}
-        onRowClicked={(p) => {
-          const batch = DISTRIBUTIONS.find(b => b.batch_id === p.data.batch_id);
-          if (batch) setDetailBatch(batch);
-        }}
-        rowStyle={{ cursor: 'pointer' }}
+        data={filteredData}
+        columns={columnDefs}
+        pageSize={pageSize}
+        t={t}
+        isDark={isDark}
+        onSelectionChange={(selected) => setSel(new Set(selected.map(r => r.id)))}
       />
     </div>
 
-    <div style={{ marginTop: 16, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-      <span style={{ fontSize: 12, color: t.textSubtle }}>Showing <strong style={{ color: t.textSecondary }}>{Math.min(filteredData.length, pageSize)}</strong> of <strong style={{ color: t.textSecondary }}>{filteredData.length}</strong> results</span>
-      <Pagination totalPages={Math.ceil(filteredData.length / pageSize)} currentPage={1} onPageChange={(newPage) => gridRef.current?.api.paginationGoToPage(newPage - 1)} t={t} />
-    </div>
+
 
     {detailBatch && (
       <Modal open={true} onClose={() => setDetailBatch(null)} title={`Batch Details: ${detailBatch.batch_id}`} width={500} t={t} isDark={isDark}>

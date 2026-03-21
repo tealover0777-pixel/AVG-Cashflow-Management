@@ -1,17 +1,5 @@
-import { useState, useMemo, useRef, useEffect } from "react";
-import { AgGridReact } from 'ag-grid-react';
-import { ModuleRegistry, AllCommunityModule } from 'ag-grid-community';
-import { db } from "../firebase";
-import { collection, getDocs, doc, setDoc, updateDoc, deleteDoc, addDoc, serverTimestamp } from "firebase/firestore";
-import { Bdg, StatCard, Pagination, Tooltip, ActBtns, Modal, FF, FIn, FSel, DelModal } from "../components";
-import { useAuth } from "../AuthContext";
-
-ModuleRegistry.registerModules([AllCommunityModule]);
-
-import 'ag-grid-community/styles/ag-grid.css';
-import '../components/ag-grid/ag-grid-theme.css';
-import InvestmentFeesCellRenderer from '../components/ag-grid/InvestmentFeesCellRenderer';
-import InvestmentTypeCellRenderer from "../components/ag-grid/InvestmentTypeCellRenderer";
+import { getDealInvestmentColumns } from "../components/DealSummaryTanStackConfig";
+import { TanStackTable } from "../components";
 
 export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTMENTS = [], CONTACTS = [], DIMENSIONS = [], FEES_DATA = [], setActivePage, investmentCollection = "investments" }) {
   const { hasPermission, isSuperAdmin } = useAuth();
@@ -24,6 +12,8 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
   const [assetImages, setAssetImages] = useState([]);
   const [modal, setModal] = useState({ open: false, mode: "add", data: {} });
   const [delT, setDelT] = useState(null);
+  const [sel, setSel] = useState(new Set());
+  const [pageSize, setPageSize] = useState(20);
 
   useEffect(() => {
     if (deal.id) {
@@ -110,91 +100,12 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
     } catch (err) { console.error("Delete investment error:", err); }
   };
 
+  const permissions = { canUpdate, canDelete };
+  const callbacks = { onEdit: openEdit, onDelete: setDelT };
+  const context = { CONTACTS, FEES_DATA, callbacks, permissions, isDark, t };
   const columnDefs = useMemo(() => {
-    const cols = [
-    { 
-      headerName: "Investor Name", 
-      field: "party", 
-      flex: 1,
-      cellStyle: { fontWeight: 600, color: isDark ? "#60A5FA" : "#2563EB", fontSize: '11.5px' }
-    },
-    { 
-      headerName: "Email address", 
-      field: "email",
-      flex: 1,
-      valueGetter: (params) => {
-        const p = CONTACTS.find(x => x.name === params.data.party || x.id === params.data.party_id);
-        return p?.email || "—";
-      }
-    },
-    { headerName: "Start Date", field: "start_date", width: 100, cellStyle: { fontWeight: 400 } },
-    { headerName: "Maturity Date", field: "maturity_date", width: 100, cellStyle: { fontWeight: 400 } },
-    { 
-      headerName: "Term", 
-      field: "term_months", 
-      width: 80,
-      cellStyle: { fontFamily: t.mono, fontSize: '11px', color: isDark ? '#FFFFFF' : '#292524', fontWeight: 400 },
-      valueFormatter: (params) => params.value ? `${params.value}mo` : "—"
-    },
-    { 
-      headerName: "Type", 
-      field: "type",
-      width: 100,
-      cellRenderer: InvestmentTypeCellRenderer
-    },
-    { 
-      headerName: "Capital Amount", 
-      field: "amount",
-      flex: 1,
-      cellStyle: { fontWeight: 600, fontFamily: t.mono, fontSize: '11.5px', color: isDark ? '#60A5FA' : '#4F46E5' },
-      valueFormatter: (params) => params.value ? fmtCurrency(params.value) : "—"
-    },
-    { 
-      headerName: "Rate", 
-      field: "rate", 
-      width: 80,
-      cellStyle: { fontFamily: t.mono, fontSize: '11.5px', color: t.textMuted }
-    },
-    { 
-      headerName: "Freq", 
-      field: "freq", 
-      width: 100,
-      cellStyle: { fontSize: '11px', color: t.textMuted }
-    },
-    { 
-      headerName: "Fees", 
-      field: "feeIds", 
-      flex: 1,
-      minWidth: 150,
-      cellRenderer: InvestmentFeesCellRenderer
-    }
-    ];
-
-    if (canUpdate || canDelete) {
-      cols.push({
-        headerName: "Actions",
-        width: 100,
-        pinned: "right",
-        cellRenderer: (params) => (
-          <div style={{ display: 'flex', alignItems: 'center', height: '100%' }}>
-            <ActBtns 
-              show={true} 
-              t={t} 
-              onEdit={canUpdate ? () => openEdit(params.data) : null} 
-              onDel={canDelete ? () => setDelT(params.data) : null} 
-            />
-          </div>
-        )
-      });
-    }
-    return cols;
-  }, [isDark, t, CONTACTS, t.textMuted, canUpdate, canDelete]);
-
-  const context = useMemo(() => ({
-    isDark,
-    t,
-    feesData: FEES_DATA
-  }), [isDark, t, FEES_DATA]);
+    return getDealInvestmentColumns(permissions, isDark, t, context);
+  }, [permissions, isDark, t, CONTACTS, FEES_DATA]);
 
   function fmtCurrency(val) {
     if (val === null || val === undefined || val === "") return "—";
@@ -283,19 +194,15 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
       </div>
 
       {activeTab === "Investments" ? (
-        <div className={`ag-theme-custom ${isDark ? 'dark-mode' : 'light-mode'}`} style={{ height: '500px', width: '100%', borderRadius: 12, overflow: 'hidden' }}>
-          <AgGridReact
-            ref={gridRef}
-            rowData={dealInvestments}
-            columnDefs={columnDefs}
-            context={context}
-            animateRows={true}
-            pagination={true}
-            paginationPageSize={20}
-            suppressCellFocus={true}
-            columnHoverHighlight={true}
-            theme="legacy"
-          />
+        <div style={{ height: '500px', width: "100%", minHeight: '500px' }}>
+            <TanStackTable
+                data={dealInvestments}
+                columns={columnDefs}
+                pageSize={pageSize}
+                t={t}
+                isDark={isDark}
+                onSelectionChange={(selected) => setSel(new Set(selected.map(r => r.id)))}
+            />
         </div>
       ) : activeTab === "Assets" ? (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 20 }}>

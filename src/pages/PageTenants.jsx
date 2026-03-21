@@ -1,15 +1,8 @@
-import { useState, useMemo, useRef, useEffect } from "react";
-import { AgGridReact } from 'ag-grid-react';
-import { ModuleRegistry, AllCommunityModule } from 'ag-grid-community';
-
-ModuleRegistry.registerModules([AllCommunityModule]);
-
-import 'ag-grid-community/styles/ag-grid.css';
-import '../components/ag-grid/ag-grid-theme.css';
-import { getColumnDefs } from '../components/ag-grid/TenantsGridConfig';
+import TanStackTable from "../components/TanStackTable";
+import { getTenantColumns } from "../components/TenantsTanStackConfig";
 import { db } from "../firebase";
 import { doc, setDoc, updateDoc, deleteDoc, serverTimestamp } from "firebase/firestore";
-import { StatCard, Pagination, Modal, FF, FIn, DelModal, Tooltip } from "../components";
+import { StatCard, Modal, FF, FIn, DelModal, Tooltip } from "../components";
 import { useAuth } from "../AuthContext";
 
 export default function PageTenants({ t, isDark, TENANTS = [], collectionPath = "" }) {
@@ -19,18 +12,17 @@ export default function PageTenants({ t, isDark, TENANTS = [], collectionPath = 
     const canDelete = isSuperAdmin || hasPermission("PLATFORM_TENANT_DELETE") || hasPermission("TENANT_DELETE");
     const [modal, setModal] = useState({ open: false, mode: "add", data: {} });
     const [delT, setDelT] = useState(null);
+    const [sel, setSel] = useState(new Set());
     const gridRef = useRef(null);
     const [pageSize, setPageSize] = useState(30);
 
     // Dynamically calculate page size based on available vertical space
     useEffect(() => {
         const calculatePageSize = () => {
-            const rowHeight = 42;
-            const headerHeight = 56;
             const viewportHeight = window.innerHeight;
             const gridContainerHeight = viewportHeight - 420;
-            const availableForRows = gridContainerHeight - headerHeight;
-            const calculatedRows = Math.floor(availableForRows / rowHeight);
+            const availableForRows = gridContainerHeight - 90; 
+            const calculatedRows = Math.floor(availableForRows / 40);
             const newPageSize = Math.max(30, calculatedRows);
             setPageSize(newPageSize);
         };
@@ -42,12 +34,6 @@ export default function PageTenants({ t, isDark, TENANTS = [], collectionPath = 
             window.removeEventListener('resize', calculatePageSize);
         };
     }, []);
-
-    useEffect(() => {
-        if (gridRef.current?.api) {
-            gridRef.current.api.paginationSetPageSize(pageSize);
-        }
-    }, [pageSize]);
 
     const nextTenantId = (() => {
         if (TENANTS.length === 0) return "T10001";
@@ -116,22 +102,10 @@ export default function PageTenants({ t, isDark, TENANTS = [], collectionPath = 
         } catch (err) { console.error("Delete tenant error:", err); }
     };
 
-    // AG Grid: Column definitions
     const permissions = { canUpdate, canDelete };
     const columnDefs = useMemo(() => {
-        return getColumnDefs(permissions, isDark, t);
+        return getTenantColumns(permissions, isDark, t, openEdit, (target) => setDelT({ id: target.id, name: target.name, docId: target.docId }));
     }, [permissions, isDark, t]);
-
-    // AG Grid: Context for cell renderers
-    const context = useMemo(() => ({
-        isDark,
-        t,
-        permissions,
-        callbacks: {
-            onEdit: openEdit,
-            onDelete: (target) => setDelT({ id: target.id, name: target.name, docId: target.docId })
-        }
-    }), [isDark, t, permissions]);
 
     return (<>
         <div style={{ marginBottom: 28, display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
@@ -152,44 +126,18 @@ export default function PageTenants({ t, isDark, TENANTS = [], collectionPath = 
             {[{ label: "Total Tenants", value: TENANTS.length, accent: isDark ? "#60A5FA" : "#3B82F6", bg: isDark ? "rgba(96,165,250,0.08)" : "#EFF6FF", border: isDark ? "rgba(96,165,250,0.15)" : "#BFDBFE" }].map(s => <StatCard key={s.label} {...s} titleFont={t.titleFont} isDark={isDark} />)}
         </div>
 
-        <div
-            className={`ag-theme-custom ${isDark ? 'dark-mode' : 'light-mode'}`}
-            style={{ height: 'calc(100vh - 420px)', minHeight: '500px' }}
-        >
-            <AgGridReact
+        <div style={{ height: 'calc(100vh - 420px)', width: "100%", minHeight: '500px' }}>
+            <TanStackTable
                 ref={gridRef}
-                rowData={TENANTS}
-                columnDefs={columnDefs}
-                context={context}
-                animateRows={true}
-                pagination={true}
-                paginationPageSize={pageSize}
-                suppressPaginationPanel={true}
-                suppressCellFocus={true}
-                columnHoverHighlight={true}
-                theme="legacy"
-                onColumnResized={(event) => {
-                    if (event.finished) {
-                        const columnState = event.api.getColumnState();
-                        localStorage.setItem('tenantsColumnState', JSON.stringify(columnState));
-                    }
-                }}
-                onGridReady={(params) => {
-                    const savedState = localStorage.getItem('tenantsColumnState');
-                    if (savedState) {
-                        params.api.applyColumnState({
-                            state: JSON.parse(savedState),
-                            applyOrder: false
-                        });
-                    }
-                }}
+                data={TENANTS}
+                columns={columnDefs}
+                pageSize={pageSize}
+                t={t}
+                isDark={isDark}
+                onSelectionChange={(selected) => setSel(new Set(selected.map(r => r.id)))}
             />
         </div>
 
-        <div style={{ marginTop: 16, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <span style={{ fontSize: 12, color: t.textSubtle }}>Showing <strong style={{ color: t.textSecondary }}>{Math.min(TENANTS.length, pageSize)}</strong> of <strong style={{ color: t.textSecondary }}>{TENANTS.length}</strong> tenants</span>
-            <Pagination totalPages={Math.ceil(TENANTS.length / pageSize)} currentPage={1} onPageChange={(newPage) => gridRef.current?.api.paginationGoToPage(newPage - 1)} t={t} />
-        </div>
 
         <Modal open={modal.open} onClose={close} title={modal.mode === "add" ? "New Tenant" : "Edit Tenant"} onSave={handleSaveTenant} width={580} t={t} isDark={isDark}>
             <FF label="Tenant ID" t={t}>
