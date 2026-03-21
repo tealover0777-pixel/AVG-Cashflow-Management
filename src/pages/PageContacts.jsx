@@ -199,6 +199,7 @@ export default function PageContacts({ t, isDark, CONTACTS = [], INVESTMENTS = [
     </div>
     <div style={{ height: 'calc(100vh - 480px)', width: '100%', minHeight: '500px' }}>
       <TanStackTable
+        ref={gridRef}
         data={filteredData}
         columns={columnDefs}
         isDark={isDark}

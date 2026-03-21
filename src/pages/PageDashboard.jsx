@@ -129,34 +129,40 @@ export default function PageDashboard(props) {
             </div>
           </div>
           <div style={{ height: 320, width: '100%', overflowX: 'auto', overflowY: 'hidden', paddingBottom: 8, scrollbarWidth: 'thin' }}>
-            <div style={{ width: Math.max(charts.cashflow.length * 120, 600), height: '100%' }}>
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={charts.cashflow} margin={{ bottom: 20 }}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDark ? "rgba(255,255,255,0.05)" : "#F3F4F6"} />
-                  <XAxis
-                    dataKey="name"
-                    axisLine={false}
-                    tickLine={false}
-                    tick={{ fontSize: 11, fill: t.textMuted }}
-                    dy={10}
-                  />
-                  <YAxis
-                    axisLine={false}
-                    tickLine={false}
-                    tick={{ fontSize: 11, fill: t.textMuted }}
-                    tickFormatter={(v) => `$${v / 1000}k`}
-                  />
-                  <Tooltip
-                    contentStyle={{ background: isDark ? '#1C1917' : '#fff', border: `1px solid ${t.surfaceBorder}`, borderRadius: 12, fontSize: 12 }}
-                    cursor={{ fill: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)' }}
-                    formatter={(value) => fmtCurr(value)}
-                  />
-                  <Bar dataKey="projectedIn" fill={t.accent} radius={[3, 3, 0, 0]} barSize={16} />
-                  <Bar dataKey="actualIn" fill="#10B981" radius={[3, 3, 0, 0]} barSize={16} />
-                  <Bar dataKey="projectedOut" fill="#F87171" radius={[3, 3, 0, 0]} barSize={16} />
-                  <Bar dataKey="actualOut" fill="#FBBF24" radius={[3, 3, 0, 0]} barSize={16} />
-                </BarChart>
-              </ResponsiveContainer>
+            <div style={{ width: Math.max(charts.cashflow.length * 120, 600), height: '100%', minWidth: 600, minHeight: 100 }}>
+              {charts.cashflow.length > 0 ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={charts.cashflow} margin={{ bottom: 20 }}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDark ? "rgba(255,255,255,0.05)" : "#F3F4F6"} />
+                    <XAxis
+                      dataKey="name"
+                      axisLine={false}
+                      tickLine={false}
+                      tick={{ fontSize: 11, fill: t.textMuted }}
+                      dy={10}
+                    />
+                    <YAxis
+                      axisLine={false}
+                      tickLine={false}
+                      tick={{ fontSize: 11, fill: t.textMuted }}
+                      tickFormatter={(v) => `$${v / 1000}k`}
+                    />
+                    <Tooltip
+                      contentStyle={{ background: isDark ? '#1C1917' : '#fff', border: `1px solid ${t.surfaceBorder}`, borderRadius: 12, fontSize: 12 }}
+                      cursor={{ fill: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)' }}
+                      formatter={(value) => fmtCurr(value)}
+                    />
+                    <Bar dataKey="projectedIn" fill={t.accent} radius={[3, 3, 0, 0]} barSize={16} />
+                    <Bar dataKey="actualIn" fill="#10B981" radius={[3, 3, 0, 0]} barSize={16} />
+                    <Bar dataKey="projectedOut" fill="#F87171" radius={[3, 3, 0, 0]} barSize={16} />
+                    <Bar dataKey="actualOut" fill="#FBBF24" radius={[3, 3, 0, 0]} barSize={16} />
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <p style={{ color: t.textMuted, fontSize: 13 }}>No cashflow data to display</p>
+                </div>
+              )}
             </div>
           </div>
         </div>

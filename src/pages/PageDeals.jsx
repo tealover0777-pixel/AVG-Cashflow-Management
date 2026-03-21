@@ -29,7 +29,8 @@ export default function PageDeals({ t, isDark, DEALS = [], INVESTMENTS = [], FEE
   const [isUploading, setIsUploading] = useState(false);
   const [selectedRows, setSelectedRows] = useState([]);
   const [distModal, setDistModal] = useState({ open: false, data: { calculator: "ACT/360", startDate: "", endDate: "", notes: "" } });
-  
+  const [pageSize, setPageSize] = useState(30);
+  const gridRef = useRef(null);
   const fetchImages = async (did) => {
     try {
       const snap = await getDocs(collection(db, "deals", did, "asset_images"));
@@ -446,6 +447,7 @@ export default function PageDeals({ t, isDark, DEALS = [], INVESTMENTS = [], FEE
 
     <div style={{ height: 'calc(100vh - 420px)', width: '100%', minHeight: '500px' }}>
       <TanStackTable
+        ref={gridRef}
         data={filteredData}
         columns={columnDefs}
         isDark={isDark}
