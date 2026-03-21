@@ -496,3 +496,18 @@
   padding-left: 8px !important;
   padding-right: 8px !important;
 }
+
+/* Force perfect centering for selection checkbox column */
+.ag-theme-custom .ag-cell-selection-checkbox,
+.ag-theme-custom .ag-header-select-all {
+  padding: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.ag-theme-custom .ag-selection-checkbox {
+  margin-right: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+}
