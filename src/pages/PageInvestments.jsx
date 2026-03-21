@@ -1,12 +1,6 @@
 import { useState, useMemo, useRef, useEffect } from "react";
-import { AgGridReact } from 'ag-grid-react';
-import { ModuleRegistry, AllCommunityModule } from 'ag-grid-community';
-
-ModuleRegistry.registerModules([AllCommunityModule]);
-
-import 'ag-grid-community/styles/ag-grid.css';
-import '../components/ag-grid/ag-grid-theme.css';
-import { getColumnDefs } from '../components/ag-grid/InvestmentsGridConfig';
+import { getInvestmentColumns } from '../components/InvestmentsTanStackConfig';
+import TanStackTable from '../components/TanStackTable';
 import { db } from "../firebase";
 import { collection, doc, addDoc, updateDoc, deleteDoc, serverTimestamp } from "firebase/firestore";
 import { normalizeDateAtNoon, hybridDays, pmtCalculator_ACT360_30360, feeCalculator_ACT360_30360, getFrequencyValue, fmtCurr } from "../utils";
@@ -31,39 +25,6 @@ export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [
   const gridRef = useRef(null);
   const [pageSize, setPageSize] = useState(30);
 
-  // Dynamically calculate page size based on available vertical space
-  useEffect(() => {
-    const calculatePageSize = () => {
-      const rowHeight = 42; // AG Grid default row height
-      const headerHeight = 56; // AG Grid header height + padding
-      const viewportHeight = window.innerHeight;
-
-      // Grid container matches: calc(100vh - 520px)
-      const gridContainerHeight = viewportHeight - 520;
-      const availableForRows = gridContainerHeight - headerHeight;
-      const calculatedRows = Math.floor(availableForRows / rowHeight);
-
-      const newPageSize = Math.max(30, calculatedRows); // Minimum 30 rows
-      setPageSize(newPageSize);
-    };
-
-    // Initial calculation with a slight delay to ensure layout is settled
-    const timer = setTimeout(calculatePageSize, 100);
-
-    calculatePageSize();
-    window.addEventListener('resize', calculatePageSize);
-    return () => {
-      clearTimeout(timer);
-      window.removeEventListener('resize', calculatePageSize);
-    };
-  }, []);
-
-  // Update grid when pageSize changes
-  useEffect(() => {
-    if (gridRef.current?.api) {
-      gridRef.current.api.paginationSetPageSize(pageSize);
-    }
-  }, [pageSize]);
   const openAdd = () => {
     let maxIdNum = 10000;
     INVESTMENTS.forEach(c => {
@@ -731,27 +692,18 @@ export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [
 
   const filtered = getFilteredData();
 
-  // AG Grid: Column definitions
-  const permissions = { canUpdate, canDelete };
+  // TanStack Table: Column definitions
+  const permissions = { canUpdate, canDelete, canCreate };
   const columnDefs = useMemo(() => {
-    return getColumnDefs(permissions, isDark, t, sel, toggleRow, toggleAll, filtered.length);
-  }, [permissions, isDark, t, sel, filtered.length]);
-
-  // AG Grid: Context for cell renderers
-  const context = useMemo(() => ({
-    isDark,
-    t,
-    permissions,
-    selection: sel,
-    feesData: FEES_DATA,
-    callbacks: {
-      onEdit: openEdit,
-      onDelete: (target) => setDelT({ id: target.id, name: target.id, docId: target.docId, _path: target._path }),
-      onDrillDown: (investment) => setDrillInvestment(investment),
-      onToggleRow: toggleRow,
-      onToggleAll: toggleAll
-    }
-  }), [isDark, t, permissions, sel, FEES_DATA]);
+    return getInvestmentColumns(permissions, isDark, t, {
+      feesData: FEES_DATA,
+      callbacks: {
+        onEdit: openEdit,
+        onDelete: (target) => setDelT({ id: target.id, name: target.id, docId: target.docId, _path: target._path }),
+        onDrillDown: (investment) => setDrillInvestment(investment),
+      }
+    });
+  }, [permissions, isDark, t, FEES_DATA]);
   return (<>
     <div style={{ marginBottom: 28, display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}><div><h1 style={{ fontFamily: t.titleFont, fontWeight: t.titleWeight, fontSize: t.titleSize, color: isDark ? "#fff" : "#1C1917", letterSpacing: t.titleTracking, lineHeight: 1, marginBottom: 6 }}>Investments</h1><p style={{ fontSize: 13.5, color: t.textMuted }}>Manage investments</p></div>
       <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
@@ -798,38 +750,18 @@ export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [
       </div>
     </div>
 
-    <div className={`ag-theme-custom ${isDark ? 'dark-mode' : 'light-mode'}`} style={{ height: "calc(100vh - 520px)", width: "100%" }}>
-      <AgGridReact
-        ref={gridRef}
-        rowData={filtered}
-        columnDefs={columnDefs}
-        context={context}
-        animateRows={true}
-        pagination={true}
-        paginationPageSize={pageSize}
-        suppressPaginationPanel={true}
-        suppressCellFocus={true}
-        columnHoverHighlight={true}
-        rowSelection="multiple"
-        onColumnResized={(event) => {
-          if (event.finished) {
-            const columnState = event.api.getColumnState();
-            localStorage.setItem('investmentsColumnState', JSON.stringify(columnState));
-          }
-        }}
-        onGridReady={(params) => {
-          const savedState = localStorage.getItem('investmentsColumnState');
-          if (savedState) {
-            params.api.applyColumnState({
-              state: JSON.parse(savedState),
-              applyOrder: false
-            });
-          }
+    <div style={{ height: "calc(100vh - 430px)", width: "100%" }}>
+      <TanStackTable
+        data={filtered}
+        columns={columnDefs}
+        isDark={isDark}
+        t={t}
+        pageSize={pageSize}
+        onSelectionChange={(selectedRows) => {
+          setSel(new Set(selectedRows.map(r => r.id)));
         }}
       />
     </div>
-
-    <div style={{ marginTop: 16, display: "flex", justifyContent: "space-between", alignItems: "center" }}><span style={{ fontSize: 12, color: t.textMuted }}>Showing <strong style={{ color: t.textSecondary }}>{Math.min(filtered.length, pageSize)}</strong> of <strong style={{ color: t.textSecondary }}>{filtered.length}</strong> investments{sel.size > 0 && <span style={{ color: t.accent, marginLeft: 8 }}>· {sel.size} selected</span>}</span><Pagination totalPages={Math.ceil(filtered.length / pageSize)} currentPage={1} onPageChange={(newPage) => gridRef.current?.api.paginationGoToPage(newPage - 1)} t={t} /></div>
     <Modal open={modal.open} onClose={close} title={modal.mode === "add" ? "New Investment" : "Edit Investment"} onSave={handleSaveInvestment} width={620} t={t} isDark={isDark}>
       {(modal.mode === "edit" || (modal.mode === "add" && modal.data.id)) && (
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
