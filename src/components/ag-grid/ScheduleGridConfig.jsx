@@ -228,7 +228,7 @@ export const getScheduleColumnDefs = (permissions, isDark, t, showCheckbox = tru
     cols.push({
       headerName: "Actions",
       field: "actions",
-      width: 120,
+      width: 130,
       pinned: "right",
       sortable: false,
       filter: false,
@@ -237,7 +237,8 @@ export const getScheduleColumnDefs = (permissions, isDark, t, showCheckbox = tru
       cellStyle: {
         display: 'flex',
         alignItems: 'center',
-        justifyContent: 'flex-start'
+        justifyContent: 'flex-start',
+        overflow: 'visible'
       }
     });
   }

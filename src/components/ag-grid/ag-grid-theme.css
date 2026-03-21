@@ -488,3 +488,10 @@
 .ag-theme-custom .action-btn:hover {
   transform: scale(1.05);
 }
+
+/* Ensure action cells don't hide overflow and have minimal padding */
+.ag-theme-custom .ag-cell[col-id="actions"] {
+  overflow: visible !important;
+  padding-left: 8px !important;
+  padding-right: 8px !important;
+}
