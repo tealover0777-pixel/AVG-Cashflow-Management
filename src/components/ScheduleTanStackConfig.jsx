@@ -15,7 +15,7 @@ export const getScheduleColumns = (permissions, isDark, t, context) => {
         return (
           <label 
             onClick={e => e.stopPropagation()} 
-            style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', padding: '10px', margin: '-10px' }}
+            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', width: '100%', height: '32px' }}
           >
             <input
               type="checkbox"
@@ -33,7 +33,7 @@ export const getScheduleColumns = (permissions, isDark, t, context) => {
       cell: ({ row }) => (
         <label 
           onClick={e => e.stopPropagation()} 
-          style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', padding: '10px', margin: '-10px' }}
+          style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', width: '100%', height: '40px' }}
         >
           <input
             type="checkbox"
