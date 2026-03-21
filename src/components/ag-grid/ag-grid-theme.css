@@ -522,11 +522,6 @@
   justify-content: center !important;
 }
 
-/* Hide all checkboxes in AG Grid header rows as requested */
-.ag-theme-custom .ag-header-select-all {
-  display: none !important;
-}
-
 .ag-theme-custom .ag-selection-checkbox {
   margin-right: 0 !important;
   display: flex !important;
