@@ -1029,6 +1029,7 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
         floatingFilter={true}
         defaultColDef={{
           headerCheckboxSelection: false,
+          checkboxSelection: false,
         }}
         getRowStyle={(params) => {
           if (params.data && params.data.active_version === false) {
