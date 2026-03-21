@@ -14,7 +14,6 @@ import ScheduleStatusCellRenderer from './ScheduleStatusCellRenderer';
 import ScheduleNotesCellRenderer from './ScheduleNotesCellRenderer';
 import ScheduleActionsCellRenderer from './ScheduleActionsCellRenderer';
 import VersionCellRenderer from './VersionCellRenderer';
-import SelectionHeaderRenderer from './SelectionHeaderRenderer';
 
 
 export const getScheduleColumnDefs = (permissions, isDark, t, showCheckbox = true) => {
@@ -32,9 +31,8 @@ export const getScheduleColumnDefs = (permissions, isDark, t, showCheckbox = tru
       filter: false,
       resizable: false,
       checkboxSelection: true,
-      headerComponent: SelectionHeaderRenderer,
-      headerName: "",
-      headerTooltip: "Select/Deselect All Rows",
+      headerCheckboxSelection: true,
+      headerCheckboxSelectionFilteredOnly: true,
       cellStyle: {
         display: 'flex',
         alignItems: 'center',
