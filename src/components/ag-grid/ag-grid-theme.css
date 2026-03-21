@@ -524,3 +524,34 @@
   display: flex !important;
   align-items: center !important;
 }
+
+/* Explicit Checkbox Overrides for visibility */
+.ag-theme-custom .ag-checkbox-input-wrapper {
+  background-color: var(--ag-checkbox-background-color);
+  border-radius: var(--ag-checkbox-border-radius);
+  transition: all 0.2s ease;
+}
+
+.ag-theme-custom .ag-checkbox-input-wrapper.ag-checked {
+  color: var(--ag-checkbox-checked-color) !important;
+}
+
+.ag-theme-custom .ag-checkbox-input-wrapper.ag-checked .ag-icon {
+  color: var(--ag-checkbox-checked-color) !important;
+  transform: scale(1.1);
+}
+
+/* Ensure the SVG tick is visible */
+.ag-theme-custom .ag-checkbox-input-wrapper .ag-icon-checkbox-checked {
+  color: var(--ag-checkbox-checked-color) !important;
+}
+
+.ag-theme-custom .ag-checkbox-input-wrapper .ag-icon-checkbox-unchecked {
+  color: var(--ag-checkbox-unchecked-color) !important;
+  opacity: 0.6;
+}
+
+/* Indeterminate state */
+.ag-theme-custom .ag-checkbox-input-wrapper.ag-indeterminate .ag-icon {
+  color: var(--ag-checkbox-checked-color) !important;
+}
