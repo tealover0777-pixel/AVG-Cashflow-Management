@@ -1,12 +1,6 @@
 import { useState, useMemo, useRef, useEffect } from "react";
-import { AgGridReact } from 'ag-grid-react';
-import { ModuleRegistry, AllCommunityModule } from 'ag-grid-community';
-
-ModuleRegistry.registerModules([AllCommunityModule]);
-
-import 'ag-grid-community/styles/ag-grid.css';
-import '../components/ag-grid/ag-grid-theme.css';
-import { getScheduleColumnDefs } from '../components/ag-grid/ScheduleGridConfig';
+import TanStackTable from "../components/TanStackTable";
+import { getScheduleColumns } from "../components/ScheduleTanStackConfig";
 
 import { db } from "../firebase";
 import { collection, doc, addDoc, updateDoc, deleteDoc, serverTimestamp } from "firebase/firestore";
@@ -871,7 +865,6 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
     });
   };
   // AG Grid setup
-  const gridRef = useRef(null);
   const [pageSize, setPageSize] = useState(30);
 
   // Dynamically calculate page size based on available vertical space
@@ -896,11 +889,6 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
     };
   }, []);
 
-  useEffect(() => {
-    if (gridRef.current?.api) {
-      gridRef.current.api.paginationSetPageSize(pageSize);
-    }
-  }, [pageSize]);
 
   // Filter data for AG Grid
   const rowData = useMemo(() => {
@@ -931,11 +919,6 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
 
   // Column definitions
   const permissions = { canUpdate, canDelete };
-  const columnDefs = useMemo(() => {
-    return getScheduleColumnDefs(permissions, isDark, t, canUpdate);
-  }, [permissions, isDark, t, canUpdate]);
-
-  // Context for cell renderers
   const context = useMemo(() => ({
     isDark,
     t,
@@ -969,11 +952,10 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
     }
   }), [isDark, t, permissions, FEES_DATA, SCHEDULES, INVESTMENTS, CONTACTS]);
 
-  // Handle row selection
-  const onSelectionChanged = (event) => {
-    const selectedRows = event.api.getSelectedRows();
-    setSel(new Set(selectedRows.map(row => row.schedule_id)));
-  };
+  const columnDefs = useMemo(() => {
+    return getScheduleColumns(permissions, isDark, t, context);
+  }, [permissions, isDark, t, context]);
+
   const statsData = [{ label: "Total", value: SCHEDULES.length, accent: isDark ? "#60A5FA" : "#3B82F6", bg: isDark ? "rgba(96,165,250,0.08)" : "#EFF6FF", border: isDark ? "rgba(96,165,250,0.15)" : "#BFDBFE" }, { label: "Due", value: SCHEDULES.filter(s => s.status === "Due").length, accent: isDark ? "#FBBF24" : "#D97706", bg: isDark ? "rgba(251,191,36,0.08)" : "#FFFBEB", border: isDark ? "rgba(251,191,36,0.15)" : "#FDE68A" }, { label: "Paid", value: SCHEDULES.filter(s => s.status === "Paid").length, accent: isDark ? "#34D399" : "#059669", bg: isDark ? "rgba(52,211,153,0.08)" : "#ECFDF5", border: isDark ? "rgba(52,211,153,0.15)" : "#A7F3D0" }, { label: "Missed", value: SCHEDULES.filter(s => s.status === "Missed").length, accent: isDark ? "#F87171" : "#DC2626", bg: isDark ? "rgba(248,113,113,0.08)" : "#FEF2F2", border: isDark ? "rgba(248,113,113,0.15)" : "#FECACA" }];
   return (<>
     <div style={{ marginBottom: 28, display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}><div><h1 style={{ fontFamily: t.titleFont, fontWeight: t.titleWeight, fontSize: t.titleSize, color: isDark ? "#fff" : "#1C1917", letterSpacing: t.titleTracking, lineHeight: 1, marginBottom: 6 }}>Payment Schedule</h1><p style={{ fontSize: 13.5, color: t.textMuted }}>Manage payment schedules and statuses</p></div>
@@ -1003,57 +985,27 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
         </div>
       </div>
     </div>
-    <div
-      className={`ag-theme-custom ${isDark ? 'dark-mode' : 'light-mode'}`}
-      style={{ height: "calc(100vh - 500px)", minHeight: "500px", width: "100%" }}
-    >
-      <AgGridReact
-        ref={gridRef}
-        rowData={rowData}
-        columnDefs={columnDefs}
-        context={context}
-        animateRows={true}
-        pagination={true}
-        paginationPageSize={pageSize}
-        suppressPaginationPanel={true}
-        suppressCellFocus={true}
-        columnHoverHighlight={true}
-        theme="legacy"
-        rowSelection="multiple"
-        suppressRowClickSelection={true}
-        onSelectionChanged={onSelectionChanged}
-        floatingFilter={true}
-        defaultColDef={{
-          headerCheckboxSelection: false,
-          checkboxSelection: false,
-        }}
-        getRowStyle={(params) => {
-          if (params.data && params.data.active_version === false) {
-            return { background: isDark ? "rgba(255,255,255,0.02)" : "rgba(0,0,0,0.02)", opacity: 0.8 };
+    <div style={{ height: "calc(100vh - 430px)", width: "100%" }}>
+      <TanStackTable
+        data={rowData}
+        columns={columnDefs}
+        isDark={isDark}
+        t={t}
+        pageSize={pageSize}
+        rowStyle={(data) => {
+          if (data.active_version === false) {
+            return { 
+              opacity: 0.5, 
+              background: isDark ? 'rgba(255,255,255,0.01)' : '#F9F8F6',
+              fontStyle: 'italic'
+            };
           }
+          return {};
         }}
-        onColumnResized={(event) => {
-          if (event.finished) {
-            const columnState = event.api.getColumnState();
-            localStorage.setItem('scheduleColumnState', JSON.stringify(columnState));
-          }
-        }}
-        onGridReady={(params) => {
-          const savedState = localStorage.getItem('scheduleColumnState');
-          if (savedState) {
-            params.api.applyColumnState({
-              state: JSON.parse(savedState),
-              applyOrder: false
-            });
-          }
+        onSelectionChange={(selectedRows) => {
+          setSel(new Set(selectedRows.map(r => r.schedule_id)));
         }}
       />
-    </div>
-    <div style={{ marginTop: 16, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-      <span style={{ fontSize: 12, color: t.textSubtle }}>
-        Showing <strong style={{ color: t.textSecondary }}>{Math.min(rowData.length, pageSize)}</strong> of <strong style={{ color: t.textSecondary }}>{rowData.length}</strong> schedules{sel.size > 0 && <span style={{ color: t.accent, marginLeft: 8 }}>· {sel.size} selected</span>}
-      </span>
-      <Pagination totalPages={Math.ceil(rowData.length / pageSize)} currentPage={1} onPageChange={(newPage) => gridRef.current?.api.paginationGoToPage(newPage - 1)} t={t} />
     </div>
     <Modal open={modal.open} onClose={close} title={modal.mode === "add" ? "New Schedule Entry" : modal.mode === "add_late" ? "Replacement Payment Schedule" : modal.mode === "add_partial" ? "Partial Payment Schedule" : "Edit Schedule Entry"} onSave={handleSaveSchedule} width={620} t={t} isDark={isDark}>
       {(() => {
