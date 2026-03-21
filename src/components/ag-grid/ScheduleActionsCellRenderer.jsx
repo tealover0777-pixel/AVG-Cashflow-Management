@@ -6,7 +6,7 @@ export default function ScheduleActionsCellRenderer(props) {
 
   if (!data) return null;
 
-  const hasUndo = data._undo_snapshot || data.linked;
+  const hasUndo = data._undo_snapshot || data.linked || (Number(data.version_num || 1) > 1);
 
   const handleEdit = (e) => {
     if (e && e.stopPropagation) e.stopPropagation();

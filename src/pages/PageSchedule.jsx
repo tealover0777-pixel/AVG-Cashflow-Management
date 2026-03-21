@@ -341,101 +341,78 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
   const handleUndo = async (s) => {
     if (!s) return;
 
+    const isVersioned = Number(s.version_num || 1) > 1;
+    const isReplacement = !!s.linked;
     const hasSnapshot = !!s._undo_snapshot;
-    const isReplacementSchedule = !!(s.linked || s.linked_schedule_id);
 
-    // Allow undo if:
-    // 1. Has an undo snapshot (was edited), OR
-    // 2. Is a replacement schedule (has linked field) even if newly created
-    if (!hasSnapshot && !isReplacementSchedule) return;
+    if (!isVersioned && !isReplacement && !hasSnapshot) return;
 
-    // Check if this schedule has a subsequent linked schedule (created from this one)
+    // Check if this schedule has a subsequent linked schedule (e.g. from replacement workflow)
     const childId = s.linked_schedule_id;
     const childSchedule = childId ? SCHEDULES.find(x => x.schedule_id === childId) : null;
 
-    // Check if the child schedule itself has been used to create another schedule
-    const hasGrandchild = childSchedule && (childSchedule.linked_schedule_id ||
-      SCHEDULES.some(x => (x.linked || x.linked_schedule_id) === childSchedule.schedule_id));
-
-    if (hasGrandchild) {
-      alert(`Cannot undo ${s.schedule_id} because it has subsequent linked schedules.\n\nLinked chain: ${s.schedule_id} → ${childSchedule.schedule_id} → ${childSchedule.linked_schedule_id || '...'}\n\nPlease undo the most recent schedule first, or delete them manually in reverse order.`);
+    if (childSchedule && (childSchedule.linked_schedule_id || SCHEDULES.some(x => x.linked === childSchedule.schedule_id))) {
+      alert(`Cannot undo ${s.schedule_id} because it has subsequent linked records. Please undo those first.`);
       return;
     }
 
-    // Find parent schedule if this is a replacement schedule
-    const parentId = s.linked;
-    const parentSchedule = parentId ? SCHEDULES.find(x => x.schedule_id === parentId) : null;
+    let message = `Are you sure you want to undo the last action for ${s.schedule_id}?`;
+    let title = "Undo Action";
 
-    let message;
-    let title = "Undo Last Action";
-
-    if (hasSnapshot) {
-      // This schedule was edited - restore it
-      if (childSchedule) {
-        title = "⚠️  Warning: Linked Schedule Will Be Deleted";
-        message = `Undoing ${s.schedule_id} will perform the following actions:
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-  ✓  Restore ${s.schedule_id} to its previous state
-
-  ✗  DELETE the linked schedule ${childSchedule.schedule_id}
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-⚠️  This action CANNOT be undone!
-
-Are you sure you want to continue?`;
-      } else {
-        message = `This will restore ${s.schedule_id} to its previous state.`;
-      }
-    } else {
-      // This is a newly created replacement schedule - delete it
-      const clearParentMsg = parentSchedule
-        ? `\n  ✓  Clear the link from ${parentSchedule.schedule_id}`
-        : "";
-      message = `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-  ✗  DELETE replacement schedule ${s.schedule_id}${clearParentMsg}
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-Are you sure you want to continue?`;
+    if (isVersioned) {
+      title = "Revert to Previous Version";
+      message = `This will delete current (V${s.version_num}) and reactivate previous version (V${Number(s.version_num) - 1}). Are you sure?`;
+    } else if (hasSnapshot) {
+      message = `This will restore ${s.schedule_id} to its previous state.`;
+    } else if (isReplacement) {
+      message = `This will DELETE this replacement schedule (${s.schedule_id}) and revert any links.`;
     }
 
     setConfirmAction({
-      title: title,
-      message: message,
+      title,
+      message,
       onConfirm: async () => {
         setConfirmAction(null);
         try {
-          if (hasSnapshot) {
-            // Restore the schedule to its previous state
-            const ref = s._path ? doc(db, s._path) : doc(db, collectionPath, s.docId);
-            const restorePayload = {
-              ...s._undo_snapshot,
-              _undo_snapshot: null,
-              updated_at: serverTimestamp()
-            };
-            await updateDoc(ref, restorePayload);
+          if (isVersioned && s.previous_version_id) {
+            // 1. Find the predecessor
+            const prev = SCHEDULES.find(x => x.docId === s.previous_version_id || x.version_id === s.previous_version_id);
+            if (!prev) {
+              alert("Could not find the previous version to revert to.");
+              return;
+            }
 
-            // Delete the child schedule if it exists
+            // 2. Reactivate the predecessor
+            const prevRef = prev._path ? doc(db, prev._path) : doc(db, collectionPath, prev.docId);
+            await updateDoc(prevRef, {
+              active_version: true,
+              status: prev.status === "REPLACED" ? "Due" : prev.status, // Fallback to Due if it was Replaced
+              updated_at: serverTimestamp()
+            });
+
+            // 3. Delete the current version
+            const currRef = s._path ? doc(db, s._path) : doc(db, collectionPath, s.docId);
+            await deleteDoc(currRef);
+          } 
+          else if (hasSnapshot) {
+            // Original edit logic (with _undo_snapshot)
+            const ref = s._path ? doc(db, s._path) : doc(db, collectionPath, s.docId);
+            await updateDoc(ref, { ...s._undo_snapshot, _undo_snapshot: null, updated_at: serverTimestamp() });
             if (childSchedule && childSchedule.docId) {
               const childRef = childSchedule._path ? doc(db, childSchedule._path) : doc(db, collectionPath, childSchedule.docId);
               await deleteDoc(childRef);
             }
-          } else {
-            // Delete this replacement schedule
+          } 
+          else if (isReplacement) {
+            // Delete replacement record and clear parent link
             const ref = s._path ? doc(db, s._path) : doc(db, collectionPath, s.docId);
             await deleteDoc(ref);
-
-            // Clear the parent's linked_schedule_id
-            if (parentSchedule && parentSchedule.docId) {
-              const parentRef = parentSchedule._path ? doc(db, parentSchedule._path) : doc(db, collectionPath, parentSchedule.docId);
-              await updateDoc(parentRef, {
-                linked_schedule_id: null,
-                updated_at: serverTimestamp()
-              });
+            if (s.linked) {
+              const p = SCHEDULES.find(x => x.schedule_id === s.linked);
+              if (p) {
+                const pRef = p._path ? doc(db, p._path) : doc(db, collectionPath, p.docId);
+                await updateDoc(pRef, { linked_schedule_id: "", updated_at: serverTimestamp() });
+              }
             }
           }
         } catch (err) {
@@ -477,6 +454,7 @@ Are you sure you want to continue?`;
       version_num: d.version_num || 1,
       version_id: d.version_id || `${d.schedule_id || docRefId}-V${d.version_num || 1}`,
       payment_id: d.payment_id || d.schedule_id || docRefId,
+      original_payment_amount: d.original_payment_amount || d.payment || null,
       active_version: d.active_version !== undefined ? d.active_version : true,
       updated_at: serverTimestamp(),
     };
@@ -605,8 +583,28 @@ Are you sure you want to continue?`;
             const origPaymentNum = Math.abs(Number(String(rawOrigAmt).replace(/[^0-9.-]/g, "")));
             const formattedOrigAmt = `$${origPaymentNum.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
-            const ref = d._path ? doc(db, d._path) : doc(db, collectionPath, d.docId);
-            await updateDoc(ref, payload);
+            const ref = d._path ? doc(db, d._path) : doc(db, collectionPath, docRefId);
+            
+            // Replaces updateDoc with Versioning logic
+            const newVersionNum = Number(d.version_num || 1) + 1;
+            await addDoc(ref.parent, {
+              ...payload,
+              version_num: newVersionNum,
+              version_id: `${payload.schedule_id}-V${newVersionNum}`,
+              active_version: true,
+              previous_version_id: d.version_id || docRefId,
+              created_at: serverTimestamp(),
+              updated_at: serverTimestamp(),
+              updated_by: user?.uid || "system"
+            });
+            await updateDoc(ref, { 
+              active_version: false, 
+              status: "REPLACED", 
+              replaced_at: serverTimestamp(),
+              replaced_by: user?.uid || "system",
+              updated_at: serverTimestamp() 
+            });
+
             const lateId = getNextScheduleId();
             const nextDueDate = getNextTermDate(d.dueDate, d.investment);
             const initialData = {
@@ -666,8 +664,28 @@ Are you sure you want to continue?`;
             const origPaymentNum = Math.abs(Number(String(rawOrigAmt).replace(/[^0-9.-]/g, "")));
             const formattedOrigAmt = `$${origPaymentNum.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
-            const ref = d._path ? doc(db, d._path) : doc(db, collectionPath, d.docId);
-            await updateDoc(ref, payload);
+            const ref = d._path ? doc(db, d._path) : doc(db, collectionPath, docRefId);
+
+            // Replaces updateDoc with Versioning logic
+            const newVersionNum = Number(d.version_num || 1) + 1;
+            await addDoc(ref.parent, {
+              ...payload,
+              version_num: newVersionNum,
+              version_id: `${payload.schedule_id}-V${newVersionNum}`,
+              active_version: true,
+              previous_version_id: d.version_id || docRefId,
+              created_at: serverTimestamp(),
+              updated_at: serverTimestamp(),
+              updated_by: user?.uid || "system"
+            });
+            await updateDoc(ref, { 
+              active_version: false, 
+              status: "REPLACED", 
+              replaced_at: serverTimestamp(),
+              replaced_by: user?.uid || "system",
+              updated_at: serverTimestamp() 
+            });
+
             const partialId = getNextScheduleId();
             const nextDueDatePartial = getNextTermDate(d.dueDate, d.investment);
             const initialDataPartial = {
