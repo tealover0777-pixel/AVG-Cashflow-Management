@@ -403,7 +403,7 @@ export default function PageDeals({ t, isDark, DEALS = [], INVESTMENTS = [], FEE
     isDark,
     t,
     permissions,
-    feesData: props.feesData || FEES_DATA, // Use prop if available, fallback to internal
+    feesData: FEES_DATA, // Using destructured prop
     callbacks: {
       onEdit: openEdit,
       onDelete: (deal) => setDelT(deal),
@@ -412,7 +412,7 @@ export default function PageDeals({ t, isDark, DEALS = [], INVESTMENTS = [], FEE
         setActivePage("Deal Summary");
       }
     }
-  }), [isDark, t, permissions, props.feesData, FEES_DATA, setSelectedDealId, setActivePage]);
+  }), [isDark, t, permissions, FEES_DATA, setSelectedDealId, setActivePage]);
 
   const columnDefs = useMemo(() => {
     return getDealColumns(permissions, isDark, t, columnContext);
