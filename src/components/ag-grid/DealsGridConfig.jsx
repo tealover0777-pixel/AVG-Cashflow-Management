@@ -11,7 +11,7 @@ export const getColumnDefs = (permissions, isDark, t) => {
       width: 45,
       pinned: "left",
       checkboxSelection: true,
-      headerCheckboxSelection: true,
+      headerCheckboxSelection: false,
       sortable: false,
       filter: false,
       resizable: false,

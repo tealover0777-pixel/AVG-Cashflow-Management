@@ -1,14 +1,11 @@
 import { forwardRef, useImperativeHandle } from 'react';
 
 const InvestmentCheckboxHeaderRenderer = forwardRef((props, ref) => {
-  const { selection, totalCount, onToggleAll, context } = props;
-  const { t } = context || {};
+  const { onToggleAll } = props;
 
   useImperativeHandle(ref, () => ({
     refresh: () => false
   }));
-
-  const isAllChecked = selection?.size === totalCount && totalCount > 0;
 
   const handleChange = (e) => {
     e.stopPropagation();
@@ -18,16 +15,13 @@ const InvestmentCheckboxHeaderRenderer = forwardRef((props, ref) => {
   };
 
   return (
-    <input
-      type="checkbox"
-      checked={isAllChecked}
-      onChange={handleChange}
-      onClick={(e) => e.stopPropagation()}
+    <div
+      onClick={handleChange}
       style={{
-        accentColor: t?.checkActive || '#3B82F6',
         width: 14,
         height: 14,
-        cursor: 'pointer'
+        cursor: 'pointer',
+        opacity: 0
       }}
     />
   );
