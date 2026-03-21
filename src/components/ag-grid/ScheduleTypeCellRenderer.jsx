@@ -2,7 +2,7 @@ export default function ScheduleTypeCellRenderer(props) {
   const { value, data, context } = props;
   const { isDark, t, callbacks } = context;
 
-  if (!value) return <span style={{ color: isDark ? "rgba(255,255,255,0.12)" : "#D4D0CB" }}>—</span>;
+  if (!value) return <span style={{ color: isDark ? "#fff" : "#D4D0CB" }}>—</span>;
 
   const isFeeType = String(value).toLowerCase() === "fee";
   const hasFeeId = data.fee_id && String(data.fee_id).split(",").filter(Boolean).length > 0;

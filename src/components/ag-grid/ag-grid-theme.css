@@ -74,7 +74,8 @@
 }
 
 .dark-mode.ag-theme-custom .ag-header-icon.ag-filter-icon {
-  opacity: 0.9 !important; /* Filter icons even more visible in dark mode */
+  opacity: 1 !important; /* Forced full visibility for filter icons */
+  color: #FFFFFF !important;
 }
 
 .dark-mode.ag-theme-custom .ag-header-cell:hover .ag-header-icon {

@@ -2,7 +2,7 @@ export default function ScheduleAppliedToCellRenderer(props) {
   const { value, data, context } = props;
   const { isDark, feesData } = context;
 
-  const dash = <span style={{ color: isDark ? "rgba(255,255,255,0.12)" : "#D4D0CB" }}>—</span>;
+  const dash = <span style={{ color: isDark ? "#fff" : "#D4D0CB" }}>—</span>;
 
   if (value) return <span style={{ fontSize: '11px' }}>{value}</span>;
 

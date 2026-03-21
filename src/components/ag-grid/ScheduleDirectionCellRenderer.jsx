@@ -2,7 +2,7 @@ export default function ScheduleDirectionCellRenderer(props) {
   const { value, context } = props;
   const { isDark, t } = context;
 
-  if (!value) return <span style={{ color: isDark ? "rgba(255,255,255,0.12)" : "#D4D0CB" }}>—</span>;
+  if (!value) return <span style={{ color: isDark ? "#fff" : "#D4D0CB" }}>—</span>;
 
   const color = value === "IN"
     ? (isDark ? "#34D399" : "#059669")
