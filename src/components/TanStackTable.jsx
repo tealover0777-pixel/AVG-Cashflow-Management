@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 
 /**
- * Modern & Reliable TanStack Table (Cleaned & High Performance)
+ * Modern & Reliable TanStack Table (Stable Version)
  */
 export default function TanStackTable({
   data,
@@ -35,6 +35,8 @@ export default function TanStackTable({
   const [columnFilters, setColumnFilters] = useState([]);
   const [rowSelection, setRowSelection] = useState({});
 
+  // STABILITY FIX: Use docId primarily, then id/schedule_id, then index. 
+  // NEVER use Math.random() in a getRowId function as it triggers endless render cycles (Error #185).
   const table = useReactTable({
     data,
     columns,
@@ -48,7 +50,9 @@ export default function TanStackTable({
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
     onGlobalFilterChange: setGlobalFilter,
-    onRowSelectionChange: setRowSelection,
+    onRowSelectionChange: (updater) => {
+      setRowSelection(updater);
+    },
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
@@ -58,16 +62,23 @@ export default function TanStackTable({
         pageSize: pageSize,
       },
     },
-    // Use Firestore IDs primarily (unique across versions)
-    getRowId: getRowId || ((row) => row.docId || row._docId || row.id || row.schedule_id || String(Math.random())),
+    getRowId: (row, i) => getRowId ? getRowId(row, i) : (row.docId || row._docId || row.id || row.schedule_id || `idx-${i}`),
     autoResetRowSelection: false,
+    autoResetPageIndex: false,
   });
 
+  // Synchronization with loop protection
   useEffect(() => {
     if (onSelectionChange) {
       const selectedModel = table.getSelectedRowModel();
       const selectedData = selectedModel.flatRows.map(row => row.original);
-      onSelectionChange(selectedData);
+      const selKeys = Object.keys(rowSelection).sort().join(',');
+      
+      // Only fire if the selection set has actually changed to avoid infinite parent-child trigger loops
+      if (table.__lastSelKeys !== selKeys) {
+        table.__lastSelKeys = selKeys;
+        onSelectionChange(selectedData);
+      }
     }
   }, [rowSelection, onSelectionChange, table]);
 

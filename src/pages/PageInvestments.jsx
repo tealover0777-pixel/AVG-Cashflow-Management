@@ -680,17 +680,15 @@ export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [
   const toggleRow = id => { const n = new Set(sel); n.has(id) ? n.delete(id) : n.add(id); setSel(n); };
   const toggleAll = () => { setSel(sel.size === filtered.length ? new Set() : new Set(filtered.map(c => c.id))); };
 
-  // AG Grid: Chip filtering (pre-filter data before passing to grid)
-  const getFilteredData = () => {
+  // TanStack Table: Data filtering (optimized with useMemo to prevent re-render loops)
+  const filtered = useMemo(() => {
     return INVESTMENTS.filter(c => {
       if (chip === "Deposit" && (c.type || "").toUpperCase() !== "DEPOSIT") return false;
       if (chip === "Disbursement" && (c.type || "").toUpperCase() !== "DISBURSEMENT") return false;
       if (chip === "Active" && c.status !== "Active") return false;
       return true;
     });
-  };
-
-  const filtered = getFilteredData();
+  }, [INVESTMENTS, chip]);
 
   // TanStack Table: Column definitions
   const permissions = { canUpdate, canDelete, canCreate };
