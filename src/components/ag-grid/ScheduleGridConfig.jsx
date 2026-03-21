@@ -13,6 +13,8 @@ import SchedulePrincipalAmountCellRenderer from './SchedulePrincipalAmountCellRe
 import ScheduleStatusCellRenderer from './ScheduleStatusCellRenderer';
 import ScheduleNotesCellRenderer from './ScheduleNotesCellRenderer';
 import ScheduleActionsCellRenderer from './ScheduleActionsCellRenderer';
+import VersionCellRenderer from './VersionCellRenderer';
+
 
 export const getScheduleColumnDefs = (permissions, isDark, t, showCheckbox = true) => {
   const cols = [];
@@ -67,6 +69,15 @@ export const getScheduleColumnDefs = (permissions, isDark, t, showCheckbox = tru
       },
       cellRenderer: LinkedIdCellRenderer,
       cellStyle: { fontFamily: t.mono, fontSize: '11px', color: t.textMuted }
+    },
+    {
+      headerName: "Vers",
+      field: "version_num",
+      width: 60,
+      sortable: true,
+      filter: "agNumberColumnFilter",
+      cellRenderer: VersionCellRenderer,
+      cellStyle: { display: 'flex', alignItems: 'center', justifyContent: 'center' }
     },
     {
       headerName: "Investment ID",
