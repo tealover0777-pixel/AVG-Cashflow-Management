@@ -10,35 +10,38 @@ export const getScheduleColumns = (permissions, isDark, t, context) => {
       id: 'select',
       header: ({ table }) => {
         const rows = table.getFilteredRowModel().rows;
-        const isAllSelected = rows.length > 0 && rows.every(r => r.getIsSelected());
-        const isSomeSelected = rows.some(r => r.getIsSelected());
-
+        const allSelected = rows.length > 0 && rows.every(r => r.getIsSelected());
+        const someSelected = rows.some(r => r.getIsSelected());
         return (
-          <input
-            type="checkbox"
-            checked={isAllSelected}
-            ref={el => { if (el) el.indeterminate = isSomeSelected && !isAllSelected; }}
-            onChange={(e) => {
-              e.stopPropagation();
-              const next = !isAllSelected;
-              rows.forEach(r => r.toggleSelected(next));
-            }}
-            onClick={(e) => e.stopPropagation()}
-            style={{ cursor: 'pointer', accentColor: t.accent }}
-          />
+          <label 
+            onClick={e => e.stopPropagation()} 
+            style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', padding: '10px', margin: '-10px' }}
+          >
+            <input
+              type="checkbox"
+              checked={allSelected}
+              ref={el => { if (el) el.indeterminate = someSelected && !allSelected; }}
+              onChange={() => {
+                const next = !allSelected;
+                rows.forEach(r => r.toggleSelected(next));
+              }}
+              style={{ accentColor: t.accent, cursor: 'pointer' }}
+            />
+          </label>
         );
       },
       cell: ({ row }) => (
-        <input
-          type="checkbox"
-          checked={row.getIsSelected()}
-          onChange={(e) => {
-            e.stopPropagation();
-            row.getToggleSelectedHandler()(e);
-          }}
-          onClick={(e) => e.stopPropagation()}
-          style={{ cursor: 'pointer', accentColor: t.accent }}
-        />
+        <label 
+          onClick={e => e.stopPropagation()} 
+          style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', padding: '10px', margin: '-10px' }}
+        >
+          <input
+            type="checkbox"
+            checked={row.getIsSelected()}
+            onChange={row.getToggleSelectedHandler()}
+            style={{ accentColor: t.accent, cursor: 'pointer' }}
+          />
+        </label>
       ),
       size: 45,
       enableSorting: false,

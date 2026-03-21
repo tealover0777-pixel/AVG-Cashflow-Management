@@ -7,19 +7,16 @@ import {
   getPaginationRowModel,
   flexRender,
 } from '@tanstack/react-table';
-import {
-  ArrowUp,
-  ArrowDown,
-  ChevronLeft,
-  ChevronRight,
-  ChevronsLeft,
-  ChevronsRight,
+import { 
+  ArrowUp, 
+  ArrowDown, 
+  ChevronLeft, 
+  ChevronRight, 
   FilterX
 } from 'lucide-react';
 
 /**
- * Premium TanStack Table Component
- * Features: Sorting, Filtering, Selection, dividers, responsive styling, and custom footer.
+ * Modern & Reliable TanStack Table
  */
 export default function TanStackTable({
   data,
@@ -32,12 +29,11 @@ export default function TanStackTable({
   onRowClick,
   globalFilter,
   setGlobalFilter,
-  getRowId, // Add support for stable row IDs
+  getRowId,
 }) {
   const [sorting, setSorting] = useState([]);
   const [columnFilters, setColumnFilters] = useState([]);
   const [rowSelection, setRowSelection] = useState({});
-  const [columnSizing, setColumnSizing] = useState({});
 
   const table = useReactTable({
     data,
@@ -47,16 +43,12 @@ export default function TanStackTable({
       columnFilters,
       globalFilter,
       rowSelection,
-      columnSizing,
     },
     enableRowSelection: true,
-    enableColumnResizing: true,
-    columnResizeMode: 'onChange',
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
     onGlobalFilterChange: setGlobalFilter,
     onRowSelectionChange: setRowSelection,
-    onColumnSizingChange: setColumnSizing,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
@@ -66,149 +58,71 @@ export default function TanStackTable({
         pageSize: pageSize,
       },
     },
-    getRowId: getRowId || ((row, i) => row.id || row.schedule_id || String(i)),
+    // PRIORITIZE UNIQUE docId (Firebase ID)
+    getRowId: getRowId || ((row) => row.docId || row._docId || row.id || row.schedule_id || String(Math.random())),
     autoResetRowSelection: false,
   });
 
-  // Notify parent of selection changes
-  // We use a useEffect triggered by rowSelection state
   useEffect(() => {
     if (onSelectionChange) {
-      const selectedRows = table.getSelectedRowModel().flatRows.map(row => row.original);
-      onSelectionChange(selectedRows);
+      const selectedModel = table.getSelectedRowModel();
+      const selectedData = selectedModel.flatRows.map(row => row.original);
+      onSelectionChange(selectedData);
     }
   }, [rowSelection, onSelectionChange, table]);
 
   const { rows } = table.getRowModel();
 
   return (
-    <div className="tanstack-table-root" style={{ 
-      width: '100%', 
-      height: '100%', 
-      display: 'flex', 
-      flexDirection: 'column',
-      background: isDark ? 'rgba(0,0,0,0.1)' : '#fff',
-      borderRadius: '16px',
-      overflow: 'hidden',
+    <div className="ts-root" style={{ 
+      width: '100%', height: '100%', display: 'flex', flexDirection: 'column',
+      background: isDark ? '#1C1917' : '#fff', borderRadius: '12px', overflow: 'hidden',
       border: `1px solid ${t.surfaceBorder}`,
-      boxShadow: isDark ? '0 10px 30px rgba(0,0,0,0.2)' : '0 4px 20px rgba(0,0,0,0.05)'
+      boxShadow: isDark ? '0 10px 30px rgba(0,0,0,0.3)' : '0 4px 20px rgba(0,0,0,0.05)'
     }}>
-      {/* Table Body */}
-      <div style={{ flex: 1, overflow: 'auto', position: 'relative' }} className="custom-scrollbar">
-        <table style={{ 
-          width: '100%', 
-          borderCollapse: 'separate', 
-          borderSpacing: 0,
-          fontSize: '13px',
-          color: t.textSecondary,
-          tableLayout: 'fixed'
-        }}>
-          <thead style={{ 
-            position: 'sticky', 
-            top: 0, 
-            zIndex: 10,
-            background: isDark ? '#1C1917' : '#F9FAF9',
-            backdropFilter: 'blur(10px)'
-          }}>
+      <div style={{ flex: 1, overflow: 'auto', position: 'relative' }} className="ts-scroller">
+        <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: 0, fontSize: '13px', tableLayout: 'fixed' }}>
+          <thead style={{ position: 'sticky', top: 0, zIndex: 10, background: isDark ? '#262626' : '#F9FAF9' }}>
             {table.getHeaderGroups().map(headerGroup => (
               <tr key={headerGroup.id}>
-                {headerGroup.headers.map(header => {
-                  const isSorted = header.column.getIsSorted();
-                  const canSort = header.column.getCanSort();
-
-                  return (
-                    <th
-                      key={header.id}
-                      style={{
-                        width: header.getSize(),
-                        minWidth: header.getSize(),
-                        padding: '12px 14px',
-                        textAlign: header.column.id === 'select' ? 'center' : 'left',
-                        fontWeight: 700,
-                        fontSize: '10.5px',
-                        textTransform: 'uppercase',
-                        letterSpacing: '0.8px',
-                        color: t.textSubtle,
-                        borderBottom: `2px solid ${t.surfaceBorder}`,
-                        borderRight: `1px solid ${t.columnDivider || (isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)')}`,
-                        cursor: canSort ? 'pointer' : 'default',
-                        userSelect: 'none',
-                        transition: 'background 0.2s',
-                        position: 'relative',
-                        verticalAlign: 'top'
-                      }}
-                      onClick={canSort ? header.column.getToggleSortingHandler() : undefined}
-                    >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: header.column.getCanFilter() ? '8px' : 0, justifyContent: header.column.id === 'select' ? 'center' : 'flex-start' }}>
-                        <div onClick={e => e.stopPropagation()} style={{ display: 'flex', alignItems: 'center' }}>
-                          {flexRender(header.column.columnDef.header, header.getContext())}
-                        </div>
-                        {canSort && (
-                          <div style={{ display: 'flex', flexDirection: 'column', opacity: isSorted ? 1 : 0.3 }}>
-                            {isSorted === 'asc' ? <ArrowUp size={12} color={t.accent} /> : 
-                             isSorted === 'desc' ? <ArrowDown size={12} color={t.accent} /> : 
-                             <ArrowUp size={12} style={{ opacity: 0.1 }} />}
-                          </div>
-                        )}
-                      </div>
-                      
-                      {/* Column Filter Input */}
-                      {header.column.getCanFilter() && (
-                        <div onClick={e => e.stopPropagation()}>
-                           <input
-                            value={(header.column.getFilterValue() ?? '')}
-                            onChange={e => header.column.setFilterValue(e.target.value)}
-                            placeholder="Filter..."
-                            style={{
-                              width: '100%',
-                              padding: '5px 8px',
-                              fontSize: '10.5px',
-                              borderRadius: '7px',
-                              border: `1px solid ${t.surfaceBorder}`,
-                              background: isDark ? 'rgba(255,255,255,0.03)' : '#fff',
-                              color: t.text,
-                              outline: 'none',
-                              boxSizing: 'border-box',
-                              fontWeight: 400,
-                              fontFamily: 'inherit'
-                            }}
-                           />
-                        </div>
-                      )}
-
-                      {/* Column Resizer */}
-                      <div
-                        onMouseDown={header.getResizeHandler()}
-                        onTouchStart={header.getResizeHandler()}
-                        className={`resizer ${header.column.getIsResizing() ? 'isResizing' : ''}`}
-                        style={{
-                          position: 'absolute',
-                          right: 0,
-                          top: 0,
-                          height: '100%',
-                          width: '5px',
-                          cursor: 'col-resize',
-                          userSelect: 'none',
-                          touchAction: 'none',
-                          opacity: header.column.getIsResizing() ? 1 : 0,
-                          transition: 'opacity 0.2s',
-                        }}
+                {headerGroup.headers.map(header => (
+                  <th 
+                    key={header.id}
+                    style={{
+                      width: header.column.columnDef.size || 'auto',
+                      padding: '12px 14px', textAlign: 'left', fontWeight: 600,
+                      color: t.textSubtle, borderBottom: `2px solid ${t.surfaceBorder}`,
+                      borderRight: `1px solid ${isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'}`,
+                      verticalAlign: 'top'
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: header.column.getCanFilter() ? '8px' : 0 }}>
+                      <div 
+                        onClick={header.column.getCanSort() ? header.column.getToggleSortingHandler() : undefined}
+                        style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: header.column.getCanSort() ? 'pointer' : 'default' }}
                       >
-                        <div style={{
-                          position: 'absolute',
-                          right: '1px',
-                          top: '50%',
-                          transform: 'translateY(-50%)',
-                          width: '3px',
-                          height: '60%',
-                          background: t.accent,
-                          borderRadius: '2px',
-                          opacity: header.column.getIsResizing() ? 1 : 0.4,
-                        }} />
+                         {flexRender(header.column.columnDef.header, header.getContext())}
+                         {header.column.getIsSorted() && (
+                            <span style={{ color: t.accent }}>
+                              {header.column.getIsSorted() === 'asc' ? <ArrowUp size={12} /> : <ArrowDown size={12} />}
+                            </span>
+                         )}
                       </div>
-                    </th>
-                  );
-                })}
+                    </div>
+                    {header.column.getCanFilter() && (
+                      <input 
+                        value={(header.column.getFilterValue() ?? '')}
+                        onChange={e => header.column.setFilterValue(e.target.value)}
+                        placeholder="Filter..."
+                        style={{
+                          width: '100%', padding: '4px 8px', fontSize: '10.5px', borderRadius: '6px',
+                          border: `1px solid ${t.surfaceBorder}`, background: isDark ? 'rgba(0,0,0,0.2)' : '#fff',
+                          color: t.text, outline: 'none'
+                        }}
+                      />
+                    )}
+                  </th>
+                ))}
               </tr>
             ))}
           </thead>
@@ -219,156 +133,54 @@ export default function TanStackTable({
                 onClick={() => onRowClick && onRowClick(row.original)}
                 style={{ 
                   background: i % 2 === 0 ? 'transparent' : (isDark ? 'rgba(255,255,255,0.01)' : 'rgba(0,0,0,0.005)'),
-                  transition: 'background 0.1s',
                   cursor: onRowClick ? 'pointer' : 'default',
                   ...(rowStyle ? rowStyle(row.original) : {})
                 }}
-                className="table-row-hover"
+                className="ts-row"
               >
                 {row.getVisibleCells().map(cell => (
-                  <td
+                  <td 
                     key={cell.id}
                     style={{
                       padding: '10px 14px',
-                      borderBottom: `1px solid ${t.rowDivider || (isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)')}`,
-                      borderRight: `1px solid ${t.columnDivider || (isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)')}`,
-                      color: t.textSecondary,
-                      whiteSpace: 'nowrap',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
+                      borderBottom: `1px solid ${isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'}`,
+                      borderRight: `1px solid ${isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'}`,
+                      overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                       ...(cell.column.columnDef.meta?.style || {})
                     }}
                   >
-                    <div onClick={e => e.stopPropagation()} style={{ display: 'flex', alignItems: 'center', justifyContent: cell.column.id === 'select' ? 'center' : 'flex-start' }}>
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                    </div>
+                     {flexRender(cell.column.columnDef.cell, cell.getContext())}
                   </td>
                 ))}
               </tr>
             ))}
           </tbody>
         </table>
-        
         {rows.length === 0 && (
-          <div style={{ padding: '80px 0', textAlign: 'center', color: t.textMuted }}>
-            <FilterX size={40} strokeWidth={1.5} style={{ marginBottom: '16px', opacity: 0.4 }} />
-            <div style={{ fontSize: '15px', fontWeight: 600, color: t.textSecondary }}>No matching records</div>
-            <div style={{ fontSize: '12.5px', marginTop: '6px', opacity: 0.7 }}>Try adjusting your filters or search terms.</div>
+          <div style={{ padding: '60px 0', textAlign: 'center', opacity: 0.5 }}>
+            <FilterX size={32} style={{ marginBottom: '12px' }} />
+            <div>No results found</div>
           </div>
         )}
       </div>
 
-      {/* Pagination Footer */}
-      <div style={{ 
-        padding: '12px 20px', 
-        borderTop: `1px solid ${t.surfaceBorder}`,
-        background: isDark ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.01)',
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        zIndex: 5
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
-          <span style={{ fontSize: '12.5px', color: t.textMuted, fontWeight: 500 }}>
-            Showing <strong>{table.getState().pagination.pageIndex * pageSize + 1}</strong> to <strong>{Math.min((table.getState().pagination.pageIndex + 1) * pageSize, data.length)}</strong> of <strong>{data.length}</strong> items
-          </span>
-          {Object.keys(rowSelection).length > 0 && (
-            <span style={{ fontSize: '12px', fontWeight: 600, color: t.accent }}>
-              {Object.keys(rowSelection).length} selected
-            </span>
-          )}
+      <div style={{ padding: '12px 20px', borderTop: `1px solid ${t.surfaceBorder}`, background: isDark ? '#1C1917' : '#fff', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ fontSize: '12px', color: t.textMuted }}>
+          {Object.keys(rowSelection).length > 0 && <span style={{ marginRight: '16px', color: t.accent, fontWeight: 700 }}>{Object.keys(rowSelection).length} selected</span>}
+          Showing {table.getRowModel().rows.length} of {data.length} total
         </div>
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <button
-            onClick={() => table.setPageIndex(0)}
-            disabled={!table.getCanPreviousPage()}
-            className="pag-btn"
-          >
-            <ChevronsLeft size={16} />
-          </button>
-          <button
-            onClick={() => table.previousPage()}
-            disabled={!table.getCanPreviousPage()}
-            className="pag-btn"
-          >
-            <ChevronLeft size={16} />
-          </button>
-          
-          <div style={{ display: 'flex', gap: '4px', margin: '0 8px' }}>
-            <span style={{ fontSize: '13px', fontWeight: 700, color: t.text }}>{table.getState().pagination.pageIndex + 1}</span>
-            <span style={{ fontSize: '13px', color: t.textMuted }}>/</span>
-            <span style={{ fontSize: '13px', color: t.textMuted }}>{table.getPageCount() || 1}</span>
-          </div>
-
-          <button
-            onClick={() => table.nextPage()}
-            disabled={!table.getCanNextPage()}
-            className="pag-btn"
-          >
-            <ChevronRight size={16} />
-          </button>
-          <button
-            onClick={() => table.setPageIndex(table.getPageCount() - 1)}
-            disabled={!table.getCanNextPage()}
-            className="pag-btn"
-          >
-            <ChevronsRight size={16} />
-          </button>
+        <div style={{ display: 'flex', gap: '8px' }}>
+          <button onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()} className="p-btn"><ChevronLeft size={16} /></button>
+          <span style={{ fontSize: '13px' }}>{table.getState().pagination.pageIndex + 1} / {table.getPageCount()}</span>
+          <button onClick={() => table.nextPage()} disabled={!table.getCanNextPage()} className="p-btn"><ChevronRight size={16} /></button>
         </div>
       </div>
-
       <style>{`
-        .table-row-hover:hover {
-          background: ${isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)'} !important;
-        }
-        .tanstack-table-root th:last-child,
-        .tanstack-table-root td:last-child {
-          border-right: none;
-        }
-        .tanstack-table-root th:hover .resizer {
-          opacity: 1;
-        }
-        .resizer.isResizing {
-          opacity: 1 !important;
-          background: ${t.accent}20;
-        }
-        .custom-scrollbar::-webkit-scrollbar {
-          width: 8px;
-          height: 8px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-track {
-          background: transparent;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-          background: ${isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'};
-          borderRadius: 10px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-          background: ${isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.2)'};
-        }
-        .pag-btn {
-          width: 32px;
-          height: 32px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          border-radius: 8px;
-          border: 1px solid ${t.surfaceBorder};
-          background: ${isDark ? 'rgba(255,255,255,0.03)' : '#fff'};
-          color: ${t.textSecondary};
-          cursor: pointer;
-          transition: all 0.2s;
-        }
-        .pag-btn:hover:not(:disabled) {
-          border-color: ${t.accent};
-          color: ${t.accent};
-          background: ${isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.02)'};
-        }
-        .pag-btn:disabled {
-          opacity: 0.3;
-          cursor: default;
-        }
+        .ts-row:hover { background: ${isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.015)'} !important; }
+        .ts-scroller::-webkit-scrollbar { width: 8px; height: 8px; }
+        .ts-scroller::-webkit-scrollbar-thumb { background: ${isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'}; border-radius: 10px; }
+        .p-btn { padding: 4px 8px; border-radius: 4px; border: 1px solid ${t.surfaceBorder}; background: transparent; cursor: pointer; display: flex; align-items: center; }
+        .p-btn:disabled { opacity: 0.3; cursor: default; }
       `}</style>
     </div>
   );
