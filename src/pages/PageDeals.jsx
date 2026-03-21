@@ -219,7 +219,7 @@ export default function PageDeals({ t, isDark, DEALS = [], INVESTMENTS = [], FEE
             schedule_id: sIdInt,
             version_num: 1,
             version_id: `${sIdInt}-V1`,
-            payment_id: `${sIdInt}-P`,
+            payment_id: sIdInt,
             active_version: true,
             investment_id: inv.id, deal_id: deal.id, party_id: inv.party_id || "",
             due_date: gEnd.toISOString().slice(0, 10),
@@ -245,7 +245,7 @@ export default function PageDeals({ t, isDark, DEALS = [], INVESTMENTS = [], FEE
             const sIdFee = mkId("S");
             entries.push({
               schedule_id: sIdFee,
-              version_num: 1, version_id: `${sIdFee}-V1`, payment_id: `${sIdFee}-P`, active_version: true,
+              version_num: 1, version_id: `${sIdFee}-V1`, payment_id: sIdFee, active_version: true,
               investment_id: inv.id, deal_id: deal.id, party_id: inv.party_id || "",
               due_date: gEnd.toISOString().slice(0, 10),
               payment_type: PT_FEE,

@@ -75,7 +75,7 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
         schedule_id: sId,
         version_num: 1,
         version_id: `${sId}-V1`,
-        payment_id: `${sId}-P`,
+        payment_id: sId,
         active_version: true,
         investment: "",
         dueDate: "",
@@ -448,6 +448,7 @@ Are you sure you want to continue?`;
 
   const handleSaveSchedule = async () => {
     const d = modal.data;
+    const docRefId = d.docId || d.id;
 
     const unformat = v => {
       if (v == null || v === "") return null;
@@ -456,7 +457,7 @@ Are you sure you want to continue?`;
     };
 
     const payload = {
-      schedule_id: d.schedule_id,
+      schedule_id: d.schedule_id || docRefId || mkId("S"),
       investment_id: d.investment || "",
       deal_id: d.deal_id || "",
       party_id: d.party_id || "",
@@ -474,8 +475,8 @@ Are you sure you want to continue?`;
       term_start: d.term_start || null,
       term_end: d.term_end || null,
       version_num: d.version_num || 1,
-      version_id: d.version_id || `${d.schedule_id}-V${d.version_num || 1}`,
-      payment_id: d.payment_id || `${d.schedule_id}-P`,
+      version_id: d.version_id || `${d.schedule_id || docRefId}-V${d.version_num || 1}`,
+      payment_id: d.payment_id || d.schedule_id || docRefId,
       active_version: d.active_version !== undefined ? d.active_version : true,
       updated_at: serverTimestamp(),
     };
@@ -698,21 +699,21 @@ Are you sure you want to continue?`;
     }
 
     try {
-      if (modal.mode === "edit" && d.docId) {
+      if (modal.mode === "edit" && docRefId) {
         // Versioning Logic:
         // Instead of updating the document in place, we create a new version 
         // and mark the old one as "replaced" and inactive.
         
-        const oldRef = d._path ? doc(db, d._path) : doc(db, collectionPath, d.docId);
-        const newVersionNum = (d.version_num || 1) + 1;
+        const oldRef = d._path ? doc(db, d._path) : doc(db, collectionPath, docRefId);
+        const newVersionNum = Number(d.version_num || 1) + 1;
         
         // 1. Create the new version
         const newPayload = {
           ...payload,
           version_num: newVersionNum,
-          version_id: `${d.schedule_id}-V${newVersionNum}`,
+          version_id: `${payload.schedule_id}-V${newVersionNum}`,
           active_version: true,
-          previous_version_id: d.version_id || d.docId,
+          previous_version_id: d.version_id || docRefId,
           created_at: serverTimestamp(),
           updated_at: serverTimestamp(),
           updated_by: user?.uid || "system"
