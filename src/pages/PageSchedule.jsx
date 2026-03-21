@@ -374,37 +374,47 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
       onConfirm: async () => {
         setConfirmAction(null);
         try {
+          console.log("[Undo] Starting for:", s.schedule_id, "mode:", isVersioned ? "Version" : hasSnapshot ? "Snapshot" : "Replacement");
+          
           if (isVersioned && s.previous_version_id) {
             // 1. Find the predecessor
             const prev = SCHEDULES.find(x => x.docId === s.previous_version_id || x.version_id === s.previous_version_id);
             if (!prev) {
-              alert("Could not find the previous version to revert to.");
+              console.error("[Undo] Predecessor not found in SCHEDULES for id:", s.previous_version_id);
+              alert(`Undo failed: Could not find the previous version (ID: ${s.previous_version_id}) in the local data cache. Please try refreshing.`);
               return;
             }
+
+            console.log("[Undo] Found predecessor:", prev.docId, "Status was:", prev.status);
 
             // 2. Reactivate the predecessor
             const prevRef = prev._path ? doc(db, prev._path) : doc(db, collectionPath, prev.docId);
             await updateDoc(prevRef, {
               active_version: true,
-              status: prev.status === "REPLACED" ? "Due" : prev.status, // Fallback to Due if it was Replaced
+              status: (prev.status === "REPLACED") ? "Due" : prev.status, 
               updated_at: serverTimestamp()
             });
+            console.log("[Undo] Predecessor reactivated:", prev.docId);
 
             // 3. Delete the current version
             const currRef = s._path ? doc(db, s._path) : doc(db, collectionPath, s.docId);
             await deleteDoc(currRef);
+            console.log("[Undo] Current version deleted:", s.docId);
+            
+            alert(`Succeeded! Reverted ${s.schedule_id} to V${prev.version_num}.`);
           } 
           else if (hasSnapshot) {
-            // Original edit logic (with _undo_snapshot)
+            console.log("[Undo] Snapshot-based revert for:", s.docId);
             const ref = s._path ? doc(db, s._path) : doc(db, collectionPath, s.docId);
             await updateDoc(ref, { ...s._undo_snapshot, _undo_snapshot: null, updated_at: serverTimestamp() });
             if (childSchedule && childSchedule.docId) {
               const childRef = childSchedule._path ? doc(db, childSchedule._path) : doc(db, collectionPath, childSchedule.docId);
               await deleteDoc(childRef);
             }
+            alert(`Succeeded! Restored ${s.schedule_id} to snapshot state.`);
           } 
           else if (isReplacement) {
-            // Delete replacement record and clear parent link
+            console.log("[Undo] Replacement-based deletion for:", s.docId);
             const ref = s._path ? doc(db, s._path) : doc(db, collectionPath, s.docId);
             await deleteDoc(ref);
             if (s.linked) {
@@ -414,10 +424,11 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
                 await updateDoc(pRef, { linked_schedule_id: "", updated_at: serverTimestamp() });
               }
             }
+            alert(`Succeeded! Deleted replacement schedule ${s.schedule_id}.`);
           }
         } catch (err) {
-          console.error("Undo error:", err);
-          alert("Failed to undo action: " + err.message);
+          console.error("[Undo] Critical error during undo:", err);
+          alert(`Undo failed: ${err.message}`);
         }
       }
     });
