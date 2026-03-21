@@ -31,8 +31,8 @@ export const getScheduleColumnDefs = (permissions, isDark, t, showCheckbox = tru
       filter: false,
       resizable: false,
       checkboxSelection: true,
-      headerCheckboxSelection: true,
-      headerCheckboxSelectionFilteredOnly: true,
+      headerCheckboxSelection: false,
+      headerCheckboxSelectionFilteredOnly: false,
       cellStyle: {
         display: 'flex',
         alignItems: 'center',

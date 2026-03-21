@@ -54,9 +54,9 @@
   --ag-cell-horizontal-border: rgba(255, 255, 255, 0.06); /* Subtle vertical */
 
   --ag-foreground-color: #e2e8f0;
-  --ag-header-foreground-color: #ffffff; /* Forced pure white */
-  --ag-secondary-foreground-color: #94a3b8;
-  --ag-disabled-foreground-color: rgba(255, 255, 255, 0.3);
+  --ag-header-foreground-color: #ffffff;
+  --ag-secondary-foreground-color: #f1f5f9;
+  --ag-disabled-foreground-color: rgba(255, 255, 255, 0.4);
 
   --ag-input-border-color: rgba(255, 255, 255, 0.1);
   --ag-input-focus-border-color: #34D399;
@@ -79,16 +79,19 @@
 }
 
 .dark-mode.ag-theme-custom .ag-header-icon {
-  opacity: 0.85 !important; /* More visible in dark mode */
-}
-
-.dark-mode.ag-theme-custom .ag-header-icon.ag-filter-icon {
-  opacity: 1 !important; /* Forced full visibility for filter icons */
+  opacity: 1 !important; /* Fully visible in dark mode */
   color: #FFFFFF !important;
 }
 
+.dark-mode.ag-theme-custom .ag-header-icon.ag-filter-icon {
+  opacity: 1 !important;
+  color: #FFFFFF !important;
+  filter: drop-shadow(0 0 2px rgba(255,255,255,0.4));
+}
+
 .dark-mode.ag-theme-custom .ag-header-cell:hover .ag-header-icon {
-  opacity: 1 !important; /* Fully visible on hover */
+  opacity: 1 !important;
+  color: #FFFFFF !important;
 }
 
 /* --- Force Visible Dividers --- */
@@ -525,33 +528,55 @@
   align-items: center !important;
 }
 
-/* Explicit Checkbox Overrides for visibility */
+/* Explicit Checkbox Overrides for premium feel */
 .ag-theme-custom .ag-checkbox-input-wrapper {
-  background-color: var(--ag-checkbox-background-color);
-  border-radius: var(--ag-checkbox-border-radius);
-  transition: all 0.2s ease;
+  background-color: transparent !important;
+  border: 1px solid var(--ag-checkbox-unchecked-color);
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  transition: all 0.1s ease;
+  position: relative;
+}
+
+/* Hide the default SVG checkmark */
+.ag-theme-custom .ag-checkbox-input-wrapper span {
+  display: none !important;
 }
 
 .ag-theme-custom .ag-checkbox-input-wrapper.ag-checked {
-  color: var(--ag-checkbox-checked-color) !important;
+  background-color: var(--ag-checkbox-checked-color) !important;
+  border-color: var(--ag-checkbox-checked-color) !important;
 }
 
-.ag-theme-custom .ag-checkbox-input-wrapper.ag-checked .ag-icon {
-  color: var(--ag-checkbox-checked-color) !important;
-  transform: scale(1.1);
+/* Create a new 'Circle' icon for Checked state */
+.ag-theme-custom .ag-checkbox-input-wrapper.ag-checked::after {
+  content: "";
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  background-color: #fff;
+  border-radius: 50%;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+  animation: checkPop 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
-/* Ensure the SVG tick is visible */
-.ag-theme-custom .ag-checkbox-input-wrapper .ag-icon-checkbox-checked {
-  color: var(--ag-checkbox-checked-color) !important;
+@keyframes checkPop {
+  0% { transform: scale(0); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
 }
 
-.ag-theme-custom .ag-checkbox-input-wrapper .ag-icon-checkbox-unchecked {
-  color: var(--ag-checkbox-unchecked-color) !important;
-  opacity: 0.6;
+.ag-theme-custom .ag-checkbox-input-wrapper.ag-indeterminate {
+  background-color: var(--ag-checkbox-checked-color) !important;
 }
 
-/* Indeterminate state */
-.ag-theme-custom .ag-checkbox-input-wrapper.ag-indeterminate .ag-icon {
-  color: var(--ag-checkbox-checked-color) !important;
+.ag-theme-custom .ag-checkbox-input-wrapper.ag-indeterminate::after {
+  content: "";
+  position: absolute;
+  width: 8px;
+  height: 2px;
+  background-color: #fff;
 }
