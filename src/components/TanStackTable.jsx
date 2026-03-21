@@ -32,6 +32,7 @@ export default function TanStackTable({
   onRowClick,
   globalFilter,
   setGlobalFilter,
+  getRowId, // Add support for stable row IDs
 }) {
   const [sorting, setSorting] = useState([]);
   const [columnFilters, setColumnFilters] = useState([]);
@@ -50,10 +51,7 @@ export default function TanStackTable({
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
     onGlobalFilterChange: setGlobalFilter,
-    onRowSelectionChange: (updater) => {
-      const next = typeof updater === 'function' ? updater(rowSelection) : updater;
-      setRowSelection(next);
-    },
+    onRowSelectionChange: setRowSelection,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
@@ -63,10 +61,12 @@ export default function TanStackTable({
         pageSize: pageSize,
       },
     },
+    getRowId: getRowId || ((row, i) => row.id || row.schedule_id || String(i)),
     autoResetRowSelection: false,
   });
 
   // Notify parent of selection changes
+  // We use a useEffect triggered by rowSelection state
   useEffect(() => {
     if (onSelectionChange) {
       const selectedRows = table.getSelectedRowModel().flatRows.map(row => row.original);
@@ -110,6 +110,8 @@ export default function TanStackTable({
                 {headerGroup.headers.map(header => {
                   const isSorted = header.column.getIsSorted();
                   const width = header.column.columnDef.size || 'auto';
+                  const canSort = header.column.getCanSort();
+                  
                   return (
                     <th 
                       key={header.id}
@@ -125,17 +127,19 @@ export default function TanStackTable({
                         color: t.textSubtle,
                         borderBottom: `2px solid ${t.surfaceBorder}`,
                         borderRight: `1px solid ${t.columnDivider || (isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)')}`,
-                        cursor: header.column.getCanSort() ? 'pointer' : 'default',
+                        cursor: canSort ? 'pointer' : 'default',
                         userSelect: 'none',
                         transition: 'background 0.2s',
                         position: 'relative',
                         verticalAlign: 'top'
                       }}
-                      onClick={header.column.getToggleSortingHandler()}
+                      onClick={canSort ? header.column.getToggleSortingHandler() : undefined}
                     >
                       <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: header.column.getCanFilter() ? '8px' : 0 }}>
-                        {flexRender(header.column.columnDef.header, header.getContext())}
-                        {header.column.getCanSort() && (
+                        <div onClick={e => e.stopPropagation()} style={{ display: 'flex', alignItems: 'center' }}>
+                          {flexRender(header.column.columnDef.header, header.getContext())}
+                        </div>
+                        {canSort && (
                           <div style={{ display: 'flex', flexDirection: 'column', opacity: isSorted ? 1 : 0.3 }}>
                             {isSorted === 'asc' ? <ArrowUp size={12} color={t.accent} /> : 
                              isSorted === 'desc' ? <ArrowDown size={12} color={t.accent} /> : 
@@ -200,7 +204,9 @@ export default function TanStackTable({
                       ...(cell.column.columnDef.meta?.style || {})
                     }}
                   >
-                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                    <div onClick={e => e.stopPropagation()} style={{ display: cell.column.id === 'select' ? 'contents' : 'block' }}>
+                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                    </div>
                   </td>
                 ))}
               </tr>
@@ -211,8 +217,8 @@ export default function TanStackTable({
         {rows.length === 0 && (
           <div style={{ padding: '80px 0', textAlign: 'center', color: t.textMuted }}>
             <FilterX size={40} strokeWidth={1.5} style={{ marginBottom: '16px', opacity: 0.4 }} />
-            <div style={{ fontSize: '15px', fontWeight: 600, color: t.textSecondary }}>No matching schedules</div>
-            <div style={{ fontSize: '12.5px', marginTop: '6px', opacity: 0.7 }}>Try adjusting your search or filters.</div>
+            <div style={{ fontSize: '15px', fontWeight: 600, color: t.textSecondary }}>No matching records</div>
+            <div style={{ fontSize: '12.5px', marginTop: '6px', opacity: 0.7 }}>Try adjusting your filters or search terms.</div>
           </div>
         )}
       </div>
@@ -257,7 +263,7 @@ export default function TanStackTable({
           <div style={{ display: 'flex', gap: '4px', margin: '0 8px' }}>
             <span style={{ fontSize: '13px', fontWeight: 700, color: t.text }}>{table.getState().pagination.pageIndex + 1}</span>
             <span style={{ fontSize: '13px', color: t.textMuted }}>/</span>
-            <span style={{ fontSize: '13px', color: t.textMuted }}>{table.getPageCount()}</span>
+            <span style={{ fontSize: '13px', color: t.textMuted }}>{table.getPageCount() || 1}</span>
           </div>
 
           <button

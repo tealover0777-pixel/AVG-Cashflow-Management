@@ -8,14 +8,24 @@ export const getInvestmentColumns = (permissions, isDark, t, context) => {
   const cols = [
     {
       id: 'select',
-      header: ({ table }) => (
-        <input
-          type="checkbox"
-          checked={table.getIsAllRowsSelected()}
-          onChange={table.getToggleAllRowsSelectedHandler()}
-          style={{ cursor: 'pointer', accentColor: t.accent }}
-        />
-      ),
+      header: ({ table }) => {
+        const rows = table.getFilteredRowModel().rows;
+        const isAllSelected = rows.length > 0 && rows.every(r => r.getIsSelected());
+        const isSomeSelected = rows.some(r => r.getIsSelected());
+        
+        return (
+          <input
+            type="checkbox"
+            checked={isAllSelected}
+            ref={el => { if (el) el.indeterminate = isSomeSelected && !isAllSelected; }}
+            onChange={() => {
+              const nextValue = !isAllSelected;
+              rows.forEach(row => row.toggleSelected(nextValue));
+            }}
+            style={{ cursor: 'pointer', accentColor: t.accent }}
+          />
+        );
+      },
       cell: ({ row }) => (
         <input
           type="checkbox"

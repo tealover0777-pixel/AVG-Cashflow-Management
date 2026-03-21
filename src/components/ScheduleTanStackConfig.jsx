@@ -8,14 +8,24 @@ export const getScheduleColumns = (permissions, isDark, t, context) => {
   const cols = [
     {
       id: 'select',
-      header: ({ table }) => (
-        <input
-          type="checkbox"
-          checked={table.getIsAllRowsSelected()}
-          onChange={table.getToggleAllRowsSelectedHandler()}
-          style={{ cursor: 'pointer', accentColor: t.accent }}
-        />
-      ),
+      header: ({ table }) => {
+        const rows = table.getFilteredRowModel().rows;
+        const isAllSelected = rows.length > 0 && rows.every(r => r.getIsSelected());
+        const isSomeSelected = rows.some(r => r.getIsSelected());
+        
+        return (
+          <input
+            type="checkbox"
+            checked={isAllSelected}
+            ref={el => { if (el) el.indeterminate = isSomeSelected && !isAllSelected; }}
+            onChange={() => {
+              const next = !isAllSelected;
+              rows.forEach(r => r.toggleSelected(next));
+            }}
+            style={{ cursor: 'pointer', accentColor: t.accent }}
+          />
+        );
+      },
       cell: ({ row }) => (
         <input
           type="checkbox"
