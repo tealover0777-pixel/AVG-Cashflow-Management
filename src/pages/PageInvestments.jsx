@@ -798,7 +798,7 @@ export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [
       </div>
     </div>
 
-    <div className={(isDark ? "ag-theme-quartz-dark" : "ag-theme-quartz") + " ag-theme-custom"} style={{ height: "calc(100vh - 520px)", width: "100%" }}>
+    <div className={`ag-theme-custom ${isDark ? 'dark-mode' : 'light-mode'}`} style={{ height: "calc(100vh - 520px)", width: "100%" }}>
       <AgGridReact
         ref={gridRef}
         rowData={filtered}
