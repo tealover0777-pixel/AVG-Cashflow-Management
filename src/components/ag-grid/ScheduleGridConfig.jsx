@@ -68,7 +68,7 @@ export const getScheduleColumnDefs = (permissions, isDark, t, showCheckbox = tru
       cellStyle: { fontFamily: t.mono, fontSize: '11px', color: t.textMuted }
     },
     {
-      headerName: "Investment",
+      headerName: "Investment ID",
       field: "investment",
       width: 90,
       sortable: true,
@@ -127,7 +127,7 @@ export const getScheduleColumnDefs = (permissions, isDark, t, showCheckbox = tru
       cellStyle: { fontFamily: t.mono, fontSize: '11px', color: isDark ? "rgba(255,255,255,0.7)" : "#44403C" }
     },
     {
-      headerName: "Type",
+      headerName: "Payment Type",
       field: "type",
       width: 160,
       sortable: true,
