@@ -1,12 +1,15 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
-import { db } from "../firebase";
+import { db, storage } from "../firebase";
 import { doc, getDocs, collection, updateDoc, addDoc, deleteDoc, serverTimestamp } from "firebase/firestore";
+import { ref, uploadBytes, getDownloadURL, deleteObject } from "firebase/storage";
 import { Modal, FF, FIn, FSel, DelModal } from "../components";
 import { useAuth } from "../AuthContext";
 import { getDealInvestmentColumns } from "../components/DealSummaryTanStackConfig";
 import { getDistributionColumns } from "../components/DistributionScheduleTanStackConfig";
 import { getContactColumns } from "../components/ContactsTanStackConfig";
+import { getAssetColumns } from "../components/AssetsTanStackConfig";
 import TanStackTable from "../components/TanStackTable";
+import { X } from "lucide-react";
 
 export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTMENTS = [], CONTACTS = [], DIMENSIONS = [], FEES_DATA = [], SCHEDULES = [], USERS = [], setActivePage, investmentCollection = "investments" }) {
   const { hasPermission, isSuperAdmin } = useAuth();
@@ -17,15 +20,26 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
   const deal = useMemo(() => DEALS.find(d => d.id === dealId) || {}, [dealId, DEALS]);
   const [activeTab, setActiveTab] = useState("Investments");
   const [assetImages, setAssetImages] = useState([]);
+  const [assets, setAssets] = useState([]);
   const [modal, setModal] = useState({ open: false, mode: "add", data: {} });
+  const [assetModal, setAssetModal] = useState({ open: false, mode: "add", data: {} });
   const [delT, setDelT] = useState(null);
+  const [assetDelT, setAssetDelT] = useState(null);
   const [sel, setSel] = useState(new Set());
   const [pageSize, setPageSize] = useState(20);
+  const [uploadedPhotos, setUploadedPhotos] = useState([]);
+  const [newPhotoFiles, setNewPhotoFiles] = useState([]);
+  const [attributes, setAttributes] = useState([]);
 
   useEffect(() => {
     if (deal.id) {
        getDocs(collection(db, "deals", deal.id, "asset_images")).then(snap => {
          setAssetImages(snap.docs.map(d => d.data()));
+       }).catch(console.error);
+
+       // Fetch assets
+       getDocs(collection(db, "deals", deal.id, "assets")).then(snap => {
+         setAssets(snap.docs.map(d => ({ docId: d.id, ...d.data() })));
        }).catch(console.error);
     }
   }, [deal.id]);
@@ -120,6 +134,178 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
     } catch (err) { console.error("Delete investment error:", err); }
   };
 
+  // Asset management functions
+  const openAddAsset = () => {
+    setUploadedPhotos([]);
+    setNewPhotoFiles([]);
+    setAttributes([]);
+    setAssetModal({
+      open: true,
+      mode: "add",
+      data: {
+        name: "",
+        country: "United States of America",
+        addr1: "",
+        addr2: "",
+        city: "",
+        state: "",
+        zip: "",
+        visible_offerings: true,
+        visible_deal: true
+      }
+    });
+  };
+
+  const openEditAsset = async (r) => {
+    // Fetch photos for this asset
+    try {
+      const photosSnap = await getDocs(collection(db, "deals", deal.id, "assets", r.docId, "photos"));
+      const photos = photosSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+      setUploadedPhotos(photos);
+    } catch (e) {
+      console.error("Error fetching photos:", e);
+      setUploadedPhotos([]);
+    }
+
+    // Parse attributes from data
+    const attrFields = ["asset_type", "property_class", "num_units", "units", "net_asset_value",
+                        "acquisition_price", "acquisition_date", "exit_price", "exit_date",
+                        "year_built", "year_renovated"];
+    const attrs = [];
+    attrFields.forEach(field => {
+      if (r[field] !== undefined && r[field] !== null && r[field] !== "") {
+        attrs.push({ label: field.replace(/_/g, " "), value: r[field] });
+      }
+    });
+    setAttributes(attrs);
+    setNewPhotoFiles([]);
+    setAssetModal({ open: true, mode: "edit", data: { ...r } });
+  };
+
+  const closeAssetModal = () => {
+    setAssetModal({ open: false, mode: "add", data: {} });
+    setUploadedPhotos([]);
+    setNewPhotoFiles([]);
+    setAttributes([]);
+  };
+
+  const handleSaveAsset = async () => {
+    const d = assetModal.data;
+    const fullAddress = [d.addr1, d.addr2, d.city, d.state, d.zip, d.country]
+      .filter(Boolean)
+      .join(", ");
+
+    const payload = {
+      name: d.name || "",
+      country: d.country || "United States of America",
+      addr1: d.addr1 || "",
+      addr2: d.addr2 || "",
+      city: d.city || "",
+      state: d.state || "",
+      zip: d.zip || "",
+      address: fullAddress,
+      visible_offerings: d.visible_offerings !== false,
+      visible_deal: d.visible_deal !== false,
+      asset_type: d.asset_type || "",
+      property_class: d.property_class || "",
+      num_units: d.num_units || null,
+      units: d.units || "",
+      net_asset_value: d.net_asset_value || null,
+      acquisition_price: d.acquisition_price || null,
+      acquisition_date: d.acquisition_date || null,
+      exit_price: d.exit_price || null,
+      exit_date: d.exit_date || null,
+      year_built: d.year_built || null,
+      year_renovated: d.year_renovated || null,
+      images: uploadedPhotos.length + newPhotoFiles.length,
+      updated_at: serverTimestamp(),
+    };
+
+    try {
+      let assetDocRef;
+      if (assetModal.mode === "edit" && d.docId) {
+        assetDocRef = doc(db, "deals", deal.id, "assets", d.docId);
+        await updateDoc(assetDocRef, payload);
+      } else {
+        assetDocRef = await addDoc(collection(db, "deals", deal.id, "assets"), {
+          ...payload,
+          created_at: serverTimestamp()
+        });
+      }
+
+      // Upload new photos
+      if (newPhotoFiles.length > 0) {
+        const assetId = assetModal.mode === "edit" ? d.docId : assetDocRef.id;
+        for (const fileObj of newPhotoFiles) {
+          const storageRef = ref(storage, `deals/${deal.id}/assets/${assetId}/${Date.now()}_${fileObj.file.name}`);
+          const uploadResult = await uploadBytes(storageRef, fileObj.file);
+          const url = await getDownloadURL(uploadResult.ref);
+
+          await addDoc(collection(db, "deals", deal.id, "assets", assetId, "photos"), {
+            url,
+            name: fileObj.file.name,
+            created_at: serverTimestamp()
+          });
+        }
+      }
+
+      // Refresh assets
+      const snap = await getDocs(collection(db, "deals", deal.id, "assets"));
+      setAssets(snap.docs.map(doc => ({ docId: doc.id, ...doc.data() })));
+
+      closeAssetModal();
+    } catch (err) {
+      console.error("Save asset error:", err);
+      alert("Failed to save asset. " + err.message);
+    }
+  };
+
+  const handleDeleteAsset = async () => {
+    if (!assetDelT || !assetDelT.docId) return;
+    try {
+      // Delete photos subcollection first
+      const photosSnap = await getDocs(collection(db, "deals", deal.id, "assets", assetDelT.docId, "photos"));
+      for (const photoDoc of photosSnap.docs) {
+        await deleteDoc(doc(db, "deals", deal.id, "assets", assetDelT.docId, "photos", photoDoc.id));
+      }
+
+      // Delete asset document
+      await deleteDoc(doc(db, "deals", deal.id, "assets", assetDelT.docId));
+
+      // Refresh assets
+      const snap = await getDocs(collection(db, "deals", deal.id, "assets"));
+      setAssets(snap.docs.map(doc => ({ docId: doc.id, ...doc.data() })));
+
+      setAssetDelT(null);
+    } catch (err) {
+      console.error("Delete asset error:", err);
+      alert("Failed to delete asset. " + err.message);
+    }
+  };
+
+  const handlePhotoUpload = (e) => {
+    const files = Array.from(e.target.files || []);
+    const newFiles = files.map(file => ({
+      file,
+      preview: URL.createObjectURL(file)
+    }));
+    setNewPhotoFiles(prev => [...prev, ...newFiles]);
+  };
+
+  const removeNewPhoto = (index) => {
+    setNewPhotoFiles(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const removeUploadedPhoto = async (photo) => {
+    try {
+      await deleteDoc(doc(db, "deals", deal.id, "assets", assetModal.data.docId, "photos", photo.id));
+      setUploadedPhotos(prev => prev.filter(p => p.id !== photo.id));
+    } catch (e) {
+      console.error("Error deleting photo:", e);
+      alert("Failed to delete photo.");
+    }
+  };
+
   const permissions = { canUpdate, canDelete };
   const callbacks = { onEdit: openEdit, onDelete: setDelT };
   const context = { CONTACTS, FEES_DATA, callbacks, permissions, isDark, t };
@@ -144,6 +330,18 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
     };
     const contactPermissions = { canUpdate, canDelete, canInvite: false };
     return getContactColumns(contactPermissions, isDark, t, contactContext);
+  }, [isDark, t, canUpdate, canDelete]);
+
+  const assetColumnDefs = useMemo(() => {
+    const assetContext = {
+      callbacks: {
+        onNameClick: openEditAsset,
+        onEdit: openEditAsset,
+        onDelete: setAssetDelT
+      }
+    };
+    const assetPermissions = { canUpdate, canDelete };
+    return getAssetColumns(assetPermissions, isDark, t, assetContext);
   }, [isDark, t, canUpdate, canDelete]);
 
   function fmtCurrency(val) {
@@ -185,7 +383,8 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
           
           <div style={{ display: "flex", gap: 12 }}>
              <button style={{ background: isDark ? "rgba(255,255,255,0.05)" : "#fff", border: `1px solid ${t.surfaceBorder}`, padding: "8px 16px", borderRadius: 8, fontSize: 13, fontWeight: 600, color: t.textSecondary }}>Manage deal</button>
-             {canCreate && <button onClick={openAdd} style={{ background: t.accent, color: "#fff", border: "none", padding: "8px 16px", borderRadius: 8, fontSize: 13, fontWeight: 600 }}>+ Add investment</button>}
+             {canCreate && activeTab === "Investments" && <button onClick={openAdd} style={{ background: t.accent, color: "#fff", border: "none", padding: "8px 16px", borderRadius: 8, fontSize: 13, fontWeight: 600 }}>+ Add investment</button>}
+             {canCreate && activeTab === "Assets" && <button onClick={openAddAsset} style={{ background: t.accent, color: "#fff", border: "none", padding: "8px 16px", borderRadius: 8, fontSize: 13, fontWeight: 600 }}>+ Add asset</button>}
           </div>
         </div>
       </div>
@@ -254,13 +453,14 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
             />
         </div>
       ) : activeTab === "Assets" ? (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 20 }}>
-          {assetImages.length > 0 ? assetImages.map((img, i) => (
-            <div key={i} style={{ borderRadius: 12, overflow: "hidden", border: `1px solid ${t.surfaceBorder}` }}>
-              <img src={img.url} style={{ width: "100%", height: 160, objectFit: "cover" }} />
-              <div style={{ padding: 12, fontSize: 12, color: t.textSecondary }}>{img.name}</div>
-            </div>
-          )) : <div style={{ color: t.textMuted }}>No assets found.</div>}
+        <div style={{ height: '500px', width: "100%", minHeight: '500px' }}>
+            <TanStackTable
+                data={assets}
+                columns={assetColumnDefs}
+                pageSize={pageSize}
+                t={t}
+                isDark={isDark}
+            />
         </div>
       ) : activeTab === "Contacts" ? (
         <div style={{ height: '500px', width: "100%", minHeight: '500px' }}>
@@ -305,7 +505,349 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
           <FF label="Status" t={t}><FSel value={modal.data.status} onChange={e => setModal(m => ({ ...m, data: { ...m.data, status: e.target.value } }))} options={["Open", "Active", "Closed"]} t={t} /></FF>
         </div>
       </Modal>
+
+      {/* Asset Modal */}
+      <Modal
+        open={assetModal.open}
+        onClose={closeAssetModal}
+        title={assetModal.mode === "add" ? "New Asset" : assetModal.data.name || "Edit Asset"}
+        onSave={handleSaveAsset}
+        width={900}
+        t={t}
+        isDark={isDark}
+      >
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
+          {/* Left Column */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+            <div>
+              <h3 style={{ fontSize: 14, fontWeight: 600, color: t.text, marginBottom: 12 }}>Name</h3>
+              <FF label="Name of property" t={t}>
+                <FIn
+                  value={assetModal.data.name || ""}
+                  onChange={e => setAssetModal(m => ({ ...m, data: { ...m.data, name: e.target.value } }))}
+                  placeholder="e.g. Long Beach Clinic"
+                  t={t}
+                />
+              </FF>
+            </div>
+
+            <div>
+              <h3 style={{ fontSize: 14, fontWeight: 600, color: t.text, marginBottom: 12 }}>Address</h3>
+              <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                <FF label="Country" t={t}>
+                  <FSel
+                    value={assetModal.data.country || "United States of America"}
+                    onChange={e => setAssetModal(m => ({ ...m, data: { ...m.data, country: e.target.value } }))}
+                    options={["United States of America", "Canada", "Mexico", "United Kingdom", "Other"]}
+                    t={t}
+                  />
+                </FF>
+                <FF label="Street address line 1" t={t}>
+                  <FIn
+                    value={assetModal.data.addr1 || ""}
+                    onChange={e => setAssetModal(m => ({ ...m, data: { ...m.data, addr1: e.target.value } }))}
+                    placeholder="e.g. 780 Atlantic Ave"
+                    t={t}
+                  />
+                </FF>
+                <FF label="Street address line 2" t={t}>
+                  <FIn
+                    value={assetModal.data.addr2 || ""}
+                    onChange={e => setAssetModal(m => ({ ...m, data: { ...m.data, addr2: e.target.value } }))}
+                    t={t}
+                  />
+                </FF>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                  <FF label="City" t={t}>
+                    <FIn
+                      value={assetModal.data.city || ""}
+                      onChange={e => setAssetModal(m => ({ ...m, data: { ...m.data, city: e.target.value } }))}
+                      placeholder="e.g. Long Beach"
+                      t={t}
+                    />
+                  </FF>
+                  <FF label="State" t={t}>
+                    <FIn
+                      value={assetModal.data.state || ""}
+                      onChange={e => setAssetModal(m => ({ ...m, data: { ...m.data, state: e.target.value } }))}
+                      placeholder="e.g. CA"
+                      t={t}
+                    />
+                  </FF>
+                </div>
+                <FF label="Zip code" t={t}>
+                  <FIn
+                    value={assetModal.data.zip || ""}
+                    onChange={e => setAssetModal(m => ({ ...m, data: { ...m.data, zip: e.target.value } }))}
+                    placeholder="e.g. 90813"
+                    t={t}
+                  />
+                </FF>
+              </div>
+            </div>
+
+            <div>
+              <h3 style={{ fontSize: 14, fontWeight: 600, color: t.text, marginBottom: 12 }}>Additional information</h3>
+              <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                <FF label="Asset type" t={t}>
+                  <FIn
+                    value={assetModal.data.asset_type || ""}
+                    onChange={e => setAssetModal(m => ({ ...m, data: { ...m.data, asset_type: e.target.value } }))}
+                    placeholder="Select asset type"
+                    t={t}
+                  />
+                </FF>
+                <FF label="Property class" t={t}>
+                  <FIn
+                    value={assetModal.data.property_class || ""}
+                    onChange={e => setAssetModal(m => ({ ...m, data: { ...m.data, property_class: e.target.value } }))}
+                    t={t}
+                  />
+                </FF>
+                <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 12 }}>
+                  <FF label="Number of units" t={t}>
+                    <FIn
+                      value={assetModal.data.num_units || ""}
+                      onChange={e => setAssetModal(m => ({ ...m, data: { ...m.data, num_units: e.target.value } }))}
+                      type="number"
+                      t={t}
+                    />
+                  </FF>
+                  <FF label="Units" t={t}>
+                    <FIn
+                      value={assetModal.data.units || ""}
+                      onChange={e => setAssetModal(m => ({ ...m, data: { ...m.data, units: e.target.value } }))}
+                      placeholder="e.g. sqft"
+                      t={t}
+                    />
+                  </FF>
+                </div>
+                <FF label="Net asset value" t={t}>
+                  <FIn
+                    value={assetModal.data.net_asset_value || ""}
+                    onChange={e => setAssetModal(m => ({ ...m, data: { ...m.data, net_asset_value: e.target.value } }))}
+                    type="number"
+                    t={t}
+                  />
+                </FF>
+                <FF label="Acquisition price" t={t}>
+                  <FIn
+                    value={assetModal.data.acquisition_price || ""}
+                    onChange={e => setAssetModal(m => ({ ...m, data: { ...m.data, acquisition_price: e.target.value } }))}
+                    type="number"
+                    t={t}
+                  />
+                </FF>
+                <FF label="Acquisition date" t={t}>
+                  <FIn
+                    value={assetModal.data.acquisition_date || ""}
+                    onChange={e => setAssetModal(m => ({ ...m, data: { ...m.data, acquisition_date: e.target.value } }))}
+                    type="date"
+                    t={t}
+                  />
+                </FF>
+                <FF label="Exit price" t={t}>
+                  <FIn
+                    value={assetModal.data.exit_price || ""}
+                    onChange={e => setAssetModal(m => ({ ...m, data: { ...m.data, exit_price: e.target.value } }))}
+                    type="number"
+                    t={t}
+                  />
+                </FF>
+                <FF label="Exit date" t={t}>
+                  <FIn
+                    value={assetModal.data.exit_date || ""}
+                    onChange={e => setAssetModal(m => ({ ...m, data: { ...m.data, exit_date: e.target.value } }))}
+                    type="date"
+                    t={t}
+                  />
+                </FF>
+                <FF label="Year built" t={t}>
+                  <FIn
+                    value={assetModal.data.year_built || ""}
+                    onChange={e => setAssetModal(m => ({ ...m, data: { ...m.data, year_built: e.target.value } }))}
+                    type="number"
+                    placeholder="e.g. 2015"
+                    t={t}
+                  />
+                </FF>
+                <FF label="Year renovated" t={t}>
+                  <FIn
+                    value={assetModal.data.year_renovated || ""}
+                    onChange={e => setAssetModal(m => ({ ...m, data: { ...m.data, year_renovated: e.target.value } }))}
+                    type="number"
+                    t={t}
+                  />
+                </FF>
+              </div>
+            </div>
+          </div>
+
+          {/* Right Column */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+            <div>
+              <h3 style={{ fontSize: 14, fontWeight: 600, color: t.text, marginBottom: 12 }}>Visibility</h3>
+              <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                <FF label="Visible in offerings?" t={t}>
+                  <div style={{ display: "flex", gap: 16, alignItems: "center" }}>
+                    <label style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer" }}>
+                      <input
+                        type="radio"
+                        checked={assetModal.data.visible_offerings === true}
+                        onChange={() => setAssetModal(m => ({ ...m, data: { ...m.data, visible_offerings: true } }))}
+                        style={{ accentColor: t.accent }}
+                      />
+                      <span style={{ fontSize: 13, color: t.text }}>Yes</span>
+                    </label>
+                    <label style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer" }}>
+                      <input
+                        type="radio"
+                        checked={assetModal.data.visible_offerings === false}
+                        onChange={() => setAssetModal(m => ({ ...m, data: { ...m.data, visible_offerings: false } }))}
+                        style={{ accentColor: t.accent }}
+                      />
+                      <span style={{ fontSize: 13, color: t.text }}>No</span>
+                    </label>
+                  </div>
+                </FF>
+                <FF label="Visible in deal?" t={t}>
+                  <div style={{ display: "flex", gap: 16, alignItems: "center" }}>
+                    <label style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer" }}>
+                      <input
+                        type="radio"
+                        checked={assetModal.data.visible_deal === true}
+                        onChange={() => setAssetModal(m => ({ ...m, data: { ...m.data, visible_deal: true } }))}
+                        style={{ accentColor: t.accent }}
+                      />
+                      <span style={{ fontSize: 13, color: t.text }}>Yes</span>
+                    </label>
+                    <label style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer" }}>
+                      <input
+                        type="radio"
+                        checked={assetModal.data.visible_deal === false}
+                        onChange={() => setAssetModal(m => ({ ...m, data: { ...m.data, visible_deal: false } }))}
+                        style={{ accentColor: t.accent }}
+                      />
+                      <span style={{ fontSize: 13, color: t.text }}>No</span>
+                    </label>
+                  </div>
+                </FF>
+              </div>
+            </div>
+
+            <div>
+              <h3 style={{ fontSize: 14, fontWeight: 600, color: t.text, marginBottom: 12 }}>Upload photos</h3>
+              <div
+                style={{
+                  border: `2px dashed ${t.surfaceBorder}`,
+                  borderRadius: 12,
+                  padding: 40,
+                  textAlign: "center",
+                  background: isDark ? "rgba(255,255,255,0.02)" : "#FAFAFA",
+                  cursor: "pointer",
+                  position: "relative"
+                }}
+                onClick={() => document.getElementById("photo-upload").click()}
+              >
+                <div style={{ fontSize: 40, marginBottom: 8 }}>📷</div>
+                <div style={{ fontSize: 14, fontWeight: 600, color: t.text, marginBottom: 4 }}>
+                  Drag and drop photos
+                </div>
+                <div style={{ fontSize: 12, color: t.textMuted }}>or browse to choose files</div>
+                <input
+                  id="photo-upload"
+                  type="file"
+                  multiple
+                  accept="image/*"
+                  onChange={handlePhotoUpload}
+                  style={{ display: "none" }}
+                />
+              </div>
+
+              {/* Photo thumbnails */}
+              {(uploadedPhotos.length > 0 || newPhotoFiles.length > 0) && (
+                <div style={{ marginTop: 16, display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12 }}>
+                  {uploadedPhotos.map((photo) => (
+                    <div
+                      key={photo.id}
+                      style={{
+                        position: "relative",
+                        borderRadius: 8,
+                        overflow: "hidden",
+                        border: `1px solid ${t.surfaceBorder}`,
+                        aspectRatio: "1"
+                      }}
+                    >
+                      <img
+                        src={photo.url}
+                        alt={photo.name}
+                        style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                      />
+                      <button
+                        onClick={(e) => { e.stopPropagation(); removeUploadedPhoto(photo); }}
+                        style={{
+                          position: "absolute",
+                          top: 4,
+                          right: 4,
+                          background: "rgba(0,0,0,0.6)",
+                          border: "none",
+                          borderRadius: 4,
+                          padding: 4,
+                          cursor: "pointer",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center"
+                        }}
+                      >
+                        <X size={14} color="#fff" />
+                      </button>
+                    </div>
+                  ))}
+                  {newPhotoFiles.map((fileObj, idx) => (
+                    <div
+                      key={idx}
+                      style={{
+                        position: "relative",
+                        borderRadius: 8,
+                        overflow: "hidden",
+                        border: `1px solid ${t.surfaceBorder}`,
+                        aspectRatio: "1"
+                      }}
+                    >
+                      <img
+                        src={fileObj.preview}
+                        alt={fileObj.file.name}
+                        style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                      />
+                      <button
+                        onClick={(e) => { e.stopPropagation(); removeNewPhoto(idx); }}
+                        style={{
+                          position: "absolute",
+                          top: 4,
+                          right: 4,
+                          background: "rgba(0,0,0,0.6)",
+                          border: "none",
+                          borderRadius: 4,
+                          padding: 4,
+                          cursor: "pointer",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center"
+                        }}
+                      >
+                        <X size={14} color="#fff" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </Modal>
+
       <DelModal target={delT} onClose={() => setDelT(null)} onConfirm={handleDeleteInvestment} label="this investment" t={t} isDark={isDark} />
+      <DelModal target={assetDelT} onClose={() => setAssetDelT(null)} onConfirm={handleDeleteAsset} label="this asset" t={t} isDark={isDark} />
     </div>
   );
 }
