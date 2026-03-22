@@ -341,25 +341,19 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
 
     if (!isVersioned && !isReplacement && !hasSnapshot) return;
 
-    // Check if this schedule has a subsequent linked schedule (e.g. from replacement workflow)
-    const childId = s.linked_schedule_id;
-    const childSchedule = childId ? SCHEDULES.find(x => x.schedule_id === childId) : null;
-
-    if (childSchedule && (childSchedule.linked_schedule_id || SCHEDULES.some(x => x.linked === childSchedule.schedule_id))) {
-      alert(`Cannot undo ${s.schedule_id} because it has subsequent linked records. Please undo those first.`);
+    // Safety: don't undo if there's a newer version (prevent inconsistent state)
+    const newerVersion = SCHEDULES.find(x => x.previous_version_id === s.docId || (x.schedule_id === s.schedule_id && Number(x.version_num) > Number(s.version_num)));
+    if (newerVersion && newerVersion.active_version) {
+      alert(`Cannot undo V${s.version_num} because there is a newer active version (V${newerVersion.version_num}). Please undo the latest version first.`);
       return;
     }
 
-    let message = `Are you sure you want to undo the last action for ${s.schedule_id}?`;
     let title = "Undo Action";
+    let message = `Are you sure you want to undo the last action for ${s.schedule_id}?`;
 
     if (isVersioned) {
       title = "Revert to Previous Version";
-      message = `This will delete current (V${s.version_num}) and reactivate previous version (V${Number(s.version_num) - 1}). Are you sure?`;
-    } else if (hasSnapshot) {
-      message = `This will restore ${s.schedule_id} to its previous state.`;
-    } else if (isReplacement) {
-      message = `This will DELETE this replacement schedule (${s.schedule_id}) and revert any links.`;
+      message = `This will delete current (V${s.version_num}) and reactivate previous version (V${Number(s.version_num) - 1}) with its original data. Are you sure?`;
     }
 
     setConfirmAction({
@@ -368,60 +362,70 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
       onConfirm: async () => {
         setConfirmAction(null);
         try {
-          console.log("[Undo] Starting for:", s.schedule_id, "mode:", isVersioned ? "Version" : hasSnapshot ? "Snapshot" : "Replacement");
+          console.log("[Undo] Starting for:", s.schedule_id, "v:", s.version_num);
+          const ref = s._path ? doc(db, s._path) : doc(db, collectionPath, s.docId);
           
           if (isVersioned && s.previous_version_id) {
             // 1. Find the predecessor
             const prev = SCHEDULES.find(x => x.docId === s.previous_version_id || x.version_id === s.previous_version_id);
             if (!prev) {
-              console.error("[Undo] Predecessor not found in SCHEDULES for id:", s.previous_version_id);
-              alert(`Undo failed: Could not find the previous version (ID: ${s.previous_version_id}) in the local data cache. Please try refreshing.`);
+              alert(`Undo failed: Could not find the previous version record in the cache. Please refresh.`);
               return;
             }
 
-            console.log("[Undo] Found predecessor:", prev.docId, "Status was:", prev.status);
-
-            // 2. Reactivate the predecessor
             const prevRef = prev._path ? doc(db, prev._path) : doc(db, collectionPath, prev.docId);
-            await updateDoc(prevRef, {
-              active_version: true,
-              status: (prev.status === "REPLACED") ? "Due" : prev.status, 
-              updated_at: serverTimestamp()
-            });
-            console.log("[Undo] Predecessor reactivated:", prev.docId);
-
-            // 3. Delete the current version
-            const currRef = s._path ? doc(db, s._path) : doc(db, collectionPath, s.docId);
-            await deleteDoc(currRef);
-            console.log("[Undo] Current version deleted:", s.docId);
             
-            alert(`Succeeded! Reverted ${s.schedule_id} to V${prev.version_num}.`);
-          } 
-          else if (hasSnapshot) {
-            console.log("[Undo] Snapshot-based revert for:", s.docId);
-            const ref = s._path ? doc(db, s._path) : doc(db, collectionPath, s.docId);
-            await updateDoc(ref, { ...s._undo_snapshot, _undo_snapshot: null, updated_at: serverTimestamp() });
-            if (childSchedule && childSchedule.docId) {
-              const childRef = childSchedule._path ? doc(db, childSchedule._path) : doc(db, collectionPath, childSchedule.docId);
-              await deleteDoc(childRef);
+            // 2. Prepare restoration payload for the predecessor
+            const restorePayload = {
+              active_version: true,
+              updated_at: serverTimestamp(),
+              replaced_at: null,
+              replaced_by: null,
+              linked_schedule_id: "" // Clear link to the current version we are deleting
+            };
+            
+            // If the current version carries a snapshot of the predecessor's state, use it
+            if (s._undo_snapshot) {
+              Object.assign(restorePayload, s._undo_snapshot);
+            } else {
+              // Fallback: just reactivate and hope for the best (usually means it was Due)
+              restorePayload.status = (prev.status === "REPLACED") ? "Due" : prev.status;
             }
-            alert(`Succeeded! Restored ${s.schedule_id} to snapshot state.`);
-          } 
-          else if (isReplacement) {
-            console.log("[Undo] Replacement-based deletion for:", s.docId);
-            const ref = s._path ? doc(db, s._path) : doc(db, collectionPath, s.docId);
-            await deleteDoc(ref);
-            if (s.linked) {
-              const p = SCHEDULES.find(x => x.schedule_id === s.linked);
-              if (p) {
-                const pRef = p._path ? doc(db, p._path) : doc(db, collectionPath, p.docId);
-                await updateDoc(pRef, { linked_schedule_id: "", updated_at: serverTimestamp() });
+
+            // 3. Reactivate predecessor and delete current version
+            await updateDoc(prevRef, restorePayload);
+            
+            // 4. If this version created a child replacement (Missed/Partial workflow), clean it up
+            if (s.linked_schedule_id) {
+              const childReplacement = SCHEDULES.find(x => x.schedule_id === s.linked_schedule_id);
+              if (childReplacement) {
+                const cRef = childReplacement._path ? doc(db, childReplacement._path) : doc(db, collectionPath, childReplacement.docId);
+                await deleteDoc(cRef);
               }
             }
-            alert(`Succeeded! Deleted replacement schedule ${s.schedule_id}.`);
+
+            await deleteDoc(ref);
+            alert(`Succeeded! Reverted ${s.schedule_id} to V${prev.version_num}.`);
+          } 
+          else if (isReplacement) {
+             // Deleting the standalone replacement record itself
+             await deleteDoc(ref);
+             if (s.linked) {
+                const parent = SCHEDULES.find(x => x.schedule_id === s.linked);
+                if (parent) {
+                   const pRef = parent._path ? doc(db, parent._path) : doc(db, collectionPath, parent.docId);
+                   await updateDoc(pRef, { linked_schedule_id: "", updated_at: serverTimestamp() });
+                }
+             }
+             alert(`Succeeded! Deleted replacement schedule ${s.schedule_id}.`);
+          }
+          else if (hasSnapshot) {
+            // Non-versioned snapshot revert
+            await updateDoc(ref, { ...s._undo_snapshot, _undo_snapshot: null, updated_at: serverTimestamp() });
+            alert(`Succeeded! Restored ${s.schedule_id} to previous state.`);
           }
         } catch (err) {
-          console.error("[Undo] Critical error during undo:", err);
+          console.error("[Undo] Error:", err);
           alert(`Undo failed: ${err.message}`);
         }
       }
