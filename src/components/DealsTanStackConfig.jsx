@@ -71,7 +71,7 @@ export const getDealColumns = (permissions, isDark, t, context) => {
       )
     },
     {
-      header: "Deal type",
+      header: "Deal Type",
       accessorKey: "type",
       size: 160,
       cell: ({ getValue }) => {
@@ -98,9 +98,9 @@ export const getDealColumns = (permissions, isDark, t, context) => {
       cell: ({ getValue }) => <Bdg status={getValue()} isDark={isDark} />
     },
     {
-      header: "Progress",
+      header: "Funding Progress",
       accessorKey: "fundraisingProgress",
-      size: 180,
+      size: 200,
       cell: ({ row, getValue }) => {
         const val = getValue() || 0;
         const amount = row.original.fundraisingAmount || 0;
@@ -132,9 +132,9 @@ export const getDealColumns = (permissions, isDark, t, context) => {
       )
     },
     {
-      header: "Target",
+      header: "Funding Target",
       accessorKey: "valuation",
-      size: 140,
+      size: 160,
       cell: ({ getValue }) => {
         const v = getValue();
         if (!v) return <span style={{ color: t.textMuted }}>—</span>;

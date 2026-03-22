@@ -66,6 +66,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
     const rowSet = new Set();
     const dateSet = new Set();
     const dataMap = {};
+    const rowMetadata = {};
 
     // Helper function to parse currency string like "$8,000.00"
     const parseCurrency = (value) => {
@@ -98,11 +99,19 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
         amount = parseCurrency(schedule.payment_amount);
       }
 
-      console.log('Schedule:', { investorName, paymentType, dueDate, amount, raw: schedule.signed_payment_amount });
-
       const rowKey = `${investorName}|||${paymentType}`;
       rowSet.add(rowKey);
       dateSet.add(dueDate);
+
+      if (!rowMetadata[rowKey]) {
+        const inv = INVESTMENTS.find(iv => iv.id === (schedule.investment_id || schedule.investment));
+        rowMetadata[rowKey] = {
+          startDate: inv?.start_date || "—",
+          endDate: inv?.maturity_date || "—",
+          rate: inv?.rate || "—",
+          paymentMethod: investor?.bank_information || "—"
+        };
+      }
 
       const cellKey = `${rowKey}|||${dueDate}`;
       dataMap[cellKey] = (dataMap[cellKey] || 0) + amount;
@@ -111,7 +120,12 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
     // Convert row keys to objects with investor and type
     const rows = Array.from(rowSet).map(key => {
       const [investor, type] = key.split('|||');
-      return { investor, type, key };
+      return { 
+        investor, 
+        type, 
+        key,
+        ...rowMetadata[key]
+      };
     }).sort((a, b) => {
       // Sort by investor name first, then by type
       if (a.investor !== b.investor) return a.investor.localeCompare(b.investor);
@@ -123,7 +137,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
     console.log('Pivot data calculated:', { rows: rows.length, dates: dates.length, dataMap });
 
     return { rows, dates, data: dataMap };
-  }, [dealSchedules, CONTACTS]);
+  }, [dealSchedules, CONTACTS, INVESTMENTS]);
 
   const gridRef = useRef();
   const tabs = ["Investments", "Assets", "Distributions", "Documents", "Valuation forms", "Contacts"];
@@ -591,6 +605,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
                         top: 0,
                         background: isDark ? "#262626" : "#F9FAFB",
                         zIndex: 10,
+                        width: 180,
                         boxShadow: `inset 0 -2px 0 ${t.surfaceBorder}`
                       }}>
                         Investor Name
@@ -601,14 +616,74 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
                         fontWeight: 700,
                         color: t.text,
                         position: "sticky",
-                        left: 200,
+                        left: 180,
                         top: 0,
                         background: isDark ? "#262626" : "#F9FAFB",
                         zIndex: 10,
-                        minWidth: 150,
+                        width: 120,
                         boxShadow: `inset 0 -2px 0 ${t.surfaceBorder}`
                       }}>
                         Type
+                      </th>
+                      <th style={{
+                        padding: "12px 16px",
+                        textAlign: "left",
+                        fontWeight: 700,
+                        color: t.text,
+                        position: "sticky",
+                        left: 300,
+                        top: 0,
+                        background: isDark ? "#262626" : "#F9FAFB",
+                        zIndex: 10,
+                        width: 100,
+                        boxShadow: `inset 0 -2px 0 ${t.surfaceBorder}`
+                      }}>
+                        Start Date
+                      </th>
+                      <th style={{
+                        padding: "12px 16px",
+                        textAlign: "left",
+                        fontWeight: 700,
+                        color: t.text,
+                        position: "sticky",
+                        left: 400,
+                        top: 0,
+                        background: isDark ? "#262626" : "#F9FAFB",
+                        zIndex: 10,
+                        width: 100,
+                        boxShadow: `inset 0 -2px 0 ${t.surfaceBorder}`
+                      }}>
+                        End Date
+                      </th>
+                      <th style={{
+                        padding: "12px 16px",
+                        textAlign: "left",
+                        fontWeight: 700,
+                        color: t.text,
+                        position: "sticky",
+                        left: 500,
+                        top: 0,
+                        background: isDark ? "#262626" : "#F9FAFB",
+                        zIndex: 10,
+                        width: 90,
+                        boxShadow: `inset 0 -2px 0 ${t.surfaceBorder}`
+                      }}>
+                        Interest Rate
+                      </th>
+                      <th style={{
+                        padding: "12px 16px",
+                        textAlign: "left",
+                        fontWeight: 700,
+                        color: t.text,
+                        position: "sticky",
+                        left: 590,
+                        top: 0,
+                        background: isDark ? "#262626" : "#F9FAFB",
+                        zIndex: 10,
+                        width: 120,
+                        boxShadow: `inset 0 -2px 0 ${t.surfaceBorder}`
+                      }}>
+                        Payment Method
                       </th>
                       {pivotData.dates.map((date, idx) => (
                         <th key={idx} style={{
@@ -661,7 +736,8 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
                             position: "sticky",
                             left: 0,
                             background: isDark ? "#1a1a1a" : "#fff",
-                            zIndex: 1
+                            zIndex: 1,
+                            width: 180
                           }}>
                             {row.investor}
                           </td>
@@ -670,11 +746,60 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
                             fontSize: 11,
                             color: t.textSecondary,
                             position: "sticky",
-                            left: 200,
+                            left: 180,
                             background: isDark ? "#1a1a1a" : "#fff",
-                            zIndex: 1
+                            zIndex: 1,
+                            width: 120
                           }}>
                             {row.type.replace(/_/g, ' ')}
+                          </td>
+                          <td style={{
+                            padding: "12px 16px",
+                            fontSize: 11,
+                            color: t.textSecondary,
+                            position: "sticky",
+                            left: 300,
+                            background: isDark ? "#1a1a1a" : "#fff",
+                            zIndex: 1,
+                            width: 100
+                          }}>
+                            {row.startDate}
+                          </td>
+                          <td style={{
+                            padding: "12px 16px",
+                            fontSize: 11,
+                            color: t.textSecondary,
+                            position: "sticky",
+                            left: 400,
+                            background: isDark ? "#1a1a1a" : "#fff",
+                            zIndex: 1,
+                            width: 100
+                          }}>
+                            {row.endDate}
+                          </td>
+                          <td style={{
+                            padding: "12px 16px",
+                            fontSize: 11,
+                            color: t.textSecondary,
+                            position: "sticky",
+                            left: 500,
+                            background: isDark ? "#1a1a1a" : "#fff",
+                            zIndex: 1,
+                            width: 90
+                          }}>
+                            {row.rate}
+                          </td>
+                          <td style={{
+                            padding: "12px 16px",
+                            fontSize: 11,
+                            color: t.textSecondary,
+                            position: "sticky",
+                            left: 590,
+                            background: isDark ? "#1a1a1a" : "#fff",
+                            zIndex: 1,
+                            width: 120
+                          }}>
+                            {row.paymentMethod}
                           </td>
                           {pivotData.dates.map((date, dateIdx) => {
                             const cellKey = `${row.key}|||${date}`;
@@ -719,16 +844,54 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
                         position: "sticky",
                         left: 0,
                         background: isDark ? "rgba(96,165,250,0.1)" : "#EFF6FF",
-                        zIndex: 1
+                        zIndex: 1,
+                        width: 180
                       }}>
                         Total
                       </td>
                       <td style={{
                         padding: "12px 16px",
                         position: "sticky",
-                        left: 200,
+                        left: 180,
                         background: isDark ? "rgba(96,165,250,0.1)" : "#EFF6FF",
-                        zIndex: 1
+                        zIndex: 1,
+                        width: 120
+                      }}>
+                      </td>
+                      <td style={{
+                        padding: "12px 16px",
+                        position: "sticky",
+                        left: 300,
+                        background: isDark ? "rgba(96,165,250,0.1)" : "#EFF6FF",
+                        zIndex: 1,
+                        width: 100
+                      }}>
+                      </td>
+                      <td style={{
+                        padding: "12px 16px",
+                        position: "sticky",
+                        left: 400,
+                        background: isDark ? "rgba(96,165,250,0.1)" : "#EFF6FF",
+                        zIndex: 1,
+                        width: 100
+                      }}>
+                      </td>
+                      <td style={{
+                        padding: "12px 16px",
+                        position: "sticky",
+                        left: 500,
+                        background: isDark ? "rgba(96,165,250,0.1)" : "#EFF6FF",
+                        zIndex: 1,
+                        width: 90
+                      }}>
+                      </td>
+                      <td style={{
+                        padding: "12px 16px",
+                        position: "sticky",
+                        left: 590,
+                        background: isDark ? "rgba(96,165,250,0.1)" : "#EFF6FF",
+                        zIndex: 1,
+                        width: 120
                       }}>
                       </td>
                       {pivotData.dates.map((date, idx) => {
