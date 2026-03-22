@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef, useEffect } from "react";
+import React, { useState, useMemo, useRef, useEffect } from "react";
 import { getInvestmentColumns } from '../components/InvestmentsTanStackConfig';
 import TanStackTable from '../components/TanStackTable';
 import { db } from "../firebase";

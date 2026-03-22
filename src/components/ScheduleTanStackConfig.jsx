@@ -235,12 +235,15 @@ export const getScheduleColumns = (permissions, isDark, t, context) => {
         if (!uid) return <span style={{ color: t.textMuted }}>—</span>;
         if (uid === 'system') return <span style={{ fontSize: '11px', fontWeight: 600, color: t.textMuted }}>System</span>;
         
-        const user = context.USERS?.find(u => u.uid === uid || u.id === uid);
-        const name = user ? (user.user_name || user.name || user.email || uid) : uid;
+        // Find user by auth_uid, uid, or document id
+        const user = context.USERS?.find(u => u.auth_uid === uid || u.uid === uid || u.id === uid);
+        
+        // Use user_name as requested, fallback to name/email
+        const displayName = user ? (user.user_name || user.name || user.email || uid) : uid;
         
         return (
           <span style={{ fontSize: '11px', color: t.textSecondary, fontWeight: 500 }}>
-            {name}
+            {displayName}
           </span>
         );
       }
