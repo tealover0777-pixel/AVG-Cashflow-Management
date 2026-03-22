@@ -4,20 +4,20 @@ import { getDealColumns } from '../components/DealsTanStackConfig';
 import { db, storage } from "../firebase";
 import { doc, setDoc, updateDoc, deleteDoc, serverTimestamp, collection, addDoc, getDocs } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
-import { sortData, mkId, fmtCurr, normalizeDateAtNoon, pmtCalculator_ACT360_30360, feeCalculator_ACT360_30360 } from "../utils";
+import { sortData, mkId, fmtCurr, normalizeDateAtNoon, pmtCalculator_ACT360_30360, feeCalculator_ACT360_30360, getFrequencyValue } from "../utils";
 import { Bdg, StatCard, Pagination, Modal, FF, FIn, FSel, DelModal, Tooltip } from "../components";
 import { useAuth } from "../AuthContext";
-import { Check, Plus, PieChart } from "lucide-react";
+import { Check, Plus, PieChart, CreditCard } from "lucide-react";
 
-const PT_INTEREST = "Interest_Payment";
-const PT_PRINCIPAL = "Principal_Payment";
-const PT_FEE = "Fee_Payment";
-const PT_INV_FUND = "Investment_Funding";
-const PT_INV_REPAYMENT = "Investment_Repayment";
-const PT_BOR_RECEIVED = "Loan_Proceeds_Received";
-const PT_BOR_PAYBACK = "Loan_Payback";
+const PT_INTEREST = "INVESTOR_INTEREST_PAYMENT";
+const PT_FEE = "FEE";
+const PT_INV_FUND = "INVESTOR_PRINCIPAL_DEPOSIT";
+const PT_INV_REPAYMENT = "INVESTOR_PRINCIPAL_PAYMENT";
+const PT_BOR_DISBURSEMENT = "BORROWER_DISBURSEMENT";
+const PT_BOR_RECEIVED = "BORROWER_PRINCIPAL_RECEIVED";
+const PT_BOR_INTEREST = "BORROWER_INTEREST_PAYMENT";
 
-export default function PageDeals({ t, isDark, DEALS = [], INVESTMENTS = [], FEES_DATA = [], DIMENSIONS = [], collectionPath = "", setActivePage, setSelectedDealId, DISTRIBUTIONS = [] }) {
+export default function PageDeals({ t, isDark, DEALS = [], INVESTMENTS = [], SCHEDULES = [], FEES_DATA = [], DIMENSIONS = [], collectionPath = "", setActivePage, setSelectedDealId, DISTRIBUTIONS = [] }) {
   const { hasPermission, isSuperAdmin } = useAuth();
   const canCreate = isSuperAdmin || hasPermission("DEAL_CREATE");
   const canUpdate = isSuperAdmin || hasPermission("DEAL_UPDATE");
@@ -194,7 +194,17 @@ export default function PageDeals({ t, isDark, DEALS = [], INVESTMENTS = [], FEE
       const entries = [];
 
       for (const deal of selectedRows) {
-        const dealInvestments = INVESTMENTS.filter(inv => inv.deal_id === deal.id || inv.deal_id === deal.docId);
+        // Robust filter for investments belonging to this deal
+        const dealId = deal.id;
+        const dealDocId = deal.docId;
+        const dealName = deal.name;
+        
+        const dealInvestments = INVESTMENTS.filter(inv => 
+          inv.deal_id === dealId || 
+          inv.deal_id === dealDocId || 
+          inv.deal === dealName ||
+          inv.deal_name === dealName
+        );
         
         for (const inv of dealInvestments) {
           const principal = parseFloat(String(inv.amount || 0).replace(/[^0-9.-]/g, ""));
@@ -204,18 +214,21 @@ export default function PageDeals({ t, isDark, DEALS = [], INVESTMENTS = [], FEE
 
           if (!startDate || !matDate || matDate <= startDate) continue;
 
-          // 1. Initial Investment Funding
+          // 1. Initial Investment Funding (mapped to INVESTOR_PRINCIPAL_DEPOSIT to match Investments page)
           const sIdFund = mkId("S");
           entries.push({
             schedule_id: sIdFund, version_num: 1, version_id: `${sIdFund}-V1`, payment_id: sIdFund, active_version: true,
             investment_id: inv.id, deal_id: deal.id, party_id: inv.party_id || "", 
             due_date: startDate.toISOString().slice(0, 10), payment_type: PT_INV_FUND, principal_amount: principal,
-            payment_amount: principal, signed_payment_amount: -Math.abs(principal), direction_from_company: "OUT",
-            original_payment_amount: principal, term_start: startDate.toISOString().slice(0, 10), term_end: startDate.toISOString().slice(0, 10),
+            payment_amount: principal, 
+            signed_payment_amount: -Math.abs(principal), direction_from_company: "OUT",
+            original_payment_amount: principal, 
+            applied_to: "Principal Amount",
+            term_start: startDate.toISOString().slice(0, 10), term_end: startDate.toISOString().slice(0, 10),
             status: "Due", notes: `Initial Funding [Batch: ${batchId}]`, created_at: serverTimestamp(), batch_id: batchId
           });
 
-          // 2. Lifecycle periods
+          // 2. Lifecycle periods for Interest and Fees
           const freqValue = getFrequencyValue(inv.freq || "Monthly");
           const fLow = (inv.freq || "").toLowerCase();
           const monthsPerPeriod = 12 / freqValue;
@@ -230,13 +243,16 @@ export default function PageDeals({ t, isDark, DEALS = [], INVESTMENTS = [], FEE
             if (fLow.includes("month")) {
                 pEnd = normalizeDateAtNoon(new Date(pStart.getFullYear(), pStart.getMonth() + 1, 0));
             } else {
-                pEnd = normalizeDateAtNoon(new Date(pStart.getFullYear(), pStart.getMonth() + monthsPerPeriod, 0));
+                pEnd = normalizeDateAtNoon(new Date(pStart.getFullYear(), pStart.getMonth() + (monthsPerPeriod || 1), 0));
             }
 
             if (pEnd > matDate) pEnd = matDate;
-            if (pEnd <= pStart) break;
+            if (pEnd <= pStart) {
+              pStart = normalizeDateAtNoon(new Date(pStart.getFullYear(), pStart.getMonth() + 1, 1));
+              continue;
+            }
 
-            // Interest Payment
+            // Interest Payment (INVESTOR_INTEREST_PAYMENT)
             const interestAmt = pmtCalculator_ACT360_30360(pStart, pEnd, startDate, principal, rate, inv.freq || "Monthly", calcMethod);
             const roundedInterest = Math.round(interestAmt * 100) / 100;
             if (roundedInterest > 0) {
@@ -251,25 +267,28 @@ export default function PageDeals({ t, isDark, DEALS = [], INVESTMENTS = [], FEE
               });
             }
 
-            // Fee Payments (assigned to Deal)
+            // Fee Payments (based on Deal's assigned fees)
             const dealFeeIds = deal.feeIds || [];
             const dealFees = FEES_DATA.filter(f => dealFeeIds.includes(f.id));
             for (const fee of dealFees) {
               const feeAmt = feeCalculator_ACT360_30360(fee, principal, pStart, pEnd, startDate, calcMethod);
               if (feeAmt === 0 || isNaN(feeAmt)) continue;
               const roundedFee = Math.round(feeAmt * 100) / 100;
+              const feeDir = fee.direction || "OUT";
               const sIdFee = mkId("S");
               entries.push({
                 schedule_id: sIdFee, version_num: 1, version_id: `${sIdFee}-V1`, payment_id: sIdFee, active_version: true,
                 investment_id: inv.id, deal_id: deal.id, party_id: inv.party_id || "",
                 due_date: pEnd.toISOString().slice(0, 10), payment_type: PT_FEE, fee_id: fee.id,
-                payment_amount: roundedFee, signed_payment_amount: -Math.abs(roundedFee), direction_from_company: "OUT",
+                payment_amount: roundedFee, 
+                signed_payment_amount: feeDir === "OUT" ? -Math.abs(roundedFee) : Math.abs(roundedFee), 
+                direction_from_company: feeDir,
                 original_payment_amount: roundedFee, term_start: pStart.toISOString().slice(0, 10), term_end: pEnd.toISOString().slice(0, 10),
                 status: "Due", notes: `${fee.name} [Batch: ${batchId}]`, created_at: serverTimestamp(), batch_id: batchId
               });
             }
 
-            // Final Repayment
+            // Final Repayment (INVESTOR_PRINCIPAL_PAYMENT)
             if (pEnd >= matDate) {
               const sIdRepay = mkId("S");
               entries.push({
@@ -277,7 +296,9 @@ export default function PageDeals({ t, isDark, DEALS = [], INVESTMENTS = [], FEE
                 investment_id: inv.id, deal_id: deal.id, party_id: inv.party_id || "",
                 due_date: pEnd.toISOString().slice(0, 10), payment_type: PT_INV_REPAYMENT, principal_amount: principal,
                 payment_amount: principal, signed_payment_amount: Math.abs(principal), direction_from_company: "IN",
-                original_payment_amount: principal, term_start: pEnd.toISOString().slice(0, 10), term_end: pEnd.toISOString().slice(0, 10),
+                original_payment_amount: principal, 
+                applied_to: "Principal Amount",
+                term_start: pEnd.toISOString().slice(0, 10), term_end: pEnd.toISOString().slice(0, 10),
                 status: "Due", notes: `Principal Repayment [Batch: ${batchId}]`, created_at: serverTimestamp(), batch_id: batchId
               });
             }
