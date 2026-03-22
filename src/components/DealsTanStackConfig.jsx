@@ -184,6 +184,20 @@ export const getDealColumns = (permissions, isDark, t, context) => {
       }
     },
     {
+      header: "Notes",
+      accessorKey: "notes",
+      size: 200,
+      cell: ({ getValue }) => {
+        const val = getValue();
+        if (!val) return <span style={{ color: t.textMuted }}>—</span>;
+        return (
+          <div title={val} style={{ fontSize: '11px', color: t.textSecondary, maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {val}
+          </div>
+        );
+      }
+    },
+    {
        header: "Actions",
        id: "actions",
        size: 100,

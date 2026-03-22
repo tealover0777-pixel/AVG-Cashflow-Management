@@ -562,7 +562,9 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
               border: `1px solid ${t.surfaceBorder}`,
               borderRadius: 12,
               padding: 24,
-              overflowX: "auto"
+              overflow: "auto",
+              maxHeight: "650px",
+              position: "relative"
             }}>
               <h3 style={{ fontSize: 16, fontWeight: 700, color: t.text, marginBottom: 20 }}>
                 Distribution Pivot Table
@@ -586,8 +588,10 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
                         color: t.text,
                         position: "sticky",
                         left: 0,
-                        background: isDark ? "rgba(255,255,255,0.05)" : "#F9FAFB",
-                        zIndex: 2
+                        top: 0,
+                        background: isDark ? "#262626" : "#F9FAFB",
+                        zIndex: 10,
+                        boxShadow: `inset 0 -2px 0 ${t.surfaceBorder}`
                       }}>
                         Investor Name
                       </th>
@@ -598,9 +602,11 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
                         color: t.text,
                         position: "sticky",
                         left: 200,
-                        background: isDark ? "rgba(255,255,255,0.05)" : "#F9FAFB",
-                        zIndex: 2,
-                        minWidth: 150
+                        top: 0,
+                        background: isDark ? "#262626" : "#F9FAFB",
+                        zIndex: 10,
+                        minWidth: 150,
+                        boxShadow: `inset 0 -2px 0 ${t.surfaceBorder}`
                       }}>
                         Type
                       </th>
@@ -610,7 +616,12 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
                           textAlign: "right",
                           fontWeight: 700,
                           color: t.text,
-                          minWidth: 120
+                          minWidth: 120,
+                          position: "sticky",
+                          top: 0,
+                          background: isDark ? "#262626" : "#F9FAFB",
+                          zIndex: 5,
+                          boxShadow: `inset 0 -2px 0 ${t.surfaceBorder}`
                         }}>
                           {date}
                         </th>
@@ -620,8 +631,13 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
                         textAlign: "right",
                         fontWeight: 700,
                         color: t.text,
-                        background: isDark ? "rgba(96,165,250,0.1)" : "#EFF6FF",
-                        minWidth: 120
+                        background: isDark ? "#1e3a8a" : "#EFF6FF",
+                        minWidth: 120,
+                        position: "sticky",
+                        top: 0,
+                        right: 0,
+                        zIndex: 6,
+                        boxShadow: `inset 0 -2px 0 ${t.surfaceBorder}`
                       }}>
                         Total
                       </th>

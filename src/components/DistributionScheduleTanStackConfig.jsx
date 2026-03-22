@@ -109,4 +109,10 @@ export const getDistributionColumns = (isDark, t, CONTACTS, DEALS) => [
       );
     },
   },
+  {
+    accessorKey: 'notes',
+    header: 'NOTES',
+    size: 250,
+    cell: ({ getValue }) => <div style={{ fontSize: 11, color: t.textSecondary, whiteSpace: 'normal', lineClamp: 2, display: '-webkit-box', WebkitBoxOrient: 'vertical', overflow: 'hidden' }} title={getValue()}>{getValue()}</div>,
+  },
 ];
