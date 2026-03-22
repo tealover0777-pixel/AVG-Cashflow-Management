@@ -544,6 +544,28 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
               padding: 24,
               overflowX: "auto"
             }}>
+              {/* Debug Info Panel */}
+              <div style={{ marginBottom: 16, padding: 12, background: isDark ? "rgba(96,165,250,0.1)" : "#EFF6FF", borderRadius: 8, fontSize: 11, fontFamily: t.mono, color: t.text }}>
+                <div style={{ fontWeight: 700, marginBottom: 8 }}>Debug Info:</div>
+                <div>Total Schedules: {dealSchedules.length}</div>
+                <div>Investors Found: {pivotData.investors.length}</div>
+                <div>Dates Found: {pivotData.dates.length}</div>
+                {dealSchedules.length > 0 && (
+                  <div style={{ marginTop: 8 }}>
+                    <div>First Schedule Sample:</div>
+                    <div style={{ fontSize: 10, wordBreak: "break-all", maxWidth: "100%", overflow: "auto" }}>
+                      {JSON.stringify({
+                        party_id: dealSchedules[0].party_id,
+                        dueDate: dealSchedules[0].dueDate,
+                        signed_payment_amount: dealSchedules[0].signed_payment_amount,
+                        amount: dealSchedules[0].amount,
+                        signedPaymentAmount: dealSchedules[0].signedPaymentAmount
+                      }, null, 2)}
+                    </div>
+                  </div>
+                )}
+              </div>
+
               <h3 style={{ fontSize: 16, fontWeight: 700, color: t.text, marginBottom: 20 }}>
                 Distribution Pivot Table
               </h3>
