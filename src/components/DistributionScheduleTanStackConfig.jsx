@@ -39,16 +39,8 @@ export const getDistributionColumns = (isDark, t, CONTACTS, DEALS) => [
     ),
   },
   {
-    accessorKey: 'investment_id',
-    header: 'INVESTMENT',
-    size: 120,
-    cell: ({ getValue }) => (
-      <span style={{ fontFamily: t.mono, fontSize: '11px', color: t.idText }}>{getValue()}</span>
-    ),
-  },
-  {
     id: 'party',
-    header: 'PARTY',
+    header: 'Investor Name',
     accessorFn: (row) => {
       const c = (CONTACTS || []).find(x => x.id === row.party_id);
       return c ? c.name : row.party_id;
@@ -68,7 +60,7 @@ export const getDistributionColumns = (isDark, t, CONTACTS, DEALS) => [
   },
   {
     id: 'deal',
-    header: 'DEAL',
+    header: 'Deal Name',
     accessorFn: (row) => {
       const d = (DEALS || []).find(x => x.id === row.deal_id);
       return d ? d.deal_name || d.name : row.deal_id;

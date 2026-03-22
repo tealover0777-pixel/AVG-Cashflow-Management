@@ -4,7 +4,7 @@ import { doc, getDocs, collection, updateDoc, addDoc, deleteDoc, serverTimestamp
 import { Modal, FF, FIn, FSel, DelModal } from "../components";
 import { useAuth } from "../AuthContext";
 import { getDealInvestmentColumns } from "../components/DealSummaryTanStackConfig";
-import { getScheduleColumns } from "../components/ScheduleTanStackConfig";
+import { getDistributionColumns } from "../components/DistributionScheduleTanStackConfig";
 import TanStackTable from "../components/TanStackTable";
 
 export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTMENTS = [], CONTACTS = [], DIMENSIONS = [], FEES_DATA = [], SCHEDULES = [], USERS = [], setActivePage, investmentCollection = "investments" }) {
@@ -118,13 +118,8 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
   }, [permissions, isDark, t, CONTACTS, FEES_DATA]);
 
   const scheduleColumnDefs = useMemo(() => {
-    return getScheduleColumns(permissions, isDark, t, { 
-      isDark, t, USERS, FEES_DATA, INVESTMENTS, CONTACTS, DEALS,
-      callbacks: {
-        onEdit: (s) => console.log("Edit from summary:", s)
-      }
-    });
-  }, [permissions, isDark, t, USERS, FEES_DATA, INVESTMENTS, CONTACTS, DEALS]);
+    return getDistributionColumns(isDark, t, CONTACTS, DEALS);
+  }, [isDark, t, CONTACTS, DEALS]);
 
   function fmtCurrency(val) {
     if (val === null || val === undefined || val === "") return "—";
