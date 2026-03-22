@@ -311,11 +311,11 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
       }
     }
 
-    const updates = { fee_ids: newFeeIds, notes, signed_payment_amount: fmtCurr(signedAmt), basePayment: baseAmt };
+    const updates = { fee_ids: newFeeIds, notes, signed_payment_amount: signedAmt, basePayment: baseAmt };
 
     // Status-based zeroing override
     if (ZEROING_STATUSES.includes(currentData.status)) {
-      updates.signed_payment_amount = "$0.00";
+      updates.signed_payment_amount = 0;
       // We preserve updates.payment (intended amount) for the Schedule Chain display
       // even if the cashflow (signed amount) is zeroed out.
     } else {
@@ -626,8 +626,8 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
               term_start: getNextDay(d.dueDate),
               term_end: nextDueDate,
               basePayment: Math.abs(origPaymentNum),
-              payment_amount: originalSchedule?.payment_amount || originalSchedule?.original_payment_amount || d.payment || "$0.00",
-              original_payment_amount: originalSchedule?.original_payment_amount || originalSchedule?.payment_amount || d.payment || "$0.00",
+              payment_amount: originalSchedule?.payment_amount || originalSchedule?.original_payment_amount || d.payment || 0,
+              original_payment_amount: originalSchedule?.original_payment_amount || originalSchedule?.payment_amount || d.payment || 0,
               notes: `Missed payment replacement for ${d.schedule_id} ${formattedOrigAmt}`,
             };
             const updates = recalcReplacement(initialData, []);
@@ -711,8 +711,8 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
               term_end: nextDueDatePartial,
               partialPaid: "",
               basePayment: Math.abs(origPaymentNum),
-              payment_amount: originalSchedule?.payment_amount || originalSchedule?.original_payment_amount || d.payment || "$0.00",
-              original_payment_amount: originalSchedule?.original_payment_amount || originalSchedule?.payment_amount || d.payment || "$0.00",
+              payment_amount: originalSchedule?.payment_amount || originalSchedule?.original_payment_amount || d.payment || 0,
+              original_payment_amount: originalSchedule?.original_payment_amount || originalSchedule?.payment_amount || d.payment || 0,
               notes: `Partial payment replacement for ${d.schedule_id} ${formattedOrigAmt}`,
             };
             const updatesPartial = recalcReplacement(initialDataPartial, []);

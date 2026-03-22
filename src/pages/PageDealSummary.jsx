@@ -67,6 +67,17 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
     const dateSet = new Set();
     const dataMap = {};
 
+    // Helper function to parse currency string like "$8,000.00"
+    const parseCurrency = (value) => {
+      if (value === undefined || value === null || value === "") return 0;
+      // If it's already a number, return it
+      if (typeof value === 'number') return value;
+      // If it's a string, remove $, commas, and spaces, then parse
+      const cleaned = String(value).replace(/[$,\s]/g, '');
+      const parsed = parseFloat(cleaned);
+      return isNaN(parsed) ? 0 : parsed;
+    };
+
     console.log('Processing dealSchedules for pivot:', dealSchedules.length, 'records');
 
     dealSchedules.forEach(schedule => {
@@ -74,21 +85,19 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
       const investorName = investor ? investor.name : schedule.party_id || "Unknown";
       const dueDate = schedule.dueDate || "No Date";
 
-      // Try multiple field name variations
+      // Try multiple field name variations and parse currency
       let amount = 0;
       if (schedule.signed_payment_amount !== undefined && schedule.signed_payment_amount !== null) {
-        amount = Number(schedule.signed_payment_amount);
+        amount = parseCurrency(schedule.signed_payment_amount);
       } else if (schedule.signedPaymentAmount !== undefined && schedule.signedPaymentAmount !== null) {
-        amount = Number(schedule.signedPaymentAmount);
+        amount = parseCurrency(schedule.signedPaymentAmount);
       } else if (schedule.amount !== undefined && schedule.amount !== null) {
-        amount = Number(schedule.amount);
+        amount = parseCurrency(schedule.amount);
       } else if (schedule.payment_amount !== undefined && schedule.payment_amount !== null) {
-        amount = Number(schedule.payment_amount);
+        amount = parseCurrency(schedule.payment_amount);
       }
 
       console.log('Schedule:', { investorName, dueDate, amount, raw: schedule.signed_payment_amount });
-
-      if (isNaN(amount)) amount = 0;
 
       investorSet.add(investorName);
       dateSet.add(dueDate);
