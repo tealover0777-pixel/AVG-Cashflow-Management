@@ -53,26 +53,6 @@ export const getDealColumns = (permissions, isDark, t, context) => {
       }
     },
     {
-      header: "Deal ID",
-      accessorKey: "id",
-      size: 90,
-      cell: ({ row, getValue }) => {
-        const val = getValue();
-        return (
-          <span 
-            onClick={() => callbacks.onSelectDeal?.(row.original)}
-            style={{ 
-              fontFamily: t.mono, fontSize: '11px', 
-              color: isDark ? "#60A5FA" : "#4F46E5",
-              fontWeight: 600, cursor: 'pointer'
-            }}
-          >
-            {val || "—"}
-          </span>
-        );
-      }
-    },
-    {
       header: "Deal Name",
       accessorKey: "name",
       size: 180,

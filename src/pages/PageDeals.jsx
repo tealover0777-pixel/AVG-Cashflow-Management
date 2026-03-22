@@ -221,6 +221,7 @@ export default function PageDeals({ t, isDark, DEALS = [], INVESTMENTS = [], FEE
             payment_type: PT_INTEREST,
             payment_amount: roundedInterest,
             signed_payment_amount: -Math.abs(roundedInterest),
+            original_payment_amount: roundedInterest,
             direction_from_company: "OUT",
             status: "Due",
             notes: `Interest Distribution [${batchId}]`,
@@ -251,6 +252,7 @@ export default function PageDeals({ t, isDark, DEALS = [], INVESTMENTS = [], FEE
               payment_amount: roundedFee,
               direction_from_company: "OUT",
               signed_payment_amount: -Math.abs(roundedFee),
+              original_payment_amount: roundedFee,
               status: "Due",
               created_at: serverTimestamp(),
               term_start: gStart.toISOString().slice(0, 10),
@@ -318,6 +320,8 @@ export default function PageDeals({ t, isDark, DEALS = [], INVESTMENTS = [], FEE
               fee_id: fee_ids.join(","),
               payment_amount: Math.round(total_payment * 100) / 100,
               signed_payment_amount: Math.round(total_signed * 100) / 100,
+              original_payment_amount: Math.round(total_payment * 100) / 100,
+              status: "Due",
               notes: breakdown
             });
           });
@@ -347,10 +351,10 @@ export default function PageDeals({ t, isDark, DEALS = [], INVESTMENTS = [], FEE
         deal_ids: selectedRows.map(d => d.id)
       });
 
+      alert(`Distribution schedules generated for ${selectedRows.length} deals! You can view them in the Payment Schedule or under each deal's Distribution tab.`);
       setDistModal({ ...distModal, open: false });
       setSelectedRows([]);
       if (gridRef.current?.resetRowSelection) gridRef.current.resetRowSelection();
-      setActivePage("Distribution Schedule");
     } catch (err) {
       console.error("Distribution generation error:", err);
       alert("Failed to generate distribution: " + err.message);

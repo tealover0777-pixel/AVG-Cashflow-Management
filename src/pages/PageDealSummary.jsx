@@ -3,10 +3,9 @@ import { db } from "../firebase";
 import { doc, getDocs, collection, updateDoc, addDoc, deleteDoc, serverTimestamp } from "firebase/firestore";
 import { Modal, FF, FIn, FSel, DelModal } from "../components";
 import { useAuth } from "../AuthContext";
-import { getDealInvestmentColumns } from "../components/DealSummaryTanStackConfig";
-import TanStackTable from "../components/TanStackTable";
+import { getScheduleColumns } from "../components/ScheduleTanStackConfig";
 
-export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTMENTS = [], CONTACTS = [], DIMENSIONS = [], FEES_DATA = [], setActivePage, investmentCollection = "investments" }) {
+export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTMENTS = [], CONTACTS = [], DIMENSIONS = [], FEES_DATA = [], SCHEDULES = [], USERS = [], setActivePage, investmentCollection = "investments" }) {
   const { hasPermission, isSuperAdmin } = useAuth();
   const canUpdate = isSuperAdmin || hasPermission("INVESTMENT_UPDATE");
   const canDelete = isSuperAdmin || hasPermission("INVESTMENT_DELETE") || hasPermission("INVESTMENTS_DELETE");
@@ -31,6 +30,10 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
   const dealInvestments = useMemo(() => 
     INVESTMENTS.filter(c => c.deal_id === dealId || c.deal === deal.name)
   , [dealId, deal.name, INVESTMENTS]);
+
+  const dealSchedules = useMemo(() => 
+    SCHEDULES.filter(s => s.deal_id === dealId)
+  , [dealId, SCHEDULES]);
 
   const gridRef = useRef();
   const tabs = ["Investments", "Assets", "Distributions", "Documents", "Valuation forms", "Contacts"];
@@ -111,6 +114,15 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
   const columnDefs = useMemo(() => {
     return getDealInvestmentColumns(permissions, isDark, t, context);
   }, [permissions, isDark, t, CONTACTS, FEES_DATA]);
+
+  const scheduleColumnDefs = useMemo(() => {
+    return getScheduleColumns(permissions, isDark, t, { 
+      isDark, t, USERS, FEES_DATA, INVESTMENTS, CONTACTS, DEALS,
+      callbacks: {
+        onEdit: (s) => console.log("Edit from summary:", s)
+      }
+    });
+  }, [permissions, isDark, t, USERS, FEES_DATA, INVESTMENTS, CONTACTS, DEALS]);
 
   function fmtCurrency(val) {
     if (val === null || val === undefined || val === "") return "—";
@@ -207,6 +219,16 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
                 t={t}
                 isDark={isDark}
                 onSelectionChange={(selected) => setSel(new Set(selected.map(r => r.id)))}
+            />
+        </div>
+      ) : activeTab === "Distributions" ? (
+        <div style={{ height: '500px', width: "100%", minHeight: '500px' }}>
+            <TanStackTable
+                data={dealSchedules}
+                columns={scheduleColumnDefs}
+                pageSize={pageSize}
+                t={t}
+                isDark={isDark}
             />
         </div>
       ) : activeTab === "Assets" ? (
