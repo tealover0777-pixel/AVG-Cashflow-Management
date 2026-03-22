@@ -134,11 +134,11 @@ function AppContent() {
   const { data: rawFees, loading: l6, error: e6 } = useFirestoreCollection(isGlobalConsolidated ? "fees" : (activeTenantId ? fetchPaths.fees : null), isGlobalConsolidated);
   const { data: rawTenants, loading: l8, error: e8 } = useFirestoreCollection(isSuperAdmin ? getCollectionPaths("").tenants : null);
   
-  // Use collection group for users in GLOBAL mode to resolve names across tenants
+  // Use collection group for users for Super Admins or in GLOBAL mode to resolve names system-wide
   const userFetchPath = (activeTenantId && (isSuperAdmin || isTenantAdmin || hasPermission("USER_PROFILE_*"))) 
-    ? (isGlobalConsolidated ? "users" : fetchPaths.users) 
+    ? ((isGlobalConsolidated || isSuperAdmin) ? "users" : fetchPaths.users) 
     : null;
-  const { data: rawUsers, loading: l9, error: e9 } = useFirestoreCollection(userFetchPath, isGlobalConsolidated);
+  const { data: rawUsers, loading: l9, error: e9 } = useFirestoreCollection(userFetchPath, (isGlobalConsolidated || isSuperAdmin));
   
   const { data: rawRoles, loading: l10, error: e10 } = useFirestoreCollection((activeTenantId && (isSuperAdmin || isTenantAdmin || hasPermission("ROLE_TYPE_*")) && !isGlobalConsolidated) ? fetchPaths.roles : null);
   const { data: rawDimensions, loading: l7, error: e7 } = useFirestoreCollection(user ? fetchPaths.dimensions : null);

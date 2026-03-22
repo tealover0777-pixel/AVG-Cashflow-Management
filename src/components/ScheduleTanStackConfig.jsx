@@ -235,14 +235,20 @@ export const getScheduleColumns = (permissions, isDark, t, context) => {
         if (!uid) return <span style={{ color: t.textMuted }}>—</span>;
         if (uid === 'system') return <span style={{ fontSize: '11px', fontWeight: 600, color: t.textMuted }}>System</span>;
         
-        // Find user by auth_uid, uid, or document id
-        const user = context.USERS?.find(u => u.auth_uid === uid || u.uid === uid || u.id === uid);
+        // Improved lookup across all potential ID fields used in user documents
+        const foundUser = context.USERS?.find(u => 
+          u.auth_uid === uid || 
+          u.uid === uid || 
+          u.id === uid || 
+          u.doc_id === uid || 
+          u.user_id === uid
+        );
         
-        // Use user_name as requested, fallback to name/email
-        const displayName = user ? (user.user_name || user.name || user.email || uid) : uid;
+        // Prioritize user_name (requested), then fallback to common display names
+        const displayName = foundUser ? (foundUser.user_name || foundUser.name || foundUser.email || uid) : uid;
         
         return (
-          <span style={{ fontSize: '11px', color: t.textSecondary, fontWeight: 500 }}>
+          <span title={uid} style={{ fontSize: '11px', color: t.textSecondary, fontWeight: 500 }}>
             {displayName}
           </span>
         );
