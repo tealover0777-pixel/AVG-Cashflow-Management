@@ -110,7 +110,7 @@ export default function PageDeals({ t, isDark, DEALS = [], INVESTMENTS = [], SCH
     };
     try {
       setIsUploading(true);
-      const dealRef = doc(db, collectionPath, d.id);
+      const dealRef = d._path ? doc(db, d._path) : doc(db, collectionPath, d.id);
       if (modal.mode === "edit" && d.docId) {
         await updateDoc(dealRef, payload);
       } else {
@@ -135,6 +135,7 @@ export default function PageDeals({ t, isDark, DEALS = [], INVESTMENTS = [], SCH
       close();
     } catch (err) {
       console.error("Failed to save deal:", err);
+      alert("Failed to save deal. " + err.message);
       setIsUploading(false);
     }
   };
@@ -165,11 +166,16 @@ export default function PageDeals({ t, isDark, DEALS = [], INVESTMENTS = [], SCH
     } catch (e) { console.error(e); }
   };
   const handleDeleteDeal = async () => {
-    if (!delT || !delT.docId) return;
     try {
-      await deleteDoc(doc(db, collectionPath, delT.docId));
-      setDelT(null);
-    } catch (err) { console.error("Delete deal error:", err); }
+      const docRef = delT._path ? doc(db, delT._path) : (delT.docId ? doc(db, collectionPath, delT.docId) : null);
+      if (docRef) {
+        await deleteDoc(docRef);
+        setDelT(null);
+      }
+    } catch (err) { 
+      console.error("Delete deal error:", err); 
+      alert("Delete deal error: " + err.message);
+    }
   };
 
   const handleGenerateDistribution = async () => {

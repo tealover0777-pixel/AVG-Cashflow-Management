@@ -60,20 +60,29 @@ export default function PageContacts({ t, isDark, CONTACTS = [], INVESTMENTS = [
     };
     try {
       if (modal.mode === "edit" && d.docId) {
-        await updateDoc(doc(db, collectionPath, d.docId), payload);
+        const docRef = d._path ? doc(db, d._path) : doc(db, collectionPath, d.docId);
+        await updateDoc(docRef, payload);
       } else {
         await setDoc(doc(db, collectionPath, d.id), { ...payload, created_at: serverTimestamp() });
       }
-    } catch (err) { console.error("Save contact error:", err); }
-    close();
+      close();
+    } catch (err) { 
+      console.error("Save contact error:", err);
+      alert("Failed to save contact. " + err.message);
+    }
   };
 
   const handleDeleteContact = async () => {
-    if (!delT || !delT.docId) return;
     try {
-      await deleteDoc(doc(db, collectionPath, delT.docId));
-      setDelT(null);
-    } catch (err) { console.error("Delete contact error:", err); }
+      const docRef = delT._path ? doc(db, delT._path) : (delT.docId ? doc(db, collectionPath, delT.docId) : null);
+      if (docRef) {
+        await deleteDoc(docRef);
+        setDelT(null);
+      }
+    } catch (err) { 
+      console.error("Delete contact error:", err); 
+      alert("Delete contact error: " + err.message);
+    }
   };
   const [detailContact, setDetailContact] = useState(null);
   const [invitingId, setInvitingId] = useState(null);

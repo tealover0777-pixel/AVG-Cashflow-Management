@@ -100,12 +100,16 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
     };
     try {
       if (modal.mode === "edit" && d.docId) {
-        await updateDoc(doc(db, investmentCollection, d.docId), payload);
+        const docRef = d._path ? doc(db, d._path) : doc(db, investmentCollection, d.docId);
+        await updateDoc(docRef, payload);
       } else {
         await addDoc(collection(db, investmentCollection), { ...payload, investment_id: d.id || "", created_at: serverTimestamp() });
       }
       setModal(m => ({ ...m, open: false }));
-    } catch (err) { console.error("Save investment error:", err); }
+    } catch (err) { 
+      console.error("Save investment error:", err);
+      alert("Failed to save investment. " + err.message);
+    }
   };
 
   const handleDeleteInvestment = async () => {

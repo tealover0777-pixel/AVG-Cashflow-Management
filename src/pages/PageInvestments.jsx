@@ -88,12 +88,19 @@ export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [
     };
     try {
       if (modal.mode === "edit" && d.docId) {
-        await updateDoc(doc(db, collectionPath, d.docId), payload);
+        const docRef = d._path ? doc(db, d._path) : doc(db, collectionPath, d.docId);
+        await updateDoc(docRef, payload);
       } else {
-        await addDoc(collection(db, collectionPath), { ...payload, investment_id: d.id || "", created_at: serverTimestamp() });
+        // For new investments, we use the collectionPath
+        // If it's a GROUP: path, we might need a fallback, but usually creation happens in a specific tenant.
+        const effectivePath = collectionPath.startsWith("GROUP:") ? collectionPath.replace("GROUP:", "") : collectionPath;
+        await addDoc(collection(db, effectivePath), { ...payload, investment_id: d.id || "", created_at: serverTimestamp() });
       }
-    } catch (err) { console.error("Save investment error:", err); }
-    close();
+      close();
+    } catch (err) { 
+      console.error("Save investment error:", err);
+      alert("Failed to save investment. " + err.message);
+    }
   };
 
   const handleDeleteInvestment = async () => {
@@ -112,7 +119,10 @@ export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [
     try {
       await Promise.all([...sel].map(id => {
         const c = INVESTMENTS.find(c => c.id === id);
-        if (c && c.docId) return updateDoc(doc(db, collectionPath, c.docId), { status, updated_at: serverTimestamp() });
+        if (c && (c._path || c.docId)) {
+          const docRef = c._path ? doc(db, c._path) : doc(db, collectionPath, c.docId);
+          return updateDoc(docRef, { status, updated_at: serverTimestamp() });
+        }
         return Promise.resolve();
       }));
       setSel(new Set()); setBulkStatus("");
