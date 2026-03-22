@@ -53,16 +53,6 @@ export const getContactColumns = (permissions, isDark, t, context) => {
       }
     },
     {
-      header: "Contact ID",
-      accessorKey: "id",
-      size: 90,
-      cell: ({ getValue }) => (
-        <span style={{ fontFamily: t.mono, fontSize: '11px', color: t.idText }}>
-          {getValue() || "—"}
-        </span>
-      )
-    },
-    {
       header: "Name",
       accessorKey: "name",
       size: 200,
@@ -156,18 +146,6 @@ export const getContactColumns = (permissions, isDark, t, context) => {
       accessorKey: "tax_id",
       size: 110,
       cell: ({ getValue }) => <span style={{ fontFamily: t.mono, fontSize: '11px', color: t.textMuted }}>{getValue() || "—"}</span>
-    },
-    {
-      header: "Created",
-      accessorKey: "created_at",
-      size: 100,
-      cell: ({ getValue }) => <span style={{ fontFamily: t.mono, fontSize: '10.5px', color: t.idText }}>{getValue() || "—"}</span>
-    },
-    {
-      header: "Updated",
-      accessorKey: "updated_at",
-      size: 100,
-      cell: ({ getValue }) => <span style={{ fontFamily: t.mono, fontSize: '10.5px', color: t.idText }}>{getValue() || "—"}</span>
     },
     {
       header: "Actions",
