@@ -29,6 +29,7 @@ export default function PageDeals({ t, isDark, DEALS = [], INVESTMENTS = [], FEE
   const [isUploading, setIsUploading] = useState(false);
   const [selectedRows, setSelectedRows] = useState([]);
   const [distModal, setDistModal] = useState({ open: false, data: { calculator: "ACT/360", notes: "" } });
+  const [genResult, setGenResult] = useState(null);
   const [pageSize, setPageSize] = useState(30);
   const gridRef = useRef(null);
   const fetchImages = async (did) => {
@@ -305,13 +306,20 @@ export default function PageDeals({ t, isDark, DEALS = [], INVESTMENTS = [], FEE
         deal_ids: selectedRows.map(d => d.id)
       });
 
-      alert(`Distribution schedules generated for ${selectedRows.length} deals! Total entries: ${entries.length}.`);
+      setGenResult({
+        title: "Success",
+        lines: [
+            `Distribution schedules generated for ${selectedRows.length} deals.`,
+            `Created ${entries.length} distribution entries in Batch ${batchId}.`,
+            `The schedules have been added to the Distribution Schedule.`
+        ]
+      });
       setDistModal({ ...distModal, open: false });
       setSelectedRows([]);
       if (gridRef.current?.resetRowSelection) gridRef.current.resetRowSelection();
     } catch (err) {
       console.error("Distribution generation error:", err);
-      alert("Failed to generate distribution: " + err.message);
+      setGenResult({ title: "Error", lines: ["Failed to generate distribution:", err.message] });
     } finally {
       setIsUploading(false);
     }
@@ -555,5 +563,27 @@ export default function PageDeals({ t, isDark, DEALS = [], INVESTMENTS = [], FEE
         <FF label="Notes" t={t}><FIn value={distModal.data.notes} onChange={e => setDistModal({ ...distModal, data: { ...distModal.data, notes: e.target.value } })} placeholder="Optional processing notes..." t={t} /></FF>
       </div>
     </Modal>
+    {/* Result Modal */}
+    <Modal open={!!genResult} onClose={() => setGenResult(null)} title={genResult?.title || "Result"} onSave={() => setGenResult(null)} saveLabel="OK" t={t} isDark={isDark}>
+      <div style={{ padding: "8px 0", display: "flex", flexDirection: "column", gap: 10 }}>
+        {(genResult?.lines || []).map((line, i) => (
+          <div key={i} style={{ fontSize: 13.5, color: i === 0 ? (isDark ? "#fff" : "#1C1917") : t.textMuted, lineHeight: 1.6, fontWeight: i === 0 ? 600 : 400 }}>{line}</div>
+        ))}
+      </div>
+    </Modal>
+
+    {/* Loading Overlay */}
+    {isUploading && distModal.open === false && (
+      <>
+        <style>{`@keyframes cfm-spin { to { transform: rotate(360deg); } }`}</style>
+        <div style={{ position: "fixed", inset: 0, zIndex: 99999, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.55)", backdropFilter: "blur(6px)" }}>
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 20, background: isDark ? "rgba(30,30,40,0.95)" : "#fff", padding: "40px 52px", borderRadius: 18, boxShadow: "0 8px 40px rgba(0,0,0,0.3)", border: `1px solid ${isDark ? "rgba(255,255,255,0.1)" : "#E5E7EB"}` }}>
+            <div style={{ width: 44, height: 44, border: `4px solid ${isDark ? "rgba(255,255,255,0.1)" : "#E5E7EB"}`, borderTopColor: isDark ? "#60A5FA" : "#3B82F6", borderRadius: "50%", animation: "cfm-spin 0.8s linear infinite" }} />
+            <span style={{ fontSize: 15, fontWeight: 600, color: isDark ? "rgba(255,255,255,0.85)" : "#1C1917", letterSpacing: "0.2px" }}>Distribution Generation In Progress...</span>
+            <span style={{ fontSize: 12, color: isDark ? "rgba(255,255,255,0.4)" : "#9CA3AF" }}>Please wait while lifecycle is being created</span>
+          </div>
+        </div>
+      </>
+    )}
   </>);
 }
