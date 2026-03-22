@@ -5,6 +5,7 @@ import { Modal, FF, FIn, FSel, DelModal } from "../components";
 import { useAuth } from "../AuthContext";
 import { getDealInvestmentColumns } from "../components/DealSummaryTanStackConfig";
 import { getDistributionColumns } from "../components/DistributionScheduleTanStackConfig";
+import { getContactColumns } from "../components/ContactsTanStackConfig";
 import TanStackTable from "../components/TanStackTable";
 
 export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTMENTS = [], CONTACTS = [], DIMENSIONS = [], FEES_DATA = [], SCHEDULES = [], USERS = [], setActivePage, investmentCollection = "investments" }) {
@@ -32,6 +33,11 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
   const dealInvestments = useMemo(() => 
     INVESTMENTS.filter(c => c.deal_id === dealId || c.deal === deal.name)
   , [dealId, deal.name, INVESTMENTS]);
+
+  const dealContacts = useMemo(() => {
+    const partyIds = new Set(dealInvestments.map(inv => inv.party_id));
+    return CONTACTS.filter(c => partyIds.has(c.id) || partyIds.has(c.docId));
+  }, [dealInvestments, CONTACTS]);
 
   const dealSchedules = useMemo(() => 
     SCHEDULES.filter(s => s.deal_id === dealId)
@@ -120,6 +126,21 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
   const scheduleColumnDefs = useMemo(() => {
     return getDistributionColumns(isDark, t, CONTACTS, DEALS);
   }, [isDark, t, CONTACTS, DEALS]);
+
+  const contactColumnDefs = useMemo(() => {
+    // Standardized context for contact columns
+    const contactContext = {
+      callbacks: {
+        onNameClick: (r) => { /* Optional: navigate to profile */ },
+        onEdit: (r) => { /* Optional: specific logic */ },
+        onDelete: (r) => { /* Optional: specific logic */ },
+        onInvite: (r) => { /* Optional: specific logic */ }
+      },
+      invitingId: null
+    };
+    const contactPermissions = { canUpdate, canDelete, canInvite: false };
+    return getContactColumns(contactPermissions, isDark, t, contactContext);
+  }, [isDark, t, canUpdate, canDelete]);
 
   function fmtCurrency(val) {
     if (val === null || val === undefined || val === "") return "—";
@@ -236,6 +257,16 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
               <div style={{ padding: 12, fontSize: 12, color: t.textSecondary }}>{img.name}</div>
             </div>
           )) : <div style={{ color: t.textMuted }}>No assets found.</div>}
+        </div>
+      ) : activeTab === "Contacts" ? (
+        <div style={{ height: '500px', width: "100%", minHeight: '500px' }}>
+            <TanStackTable
+                data={dealContacts}
+                columns={contactColumnDefs}
+                pageSize={pageSize}
+                t={t}
+                isDark={isDark}
+            />
         </div>
       ) : (
         <div style={{ padding: 40, textAlign: "center", color: t.textMuted, background: isDark ? "rgba(255,255,255,0.02)" : "#FAFAFA", borderRadius: 12 }}>
