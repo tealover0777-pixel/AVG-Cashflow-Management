@@ -19,6 +19,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
 
   const deal = useMemo(() => DEALS.find(d => d.id === dealId) || {}, [dealId, DEALS]);
   const [activeTab, setActiveTab] = useState("Investments");
+  const [distributionView, setDistributionView] = useState("table"); // "table" or "pivot"
   const [assetImages, setAssetImages] = useState([]);
   const [assets, setAssets] = useState([]);
   const [modal, setModal] = useState({ open: false, mode: "add", data: {} });
@@ -53,9 +54,37 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
     return CONTACTS.filter(c => partyIds.has(c.id) || partyIds.has(c.docId));
   }, [dealInvestments, CONTACTS]);
 
-  const dealSchedules = useMemo(() => 
+  const dealSchedules = useMemo(() =>
     SCHEDULES.filter(s => s.deal_id === dealId)
   , [dealId, SCHEDULES]);
+
+  // Pivot data for distribution chart view
+  const pivotData = useMemo(() => {
+    if (!dealSchedules.length) return { investors: [], dates: [], data: {} };
+
+    // Get unique investors and dates
+    const investorSet = new Set();
+    const dateSet = new Set();
+    const dataMap = {};
+
+    dealSchedules.forEach(schedule => {
+      const investor = CONTACTS.find(c => c.id === schedule.party_id);
+      const investorName = investor ? investor.name : schedule.party_id || "Unknown";
+      const dueDate = schedule.dueDate || "No Date";
+      const amount = Number(schedule.signed_payment_amount) || 0;
+
+      investorSet.add(investorName);
+      dateSet.add(dueDate);
+
+      const key = `${investorName}|${dueDate}`;
+      dataMap[key] = (dataMap[key] || 0) + amount;
+    });
+
+    const investors = Array.from(investorSet).sort();
+    const dates = Array.from(dateSet).sort();
+
+    return { investors, dates, data: dataMap };
+  }, [dealSchedules, CONTACTS]);
 
   const gridRef = useRef();
   const tabs = ["Investments", "Assets", "Distributions", "Documents", "Valuation forms", "Contacts"];
@@ -443,14 +472,221 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
             />
         </div>
       ) : activeTab === "Distributions" ? (
-        <div style={{ height: '500px', width: "100%", minHeight: '500px' }}>
-            <TanStackTable
+        <div>
+          {/* Distribution sub-tabs */}
+          <div style={{ borderBottom: `1px solid ${t.surfaceBorder}`, marginBottom: 20, display: "flex", gap: 24 }}>
+            <div
+              onClick={() => setDistributionView("table")}
+              style={{
+                padding: "10px 0",
+                fontSize: 13,
+                fontWeight: 600,
+                color: distributionView === "table" ? t.text : t.textMuted,
+                cursor: "pointer",
+                position: "relative",
+                transition: "all 0.2s ease"
+              }}
+            >
+              Table View
+              {distributionView === "table" && <div style={{ position: "absolute", bottom: -1, left: 0, right: 0, height: 2, background: t.accent }} />}
+            </div>
+            <div
+              onClick={() => setDistributionView("pivot")}
+              style={{
+                padding: "10px 0",
+                fontSize: 13,
+                fontWeight: 600,
+                color: distributionView === "pivot" ? t.text : t.textMuted,
+                cursor: "pointer",
+                position: "relative",
+                transition: "all 0.2s ease"
+              }}
+            >
+              Pivot View
+              {distributionView === "pivot" && <div style={{ position: "absolute", bottom: -1, left: 0, right: 0, height: 2, background: t.accent }} />}
+            </div>
+          </div>
+
+          {distributionView === "table" ? (
+            <div style={{ height: '500px', width: "100%", minHeight: '500px' }}>
+              <TanStackTable
                 data={dealSchedules}
                 columns={scheduleColumnDefs}
                 pageSize={pageSize}
                 t={t}
                 isDark={isDark}
-            />
+              />
+            </div>
+          ) : (
+            <div style={{
+              background: isDark ? "rgba(255,255,255,0.03)" : "#fff",
+              border: `1px solid ${t.surfaceBorder}`,
+              borderRadius: 12,
+              padding: 24,
+              overflowX: "auto"
+            }}>
+              <h3 style={{ fontSize: 16, fontWeight: 700, color: t.text, marginBottom: 20 }}>
+                Distribution Pivot Table
+              </h3>
+
+              {pivotData.investors.length > 0 ? (
+                <table style={{
+                  width: "100%",
+                  borderCollapse: "collapse",
+                  fontSize: 12
+                }}>
+                  <thead>
+                    <tr style={{
+                      background: isDark ? "rgba(255,255,255,0.05)" : "#F9FAFB",
+                      borderBottom: `2px solid ${t.surfaceBorder}`
+                    }}>
+                      <th style={{
+                        padding: "12px 16px",
+                        textAlign: "left",
+                        fontWeight: 700,
+                        color: t.text,
+                        position: "sticky",
+                        left: 0,
+                        background: isDark ? "rgba(255,255,255,0.05)" : "#F9FAFB",
+                        zIndex: 2
+                      }}>
+                        Investor Name
+                      </th>
+                      {pivotData.dates.map((date, idx) => (
+                        <th key={idx} style={{
+                          padding: "12px 16px",
+                          textAlign: "right",
+                          fontWeight: 700,
+                          color: t.text,
+                          minWidth: 120
+                        }}>
+                          {date}
+                        </th>
+                      ))}
+                      <th style={{
+                        padding: "12px 16px",
+                        textAlign: "right",
+                        fontWeight: 700,
+                        color: t.text,
+                        background: isDark ? "rgba(96,165,250,0.1)" : "#EFF6FF",
+                        minWidth: 120
+                      }}>
+                        Total
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {pivotData.investors.map((investor, invIdx) => {
+                      let rowTotal = 0;
+                      return (
+                        <tr key={invIdx} style={{
+                          borderBottom: `1px solid ${t.surfaceBorder}`,
+                          transition: "background 0.15s ease"
+                        }}
+                        onMouseEnter={(e) => e.currentTarget.style.background = isDark ? "rgba(255,255,255,0.03)" : "#F9FAFB"}
+                        onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}
+                        >
+                          <td style={{
+                            padding: "12px 16px",
+                            fontWeight: 600,
+                            color: t.text,
+                            position: "sticky",
+                            left: 0,
+                            background: isDark ? "#1a1a1a" : "#fff",
+                            zIndex: 1
+                          }}>
+                            {investor}
+                          </td>
+                          {pivotData.dates.map((date, dateIdx) => {
+                            const key = `${investor}|${date}`;
+                            const amount = pivotData.data[key] || 0;
+                            rowTotal += amount;
+                            return (
+                              <td key={dateIdx} style={{
+                                padding: "12px 16px",
+                                textAlign: "right",
+                                fontFamily: t.mono,
+                                fontWeight: 600,
+                                color: amount > 0 ? (isDark ? "#34D399" : "#059669") : t.textMuted
+                              }}>
+                                {amount > 0 ? `$${amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : "—"}
+                              </td>
+                            );
+                          })}
+                          <td style={{
+                            padding: "12px 16px",
+                            textAlign: "right",
+                            fontFamily: t.mono,
+                            fontWeight: 700,
+                            fontSize: 13,
+                            color: isDark ? "#60A5FA" : "#2563EB",
+                            background: isDark ? "rgba(96,165,250,0.05)" : "#EFF6FF"
+                          }}>
+                            ${rowTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                    {/* Column totals row */}
+                    <tr style={{
+                      background: isDark ? "rgba(96,165,250,0.1)" : "#EFF6FF",
+                      borderTop: `2px solid ${t.surfaceBorder}`,
+                      fontWeight: 700
+                    }}>
+                      <td style={{
+                        padding: "12px 16px",
+                        color: t.text,
+                        position: "sticky",
+                        left: 0,
+                        background: isDark ? "rgba(96,165,250,0.1)" : "#EFF6FF",
+                        zIndex: 1
+                      }}>
+                        Total
+                      </td>
+                      {pivotData.dates.map((date, idx) => {
+                        const colTotal = pivotData.investors.reduce((sum, inv) => {
+                          const key = `${inv}|${date}`;
+                          return sum + (pivotData.data[key] || 0);
+                        }, 0);
+                        return (
+                          <td key={idx} style={{
+                            padding: "12px 16px",
+                            textAlign: "right",
+                            fontFamily: t.mono,
+                            color: t.text
+                          }}>
+                            ${colTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </td>
+                        );
+                      })}
+                      <td style={{
+                        padding: "12px 16px",
+                        textAlign: "right",
+                        fontFamily: t.mono,
+                        fontSize: 14,
+                        color: t.text
+                      }}>
+                        ${pivotData.investors.reduce((grandTotal, inv) => {
+                          return grandTotal + pivotData.dates.reduce((invTotal, date) => {
+                            const key = `${inv}|${date}`;
+                            return invTotal + (pivotData.data[key] || 0);
+                          }, 0);
+                        }, 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              ) : (
+                <div style={{
+                  padding: 40,
+                  textAlign: "center",
+                  color: t.textMuted
+                }}>
+                  No distribution data available.
+                </div>
+              )}
+            </div>
+          )}
         </div>
       ) : activeTab === "Assets" ? (
         <div style={{ height: '500px', width: "100%", minHeight: '500px' }}>

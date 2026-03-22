@@ -529,7 +529,13 @@ function AppContent() {
                       <div
                         key={child.label}
                         className="nav-item"
-                        onClick={() => setActivePage(child.label)}
+                        onClick={() => {
+                          setActivePage(child.label);
+                          // Clear selectedDealId when navigating to Deals list
+                          if (child.label === "Deals") {
+                            setSelectedDealId(null);
+                          }
+                        }}
                         style={{
                           display: "flex",
                           alignItems: "center",
@@ -556,7 +562,13 @@ function AppContent() {
 
             // Regular non-expandable item
             return (
-              <div key={item.label} className="nav-item" onClick={() => setActivePage(item.label)}
+              <div key={item.label} className="nav-item" onClick={() => {
+                setActivePage(item.label);
+                // Clear selectedDealId when navigating away from Deal Summary
+                if (item.label !== "Deal Summary") {
+                  setSelectedDealId(null);
+                }
+              }}
                 style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", background: isActive ? t.navActive : "transparent", borderLeft: `2px solid ${isActive ? t.navActivePill : "transparent"}`, color: isActive ? t.navActiveText : t.navText, fontSize: 13.5, fontWeight: isActive ? 600 : 400, position: "relative", cursor: "pointer" }}>
                 {!isDark && isActive && <div style={{ position: "absolute", left: 0, top: "20%", bottom: "20%", width: 3, borderRadius: "0 3px 3px 0", background: t.navActivePill }} />}
                 <Icon name={item.icon} size={18} color={isActive ? t.navActiveText : t.navText} />
