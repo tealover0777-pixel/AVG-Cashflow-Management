@@ -28,7 +28,7 @@ export default function PageDeals({ t, isDark, DEALS = [], INVESTMENTS = [], FEE
   const [newFiles, setNewFiles] = useState([]); // { file, preview }
   const [isUploading, setIsUploading] = useState(false);
   const [selectedRows, setSelectedRows] = useState([]);
-  const [distModal, setDistModal] = useState({ open: false, data: { calculator: "ACT/360", startDate: "", endDate: "", notes: "" } });
+  const [distModal, setDistModal] = useState({ open: false, data: { calculator: "ACT/360", notes: "" } });
   const [pageSize, setPageSize] = useState(30);
   const gridRef = useRef(null);
   const fetchImages = async (did) => {
@@ -187,171 +187,125 @@ export default function PageDeals({ t, isDark, DEALS = [], INVESTMENTS = [], FEE
       const schedulePathSuffix = "/paymentSchedules";
       const batchPath = `${tenantPath}/distributionBatches`;
 
-      let totalBatchAmount = 0;
-      let recipientCount = 0;
+      let totalEntries = 0;
       const calcMethod = distModal.data.calculator || "ACT/360";
-      const gStart = normalizeDateAtNoon(new Date(distModal.data.startDate || new Date()));
-      const gEnd = normalizeDateAtNoon(new Date(distModal.data.endDate || new Date()));
+
+      const entries = [];
 
       for (const deal of selectedRows) {
         const dealInvestments = INVESTMENTS.filter(inv => inv.deal_id === deal.id || inv.deal_id === deal.docId);
-        const dealFeeIds = deal.feeIds || [];
-        const dealFees = FEES_DATA.filter(f => dealFeeIds.includes(f.id));
-
+        
         for (const inv of dealInvestments) {
-          recipientCount++;
-          const investDate = normalizeDateAtNoon(new Date(inv.start_date || new Date()));
           const principal = parseFloat(String(inv.amount || 0).replace(/[^0-9.-]/g, ""));
           const rate = parseFloat(String(inv.rate || 0).replace(/[^0-9.-]/g, "")) / 100;
-          
-          const entries = [];
+          const startDate = normalizeDateAtNoon(inv.start_date);
+          const matDate = normalizeDateAtNoon(inv.maturity_date);
 
-          // 1. Interest Payment
-          const interestAmt = pmtCalculator_ACT360_30360(gStart, gEnd, investDate, principal, rate, "Monthly", calcMethod);
-          const roundedInterest = Math.round(interestAmt * 100) / 100;
-          const sIdInt = mkId("S");
+          if (!startDate || !matDate || matDate <= startDate) continue;
+
+          // 1. Initial Investment Funding
+          const sIdFund = mkId("S");
           entries.push({
-            schedule_id: sIdInt,
-            version_num: 1,
-            version_id: `${sIdInt}-V1`,
-            payment_id: sIdInt,
-            active_version: true,
-            investment_id: inv.id, deal_id: deal.id, party_id: inv.party_id || "",
-            due_date: gEnd.toISOString().slice(0, 10),
-            payment_type: PT_INTEREST,
-            payment_amount: roundedInterest,
-            signed_payment_amount: -Math.abs(roundedInterest),
-            original_payment_amount: roundedInterest,
-            direction_from_company: "OUT",
-            status: "Due",
-            notes: `Interest Distribution [${batchId}]`,
-            created_at: serverTimestamp(),
-            term_start: gStart.toISOString().slice(0, 10),
-            term_end: gEnd.toISOString().slice(0, 10),
-            batch_id: batchId,
-            principal_amount: principal
+            schedule_id: sIdFund, version_num: 1, version_id: `${sIdFund}-V1`, payment_id: sIdFund, active_version: true,
+            investment_id: inv.id, deal_id: deal.id, party_id: inv.party_id || "", 
+            due_date: startDate.toISOString().slice(0, 10), payment_type: PT_INV_FUND, principal_amount: principal,
+            payment_amount: principal, signed_payment_amount: -Math.abs(principal), direction_from_company: "OUT",
+            original_payment_amount: principal, term_start: startDate.toISOString().slice(0, 10), term_end: startDate.toISOString().slice(0, 10),
+            status: "Due", notes: `Initial Funding [Batch: ${batchId}]`, created_at: serverTimestamp(), batch_id: batchId
           });
 
-          // 2. Fee Payments
-          for (const fee of dealFees) {
-            const feeAmt = feeCalculator_ACT360_30360(fee, principal, gStart, gEnd, investDate, calcMethod);
-            if (feeAmt === 0 || isNaN(feeAmt)) continue;
+          // 2. Lifecycle periods
+          const freqValue = getFrequencyValue(inv.freq || "Monthly");
+          const fLow = (inv.freq || "").toLowerCase();
+          const monthsPerPeriod = 12 / freqValue;
+          
+          let pStart = normalizeDateAtNoon(new Date(startDate.getFullYear(), startDate.getMonth(), 1));
+          let safety = 0;
+          let periodNum = 1;
 
-            const roundedFee = Math.round(feeAmt * 100) / 100;
-            const sIdFee = mkId("S");
-            entries.push({
-              schedule_id: sIdFee,
-              version_num: 1, version_id: `${sIdFee}-V1`, payment_id: sIdFee, active_version: true,
-              investment_id: inv.id, deal_id: deal.id, party_id: inv.party_id || "",
-              due_date: gEnd.toISOString().slice(0, 10),
-              payment_type: PT_FEE,
-              fee_id: fee.id,
-              fee_name: fee.name || "Fee",
-              fee_rate: fee.rate || "0",
-              fee_method: fee.method || "Fixed Amount",
-              payment_amount: roundedFee,
-              direction_from_company: "OUT",
-              signed_payment_amount: -Math.abs(roundedFee),
-              original_payment_amount: roundedFee,
-              status: "Due",
-              created_at: serverTimestamp(),
-              term_start: gStart.toISOString().slice(0, 10),
-              term_end: gEnd.toISOString().slice(0, 10),
-              batch_id: batchId,
-              principal_amount: principal,
-              applied_to: fee.applied_to || "Principal Amount"
-            });
-          }
-
-          // 3. Merge Fees for this investment/date
-          const feeGroups = {}; 
-          const finalEntries = [];
-          entries.forEach(e => {
-            if (e.payment_type !== PT_FEE) {
-              finalEntries.push(e);
-              return;
-            }
-            const key = `${e.due_date}|${e.applied_to}|${e.direction_from_company}`;
-            if (!feeGroups[key]) {
-              feeGroups[key] = {
-                ...e,
-                fee_ids: [e.fee_id],
-                fee_names: [e.fee_name],
-                fee_rates: [e.fee_rate],
-                fee_methods: [e.fee_method],
-                payment_amounts: [e.payment_amount],
-                signed_amounts: [e.signed_payment_amount],
-                total_payment: e.payment_amount,
-                total_signed: e.signed_payment_amount
-              };
+          while (pStart < matDate && safety < 1200) {
+            safety++;
+            let pEnd;
+            if (fLow.includes("month")) {
+                pEnd = normalizeDateAtNoon(new Date(pStart.getFullYear(), pStart.getMonth() + 1, 0));
             } else {
-              feeGroups[key].fee_ids.push(e.fee_id);
-              feeGroups[key].fee_names.push(e.fee_name);
-              feeGroups[key].fee_rates.push(e.fee_rate);
-              feeGroups[key].fee_methods.push(e.fee_method);
-              feeGroups[key].payment_amounts.push(e.payment_amount);
-              feeGroups[key].signed_amounts.push(e.signed_payment_amount);
-              feeGroups[key].total_payment += e.payment_amount;
-              feeGroups[key].total_signed += e.signed_payment_amount;
+                pEnd = normalizeDateAtNoon(new Date(pStart.getFullYear(), pStart.getMonth() + monthsPerPeriod, 0));
             }
-          });
 
-          Object.values(feeGroups).forEach(g => {
-            const { fee_ids, payment_amounts, signed_amounts, total_payment, total_signed, fee_names, fee_rates, fee_methods, ...rest } = g;
-            const basisAmt = rest.principal_amount || 0;
-            const basisLabel = rest.applied_to || "Principal Amount";
+            if (pEnd > matDate) pEnd = matDate;
+            if (pEnd <= pStart) break;
 
-            const stepParts = fee_ids.map((id, i) => {
-              const method = fee_methods[i];
-              const rate = fee_rates[i];
-              const amt = payment_amounts[i];
-              const sign = "-";
-              const absAmt = Math.abs(amt);
-              if (method === "% of Amount") return `${sign}${rate}% of ${fmtCurr(basisAmt)} (${basisLabel}) = ${sign}${fmtCurr(absAmt)}`;
-              return `${sign}Fixed amount of ${fmtCurr(absAmt)} (${fee_names[i]})`;
-            });
+            // Interest Payment
+            const interestAmt = pmtCalculator_ACT360_30360(pStart, pEnd, startDate, principal, rate, inv.freq || "Monthly", calcMethod);
+            const roundedInterest = Math.round(interestAmt * 100) / 100;
+            if (roundedInterest > 0) {
+              const sIdInt = mkId("S");
+              entries.push({
+                schedule_id: sIdInt, version_num: 1, version_id: `${sIdInt}-V1`, payment_id: sIdInt, active_version: true,
+                investment_id: inv.id, deal_id: deal.id, party_id: inv.party_id || "",
+                due_date: pEnd.toISOString().slice(0, 10), payment_type: PT_INTEREST, principal_amount: principal,
+                payment_amount: roundedInterest, signed_payment_amount: -Math.abs(roundedInterest), direction_from_company: "OUT",
+                original_payment_amount: roundedInterest, term_start: pStart.toISOString().slice(0, 10), term_end: pEnd.toISOString().slice(0, 10),
+                status: "Due", notes: `Interest Period ${periodNum} [Batch: ${batchId}]`, created_at: serverTimestamp(), batch_id: batchId
+              });
+            }
 
-            let breakdown = `Fee Breakdown [${batchId}]: `;
-            if (stepParts.length === 1) breakdown += stepParts[0];
-            else breakdown += stepParts.map(p => `[${p}]`).join(" ") + ` = ${fmtCurr(Math.abs(total_signed))}`;
+            // Fee Payments (assigned to Deal)
+            const dealFeeIds = deal.feeIds || [];
+            const dealFees = FEES_DATA.filter(f => dealFeeIds.includes(f.id));
+            for (const fee of dealFees) {
+              const feeAmt = feeCalculator_ACT360_30360(fee, principal, pStart, pEnd, startDate, calcMethod);
+              if (feeAmt === 0 || isNaN(feeAmt)) continue;
+              const roundedFee = Math.round(feeAmt * 100) / 100;
+              const sIdFee = mkId("S");
+              entries.push({
+                schedule_id: sIdFee, version_num: 1, version_id: `${sIdFee}-V1`, payment_id: sIdFee, active_version: true,
+                investment_id: inv.id, deal_id: deal.id, party_id: inv.party_id || "",
+                due_date: pEnd.toISOString().slice(0, 10), payment_type: PT_FEE, fee_id: fee.id,
+                payment_amount: roundedFee, signed_payment_amount: -Math.abs(roundedFee), direction_from_company: "OUT",
+                original_payment_amount: roundedFee, term_start: pStart.toISOString().slice(0, 10), term_end: pEnd.toISOString().slice(0, 10),
+                status: "Due", notes: `${fee.name} [Batch: ${batchId}]`, created_at: serverTimestamp(), batch_id: batchId
+              });
+            }
 
-            finalEntries.push({
-              ...rest,
-              fee_id: fee_ids.join(","),
-              payment_amount: Math.round(total_payment * 100) / 100,
-              signed_payment_amount: Math.round(total_signed * 100) / 100,
-              original_payment_amount: Math.round(total_payment * 100) / 100,
-              status: "Due",
-              notes: breakdown
-            });
-          });
+            // Final Repayment
+            if (pEnd >= matDate) {
+              const sIdRepay = mkId("S");
+              entries.push({
+                schedule_id: sIdRepay, version_num: 1, version_id: `${sIdRepay}-V1`, payment_id: sIdRepay, active_version: true,
+                investment_id: inv.id, deal_id: deal.id, party_id: inv.party_id || "",
+                due_date: pEnd.toISOString().slice(0, 10), payment_type: PT_INV_REPAYMENT, principal_amount: principal,
+                payment_amount: principal, signed_payment_amount: Math.abs(principal), direction_from_company: "IN",
+                original_payment_amount: principal, term_start: pEnd.toISOString().slice(0, 10), term_end: pEnd.toISOString().slice(0, 10),
+                status: "Due", notes: `Principal Repayment [Batch: ${batchId}]`, created_at: serverTimestamp(), batch_id: batchId
+              });
+            }
 
-          // Save to Firestore
-          const dealTenantPath = (deal._path || collectionPath).split("/deals")[0];
-          const dealSchedulePath = `${dealTenantPath}${schedulePathSuffix}`;
-          for (const ent of finalEntries) {
-            await addDoc(collection(db, dealSchedulePath), ent);
-            totalBatchAmount += Math.abs(ent.payment_amount);
+            pStart = normalizeDateAtNoon(new Date(pEnd.getFullYear(), pEnd.getMonth() + 1, 1));
+            periodNum++;
           }
         }
       }
 
+      // Save to Firestore in batches
+      const schedulePath = `${tenantPath}/paymentSchedules`;
+      for (let i = 0; i < entries.length; i += 50) {
+        const chunk = entries.slice(i, i + 50);
+        await Promise.all(chunk.map(e => setDoc(doc(db, schedulePath, e.version_id), e)));
+      }
+
       // Create batch record
       await addDoc(collection(db, batchPath), {
-        batch_id: batchId,
-        deal_names: selectedRows.map(d => d.name).join(", "),
-        amount: Math.round(totalBatchAmount * 100) / 100,
-        status: "Draft",
-        method: calcMethod,
-        recipient_count: recipientCount,
-        notes: distModal.data.notes,
+        id: batchId,
         created_at: serverTimestamp(),
-        start_date: distModal.data.startDate,
-        end_date: distModal.data.endDate,
+        total_amount: entries.reduce((acc, x) => acc + (x.direction_from_company === "OUT" ? x.payment_amount : 0), 0),
+        recipient_count: entries.length,
+        status: "Draft",
+        notes: distModal.data.notes || "Full distribution life-cycle generation",
         deal_ids: selectedRows.map(d => d.id)
       });
 
-      alert(`Distribution schedules generated for ${selectedRows.length} deals! You can view them in the Payment Schedule or under each deal's Distribution tab.`);
+      alert(`Distribution schedules generated for ${selectedRows.length} deals! Total entries: ${entries.length}.`);
       setDistModal({ ...distModal, open: false });
       setSelectedRows([]);
       if (gridRef.current?.resetRowSelection) gridRef.current.resetRowSelection();
@@ -598,10 +552,6 @@ export default function PageDeals({ t, isDark, DEALS = [], INVESTMENTS = [], FEE
         <FF label="Calculator Method" t={t}>
           <FSel value={distModal.data.calculator} onChange={e => setDistModal({ ...distModal, data: { ...distModal.data, calculator: e.target.value } })} options={["ACT/360", "30/360", "ACT/ACT", "Hybrid"]} t={t} />
         </FF>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
-          <FF label="Start Date" t={t}><FIn value={distModal.data.startDate} onChange={e => setDistModal({ ...distModal, data: { ...distModal.data, startDate: e.target.value } })} t={t} type="date" /></FF>
-          <FF label="End Date" t={t}><FIn value={distModal.data.endDate} onChange={e => setDistModal({ ...distModal, data: { ...distModal.data, endDate: e.target.value } })} t={t} type="date" /></FF>
-        </div>
         <FF label="Notes" t={t}><FIn value={distModal.data.notes} onChange={e => setDistModal({ ...distModal, data: { ...distModal.data, notes: e.target.value } })} placeholder="Optional processing notes..." t={t} /></FF>
       </div>
     </Modal>

@@ -147,6 +147,19 @@ export const getScheduleColumns = (permissions, isDark, t, context) => {
       )
     },
     {
+      header: "Deal ID",
+      accessorKey: "deal_id",
+      size: 90,
+      cell: ({ getValue, row }) => (
+        <span 
+          onClick={() => callbacks.onDealClick?.(getValue())}
+          style={{ fontFamily: t.mono, fontSize: '11px', color: t.idText, cursor: 'pointer' }}
+        >
+          {getValue() || <span style={{ color: t.textMuted }}>—</span>}
+        </span>
+      )
+    },
+    {
       header: "Due Date",
       accessorKey: "dueDate",
       size: 100,

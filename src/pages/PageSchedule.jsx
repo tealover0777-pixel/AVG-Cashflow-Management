@@ -18,7 +18,7 @@ const fmtCurr = v => {
 
 const ZEROING_STATUSES = ["Missed", "Cancelled", "VOID", "WAIVED", "REPLACED"];
 
-export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = [], CONTACTS = [], DEALS = [], DIMENSIONS = [], FEES_DATA = [], USERS = [], collectionPath = "" }) {
+export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = [], CONTACTS = [], DEALS = [], DIMENSIONS = [], FEES_DATA = [], USERS = [], collectionPath = "", setActivePage, setSelectedDealId }) {
 
   const { user, hasPermission, isSuperAdmin } = useAuth();
   const canCreate = isSuperAdmin || hasPermission("PAYMENT_SCHEDULE_CREATE");
@@ -953,6 +953,12 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
           if (fees.length > 0) setDrillFee(fees);
         }
       },
+      onDealClick: (dealId) => {
+        if (dealId && setSelectedDealId && setActivePage) {
+          setSelectedDealId(dealId);
+          setActivePage("Deal Summary");
+        }
+      },
       onEdit: openEdit,
       onDelete: setDelT,
       onUndo: handleUndo
@@ -1025,8 +1031,17 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
             </FF>
           )}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14 }}>
-            <FF label="Investment ID" t={t}><FSel value={modal.data.investment} onChange={e => setF("investment", e.target.value)} options={INVESTMENTS.map(c => c.id)} t={t} disabled={freeze} /></FF>
-            <FF label="Deal ID" t={t}><FIn value={modal.data.deal_id || ""} onChange={e => setF("project_id", e.target.value)} placeholder="P10000" t={t} disabled={freeze} /></FF>
+            <FF label="Investment ID" t={t}><FSel value={modal.data.investment} onChange={e => {
+              const invId = e.target.value;
+              const inv = INVESTMENTS.find(x => (x.investment_id || x.id) === invId);
+              let updates = { investment: invId };
+              if (inv) {
+                if (inv.deal_id) updates.deal_id = inv.deal_id;
+                if (inv.party_id) updates.party_id = inv.party_id;
+              }
+              setModal(m => ({ ...m, data: { ...m.data, ...updates } }));
+            }} options={INVESTMENTS.map(c => c.id)} t={t} disabled={freeze} /></FF>
+            <FF label="Deal ID" t={t}><FIn value={modal.data.deal_id || ""} onChange={e => setF("deal_id", e.target.value)} placeholder="P10000" t={t} disabled={freeze} /></FF>
             <FF label="Contact ID" t={t}><FIn value={modal.data.party_id || ""} onChange={e => setF("party_id", e.target.value)} placeholder="M10000" t={t} disabled={freeze} /></FF>
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14 }}>
