@@ -1,3 +1,4 @@
+import React, { useState, useMemo, useRef, useEffect } from "react";
 import { ActBtns } from '../components';
 
 export const getTenantColumns = (permissions, isDark, t, onEdit, onDel) => {

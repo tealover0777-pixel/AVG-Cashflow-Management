@@ -2,7 +2,7 @@
  * AVG Cashflow Management — Shared Components
  * Reusable UI components and hooks.
  */
-import { useState, useRef } from "react";
+import React, { useState, useRef, useEffect, useMemo } from "react";
 import { badge } from "./utils";
 import { 
   ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, 

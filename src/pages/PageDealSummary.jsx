@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { db } from "../firebase";
 import { doc, getDocs, collection, updateDoc, addDoc, deleteDoc, serverTimestamp } from "firebase/firestore";
 import { Modal, FF, FIn, FSel, DelModal } from "../components";
