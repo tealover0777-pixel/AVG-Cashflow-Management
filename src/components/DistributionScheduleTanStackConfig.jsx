@@ -29,16 +29,6 @@ export const getDistributionColumns = (isDark, t, CONTACTS, DEALS) => [
     enableSorting: false,
   },
   {
-    accessorKey: 'batch_id',
-    header: 'BATCH ID',
-    size: 110,
-    cell: ({ getValue }) => (
-      <div style={{ display: 'flex', alignItems: 'center', height: '100%' }}>
-        <span style={{ fontFamily: t.mono, fontSize: 10, fontWeight: 700, color: t.accent }}>{getValue()}</span>
-      </div>
-    ),
-  },
-  {
     id: 'party',
     header: 'Investor Name',
     accessorFn: (row) => {
@@ -69,29 +59,38 @@ export const getDistributionColumns = (isDark, t, CONTACTS, DEALS) => [
     cell: ({ getValue }) => <span style={{ fontWeight: 500 }}>{getValue()}</span>,
   },
   {
-    accessorKey: 'due_date',
+    accessorKey: 'dueDate',
     header: 'DUE DATE',
     size: 110,
     cell: ({ getValue }) => <span style={{ fontFamily: t.mono, fontSize: '11px' }}>{getValue()}</span>,
   },
   {
-    accessorKey: 'payment_type',
+    accessorKey: 'type',
     header: 'TYPE',
-    size: 130,
+    size: 140,
     cell: ({ getValue }) => {
       const label = (getValue() || "").replace(/_/g, " ");
       return <span style={{ fontSize: 12, color: t.textSecondary }}>{label}</span>;
     },
   },
   {
-    accessorKey: 'payment_amount',
+    accessorKey: 'signed_payment_amount',
     header: 'AMOUNT',
     size: 130,
-    cell: ({ getValue }) => (
-      <div style={{ fontFamily: t.mono, fontWeight: 700, color: t.accent, textAlign: 'right', width: '100%' }}>
-        {fmtCurr(getValue())}
-      </div>
-    ),
+    cell: ({ getValue, row }) => {
+      const isOut = row.original.direction === "OUT";
+      return (
+        <div style={{ 
+          fontFamily: t.mono, 
+          fontWeight: 700, 
+          color: isOut ? (isDark ? "#F87171" : "#DC2626") : (isDark ? "#34D399" : "#059669"), 
+          textAlign: 'right', 
+          width: '100%' 
+        }}>
+          {fmtCurr(getValue())}
+        </div>
+      );
+    }
   },
   {
     accessorKey: 'status',

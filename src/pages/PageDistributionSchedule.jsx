@@ -145,7 +145,7 @@ export default function PageDistributionSchedule({ t, isDark, DEALS = [], INVEST
           entries.push({
             schedule_id: sIdFund, version_num: 1, version_id: `${sIdFund}-V1`, payment_id: sIdFund, active_version: true,
             investment_id: inv.id, deal_id: deal.id, party_id: inv.party_id || "", 
-            due_date: startDate.toISOString().slice(0, 10), payment_type: PT_INV_FUND, principal_amount: principal,
+            dueDate: startDate.toISOString().slice(0, 10), type: PT_INV_FUND, principal_amount: principal,
             payment_amount: principal, 
             signed_payment_amount: -Math.abs(principal), direction_from_company: "OUT",
             original_payment_amount: principal, 
@@ -186,7 +186,7 @@ export default function PageDistributionSchedule({ t, isDark, DEALS = [], INVEST
               entries.push({
                 schedule_id: sIdInt, version_num: 1, version_id: `${sIdInt}-V1`, payment_id: sIdInt, active_version: true,
                 investment_id: inv.id, deal_id: deal.id, party_id: inv.party_id || "",
-                due_date: pEnd.toISOString().slice(0, 10), payment_type: PT_INTEREST, principal_amount: principal,
+                dueDate: pEnd.toISOString().slice(0, 10), type: PT_INTEREST, principal_amount: principal,
                 payment_amount: roundedInterest, signed_payment_amount: -Math.abs(roundedInterest), direction_from_company: "OUT",
                 original_payment_amount: roundedInterest, term_start: pStart.toISOString().slice(0, 10), term_end: pEnd.toISOString().slice(0, 10),
                 status: "Due", notes: `Interest Period ${periodNum} [Batch: ${batchId}]`, created_at: serverTimestamp(), batch_id: batchId
@@ -205,7 +205,7 @@ export default function PageDistributionSchedule({ t, isDark, DEALS = [], INVEST
               entries.push({
                 schedule_id: sIdFee, version_num: 1, version_id: `${sIdFee}-V1`, payment_id: sIdFee, active_version: true,
                 investment_id: inv.id, deal_id: deal.id, party_id: inv.party_id || "",
-                due_date: pEnd.toISOString().slice(0, 10), payment_type: PT_FEE, fee_id: fee.id,
+                dueDate: pEnd.toISOString().slice(0, 10), type: PT_FEE, fee_id: fee.id,
                 payment_amount: roundedFee, 
                 signed_payment_amount: feeDir === "OUT" ? -Math.abs(roundedFee) : Math.abs(roundedFee), 
                 direction_from_company: feeDir,
@@ -220,7 +220,7 @@ export default function PageDistributionSchedule({ t, isDark, DEALS = [], INVEST
               entries.push({
                 schedule_id: sIdRepay, version_num: 1, version_id: `${sIdRepay}-V1`, payment_id: sIdRepay, active_version: true,
                 investment_id: inv.id, deal_id: deal.id, party_id: inv.party_id || "",
-                due_date: pEnd.toISOString().slice(0, 10), payment_type: PT_INV_REPAYMENT, principal_amount: principal,
+                dueDate: pEnd.toISOString().slice(0, 10), type: PT_INV_REPAYMENT, principal_amount: principal,
                 payment_amount: principal, signed_payment_amount: Math.abs(principal), direction_from_company: "IN",
                 original_payment_amount: principal, 
                 applied_to: "Principal Amount",
