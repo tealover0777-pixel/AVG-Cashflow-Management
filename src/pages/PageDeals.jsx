@@ -352,17 +352,6 @@ export default function PageDeals({ t, isDark, DEALS = [], INVESTMENTS = [], SCH
     }
   };
 
-  // TanStack Table: Data filtering (memoized)
-  const [chip, setChip] = useState("All");
-  const chips = ["All", "Pipeline", "Closed"];
-
-  const filteredData = useMemo(() => {
-    return DEALS.filter(d => {
-      if (chip === "Closed" && (d.status !== "Closed" && d.status !== "Liquidated")) return false;
-      if (chip === "Pipeline" && d.status !== "Pipeline") return false;
-      return true;
-    });
-  }, [DEALS, chip]);
 
   // Dynamically calculate page size based on available vertical space
   useEffect(() => {
@@ -434,14 +423,11 @@ export default function PageDeals({ t, isDark, DEALS = [], INVESTMENTS = [], SCH
       {[{ label: "Total", value: DEALS.length, accent: isDark ? "#60A5FA" : "#3B82F6", bg: isDark ? "rgba(96,165,250,0.08)" : "#EFF6FF", border: isDark ? "rgba(96,165,250,0.15)" : "#BFDBFE" }, { label: "Active", value: DEALS.filter(p => p.status !== "Closed" && p.status !== "Liquidated").length, accent: isDark ? "#34D399" : "#059669", bg: isDark ? "rgba(52,211,153,0.08)" : "#ECFDF5", border: isDark ? "rgba(52,211,153,0.15)" : "#A7F3D0" }, { label: "Closed", value: DEALS.filter(p => p.status === "Closed" || p.status === "Liquidated").length, accent: isDark ? "rgba(255,255,255,0.4)" : "#6B7280", bg: isDark ? "rgba(255,255,255,0.05)" : "#F9FAFB", border: isDark ? "rgba(255,255,255,0.1)" : "#E5E7EB" }].map(s => <StatCard key={s.label} {...s} titleFont={t.titleFont} isDark={isDark} />)}
     </div>
     
-    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-      <div style={{ display: "flex", gap: 8 }}>{chips.map((c, i) => { const isA = chip === c; return (<span key={c} className="filter-chip" onClick={() => setChip(c)} style={{ fontSize: 12, fontWeight: isA ? 600 : 500, padding: "5px 14px", borderRadius: 20, background: isA ? t.accent : t.chipBg, color: isA ? "#fff" : t.textSecondary, border: `1px solid ${isA ? t.accent : t.chipBorder}`, cursor: "pointer" }}>{c}</span>); })}</div>
-    </div>
 
     <div style={{ height: 'calc(100vh - 420px)', width: '100%', minHeight: '500px' }}>
       <TanStackTable
         ref={gridRef}
-        data={filteredData}
+        data={DEALS}
         columns={columnDefs}
         isDark={isDark}
         t={t}
