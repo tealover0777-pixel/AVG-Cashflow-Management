@@ -261,29 +261,36 @@ function AppContent() {
       const mDocId = mContact ? String(mContact.doc_id || mContact.id || "").trim() : "";
       return (dPId === mId || (mDocId && dPId === mDocId));
     })
-    .map(d => ({
-      id: d.investment_id || d.id,
-      docId: d.doc_id || d.id,
-      _path: d._path,
-      investment_id: d.investment_id || "",
-      deal: d.deal_name || d.deal_id || "",
-      deal_id: d.deal_id || "",
-      party: d.party_name || d.party_id || "",
-      party_id: d.party_id || "",
-      type: d.investment_type || "",
-      amount: fmtCurr(d.amount),
-      rate: d.interest_rate ? `${d.interest_rate}%` : "",
-      freq: d.payment_frequency || "",
-      status: d.status || "",
-      calculator: d.calculator || "",
-      term_months: d.term_months != null ? String(d.term_months) : "",
-      start_date: fmtDate(d.start_date),
-      maturity_date: fmtDate(d.maturity_date),
-      fees: d.fees || "",
-      feeIds: typeof d.fees === "string" && d.fees ? d.fees.split(",").map(s => s.trim()) : [],
-      created_at: fmtDate(d.created_at),
-      updated_at: fmtDate(d.updated_at),
-    }));
+    .map(d => {
+      const dealId = d.deal_id || "";
+      const partyId = d.party_id || "";
+      const dealMatch = rawDeals.find(deal => deal.id === dealId || deal.deal_id === dealId);
+      const partyMatch = rawContacts.find(party => party.id === partyId || party.doc_id === partyId || party.party_id === partyId);
+      
+      return {
+        id: d.investment_id || d.id,
+        docId: d.doc_id || d.id,
+        _path: d._path,
+        investment_id: d.investment_id || "",
+        deal: dealMatch?.deal_name || d.deal_name || d.deal_id || "",
+        deal_id: dealId,
+        party: partyMatch?.party_name || d.party_name || d.party_id || "",
+        party_id: partyId,
+        type: d.investment_type || "",
+        amount: fmtCurr(d.amount),
+        rate: d.interest_rate ? `${d.interest_rate}%` : "",
+        freq: d.payment_frequency || "",
+        status: d.status || "",
+        calculator: d.calculator || "",
+        term_months: d.term_months != null ? String(d.term_months) : "",
+        start_date: fmtDate(d.start_date),
+        maturity_date: fmtDate(d.maturity_date),
+        fees: d.fees || "",
+        feeIds: typeof d.fees === "string" && d.fees ? d.fees.split(",").map(s => s.trim()) : [],
+        created_at: fmtDate(d.created_at),
+        updated_at: fmtDate(d.updated_at),
+      };
+    });
 
   const SCHEDULES = rawSchedules
     .filter(d => {
@@ -309,16 +316,23 @@ function AppContent() {
       const principalPTs = ["INVESTOR_PRINCIPAL_PAYMENT", "BORROWER_PRINCIPAL_RECEIVED", "BORROWER_DISBURSEMENT", "INVESTOR_PRINCIPAL_DEPOSIT", "REPAYMENT", "BORROWER_REPAYMENT"];
       const isPrincipal = principalPTs.includes(d.payment_type);
       
+      const dealId = d.deal_id || "";
+      const partyId = d.party_id || "";
+      const dealMatch = rawDeals.find(deal => deal.id === dealId || deal.deal_id === dealId);
+      const partyMatch = rawContacts.find(party => party.id === partyId || party.doc_id === partyId || party.party_id === partyId);
+
       return {
         schedule_id: d.schedule_id || d.id, docId: d.doc_id || d.id, _path: d._path, investment: d.investment_id || "", dueDate: fmtDate(d.due_date),
         batch_id: d.batch_id || "",
         type: d.payment_type || "", 
         payment: fmtCurr(d.payment_amount != null ? d.payment_amount : (Math.abs(d.signed_payment_amount || 0) || (isPrincipal ? d.principal_amount : 0))),
         status: d.status || "", direction: dir, fee_id: d.fee_id || "",
-        party_id: d.party_id || "",
+        party_id: partyId,
+        party: partyMatch?.party_name || d.party_name || d.party_id || "",
         period_number: d.period_number != null ? String(d.period_number) : "",
         principal_amount: fmtCurr(principal),
-        deal_id: d.deal_id || "",
+        deal_id: dealId,
+        deal: dealMatch?.deal_name || d.deal_name || d.deal_id || "",
         signed_payment_amount: fmtCurr(signed),
         linked: d.linked_to_parent || d.linked || "", // Backward link to parent
         linked_schedule_id: d.linked_schedule_id || "", // Forward link to child
@@ -356,11 +370,14 @@ function AppContent() {
       if (isMember) {
         dir = (dir === "Received") ? "Disbursed" : (dir === "Disbursed" ? "Received" : dir);
       }
+      const partyId = d.party_id || "";
+      const partyMatch = rawContacts.find(party => party.id === partyId || party.doc_id === partyId || party.party_id === partyId);
+
       return {
         id: d.id, docId: d.doc_id || d.id, _path: d._path,
         investment: d.investment_id || "",
-        party: d.party_name || "",
-        party_id: d.party_id || "",
+        party: partyMatch?.party_name || d.party_name || d.party_id || "",
+        party_id: partyId,
         type: d.payment_type || "",
         amount: fmtCurr(d.amount),
         date: fmtDate(d.payment_date),
