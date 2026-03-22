@@ -184,6 +184,68 @@ export const getScheduleColumns = (permissions, isDark, t, context) => {
       cell: ({ getValue }) => <Bdg status={getValue()} isDark={isDark} />
     },
     {
+      header: "Notes",
+      accessorKey: "notes",
+      size: 180,
+      cell: ({ getValue }) => {
+        const val = getValue();
+        if (!val) return <span style={{ color: t.textMuted }}>—</span>;
+        return (
+          <div title={val} style={{ fontSize: '11.5px', color: t.textSecondary, maxWidth: '180px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {val}
+          </div>
+        );
+      }
+    },
+    {
+      header: "Updated At",
+      accessorKey: "updated_at",
+      size: 130,
+      cell: ({ getValue }) => {
+        const val = getValue();
+        if (!val) return <span style={{ color: t.textMuted }}>—</span>;
+        
+        // Handle Firestore timestamp
+        let d = val;
+        if (val.seconds) d = new Date(val.seconds * 1000);
+        else if (val.toDate) d = val.toDate();
+        else d = new Date(val);
+
+        if (isNaN(d.getTime())) return <span style={{ color: t.textMuted }}>—</span>;
+        
+        return (
+          <span style={{ fontSize: '11px', color: t.textMuted, fontFamily: t.mono }}>
+            {d.toLocaleString('en-US', { 
+              month: 'short', 
+              day: 'numeric', 
+              year: 'numeric',
+              hour: '2-digit', 
+              minute: '2-digit'
+            })}
+          </span>
+        );
+      }
+    },
+    {
+      header: "Updated By",
+      accessorKey: "updated_by",
+      size: 130,
+      cell: ({ getValue }) => {
+        const uid = getValue();
+        if (!uid) return <span style={{ color: t.textMuted }}>—</span>;
+        if (uid === 'system') return <span style={{ fontSize: '11px', fontWeight: 600, color: t.textMuted }}>System</span>;
+        
+        const user = context.USERS?.find(u => u.uid === uid || u.id === uid);
+        const name = user ? (user.user_name || user.name || user.email || uid) : uid;
+        
+        return (
+          <span style={{ fontSize: '11px', color: t.textSecondary, fontWeight: 500 }}>
+            {name}
+          </span>
+        );
+      }
+    },
+    {
       header: "Actions",
       id: "actions",
       size: 120,

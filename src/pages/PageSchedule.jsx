@@ -18,7 +18,7 @@ const fmtCurr = v => {
 
 const ZEROING_STATUSES = ["Missed", "Cancelled", "VOID", "WAIVED", "REPLACED"];
 
-export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = [], CONTACTS = [], DEALS = [], DIMENSIONS = [], FEES_DATA = [], collectionPath = "" }) {
+export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = [], CONTACTS = [], DEALS = [], DIMENSIONS = [], FEES_DATA = [], USERS = [], collectionPath = "" }) {
 
   const { user, hasPermission, isSuperAdmin } = useAuth();
   const canCreate = isSuperAdmin || hasPermission("PAYMENT_SCHEDULE_CREATE");
@@ -949,8 +949,9 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
       onEdit: openEdit,
       onDelete: setDelT,
       onUndo: handleUndo
-    }
-  }), [isDark, t, permissions, FEES_DATA, SCHEDULES, INVESTMENTS, CONTACTS]);
+    },
+    USERS
+  }), [isDark, t, permissions, FEES_DATA, SCHEDULES, INVESTMENTS, CONTACTS, USERS]);
 
   const columnDefs = useMemo(() => {
     return getScheduleColumns(permissions, isDark, t, context);

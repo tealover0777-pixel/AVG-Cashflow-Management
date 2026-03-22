@@ -325,6 +325,8 @@ function AppContent() {
         version_id: d.version_id || `${d.schedule_id || d.id}-V${d.version_num || 1}`,
         term_start: fmtDate(d.term_start), term_end: fmtDate(d.term_end),
         _undo_snapshot: d._undo_snapshot || null,
+        updated_at: d.updated_at, 
+        updated_by: d.updated_by || ""
       };
     });
 
@@ -640,7 +642,7 @@ function AppContent() {
                   {activePage === "Deal Summary" && <PageDealSummary t={t} isDark={isDark} dealId={selectedDealId} DEALS={DEALS} INVESTMENTS={INVESTMENTS} CONTACTS={CONTACTS} DIMENSIONS={DIMENSIONS} FEES_DATA={FEES_DATA} setActivePage={setActivePage} investmentCollection={isGlobalConsolidated ? "investments" : fetchPaths.investments} />}
                   {activePage === "Contacts" && <PageContacts t={t} isDark={isDark} CONTACTS={CONTACTS} INVESTMENTS={INVESTMENTS} SCHEDULES={SCHEDULES} DEALS={DEALS} collectionPath={isGlobalConsolidated ? "GROUP:parties" : fetchPaths.parties} DIMENSIONS={DIMENSIONS} tenantId={activeTenantId} />}
                   {activePage === "Investments" && <PageInvestments t={t} isDark={isDark} INVESTMENTS={INVESTMENTS} DEALS={DEALS} CONTACTS={CONTACTS} DIMENSIONS={DIMENSIONS} FEES_DATA={FEES_DATA} SCHEDULES={SCHEDULES} collectionPath={isGlobalConsolidated ? "GROUP:investments" : fetchPaths.investments} schedulePath={isGlobalConsolidated ? "GROUP:paymentSchedules" : fetchPaths.paymentSchedules} />}
-                  {activePage === "Payment Schedule" && <PageSchedule t={t} isDark={isDark} SCHEDULES={SCHEDULES} INVESTMENTS={INVESTMENTS} CONTACTS={CONTACTS} DEALS={DEALS} DIMENSIONS={DIMENSIONS} FEES_DATA={FEES_DATA} collectionPath={isGlobalConsolidated ? "GROUP:paymentSchedules" : fetchPaths.paymentSchedules} />}
+                  {activePage === "Payment Schedule" && <PageSchedule t={t} isDark={isDark} SCHEDULES={SCHEDULES} INVESTMENTS={INVESTMENTS} CONTACTS={CONTACTS} DEALS={DEALS} DIMENSIONS={DIMENSIONS} FEES_DATA={FEES_DATA} USERS={rawUsers} collectionPath={isGlobalConsolidated ? "GROUP:paymentSchedules" : fetchPaths.paymentSchedules} />}
                   {activePage === "Distribution Schedule" && <PageDistributionSchedule t={t} isDark={isDark} DEALS={DEALS} SCHEDULES={SCHEDULES} CONTACTS={CONTACTS} DIMENSIONS={DIMENSIONS} DISTRIBUTIONS={DISTRIBUTION_BATCHES} collectionPath={isGlobalConsolidated ? "GROUP:distributionBatches" : fetchPaths.distributionBatches} />}
                   {activePage === "Payments" && <PagePayments t={t} isDark={isDark} PAYMENTS={PAYMENTS} INVESTMENTS={INVESTMENTS} CONTACTS={CONTACTS} SCHEDULES={SCHEDULES} DIMENSIONS={DIMENSIONS} ACH_BATCHES={ACH_BATCHES} LEDGER={LEDGER} collectionPath={isGlobalConsolidated ? "GROUP:payments" : fetchPaths.payments} achBatchPath={isGlobalConsolidated ? "GROUP:achBatches" : fetchPaths.achBatches} ledgerPath={isGlobalConsolidated ? "GROUP:ledger" : fetchPaths.ledger} />}
                   {activePage === "Fees" && <PageFees t={t} isDark={isDark} FEES_DATA={FEES_DATA} DIMENSIONS={DIMENSIONS} collectionPath={isGlobalConsolidated ? "GROUP:fees" : fetchPaths.fees} />}
