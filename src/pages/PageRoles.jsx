@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { db } from "../firebase";
 import { doc, setDoc, deleteDoc, serverTimestamp } from "firebase/firestore";
 import { useFirestoreCollection } from "../useFirestoreCollection";
-import { sortData } from "../utils";
-import { Bdg, Pagination, ActBtns, useResizableColumns, TblHead, TblFilterRow, Modal, FF, FIn, DelModal, FMultiSel, Tooltip } from "../components";
+import { Modal, FF, FIn, DelModal, FMultiSel, Tooltip } from "../components";
+import TanStackTable from "../components/TanStackTable";
 import { useAuth } from "../AuthContext";
+import { getRoleColumns } from "../components/RolesTanStackConfig";
 
 export default function PageRoles({ t, isDark, collectionPath = "", DIMENSIONS = [], USERS = [] }) {
     const { hasPermission, isSuperAdmin, isGlobalRole } = useAuth();
@@ -13,12 +14,8 @@ export default function PageRoles({ t, isDark, collectionPath = "", DIMENSIONS =
     const canUpdate = isSuperAdmin || hasPermission("ROLE_UPDATE") || hasPermission("ROLE_TYPE_UPDATE");
     const canDelete = isSuperAdmin || hasPermission("ROLE_DELETE") || hasPermission("ROLE_TYPE_DELETE");
     const { data: rawRoles = [], loading, error } = useFirestoreCollection(collectionPath);
-    const [hov, setHov] = useState(null);
     const [modal, setModal] = useState({ open: false, mode: "add", data: {} });
     const [delT, setDelT] = useState(null);
-    const [sort, setSort] = useState({ key: null, direction: "asc" });
-    const [page, setPage] = useState(1);
-    const onSort = k => { setSort(s => ({ key: k, direction: s.key === k && s.direction === "asc" ? "desc" : "asc" })); setPage(1); };
 
     const permDim = DIMENSIONS.find(d => d.name === "Permissions")?.items || [];
 
@@ -59,15 +56,17 @@ export default function PageRoles({ t, isDark, collectionPath = "", DIMENSIONS =
         close();
     };
 
-    const cols = [
-        { l: "ROLE ID", w: "120px", k: "role_id" },
-        { l: "ROLE NAME", w: "200px", k: "role_name" },
-        { l: "PERMISSIONS", w: "0.60fr", k: "Permissions" },
-        { l: "ACTIONS", w: "80px" }
-    ];
-    const { gridTemplate, headerRef, onResizeStart } = useResizableColumns(cols);
-    const [colFilters, setColFilters] = useState({});
-    const setColFilter = (key, val) => { setColFilters(f => ({ ...f, [key]: val })); setPage(1); };
+    const handleDeleteRole = async () => {
+        if (!delT) return;
+        try { await deleteDoc(doc(db, collectionPath, delT.id)); }
+        catch (err) { console.error("Delete role error:", err); }
+        setDelT(null);
+    };
+
+    const permissions = { canUpdate, canDelete };
+    const columnDefs = useMemo(() => {
+        return getRoleColumns(permissions, isDark, t, openEdit, setDelT);
+    }, [permissions, isDark, t]);
 
     // Auto-sync Roles to Dimensions so "Role" dropdowns have access to them!
     useEffect(() => {
@@ -83,20 +82,12 @@ export default function PageRoles({ t, isDark, collectionPath = "", DIMENSIONS =
 
     const filtered = rawRoles.filter(p => {
         // Filter out global roles if user is not a global user or super admin
-        // User mentioned R10006 .. R10010 as examples of global roles
         const rid = p.role_id || "";
         const m = rid.match(/^R(\d+)$/);
         const rNum = m ? Number(m[1]) : 0;
         if (!isSuperAdmin && !isGlobalRole && (p.IsGlobal || (rNum >= 10006 && rNum <= 10010))) return false;
-
-        return cols.every(c => {
-            if (!c.k || !colFilters[c.k]) return true;
-            return String(p[c.k] || "").toLowerCase().includes(colFilters[c.k].toLowerCase());
-        });
+        return true;
     });
-    const sorted = sortData(filtered, sort);
-    const paginated = sorted.slice((page - 1) * 20, page * 20);
-    const totalPages = Math.ceil(sorted.length / 20);
 
     return (<>
         <div style={{ marginBottom: 28, display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
@@ -104,31 +95,18 @@ export default function PageRoles({ t, isDark, collectionPath = "", DIMENSIONS =
                 <h1 style={{ fontFamily: t.titleFont, fontWeight: t.titleWeight, fontSize: t.titleSize, color: isDark ? "#fff" : "#1C1917", letterSpacing: t.titleTracking, lineHeight: 1, marginBottom: 6 }}>Role Types</h1>
                 <p style={{ fontSize: 13.5, color: t.textMuted }}>Define custom roles and map them to application permissions</p>
             </div>
-            {canCreate && <Tooltip text="Create a new role type" t={t}><button className="primary-btn" onClick={openAdd} style={{ background: t.accentGrad, color: "#fff", padding: "11px 22px", borderRadius: 11, fontSize: 13.5, fontWeight: 600, boxShadow: `0 4px 16px ${t.accentShadow}` }}>+ New Role</button></Tooltip>}
+            {canCreate && <Tooltip text="Create a new role type" t={t}><button className="primary-btn" onClick={openAdd} style={{ background: t.accentGrad, color: "#fff", padding: "11px 22px", borderRadius: 11, fontSize: 13.5, fontWeight: 600, boxShadow: `0 4px 16px ${t.accentShadow}` }}>+ Add Role</button></Tooltip>}
         </div>
 
-        <div style={{ background: t.surface, borderRadius: 16, border: `1px solid ${t.surfaceBorder}`, overflow: "auto", backdropFilter: isDark ? "blur(20px)" : "none" }}>
-            <TblHead cols={cols} t={t} isDark={isDark} sortConfig={sort} onSort={onSort} gridTemplate={gridTemplate} headerRef={headerRef} onResizeStart={onResizeStart} />
-            <TblFilterRow cols={cols} colFilters={colFilters} onFilterChange={setColFilter} onClear={() => setColFilters({})} gridTemplate={gridTemplate} t={t} isDark={isDark} />
-            {paginated.map((p, i) => {
-                const isHov = hov === p.id;
-                return (<div key={p.id} className="data-row" onMouseEnter={() => setHov(p.id)} onMouseLeave={() => setHov(null)} style={{ display: "grid", gridTemplateColumns: gridTemplate, padding: "12px 22px", borderBottom: i < paginated.length - 1 ? `1px solid ${t.rowDivider}` : "none", alignItems: "center", background: isHov ? t.rowHover : "transparent" }}>
-                    <div style={{ fontSize: 13.5, color: t.textSecondary, fontFamily: t.mono }}>{p.role_id || p.id || "—"}</div>
-                    <div style={{ fontSize: 13.5, fontWeight: 600, color: isDark ? "#fff" : (isHov ? t.accent : "#1C1917") }}>
-                        {p.role_name || p.name || "—"}
-                        {p.IsGlobal && <span style={{ marginLeft: 8, fontSize: 10, fontWeight: 600, color: "#22C55E", background: isDark ? "rgba(34,197,94,0.15)" : "#F0FDF4", border: "1px solid rgba(34,197,94,0.35)", borderRadius: 10, padding: "2px 7px" }}>🌐 Global</span>}
-                    </div>
-                    <div style={{ fontSize: 11, color: t.textSubtle, display: "flex", flexWrap: "wrap", gap: 4 }}>
-                        {(p.Permissions || p.Permission) ? (p.Permissions || p.Permission).split(",").map(pm => (
-                            <span key={pm.trim()} style={{ background: t.chipBg, border: `1px solid ${t.chipBorder}`, padding: "2px 6px", borderRadius: 4 }}>{pm.trim()}</span>
-                        )) : <span style={{ fontStyle: "italic", opacity: 0.5 }}>No permissions assigned.</span>}
-                    </div>
-                    <ActBtns show={isHov && (canUpdate || canDelete)} t={t} onEdit={canUpdate ? () => openEdit(p) : null} onDel={canDelete ? () => setDelT(p) : null} />
-                </div>);
-            })}
+        <div style={{ height: 'calc(100vh - 350px)', width: "100%", minHeight: '500px' }}>
+            <TanStackTable
+                data={filtered}
+                columns={columnDefs}
+                pageSize={20}
+                t={t}
+                isDark={isDark}
+            />
         </div>
-
-        {totalPages > 1 && <div style={{ marginTop: 24, display: "flex", justifyContent: "flex-end" }}><Pagination totalPages={totalPages} currentPage={page} onPageChange={setPage} t={t} /></div>}
 
         <Modal open={modal.open} onClose={close} title={modal.mode === "add" ? "New Role" : "Edit Role"} onSave={handleSaveRole} width={600} t={t} isDark={isDark}>
             <FF label="Role ID" t={t}>
@@ -144,6 +122,10 @@ export default function PageRoles({ t, isDark, collectionPath = "", DIMENSIONS =
             <FF label="Permissions" t={t}><FMultiSel value={modal.data.selectedPerms || []} onChange={v => setF("selectedPerms", v)} options={permDim} t={t} /></FF>
         </Modal>
 
-        <DelModal target={delT} onClose={() => setDelT(null)} onConfirm={async () => { await deleteDoc(doc(db, collectionPath, delT.id)); setDelT(null); }} label="role" t={t} isDark={isDark} />
+        <DelModal open={!!delT} onClose={() => setDelT(null)} onDel={handleDeleteRole} title="Delete Role?" t={t}>
+            <p style={{ fontSize: 13.5, lineHeight: 1.6, color: t.textMuted }}>
+                Are you sure? This will remove the role <strong>{delT?.role_name || delT?.name}</strong>. This might affect users assigned to this role.
+            </p>
+        </DelModal>
     </>);
 }

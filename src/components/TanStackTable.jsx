@@ -30,10 +30,16 @@ const TanStackTable = React.forwardRef(({
   globalFilter,
   setGlobalFilter,
   getRowId,
+  // Controlled Selection props
+  rowSelection: controlledRowSelection,
+  onRowSelectionChange: controlledOnRowSelectionChange,
 }, ref) => {
   const [sorting, setSorting] = useState([]);
   const [columnFilters, setColumnFilters] = useState([]);
-  const [rowSelection, setRowSelection] = useState({});
+  const [internalRowSelection, setInternalRowSelection] = useState({});
+
+  const rowSelection = controlledRowSelection !== undefined ? controlledRowSelection : internalRowSelection;
+  const setRowSelection = controlledOnRowSelectionChange !== undefined ? controlledOnRowSelectionChange : setInternalRowSelection;
 
   // Reset method for parents
   React.useImperativeHandle(ref, () => ({
@@ -55,9 +61,7 @@ const TanStackTable = React.forwardRef(({
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
     onGlobalFilterChange: setGlobalFilter,
-    onRowSelectionChange: (updater) => {
-      setRowSelection(updater);
-    },
+    onRowSelectionChange: setRowSelection,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
@@ -207,6 +211,13 @@ const TanStackTable = React.forwardRef(({
         .ts-scroller::-webkit-scrollbar-thumb { background: ${isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'}; border-radius: 10px; }
         .p-btn { padding: 4px 8px; border-radius: 6px; border: 1px solid ${t.surfaceBorder}; background: transparent; cursor: pointer; display: flex; align-items: center; color: ${t.text}; }
         .p-btn:disabled { opacity: 0.3; cursor: default; }
+        .ts-checkbox {
+          width: 16px;
+          height: 16px;
+          accent-color: ${t.accent};
+          cursor: pointer;
+          border-radius: 4px;
+        }
       `}</style>
     </div>
   );
