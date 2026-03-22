@@ -852,14 +852,17 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
       onConfirm: async () => {
         setConfirmAction(null);
         try {
-          await Promise.all([...sel].map(sid => {
-            const s = SCHEDULES.find(s => s.schedule_id === sid);
-            if (s && s.docId) {
-              const ref = s._path ? doc(db, s._path) : doc(db, collectionPath, s.docId);
-              return deleteDoc(ref);
-            }
-            return Promise.resolve();
-          }));
+          const deletePromises = [];
+          [...sel].forEach(sid => {
+            // Find all historical and active versions for this schedule ID
+            const versions = SCHEDULES.filter(s => s.schedule_id === sid);
+            versions.forEach(v => {
+              const ref = v._path ? doc(db, v._path) : doc(db, collectionPath, v.docId);
+              deletePromises.push(deleteDoc(ref));
+            });
+          });
+          
+          await Promise.all(deletePromises);
           setSel(new Set());
         } catch (err) {
           console.error("Bulk delete error:", err);
