@@ -67,11 +67,28 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
     const dateSet = new Set();
     const dataMap = {};
 
+    console.log('Processing dealSchedules for pivot:', dealSchedules.length, 'records');
+
     dealSchedules.forEach(schedule => {
       const investor = CONTACTS.find(c => c.id === schedule.party_id);
       const investorName = investor ? investor.name : schedule.party_id || "Unknown";
       const dueDate = schedule.dueDate || "No Date";
-      const amount = Number(schedule.signed_payment_amount) || 0;
+
+      // Try multiple field name variations
+      let amount = 0;
+      if (schedule.signed_payment_amount !== undefined && schedule.signed_payment_amount !== null) {
+        amount = Number(schedule.signed_payment_amount);
+      } else if (schedule.signedPaymentAmount !== undefined && schedule.signedPaymentAmount !== null) {
+        amount = Number(schedule.signedPaymentAmount);
+      } else if (schedule.amount !== undefined && schedule.amount !== null) {
+        amount = Number(schedule.amount);
+      } else if (schedule.payment_amount !== undefined && schedule.payment_amount !== null) {
+        amount = Number(schedule.payment_amount);
+      }
+
+      console.log('Schedule:', { investorName, dueDate, amount, raw: schedule.signed_payment_amount });
+
+      if (isNaN(amount)) amount = 0;
 
       investorSet.add(investorName);
       dateSet.add(dueDate);
@@ -82,6 +99,8 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
 
     const investors = Array.from(investorSet).sort();
     const dates = Array.from(dateSet).sort();
+
+    console.log('Pivot data calculated:', { investors, dates, dataMap });
 
     return { investors, dates, data: dataMap };
   }, [dealSchedules, CONTACTS]);
@@ -601,15 +620,16 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
                             const key = `${investor}|${date}`;
                             const amount = pivotData.data[key] || 0;
                             rowTotal += amount;
+                            const hasAmount = amount !== 0;
                             return (
                               <td key={dateIdx} style={{
                                 padding: "12px 16px",
                                 textAlign: "right",
                                 fontFamily: t.mono,
                                 fontWeight: 600,
-                                color: amount > 0 ? (isDark ? "#34D399" : "#059669") : t.textMuted
+                                color: hasAmount ? (isDark ? "#34D399" : "#059669") : t.textMuted
                               }}>
-                                {amount > 0 ? `$${amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : "—"}
+                                {hasAmount ? `$${amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : "—"}
                               </td>
                             );
                           })}

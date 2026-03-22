@@ -9,7 +9,8 @@
       "Bash(firebase apps:create:*)",
       "Bash(node -e:*)",
       "Bash(npx vite build)",
-      "Bash(timeout 10 npx vite:*)"
+      "Bash(timeout 10 npx vite:*)",
+      "Bash(cd /Users/kyuahn/Documents/AVG/AVG\\\\ Cashflow\\\\ Management && npm run dev:*)"
     ]
   }
 }
