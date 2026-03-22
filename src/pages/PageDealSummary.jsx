@@ -27,7 +27,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
   const [delT, setDelT] = useState(null);
   const [assetDelT, setAssetDelT] = useState(null);
   const [sel, setSel] = useState(new Set());
-  const [pageSize, setPageSize] = useState(20);
+  const [pageSize, setPageSize] = useState(30);
   const [uploadedPhotos, setUploadedPhotos] = useState([]);
   const [newPhotoFiles, setNewPhotoFiles] = useState([]);
   const [attributes, setAttributes] = useState([]);
@@ -60,10 +60,10 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
 
   // Pivot data for distribution chart view
   const pivotData = useMemo(() => {
-    if (!dealSchedules.length) return { investors: [], dates: [], data: {} };
+    if (!dealSchedules.length) return { rows: [], dates: [], data: {} };
 
-    // Get unique investors and dates
-    const investorSet = new Set();
+    // Get unique investor+type combinations, dates, and data
+    const rowSet = new Set();
     const dateSet = new Set();
     const dataMap = {};
 
@@ -84,6 +84,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
       const investor = CONTACTS.find(c => c.id === schedule.party_id);
       const investorName = investor ? investor.name : schedule.party_id || "Unknown";
       const dueDate = schedule.dueDate || "No Date";
+      const paymentType = schedule.type || "Unknown Type";
 
       // Try multiple field name variations and parse currency
       let amount = 0;
@@ -97,21 +98,31 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
         amount = parseCurrency(schedule.payment_amount);
       }
 
-      console.log('Schedule:', { investorName, dueDate, amount, raw: schedule.signed_payment_amount });
+      console.log('Schedule:', { investorName, paymentType, dueDate, amount, raw: schedule.signed_payment_amount });
 
-      investorSet.add(investorName);
+      const rowKey = `${investorName}|||${paymentType}`;
+      rowSet.add(rowKey);
       dateSet.add(dueDate);
 
-      const key = `${investorName}|${dueDate}`;
-      dataMap[key] = (dataMap[key] || 0) + amount;
+      const cellKey = `${rowKey}|||${dueDate}`;
+      dataMap[cellKey] = (dataMap[cellKey] || 0) + amount;
     });
 
-    const investors = Array.from(investorSet).sort();
+    // Convert row keys to objects with investor and type
+    const rows = Array.from(rowSet).map(key => {
+      const [investor, type] = key.split('|||');
+      return { investor, type, key };
+    }).sort((a, b) => {
+      // Sort by investor name first, then by type
+      if (a.investor !== b.investor) return a.investor.localeCompare(b.investor);
+      return a.type.localeCompare(b.type);
+    });
+
     const dates = Array.from(dateSet).sort();
 
-    console.log('Pivot data calculated:', { investors, dates, dataMap });
+    console.log('Pivot data calculated:', { rows: rows.length, dates: dates.length, dataMap });
 
-    return { investors, dates, data: dataMap };
+    return { rows, dates, data: dataMap };
   }, [dealSchedules, CONTACTS]);
 
   const gridRef = useRef();
@@ -553,33 +564,11 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
               padding: 24,
               overflowX: "auto"
             }}>
-              {/* Debug Info Panel */}
-              <div style={{ marginBottom: 16, padding: 12, background: isDark ? "rgba(96,165,250,0.1)" : "#EFF6FF", borderRadius: 8, fontSize: 11, fontFamily: t.mono, color: t.text }}>
-                <div style={{ fontWeight: 700, marginBottom: 8 }}>Debug Info:</div>
-                <div>Total Schedules: {dealSchedules.length}</div>
-                <div>Investors Found: {pivotData.investors.length}</div>
-                <div>Dates Found: {pivotData.dates.length}</div>
-                {dealSchedules.length > 0 && (
-                  <div style={{ marginTop: 8 }}>
-                    <div>First Schedule Sample:</div>
-                    <div style={{ fontSize: 10, wordBreak: "break-all", maxWidth: "100%", overflow: "auto" }}>
-                      {JSON.stringify({
-                        party_id: dealSchedules[0].party_id,
-                        dueDate: dealSchedules[0].dueDate,
-                        signed_payment_amount: dealSchedules[0].signed_payment_amount,
-                        amount: dealSchedules[0].amount,
-                        signedPaymentAmount: dealSchedules[0].signedPaymentAmount
-                      }, null, 2)}
-                    </div>
-                  </div>
-                )}
-              </div>
-
               <h3 style={{ fontSize: 16, fontWeight: 700, color: t.text, marginBottom: 20 }}>
                 Distribution Pivot Table
               </h3>
 
-              {pivotData.investors.length > 0 ? (
+              {pivotData.rows.length > 0 ? (
                 <table style={{
                   width: "100%",
                   borderCollapse: "collapse",
@@ -601,6 +590,19 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
                         zIndex: 2
                       }}>
                         Investor Name
+                      </th>
+                      <th style={{
+                        padding: "12px 16px",
+                        textAlign: "left",
+                        fontWeight: 700,
+                        color: t.text,
+                        position: "sticky",
+                        left: 200,
+                        background: isDark ? "rgba(255,255,255,0.05)" : "#F9FAFB",
+                        zIndex: 2,
+                        minWidth: 150
+                      }}>
+                        Type
                       </th>
                       {pivotData.dates.map((date, idx) => (
                         <th key={idx} style={{
@@ -626,10 +628,10 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
                     </tr>
                   </thead>
                   <tbody>
-                    {pivotData.investors.map((investor, invIdx) => {
+                    {pivotData.rows.map((row, rowIdx) => {
                       let rowTotal = 0;
                       return (
-                        <tr key={invIdx} style={{
+                        <tr key={rowIdx} style={{
                           borderBottom: `1px solid ${t.surfaceBorder}`,
                           transition: "background 0.15s ease"
                         }}
@@ -645,11 +647,22 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
                             background: isDark ? "#1a1a1a" : "#fff",
                             zIndex: 1
                           }}>
-                            {investor}
+                            {row.investor}
+                          </td>
+                          <td style={{
+                            padding: "12px 16px",
+                            fontSize: 11,
+                            color: t.textSecondary,
+                            position: "sticky",
+                            left: 200,
+                            background: isDark ? "#1a1a1a" : "#fff",
+                            zIndex: 1
+                          }}>
+                            {row.type.replace(/_/g, ' ')}
                           </td>
                           {pivotData.dates.map((date, dateIdx) => {
-                            const key = `${investor}|${date}`;
-                            const amount = pivotData.data[key] || 0;
+                            const cellKey = `${row.key}|||${date}`;
+                            const amount = pivotData.data[cellKey] || 0;
                             rowTotal += amount;
                             const hasAmount = amount !== 0;
                             return (
@@ -694,10 +707,18 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
                       }}>
                         Total
                       </td>
+                      <td style={{
+                        padding: "12px 16px",
+                        position: "sticky",
+                        left: 200,
+                        background: isDark ? "rgba(96,165,250,0.1)" : "#EFF6FF",
+                        zIndex: 1
+                      }}>
+                      </td>
                       {pivotData.dates.map((date, idx) => {
-                        const colTotal = pivotData.investors.reduce((sum, inv) => {
-                          const key = `${inv}|${date}`;
-                          return sum + (pivotData.data[key] || 0);
+                        const colTotal = pivotData.rows.reduce((sum, row) => {
+                          const cellKey = `${row.key}|||${date}`;
+                          return sum + (pivotData.data[cellKey] || 0);
                         }, 0);
                         return (
                           <td key={idx} style={{
@@ -717,10 +738,10 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
                         fontSize: 14,
                         color: t.text
                       }}>
-                        ${pivotData.investors.reduce((grandTotal, inv) => {
-                          return grandTotal + pivotData.dates.reduce((invTotal, date) => {
-                            const key = `${inv}|${date}`;
-                            return invTotal + (pivotData.data[key] || 0);
+                        ${pivotData.rows.reduce((grandTotal, row) => {
+                          return grandTotal + pivotData.dates.reduce((rowTotal, date) => {
+                            const cellKey = `${row.key}|||${date}`;
+                            return rowTotal + (pivotData.data[cellKey] || 0);
                           }, 0);
                         }, 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </td>

@@ -50,3 +50,6 @@ node_modules
 
 # Firebase Data Connect generated files
 dataconnect/.dataconnect
+
+# Secrets
+serviceAccountKey.json
