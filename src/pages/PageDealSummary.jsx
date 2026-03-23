@@ -9,7 +9,8 @@ import { getDistributionColumns } from "../components/DistributionScheduleTanSta
 import { getContactColumns } from "../components/ContactsTanStackConfig";
 import { getAssetColumns } from "../components/AssetsTanStackConfig";
 import TanStackTable from "../components/TanStackTable";
-import { X } from "lucide-react";
+import { X, Check, Plus, Construction, AlertTriangle, FileCheck } from "lucide-react";
+import { normalizeDateAtNoon, getFrequencyValue, pmtCalculator_ACT360_30360, feeCalculator_ACT360_30360, fmtCurr } from "../utils";
 
 export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTMENTS = [], CONTACTS = [], DIMENSIONS = [], FEES_DATA = [], SCHEDULES = [], USERS = [], setActivePage, investmentCollection = "investments" }) {
   const { hasPermission, isSuperAdmin } = useAuth();
@@ -32,10 +33,11 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
   const [uploadedPhotos, setUploadedPhotos] = useState([]);
   const [newPhotoFiles, setNewPhotoFiles] = useState([]);
   const [attributes, setAttributes] = useState([]);
-  const [confirmAction, setConfirmAction] = useState(null);
-  const [bulkStatus, setBulkStatus] = useState("");
-  const [rowSelection, setRowSelection] = useState({});
-  const statusOpts = (DIMENSIONS.find(d => d.name === "ScheduleStatus" || d.name === "Schedule Status") || {}).items || ["Due", "Paid", "Partial", "Missed", "Cancelled"];
+  const [generating, setGenerating] = useState(false);
+  const [genConfirm, setGenConfirm] = useState(null);
+  const [genResult, setGenResult] = useState(null);
+  const [bulkInvestmentStatus, setBulkInvestmentStatus] = useState("");
+  const investmentStatusOpts = ["Open", "Active", "Closed"];
 
   useEffect(() => {
     if (deal.id) {
@@ -241,55 +243,257 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
     } catch (err) { console.error("Delete investment error:", err); }
   };
 
-  const handleBulkStatus = (status) => {
-    if (!status || Object.keys(rowSelection).length === 0) return;
-    const selectedIds = Object.keys(rowSelection);
-    setConfirmAction({
-      title: "Update Status",
-      message: `Are you sure you want to update status to "${status}" for ${selectedIds.length} distribution(s)?`,
-      onConfirm: async () => {
-        setConfirmAction(null);
-        try {
-          await Promise.all(selectedIds.map(docId => {
-            const s = SCHEDULES.find(s => s.docId === docId || s.id === docId);
-            if (s) {
-              const ref = s._path ? doc(db, s._path) : doc(db, "paymentSchedules", s.docId || s.id);
-              return updateDoc(ref, { status, updated_at: serverTimestamp() });
-            }
-            return Promise.resolve();
-          }));
-          setRowSelection({}); setBulkStatus("");
-        } catch (err) { console.error("Bulk status update error:", err); }
-      }
-    });
+  const handleBulkInvestmentStatus = async (status) => {
+    if (!status || sel.size === 0) return;
+    if (!window.confirm(`Are you sure you want to update status to "${status}" for ${sel.size} investment(s)?`)) return;
+    try {
+      await Promise.all([...sel].map(id => {
+        const c = INVESTMENTS.find(c => c.id === id);
+        if (c && (c._path || c.docId)) {
+          const docRef = c._path ? doc(db, c._path) : doc(db, investmentCollection, c.docId);
+          return updateDoc(docRef, { status, updated_at: serverTimestamp() });
+        }
+        return Promise.resolve();
+      }));
+      setSel(new Set()); setBulkInvestmentStatus("");
+    } catch (err) { console.error("Bulk status update error:", err); }
   };
 
-  const handleBulkDelete = () => {
-    const selectedIds = Object.keys(rowSelection);
-    if (selectedIds.length === 0) return;
-    setConfirmAction({
-      title: "Delete Distributions",
-      message: `Are you sure you want to delete ${selectedIds.length} distribution(s)? This action cannot be undone.`,
-      onConfirm: async () => {
-        setConfirmAction(null);
-        try {
-          const deletePromises = selectedIds.map(docId => {
-            const s = SCHEDULES.find(x => x.docId === docId || x.id === docId);
-            if (s) {
-              const ref = s._path ? doc(db, s._path) : doc(db, "paymentSchedules", s.docId || s.id);
-              return deleteDoc(ref);
+  const handleBulkInvestmentDelete = async () => {
+    if (sel.size === 0) return;
+    if (!window.confirm(`Are you sure you want to delete ${sel.size} investment(s)? This action cannot be undone.`)) return;
+    try {
+      await Promise.all([...sel].map(id => {
+        const c = INVESTMENTS.find(c => c.id === id);
+        if (c) {
+          const docRef = c._path ? doc(db, c._path) : (c.docId ? doc(db, investmentCollection, c.docId) : null);
+          if (docRef) return deleteDoc(docRef);
+        }
+        return Promise.resolve();
+      }));
+      setSel(new Set());
+    } catch (err) { console.error("Bulk delete error:", err); }
+  };
+
+  const handleGenerateSchedules = () => {
+    if (sel.size === 0) return;
+    const selected = INVESTMENTS.filter(c => sel.has(c.id));
+    setGenConfirm({ count: selected.length });
+  };
+
+  const executeGenerateSchedules = async () => {
+    setGenConfirm(null);
+    const selected = INVESTMENTS.filter(c => sel.has(c.id));
+    if (selected.length === 0) return;
+
+    // Load mapping from DIMENSIONS
+    const findDim = n => (DIMENSIONS.find(d => d.name === n) || {}).items || [];
+    const inPT = findDim("IN_PaymentType");
+    const outPT = findDim("OUT_PaymentType");
+
+    const FALLBACK_DIR = {
+      BORROWER_DISBURSEMENT: "OUT",
+      BORROWER_PRINCIPAL_RECEIVED: "IN",
+      BORROWER_PRINCIPAL_PAYMENT: "OUT",
+      BORROWER_INTEREST_PAYMENT: "IN",
+      INVESTOR_PRINCIPAL_DEPOSIT: "OUT",
+      INVESTOR_PRINCIPAL_PAYMENT: "IN",
+      INVESTOR_INTEREST_PAYMENT: "OUT",
+      FEE: "OUT",
+    };
+    const getDirectionAndSigned = (pt, amt) => {
+      let dir = "";
+      if (inPT.includes(pt)) dir = "IN";
+      else if (outPT.includes(pt)) dir = "OUT";
+      else if (FALLBACK_DIR[pt]) dir = FALLBACK_DIR[pt];
+      const signed = dir === "OUT" ? -Math.abs(amt) : Math.abs(amt);
+      return { direction: dir, signed: signed };
+    };
+
+    const PT_DEPOSIT = "INVESTOR_PRINCIPAL_DEPOSIT";
+    const PT_INTEREST = "INVESTOR_INTEREST_PAYMENT";
+    const PT_FEE = "FEE";
+    const PT_INV_REPAYMENT = "INVESTOR_PRINCIPAL_PAYMENT";
+    const PT_BOR_DISBURSEMENT = "BORROWER_DISBURSEMENT";
+    const PT_BOR_RECEIVED = "BORROWER_PRINCIPAL_RECEIVED";
+    const PT_BOR_INTEREST = "BORROWER_INTEREST_PAYMENT";
+
+    const feeInfoMap = {};
+    FEES_DATA.forEach(f => {
+      feeInfoMap[f.id] = { name: f.name, method: f.method, rate: f.rate, frequency: f.fee_frequency, fee_charge_at: f.fee_charge_at, applied_to: f.applied_to || "Principal Amount", direction: f.direction || "IN" };
+    });
+    setGenerating(true);
+
+    try {
+      const schedulePath = (DIMENSIONS.find(d => d.name === "paymentSchedulesPath") || { value: "paymentSchedules" }).value || "paymentSchedules";
+      // Helper for random IDs
+      const mkId = (pre = "S") => `${pre}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
+
+      const entries = [];
+      const skipped = [];
+      const parseNum = v => {
+        const n = Number(String(v).replace(/[^0-9.-]/g, ""));
+        return isNaN(n) ? 0 : n;
+      };
+
+      for (const c of selected) {
+        const principal = parseNum(c.amount);
+        const rate = parseNum(c.rate) / 100;
+        const startDate = normalizeDateAtNoon(c.start_date);
+        const matDate = normalizeDateAtNoon(c.maturity_date);
+
+        if (!startDate || !matDate || matDate <= startDate) {
+          skipped.push(`${c.id} (Invalid Dates)`);
+          continue;
+        }
+        if (principal <= 0) {
+          skipped.push(`${c.id} (Zero Amount)`);
+          continue;
+        }
+
+        const cTypeUpper = (c.type || "").toUpperCase();
+        const isDisbursement = cTypeUpper.includes("DISBURSEMENT");
+
+        // 1. Initial
+        const initialPaymentType = isDisbursement ? PT_BOR_DISBURSEMENT : PT_DEPOSIT;
+        const ds1 = getDirectionAndSigned(initialPaymentType, principal);
+        const sId1 = mkId("S");
+        entries.push({
+          schedule_id: sId1, version_num: 1, version_id: `${sId1}-V1`, payment_id: sId1, active_version: true,
+          investment_id: c.id, deal_id: c.deal_id || "", party_id: c.party_id || "",
+          due_date: startDate.toISOString().slice(0, 10), payment_type: initialPaymentType, fee_id: "",
+          period_number: 1, principal_amount: principal, payment_amount: principal,
+          signed_payment_amount: ds1.signed, direction_from_company: ds1.direction,
+          original_payment_amount: principal, applied_to: "Principal Amount",
+          term_start: startDate.toISOString().slice(0, 10), term_end: startDate.toISOString().slice(0, 10),
+          status: "Due", notes: `Initial for ${c.id}`, created_at: serverTimestamp(),
+        });
+
+        // 2. Interest / Fees
+        const freqValue = getFrequencyValue(c.freq);
+        const monthsPerPeriod = 12 / freqValue;
+        let pStart = normalizeDateAtNoon(new Date(startDate.getFullYear(), startDate.getMonth(), 1));
+        const cFeeIds = (c.fees || "").split(",").map(f => f.trim()).filter(Boolean);
+
+        // One-time fees
+        cFeeIds.forEach(fid => {
+          const fInfo = feeInfoMap[fid];
+          if (!fInfo) return;
+          let feeFrequency = fInfo.frequency;
+          if (!feeFrequency) feeFrequency = (fInfo.fee_charge_at || "").toLowerCase().includes("investment") ? "One_Time" : "Recurring";
+          if (feeFrequency === "One_Time") {
+            const feeAmt = feeCalculator_ACT360_30360(fInfo, principal, startDate, startDate, startDate);
+            if (isNaN(feeAmt)) return;
+            let dDate = startDate;
+            if (fInfo.fee_charge_at === "Investment_End") dDate = matDate;
+            const feeDir = fInfo.direction || "OUT";
+            const sIdFee = mkId("S");
+            entries.push({
+              schedule_id: sIdFee, version_num: 1, version_id: `${sIdFee}-V1`, payment_id: sIdFee, active_version: true,
+              investment_id: c.id, deal_id: c.deal_id || "", party_id: c.party_id || "",
+              due_date: dDate.toISOString().slice(0, 10), payment_type: PT_FEE, fee_id: fid,
+              period_number: 1, principal_amount: principal, payment_amount: feeAmt,
+              signed_payment_amount: feeDir === "OUT" ? -Math.abs(feeAmt) : Math.abs(feeAmt), direction_from_company: feeDir,
+              original_payment_amount: feeAmt, term_start: startDate.toISOString().slice(0, 10), term_end: dDate.toISOString().slice(0, 10),
+              applied_to: fInfo.applied_to || "Principal Amount", fee_name: fInfo.name || "Fee", fee_rate: fInfo.rate || "0", fee_method: fInfo.method || "Fixed Amount",
+              status: "Due", notes: `One-time Fee ${fid} for ${c.id}`, created_at: serverTimestamp(),
+            });
+          }
+        });
+
+        let periodNum = 1; let safety = 0;
+        while (pStart < matDate && safety < 1200) {
+          safety++;
+          let pEnd = normalizeDateAtNoon(new Date(pStart.getFullYear(), pStart.getMonth() + (monthsPerPeriod || 1), 0));
+          if (!pEnd || pEnd <= pStart) pEnd = normalizeDateAtNoon(new Date(pStart.getFullYear(), pStart.getMonth() + 2, 0));
+          const isLast = pEnd > matDate;
+          let calcEnd = isLast ? matDate : pEnd;
+          if (isLast) pEnd = matDate;
+
+          let interest = principal * (rate / (freqValue || 1));
+          if (c.calculator === "ACT/360+30/360") interest = pmtCalculator_ACT360_30360(pStart, calcEnd, startDate, principal, rate, c.freq);
+          
+          if (!isNaN(interest)) {
+            const interestPT = isDisbursement ? PT_BOR_INTEREST : PT_INTEREST;
+            const ds2 = getDirectionAndSigned(interestPT, interest);
+            const sIdInt = mkId("S");
+            entries.push({
+              schedule_id: sIdInt, version_num: 1, version_id: `${sIdInt}-V1`, payment_id: sIdInt, active_version: true,
+              investment_id: c.id, deal_id: c.deal_id || "", party_id: c.party_id || "",
+              due_date: pEnd.toISOString().slice(0, 10), payment_type: interestPT, fee_id: "",
+              period_number: periodNum, principal_amount: principal, payment_amount: Math.round(interest * 100) / 100,
+              signed_payment_amount: ds2.signed, direction_from_company: ds2.direction,
+              original_payment_amount: Math.round(interest * 100) / 100,
+              term_start: pStart.toISOString().slice(0, 10), term_end: pEnd.toISOString().slice(0, 10),
+              applied_to: "Interest Amount", status: "Due", notes: `Interest Period ${periodNum} for ${c.id}`, created_at: serverTimestamp(),
+            });
+          }
+
+          cFeeIds.forEach(fid => {
+            const fInfo = feeInfoMap[fid];
+            if (!fInfo || (fInfo.frequency !== "Recurring" && (fInfo.fee_charge_at || "").toLowerCase().includes("investment"))) return;
+            const ca = (fInfo.fee_charge_at || "").toLowerCase();
+            let should = ca.includes("term") || (ca.includes("start") && periodNum === 1) || (ca.includes("end") && isLast) || ca.includes("month");
+            if (isLast) should = true;
+            if (should) {
+              const feeAmt = feeCalculator_ACT360_30360(fInfo, principal, pStart, calcEnd, startDate);
+              if (!isNaN(feeAmt)) {
+                const sIdRecFee = mkId("S");
+                const feeDir = fInfo.direction || "OUT";
+                entries.push({
+                  schedule_id: sIdRecFee, version_num: 1, version_id: `${sIdRecFee}-V1`, payment_id: sIdRecFee, active_version: true,
+                  investment_id: c.id, deal_id: c.deal_id || "", party_id: c.party_id || "",
+                  due_date: (ca.includes("start") && periodNum === 1 ? startDate : pEnd).toISOString().slice(0, 10),
+                  payment_type: PT_FEE, fee_id: fid, period_number: periodNum, principal_amount: principal, payment_amount: Math.round(feeAmt * 100)/100,
+                  signed_payment_amount: feeDir === "OUT" ? -Math.abs(feeAmt) : Math.abs(feeAmt), direction_from_company: feeDir,
+                  original_payment_amount: Math.round(feeAmt * 100)/100, term_start: pStart.toISOString().slice(0, 10), term_end: pEnd.toISOString().slice(0, 10),
+                  applied_to: fInfo.applied_to || "Principal Amount", fee_name: fInfo.name || "Fee", fee_rate: fInfo.rate || "0", fee_method: fInfo.method || "Fixed Amount",
+                  status: "Due", notes: `Recurring Fee ${fid} P${periodNum} for ${c.id}`, created_at: serverTimestamp(),
+                });
+              }
             }
-            return Promise.resolve();
           });
-          await Promise.all(deletePromises);
-          setRowSelection({});
-        } catch (err) {
-          console.error("Bulk delete error:", err);
-          alert("Failed to delete distribution(s).");
+          periodNum++;
+          pStart = normalizeDateAtNoon(new Date(pEnd.getFullYear(), pEnd.getMonth() + 1, 1));
+          if (!pStart || isLast) break;
+        }
+
+        // 3. Repayment
+        const repaymentPT = isDisbursement ? PT_BOR_RECEIVED : PT_INV_REPAYMENT;
+        const ds3 = getDirectionAndSigned(repaymentPT, principal);
+        const sIdRepay = mkId("S");
+        entries.push({
+          schedule_id: sIdRepay, version_num: 1, version_id: `${sIdRepay}-V1`, payment_id: sIdRepay, active_version: true,
+          investment_id: c.id, deal_id: c.deal_id || "", party_id: c.party_id || "",
+          due_date: matDate.toISOString().slice(0, 10), payment_type: repaymentPT, fee_id: "",
+          period_number: periodNum, principal_amount: principal, payment_amount: principal,
+          signed_payment_amount: ds3.signed, direction_from_company: ds3.direction,
+          original_payment_amount: principal, term_start: startDate.toISOString().slice(0, 10), term_end: matDate.toISOString().slice(0, 10),
+          applied_to: "Principal Amount", status: c.rollover ? "ROLLOVER" : "Due", 
+          notes: c.rollover ? `Rollover for ${c.id}` : `Repayment for ${c.id}`, created_at: serverTimestamp(),
+        });
+      }
+
+      // Batch write to Firestore
+      let count = 0;
+      const existingKeys = new Set(SCHEDULES.map(s => `${s.investment_id || s.investment}|${s.due_date || s.dueDate}|${s.payment_type || s.type}|${s.fee_id || ""}`));
+      for (const entry of entries) {
+        const key = `${entry.investment_id}|${entry.due_date}|${entry.payment_type}|${entry.fee_id || ""}`;
+        if (!existingKeys.has(key)) {
+          await addDoc(collection(db, "paymentSchedules"), entry);
+          count++;
         }
       }
-    });
+      setGenerating(false);
+      setGenResult({ title: "Success", message: `Successfully generated ${count} schedule entries. ${skipped.length} skipped.` });
+      setSel(new Set());
+    } catch (err) {
+      console.error("Schedule generation error:", err);
+      setGenerating(false);
+      setGenResult({ title: "Error", message: "Failed to generate schedules: " + err.message });
+    }
   };
+
 
   // Asset management functions
   const openAddAsset = () => {
@@ -591,15 +795,79 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
       </div>
 
       {activeTab === "Investments" ? (
-        <div style={{ height: '1200px', width: "100%", minHeight: '1200px' }}>
-            <TanStackTable
-                data={dealInvestments}
-                columns={columnDefs}
-                pageSize={pageSize}
-                t={t}
-                isDark={isDark}
-                onSelectionChange={(selected) => setSel(new Set(selected.map(r => r.id)))}
-            />
+        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+          {sel.size > 0 && (
+            <div style={{ 
+              display: "flex", alignItems: "center", gap: 12, padding: "10px 16px", 
+              borderRadius: 12, background: isDark ? "rgba(255,255,255,0.03)" : "#F9FAFB", 
+              border: `1px solid ${t.surfaceBorder}`, animation: "fadeIn 0.2s ease" 
+            }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <span style={{ fontSize: 16 }}>🎯</span>
+                <span style={{ fontSize: 13, fontWeight: 600, color: t.textSecondary }}>{sel.size} selected</span>
+              </div>
+              <div style={{ width: 1, height: 20, background: t.surfaceBorder, margin: "0 4px" }} />
+              
+              <FSel 
+                width={160} 
+                value={bulkInvestmentStatus} 
+                onChange={ev => { setBulkInvestmentStatus(ev.target.value); handleBulkInvestmentStatus(ev.target.value); }} 
+                options={["", ...investmentStatusOpts]} 
+                t={t} 
+                placeholder="Set status..." 
+              />
+
+              <div style={{ width: 1, height: 20, background: t.surfaceBorder, margin: "0 4px" }} />
+              
+              <button 
+                onClick={handleGenerateSchedules}
+                disabled={generating}
+                style={{ 
+                  display: "flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 700, 
+                  padding: "6px 14px", borderRadius: 8, background: t.accent, color: "#fff", 
+                  border: "none", cursor: "pointer", opacity: generating ? 0.6 : 1
+                }}
+              >
+                <FileCheck size={14} />
+                {generating ? "Generating..." : "Generate Schedules"}
+              </button>
+
+              <div style={{ width: 1, height: 20, background: t.surfaceBorder, margin: "0 4px" }} />
+
+              {canDelete && (
+                <button 
+                  onClick={handleBulkInvestmentDelete} 
+                  style={{ 
+                    fontSize: 12, fontWeight: 700, padding: "6px 14px", borderRadius: 8, 
+                    background: isDark ? "rgba(248,113,113,0.15)" : "#FEF2F2", 
+                    color: isDark ? "#F87171" : "#DC2626", 
+                    border: `1px solid ${isDark ? "rgba(248,113,113,0.3)" : "#FECACA"}`, 
+                    cursor: "pointer"
+                  }}
+                >
+                  Delete ({sel.size})
+                </button>
+              )}
+              
+              <div style={{ flex: 1 }} />
+              <button 
+                onClick={() => setSel(new Set())} 
+                style={{ background: "none", border: "none", color: t.textMuted, fontSize: 12, fontWeight: 600, cursor: "pointer" }}
+              >
+                Clear Selection
+              </button>
+            </div>
+          )}
+          <div style={{ height: '1200px', width: "100%", minHeight: '1200px' }}>
+              <TanStackTable
+                  data={dealInvestments}
+                  columns={columnDefs}
+                  pageSize={pageSize}
+                  t={t}
+                  isDark={isDark}
+                  onSelectionChange={(selected) => setSel(new Set(selected.map(r => r.id)))}
+              />
+          </div>
         </div>
       ) : activeTab === "Distributions" ? (
         <div>
@@ -638,61 +906,14 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
           </div>
 
           {distributionView === "table" ? (
-            <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-              {Object.keys(rowSelection).length > 0 && (
-                <div style={{ 
-                  display: "flex", alignItems: "center", gap: 12, padding: "10px 16px", 
-                  borderRadius: 12, background: isDark ? "rgba(255,255,255,0.03)" : "#F9FAFB", 
-                  border: `1px solid ${t.surfaceBorder}`, animation: "fadeIn 0.2s ease" 
-                }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    <span style={{ fontSize: 16 }}>🎯</span>
-                    <span style={{ fontSize: 13, fontWeight: 600, color: t.textSecondary }}>{Object.keys(rowSelection).length} selected</span>
-                  </div>
-                  <div style={{ width: 1, height: 20, background: t.surfaceBorder, margin: "0 4px" }} />
-                  <FSel 
-                    width={160} 
-                    value={bulkStatus} 
-                    onChange={ev => { setBulkStatus(ev.target.value); handleBulkStatus(ev.target.value); }} 
-                    options={["", ...statusOpts]} 
-                    t={t} 
-                    placeholder="Set status..." 
-                  />
-                  <div style={{ width: 1, height: 20, background: t.surfaceBorder, margin: "0 4px" }} />
-                  {canDelete && (
-                    <button 
-                      onClick={handleBulkDelete} 
-                      style={{ 
-                        fontSize: 12, fontWeight: 700, padding: "6px 14px", borderRadius: 8, 
-                        background: isDark ? "rgba(248,113,113,0.15)" : "#FEF2F2", 
-                        color: isDark ? "#F87171" : "#DC2626", 
-                        border: `1px solid ${isDark ? "rgba(248,113,113,0.3)" : "#FECACA"}`, 
-                        cursor: "pointer", transition: "all 0.2s" 
-                      }}
-                    >
-                      Delete ({Object.keys(rowSelection).length})
-                    </button>
-                  )}
-                  <div style={{ flex: 1 }} />
-                  <button 
-                    onClick={() => setRowSelection({})} 
-                    style={{ background: "none", border: "none", color: t.textMuted, fontSize: 12, fontWeight: 600, cursor: "pointer" }}
-                  >
-                    Clear Selection
-                  </button>
-                </div>
-              )}
-              <div style={{ height: '700px', width: "100%", minHeight: '700px' }}>
-                <TanStackTable
-                  data={dealSchedules}
-                  columns={scheduleColumnDefs}
-                  rowSelection={rowSelection}
-                  onRowSelectionChange={setRowSelection}
-                  pageSize={pageSize}
-                  t={t}
-                  isDark={isDark}
-                />
-              </div>
+            <div style={{ height: '700px', width: "100%", minHeight: '700px' }}>
+              <TanStackTable
+                data={dealSchedules}
+                columns={scheduleColumnDefs}
+                pageSize={pageSize}
+                t={t}
+                isDark={isDark}
+              />
             </div>
           ) : (
             <div style={{
@@ -1461,20 +1682,45 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
       <DelModal target={delT} onClose={() => setDelT(null)} onConfirm={handleDeleteInvestment} label="this investment" t={t} isDark={isDark} />
       <DelModal target={assetDelT} onClose={() => setAssetDelT(null)} onConfirm={handleDeleteAsset} label="this asset" t={t} isDark={isDark} />
 
-      {/* Confirmation Modal for Bulk Actions */}
-      {confirmAction && (
-        <Modal 
-          open={!!confirmAction} 
-          onClose={() => setConfirmAction(null)} 
-          title={confirmAction.title} 
-          saveLabel="Confirm" 
-          onSave={confirmAction.onConfirm} 
-          t={t} 
-          isDark={isDark}
-          width={400}
-        >
-          <div style={{ padding: "10px 0", fontSize: 14, color: t.textSecondary, lineHeight: 1.6 }}>
-            {confirmAction.message}
+      {/* Generation Confirm Modal */}
+      {genConfirm && (
+        <Modal open={!!genConfirm} onClose={() => setGenConfirm(null)} title="Generate Payment Schedules" saveLabel="Execute Generation" onSave={executeGenerateSchedules} t={t} isDark={isDark} width={450}>
+          <div style={{ padding: "10px 0" }}>
+            <div style={{ display: "flex", gap: 16, alignItems: "flex-start", background: isDark ? "rgba(59,130,246,0.1)" : "#EFF6FF", padding: 16, borderRadius: 12, border: "1px solid rgba(59,130,246,0.2)" }}>
+              <FileCheck size={24} color="#3B82F6" />
+              <div>
+                <div style={{ fontWeight: 700, color: t.text, marginBottom: 4 }}>Rebuild Schedules</div>
+                <p style={{ fontSize: 13, color: t.textSecondary, lineHeight: 1.5 }}>
+                  This will generate payment schedules for <strong>{genConfirm.count}</strong> selected investment(s).
+                </p>
+              </div>
+            </div>
+            <p style={{ fontSize: 12, color: t.textMuted, marginTop: 16, fontStyle: "italic" }}>
+              Note: Entries will not be duplicated if they already exist for the same date/type.
+            </p>
+          </div>
+        </Modal>
+      )}
+
+      {/* Result Modal */}
+      {genResult && (
+        <Modal open={!!genResult} onClose={() => setGenResult(null)} title={genResult.title} hideFooter t={t} isDark={isDark} width={400}>
+          <div style={{ padding: "10px 0", textAlign: "center" }}>
+            <div style={{ 
+              width: 56, height: 56, borderRadius: 28, 
+              background: genResult.title === "Error" ? "rgba(239,68,68,0.1)" : "rgba(34,197,94,0.1)", 
+              display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px" 
+            }}>
+              {genResult.title === "Error" ? <AlertTriangle size={28} color="#EF4444" /> : <Check size={28} color="#22C55E" />}
+            </div>
+            <div style={{ fontWeight: 700, color: t.text, fontSize: 16, marginBottom: 8 }}>{genResult.title}</div>
+            <p style={{ fontSize: 14, color: t.textSecondary, lineHeight: 1.5 }}>{genResult.message}</p>
+            <button 
+              onClick={() => setGenResult(null)}
+              style={{ padding: "10px 24px", borderRadius: 8, background: t.accent, color: "#fff", border: "none", fontWeight: 700, marginTop: 20, cursor: "pointer" }}
+            >
+              Continue
+            </button>
           </div>
         </Modal>
       )}
