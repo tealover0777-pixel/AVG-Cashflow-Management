@@ -365,8 +365,16 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
         setConfirmAction(null);
         try {
           console.log("[Undo] Starting for:", s.schedule_id, "v:", s.version_num);
+          console.log("[Undo] Document data:", { docId: s.docId, _path: s._path, collectionPath });
+
+          if (!s.docId && !s._path) {
+            alert("Undo failed: Document ID not found");
+            return;
+          }
+
           const ref = s._path ? doc(db, s._path) : doc(db, collectionPath, s.docId);
-          
+          console.log("[Undo] Current doc ref created");
+
           if (isVersioned && s.previous_version_id) {
             // 1. Find the predecessor
             const prev = SCHEDULES.find(x => x.docId === s.previous_version_id || x.version_id === s.previous_version_id);
@@ -395,18 +403,23 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
             }
 
             // 3. Reactivate predecessor and delete current version
+            console.log("[Undo] Reactivating previous version:", prev.docId, restorePayload);
             await updateDoc(prevRef, restorePayload);
-            
+            console.log("[Undo] Previous version reactivated successfully");
+
             // 4. If this version created a child replacement (Missed/Partial workflow), clean it up
             if (s.linked_schedule_id) {
               const childReplacement = SCHEDULES.find(x => x.schedule_id === s.linked_schedule_id);
               if (childReplacement) {
+                console.log("[Undo] Deleting child replacement:", childReplacement.schedule_id);
                 const cRef = childReplacement._path ? doc(db, childReplacement._path) : doc(db, collectionPath, childReplacement.docId);
                 await deleteDoc(cRef);
               }
             }
 
+            console.log("[Undo] Deleting current version:", s.docId);
             await deleteDoc(ref);
+            console.log("[Undo] Current version deleted successfully");
             alert(`Succeeded! Reverted ${s.schedule_id} to V${prev.version_num}.`);
           } 
           else if (isReplacement) {
