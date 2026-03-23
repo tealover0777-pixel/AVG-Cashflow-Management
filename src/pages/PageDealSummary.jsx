@@ -1169,13 +1169,13 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
                   <button 
                     onClick={() => handleBulkScheduleStatus(bulkScheduleStatus)}
                     disabled={!bulkScheduleStatus}
-                    style={{ background: bulkScheduleStatus ? (t.accentGrad || t.accent) : (isDark ? "rgba(255,255,255,0.06)" : "#E5E7EB"), color: bulkScheduleStatus ? "#fff" : t.textMuted, border: "none", padding: "6px 14px", borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: bulkScheduleStatus ? "pointer" : "default" }}
+                    style={{ background: bulkScheduleStatus ? (t.accentGrad || t.accent) : (isDark ? "rgba(255,255,255,0.06)" : "#E5E7EB"), color: bulkScheduleStatus ? "#fff" : t.textMuted, border: "none", padding: "8px 16px", borderRadius: 11, fontSize: 12, fontWeight: 600, cursor: bulkScheduleStatus ? "pointer" : "default", boxShadow: bulkScheduleStatus ? `0 4px 12px ${t.accentShadow || "none"}` : "none" }}
                   >
                     Apply
                   </button>
                   <button 
                     onClick={handleBulkScheduleDelete}
-                    style={{ background: isDark ? "rgba(248,113,113,0.1)" : "#FEF2F2", color: isDark ? "#F87171" : "#DC2626", border: `1px solid ${isDark ? "rgba(248,113,113,0.2)" : "#FECACA"}`, padding: "6px 14px", borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: "pointer" }}
+                    style={{ background: isDark ? "rgba(248,113,113,0.1)" : "#FEF2F2", color: isDark ? "#F87171" : "#DC2626", border: `1px solid ${isDark ? "rgba(248,113,113,0.2)" : "#FECACA"}`, padding: "8px 16px", borderRadius: 11, fontSize: 12, fontWeight: 600, cursor: "pointer" }}
                   >
                     Delete
                   </button>
@@ -1190,23 +1190,19 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
                   disabled={generating || (activeTab === "Investments" ? sel.size === 0 : Object.keys(rowSelection).length === 0)}
                   style={{ 
                     display: "flex", alignItems: "center", gap: 7, background: t.successGrad || "#10B981", color: "#fff", 
-                    border: "none", padding: "10px 20px", borderRadius: 10, fontSize: 13, fontWeight: 700, 
+                    border: "none", padding: "11px 20px", borderRadius: 11, fontSize: 13, fontWeight: 600, 
                     cursor: (generating || (activeTab === "Investments" ? sel.size === 0 : Object.keys(rowSelection).length === 0)) ? "default" : "pointer",
-                    boxShadow: (activeTab === "Investments" ? sel.size > 0 : Object.keys(rowSelection).length > 0) ? "0 4px 12px rgba(16,185,129,0.2)" : "none",
+                    boxShadow: (activeTab === "Investments" ? sel.size > 0 : Object.keys(rowSelection).length > 0) ? `0 4px 16px ${t.successShadow || "rgba(16,185,129,0.2)"}` : "none",
                     opacity: (generating || (activeTab === "Investments" ? sel.size === 0 : Object.keys(rowSelection).length === 0)) ? 0.45 : 1
                   }}
                 >
-                  <span style={{ fontSize: 16 }}>▤</span>
-                  Generate {(() => {
-                    const count = activeTab === "Investments" ? sel.size : Object.keys(rowSelection).length;
-                    return count > 0 ? `(${count})` : "";
-                  })()}
+                  ▤ {generating ? "Generating..." : (activeTab === "Investments" ? (sel.size > 0 ? `Generate (${sel.size})` : "Generate Schedules") : (Object.keys(rowSelection).length > 0 ? `Generate (${Object.keys(rowSelection).length})` : "Generate Schedules"))}
                 </button>
               )}
 
 
-             {canCreate && activeTab === "Investments" && <button onClick={openAdd} style={{ background: t.accent, color: "#fff", border: "none", padding: "8px 18px", borderRadius: 9, fontSize: 13.5, fontWeight: 700, boxShadow: `0 4px 12px ${t.accentShadow || "none"}` }}>+ Add investment</button>}
-             {canCreate && activeTab === "Assets" && <button onClick={openAddAsset} style={{ background: t.accent, color: "#fff", border: "none", padding: "8px 16px", borderRadius: 8, fontSize: 13, fontWeight: 600 }}>+ Add asset</button>}
+             {canCreate && activeTab === "Investments" && <button onClick={openAdd} style={{ background: t.accentGrad || t.accent, color: "#fff", border: "none", padding: "11px 22px", borderRadius: 11, fontSize: 13.5, fontWeight: 600, boxShadow: `0 4px 16px ${t.accentShadow || "none"}`, display: "flex", alignItems: "center", gap: 7 }}><span style={{ fontSize: 18, lineHeight: 1 }}>+</span> Add investment</button>}
+             {canCreate && activeTab === "Assets" && <button onClick={openAddAsset} style={{ background: t.accentGrad || t.accent, color: "#fff", border: "none", padding: "11px 20px", borderRadius: 11, fontSize: 13, fontWeight: 600, boxShadow: `0 4px 16px ${t.accentShadow || "none"}`, display: "flex", alignItems: "center", gap: 7 }}><span style={{ fontSize: 18, lineHeight: 1 }}>+</span> Add asset</button>}
           </div>
         </div>
       </div>
@@ -1250,7 +1246,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
             </div>
           ))}
         </div>
-        <button style={{ background: "none", border: `1px solid ${t.accent}`, color: t.accent, padding: "6px 16px", borderRadius: 8, fontSize: 12, fontWeight: 700 }}>Export as Excel</button>
+        <button style={{ background: "none", border: `1px solid ${t.accent}`, color: t.accent, padding: "8px 18px", borderRadius: 11, fontSize: 12, fontWeight: 700, cursor: "pointer", transition: "all 0.2s ease" }}>Export as Excel</button>
       </div>
 
       {activeTab === "Investments" ? (

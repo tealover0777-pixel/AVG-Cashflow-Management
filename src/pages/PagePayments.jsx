@@ -152,7 +152,7 @@ export default function PagePayments({ t, isDark, PAYMENTS = [], INVESTMENTS = [
       {["Payments", "ACH Batches", "Ledger"].map(tab => {
         const isA = activeTab === tab;
         return (
-          <button key={tab} onClick={() => setActiveTab(tab)} style={{ padding: "8px 20px", borderRadius: 10, fontSize: 13, fontWeight: 600, background: isA ? t.accentGrad : "transparent", color: isA ? "#fff" : t.textMuted, border: "none", cursor: "pointer", transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)", boxShadow: isA ? `0 4px 12px ${t.accentShadow}` : "none" }}>{tab}</button>
+          <button key={tab} onClick={() => setActiveTab(tab)} style={{ padding: "10px 22px", borderRadius: 11, fontSize: 13, fontWeight: 600, background: isA ? t.accentGrad : "transparent", color: isA ? "#fff" : t.textMuted, border: "none", cursor: "pointer", transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)", boxShadow: isA ? `0 4px 12px ${t.accentShadow}` : "none" }}>{tab}</button>
         );
       })}
     </div>

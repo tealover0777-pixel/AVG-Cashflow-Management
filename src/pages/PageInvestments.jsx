@@ -740,18 +740,18 @@ export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [
               t={t} 
               placeholder="Update status..." 
             />
-            <button 
-              onClick={() => handleBulkStatus(bulkStatus)} 
-              disabled={!bulkStatus} 
-              style={{ fontSize: 12, fontWeight: 700, padding: "6px 14px", borderRadius: 8, background: bulkStatus ? (t.accentGrad || t.accent) : (isDark ? "rgba(255,255,255,0.06)" : "#E5E7EB"), color: bulkStatus ? "#fff" : t.textMuted, border: "none", cursor: bulkStatus ? "pointer" : "default" }}
-            >
-              Apply
-            </button>
+           <button onClick={() => handleBulkStatus(bulkStatus)} disabled={!bulkStatus || sel.size === 0} style={{ 
+             fontSize: 12, fontWeight: 600, padding: "8px 16px", borderRadius: 11, 
+             background: (!bulkStatus || sel.size === 0) ? (isDark ? "rgba(255,255,255,0.05)" : "#e5e7eb") : t.accentGrad, 
+             color: (!bulkStatus || sel.size === 0) ? t.textMuted : "#fff", border: "none", 
+             cursor: (!bulkStatus || sel.size === 0) ? "default" : "pointer",
+             boxShadow: (!bulkStatus || sel.size === 0) ? "none" : `0 4px 12px ${t.accentShadow || "none"}`
+           }}>Apply</button>
           </>}
 
           {canUpdate && canDelete && <div style={{ width: 1, height: 20, background: t.surfaceBorder }} />}
 
-          {canDelete && <button onClick={handleBulkDelete} style={{ fontSize: 12, fontWeight: 600, padding: "5px 12px", borderRadius: 8, background: isDark ? "rgba(248,113,113,0.15)" : "#FEF2F2", color: isDark ? "#F87171" : "#DC2626", border: `1px solid ${isDark ? "rgba(248,113,113,0.3)" : "#FECACA"}`, cursor: "pointer" }}>Delete ({sel.size})</button>}
+          {canDelete && <button onClick={handleBulkDelete} style={{ fontSize: 12, fontWeight: 600, padding: "8px 16px", borderRadius: 11, background: isDark ? "rgba(248,113,113,0.15)" : "#FEF2F2", color: isDark ? "#F87171" : "#DC2626", border: `1px solid ${isDark ? "rgba(248,113,113,0.3)" : "#FECACA"}`, cursor: "pointer" }}>Delete ({sel.size})</button>}
         </div>}
         {canGenerate && <button className="success-btn" onClick={handleGenerate} disabled={sel.size === 0} style={{ background: t.successGrad, color: "#fff", padding: "11px 20px", borderRadius: 11, fontSize: 13, fontWeight: 600, boxShadow: `0 4px 16px ${t.successShadow}`, display: "flex", alignItems: "center", gap: 6, opacity: sel.size === 0 ? 0.45 : 1 }}>▤ Generate{sel.size > 0 ? ` (${sel.size})` : ""}</button>}
         {canCreate && <Tooltip text="Create a new investment" t={t}><button className="primary-btn" onClick={openAdd} style={{ background: t.accentGrad, color: "#fff", padding: "11px 22px", borderRadius: 11, fontSize: 13.5, fontWeight: 600, boxShadow: `0 4px 16px ${t.accentShadow}`, display: "flex", alignItems: "center", gap: 7 }}><span style={{ fontSize: 18, lineHeight: 1 }}>+</span> New Investment</button></Tooltip>}
