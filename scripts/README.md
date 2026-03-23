@@ -2,6 +2,55 @@
 
 This directory contains Firestore migration scripts for the AVG Cashflow Management application.
 
+## Migration: Fix Missing previous_version_id
+
+### Purpose
+Fixes payment schedule documents with `version_num > 1` that are missing the `previous_version_id` field, which is required for the Undo functionality to work correctly.
+
+### Prerequisites
+
+1. **Service Account Key**: Download your Firebase service account key from the Firebase Console:
+   - Go to Firebase Console → Project Settings → Service Accounts
+   - Click "Generate New Private Key"
+   - Save the file as `serviceAccountKey.json` in the **project root directory** (not in scripts/)
+
+2. **Dependencies**: Ensure `firebase-admin` is installed (should already be installed)
+
+### Running the Migration
+
+**⚠️ IMPORTANT: Always run in dry-run mode first to preview changes!**
+
+1. Place your `serviceAccountKey.json` in the **project root** directory
+2. Run in dry-run mode (no changes made):
+   ```bash
+   node scripts/fix-previous-version-id.cjs
+   ```
+3. Review the output to see what will be changed
+4. If everything looks correct, apply the changes:
+   ```bash
+   node scripts/fix-previous-version-id.cjs --apply
+   ```
+
+### What This Migration Does
+
+For each payment schedule document with `version_num > 1` and missing `previous_version_id`:
+1. Finds the previous version (V1 for V2, V2 for V3, etc.)
+2. Sets `previous_version_id` to point to the previous version's `version_id` or `docId`
+3. Updates the `updated_at` timestamp
+
+This enables the Undo functionality to properly:
+- Delete the current version (V2)
+- Reactivate the previous version (V1)
+
+### Why This Is Needed
+
+The `previous_version_id` field is essential for the versioning system. Without it:
+- The Undo button doesn't work (can't find the previous version to reactivate)
+- The version chain is broken
+- Users can't revert changes to payment schedules
+
+---
+
 ## Migration: Convert Payment Amounts to Numbers
 
 ### Purpose
