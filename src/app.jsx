@@ -201,11 +201,12 @@ function AppContent() {
       const totalCommitted = dealInvestments.reduce((sum, c) => sum + (Number(String(c.amount || 0).replace(/[^0-9.-]/g, "")) || 0), 0);
       const fundraisingProgress = valuation > 0 ? (totalCommitted / valuation) * 100 : 0;
 
-      // NEW Fund Balance Logic: (TYPE = INVESTOR_PRINCIPAL_PAYMENT) - (STATUS = "Withdrawl")
+      // NEW Fund Balance Logic: (TYPE = INVESTOR_PRINCIPAL_DEPOSIT) - (STATUS = "Withdrawl")
       const fundBalance = rawSchedules.reduce((sum, sch) => {
         if (sch.deal_id !== dealId && sch.deal_name !== d.deal_name) return sum;
         const amt = Number(String(sch.signed_payment_amount || 0).replace(/[^0-9.-]/g, "")) || 0;
-        const typeMatch = (sch.payment_type || "").toUpperCase() === "INVESTOR_PRINCIPAL_PAYMENT";
+        // Matches "INVESTOR_PRINCIPAL_DEPOSIT", "INVESTOR_PAYMENT_DEPOSIT", or user typo "INVESTOR_PAYMENY_DEPOSIT"
+        const typeMatch = (sch.payment_type || "").toUpperCase().includes("INVESTOR") && (sch.payment_type || "").toUpperCase().includes("DEPOSIT");
         const isWithdrawal = (sch.status || "").toLowerCase().includes("withdraw"); // Handles "Withdrawl" and "Withdrawal"
         
         let res = sum;

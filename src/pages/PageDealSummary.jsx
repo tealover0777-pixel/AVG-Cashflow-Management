@@ -76,7 +76,8 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
     dealSchedules.forEach(sch => {
       // Use original numeric amount if available, or parse from signed_payment_amount string
       const amt = Number(String(sch.signed_payment_amount || 0).replace(/[^0-9.-]/g, "")) || 0;
-      const typeMatch = (sch.type || "").toUpperCase() === "INVESTOR_PRINCIPAL_PAYMENT";
+      // Matches "INVESTOR_PRINCIPAL_DEPOSIT", "INVESTOR_PAYMENT_DEPOSIT", or user typo "INVESTOR_PAYMENY_DEPOSIT"
+      const typeMatch = (sch.payment_type || sch.type || "").toUpperCase().includes("INVESTOR") && (sch.payment_type || sch.type || "").toUpperCase().includes("DEPOSIT");
       const isWithdrawal = (sch.status || "").toLowerCase().includes("withdraw"); // Handles "Withdrawl" and "Withdrawal"
       
       if (typeMatch) sum += amt;
