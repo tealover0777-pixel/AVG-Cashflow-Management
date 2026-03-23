@@ -7,7 +7,7 @@ import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { sortData, mkId, fmtCurr, normalizeDateAtNoon, pmtCalculator_ACT360_30360, feeCalculator_ACT360_30360, getFrequencyValue } from "../utils";
 import { Bdg, StatCard, Pagination, Modal, FF, FIn, FSel, DelModal, Tooltip } from "../components";
 import { useAuth } from "../AuthContext";
-import { Check, Plus, PieChart, CreditCard } from "lucide-react";
+import { Check, Plus, CreditCard } from "lucide-react";
 
 const PT_INTEREST = "INVESTOR_INTEREST_PAYMENT";
 const PT_FEE = "FEE";
@@ -17,7 +17,7 @@ const PT_BOR_DISBURSEMENT = "BORROWER_DISBURSEMENT";
 const PT_BOR_RECEIVED = "BORROWER_PRINCIPAL_RECEIVED";
 const PT_BOR_INTEREST = "BORROWER_INTEREST_PAYMENT";
 
-export default function PageDeals({ t, isDark, DEALS = [], INVESTMENTS = [], SCHEDULES = [], FEES_DATA = [], DIMENSIONS = [], collectionPath = "", setActivePage, setSelectedDealId, DISTRIBUTIONS = [] }) {
+export default function PageDeals({ t, isDark, DEALS = [], INVESTMENTS = [], SCHEDULES = [], FEES_DATA = [], DIMENSIONS = [], collectionPath = "", setActivePage, setSelectedDealId }) {
   const { hasPermission, isSuperAdmin } = useAuth();
   const canCreate = isSuperAdmin || hasPermission("DEAL_CREATE");
   const canUpdate = isSuperAdmin || hasPermission("DEAL_UPDATE");
@@ -28,7 +28,6 @@ export default function PageDeals({ t, isDark, DEALS = [], INVESTMENTS = [], SCH
   const [newFiles, setNewFiles] = useState([]); // { file, preview }
   const [isUploading, setIsUploading] = useState(false);
   const [selectedRows, setSelectedRows] = useState([]);
-  const [distModal, setDistModal] = useState({ open: false, data: { calculator: "ACT/360", notes: "" } });
   const [genResult, setGenResult] = useState(null);
   const [pageSize, setPageSize] = useState(30);
   const gridRef = useRef(null);
@@ -178,170 +177,6 @@ export default function PageDeals({ t, isDark, DEALS = [], INVESTMENTS = [], SCH
     }
   };
 
-  const handleGenerateDistribution = async () => {
-    if (selectedRows.length === 0) return;
-    setIsUploading(true);
-    try {
-      const firstRow = selectedRows[0];
-      const tenantPath = (firstRow._path || collectionPath).split("/deals")[0];
-      if (tenantPath.startsWith("GROUP:")) {
-        alert("Cannot generate distributions from a global group view yet. Please select a specific tenant.");
-        setIsUploading(false);
-        return;
-      }
-
-      const schedulePathSuffix = "/paymentSchedules";
-      const batchPath = `${tenantPath}/distributionBatches`;
-
-      let totalEntries = 0;
-      const calcMethod = distModal.data.calculator || "ACT/360";
-
-      const entries = [];
-
-      for (const deal of selectedRows) {
-        // Robust filter for investments belonging to this deal
-        const dealId = deal.id;
-        const dealDocId = deal.docId;
-        const dealName = deal.name;
-
-        const dealInvestments = INVESTMENTS.filter(inv =>
-          inv.deal_id === dealId ||
-          inv.deal_id === dealDocId ||
-          inv.deal === dealName ||
-          inv.deal_name === dealName
-        );
-
-        for (const inv of dealInvestments) {
-          const principal = parseFloat(String(inv.amount || 0).replace(/[^0-9.-]/g, ""));
-          const rate = parseFloat(String(inv.rate || 0).replace(/[^0-9.-]/g, "")) / 100;
-          const startDate = normalizeDateAtNoon(inv.start_date);
-          const matDate = normalizeDateAtNoon(inv.maturity_date);
-
-          if (!startDate || !matDate || matDate <= startDate) continue;
-
-          // 1. Initial Investment Funding (mapped to INVESTOR_PRINCIPAL_DEPOSIT to match Investments page)
-          const sIdFund = mkId("S");
-          entries.push({
-            schedule_id: sIdFund, version_num: 1, version_id: `${sIdFund}-V1`, payment_id: sIdFund, active_version: true,
-            investment_id: inv.id, deal_id: deal.id, party_id: inv.party_id || "", 
-            due_date: startDate.toISOString().slice(0, 10), payment_type: PT_INV_FUND, principal_amount: principal,
-            payment_amount: principal, 
-            signed_payment_amount: -Math.abs(principal), direction_from_company: "OUT",
-            original_payment_amount: principal, 
-            applied_to: "Principal Amount",
-            status: "Due", notes: `Initial Funding [Deal: ${deal.name || deal.id}]`, created_at: serverTimestamp(),
-            is_distribution: true
-          });
-
-          // 2. Lifecycle periods for Interest and Fees
-          const freqValue = getFrequencyValue(inv.freq || "Monthly");
-          const fLow = (inv.freq || "").toLowerCase();
-          const monthsPerPeriod = 12 / freqValue;
-
-          let pStart = normalizeDateAtNoon(new Date(startDate.getFullYear(), startDate.getMonth(), 1));
-          let safety = 0;
-          let periodNum = 1;
-
-          while (pStart < matDate && safety < 1200) {
-            safety++;
-            let pEnd;
-            if (fLow.includes("month")) {
-              pEnd = normalizeDateAtNoon(new Date(pStart.getFullYear(), pStart.getMonth() + 1, 0));
-            } else {
-              pEnd = normalizeDateAtNoon(new Date(pStart.getFullYear(), pStart.getMonth() + (monthsPerPeriod || 1), 0));
-            }
-
-            if (pEnd > matDate) pEnd = matDate;
-            if (pEnd <= pStart) {
-              pStart = normalizeDateAtNoon(new Date(pStart.getFullYear(), pStart.getMonth() + 1, 1));
-              continue;
-            }
-
-            // Interest Payment (INVESTOR_INTEREST_PAYMENT)
-            const interestAmt = pmtCalculator_ACT360_30360(pStart, pEnd, startDate, principal, rate, inv.freq || "Monthly", calcMethod);
-            const roundedInterest = Math.round(interestAmt * 100) / 100;
-            if (roundedInterest > 0) {
-              const sIdInt = mkId("S");
-              entries.push({
-                schedule_id: sIdInt, version_num: 1, version_id: `${sIdInt}-V1`, payment_id: sIdInt, active_version: true,
-                investment_id: inv.id, deal_id: deal.id, party_id: inv.party_id || "",
-                due_date: pEnd.toISOString().slice(0, 10), payment_type: PT_INTEREST, principal_amount: principal,
-                payment_amount: roundedInterest, signed_payment_amount: -Math.abs(roundedInterest), direction_from_company: "OUT",
-                original_payment_amount: roundedInterest, term_start: pStart.toISOString().slice(0, 10), term_end: pEnd.toISOString().slice(0, 10),
-                status: "Due", notes: `Interest Period ${periodNum} [Deal: ${deal.name || deal.id}]`, created_at: serverTimestamp(),
-                is_distribution: true
-              });
-            }
-
-            // Fee Payments (based on Deal's assigned fees)
-            const dealFeeIds = deal.feeIds || [];
-            const dealFees = FEES_DATA.filter(f => dealFeeIds.includes(f.id));
-            for (const fee of dealFees) {
-              const feeAmt = feeCalculator_ACT360_30360(fee, principal, pStart, pEnd, startDate, calcMethod);
-              if (feeAmt === 0 || isNaN(feeAmt)) continue;
-              const roundedFee = Math.round(feeAmt * 100) / 100;
-              const feeDir = fee.direction || "OUT";
-              const sIdFee = mkId("S");
-              entries.push({
-                schedule_id: sIdFee, version_num: 1, version_id: `${sIdFee}-V1`, payment_id: sIdFee, active_version: true,
-                investment_id: inv.id, deal_id: deal.id, party_id: inv.party_id || "",
-                due_date: pEnd.toISOString().slice(0, 10), payment_type: PT_FEE, fee_id: fee.id, fee_name: fee.name,
-                payment_amount: roundedFee, 
-                signed_payment_amount: feeDir === "OUT" ? -Math.abs(roundedFee) : Math.abs(roundedFee), 
-                direction_from_company: feeDir,
-                original_payment_amount: roundedFee, term_start: pStart.toISOString().slice(0, 10), term_end: pEnd.toISOString().slice(0, 10),
-                status: "Due", notes: `${fee.name} [Deal: ${deal.name || deal.id}]`, created_at: serverTimestamp(),
-                is_distribution: true
-              });
-            }
-
-            // Final Repayment (INVESTOR_PRINCIPAL_PAYMENT)
-            if (pEnd >= matDate) {
-              const sIdRepay = mkId("S");
-              entries.push({
-                schedule_id: sIdRepay, version_num: 1, version_id: `${sIdRepay}-V1`, payment_id: sIdRepay, active_version: true,
-                investment_id: inv.id, deal_id: deal.id, party_id: inv.party_id || "",
-                due_date: pEnd.toISOString().slice(0, 10), payment_type: PT_INV_REPAYMENT, principal_amount: principal,
-                payment_amount: principal, signed_payment_amount: Math.abs(principal), direction_from_company: "IN",
-                original_payment_amount: principal, 
-                applied_to: "Principal Amount",
-                term_start: pEnd.toISOString().slice(0, 10), term_end: pEnd.toISOString().slice(0, 10),
-                status: "Due", notes: `Principal Repayment [Deal: ${deal.name || deal.id}]`, created_at: serverTimestamp(),
-                is_distribution: true
-              });
-            }
-
-            pStart = normalizeDateAtNoon(new Date(pEnd.getFullYear(), pEnd.getMonth() + 1, 1));
-            periodNum++;
-          }
-        }
-      }
-
-      // Save to Firestore in batches
-      const schedulePath = `${tenantPath}/paymentSchedules`;
-      for (let i = 0; i < entries.length; i += 50) {
-        const chunk = entries.slice(i, i + 50);
-        await Promise.all(chunk.map(e => setDoc(doc(db, schedulePath, e.version_id), e)));
-      }
-
-      setGenResult({
-        title: "Success",
-        lines: [
-            `Distribution schedules generated for ${selectedRows.length} deals.`,
-            `Created ${entries.length} distribution entries.`,
-            `The schedules have been added to the Payment Schedule.`
-        ]
-      });
-      setDistModal({ ...distModal, open: false });
-      setSelectedRows([]);
-      if (gridRef.current?.resetRowSelection) gridRef.current.resetRowSelection();
-    } catch (err) {
-      console.error("Distribution generation error:", err);
-      setGenResult({ title: "Error", lines: ["Failed to generate distribution:", err.message] });
-    } finally {
-      setIsUploading(false);
-    }
-  };
 
 
   // Dynamically calculate page size based on available vertical space
@@ -399,13 +234,6 @@ export default function PageDeals({ t, isDark, DEALS = [], INVESTMENTS = [], SCH
         <p style={{ fontSize: 13.5, color: t.textMuted }}>Manage your investment deals</p>
       </div>
       <div style={{ display: "flex", gap: 12 }}>
-        {selectedRows.length > 0 && (
-          <Tooltip text="Generate distribution schedules for selected deals" t={t}>
-            <button className="primary-btn" onClick={() => setDistModal({ ...distModal, open: true })} style={{ background: "linear-gradient(135deg, #10B981 0%, #059669 100%)", color: "#fff", padding: "11px 22px", borderRadius: 11, fontSize: 13.5, fontWeight: 600, boxShadow: `0 4px 16px rgba(16, 185, 129, 0.25)`, display: "flex", alignItems: "center", gap: 7 }}>
-              <PieChart size={16} /> Generate Distribution Schedule
-            </button>
-          </Tooltip>
-        )}
         {canCreate && <Tooltip text="Create a new investment deal" t={t}><button className="primary-btn" onClick={openAdd} style={{ background: t.accentGrad, color: "#fff", padding: "11px 22px", borderRadius: 11, fontSize: 13.5, fontWeight: 600, boxShadow: `0 4px 16px ${t.accentShadow}`, display: "flex", alignItems: "center", gap: 7 }}><span style={{ fontSize: 18, lineHeight: 1 }}>+</span> New Deal</button></Tooltip>}
       </div>
     </div>
@@ -474,16 +302,7 @@ export default function PageDeals({ t, isDark, DEALS = [], INVESTMENTS = [], SCH
     </Modal>
     <DelModal target={delT} onClose={() => setDelT(null)} onConfirm={handleDeleteDeal} label="This deal" t={t} isDark={isDark} />
 
-    {/* Generate Distribution Modal */}
-    <Modal open={distModal.open} onClose={() => setDistModal({ ...distModal, open: false })} title="Generate Distribution Schedule" onSave={handleGenerateDistribution} width={450} t={t} isDark={isDark} saveLabel={isUploading ? "Generating..." : "Create"} loading={isUploading}>
-      <div style={{ marginBottom: 16 }}>
-        <div style={{ fontSize: 13, color: t.textMuted, marginBottom: 12 }}>You have selected <strong style={{ color: t.textSecondary }}>{selectedRows.length}</strong> deals for distribution generation.</div>
-        <FF label="Calculator Method" t={t}>
-          <FSel value={distModal.data.calculator} onChange={e => setDistModal({ ...distModal, data: { ...distModal.data, calculator: e.target.value } })} options={["ACT/360", "30/360", "ACT/ACT", "Hybrid"]} t={t} />
-        </FF>
-        <FF label="Notes" t={t}><FIn value={distModal.data.notes} onChange={e => setDistModal({ ...distModal, data: { ...distModal.data, notes: e.target.value } })} placeholder="Optional processing notes..." t={t} /></FF>
-      </div>
-    </Modal>
+
     {/* Result Modal */}
     <Modal open={!!genResult} onClose={() => setGenResult(null)} title={genResult?.title || "Result"} onSave={() => setGenResult(null)} saveLabel="OK" t={t} isDark={isDark}>
       <div style={{ padding: "8px 0", display: "flex", flexDirection: "column", gap: 10 }}>
@@ -493,21 +312,6 @@ export default function PageDeals({ t, isDark, DEALS = [], INVESTMENTS = [], SCH
       </div>
     </Modal>
 
-    {/* Loading Overlay */}
-    {isUploading && distModal.open === false && (
-      <>
-        <style>{`@keyframes cfm-spin { to { transform: rotate(360deg); } }`}</style>
-        <div style={{ position: "fixed", inset: 0, zIndex: 99999, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.55)", backdropFilter: "blur(6px)" }}>
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 20, background: isDark ? "rgba(30,30,40,0.95)" : "#fff", padding: "40px 52px", borderRadius: 18, boxShadow: "0 8px 40px rgba(0,0,0,0.3)", border: `1px solid ${isDark ? "rgba(255,255,255,0.1)" : "#E5E7EB"}` }}>
-            <div style={{ width: 44, height: 44, border: `4px solid ${isDark ? "rgba(255,255,255,0.1)" : "#E5E7EB"}`, borderTopColor: isDark ? "#60A5FA" : "#3B82F6", borderRadius: "50%", animation: "cfm-spin 0.8s linear infinite" }} />
-            <span style={{ fontSize: 15, fontWeight: 600, color: isDark ? "rgba(255,255,255,0.85)" : "#1C1917", letterSpacing: "0.2px" }}>Distribution Generation In Cancelled
-              Due
-              Paid
-              Waived...</span>
-            <span style={{ fontSize: 12, color: isDark ? "rgba(255,255,255,0.4)" : "#9CA3AF" }}>Please wait while lifecycle is being created</span>
-          </div>
-        </div>
-      </>
-    )}
+
   </>);
 }

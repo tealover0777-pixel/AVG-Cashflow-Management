@@ -108,7 +108,6 @@ const NAV_ITEMS = [
       { label: "Dimensions", icon: "Box" },
       { label: "Reports", icon: "BarChart3" },
       { label: "Payment Schedule", icon: "CalendarDays" },
-      { label: "Distribution Schedule", icon: "PieChart" },
       { label: "Payments", icon: "CreditCard" },
     ]
   },

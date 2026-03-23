@@ -5,16 +5,21 @@ import { Bdg, Tooltip } from '../components';
 export const getDistributionColumns = (isDark, t, CONTACTS, DEALS, callbacks = {}) => [
   {
     id: 'select',
-    header: ({ table }) => (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%' }}>
-        <input
-          type="checkbox"
-          checked={table.getIsAllPageRowsSelected()}
-          onChange={table.getToggleAllPageRowsSelectedHandler()}
-          style={{ cursor: 'pointer', width: '14px', height: '14px' }}
-        />
-      </div>
-    ),
+    header: ({ table }) => {
+      const isAllSelected = table.getIsAllRowsSelected();
+      const isSomeSelected = table.getIsSomeRowsSelected();
+      return (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%' }}>
+          <input
+            type="checkbox"
+            checked={isAllSelected}
+            ref={el => { if (el) el.indeterminate = isSomeSelected && !isAllSelected; }}
+            onChange={table.getToggleAllRowsSelectedHandler()}
+            style={{ cursor: 'pointer', width: '14px', height: '14px' }}
+          />
+        </div>
+      );
+    },
     cell: ({ row }) => (
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%' }}>
         <input

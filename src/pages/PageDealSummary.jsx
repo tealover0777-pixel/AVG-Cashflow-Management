@@ -121,12 +121,14 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
       // Use original numeric amount if available, or parse from signed_payment_amount string
       const amt = Number(String(sch.signed_payment_amount || 0).replace(/[^0-9.-]/g, "")) || 0;
       const ut = (sch.payment_type || sch.type || "").toUpperCase();
-      // Precisely matches the standard "INVESTOR_PRINCIPAL_DEPOSIT" type
-      const typeMatch = ut === "INVESTOR_PRINCIPAL_PAYMENT";
-      const isWithdrawal = (sch.status || "").toLowerCase().includes("withdraw"); 
       
-      if (typeMatch) sum += amt;
-      if (isWithdrawal) sum -= amt;
+      if (ut === "INVESTOR_PRINCIPAL_DEPOSIT") {
+        sum += amt;
+      }
+      
+      if ((sch.status || "").toLowerCase().includes("withdraw")) {
+        sum -= amt;
+      }
     });
     return fmtCurr(sum);
   }, [dealSchedules]);
@@ -504,7 +506,6 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
           original_payment_amount: principal, applied_to: "Principal Amount",
           term_start: startDate.toISOString().slice(0, 10), term_end: startDate.toISOString().slice(0, 10),
           status: "Due", notes: `Initial for ${c.id}`, created_at: serverTimestamp(),
-          is_distribution: true
         });
 
         // 2. Interest / Fees
@@ -587,7 +588,6 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
                   original_payment_amount: Math.round(feeAmt * 100)/100, term_start: pStart.toISOString().slice(0, 10), term_end: pEnd.toISOString().slice(0, 10),
                   applied_to: fInfo.applied_to || "Principal Amount", fee_name: fInfo.name || "Fee", fee_rate: fInfo.rate || "0", fee_method: fInfo.method || "Fixed Amount",
                   status: "Due", notes: `Recurring Fee ${fid} P${periodNum} for ${c.id}`, created_at: serverTimestamp(),
-                  is_distribution: true
                 });
               }
             }
@@ -610,7 +610,6 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
           original_payment_amount: principal, term_start: startDate.toISOString().slice(0, 10), term_end: matDate.toISOString().slice(0, 10),
           applied_to: "Principal Amount", status: c.rollover ? "ROLLOVER" : "Due", 
           notes: c.rollover ? `Rollover for ${c.id}` : `Repayment for ${c.id}`, created_at: serverTimestamp(),
-          is_distribution: true
         });
       }
 
@@ -1092,11 +1091,11 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
           </div>
 
           {distributionView === "table" ? (
-            <div style={{ height: '700px', width: "100%", minHeight: '700px' }}>
+            <div style={{ height: '1000px', width: "100%", minHeight: '1000px' }}>
               <TanStackTable
                 data={dealSchedules}
                 columns={scheduleColumnDefs}
-                pageSize={pageSize}
+                pageSize={100}
                 t={t}
                 isDark={isDark}
                 rowSelection={rowSelection}
