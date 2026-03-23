@@ -464,7 +464,9 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
           </div>
           
           <div style={{ display: "flex", gap: 12 }}>
-             <button style={{ background: isDark ? "rgba(255,255,255,0.05)" : "#fff", border: `1px solid ${t.surfaceBorder}`, padding: "8px 16px", borderRadius: 8, fontSize: 13, fontWeight: 600, color: t.textSecondary }}>Manage deal</button>
+              {activeTab !== "Investments" && (
+                <button style={{ background: isDark ? "rgba(255,255,255,0.05)" : "#fff", border: `1px solid ${t.surfaceBorder}`, padding: "8px 16px", borderRadius: 8, fontSize: 13, fontWeight: 600, color: t.textSecondary }}>Manage deal</button>
+              )}
              {canCreate && activeTab === "Investments" && <button onClick={openAdd} style={{ background: t.accent, color: "#fff", border: "none", padding: "8px 16px", borderRadius: 8, fontSize: 13, fontWeight: 600 }}>+ Add investment</button>}
              {canCreate && activeTab === "Assets" && <button onClick={openAddAsset} style={{ background: t.accent, color: "#fff", border: "none", padding: "8px 16px", borderRadius: 8, fontSize: 13, fontWeight: 600 }}>+ Add asset</button>}
           </div>
