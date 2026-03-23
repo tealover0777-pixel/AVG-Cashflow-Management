@@ -172,6 +172,16 @@ export const getScheduleColumns = (permissions, isDark, t, context) => {
       cell: ({ getValue }) => <span style={{ fontSize: '12px', fontWeight: 500 }}>{getValue()}</span>
     },
     {
+      header: "Freq",
+      accessorFn: (row) => {
+        if (row.frequency) return row.frequency;
+        const inv = (context.INVESTMENTS || []).find(x => x.id === row.investment_id || x.investment_id === row.investment || x.id === row.investment);
+        return inv ? inv.freq || inv.payment_frequency : "—";
+      },
+      size: 100,
+      cell: ({ getValue }) => <span style={{ fontSize: '11px', color: t.textSecondary }}>{getValue()}</span>
+    },
+    {
       header: "Amount",
       accessorKey: "signed_payment_amount",
       size: 110,

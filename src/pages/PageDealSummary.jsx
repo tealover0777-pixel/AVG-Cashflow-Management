@@ -814,7 +814,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
   }, [permissions, isDark, t, CONTACTS, FEES_DATA]);
 
   const scheduleColumnDefs = useMemo(() => {
-    return getDistributionColumns(isDark, t, CONTACTS, DEALS, {
+    return getDistributionColumns(isDark, t, CONTACTS, DEALS, INVESTMENTS, {
       onEdit: (s) => setScheduleModal({ open: true, data: { ...s } }),
       onDelete: (s) => {
         setConfirmAction({
@@ -846,7 +846,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
         });
       }
     });
-  }, [isDark, t, CONTACTS, DEALS, scheduleCollection]);
+  }, [isDark, t, CONTACTS, DEALS, INVESTMENTS, scheduleCollection]);
 
   const contactColumnDefs = useMemo(() => {
     // Standardized context for contact columns

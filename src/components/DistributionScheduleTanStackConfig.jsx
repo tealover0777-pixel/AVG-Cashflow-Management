@@ -2,7 +2,7 @@ import React from 'react';
 import { fmtCurr, initials } from '../utils';
 import { Bdg, Tooltip } from '../components';
 
-export const getDistributionColumns = (isDark, t, CONTACTS, DEALS, callbacks = {}) => [
+export const getDistributionColumns = (isDark, t, CONTACTS, DEALS, INVESTMENTS = [], callbacks = {}) => [
   {
     id: 'select',
     header: ({ table }) => {
@@ -79,6 +79,16 @@ export const getDistributionColumns = (isDark, t, CONTACTS, DEALS, callbacks = {
     },
   },
   {
+    header: 'FREQ',
+    accessorFn: (row) => {
+      if (row.frequency) return row.frequency;
+      const inv = (INVESTMENTS || []).find(x => x.id === row.investment_id || x.id === row.investment);
+      return inv ? inv.freq || inv.payment_frequency : "—";
+    },
+    size: 100,
+    cell: ({ getValue }) => <span style={{ fontSize: 11, color: t.textSecondary }}>{getValue()}</span>,
+  },
+  {
     accessorKey: 'signed_payment_amount',
     header: 'AMOUNT',
     size: 130,
@@ -114,6 +124,7 @@ export const getDistributionColumns = (isDark, t, CONTACTS, DEALS, callbacks = {
       );
     },
   },
+
   {
     accessorKey: 'notes',
     header: 'NOTES',

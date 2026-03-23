@@ -933,6 +933,8 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
     t,
     permissions,
     feesData: FEES_DATA,
+    INVESTMENTS,
+    CONTACTS,
     callbacks: {
       hasLink,
       onScheduleClick: setDrillSchedule,
