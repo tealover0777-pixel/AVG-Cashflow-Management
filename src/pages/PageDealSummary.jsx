@@ -18,7 +18,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
   const canDelete = isSuperAdmin || hasPermission("INVESTMENT_DELETE") || hasPermission("INVESTMENTS_DELETE");
   const canCreate = isSuperAdmin || hasPermission("INVESTMENT_CREATE");
   const paymentMethods = (DIMENSIONS.find(d => d.name === "Payment Method" || d.name === "PaymentMethod") || {}).items || [];
-  const investmentStatusOpts = (DIMENSIONS.find(d => d.name === "InvestmentStatus" || d.name === "Investment Status" || d.name === "Payment Status") || {}).items || ["Open", "Active", "Closed"];
+  const investmentStatusOpts = (DIMENSIONS.find(d => d.name === "InvestmentStatus" || d.name === "Investment Status" || d.name === "Payment Status") || {}).items?.filter(i => i) || ["Open", "Active", "Closed"];
 
   const deal = useMemo(() => DEALS.find(d => d.id === dealId) || {}, [dealId, DEALS]);
   const [activeTab, setActiveTab] = useState("Investments");
@@ -38,8 +38,9 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
   const [generating, setGenerating] = useState(false);
   const [genConfirm, setGenConfirm] = useState(null);
   const [genResult, setGenResult] = useState(null);
-  const [bulkInvestmentStatus, setBulkInvestmentStatus] = useState("");
-  const [bulkScheduleStatus, setBulkScheduleStatus] = useState("");
+  const [bulkInvestmentStatus, setBulkInvestmentStatus] = useState(investmentStatusOpts[0] || "");
+  const [bulkScheduleStatus, setBulkScheduleStatus] = useState(investmentStatusOpts[0] || "");
+  const [confirmAction, setConfirmAction] = useState(null); // { title: string, message: string, onConfirm: () => void }
 
   useEffect(() => {
     if (deal.id) {
@@ -233,7 +234,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
       setModal(m => ({ ...m, open: false }));
     } catch (err) { 
       console.error("Save investment error:", err);
-      alert("Failed to save investment. " + err.message);
+      setGenResult({ title: "Error", message: "Failed to save investment. " + err.message });
     }
   };
 
@@ -245,62 +246,86 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
     } catch (err) { console.error("Delete investment error:", err); }
   };
 
-  const handleBulkInvestmentStatus = async (status) => {
+  const handleBulkInvestmentStatus = (status) => {
     if (!status || sel.size === 0) return;
-    if (!window.confirm(`Are you sure you want to update status to "${status}" for ${sel.size} investment(s)?`)) return;
-    try {
-      await Promise.all([...sel].map(id => {
-        const c = INVESTMENTS.find(c => c.id === id);
-        if (c && (c._path || c.docId)) {
-          const docRef = c._path ? doc(db, c._path) : doc(db, investmentCollection, c.docId);
-          return updateDoc(docRef, { status, updated_at: serverTimestamp() });
-        }
-        return Promise.resolve();
-      }));
-      setSel(new Set()); setBulkInvestmentStatus("");
-    } catch (err) { console.error("Bulk status update error:", err); }
+    setConfirmAction({
+      title: "Confirm Status Update",
+      message: `Are you sure you want to update status to "${status}" for ${sel.size} investment(s)?`,
+      onConfirm: async () => {
+        try {
+          await Promise.all([...sel].map(id => {
+            const c = INVESTMENTS.find(c => c.id === id);
+            if (c && (c._path || c.docId)) {
+              const docRef = c._path ? doc(db, c._path) : doc(db, investmentCollection, c.docId);
+              return updateDoc(docRef, { status, updated_at: serverTimestamp() });
+            }
+            return Promise.resolve();
+          }));
+          setSel(new Set()); setBulkInvestmentStatus("");
+          setConfirmAction(null);
+        } catch (err) { console.error("Bulk status update error:", err); }
+      }
+    });
   };
 
-  const handleBulkInvestmentDelete = async () => {
+  const handleBulkInvestmentDelete = () => {
     if (sel.size === 0) return;
-    if (!window.confirm(`Are you sure you want to delete ${sel.size} investment(s)? This action cannot be undone.`)) return;
-    try {
-      await Promise.all([...sel].map(id => {
-        const c = INVESTMENTS.find(c => c.id === id);
-        if (c) {
-          const docRef = c._path ? doc(db, c._path) : (c.docId ? doc(db, investmentCollection, c.docId) : null);
-          if (docRef) return deleteDoc(docRef);
-        }
-        return Promise.resolve();
-      }));
-      setSel(new Set());
-    } catch (err) { console.error("Bulk delete error:", err); }
+    setConfirmAction({
+      title: "Confirm Delete",
+      message: `Are you sure you want to delete ${sel.size} investment(s)? This action cannot be undone.`,
+      onConfirm: async () => {
+        try {
+          await Promise.all([...sel].map(id => {
+            const c = INVESTMENTS.find(c => c.id === id);
+            if (c) {
+              const docRef = c._path ? doc(db, c._path) : (c.docId ? doc(db, investmentCollection, c.docId) : null);
+              if (docRef) return deleteDoc(docRef);
+            }
+            return Promise.resolve();
+          }));
+          setSel(new Set());
+          setConfirmAction(null);
+        } catch (err) { console.error("Bulk delete error:", err); }
+      }
+    });
   };
 
-  const handleBulkScheduleStatus = async (status) => {
+  const handleBulkScheduleStatus = (status) => {
     if (!status || Object.keys(rowSelection).length === 0) return;
-    if (!window.confirm(`Update status to "${status}" for ${Object.keys(rowSelection).length} entries?`)) return;
-    try {
-      await Promise.all(Object.keys(rowSelection).map(id => {
-        const s = (SCHEDULES || []).find(x => x.id === id || x.docId === id || x.schedule_id === id);
-        if (s && s.docId) return updateDoc(doc(db, "schedules", s.docId), { status, updated_at: serverTimestamp() });
-        return Promise.resolve();
-      }));
-      setRowSelection({}); setBulkScheduleStatus("");
-    } catch (err) { console.error("Bulk schedule status update error:", err); }
+    setConfirmAction({
+      title: "Confirm Status Update",
+      message: `Update status to "${status}" for ${Object.keys(rowSelection).length} entries?`,
+      onConfirm: async () => {
+        try {
+          await Promise.all(Object.keys(rowSelection).map(id => {
+            const s = (SCHEDULES || []).find(x => x.id === id || x.docId === id || x.schedule_id === id);
+            if (s && s.docId) return updateDoc(doc(db, "schedules", s.docId), { status, updated_at: serverTimestamp() });
+            return Promise.resolve();
+          }));
+          setRowSelection({}); setBulkScheduleStatus("");
+          setConfirmAction(null);
+        } catch (err) { console.error("Bulk schedule status update error:", err); }
+      }
+    });
   };
 
-  const handleBulkScheduleDelete = async () => {
+  const handleBulkScheduleDelete = () => {
     if (Object.keys(rowSelection).length === 0) return;
-    if (!window.confirm(`Delete ${Object.keys(rowSelection).length} selected entries?`)) return;
-    try {
-      await Promise.all(Object.keys(rowSelection).map(id => {
-        const s = (SCHEDULES || []).find(x => x.id === id || x.docId === id || x.schedule_id === id);
-        if (s && s.docId) return deleteDoc(doc(db, "schedules", s.docId));
-        return Promise.resolve();
-      }));
-      setRowSelection({});
-    } catch (err) { console.error("Bulk schedule delete error:", err); }
+    setConfirmAction({
+      title: "Confirm Delete",
+      message: `Delete ${Object.keys(rowSelection).length} selected entries?`,
+      onConfirm: async () => {
+        try {
+          await Promise.all(Object.keys(rowSelection).map(id => {
+            const s = (SCHEDULES || []).find(x => x.id === id || x.docId === id || x.schedule_id === id);
+            if (s && s.docId) return deleteDoc(doc(db, "schedules", s.docId));
+            return Promise.resolve();
+          }));
+          setRowSelection({});
+          setConfirmAction(null);
+        } catch (err) { console.error("Bulk schedule delete error:", err); }
+      }
+    });
   };
 
   const handleGenerateSchedules = () => {
@@ -645,7 +670,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
       closeAssetModal();
     } catch (err) {
       console.error("Save asset error:", err);
-      alert("Failed to save asset. " + err.message);
+      setGenResult({ title: "Error", message: "Failed to save asset. " + err.message });
     }
   };
 
@@ -668,7 +693,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
       setAssetDelT(null);
     } catch (err) {
       console.error("Delete asset error:", err);
-      alert("Failed to delete asset. " + err.message);
+      setGenResult({ title: "Error", message: "Failed to delete asset. " + err.message });
     }
   };
 
@@ -691,7 +716,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
       setUploadedPhotos(prev => prev.filter(p => p.id !== photo.id));
     } catch (e) {
       console.error("Error deleting photo:", e);
-      alert("Failed to delete photo.");
+      setGenResult({ title: "Error", message: "Failed to delete photo." });
     }
   };
 
@@ -779,7 +804,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
                     width={130} 
                     value={bulkInvestmentStatus} 
                     onChange={ev => setBulkInvestmentStatus(ev.target.value)} 
-                    options={["", ...investmentStatusOpts]} 
+                    options={investmentStatusOpts} 
                     t={t} 
                     placeholder="Set Status..." 
                   />
@@ -808,7 +833,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
                     width={130} 
                     value={bulkScheduleStatus} 
                     onChange={ev => setBulkScheduleStatus(ev.target.value)} 
-                    options={["", ...investmentStatusOpts]} 
+                    options={investmentStatusOpts} 
                     t={t} 
                     placeholder="Set Status..." 
                   />
@@ -1724,6 +1749,31 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
 
       <DelModal target={delT} onClose={() => setDelT(null)} onConfirm={handleDeleteInvestment} label="this investment" t={t} isDark={isDark} />
       <DelModal target={assetDelT} onClose={() => setAssetDelT(null)} onConfirm={handleDeleteAsset} label="this asset" t={t} isDark={isDark} />
+
+      {/* Confirmation Modal for Bulk Actions */}
+      {confirmAction && (
+        <Modal 
+          open={!!confirmAction} 
+          onClose={() => setConfirmAction(null)} 
+          title={confirmAction.title} 
+          onSave={confirmAction.onConfirm} 
+          t={t} 
+          isDark={isDark} 
+          width={450}
+          saveLabel="Confirm"
+        >
+          <div style={{ padding: "10px 0" }}>
+            <div style={{ display: "flex", gap: 16, alignItems: "flex-start", background: isDark ? "rgba(239,68,68,0.05)" : "#FEF2F2", padding: 16, borderRadius: 12, border: `1px solid ${isDark ? "rgba(239,68,68,0.2)" : "#FEE2E2"}` }}>
+              <AlertTriangle size={24} color="#EF4444" />
+              <div>
+                <p style={{ fontSize: 13, color: t.textSecondary, lineHeight: 1.5 }}>
+                  {confirmAction.message}
+                </p>
+              </div>
+            </div>
+          </div>
+        </Modal>
+      )}
 
       {/* Generation Confirm Modal */}
       {genConfirm && (

@@ -24,6 +24,7 @@ export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [
   const [drillInvestment, setDrillInvestment] = useState(null);
   const gridRef = useRef(null);
   const [pageSize, setPageSize] = useState(30);
+  const [confirmAction, setConfirmAction] = useState(null); // { title: string, message: string, onConfirm: () => void }
 
   const openAdd = () => {
     let maxIdNum = 10000;
@@ -99,7 +100,7 @@ export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [
       close();
     } catch (err) { 
       console.error("Save investment error:", err);
-      alert("Failed to save investment. " + err.message);
+      setGenResult({ title: "Error", message: "Failed to save investment. " + err.message });
     }
   };
 
@@ -111,37 +112,49 @@ export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [
       setDelT(null);
     } catch (err) { console.error("Delete investment error:", err); }
   };
-  const investmentStatusOpts = (DIMENSIONS.find(d => d.name === "InvestmentStatus" || d.name === "Investment Status" || d.name === "Payment Status") || {}).items || ["Open", "Active", "Closed"];
-  const [bulkStatus, setBulkStatus] = useState("");
-  const handleBulkStatus = async (status) => {
+  const investmentStatusOpts = (DIMENSIONS.find(d => d.name === "InvestmentStatus" || d.name === "Investment Status" || d.name === "Payment Status") || {}).items?.filter(i => i) || ["Open", "Active", "Closed"];
+  const [bulkStatus, setBulkStatus] = useState(investmentStatusOpts[0] || "");
+  const handleBulkStatus = (status) => {
     if (!status || sel.size === 0) return;
-    if (!window.confirm(`Are you sure you want to update status to "${status}" for ${sel.size} investment(s)?`)) return;
-    try {
-      await Promise.all([...sel].map(id => {
-        const c = INVESTMENTS.find(c => c.id === id);
-        if (c && (c._path || c.docId)) {
-          const docRef = c._path ? doc(db, c._path) : doc(db, collectionPath, c.docId);
-          return updateDoc(docRef, { status, updated_at: serverTimestamp() });
-        }
-        return Promise.resolve();
-      }));
-      setSel(new Set()); setBulkStatus("");
-    } catch (err) { console.error("Bulk status update error:", err); }
+    setConfirmAction({
+      title: "Update Status",
+      message: `Are you sure you want to update status to "${status}" for ${sel.size} investment(s)?`,
+      onConfirm: async () => {
+        try {
+          await Promise.all([...sel].map(id => {
+            const c = INVESTMENTS.find(c => c.id === id);
+            if (c && (c._path || c.docId)) {
+              const docRef = c._path ? doc(db, c._path) : doc(db, collectionPath, c.docId);
+              return updateDoc(docRef, { status, updated_at: serverTimestamp() });
+            }
+            return Promise.resolve();
+          }));
+          setSel(new Set()); setBulkStatus("");
+          setConfirmAction(null);
+        } catch (err) { console.error("Bulk status update error:", err); }
+      }
+    });
   };
-  const handleBulkDelete = async () => {
+  const handleBulkDelete = () => {
     if (sel.size === 0) return;
-    if (!window.confirm(`Are you sure you want to delete ${sel.size} investment(s)? This action cannot be undone.`)) return;
-    try {
-      await Promise.all([...sel].map(id => {
-        const c = INVESTMENTS.find(c => c.id === id);
-        if (c) {
-          const docRef = c._path ? doc(db, c._path) : (c.docId ? doc(db, collectionPath, c.docId) : null);
-          if (docRef) return deleteDoc(docRef);
-        }
-        return Promise.resolve();
-      }));
-      setSel(new Set());
-    } catch (err) { console.error("Bulk delete error:", err); }
+    setConfirmAction({
+      title: "Confirm Delete",
+      message: `Are you sure you want to delete ${sel.size} investment(s)? This action cannot be undone.`,
+      onConfirm: async () => {
+        try {
+          await Promise.all([...sel].map(id => {
+            const c = INVESTMENTS.find(c => c.id === id);
+            if (c) {
+              const docRef = c._path ? doc(db, c._path) : (c.docId ? doc(db, collectionPath, c.docId) : null);
+              if (docRef) return deleteDoc(docRef);
+            }
+            return Promise.resolve();
+          }));
+          setSel(new Set());
+          setConfirmAction(null);
+        } catch (err) { console.error("Bulk delete error:", err); }
+      }
+    });
   };
   const handleGenerate = () => {
     if (sel.size === 0) return;
@@ -723,7 +736,7 @@ export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [
               width={140} 
               value={bulkStatus} 
               onChange={e => setBulkStatus(e.target.value)} 
-              options={["", ...investmentStatusOpts]} 
+              options={investmentStatusOpts} 
               t={t} 
               placeholder="Update status..." 
             />
@@ -837,6 +850,31 @@ export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [
       )}
     </Modal>
     <DelModal target={delT} onClose={() => setDelT(null)} onConfirm={handleDeleteInvestment} label="This investment" t={t} isDark={isDark} />
+
+    {/* Confirmation Modal for Bulk Actions */}
+    {confirmAction && (
+      <Modal 
+        open={!!confirmAction} 
+        onClose={() => setConfirmAction(null)} 
+        title={confirmAction.title} 
+        onSave={confirmAction.onConfirm} 
+        t={t} 
+        isDark={isDark} 
+        width={450}
+        saveLabel="Confirm"
+      >
+        <div style={{ padding: "10px 0" }}>
+          <div style={{ display: "flex", gap: 16, alignItems: "flex-start", background: isDark ? "rgba(239,68,68,0.05)" : "#FEF2F2", padding: 16, borderRadius: 12, border: `1px solid ${isDark ? "rgba(239,68,68,0.2)" : "#FEE2E2"}` }}>
+            <AlertTriangle size={24} color="#EF4444" />
+            <div>
+              <p style={{ fontSize: 13, color: t.textSecondary, lineHeight: 1.5 }}>
+                {confirmAction.message}
+              </p>
+            </div>
+          </div>
+        </div>
+      </Modal>
+    )}
     <Modal open={!!genConfirm} onClose={() => setGenConfirm(null)} title="Confirm Generate" onSave={executeGenerate} saveLabel="Generate" t={t} isDark={isDark}>
       <div style={{ display: "flex", flexDirection: "column", gap: 16, alignItems: "center", textAlign: "center", padding: "8px 0" }}>
         <div style={{ width: 52, height: 52, borderRadius: 14, background: isDark ? "rgba(96,165,250,0.15)" : "#EFF6FF", border: `1px solid ${isDark ? "rgba(96,165,250,0.25)" : "#BFDBFE"}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, color: isDark ? "#60A5FA" : "#2563EB" }}>▤</div>
@@ -856,13 +894,40 @@ export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [
         </div>
       </div>
     </>}
-    <Modal open={!!genResult} onClose={() => setGenResult(null)} title={genResult?.title || "Result"} onSave={() => setGenResult(null)} saveLabel="OK" t={t} isDark={isDark}>
-      <div style={{ padding: "8px 0", display: "flex", flexDirection: "column", gap: 10 }}>
-        {(genResult?.lines || []).map((line, i) => (
-          <div key={i} style={{ fontSize: 13.5, color: i === 0 ? (isDark ? "#fff" : "#1C1917") : t.textMuted, lineHeight: 1.6, fontWeight: i === 0 ? 600 : 400 }}>{line}</div>
-        ))}
-      </div>
-    </Modal>
+    {/* Result Modal */}
+    {genResult && (
+      <Modal open={!!genResult} onClose={() => setGenResult(null)} title={genResult.title || "Result"} hideFooter t={t} isDark={isDark} width={400}>
+        <div style={{ padding: "10px 0", textAlign: "center" }}>
+          <div style={{ 
+            width: 56, height: 56, borderRadius: 28, 
+            background: genResult.title === "Error" ? "rgba(239,68,68,0.1)" : "rgba(34,197,94,0.1)", 
+            display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px" 
+          }}>
+            {genResult.title === "Error" ? <AlertTriangle size={28} color="#EF4444" /> : <Check size={28} color="#22C55E" />}
+          </div>
+          <div style={{ fontWeight: 700, color: t.text, fontSize: 16, marginBottom: 8 }}>{genResult.title || "Result"}</div>
+          
+          <div style={{ padding: "0 10px" }}>
+            {genResult.message ? (
+              <p style={{ fontSize: 14, color: t.textSecondary, lineHeight: 1.5 }}>{genResult.message}</p>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                {(genResult.lines || []).map((line, i) => (
+                  <div key={i} style={{ fontSize: 13.5, color: i === 0 ? t.text : t.textSecondary, lineHeight: 1.5, fontWeight: i === 0 ? 600 : 400 }}>{line}</div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <button 
+            onClick={() => setGenResult(null)}
+            style={{ padding: "10px 24px", borderRadius: 8, background: t.accentGrad || t.accent, color: "#fff", border: "none", fontWeight: 700, marginTop: 24, cursor: "pointer", width: "100%" }}
+          >
+            Continue
+          </button>
+        </div>
+      </Modal>
+    )}
     {drillInvestment && (
       <Modal open={!!drillInvestment} onClose={() => setDrillInvestment(null)} title="Investment Summary" saveLabel="OK" onSave={() => setDrillInvestment(null)} width={580} t={t} isDark={isDark}>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px 24px", padding: "10px 0" }}>
