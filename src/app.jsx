@@ -233,6 +233,7 @@ function AppContent() {
         fundBalance: fmtCurr(fundBalance),
         fundBalanceRaw: fundBalance,
         type: d.deal_type || "",
+        paymentMethod: d.payment_method || "",
         feeIds: typeof d.fees === "string" && d.fees ? d.fees.split(",").map(s => s.trim()) : [],
       };
     });

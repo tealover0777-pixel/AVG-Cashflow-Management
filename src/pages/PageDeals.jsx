@@ -46,6 +46,7 @@ export default function PageDeals({ t, isDark, DEALS = [], INVESTMENTS = [], SCH
   })();
   const dealStatuses = DIMENSIONS.find(d => d.name === "Deal Status" || d.name === "DealStatus")?.items || ["Active", "Closed"];
   const dealTypes = DIMENSIONS.find(d => d.name === "Deal Type" || d.name === "DealType")?.items || [];
+  const paymentMethods = DIMENSIONS.find(d => d.name === "Payment Method" || d.name === "PaymentMethod")?.items || [];
 
   const openAdd = () => {
     setAssetImages([]);
@@ -59,6 +60,7 @@ export default function PageDeals({ t, isDark, DEALS = [], INVESTMENTS = [], SCH
         name: "",
         status: dealStatuses[0] || "Active",
         type: dealTypes[0] || "",
+        paymentMethod: paymentMethods[0] || "",
         startDate: "",
         endDate: "",
         valuation: "",
@@ -93,6 +95,7 @@ export default function PageDeals({ t, isDark, DEALS = [], INVESTMENTS = [], SCH
       deal_name: d.name || "",
       status: d.status || (dealStatuses[0] || "Active"),
       deal_type: d.type || (dealTypes[0] || ""),
+      payment_method: d.paymentMethod || (paymentMethods[0] || ""),
       description: d.description || "",
       start_date: d.startDate || null,
       end_date: d.endDate || null,
@@ -480,6 +483,7 @@ export default function PageDeals({ t, isDark, DEALS = [], INVESTMENTS = [], SCH
             <FF label="Deal Stage" t={t}><FSel value={modal.data.status} onChange={e => setF("status", e.target.value)} options={dealStatuses} t={t} /></FF>
             <FF label="Deal Type" t={t}><FSel value={modal.data.type} onChange={e => setF("type", e.target.value)} options={dealTypes} t={t} /></FF>
           </div>
+          <FF label="Payment Method" t={t}><FSel value={modal.data.paymentMethod} onChange={e => setF("paymentMethod", e.target.value)} options={paymentMethods} t={t} /></FF>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
             <FF label="Start Date" t={t}><FIn value={modal.data.startDate || ""} onChange={e => setF("startDate", e.target.value)} t={t} type="date" /></FF>
             <FF label="End Date" t={t}><FIn value={modal.data.endDate || ""} onChange={e => setF("endDate", e.target.value)} t={t} type="date" /></FF>

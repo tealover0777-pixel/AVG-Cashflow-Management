@@ -159,6 +159,12 @@ export const getDealColumns = (permissions, isDark, t, context) => {
       cell: ({ getValue }) => <span style={{ fontFamily: t.mono, fontSize: '11px', color: t.idText }}>{getValue() || "—"}</span>
     },
     {
+      header: "Payment Method",
+      accessorKey: "paymentMethod",
+      size: 140,
+      cell: ({ getValue }) => <span style={{ fontSize: '12.5px', color: isDark ? 'rgba(255,255,255,0.7)' : '#57534E' }}>{getValue() || "—"}</span>
+    },
+    {
       header: "Fees",
       accessorKey: "feeIds",
       size: 200,
