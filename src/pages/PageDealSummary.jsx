@@ -87,10 +87,11 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
       const investorName = investor ? investor.name : schedule.party_id || "Unknown";
       const dueDate = schedule.dueDate || schedule.due_date || "No Date";
       let paymentType = schedule.type || schedule.payment_type || "Unknown Type";
-      if ((paymentType === "FEE" || paymentType === "Fee") && (schedule.fee_id || schedule.feeId || schedule.fee_name || schedule.feeName)) {
+      const hasFeeRef = schedule.fee_id || schedule.feeId || schedule.fee_name || schedule.feeName;
+      if (hasFeeRef) {
         const feeId = schedule.fee_id || schedule.feeId;
         const fee = feeId ? FEES_DATA.find(f => f.id === feeId) : null;
-        paymentType = fee ? fee.name : (schedule.fee_name || schedule.feeName || "FEE");
+        paymentType = fee ? fee.name : (schedule.fee_name || schedule.feeName || paymentType);
       }
 
       // Try multiple field name variations and parse currency
