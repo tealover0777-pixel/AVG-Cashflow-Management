@@ -18,6 +18,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
   const canDelete = isSuperAdmin || hasPermission("INVESTMENT_DELETE") || hasPermission("INVESTMENTS_DELETE");
   const canCreate = isSuperAdmin || hasPermission("INVESTMENT_CREATE");
   const paymentMethods = (DIMENSIONS.find(d => d.name === "Payment Method" || d.name === "PaymentMethod") || {}).items || [];
+  const investmentStatusOpts = (DIMENSIONS.find(d => d.name === "InvestmentStatus" || d.name === "Investment Status" || d.name === "Payment Status") || {}).items || ["Open", "Active", "Closed"];
 
   const deal = useMemo(() => DEALS.find(d => d.id === dealId) || {}, [dealId, DEALS]);
   const [activeTab, setActiveTab] = useState("Investments");
@@ -39,8 +40,6 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
   const [genResult, setGenResult] = useState(null);
   const [bulkInvestmentStatus, setBulkInvestmentStatus] = useState("");
   const [bulkScheduleStatus, setBulkScheduleStatus] = useState("");
-  const investmentStatusOpts = ["Open", "Active", "Closed"];
-  const scheduleStatusOpts = ["Due", "Paid", "Canceled", "Missed"];
 
   useEffect(() => {
     if (deal.id) {

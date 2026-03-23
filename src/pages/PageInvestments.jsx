@@ -111,7 +111,7 @@ export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [
       setDelT(null);
     } catch (err) { console.error("Delete investment error:", err); }
   };
-  const investmentStatusOpts = ["Open", "Active", "Closed"];
+  const investmentStatusOpts = (DIMENSIONS.find(d => d.name === "InvestmentStatus" || d.name === "Investment Status" || d.name === "Payment Status") || {}).items || ["Open", "Active", "Closed"];
   const [bulkStatus, setBulkStatus] = useState("");
   const handleBulkStatus = async (status) => {
     if (!status || sel.size === 0) return;
@@ -719,11 +719,21 @@ export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [
           <span style={{ fontSize: 12, fontWeight: 600, color: t.textSecondary }}>{sel.size} selected</span>
 
           {canUpdate && <>
-            <select value={bulkStatus} onChange={e => setBulkStatus(e.target.value)} style={{ fontSize: 12, padding: "4px 8px", borderRadius: 7, border: `1px solid ${t.surfaceBorder}`, background: t.searchBg, color: t.searchText, cursor: "pointer" }}>
-              <option value="">Update status...</option>
-              {investmentStatusOpts.map(s => <option key={s} value={s}>{s}</option>)}
-            </select>
-            <button onClick={() => handleBulkStatus(bulkStatus)} disabled={!bulkStatus} style={{ fontSize: 12, fontWeight: 600, padding: "5px 12px", borderRadius: 8, background: bulkStatus ? t.accentGrad : (isDark ? "rgba(255,255,255,0.06)" : "#E5E7EB"), color: bulkStatus ? "#fff" : t.textMuted, border: "none", cursor: bulkStatus ? "pointer" : "default" }}>Apply</button>
+            <FSel 
+              width={140} 
+              value={bulkStatus} 
+              onChange={e => setBulkStatus(e.target.value)} 
+              options={["", ...investmentStatusOpts]} 
+              t={t} 
+              placeholder="Update status..." 
+            />
+            <button 
+              onClick={() => handleBulkStatus(bulkStatus)} 
+              disabled={!bulkStatus} 
+              style={{ fontSize: 12, fontWeight: 700, padding: "6px 14px", borderRadius: 8, background: bulkStatus ? (t.accentGrad || t.accent) : (isDark ? "rgba(255,255,255,0.06)" : "#E5E7EB"), color: bulkStatus ? "#fff" : t.textMuted, border: "none", cursor: bulkStatus ? "pointer" : "default" }}
+            >
+              Apply
+            </button>
           </>}
 
           {canUpdate && canDelete && <div style={{ width: 1, height: 20, background: t.surfaceBorder }} />}
