@@ -245,6 +245,46 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
   const gridRef = useRef();
   const tabs = ["Investments", "Assets", "Distributions", "Documents", "Valuation forms", "Contacts"];
 
+  const calculatorOpts = (DIMENSIONS.find(d => d.name === "Calculator") || {}).items || ["ACT/360+30/360"];
+  const investorEditTypeOpts = (DIMENSIONS.find(d => d.name === "InvestorInvestmentEditType") || {}).items || [];
+  const borrowerEditTypeOpts = (DIMENSIONS.find(d => d.name === "BorrowerInvestmentEditType") || {}).items || [];
+  const investorNewTypeOpts = (DIMENSIONS.find(d => d.name === "InvestorInvestmentNewType") || {}).items || [];
+  const borrowerNewTypeOpts = (DIMENSIONS.find(d => d.name === "BorrowerInvestmentNewType") || {}).items || [];
+  const scheduleFrequencyOpts = (DIMENSIONS.find(d => d.name === "ScheduleFrequency" || d.name === "Schedule Frequency") || {}).items || ["Monthly", "Quarterly", "Semi-Annual", "Annual", "At Maturity"];
+  
+  const selectedContact = CONTACTS.find(p => p.name === modal.data.party);
+  const contactRole = selectedContact ? selectedContact.role : "";
+  const getTypeOpts = () => {
+    const isNew = modal.mode === "add";
+    const invOpts = isNew ? investorNewTypeOpts : investorEditTypeOpts;
+    const borOpts = isNew ? borrowerNewTypeOpts : borrowerEditTypeOpts;
+    let opts = [];
+    if (contactRole === "Investor") opts = [...invOpts];
+    else if (contactRole === "Borrower") opts = [...borOpts];
+    else if (contactRole === "Both") opts = [...invOpts, ...borOpts.filter(o => !invOpts.includes(o))];
+    else opts = [...invOpts, ...borOpts.filter(o => !invOpts.includes(o))];
+    const cur = modal.data.type;
+    if (cur && !opts.includes(cur)) opts = [cur, ...opts];
+    return opts.length > 0 ? opts : ["Loan", "Mortgage", "Equity"];
+  };
+
+  const setF = (k, v) => {
+    setModal(prev => {
+      const next = { ...prev, data: { ...prev.data, [k]: v } };
+      // Auto-calculate maturity_date
+      if (k === "start_date" && v && next.data.term_months) {
+        const sd = new Date(v);
+        if (!isNaN(sd)) { sd.setMonth(sd.getMonth() + parseInt(next.data.term_months, 10)); next.data.maturity_date = sd.toISOString().slice(0, 10); }
+      }
+      // Auto-calculate term_months
+      if (k === "maturity_date" && v && next.data.start_date) {
+        const sd = new Date(next.data.start_date); const md = new Date(v);
+        if (!isNaN(sd) && !isNaN(md)) { next.data.term_months = String((md.getFullYear() - sd.getFullYear()) * 12 + md.getMonth() - sd.getMonth()); }
+      }
+      return next;
+    });
+  };
+
   const openAdd = () => {
     let maxIdNum = 10000;
     INVESTMENTS.forEach(c => {
@@ -271,12 +311,17 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
         maturity_date: deal.endDate || "",
         term_months: "",
         calculator: "",
+        rollover: false,
+        feeIds: [],
         payment_method: (CONTACTS.find(p => p.name === "")?.payment_method || (paymentMethods[0] || ""))
       }
     });
   };
 
-  const openEdit = (r) => setModal({ open: true, mode: "edit", data: { ...r } });
+  const openEdit = (r) => {
+    const feeIds = r.fees ? String(r.fees).split(",").filter(Boolean) : [];
+    setModal({ open: true, mode: "edit", data: { ...r, feeIds } });
+  };
   
   const handleSaveInvestment = async () => {
     const d = modal.data;
@@ -297,6 +342,8 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
       maturity_date: d.maturity_date || null,
       status: d.status || "",
       payment_method: d.payment_method || "",
+      fees: (d.feeIds || []).join(","),
+      rollover: !!d.rollover,
       updated_at: serverTimestamp(),
     };
     try {
@@ -1842,29 +1889,64 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
         onClose={() => setModal(m => ({ ...m, open: false }))} 
         title={modal.mode === "add" ? "New Investment" : "Edit Investment"} 
         onSave={handleSaveInvestment} 
-        width={500} 
+        width={620} 
         t={t} 
         isDark={isDark}
       >
-        <FF label="Investment ID" t={t}>
-          <div style={{ fontFamily: t.mono, fontSize: 13, color: t.idText, background: isDark ? "rgba(255,255,255,0.04)" : "#F5F4F1", border: `1px solid ${t.surfaceBorder}`, borderRadius: 9, padding: "10px 13px" }}>{modal.data.id}</div>
-        </FF>
-        <FF label="Contact (Investor)" t={t}>
-          <FSel value={modal.data.party} onChange={e => setModal(m => ({ ...m, data: { ...m.data, party: e.target.value } }))} options={CONTACTS.map(p => p.name)} t={t} />
-        </FF>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
-          <FF label="Invested amount" t={t}><FIn value={modal.data.amount} onChange={e => setModal(m => ({ ...m, data: { ...m.data, amount: e.target.value } }))} placeholder="e.g. 50,000" t={t} /></FF>
-          <FF label="Interest Rate (%)" t={t}><FIn value={modal.data.rate} onChange={e => setModal(m => ({ ...m, data: { ...m.data, rate: e.target.value } }))} placeholder="e.g. 8.5" t={t} /></FF>
+        {(modal.mode === "edit" || (modal.mode === "add" && modal.data.id)) && (
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+            <FF label="Investment ID" t={t}>
+              <div style={{ fontFamily: t.mono, fontSize: 13, color: t.idText, background: isDark ? "rgba(255,255,255,0.04)" : "#F5F4F1", border: `1px solid ${t.surfaceBorder}`, borderRadius: 9, padding: "10px 13px", minHeight: 41, display: 'flex', alignItems: 'center' }}>{modal.data.id || "—"}</div>
+            </FF>
+            <FF label="Deal ID" t={t}>
+              <div style={{ fontFamily: t.mono, fontSize: 13, color: t.idText, background: isDark ? "rgba(255,255,255,0.04)" : "#F5F4F1", border: `1px solid ${t.surfaceBorder}`, borderRadius: 9, padding: "10px 13px", minHeight: 41, display: 'flex', alignItems: 'center' }}>{modal.data.deal_id || "—"}</div>
+            </FF>
+          </div>
+        )}
+        <FF label="Deal name" t={t}><FSel value={modal.data.deal} onChange={e => setF("deal", e.target.value)} options={DEALS.map(p => p.name)} t={t} /></FF>
+        <FF label="Contact" t={t}><FSel value={modal.data.party} onChange={e => setF("party", e.target.value)} options={CONTACTS.map(p => p.name)} t={t} /></FF>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14 }}>
+          <FF label="Type" t={t}><FSel value={modal.data.type} onChange={e => setF("type", e.target.value)} options={getTypeOpts()} t={t} /></FF>
+          <FF label="Amount" t={t}><FIn value={modal.data.amount} onChange={e => setF("amount", e.target.value)} placeholder="$0" t={t} /></FF>
+          <FF label="Rate" t={t}><FIn value={modal.data.rate} onChange={e => setF("rate", e.target.value)} placeholder="10%" t={t} /></FF>
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
-          <FF label="Start Date" t={t}><FIn value={modal.data.start_date || ""} onChange={e => setModal(m => ({ ...m, data: { ...m.data, start_date: e.target.value } }))} t={t} type="date" /></FF>
-          <FF label="Maturity Date" t={t}><FIn value={modal.data.maturity_date || ""} onChange={e => setModal(m => ({ ...m, data: { ...m.data, maturity_date: e.target.value } }))} t={t} type="date" /></FF>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14 }}>
+          <FF label="Frequency" t={t}><FSel value={modal.data.freq} onChange={e => setF("freq", e.target.value)} options={scheduleFrequencyOpts} t={t} /></FF>
+          <FF label="Term (months)" t={t}><FIn value={modal.data.term_months || ""} onChange={e => setF("term_months", e.target.value)} placeholder="e.g. 24" t={t} /></FF>
+          <FF label="Status" t={t}><FSel value={modal.data.status} onChange={e => setF("status", e.target.value)} options={["Open", "Active", "Closed"]} t={t} /></FF>
+          <FF label="Rollover at Maturity" t={t}>
+            <div style={{ display: "flex", alignItems: "center", height: 38 }}>
+              <input type="checkbox" checked={!!modal.data.rollover} onChange={e => setF("rollover", e.target.checked)} style={{ cursor: "pointer", width: 18, height: 18 }} />
+              <span style={{ marginLeft: 8, fontSize: 13, color: t.textSecondary }}>Rollover Principal</span>
+            </div>
+          </FF>
         </div>
+        <FF label="Calculator" t={t}><FSel value={modal.data.calculator || ""} onChange={e => setF("calculator", e.target.value)} options={calculatorOpts} t={t} /></FF>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
-          <FF label="Payment Freq" t={t}><FSel value={modal.data.freq} onChange={e => setModal(m => ({ ...m, data: { ...m.data, freq: e.target.value } }))} options={["Monthly", "Quarterly", "Semi-Annual", "Annual", "At Maturity"]} t={t} /></FF>
-          <FF label="Status" t={t}><FSel value={modal.data.status} onChange={e => setModal(m => ({ ...m, data: { ...m.data, status: e.target.value } }))} options={["Open", "Active", "Closed"]} t={t} /></FF>
+          <FF label="Start Date" t={t}><FIn value={modal.data.start_date || ""} onChange={e => setF("start_date", e.target.value)} t={t} type="date" /></FF>
+          <FF label="Maturity Date" t={t}><FIn value={modal.data.maturity_date || ""} onChange={e => setF("maturity_date", e.target.value)} t={t} type="date" /></FF>
         </div>
-        <FF label="Payment Method" t={t}><FSel value={modal.data.payment_method} onChange={e => setModal(m => ({ ...m, data: { ...m.data, payment_method: e.target.value } }))} options={paymentMethods} t={t} /></FF>
+        <FF label="Payment Method" t={t}><FSel value={modal.data.payment_method} onChange={e => setF("payment_method", e.target.value)} options={paymentMethods} t={t} /></FF>
+        {FEES_DATA.filter(f => f.name !== "Late Fee").length > 0 && (
+          <FF label="Applicable Fees" t={t}>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+              {FEES_DATA.filter(f => f.name !== "Late Fee").map(f => {
+                const selected = (modal.data.feeIds || []).includes(f.id);
+                const toggleFee = () => {
+                  const cur = modal.data.feeIds || [];
+                  setF("feeIds", selected ? cur.filter(x => x !== f.id) : [...cur, f.id]);
+                };
+                return (
+                  <div key={f.id} onClick={toggleFee} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12.5, fontWeight: selected ? 600 : 400, padding: "5px 12px", borderRadius: 20, cursor: "pointer", transition: "all 0.15s ease", background: selected ? (isDark ? "rgba(52,211,153,0.15)" : "#ECFDF5") : t.chipBg, color: selected ? (isDark ? "#34D399" : "#059669") : t.textSecondary, border: `1px solid ${selected ? (isDark ? "rgba(52,211,153,0.4)" : "#A7F3D0") : t.chipBorder}` }}>
+                    <span style={{ fontSize: 11, fontWeight: 700, lineHeight: 1 }}>{selected ? "✓" : "+"}</span>
+                    {f.name}
+                    <span style={{ fontFamily: t.mono, fontSize: 10.5, opacity: 0.7 }}>({f.rate})</span>
+                  </div>
+                );
+              })}
+            </div>
+          </FF>
+        )}
       </Modal>
 
       {/* Schedule Edit Modal */}
