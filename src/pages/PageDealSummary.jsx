@@ -775,18 +775,25 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
               {/* --- Investment Bulk Actions --- */}
               {activeTab === "Investments" && sel.size > 0 && (
                 <div style={{ display: "flex", alignItems: "center", gap: 10, background: isDark ? "rgba(255,255,255,0.03)" : "#f8f9fa", padding: "5px 12px", borderRadius: 10, border: `1px solid ${t.surfaceBorder}`, animation: "fadeIn 0.2s ease" }}>
-                  <span style={{ fontSize: 13, fontWeight: 700, color: t.accent }}>{sel.size}</span>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: t.accent }}>{sel.size} selected</span>
                   <FSel 
                     width={130} 
                     value={bulkInvestmentStatus} 
-                    onChange={ev => { setBulkInvestmentStatus(ev.target.value); handleBulkInvestmentStatus(ev.target.value); }} 
+                    onChange={ev => setBulkInvestmentStatus(ev.target.value)} 
                     options={["", ...investmentStatusOpts]} 
                     t={t} 
                     placeholder="Set Status..." 
                   />
                   <button 
+                    onClick={() => handleBulkInvestmentStatus(bulkInvestmentStatus)}
+                    disabled={!bulkInvestmentStatus}
+                    style={{ background: bulkInvestmentStatus ? (t.accentGrad || t.accent) : (isDark ? "rgba(255,255,255,0.06)" : "#E5E7EB"), color: bulkInvestmentStatus ? "#fff" : t.textMuted, border: "none", padding: "6px 14px", borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: bulkInvestmentStatus ? "pointer" : "default" }}
+                  >
+                    Apply
+                  </button>
+                  <button 
                     onClick={handleBulkInvestmentDelete}
-                    style={{ background: isDark ? "rgba(248,113,113,0.1)" : "#FEF2F2", color: isDark ? "#F87171" : "#DC2626", border: `1px solid ${isDark ? "rgba(248,113,113,0.2)" : "#FECACA"}`, padding: "4px 10px", borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: "pointer" }}
+                    style={{ background: isDark ? "rgba(248,113,113,0.1)" : "#FEF2F2", color: isDark ? "#F87171" : "#DC2626", border: `1px solid ${isDark ? "rgba(248,113,113,0.2)" : "#FECACA"}`, padding: "6px 14px", borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: "pointer" }}
                   >
                     Delete
                   </button>
@@ -797,18 +804,25 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
               {/* --- Distributions/Table Bulk Actions --- */}
               {activeTab === "Distributions" && distributionView === "table" && Object.keys(rowSelection).length > 0 && (
                 <div style={{ display: "flex", alignItems: "center", gap: 10, background: isDark ? "rgba(255,255,255,0.03)" : "#f8f9fa", padding: "5px 12px", borderRadius: 10, border: `1px solid ${t.surfaceBorder}`, animation: "fadeIn 0.2s ease" }}>
-                  <span style={{ fontSize: 13, fontWeight: 700, color: t.accent }}>{Object.keys(rowSelection).length}</span>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: t.accent }}>{Object.keys(rowSelection).length} selected</span>
                   <FSel 
                     width={130} 
                     value={bulkScheduleStatus} 
-                    onChange={ev => { setBulkScheduleStatus(ev.target.value); handleBulkScheduleStatus(ev.target.value); }} 
-                    options={["", ...scheduleStatusOpts]} 
+                    onChange={ev => setBulkScheduleStatus(ev.target.value)} 
+                    options={["", ...investmentStatusOpts]} 
                     t={t} 
                     placeholder="Set Status..." 
                   />
                   <button 
+                    onClick={() => handleBulkScheduleStatus(bulkScheduleStatus)}
+                    disabled={!bulkScheduleStatus}
+                    style={{ background: bulkScheduleStatus ? (t.accentGrad || t.accent) : (isDark ? "rgba(255,255,255,0.06)" : "#E5E7EB"), color: bulkScheduleStatus ? "#fff" : t.textMuted, border: "none", padding: "6px 14px", borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: bulkScheduleStatus ? "pointer" : "default" }}
+                  >
+                    Apply
+                  </button>
+                  <button 
                     onClick={handleBulkScheduleDelete}
-                    style={{ background: isDark ? "rgba(248,113,113,0.1)" : "#FEF2F2", color: isDark ? "#F87171" : "#DC2626", border: `1px solid ${isDark ? "rgba(248,113,113,0.2)" : "#FECACA"}`, padding: "4px 10px", borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: "pointer" }}
+                    style={{ background: isDark ? "rgba(248,113,113,0.1)" : "#FEF2F2", color: isDark ? "#F87171" : "#DC2626", border: `1px solid ${isDark ? "rgba(248,113,113,0.2)" : "#FECACA"}`, padding: "6px 14px", borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: "pointer" }}
                   >
                     Delete
                   </button>
@@ -820,15 +834,15 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
               {(activeTab === "Investments" || (activeTab === "Distributions" && distributionView === "table")) && (
                 <button 
                   onClick={handleGenerateSchedules}
-                  disabled={generating}
+                  disabled={generating || sel.size === 0}
                   style={{ 
-                    display: "flex", alignItems: "center", gap: 7, background: t.successGrad || t.accent, color: "#fff", 
-                    border: "none", padding: "8px 18px", borderRadius: 9, fontSize: 13, fontWeight: 700, cursor: "pointer",
+                    display: "flex", alignItems: "center", gap: 7, background: t.successGrad || "#10B981", color: "#fff", 
+                    border: "none", padding: "10px 20px", borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: (generating || sel.size === 0) ? "default" : "pointer",
                     boxShadow: sel.size > 0 ? "0 4px 12px rgba(16,185,129,0.2)" : "none",
-                    opacity: (generating || sel.size === 0) ? 0.6 : 1
+                    opacity: (generating || sel.size === 0) ? 0.45 : 1
                   }}
                 >
-                  <FileCheck size={14} />
+                  <span style={{ fontSize: 16 }}>▤</span>
                   Generate {sel.size > 0 ? `(${sel.size})` : ""}
                 </button>
               )}
