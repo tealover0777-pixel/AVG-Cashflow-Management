@@ -12,13 +12,14 @@ import TanStackTable from "../components/TanStackTable";
 import { X, Check, Plus, Construction, AlertTriangle, FileCheck } from "lucide-react";
 import { normalizeDateAtNoon, getFrequencyValue, pmtCalculator_ACT360_30360, feeCalculator_ACT360_30360, fmtCurr } from "../utils";
 
-export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTMENTS = [], CONTACTS = [], DIMENSIONS = [], FEES_DATA = [], SCHEDULES = [], USERS = [], setActivePage, investmentCollection = "investments" }) {
+export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTMENTS = [], CONTACTS = [], DIMENSIONS = [], FEES_DATA = [], SCHEDULES = [], USERS = [], setActivePage, investmentCollection = "investments", scheduleCollection = "paymentSchedules" }) {
   const { hasPermission, isSuperAdmin } = useAuth();
   const canUpdate = isSuperAdmin || hasPermission("INVESTMENT_UPDATE");
   const canDelete = isSuperAdmin || hasPermission("INVESTMENT_DELETE") || hasPermission("INVESTMENTS_DELETE");
   const canCreate = isSuperAdmin || hasPermission("INVESTMENT_CREATE");
   const paymentMethods = (DIMENSIONS.find(d => d.name === "Payment Method" || d.name === "PaymentMethod") || {}).items || [];
-  const investmentStatusOpts = (DIMENSIONS.find(d => d.name === "InvestmentStatus" || d.name === "Investment Status" || d.name === "Payment Status") || {}).items?.filter(i => i) || ["Open", "Active", "Closed"];
+  const investmentStatusOpts = (DIMENSIONS.find(d => d.name === "InvestmentStatus" || d.name === "Investment Status") || {}).items?.filter(i => i) || ["Open", "Active", "Closed"];
+  const paymentStatusOpts = (DIMENSIONS.find(d => d.name === "PaymentStatus" || d.name === "Payment Status" || d.name === "ScheduleStatus" || d.name === "Schedule Status") || {}).items?.filter(i => i) || ["Due", "Paid", "Partial", "Missed", "Cancelled"];
 
   const deal = useMemo(() => DEALS.find(d => d.id === dealId) || {}, [dealId, DEALS]);
   const [activeTab, setActiveTab] = useState("Investments");
@@ -39,7 +40,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
   const [genConfirm, setGenConfirm] = useState(null);
   const [genResult, setGenResult] = useState(null);
   const [bulkInvestmentStatus, setBulkInvestmentStatus] = useState(investmentStatusOpts[0] || "");
-  const [bulkScheduleStatus, setBulkScheduleStatus] = useState(investmentStatusOpts[0] || "");
+  const [bulkScheduleStatus, setBulkScheduleStatus] = useState(paymentStatusOpts[0] || "");
   const [confirmAction, setConfirmAction] = useState(null); // { title: string, message: string, onConfirm: () => void }
 
   useEffect(() => {
@@ -299,7 +300,10 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
         try {
           await Promise.all(Object.keys(rowSelection).map(id => {
             const s = (SCHEDULES || []).find(x => x.id === id || x.docId === id || x.schedule_id === id);
-            if (s && s.docId) return updateDoc(doc(db, "schedules", s.docId), { status, updated_at: serverTimestamp() });
+            if (s && s.docId) {
+              const refPath = s._path || `${scheduleCollection}/${s.docId}`;
+              return updateDoc(doc(db, refPath), { status, updated_at: serverTimestamp() });
+            }
             return Promise.resolve();
           }));
           setRowSelection({}); setBulkScheduleStatus("");
@@ -318,7 +322,10 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
         try {
           await Promise.all(Object.keys(rowSelection).map(id => {
             const s = (SCHEDULES || []).find(x => x.id === id || x.docId === id || x.schedule_id === id);
-            if (s && s.docId) return deleteDoc(doc(db, "schedules", s.docId));
+            if (s && s.docId) {
+              const refPath = s._path || `${scheduleCollection}/${s.docId}`;
+              return deleteDoc(doc(db, refPath));
+            }
             return Promise.resolve();
           }));
           setRowSelection({});
@@ -378,7 +385,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
     setGenerating(true);
 
     try {
-      const schedulePath = (DIMENSIONS.find(d => d.name === "paymentSchedulesPath") || { value: "paymentSchedules" }).value || "paymentSchedules";
+      const schedulePath = scheduleCollection;
       // Helper for random IDs
       const mkId = (pre = "S") => `${pre}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
 
@@ -533,7 +540,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
       for (const entry of entries) {
         const key = `${entry.investment_id}|${entry.due_date}|${entry.payment_type}|${entry.fee_id || ""}`;
         if (!existingKeys.has(key)) {
-          await addDoc(collection(db, "paymentSchedules"), entry);
+          await addDoc(collection(db, schedulePath), entry);
           count++;
         }
       }
@@ -833,7 +840,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
                     width={130} 
                     value={bulkScheduleStatus} 
                     onChange={ev => setBulkScheduleStatus(ev.target.value)} 
-                    options={investmentStatusOpts} 
+                    options={paymentStatusOpts} 
                     t={t} 
                     placeholder="Set Status..." 
                   />
@@ -855,7 +862,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
               )}
 
               {/* --- Generate Button (Unified) --- */}
-              {(activeTab === "Investments" || (activeTab === "Distributions" && distributionView === "table")) && (
+              {activeTab === "Investments" && (
                 <button 
                   onClick={handleGenerateSchedules}
                   disabled={generating || (activeTab === "Investments" ? sel.size === 0 : Object.keys(rowSelection).length === 0)}
