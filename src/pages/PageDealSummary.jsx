@@ -43,7 +43,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
   const [bulkScheduleStatus, setBulkScheduleStatus] = useState(paymentStatusOpts[0] || "");
   const [scheduleModal, setScheduleModal] = useState({ open: false, data: {} });
   const [confirmAction, setConfirmAction] = useState(null); // { title: string, message: string, onConfirm: () => void }
-  const [pivotColWidths, setPivotColWidths] = useState([180, 30, 150, 100, 100, 80, 70, 110]); // Name, Spacer, Type, Start, End, Freq, Rate, Method
+  const [pivotColWidths, setPivotColWidths] = useState([180, 150, 100, 100, 80, 70, 110]); // Name, Type, Start, End, Freq, Rate, Method
 
   const pivotOffsets = useMemo(() => {
     const offsets = [0];
@@ -1130,6 +1130,9 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
                         </th>
                         <th style={{
                           padding: "12px 16px",
+                          textAlign: "left",
+                          fontWeight: 700,
+                          color: t.text,
                           position: "sticky",
                           left: pivotOffsets[1],
                           top: 0,
@@ -1141,6 +1144,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
                           borderBottom: `2px solid ${t.surfaceBorder}`,
                           borderRight: `1px solid ${t.surfaceBorder}`,
                         }}>
+                          Type
                           <div onMouseDown={(e) => handleResize(1, e)} style={{ position: "absolute", right: 0, top: 0, bottom: 0, width: 6, cursor: "col-resize", background: "rgba(0,0,0,0.1)", zIndex: 60 }} />
                         </th>
                         <th style={{
@@ -1159,7 +1163,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
                           borderBottom: `2px solid ${t.surfaceBorder}`,
                           borderRight: `1px solid ${t.surfaceBorder}`,
                         }}>
-                          Type
+                          Start Date
                           <div onMouseDown={(e) => handleResize(2, e)} style={{ position: "absolute", right: 0, top: 0, bottom: 0, width: 6, cursor: "col-resize", background: "rgba(0,0,0,0.1)", zIndex: 60 }} />
                         </th>
                         <th style={{
@@ -1178,7 +1182,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
                           borderBottom: `2px solid ${t.surfaceBorder}`,
                           borderRight: `1px solid ${t.surfaceBorder}`,
                         }}>
-                          Start Date
+                          End Date
                           <div onMouseDown={(e) => handleResize(3, e)} style={{ position: "absolute", right: 0, top: 0, bottom: 0, width: 6, cursor: "col-resize", background: "rgba(0,0,0,0.1)", zIndex: 60 }} />
                         </th>
                         <th style={{
@@ -1197,7 +1201,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
                           borderBottom: `2px solid ${t.surfaceBorder}`,
                           borderRight: `1px solid ${t.surfaceBorder}`,
                         }}>
-                          End Date
+                          Freq
                           <div onMouseDown={(e) => handleResize(4, e)} style={{ position: "absolute", right: 0, top: 0, bottom: 0, width: 6, cursor: "col-resize", background: "rgba(0,0,0,0.1)", zIndex: 60 }} />
                         </th>
                         <th style={{
@@ -1216,7 +1220,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
                           borderBottom: `2px solid ${t.surfaceBorder}`,
                           borderRight: `1px solid ${t.surfaceBorder}`,
                         }}>
-                          Freq
+                          Rate
                           <div onMouseDown={(e) => handleResize(5, e)} style={{ position: "absolute", right: 0, top: 0, bottom: 0, width: 6, cursor: "col-resize", background: "rgba(0,0,0,0.1)", zIndex: 60 }} />
                         </th>
                         <th style={{
@@ -1233,29 +1237,10 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
                           minWidth: pivotColWidths[6],
                           maxWidth: pivotColWidths[6],
                           borderBottom: `2px solid ${t.surfaceBorder}`,
-                          borderRight: `1px solid ${t.surfaceBorder}`,
-                        }}>
-                          Rate
-                          <div onMouseDown={(e) => handleResize(6, e)} style={{ position: "absolute", right: 0, top: 0, bottom: 0, width: 6, cursor: "col-resize", background: "rgba(0,0,0,0.1)", zIndex: 60 }} />
-                        </th>
-                        <th style={{
-                          padding: "12px 16px",
-                          textAlign: "left",
-                          fontWeight: 700,
-                          color: t.text,
-                          position: "sticky",
-                          left: pivotOffsets[7],
-                          top: 0,
-                          background: isDark ? "#262626" : "#F9FAFB",
-                          zIndex: 50,
-                          width: pivotColWidths[7],
-                          minWidth: pivotColWidths[7],
-                          maxWidth: pivotColWidths[7],
-                          borderBottom: `2px solid ${t.surfaceBorder}`,
                           borderRight: `2px solid ${t.surfaceBorder}`,
                         }}>
                           Pay Method
-                          <div onMouseDown={(e) => handleResize(7, e)} style={{ position: "absolute", right: 0, top: 0, bottom: 0, width: 6, cursor: "col-resize", background: "rgba(0,0,0,0.1)", zIndex: 60 }} />
+                          <div onMouseDown={(e) => handleResize(6, e)} style={{ position: "absolute", right: 0, top: 0, bottom: 0, width: 6, cursor: "col-resize", background: "rgba(0,0,0,0.1)", zIndex: 60 }} />
                         </th>
                         {pivotData.dates.map((date, idx) => (
                           <th key={idx} style={{
@@ -1319,6 +1304,8 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
                             </td>
                             <td style={{
                               padding: "12px 16px",
+                              fontSize: 11,
+                              color: t.textSecondary,
                               position: "sticky",
                               left: pivotOffsets[1],
                               background: isDark ? "#1a1a1a" : "#fff",
@@ -1328,7 +1315,12 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
                               maxWidth: pivotColWidths[1],
                               borderBottom: `1px solid ${t.surfaceBorder}`,
                               borderRight: `1px solid ${t.surfaceBorder}`,
-                            }} />
+                              overflow: "hidden",
+                              textOverflow: "ellipsis",
+                              whiteSpace: "nowrap"
+                            }}>
+                              {row.type.replace(/_/g, ' ')}
+                            </td>
                             <td style={{
                               padding: "12px 16px",
                               fontSize: 11,
@@ -1341,12 +1333,9 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
                               minWidth: pivotColWidths[2],
                               maxWidth: pivotColWidths[2],
                               borderBottom: `1px solid ${t.surfaceBorder}`,
-                              borderRight: `1px solid ${t.surfaceBorder}`,
-                              overflow: "hidden",
-                              textOverflow: "ellipsis",
-                              whiteSpace: "nowrap"
+                              borderRight: `1px solid ${t.surfaceBorder}`
                             }}>
-                              {row.type.replace(/_/g, ' ')}
+                              {row.startDate}
                             </td>
                             <td style={{
                               padding: "12px 16px",
@@ -1362,7 +1351,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
                               borderBottom: `1px solid ${t.surfaceBorder}`,
                               borderRight: `1px solid ${t.surfaceBorder}`
                             }}>
-                              {row.startDate}
+                              {row.endDate}
                             </td>
                             <td style={{
                               padding: "12px 16px",
@@ -1378,7 +1367,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
                               borderBottom: `1px solid ${t.surfaceBorder}`,
                               borderRight: `1px solid ${t.surfaceBorder}`
                             }}>
-                              {row.endDate}
+                              {row.freq}
                             </td>
                             <td style={{
                               padding: "12px 16px",
@@ -1394,7 +1383,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
                               borderBottom: `1px solid ${t.surfaceBorder}`,
                               borderRight: `1px solid ${t.surfaceBorder}`
                             }}>
-                              {row.freq}
+                              {row.rate}
                             </td>
                             <td style={{
                               padding: "12px 16px",
@@ -1407,22 +1396,6 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
                               width: pivotColWidths[6],
                               minWidth: pivotColWidths[6],
                               maxWidth: pivotColWidths[6],
-                              borderBottom: `1px solid ${t.surfaceBorder}`,
-                              borderRight: `1px solid ${t.surfaceBorder}`
-                            }}>
-                              {row.rate}
-                            </td>
-                            <td style={{
-                              padding: "12px 16px",
-                              fontSize: 11,
-                              color: t.textSecondary,
-                              position: "sticky",
-                              left: pivotOffsets[7],
-                              background: isDark ? "#1a1a1a" : "#fff",
-                              zIndex: 30,
-                              width: pivotColWidths[7],
-                              minWidth: pivotColWidths[7],
-                              maxWidth: pivotColWidths[7],
                               borderBottom: `1px solid ${t.surfaceBorder}`,
                               borderRight: `2px solid ${t.surfaceBorder}`,
                               boxShadow: `2px 0 0 ${t.surfaceBorder}22`
@@ -1441,7 +1414,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
                                   fontFamily: t.mono,
                                   fontWeight: 600,
                                   minWidth: 120,
-                                  color: hasAmount ? (isDark ? "#34D399" : "#059669") : t.textMuted,
+                                  color: amount < 0 ? "#ef4444" : (hasAmount ? (isDark ? "#34D399" : "#059669") : t.textMuted),
                                   borderBottom: `1px solid ${t.surfaceBorder}`,
                                   background: isDark ? "#1a1a1a" : "#fff"
                                 }}>
@@ -1455,7 +1428,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
                               fontFamily: t.mono,
                               fontWeight: 700,
                               fontSize: 13,
-                              color: isDark ? "#60A5FA" : "#2563EB",
+                              color: rowTotal < 0 ? "#ef4444" : (isDark ? "#60A5FA" : "#2563EB"),
                               background: isDark ? "#1e3a8a" : "#EFF6FF",
                               position: "sticky",
                               right: 0,
@@ -1513,7 +1486,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
                           bottom: 0,
                           left: pivotOffsets[3],
                           background: isDark ? "#1e3a8a" : "#DBEAFE",
-                          zIndex: 45,
+                           zIndex: 45,
                           width: pivotColWidths[3],
                           borderTop: `2px solid ${t.surfaceBorder}`,
                         }} />
@@ -1537,24 +1510,14 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
                           width: pivotColWidths[5],
                           borderTop: `2px solid ${t.surfaceBorder}`,
                         }} />
-                        <td style={{
+                         <td style={{
                           padding: "12px 16px",
                           position: "sticky",
                           bottom: 0,
                           left: pivotOffsets[6],
                           background: isDark ? "#1e3a8a" : "#DBEAFE",
                           zIndex: 45,
-                          width: pivotColWidths[6],
-                          borderTop: `2px solid ${t.surfaceBorder}`,
-                        }} />
-                         <td style={{
-                          padding: "12px 16px",
-                          position: "sticky",
-                          bottom: 0,
-                          left: pivotOffsets[7],
-                          background: isDark ? "#1e3a8a" : "#DBEAFE",
-                          zIndex: 45,
-                           width: pivotColWidths[7],
+                           width: pivotColWidths[6],
                           borderTop: `2px solid ${t.surfaceBorder}`,
                            boxShadow: `1px 0 0 ${t.surfaceBorder}`
                         }} />
@@ -1568,7 +1531,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
                               padding: "12px 16px",
                               textAlign: "right",
                               fontFamily: t.mono,
-                              color: t.text,
+                              color: colTotal < 0 ? "#ef4444" : t.text,
                               position: "sticky",
                               bottom: 0,
                               background: isDark ? "#111827" : "#F3F4F6",
@@ -1579,26 +1542,26 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
                             </td>
                           );
                         })}
-                        <td style={{
-                          padding: "12px 16px",
-                          textAlign: "right",
-                          fontFamily: t.mono,
-                          fontSize: 14,
-                          color: t.text,
-                          position: "sticky",
-                          bottom: 0,
-                          right: 0,
-                          background: isDark ? "#1e3a8a" : "#BFDBFE",
-                          zIndex: 50,
-                          borderTop: `2px solid ${t.surfaceBorder}`,
-                        }}>
-                          ${pivotData.rows.reduce((grandTotal, row) => {
-                            return grandTotal + pivotData.dates.reduce((rowTotal, date) => {
-                              const cellKey = `${row.key}|||${date}`;
-                              return rowTotal + (pivotData.data[cellKey] || 0);
-                            }, 0);
-                          }, 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                        </td>
+                          <td style={{
+                            padding: "12px 16px",
+                            textAlign: "right",
+                            fontFamily: t.mono,
+                            fontSize: 14,
+                            color: pivotData.rows.reduce((gt, r) => gt + pivotData.dates.reduce((rt, d) => rt + (pivotData.data[`${r.key}|||${d}`] || 0), 0), 0) < 0 ? "#ef4444" : t.text,
+                            position: "sticky",
+                            bottom: 0,
+                            right: 0,
+                            background: isDark ? "#1e3a8a" : "#BFDBFE",
+                            zIndex: 50,
+                            borderTop: `2px solid ${t.surfaceBorder}`,
+                          }}>
+                            ${pivotData.rows.reduce((grandTotal, row) => {
+                              return grandTotal + pivotData.dates.reduce((rowTotal, date) => {
+                                const cellKey = `${row.key}|||${date}`;
+                                return rowTotal + (pivotData.data[cellKey] || 0);
+                              }, 0);
+                            }, 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </td>
                       </tr>
                     </tbody>
                 </table>
