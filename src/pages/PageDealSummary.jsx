@@ -84,8 +84,13 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
     dealSchedules.forEach(schedule => {
       const investor = CONTACTS.find(c => c.id === schedule.party_id);
       const investorName = investor ? investor.name : schedule.party_id || "Unknown";
-      const dueDate = schedule.dueDate || "No Date";
-      const paymentType = schedule.type || "Unknown Type";
+      const dueDate = schedule.dueDate || schedule.due_date || "No Date";
+      let paymentType = schedule.type || schedule.payment_type || "Unknown Type";
+      if ((paymentType === "FEE" || paymentType === "Fee") && (schedule.fee_id || schedule.feeId || schedule.fee_name || schedule.feeName)) {
+        const feeId = schedule.fee_id || schedule.feeId;
+        const fee = feeId ? FEES_DATA.find(f => f.id === feeId) : null;
+        paymentType = fee ? fee.name : (schedule.fee_name || schedule.feeName || "FEE");
+      }
 
       // Try multiple field name variations and parse currency
       let amount = 0;
@@ -137,7 +142,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
     console.log('Pivot data calculated:', { rows: rows.length, dates: dates.length, dataMap });
 
     return { rows, dates, data: dataMap };
-  }, [dealSchedules, CONTACTS, INVESTMENTS]);
+  }, [dealSchedules, CONTACTS, INVESTMENTS, FEES_DATA]);
 
   const gridRef = useRef();
   const tabs = ["Investments", "Assets", "Distributions", "Documents", "Valuation forms", "Contacts"];
