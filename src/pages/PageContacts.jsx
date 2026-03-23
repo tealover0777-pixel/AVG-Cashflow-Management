@@ -279,9 +279,8 @@ export default function PageContacts({ t, isDark, CONTACTS = [], INVESTMENTS = [
                 {(() => { const a2 = av(dp.name, isDark); return <div style={{ width: 42, height: 42, borderRadius: 12, background: a2.bg, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, fontWeight: 700, color: a2.c, border: `1px solid ${a2.c}22` }}>{initials(dp.name)}</div>; })()}
                 <div>
                   <div style={{ fontSize: 17, fontWeight: 700, color: isDark ? "#fff" : "#1C1917" }}>{dp.name}</div>
-                  <div style={{ fontSize: 12, color: t.textMuted, display: "flex", gap: 10, marginTop: 2 }}>
-                    <span style={{ fontFamily: t.mono }}>{dp.id}</span>
-                    <span><Bdg status={dp.role} isDark={isDark} /></span>
+                  <div style={{ fontSize: 12, marginTop: 2 }}>
+                    <Bdg status={dp.role} isDark={isDark} />
                   </div>
                 </div>
               </div>
@@ -312,13 +311,15 @@ export default function PageContacts({ t, isDark, CONTACTS = [], INVESTMENTS = [
                             const [bg, color, brd] = badge(c.status, isDark);
                             return (
                               <div key={c.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 14px", borderRadius: 12, background: isDark ? "rgba(255,255,255,0.03)" : "#F9FAFB", border: `1px solid ${isDark ? "rgba(255,255,255,0.05)" : "#F3F4F6"}` }}>
-                                <div style={{ flex: 1, minWidth: 0 }}>
-                                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 3 }}>
-                                    <span style={{ fontFamily: t.mono, fontSize: 12, fontWeight: 600, color: isDark ? "#fff" : "#1C1917" }}>{c.id}</span>
-                                    <Bdg status={c.status} isDark={isDark} />
+                                  <div style={{ flex: 1, minWidth: 0 }}>
+                                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 3 }}>
+                                      <span style={{ fontSize: 13, fontWeight: 700, color: isDark ? "#fff" : "#1C1917" }}>
+                                        {DEALS.find(d => d.id === c.deal_id)?.name || c.id}
+                                      </span>
+                                      <Bdg status={c.status} isDark={isDark} />
+                                    </div>
+                                    <div style={{ fontSize: 11, color: t.textMuted }}>{c.type || "—"} · {c.rate || "—"} · {c.freq || "—"} · {c.start_date || "—"} ~ {c.maturity_date || "—"}</div>
                                   </div>
-                                  <div style={{ fontSize: 11, color: t.textMuted }}>{c.type || "—"} · {c.rate || "—"} · {c.freq || "—"} · {c.start_date || "—"} ~ {c.maturity_date || "—"}</div>
-                                </div>
                                 <div style={{ fontSize: 13, fontWeight: 700, color: isDark ? "#fff" : "#1C1917", flexShrink: 0 }}>{c.amount}</div>
                               </div>
                             );
@@ -350,7 +351,6 @@ export default function PageContacts({ t, isDark, CONTACTS = [], INVESTMENTS = [
                           <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left" }}>
                             <thead style={{ background: isDark ? "rgba(255,255,255,0.03)" : "#FAFAFA" }}>
                               <tr>
-                                <th style={{ padding: "10px 14px", fontSize: 10, fontWeight: 700, color: t.textMuted }}>INVESTMENT</th>
                                 <th style={{ padding: "10px 14px", fontSize: 10, fontWeight: 700, color: t.textMuted }}>DUE DATE</th>
                                 <th style={{ padding: "10px 14px", fontSize: 10, fontWeight: 700, color: t.textMuted }}>TYPE</th>
                                 <th style={{ padding: "10px 14px", fontSize: 10, fontWeight: 700, color: t.textMuted }}>DIR</th>
@@ -364,7 +364,6 @@ export default function PageContacts({ t, isDark, CONTACTS = [], INVESTMENTS = [
                                 const [sbg, sc, sbrd] = badge(s.status, isDark);
                                 return (
                                   <tr key={s.schedule_id || i} style={{ borderBottom: i < arr.length - 1 ? `1px solid ${t.surfaceBorder}` : "none" }}>
-                                    <td style={{ padding: "10px 14px", fontSize: 11.5, fontFamily: t.mono, fontWeight: 500 }}>{s.investment}</td>
                                     <td style={{ padding: "10px 14px", fontSize: 11, fontFamily: t.mono, color: t.textMuted }}>{s.dueDate}</td>
                                     <td style={{ padding: "10px 14px", fontSize: 11, color: t.textSecondary }}>{s.type}{s.fee_id ? ` · ${s.fee_id}` : ""}</td>
                                     <td style={{ padding: "10px 14px", fontSize: 10, fontWeight: 600, color: s.direction === "IN" ? "#10B981" : "#EF4444" }}>{s.direction}</td>

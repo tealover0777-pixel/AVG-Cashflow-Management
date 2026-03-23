@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useRef } from "react";
 import { db, storage } from "../firebase";
 import { doc, getDocs, collection, updateDoc, setDoc, deleteDoc, serverTimestamp } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL, deleteObject } from "firebase/storage";
-import { Modal, FF, FIn, FSel, DelModal } from "../components";
+import { Modal, FF, FIn, FSel, DelModal, Bdg } from "../components";
 import { useAuth } from "../AuthContext";
 import { getDealInvestmentColumns } from "../components/DealSummaryTanStackConfig";
 import { getDistributionColumns } from "../components/DistributionScheduleTanStackConfig";
@@ -10,7 +10,7 @@ import { getContactColumns } from "../components/ContactsTanStackConfig";
 import { getAssetColumns } from "../components/AssetsTanStackConfig";
 import TanStackTable from "../components/TanStackTable";
 import { X, Check, Plus, Construction, AlertTriangle, FileCheck } from "lucide-react";
-import { normalizeDateAtNoon, getFrequencyValue, pmtCalculator_ACT360_30360, feeCalculator_ACT360_30360, fmtCurr } from "../utils";
+import { normalizeDateAtNoon, getFrequencyValue, pmtCalculator_ACT360_30360, feeCalculator_ACT360_30360, fmtCurr, initials, av, badge } from "../utils";
 
 export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTMENTS = [], CONTACTS = [], DIMENSIONS = [], FEES_DATA = [], SCHEDULES = [], USERS = [], setActivePage, investmentCollection = "investments", scheduleCollection = "paymentSchedules" }) {
   const { hasPermission, isSuperAdmin } = useAuth();
@@ -28,6 +28,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
   const [assets, setAssets] = useState([]);
   const [modal, setModal] = useState({ open: false, mode: "add", data: {} });
   const [assetModal, setAssetModal] = useState({ open: false, mode: "add", data: {} });
+  const [detailContact, setDetailContact] = useState(null);
   const [delT, setDelT] = useState(null);
   const [assetDelT, setAssetDelT] = useState(null);
   const [sel, setSel] = useState(new Set());
@@ -839,8 +840,9 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
       setRowSelection({});
     } catch (err) {
       console.error("Schedule generation error:", err);
-      setGenerating(false);
       setGenResult({ title: "Error", message: "Failed to generate schedules: " + err.message });
+    } finally {
+      setGenerating(false);
     }
   };
 
@@ -1019,7 +1021,14 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
   };
 
   const permissions = { canUpdate, canDelete };
-  const callbacks = { onEdit: openEdit, onDelete: setDelT };
+  const callbacks = { 
+    onEdit: openEdit, 
+    onDelete: setDelT,
+    onContactClick: (r) => {
+      const cp = CONTACTS.find(x => x.name === r.party || x.id === r.party_id || x.docId === r.party_id);
+      if (cp) setDetailContact(cp);
+    }
+  };
   const context = { CONTACTS, FEES_DATA, callbacks, permissions, isDark, t };
   const columnDefs = useMemo(() => {
     return getDealInvestmentColumns(permissions, isDark, t, context);
@@ -1064,7 +1073,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
     // Standardized context for contact columns
     const contactContext = {
       callbacks: {
-        onNameClick: (r) => { /* Optional: navigate to profile */ },
+        onNameClick: (r) => setDetailContact(r),
         onEdit: (r) => { /* Optional: specific logic */ },
         onDelete: (r) => { /* Optional: specific logic */ },
         onInvite: (r) => { /* Optional: specific logic */ }
@@ -1098,6 +1107,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
     <div style={{ animation: "fadeIn 0.3s ease-out" }}>
       <style>{`
         @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes spin { to { transform: rotate(360deg); } }
       `}</style>
 
       {/* Breadcrumbs & Title */}
@@ -2369,6 +2379,46 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
         </Modal>
       )}
 
+      {/* Generation Loading Overlay */}
+      {generating && (
+        <div style={{
+          position: "fixed",
+          inset: 0,
+          zIndex: 100000,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          background: "rgba(0,0,0,0.55)",
+          backdropFilter: "blur(6px)",
+          cursor: "wait"
+        }}>
+          <div style={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            gap: 20,
+            background: isDark ? "#1C1917" : "#fff",
+            padding: "40px 52px",
+            borderRadius: 20,
+            boxShadow: "0 20px 50px rgba(0,0,0,0.3)",
+            border: `1px solid ${t.surfaceBorder}`
+          }}>
+            <div style={{
+              width: 44,
+              height: 44,
+              border: `4px solid ${isDark ? "rgba(255,255,255,0.1)" : "#E5E7EB"}`,
+              borderTopColor: t.accent,
+              borderRadius: "50%",
+              animation: "spin 0.8s linear infinite"
+            }} />
+            <div style={{ textAlign: "center" }}>
+              <div style={{ fontSize: 16, fontWeight: 700, color: isDark ? "#fff" : "#1C1917", marginBottom: 6 }}>Generating Schedules...</div>
+              <div style={{ fontSize: 13, color: t.textMuted }}>Please wait while we set up the payment distribution records.</div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Result Modal */}
       {genResult && (
         <Modal open={!!genResult} onClose={() => setGenResult(null)} title={genResult.title} hideFooter t={t} isDark={isDark} width={400}>
@@ -2391,6 +2441,132 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
           </div>
         </Modal>
       )}
+
+      {detailContact && (() => {
+        const dp = detailContact;
+        const dpId = String(dp.id || "").trim();
+        const dpDocId = String(dp.docId || "").trim();
+        const partyInvestments = INVESTMENTS.filter(c => {
+          const cPId = String(c.party_id || "").trim();
+          return (cPId === dpId || (dpDocId && cPId === dpDocId));
+        });
+        const partySchedules = SCHEDULES.filter(s => {
+          const sPId = String(s.party_id || "").trim();
+          const isMatched = sPId === dpId || (dpDocId && sPId === dpDocId);
+          return isMatched || partyInvestments.some(c => c.id === s.investment);
+        }).sort((a, b) => (a.dueDate || '').localeCompare(b.dueDate || ''));
+        const totalValue = partyInvestments.reduce((sum, c) => sum + Number(String(c.amount || 0).replace(/[^0-9.-]/g, '')), 0);
+        return (
+          <div style={{ position: "fixed", inset: 0, zIndex: 1100, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <div style={{ background: isDark ? "#1C1917" : "#fff", borderRadius: 18, padding: 0, maxWidth: 720, width: "92%", maxHeight: "85vh", display: "flex", flexDirection: "column", boxShadow: "0 24px 60px rgba(0,0,0,0.3)", border: `1px solid ${t.surfaceBorder}` }}>
+              {/* Header */}
+              <div style={{ padding: "22px 28px", borderBottom: `1px solid ${t.surfaceBorder}`, display: "flex", justifyContent: "space-between", alignItems: "center", flexShrink: 0 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+                  {(() => { const a2 = av(dp.name, isDark); return <div style={{ width: 42, height: 42, borderRadius: 12, background: a2.bg, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, fontWeight: 700, color: a2.c, border: `1px solid ${a2.c}22` }}>{initials(dp.name)}</div>; })()}
+                  <div>
+                    <div style={{ fontSize: 17, fontWeight: 700, color: isDark ? "#fff" : "#1C1917" }}>{dp.name}</div>
+                    <div style={{ fontSize: 12, marginTop: 2 }}>
+                      <Bdg status={dp.role} isDark={isDark} />
+                    </div>
+                  </div>
+                </div>
+                <button onClick={() => setDetailContact(null)} style={{ width: 32, height: 32, borderRadius: 8, background: isDark ? "rgba(255,255,255,0.08)" : "#F5F4F1", border: `1px solid ${t.surfaceBorder}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, cursor: "pointer", color: t.textMuted }}>×</button>
+              </div>
+              {/* Body */}
+              <div style={{ flex: 1, overflow: "auto", padding: "20px 28px" }}>
+                {/* Investments grouped by project */}
+                {(() => {
+                  const investmentsByProject = {};
+                  partyInvestments.forEach(c => {
+                    const key = c.project || "Unassigned";
+                    (investmentsByProject[key] = investmentsByProject[key] || []).push(c);
+                  });
+                  const projectNames = Object.keys(investmentsByProject);
+                  return (
+                    <div style={{ marginBottom: 24 }}>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: isDark ? "#fff" : "#1C1917", marginBottom: 10, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                        <span>Investments ({partyInvestments.length})</span>
+                        <span style={{ fontSize: 12, fontWeight: 600, color: t.accent }}>{fmtCurr(totalValue)}</span>
+                      </div>
+                      {partyInvestments.length === 0 && <div style={{ fontSize: 12, color: t.textMuted, padding: "12px 0" }}>No investments</div>}
+                      {projectNames.map(projName => (
+                        <div key={projName} style={{ marginBottom: 12 }}>
+                          <div style={{ fontSize: 11, fontWeight: 700, color: t.accent, marginBottom: 6, padding: "4px 0", borderBottom: `1px solid ${t.surfaceBorder}` }}>{projName}</div>
+                          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                            {investmentsByProject[projName].map(c => (
+                              <div key={c.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 14px", borderRadius: 12, background: isDark ? "rgba(255,255,255,0.03)" : "#F9FAFB", border: `1px solid ${isDark ? "rgba(255,255,255,0.05)" : "#F3F4F6"}` }}>
+                                  <div style={{ flex: 1, minWidth: 0 }}>
+                                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 3 }}>
+                                      <span style={{ fontSize: 13, fontWeight: 700, color: isDark ? "#fff" : "#1C1917" }}>
+                                        {DEALS.find(d => d.id === c.deal_id)?.name || c.id}
+                                      </span>
+                                      <Bdg status={c.status} isDark={isDark} />
+                                    </div>
+                                    <div style={{ fontSize: 11, color: t.textMuted }}>{c.type || "—"} · {c.rate || "—"} · {c.freq || "—"} · {c.start_date || "—"} ~ {c.maturity_date || "—"}</div>
+                                  </div>
+                                <div style={{ fontSize: 13, fontWeight: 700, color: isDark ? "#fff" : "#1C1917", flexShrink: 0 }}>{c.amount}</div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })()}
+                {/* Payment Schedules grouped by project */}
+                {(() => {
+                  const schedulesByProject = {};
+                  partySchedules.forEach(s => {
+                    const investment = partyInvestments.find(c => c.id === s.investment);
+                    const proj = DEALS.find(p => p.id === s.deal_id);
+                    const key = investment?.project || proj?.name || "Unassigned";
+                    (schedulesByProject[key] = schedulesByProject[key] || []).push(s);
+                  });
+                  const projectNames = Object.keys(schedulesByProject);
+                  return (
+                    <div>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: isDark ? "#fff" : "#1C1917", marginBottom: 10 }}>Payment Schedules ({partySchedules.length})</div>
+                      {partySchedules.length === 0 && <div style={{ fontSize: 12, color: t.textMuted, padding: "12px 0" }}>No payment schedules</div>}
+                      {projectNames.map(projName => (
+                        <div key={projName} style={{ marginBottom: 16 }}>
+                          <div style={{ fontSize: 11, fontWeight: 700, color: t.accent, marginBottom: 6, padding: "4px 0", borderBottom: `1px solid ${t.surfaceBorder}` }}>{projName}</div>
+                          <div style={{ borderRadius: 12, border: `1px solid ${t.surfaceBorder}`, overflow: "hidden" }}>
+                            <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left" }}>
+                              <thead style={{ background: isDark ? "rgba(255,255,255,0.03)" : "#FAFAFA" }}>
+                                <tr>
+                                  <th style={{ padding: "10px 14px", fontSize: 10, fontWeight: 700, color: t.textMuted }}>DUE DATE</th>
+                                  <th style={{ padding: "10px 14px", fontSize: 10, fontWeight: 700, color: t.textMuted }}>TYPE</th>
+                                  <th style={{ padding: "10px 14px", fontSize: 10, fontWeight: 700, color: t.textMuted }}>DIR</th>
+                                  <th style={{ padding: "10px 14px", fontSize: 10, fontWeight: 700, color: t.textMuted }}>AMOUNT</th>
+                                  <th style={{ padding: "10px 14px", fontSize: 10, fontWeight: 700, color: t.textMuted }}>STATUS</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {schedulesByProject[projName].map((s, i) => {
+                                  const arr = schedulesByProject[projName];
+                                  return (
+                                    <tr key={s.schedule_id || i} style={{ borderBottom: i < arr.length - 1 ? `1px solid ${t.surfaceBorder}` : "none" }}>
+                                      <td style={{ padding: "10px 14px", fontSize: 11, fontFamily: t.mono, color: t.textMuted }}>{s.dueDate}</td>
+                                      <td style={{ padding: "10px 14px", fontSize: 11, color: t.textSecondary }}>{s.type}{s.fee_id ? ` · ${s.fee_id}` : ""}</td>
+                                      <td style={{ padding: "10px 14px", fontSize: 10, fontWeight: 600, color: s.direction === "IN" ? "#10B981" : "#EF4444" }}>{s.direction}</td>
+                                      <td style={{ padding: "10px 14px", fontSize: 11.5, fontWeight: 600 }}>{s.signed_payment_amount}</td>
+                                      <td style={{ padding: "10px 14px" }}><Bdg status={s.status} isDark={isDark} /></td>
+                                    </tr>
+                                  );
+                                })}
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })()}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }

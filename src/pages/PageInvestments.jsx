@@ -884,16 +884,45 @@ export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [
         </div>
       </div>
     </Modal>
-    {generating && <>
-      <style>{`@keyframes cfm-spin { to { transform: rotate(360deg); } }`}</style>
-      <div style={{ position: "fixed", inset: 0, zIndex: 99999, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.55)", backdropFilter: "blur(6px)" }}>
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 20, background: isDark ? "rgba(30,30,40,0.95)" : "#fff", padding: "40px 52px", borderRadius: 18, boxShadow: "0 8px 40px rgba(0,0,0,0.3)", border: `1px solid ${isDark ? "rgba(255,255,255,0.1)" : "#E5E7EB"}` }}>
-          <div style={{ width: 44, height: 44, border: `4px solid ${isDark ? "rgba(255,255,255,0.1)" : "#E5E7EB"}`, borderTopColor: isDark ? "#60A5FA" : "#3B82F6", borderRadius: "50%", animation: "cfm-spin 0.8s linear infinite" }} />
-          <span style={{ fontSize: 15, fontWeight: 600, color: isDark ? "rgba(255,255,255,0.85)" : "#1C1917", letterSpacing: "0.2px" }}>Payment Schedule Generation In Progress...</span>
-          <span style={{ fontSize: 12, color: isDark ? "rgba(255,255,255,0.4)" : "#9CA3AF" }}>Please wait while schedules are being created</span>
+    {generating && (
+      <div style={{
+        position: "fixed",
+        inset: 0,
+        zIndex: 100000,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        background: "rgba(0,0,0,0.55)",
+        backdropFilter: "blur(6px)",
+        cursor: "wait"
+      }}>
+        <div style={{
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          gap: 20,
+          background: isDark ? "#1C1917" : "#fff",
+          padding: "40px 52px",
+          borderRadius: 20,
+          boxShadow: "0 20px 50px rgba(0,0,0,0.3)",
+          border: `1px solid ${t.surfaceBorder}`
+        }}>
+          <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+          <div style={{
+            width: 44,
+            height: 44,
+            border: `4px solid ${isDark ? "rgba(255,255,255,0.1)" : "#E5E7EB"}`,
+            borderTopColor: t.accent,
+            borderRadius: "50%",
+            animation: "spin 0.8s linear infinite"
+          }} />
+          <div style={{ textAlign: "center" }}>
+            <div style={{ fontSize: 16, fontWeight: 700, color: isDark ? "#fff" : "#1C1917", marginBottom: 6 }}>Generating Schedules...</div>
+            <div style={{ fontSize: 13, color: t.textMuted }}>Please wait while we set up the payment distribution records.</div>
+          </div>
         </div>
       </div>
-    </>}
+    )}
     {/* Result Modal */}
     {genResult && (
       <Modal open={!!genResult} onClose={() => setGenResult(null)} title={genResult.title || "Result"} hideFooter t={t} isDark={isDark} width={400}>

@@ -60,8 +60,11 @@ export const getDealInvestmentColumns = (permissions, isDark, t, context) => {
       header: "Investor Name",
       accessorKey: "party",
       size: 150,
-      cell: ({ getValue }) => (
-        <span style={{ fontWeight: 600, color: isDark ? "#60A5FA" : "#2563EB", fontSize: '11.5px' }}>
+      cell: ({ row, getValue }) => (
+        <span 
+          onClick={(e) => { e.stopPropagation(); callbacks.onContactClick?.(row.original); }}
+          style={{ fontWeight: 600, color: isDark ? "#60A5FA" : "#2563EB", fontSize: '11.5px', cursor: 'pointer' }}
+        >
           {getValue()}
         </span>
       )
