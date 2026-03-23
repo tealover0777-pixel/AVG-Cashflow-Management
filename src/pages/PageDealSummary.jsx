@@ -858,16 +858,20 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
               {(activeTab === "Investments" || (activeTab === "Distributions" && distributionView === "table")) && (
                 <button 
                   onClick={handleGenerateSchedules}
-                  disabled={generating || sel.size === 0}
+                  disabled={generating || (activeTab === "Investments" ? sel.size === 0 : Object.keys(rowSelection).length === 0)}
                   style={{ 
                     display: "flex", alignItems: "center", gap: 7, background: t.successGrad || "#10B981", color: "#fff", 
-                    border: "none", padding: "10px 20px", borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: (generating || sel.size === 0) ? "default" : "pointer",
-                    boxShadow: sel.size > 0 ? "0 4px 12px rgba(16,185,129,0.2)" : "none",
-                    opacity: (generating || sel.size === 0) ? 0.45 : 1
+                    border: "none", padding: "10px 20px", borderRadius: 10, fontSize: 13, fontWeight: 700, 
+                    cursor: (generating || (activeTab === "Investments" ? sel.size === 0 : Object.keys(rowSelection).length === 0)) ? "default" : "pointer",
+                    boxShadow: (activeTab === "Investments" ? sel.size > 0 : Object.keys(rowSelection).length > 0) ? "0 4px 12px rgba(16,185,129,0.2)" : "none",
+                    opacity: (generating || (activeTab === "Investments" ? sel.size === 0 : Object.keys(rowSelection).length === 0)) ? 0.45 : 1
                   }}
                 >
                   <span style={{ fontSize: 16 }}>▤</span>
-                  Generate {sel.size > 0 ? `(${sel.size})` : ""}
+                  Generate {(() => {
+                    const count = activeTab === "Investments" ? sel.size : Object.keys(rowSelection).length;
+                    return count > 0 ? `(${count})` : "";
+                  })()}
                 </button>
               )}
 
