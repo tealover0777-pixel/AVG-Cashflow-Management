@@ -115,7 +115,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
           startDate: inv?.start_date || "—",
           endDate: inv?.maturity_date || "—",
           rate: inv?.rate || "—",
-          paymentMethod: investor?.bank_information || "—"
+          paymentMethod: inv?.payment_method || investor?.payment_method || "—"
         };
       }
 
