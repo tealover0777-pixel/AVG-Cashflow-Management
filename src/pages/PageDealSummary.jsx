@@ -32,6 +32,10 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
   const [uploadedPhotos, setUploadedPhotos] = useState([]);
   const [newPhotoFiles, setNewPhotoFiles] = useState([]);
   const [attributes, setAttributes] = useState([]);
+  const [confirmAction, setConfirmAction] = useState(null);
+  const [bulkStatus, setBulkStatus] = useState("");
+  const [rowSelection, setRowSelection] = useState({});
+  const statusOpts = (DIMENSIONS.find(d => d.name === "ScheduleStatus" || d.name === "Schedule Status") || {}).items || ["Due", "Paid", "Partial", "Missed", "Cancelled"];
 
   useEffect(() => {
     if (deal.id) {
@@ -235,6 +239,56 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
       await deleteDoc(doc(db, investmentCollection, delT.docId));
       setDelT(null);
     } catch (err) { console.error("Delete investment error:", err); }
+  };
+
+  const handleBulkStatus = (status) => {
+    if (!status || Object.keys(rowSelection).length === 0) return;
+    const selectedIds = Object.keys(rowSelection);
+    setConfirmAction({
+      title: "Update Status",
+      message: `Are you sure you want to update status to "${status}" for ${selectedIds.length} distribution(s)?`,
+      onConfirm: async () => {
+        setConfirmAction(null);
+        try {
+          await Promise.all(selectedIds.map(docId => {
+            const s = SCHEDULES.find(s => s.docId === docId || s.id === docId);
+            if (s) {
+              const ref = s._path ? doc(db, s._path) : doc(db, "paymentSchedules", s.docId || s.id);
+              return updateDoc(ref, { status, updated_at: serverTimestamp() });
+            }
+            return Promise.resolve();
+          }));
+          setRowSelection({}); setBulkStatus("");
+        } catch (err) { console.error("Bulk status update error:", err); }
+      }
+    });
+  };
+
+  const handleBulkDelete = () => {
+    const selectedIds = Object.keys(rowSelection);
+    if (selectedIds.length === 0) return;
+    setConfirmAction({
+      title: "Delete Distributions",
+      message: `Are you sure you want to delete ${selectedIds.length} distribution(s)? This action cannot be undone.`,
+      onConfirm: async () => {
+        setConfirmAction(null);
+        try {
+          const deletePromises = selectedIds.map(docId => {
+            const s = SCHEDULES.find(x => x.docId === docId || x.id === docId);
+            if (s) {
+              const ref = s._path ? doc(db, s._path) : doc(db, "paymentSchedules", s.docId || s.id);
+              return deleteDoc(ref);
+            }
+            return Promise.resolve();
+          });
+          await Promise.all(deletePromises);
+          setRowSelection({});
+        } catch (err) {
+          console.error("Bulk delete error:", err);
+          alert("Failed to delete distribution(s).");
+        }
+      }
+    });
   };
 
   // Asset management functions
@@ -485,7 +539,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
           </div>
           
           <div style={{ display: "flex", gap: 12 }}>
-              {activeTab !== "Investments" && (
+              {activeTab !== "Investments" && !(activeTab === "Distributions" && distributionView === "table") && (
                 <button style={{ background: isDark ? "rgba(255,255,255,0.05)" : "#fff", border: `1px solid ${t.surfaceBorder}`, padding: "8px 16px", borderRadius: 8, fontSize: 13, fontWeight: 600, color: t.textSecondary }}>Manage deal</button>
               )}
              {canCreate && activeTab === "Investments" && <button onClick={openAdd} style={{ background: t.accent, color: "#fff", border: "none", padding: "8px 16px", borderRadius: 8, fontSize: 13, fontWeight: 600 }}>+ Add investment</button>}
@@ -584,14 +638,61 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
           </div>
 
           {distributionView === "table" ? (
-            <div style={{ height: '1200px', width: "100%", minHeight: '1200px' }}>
-              <TanStackTable
-                data={dealSchedules}
-                columns={scheduleColumnDefs}
-                pageSize={pageSize}
-                t={t}
-                isDark={isDark}
-              />
+            <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+              {Object.keys(rowSelection).length > 0 && (
+                <div style={{ 
+                  display: "flex", alignItems: "center", gap: 12, padding: "10px 16px", 
+                  borderRadius: 12, background: isDark ? "rgba(255,255,255,0.03)" : "#F9FAFB", 
+                  border: `1px solid ${t.surfaceBorder}`, animation: "fadeIn 0.2s ease" 
+                }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <span style={{ fontSize: 16 }}>🎯</span>
+                    <span style={{ fontSize: 13, fontWeight: 600, color: t.textSecondary }}>{Object.keys(rowSelection).length} selected</span>
+                  </div>
+                  <div style={{ width: 1, height: 20, background: t.surfaceBorder, margin: "0 4px" }} />
+                  <FSel 
+                    width={160} 
+                    value={bulkStatus} 
+                    onChange={ev => { setBulkStatus(ev.target.value); handleBulkStatus(ev.target.value); }} 
+                    options={["", ...statusOpts]} 
+                    t={t} 
+                    placeholder="Set status..." 
+                  />
+                  <div style={{ width: 1, height: 20, background: t.surfaceBorder, margin: "0 4px" }} />
+                  {canDelete && (
+                    <button 
+                      onClick={handleBulkDelete} 
+                      style={{ 
+                        fontSize: 12, fontWeight: 700, padding: "6px 14px", borderRadius: 8, 
+                        background: isDark ? "rgba(248,113,113,0.15)" : "#FEF2F2", 
+                        color: isDark ? "#F87171" : "#DC2626", 
+                        border: `1px solid ${isDark ? "rgba(248,113,113,0.3)" : "#FECACA"}`, 
+                        cursor: "pointer", transition: "all 0.2s" 
+                      }}
+                    >
+                      Delete ({Object.keys(rowSelection).length})
+                    </button>
+                  )}
+                  <div style={{ flex: 1 }} />
+                  <button 
+                    onClick={() => setRowSelection({})} 
+                    style={{ background: "none", border: "none", color: t.textMuted, fontSize: 12, fontWeight: 600, cursor: "pointer" }}
+                  >
+                    Clear Selection
+                  </button>
+                </div>
+              )}
+              <div style={{ height: '700px', width: "100%", minHeight: '700px' }}>
+                <TanStackTable
+                  data={dealSchedules}
+                  columns={scheduleColumnDefs}
+                  rowSelection={rowSelection}
+                  onRowSelectionChange={setRowSelection}
+                  pageSize={pageSize}
+                  t={t}
+                  isDark={isDark}
+                />
+              </div>
             </div>
           ) : (
             <div style={{
@@ -1359,6 +1460,24 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
 
       <DelModal target={delT} onClose={() => setDelT(null)} onConfirm={handleDeleteInvestment} label="this investment" t={t} isDark={isDark} />
       <DelModal target={assetDelT} onClose={() => setAssetDelT(null)} onConfirm={handleDeleteAsset} label="this asset" t={t} isDark={isDark} />
+
+      {/* Confirmation Modal for Bulk Actions */}
+      {confirmAction && (
+        <Modal 
+          open={!!confirmAction} 
+          onClose={() => setConfirmAction(null)} 
+          title={confirmAction.title} 
+          saveLabel="Confirm" 
+          onSave={confirmAction.onConfirm} 
+          t={t} 
+          isDark={isDark}
+          width={400}
+        >
+          <div style={{ padding: "10px 0", fontSize: 14, color: t.textSecondary, lineHeight: 1.6 }}>
+            {confirmAction.message}
+          </div>
+        </Modal>
+      )}
     </div>
   );
 }
