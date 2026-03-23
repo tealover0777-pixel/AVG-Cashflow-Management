@@ -29,6 +29,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
   const [delT, setDelT] = useState(null);
   const [assetDelT, setAssetDelT] = useState(null);
   const [sel, setSel] = useState(new Set());
+  const [rowSelection, setRowSelection] = useState({});
   const [pageSize, setPageSize] = useState(30);
   const [uploadedPhotos, setUploadedPhotos] = useState([]);
   const [newPhotoFiles, setNewPhotoFiles] = useState([]);
@@ -37,7 +38,9 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
   const [genConfirm, setGenConfirm] = useState(null);
   const [genResult, setGenResult] = useState(null);
   const [bulkInvestmentStatus, setBulkInvestmentStatus] = useState("");
+  const [bulkScheduleStatus, setBulkScheduleStatus] = useState("");
   const investmentStatusOpts = ["Open", "Active", "Closed"];
+  const scheduleStatusOpts = ["Due", "Paid", "Canceled", "Missed"];
 
   useEffect(() => {
     if (deal.id) {
@@ -273,6 +276,32 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
       }));
       setSel(new Set());
     } catch (err) { console.error("Bulk delete error:", err); }
+  };
+
+  const handleBulkScheduleStatus = async (status) => {
+    if (!status || Object.keys(rowSelection).length === 0) return;
+    if (!window.confirm(`Update status to "${status}" for ${Object.keys(rowSelection).length} entries?`)) return;
+    try {
+      await Promise.all(Object.keys(rowSelection).map(id => {
+        const s = (SCHEDULES || []).find(x => x.id === id || x.docId === id || x.schedule_id === id);
+        if (s && s.docId) return updateDoc(doc(db, "schedules", s.docId), { status, updated_at: serverTimestamp() });
+        return Promise.resolve();
+      }));
+      setRowSelection({}); setBulkScheduleStatus("");
+    } catch (err) { console.error("Bulk schedule status update error:", err); }
+  };
+
+  const handleBulkScheduleDelete = async () => {
+    if (Object.keys(rowSelection).length === 0) return;
+    if (!window.confirm(`Delete ${Object.keys(rowSelection).length} selected entries?`)) return;
+    try {
+      await Promise.all(Object.keys(rowSelection).map(id => {
+        const s = (SCHEDULES || []).find(x => x.id === id || x.docId === id || x.schedule_id === id);
+        if (s && s.docId) return deleteDoc(doc(db, "schedules", s.docId));
+        return Promise.resolve();
+      }));
+      setRowSelection({});
+    } catch (err) { console.error("Bulk schedule delete error:", err); }
   };
 
   const handleGenerateSchedules = () => {
@@ -742,11 +771,72 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
             </div>
           </div>
           
-          <div style={{ display: "flex", gap: 12 }}>
+          <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+              {/* --- Investment Bulk Actions --- */}
+              {activeTab === "Investments" && sel.size > 0 && (
+                <div style={{ display: "flex", alignItems: "center", gap: 10, background: isDark ? "rgba(255,255,255,0.03)" : "#f8f9fa", padding: "5px 12px", borderRadius: 10, border: `1px solid ${t.surfaceBorder}`, animation: "fadeIn 0.2s ease" }}>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: t.accent }}>{sel.size}</span>
+                  <FSel 
+                    width={130} 
+                    value={bulkInvestmentStatus} 
+                    onChange={ev => { setBulkInvestmentStatus(ev.target.value); handleBulkInvestmentStatus(ev.target.value); }} 
+                    options={["", ...investmentStatusOpts]} 
+                    t={t} 
+                    placeholder="Set Status..." 
+                  />
+                  <button 
+                    onClick={handleBulkInvestmentDelete}
+                    style={{ background: isDark ? "rgba(248,113,113,0.1)" : "#FEF2F2", color: isDark ? "#F87171" : "#DC2626", border: `1px solid ${isDark ? "rgba(248,113,113,0.2)" : "#FECACA"}`, padding: "4px 10px", borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: "pointer" }}
+                  >
+                    Delete
+                  </button>
+                  <button onClick={() => setSel(new Set())} style={{ background: "none", border: "none", color: t.textMuted, fontSize: 11, fontWeight: 600, cursor: "pointer" }}>Clear</button>
+                </div>
+              )}
+
+              {/* --- Distributions/Table Bulk Actions --- */}
+              {activeTab === "Distributions" && distributionView === "table" && Object.keys(rowSelection).length > 0 && (
+                <div style={{ display: "flex", alignItems: "center", gap: 10, background: isDark ? "rgba(255,255,255,0.03)" : "#f8f9fa", padding: "5px 12px", borderRadius: 10, border: `1px solid ${t.surfaceBorder}`, animation: "fadeIn 0.2s ease" }}>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: t.accent }}>{Object.keys(rowSelection).length}</span>
+                  <FSel 
+                    width={130} 
+                    value={bulkScheduleStatus} 
+                    onChange={ev => { setBulkScheduleStatus(ev.target.value); handleBulkScheduleStatus(ev.target.value); }} 
+                    options={["", ...scheduleStatusOpts]} 
+                    t={t} 
+                    placeholder="Set Status..." 
+                  />
+                  <button 
+                    onClick={handleBulkScheduleDelete}
+                    style={{ background: isDark ? "rgba(248,113,113,0.1)" : "#FEF2F2", color: isDark ? "#F87171" : "#DC2626", border: `1px solid ${isDark ? "rgba(248,113,113,0.2)" : "#FECACA"}`, padding: "4px 10px", borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: "pointer" }}
+                  >
+                    Delete
+                  </button>
+                  <button onClick={() => setRowSelection({})} style={{ background: "none", border: "none", color: t.textMuted, fontSize: 11, fontWeight: 600, cursor: "pointer" }}>Clear</button>
+                </div>
+              )}
+
+              {/* --- Generate Button (Unified) --- */}
+              {(activeTab === "Investments" || (activeTab === "Distributions" && distributionView === "table")) && (
+                <button 
+                  onClick={handleGenerateSchedules}
+                  disabled={generating}
+                  style={{ 
+                    display: "flex", alignItems: "center", gap: 7, background: t.successGrad || t.accent, color: "#fff", 
+                    border: "none", padding: "8px 18px", borderRadius: 9, fontSize: 13, fontWeight: 700, cursor: "pointer",
+                    boxShadow: sel.size > 0 ? "0 4px 12px rgba(16,185,129,0.2)" : "none",
+                    opacity: (generating || sel.size === 0) ? 0.6 : 1
+                  }}
+                >
+                  <FileCheck size={14} />
+                  Generate {sel.size > 0 ? `(${sel.size})` : ""}
+                </button>
+              )}
+
               {activeTab !== "Investments" && !(activeTab === "Distributions" && distributionView === "table") && (
                 <button style={{ background: isDark ? "rgba(255,255,255,0.05)" : "#fff", border: `1px solid ${t.surfaceBorder}`, padding: "8px 16px", borderRadius: 8, fontSize: 13, fontWeight: 600, color: t.textSecondary }}>Manage deal</button>
               )}
-             {canCreate && activeTab === "Investments" && <button onClick={openAdd} style={{ background: t.accent, color: "#fff", border: "none", padding: "8px 16px", borderRadius: 8, fontSize: 13, fontWeight: 600 }}>+ Add investment</button>}
+             {canCreate && activeTab === "Investments" && <button onClick={openAdd} style={{ background: t.accent, color: "#fff", border: "none", padding: "8px 18px", borderRadius: 9, fontSize: 13.5, fontWeight: 700, boxShadow: `0 4px 12px ${t.accentShadow || "none"}` }}>+ Add investment</button>}
              {canCreate && activeTab === "Assets" && <button onClick={openAddAsset} style={{ background: t.accent, color: "#fff", border: "none", padding: "8px 16px", borderRadius: 8, fontSize: 13, fontWeight: 600 }}>+ Add asset</button>}
           </div>
         </div>
@@ -796,68 +886,6 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
 
       {activeTab === "Investments" ? (
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-          {sel.size > 0 && (
-            <div style={{ 
-              display: "flex", alignItems: "center", gap: 12, padding: "10px 16px", 
-              borderRadius: 12, background: isDark ? "rgba(255,255,255,0.03)" : "#F9FAFB", 
-              border: `1px solid ${t.surfaceBorder}`, animation: "fadeIn 0.2s ease" 
-            }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <span style={{ fontSize: 16 }}>🎯</span>
-                <span style={{ fontSize: 13, fontWeight: 600, color: t.textSecondary }}>{sel.size} selected</span>
-              </div>
-              <div style={{ width: 1, height: 20, background: t.surfaceBorder, margin: "0 4px" }} />
-              
-              <FSel 
-                width={160} 
-                value={bulkInvestmentStatus} 
-                onChange={ev => { setBulkInvestmentStatus(ev.target.value); handleBulkInvestmentStatus(ev.target.value); }} 
-                options={["", ...investmentStatusOpts]} 
-                t={t} 
-                placeholder="Set status..." 
-              />
-
-              <div style={{ width: 1, height: 20, background: t.surfaceBorder, margin: "0 4px" }} />
-              
-              <button 
-                onClick={handleGenerateSchedules}
-                disabled={generating}
-                style={{ 
-                  display: "flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 700, 
-                  padding: "6px 14px", borderRadius: 8, background: t.accent, color: "#fff", 
-                  border: "none", cursor: "pointer", opacity: generating ? 0.6 : 1
-                }}
-              >
-                <FileCheck size={14} />
-                {generating ? "Generating..." : "Generate Schedules"}
-              </button>
-
-              <div style={{ width: 1, height: 20, background: t.surfaceBorder, margin: "0 4px" }} />
-
-              {canDelete && (
-                <button 
-                  onClick={handleBulkInvestmentDelete} 
-                  style={{ 
-                    fontSize: 12, fontWeight: 700, padding: "6px 14px", borderRadius: 8, 
-                    background: isDark ? "rgba(248,113,113,0.15)" : "#FEF2F2", 
-                    color: isDark ? "#F87171" : "#DC2626", 
-                    border: `1px solid ${isDark ? "rgba(248,113,113,0.3)" : "#FECACA"}`, 
-                    cursor: "pointer"
-                  }}
-                >
-                  Delete ({sel.size})
-                </button>
-              )}
-              
-              <div style={{ flex: 1 }} />
-              <button 
-                onClick={() => setSel(new Set())} 
-                style={{ background: "none", border: "none", color: t.textMuted, fontSize: 12, fontWeight: 600, cursor: "pointer" }}
-              >
-                Clear Selection
-              </button>
-            </div>
-          )}
           <div style={{ height: '1200px', width: "100%", minHeight: '1200px' }}>
               <TanStackTable
                   data={dealInvestments}
@@ -913,6 +941,8 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
                 pageSize={pageSize}
                 t={t}
                 isDark={isDark}
+                rowSelection={rowSelection}
+                onRowSelectionChange={setRowSelection}
               />
             </div>
           ) : (
