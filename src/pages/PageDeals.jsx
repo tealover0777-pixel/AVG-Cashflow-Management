@@ -285,7 +285,7 @@ export default function PageDeals({ t, isDark, DEALS = [], INVESTMENTS = [], SCH
               entries.push({
                 schedule_id: sIdFee, version_num: 1, version_id: `${sIdFee}-V1`, payment_id: sIdFee, active_version: true,
                 investment_id: inv.id, deal_id: deal.id, party_id: inv.party_id || "",
-                dueDate: pEnd.toISOString().slice(0, 10), type: PT_FEE, fee_id: fee.id,
+                dueDate: pEnd.toISOString().slice(0, 10), type: PT_FEE, fee_id: fee.id, fee_name: fee.name,
                 payment_amount: roundedFee, 
                 signed_payment_amount: feeDir === "OUT" ? -Math.abs(roundedFee) : Math.abs(roundedFee), 
                 direction_from_company: feeDir,

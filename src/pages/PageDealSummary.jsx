@@ -89,9 +89,16 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
       let paymentType = schedule.type || schedule.payment_type || "Unknown Type";
       const hasFeeRef = schedule.fee_id || schedule.feeId || schedule.fee_name || schedule.feeName;
       if (hasFeeRef) {
-        const feeId = schedule.fee_id || schedule.feeId;
-        const fee = feeId ? FEES_DATA.find(f => f.id === feeId) : null;
-        paymentType = fee ? fee.name : (schedule.fee_name || schedule.feeName || paymentType);
+        const fId = (schedule.fee_id || schedule.feeId || "");
+        const fee = fId ? (FEES_DATA.find(f => f.id === fId) || FEES_DATA.find(f => f.docId === fId)) : null;
+        
+        // Use explicit fee_name on schedule OR lookup fee name
+        let resolvedName = (schedule.fee_name || schedule.feeName || "").trim();
+        if (!resolvedName && fee) {
+          resolvedName = fee.name;
+        }
+        
+        if (resolvedName) paymentType = resolvedName;
       }
 
       // Try multiple field name variations and parse currency
