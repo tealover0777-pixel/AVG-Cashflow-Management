@@ -1062,349 +1062,366 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
               </h3>
 
               {pivotData.rows.length > 0 ? (
-                <table style={{
-                  width: "100%",
-                  borderCollapse: "collapse",
-                  fontSize: 12
-                }}>
-                  <thead>
-                    <tr style={{
-                      background: isDark ? "rgba(255,255,255,0.05)" : "#F9FAFB",
-                      borderBottom: `2px solid ${t.surfaceBorder}`
-                    }}>
-                      <th style={{
-                        padding: "12px 16px",
-                        textAlign: "left",
-                        fontWeight: 700,
-                        color: t.text,
-                        position: "sticky",
-                        left: 0,
-                        top: 0,
+                <div style={{ overflow: "auto", maxHeight: "800px", border: `1px solid ${t.surfaceBorder}`, borderRadius: 8 }}>
+                  <table style={{
+                    width: "100%",
+                    borderCollapse: "separate",
+                    borderSpacing: 0,
+                    fontSize: 12
+                  }}>
+                    <thead>
+                      <tr style={{
                         background: isDark ? "#262626" : "#F9FAFB",
-                        zIndex: 10,
-                        width: 180,
-                        boxShadow: `inset 0 -2px 0 ${t.surfaceBorder}`
                       }}>
-                        Investor Name
-                      </th>
-                      <th style={{
-                        padding: "12px 16px",
-                        textAlign: "left",
-                        fontWeight: 700,
-                        color: t.text,
-                        position: "sticky",
-                        left: 180,
-                        top: 0,
-                        background: isDark ? "#262626" : "#F9FAFB",
-                        zIndex: 10,
-                        width: 120,
-                        boxShadow: `inset 0 -2px 0 ${t.surfaceBorder}`
-                      }}>
-                        Type
-                      </th>
-                      <th style={{
-                        padding: "12px 16px",
-                        textAlign: "left",
-                        fontWeight: 700,
-                        color: t.text,
-                        position: "sticky",
-                        left: 300,
-                        top: 0,
-                        background: isDark ? "#262626" : "#F9FAFB",
-                        zIndex: 10,
-                        width: 100,
-                        boxShadow: `inset 0 -2px 0 ${t.surfaceBorder}`
-                      }}>
-                        Start Date
-                      </th>
-                      <th style={{
-                        padding: "12px 16px",
-                        textAlign: "left",
-                        fontWeight: 700,
-                        color: t.text,
-                        position: "sticky",
-                        left: 400,
-                        top: 0,
-                        background: isDark ? "#262626" : "#F9FAFB",
-                        zIndex: 10,
-                        width: 100,
-                        boxShadow: `inset 0 -2px 0 ${t.surfaceBorder}`
-                      }}>
-                        End Date
-                      </th>
-                      <th style={{
-                        padding: "12px 16px",
-                        textAlign: "left",
-                        fontWeight: 700,
-                        color: t.text,
-                        position: "sticky",
-                        left: 500,
-                        top: 0,
-                        background: isDark ? "#262626" : "#F9FAFB",
-                        zIndex: 10,
-                        width: 90,
-                        boxShadow: `inset 0 -2px 0 ${t.surfaceBorder}`
-                      }}>
-                        Interest Rate
-                      </th>
-                      <th style={{
-                        padding: "12px 16px",
-                        textAlign: "left",
-                        fontWeight: 700,
-                        color: t.text,
-                        position: "sticky",
-                        left: 590,
-                        top: 0,
-                        background: isDark ? "#262626" : "#F9FAFB",
-                        zIndex: 10,
-                        width: 120,
-                        boxShadow: `inset 0 -2px 0 ${t.surfaceBorder}`
-                      }}>
-                        Payment Method
-                      </th>
-                      {pivotData.dates.map((date, idx) => (
-                        <th key={idx} style={{
+                        <th style={{
+                          padding: "12px 16px",
+                          textAlign: "left",
+                          fontWeight: 700,
+                          color: t.text,
+                          position: "sticky",
+                          left: 0,
+                          top: 0,
+                          background: isDark ? "#262626" : "#F9FAFB",
+                          zIndex: 30,
+                          width: 180,
+                          borderBottom: `2px solid ${t.surfaceBorder}`,
+                        }}>
+                          Investor Name
+                        </th>
+                        <th style={{
+                          padding: "12px 16px",
+                          textAlign: "left",
+                          fontWeight: 700,
+                          color: t.text,
+                          position: "sticky",
+                          left: 180,
+                          top: 0,
+                          background: isDark ? "#262626" : "#F9FAFB",
+                          zIndex: 30,
+                          width: 120,
+                          borderBottom: `2px solid ${t.surfaceBorder}`,
+                        }}>
+                          Type
+                        </th>
+                        <th style={{
+                          padding: "12px 16px",
+                          textAlign: "left",
+                          fontWeight: 700,
+                          color: t.text,
+                          position: "sticky",
+                          left: 300,
+                          top: 0,
+                          background: isDark ? "#262626" : "#F9FAFB",
+                          zIndex: 30,
+                          width: 100,
+                          borderBottom: `2px solid ${t.surfaceBorder}`,
+                        }}>
+                          Start Date
+                        </th>
+                        <th style={{
+                          padding: "12px 16px",
+                          textAlign: "left",
+                          fontWeight: 700,
+                          color: t.text,
+                          position: "sticky",
+                          left: 400,
+                          top: 0,
+                          background: isDark ? "#262626" : "#F9FAFB",
+                          zIndex: 30,
+                          width: 100,
+                          borderBottom: `2px solid ${t.surfaceBorder}`,
+                        }}>
+                          End Date
+                        </th>
+                        <th style={{
+                          padding: "12px 16px",
+                          textAlign: "left",
+                          fontWeight: 700,
+                          color: t.text,
+                          position: "sticky",
+                          left: 500,
+                          top: 0,
+                          background: isDark ? "#262626" : "#F9FAFB",
+                          zIndex: 30,
+                          width: 90,
+                          borderBottom: `2px solid ${t.surfaceBorder}`,
+                        }}>
+                          Rate
+                        </th>
+                        <th style={{
+                          padding: "12px 16px",
+                          textAlign: "left",
+                          fontWeight: 700,
+                          color: t.text,
+                          position: "sticky",
+                          left: 590,
+                          top: 0,
+                          background: isDark ? "#262626" : "#F9FAFB",
+                          zIndex: 30,
+                          width: 120,
+                          borderBottom: `2px solid ${t.surfaceBorder}`,
+                          boxShadow: `1px 0 0 ${t.surfaceBorder}`
+                        }}>
+                          Pay Method
+                        </th>
+                        {pivotData.dates.map((date, idx) => (
+                          <th key={idx} style={{
+                            padding: "12px 16px",
+                            textAlign: "right",
+                            fontWeight: 700,
+                            color: t.text,
+                            minWidth: 120,
+                            position: "sticky",
+                            top: 0,
+                            background: isDark ? "#262626" : "#F9FAFB",
+                            zIndex: 20,
+                            borderBottom: `2px solid ${t.surfaceBorder}`,
+                          }}>
+                            {date}
+                          </th>
+                        ))}
+                        <th style={{
                           padding: "12px 16px",
                           textAlign: "right",
                           fontWeight: 700,
                           color: t.text,
+                          background: isDark ? "#1e3a8a" : "#EFF6FF",
                           minWidth: 120,
                           position: "sticky",
                           top: 0,
-                          background: isDark ? "#262626" : "#F9FAFB",
-                          zIndex: 5,
-                          boxShadow: `inset 0 -2px 0 ${t.surfaceBorder}`
+                          right: 0,
+                          zIndex: 30,
+                          borderBottom: `2px solid ${t.surfaceBorder}`,
                         }}>
-                          {date}
+                          Total
                         </th>
-                      ))}
-                      <th style={{
-                        padding: "12px 16px",
-                        textAlign: "right",
-                        fontWeight: 700,
-                        color: t.text,
-                        background: isDark ? "#1e3a8a" : "#EFF6FF",
-                        minWidth: 120,
-                        position: "sticky",
-                        top: 0,
-                        right: 0,
-                        zIndex: 6,
-                        boxShadow: `inset 0 -2px 0 ${t.surfaceBorder}`
-                      }}>
-                        Total
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {pivotData.rows.map((row, rowIdx) => {
-                      let rowTotal = 0;
-                      return (
-                        <tr key={rowIdx} style={{
-                          borderBottom: `1px solid ${t.surfaceBorder}`,
-                          transition: "background 0.15s ease"
-                        }}
-                        onMouseEnter={(e) => e.currentTarget.style.background = isDark ? "rgba(255,255,255,0.03)" : "#F9FAFB"}
-                        onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}
-                        >
-                          <td style={{
-                            padding: "12px 16px",
-                            fontWeight: 600,
-                            color: t.text,
-                            position: "sticky",
-                            left: 0,
-                            background: isDark ? "#1a1a1a" : "#fff",
-                            zIndex: 1,
-                            width: 180
-                          }}>
-                            {row.investor}
-                          </td>
-                          <td style={{
-                            padding: "12px 16px",
-                            fontSize: 11,
-                            color: t.textSecondary,
-                            position: "sticky",
-                            left: 180,
-                            background: isDark ? "#1a1a1a" : "#fff",
-                            zIndex: 1,
-                            width: 120
-                          }}>
-                            {row.type.replace(/_/g, ' ')}
-                          </td>
-                          <td style={{
-                            padding: "12px 16px",
-                            fontSize: 11,
-                            color: t.textSecondary,
-                            position: "sticky",
-                            left: 300,
-                            background: isDark ? "#1a1a1a" : "#fff",
-                            zIndex: 1,
-                            width: 100
-                          }}>
-                            {row.startDate}
-                          </td>
-                          <td style={{
-                            padding: "12px 16px",
-                            fontSize: 11,
-                            color: t.textSecondary,
-                            position: "sticky",
-                            left: 400,
-                            background: isDark ? "#1a1a1a" : "#fff",
-                            zIndex: 1,
-                            width: 100
-                          }}>
-                            {row.endDate}
-                          </td>
-                          <td style={{
-                            padding: "12px 16px",
-                            fontSize: 11,
-                            color: t.textSecondary,
-                            position: "sticky",
-                            left: 500,
-                            background: isDark ? "#1a1a1a" : "#fff",
-                            zIndex: 1,
-                            width: 90
-                          }}>
-                            {row.rate}
-                          </td>
-                          <td style={{
-                            padding: "12px 16px",
-                            fontSize: 11,
-                            color: t.textSecondary,
-                            position: "sticky",
-                            left: 590,
-                            background: isDark ? "#1a1a1a" : "#fff",
-                            zIndex: 1,
-                            width: 120
-                          }}>
-                            {row.paymentMethod}
-                          </td>
-                          {pivotData.dates.map((date, dateIdx) => {
-                            const cellKey = `${row.key}|||${date}`;
-                            const amount = pivotData.data[cellKey] || 0;
-                            rowTotal += amount;
-                            const hasAmount = amount !== 0;
-                            return (
-                              <td key={dateIdx} style={{
-                                padding: "12px 16px",
-                                textAlign: "right",
-                                fontFamily: t.mono,
-                                fontWeight: 600,
-                                color: hasAmount ? (isDark ? "#34D399" : "#059669") : t.textMuted
-                              }}>
-                                {hasAmount ? `$${amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : "—"}
-                              </td>
-                            );
-                          })}
-                          <td style={{
-                            padding: "12px 16px",
-                            textAlign: "right",
-                            fontFamily: t.mono,
-                            fontWeight: 700,
-                            fontSize: 13,
-                            color: isDark ? "#60A5FA" : "#2563EB",
-                            background: isDark ? "rgba(96,165,250,0.05)" : "#EFF6FF"
-                          }}>
-                            ${rowTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                    {/* Column totals row */}
-                    <tr style={{
-                      background: isDark ? "rgba(96,165,250,0.1)" : "#EFF6FF",
-                      borderTop: `2px solid ${t.surfaceBorder}`,
-                      fontWeight: 700
-                    }}>
-                      <td style={{
-                        padding: "12px 16px",
-                        color: t.text,
-                        position: "sticky",
-                        left: 0,
-                        background: isDark ? "rgba(96,165,250,0.1)" : "#EFF6FF",
-                        zIndex: 1,
-                        width: 180
-                      }}>
-                        Total
-                      </td>
-                      <td style={{
-                        padding: "12px 16px",
-                        position: "sticky",
-                        left: 180,
-                        background: isDark ? "rgba(96,165,250,0.1)" : "#EFF6FF",
-                        zIndex: 1,
-                        width: 120
-                      }}>
-                      </td>
-                      <td style={{
-                        padding: "12px 16px",
-                        position: "sticky",
-                        left: 300,
-                        background: isDark ? "rgba(96,165,250,0.1)" : "#EFF6FF",
-                        zIndex: 1,
-                        width: 100
-                      }}>
-                      </td>
-                      <td style={{
-                        padding: "12px 16px",
-                        position: "sticky",
-                        left: 400,
-                        background: isDark ? "rgba(96,165,250,0.1)" : "#EFF6FF",
-                        zIndex: 1,
-                        width: 100
-                      }}>
-                      </td>
-                      <td style={{
-                        padding: "12px 16px",
-                        position: "sticky",
-                        left: 500,
-                        background: isDark ? "rgba(96,165,250,0.1)" : "#EFF6FF",
-                        zIndex: 1,
-                        width: 90
-                      }}>
-                      </td>
-                      <td style={{
-                        padding: "12px 16px",
-                        position: "sticky",
-                        left: 590,
-                        background: isDark ? "rgba(96,165,250,0.1)" : "#EFF6FF",
-                        zIndex: 1,
-                        width: 120
-                      }}>
-                      </td>
-                      {pivotData.dates.map((date, idx) => {
-                        const colTotal = pivotData.rows.reduce((sum, row) => {
-                          const cellKey = `${row.key}|||${date}`;
-                          return sum + (pivotData.data[cellKey] || 0);
-                        }, 0);
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {pivotData.rows.map((row, rowIdx) => {
+                        let rowTotal = 0;
                         return (
-                          <td key={idx} style={{
-                            padding: "12px 16px",
-                            textAlign: "right",
-                            fontFamily: t.mono,
-                            color: t.text
+                          <tr key={rowIdx} style={{
+                            background: isDark ? "transparent" : "#fff",
+                            transition: "background 0.15s ease"
                           }}>
-                            ${colTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                          </td>
+                            <td style={{
+                              padding: "12px 16px",
+                              fontWeight: 600,
+                              color: t.text,
+                              position: "sticky",
+                              left: 0,
+                              background: isDark ? "#1a1a1a" : "#fff",
+                              zIndex: 10,
+                              width: 180,
+                              borderBottom: `1px solid ${t.surfaceBorder}`
+                            }}>
+                              {row.investor}
+                            </td>
+                            <td style={{
+                              padding: "12px 16px",
+                              fontSize: 11,
+                              color: t.textSecondary,
+                              position: "sticky",
+                              left: 180,
+                              background: isDark ? "#1a1a1a" : "#fff",
+                              zIndex: 10,
+                              width: 120,
+                              borderBottom: `1px solid ${t.surfaceBorder}`
+                            }}>
+                              {row.type.replace(/_/g, ' ')}
+                            </td>
+                            <td style={{
+                              padding: "12px 16px",
+                              fontSize: 11,
+                              color: t.textSecondary,
+                              position: "sticky",
+                              left: 300,
+                              background: isDark ? "#1a1a1a" : "#fff",
+                              zIndex: 10,
+                              width: 100,
+                              borderBottom: `1px solid ${t.surfaceBorder}`
+                            }}>
+                              {row.startDate}
+                            </td>
+                            <td style={{
+                              padding: "12px 16px",
+                              fontSize: 11,
+                              color: t.textSecondary,
+                              position: "sticky",
+                              left: 400,
+                              background: isDark ? "#1a1a1a" : "#fff",
+                              zIndex: 10,
+                              width: 100,
+                              borderBottom: `1px solid ${t.surfaceBorder}`
+                            }}>
+                              {row.endDate}
+                            </td>
+                            <td style={{
+                              padding: "12px 16px",
+                              fontSize: 11,
+                              color: t.textSecondary,
+                              position: "sticky",
+                              left: 500,
+                              background: isDark ? "#1a1a1a" : "#fff",
+                              zIndex: 10,
+                              width: 90,
+                              borderBottom: `1px solid ${t.surfaceBorder}`
+                            }}>
+                              {row.rate}
+                            </td>
+                            <td style={{
+                              padding: "12px 16px",
+                              fontSize: 11,
+                              color: t.textSecondary,
+                              position: "sticky",
+                              left: 590,
+                              background: isDark ? "#1a1a1a" : "#fff",
+                              zIndex: 10,
+                              width: 120,
+                              borderBottom: `1px solid ${t.surfaceBorder}`,
+                              boxShadow: `1px 0 0 ${t.surfaceBorder}`
+                            }}>
+                              {row.paymentMethod}
+                            </td>
+                            {pivotData.dates.map((date, dateIdx) => {
+                              const cellKey = `${row.key}|||${date}`;
+                              const amount = pivotData.data[cellKey] || 0;
+                              rowTotal += amount;
+                              const hasAmount = amount !== 0;
+                              return (
+                                <td key={dateIdx} style={{
+                                  padding: "12px 16px",
+                                  textAlign: "right",
+                                  fontFamily: t.mono,
+                                  fontWeight: 600,
+                                  color: hasAmount ? (isDark ? "#34D399" : "#059669") : t.textMuted,
+                                  borderBottom: `1px solid ${t.surfaceBorder}`
+                                }}>
+                                  {hasAmount ? `$${amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : "—"}
+                                </td>
+                              );
+                            })}
+                            <td style={{
+                              padding: "12px 16px",
+                              textAlign: "right",
+                              fontFamily: t.mono,
+                              fontWeight: 700,
+                              fontSize: 13,
+                              color: isDark ? "#60A5FA" : "#2563EB",
+                              background: isDark ? "#1e3a8a22" : "#EFF6FF",
+                              position: "sticky",
+                              right: 0,
+                              zIndex: 10,
+                              borderBottom: `1px solid ${t.surfaceBorder}`
+                            }}>
+                              ${rowTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            </td>
+                          </tr>
                         );
                       })}
-                      <td style={{
-                        padding: "12px 16px",
-                        textAlign: "right",
-                        fontFamily: t.mono,
-                        fontSize: 14,
-                        color: t.text
+                      {/* Column totals row */}
+                      <tr style={{
+                        background: isDark ? "rgba(96,165,250,0.1)" : "#EFF6FF",
+                        fontWeight: 700
                       }}>
-                        ${pivotData.rows.reduce((grandTotal, row) => {
-                          return grandTotal + pivotData.dates.reduce((rowTotal, date) => {
+                        <td style={{
+                          padding: "12px 16px",
+                          color: t.text,
+                          position: "sticky",
+                          left: 0,
+                          bottom: 0,
+                          background: isDark ? "#1e3a8a44" : "#DBEAFE",
+                          zIndex: 25,
+                          width: 180,
+                        }}>
+                          Total
+                        </td>
+                        <td style={{
+                          padding: "12px 16px",
+                          position: "sticky",
+                          bottom: 0,
+                          left: 180,
+                          background: isDark ? "#1e3a8a44" : "#DBEAFE",
+                          zIndex: 25,
+                        }} />
+                        <td style={{
+                          padding: "12px 16px",
+                          position: "sticky",
+                          bottom: 0,
+                          left: 300,
+                          background: isDark ? "#1e3a8a44" : "#DBEAFE",
+                          zIndex: 25,
+                        }} />
+                        <td style={{
+                          padding: "12px 16px",
+                          position: "sticky",
+                          bottom: 0,
+                          left: 400,
+                          background: isDark ? "#1e3a8a44" : "#DBEAFE",
+                          zIndex: 25,
+                        }} />
+                        <td style={{
+                          padding: "12px 16px",
+                          position: "sticky",
+                          bottom: 0,
+                          left: 500,
+                          background: isDark ? "#1e3a8a44" : "#DBEAFE",
+                          zIndex: 25,
+                        }} />
+                        <td style={{
+                          padding: "12px 16px",
+                          position: "sticky",
+                          bottom: 0,
+                          left: 590,
+                          background: isDark ? "#1e3a8a44" : "#DBEAFE",
+                          zIndex: 25,
+                          boxShadow: `1px 0 0 ${t.surfaceBorder}`
+                        }} />
+                        {pivotData.dates.map((date, idx) => {
+                          const colTotal = pivotData.rows.reduce((sum, row) => {
                             const cellKey = `${row.key}|||${date}`;
-                            return rowTotal + (pivotData.data[cellKey] || 0);
+                            return sum + (pivotData.data[cellKey] || 0);
                           }, 0);
-                        }, 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          return (
+                            <td key={idx} style={{
+                              padding: "12px 16px",
+                              textAlign: "right",
+                              fontFamily: t.mono,
+                              color: t.text,
+                              position: "sticky",
+                              bottom: 0,
+                              background: isDark ? "#111827" : "#F3F4F6",
+                              zIndex: 20
+                            }}>
+                              ${colTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            </td>
+                          );
+                        })}
+                        <td style={{
+                          padding: "12px 16px",
+                          textAlign: "right",
+                          fontFamily: t.mono,
+                          fontSize: 14,
+                          color: t.text,
+                          position: "sticky",
+                          bottom: 0,
+                          right: 0,
+                          background: isDark ? "#1e3a8a88" : "#BFDBFE",
+                          zIndex: 25
+                        }}>
+                          ${pivotData.rows.reduce((grandTotal, row) => {
+                            return grandTotal + pivotData.dates.reduce((rowTotal, date) => {
+                              const cellKey = `${row.key}|||${date}`;
+                              return rowTotal + (pivotData.data[cellKey] || 0);
+                            }, 0);
+                          }, 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </td>
                     </tr>
                   </tbody>
                 </table>
-              ) : (
+              </div>
+            ) : (
                 <div style={{
                   padding: 40,
                   textAlign: "center",
