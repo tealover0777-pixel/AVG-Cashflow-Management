@@ -611,15 +611,25 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
             const formattedOrigAmt = `$${origPaymentNum.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
             const ref = d._path ? doc(db, d._path) : doc(db, collectionPath, docRefId);
-            
+
             // Replaces updateDoc with Versioning logic
             const newVersionNum = Number(d.version_num || 1) + 1;
+
+            // Determine the correct previous_version_id
+            let previousVersionId = d.version_id;
+            if (!previousVersionId && Number(d.version_num || 1) === 1) {
+              previousVersionId = `${d.schedule_id}-V1`;
+            }
+            if (!previousVersionId) {
+              previousVersionId = docRefId;
+            }
+
             await addDoc(ref.parent, {
               ...payload,
               version_num: newVersionNum,
               version_id: `${payload.schedule_id}-V${newVersionNum}`,
               active_version: true,
-              previous_version_id: d.version_id || docRefId,
+              previous_version_id: previousVersionId,
               created_at: serverTimestamp(),
               updated_at: serverTimestamp(),
               updated_by: user?.displayName || user?.email || user?.uid || "system"
@@ -698,12 +708,22 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
 
             // Replaces updateDoc with Versioning logic
             const newVersionNum = Number(d.version_num || 1) + 1;
+
+            // Determine the correct previous_version_id
+            let previousVersionId = d.version_id;
+            if (!previousVersionId && Number(d.version_num || 1) === 1) {
+              previousVersionId = `${d.schedule_id}-V1`;
+            }
+            if (!previousVersionId) {
+              previousVersionId = docRefId;
+            }
+
             await addDoc(ref.parent, {
               ...payload,
               version_num: newVersionNum,
               version_id: `${payload.schedule_id}-V${newVersionNum}`,
               active_version: true,
-              previous_version_id: d.version_id || docRefId,
+              previous_version_id: previousVersionId,
               created_at: serverTimestamp(),
               updated_at: serverTimestamp(),
               updated_by: user?.displayName || user?.email || user?.uid || "system"
@@ -749,22 +769,45 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
     try {
       if (modal.mode === "edit" && docRefId) {
         // Versioning Logic:
-        // Instead of updating the document in place, we create a new version 
+        // Instead of updating the document in place, we create a new version
         // and mark the old one as "replaced" and inactive.
-        
+
+        console.log("[Save Edit] Debug:", {
+          "d.version_id": d.version_id,
+          "d.docId": d.docId,
+          "d.id": d.id,
+          "docRefId": docRefId,
+          "d.schedule_id": d.schedule_id,
+          "d.version_num": d.version_num
+        });
+
         const oldRef = d._path ? doc(db, d._path) : doc(db, collectionPath, docRefId);
         const newVersionNum = Number(d.version_num || 1) + 1;
-        
+
+        // Determine the correct previous_version_id
+        // Priority: 1) d.version_id (preferred), 2) construct from schedule_id if version_num=1, 3) fallback to docRefId
+        let previousVersionId = d.version_id;
+        if (!previousVersionId && Number(d.version_num || 1) === 1) {
+          // If this is upgrading V1 to V2, construct the V1 version_id
+          previousVersionId = `${d.schedule_id}-V1`;
+        }
+        if (!previousVersionId) {
+          // Final fallback to Firestore docId
+          previousVersionId = docRefId;
+        }
+
+        console.log("[Save Edit] Computed previous_version_id:", previousVersionId);
+
         // 1. Create the new version
         const newPayload = {
           ...payload,
           version_num: newVersionNum,
           version_id: `${payload.schedule_id}-V${newVersionNum}`,
           active_version: true,
-          previous_version_id: d.version_id || docRefId,
+          previous_version_id: previousVersionId,
           created_at: serverTimestamp(),
           updated_at: serverTimestamp(),
-          updated_by: user?.uid || "system"
+          updated_by: user?.displayName || user?.email || user?.uid || "system"
         };
         
         // Use the same collection as the predecessor for the new version
