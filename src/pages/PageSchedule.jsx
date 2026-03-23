@@ -25,7 +25,9 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
   const canDelete = isSuperAdmin || hasPermission("PAYMENT_SCHEDULE_DELETE");
   const canUpdate = isSuperAdmin || hasPermission("PAYMENT_SCHEDULE_UPDATE");
   const getNextScheduleId = () => mkId("S");
-  const paymentStatusOpts = (DIMENSIONS.find(d => d.name === "ScheduleStatus" || d.name === "Schedule Status" || d.name === "Payment Status" || d.name === "PaymentStatus") || {}).items?.filter(i => i) || ["Due", "Paid", "Partial", "Missed", "Cancelled"];
+  const paymentStatusOpts = (DIMENSIONS.find(d => d.name === "ScheduleStatus" || d.name === "Schedule Status" || d.name === "Payment Status" || d.name === "PaymentStatus") || {}).items
+    ?.map(i => String(i || "").trim())
+    ?.filter(i => i !== "") || ["Due", "Paid", "Partial", "Missed", "Cancelled"];
   const [hov, setHov] = useState(null); const [sel, setSel] = useState(new Set()); const [chip, setChip] = useState("All");
   const [showHistory, setShowHistory] = useState(false);
   const [modal, setModal] = useState({ open: false, mode: "add", data: {} });
@@ -977,8 +979,8 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
         {sel.size > 0 && <div style={{ display: "flex", gap: 8, alignItems: "center", background: isDark ? "rgba(255,255,255,0.04)" : "#F9FAFB", padding: "8px 14px", borderRadius: 10, border: `1px solid ${t.surfaceBorder}` }}>
           <span style={{ fontSize: 12, fontWeight: 600, color: t.textSecondary }}>{sel.size} selected</span>
           <select value={bulkStatus} onChange={e => setBulkStatus(e.target.value)} style={{ fontSize: 12, padding: "4px 8px", borderRadius: 7, border: `1px solid ${t.surfaceBorder}`, background: t.searchBg, color: t.searchText, cursor: "pointer" }}>
-            <option value="">Update status...</option>
-            {paymentStatusOpts.filter(s => s !== "Missed" && s !== "Partial").map(s => <option key={s} value={s}>{s}</option>)}
+            <option value="" disabled>Update status...</option>
+            {paymentStatusOpts.filter(s => s !== "Missed" && s !== "Partial" && s !== "").map(s => <option key={s} value={s}>{s}</option>)}
           </select>
           <button onClick={() => handleBulkStatus(bulkStatus)} disabled={!bulkStatus} style={{ fontSize: 12, fontWeight: 600, padding: "5px 12px", borderRadius: 8, background: bulkStatus ? t.accentGrad : (isDark ? "rgba(255,255,255,0.06)" : "#E5E7EB"), color: bulkStatus ? "#fff" : t.textMuted, border: "none", cursor: bulkStatus ? "pointer" : "default" }}>Apply</button>
           <div style={{ width: 1, height: 20, background: t.surfaceBorder }} />

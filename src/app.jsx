@@ -205,8 +205,8 @@ function AppContent() {
       const fundBalance = rawSchedules.reduce((sum, sch) => {
         if (sch.deal_id !== dealId && sch.deal_name !== d.deal_name) return sum;
         const amt = Number(String(sch.signed_payment_amount || 0).replace(/[^0-9.-]/g, "")) || 0;
-        // Matches "INVESTOR_PRINCIPAL_DEPOSIT", "INVESTOR_PAYMENT_DEPOSIT", or user typo "INVESTOR_PAYMENY_DEPOSIT"
-        const typeMatch = (sch.payment_type || "").toUpperCase().includes("INVESTOR") && (sch.payment_type || "").toUpperCase().includes("DEPOSIT");
+        // Matches the standard "INVESTOR_PRINCIPAL_DEPOSIT" type
+        const typeMatch = (sch.payment_type || "").toUpperCase() === "INVESTOR_PRINCIPAL_DEPOSIT";
         const isWithdrawal = (sch.status || "").toLowerCase().includes("withdraw"); // Handles "Withdrawl" and "Withdrawal"
         
         let res = sum;

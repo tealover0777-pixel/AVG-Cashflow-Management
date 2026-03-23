@@ -122,7 +122,7 @@ export default function PageDeals({ t, isDark, DEALS = [], INVESTMENTS = [], SCH
         const fileRef = ref(storage, `deals/${d.id}/asset_images/${Date.now()}_${fObj.file.name}`);
         const snap = await uploadBytes(fileRef, fObj.file);
         const url = await getDownloadURL(snap.ref);
-        
+
         // Save to subcollection (not synced with BQ)
         await setDoc(doc(collection(db, "deals", d.id, "asset_images")), {
           url,
@@ -172,8 +172,8 @@ export default function PageDeals({ t, isDark, DEALS = [], INVESTMENTS = [], SCH
         await deleteDoc(docRef);
         setDelT(null);
       }
-    } catch (err) { 
-      console.error("Delete deal error:", err); 
+    } catch (err) {
+      console.error("Delete deal error:", err);
       alert("Delete deal error: " + err.message);
     }
   };
@@ -182,7 +182,6 @@ export default function PageDeals({ t, isDark, DEALS = [], INVESTMENTS = [], SCH
     if (selectedRows.length === 0) return;
     setIsUploading(true);
     try {
-      const batchId = mkId("DIST");
       const firstRow = selectedRows[0];
       const tenantPath = (firstRow._path || collectionPath).split("/deals")[0];
       if (tenantPath.startsWith("GROUP:")) {
@@ -190,7 +189,7 @@ export default function PageDeals({ t, isDark, DEALS = [], INVESTMENTS = [], SCH
         setIsUploading(false);
         return;
       }
-      
+
       const schedulePathSuffix = "/paymentSchedules";
       const batchPath = `${tenantPath}/distributionBatches`;
 
@@ -204,14 +203,14 @@ export default function PageDeals({ t, isDark, DEALS = [], INVESTMENTS = [], SCH
         const dealId = deal.id;
         const dealDocId = deal.docId;
         const dealName = deal.name;
-        
-        const dealInvestments = INVESTMENTS.filter(inv => 
-          inv.deal_id === dealId || 
-          inv.deal_id === dealDocId || 
+
+        const dealInvestments = INVESTMENTS.filter(inv =>
+          inv.deal_id === dealId ||
+          inv.deal_id === dealDocId ||
           inv.deal === dealName ||
           inv.deal_name === dealName
         );
-        
+
         for (const inv of dealInvestments) {
           const principal = parseFloat(String(inv.amount || 0).replace(/[^0-9.-]/g, ""));
           const rate = parseFloat(String(inv.rate || 0).replace(/[^0-9.-]/g, "")) / 100;
@@ -220,25 +219,25 @@ export default function PageDeals({ t, isDark, DEALS = [], INVESTMENTS = [], SCH
 
           if (!startDate || !matDate || matDate <= startDate) continue;
 
-            // 1. Initial Investment Funding (mapped to INVESTOR_PRINCIPAL_DEPOSIT to match Investments page)
+          // 1. Initial Investment Funding (mapped to INVESTOR_PRINCIPAL_DEPOSIT to match Investments page)
           const sIdFund = mkId("S");
           entries.push({
             schedule_id: sIdFund, version_num: 1, version_id: `${sIdFund}-V1`, payment_id: sIdFund, active_version: true,
             investment_id: inv.id, deal_id: deal.id, party_id: inv.party_id || "", 
-            dueDate: startDate.toISOString().slice(0, 10), type: PT_INV_FUND, principal_amount: principal,
+            due_date: startDate.toISOString().slice(0, 10), payment_type: PT_INV_FUND, principal_amount: principal,
             payment_amount: principal, 
             signed_payment_amount: -Math.abs(principal), direction_from_company: "OUT",
             original_payment_amount: principal, 
             applied_to: "Principal Amount",
-            term_start: startDate.toISOString().slice(0, 10), term_end: startDate.toISOString().slice(0, 10),
-            status: "Due", notes: `Initial Funding [Batch: ${batchId}]`, created_at: serverTimestamp(), batch_id: batchId
+            status: "Due", notes: `Initial Funding [Deal: ${deal.name || deal.id}]`, created_at: serverTimestamp(),
+            is_distribution: true
           });
 
           // 2. Lifecycle periods for Interest and Fees
           const freqValue = getFrequencyValue(inv.freq || "Monthly");
           const fLow = (inv.freq || "").toLowerCase();
           const monthsPerPeriod = 12 / freqValue;
-          
+
           let pStart = normalizeDateAtNoon(new Date(startDate.getFullYear(), startDate.getMonth(), 1));
           let safety = 0;
           let periodNum = 1;
@@ -247,9 +246,9 @@ export default function PageDeals({ t, isDark, DEALS = [], INVESTMENTS = [], SCH
             safety++;
             let pEnd;
             if (fLow.includes("month")) {
-                pEnd = normalizeDateAtNoon(new Date(pStart.getFullYear(), pStart.getMonth() + 1, 0));
+              pEnd = normalizeDateAtNoon(new Date(pStart.getFullYear(), pStart.getMonth() + 1, 0));
             } else {
-                pEnd = normalizeDateAtNoon(new Date(pStart.getFullYear(), pStart.getMonth() + (monthsPerPeriod || 1), 0));
+              pEnd = normalizeDateAtNoon(new Date(pStart.getFullYear(), pStart.getMonth() + (monthsPerPeriod || 1), 0));
             }
 
             if (pEnd > matDate) pEnd = matDate;
@@ -266,10 +265,11 @@ export default function PageDeals({ t, isDark, DEALS = [], INVESTMENTS = [], SCH
               entries.push({
                 schedule_id: sIdInt, version_num: 1, version_id: `${sIdInt}-V1`, payment_id: sIdInt, active_version: true,
                 investment_id: inv.id, deal_id: deal.id, party_id: inv.party_id || "",
-                dueDate: pEnd.toISOString().slice(0, 10), type: PT_INTEREST, principal_amount: principal,
+                due_date: pEnd.toISOString().slice(0, 10), payment_type: PT_INTEREST, principal_amount: principal,
                 payment_amount: roundedInterest, signed_payment_amount: -Math.abs(roundedInterest), direction_from_company: "OUT",
                 original_payment_amount: roundedInterest, term_start: pStart.toISOString().slice(0, 10), term_end: pEnd.toISOString().slice(0, 10),
-                status: "Due", notes: `Interest Period ${periodNum} [Batch: ${batchId}]`, created_at: serverTimestamp(), batch_id: batchId
+                status: "Due", notes: `Interest Period ${periodNum} [Deal: ${deal.name || deal.id}]`, created_at: serverTimestamp(),
+                is_distribution: true
               });
             }
 
@@ -285,12 +285,13 @@ export default function PageDeals({ t, isDark, DEALS = [], INVESTMENTS = [], SCH
               entries.push({
                 schedule_id: sIdFee, version_num: 1, version_id: `${sIdFee}-V1`, payment_id: sIdFee, active_version: true,
                 investment_id: inv.id, deal_id: deal.id, party_id: inv.party_id || "",
-                dueDate: pEnd.toISOString().slice(0, 10), type: PT_FEE, fee_id: fee.id, fee_name: fee.name,
+                due_date: pEnd.toISOString().slice(0, 10), payment_type: PT_FEE, fee_id: fee.id, fee_name: fee.name,
                 payment_amount: roundedFee, 
                 signed_payment_amount: feeDir === "OUT" ? -Math.abs(roundedFee) : Math.abs(roundedFee), 
                 direction_from_company: feeDir,
                 original_payment_amount: roundedFee, term_start: pStart.toISOString().slice(0, 10), term_end: pEnd.toISOString().slice(0, 10),
-                status: "Due", notes: `${fee.name} [Batch: ${batchId}]`, created_at: serverTimestamp(), batch_id: batchId
+                status: "Due", notes: `${fee.name} [Deal: ${deal.name || deal.id}]`, created_at: serverTimestamp(),
+                is_distribution: true
               });
             }
 
@@ -300,12 +301,13 @@ export default function PageDeals({ t, isDark, DEALS = [], INVESTMENTS = [], SCH
               entries.push({
                 schedule_id: sIdRepay, version_num: 1, version_id: `${sIdRepay}-V1`, payment_id: sIdRepay, active_version: true,
                 investment_id: inv.id, deal_id: deal.id, party_id: inv.party_id || "",
-                dueDate: pEnd.toISOString().slice(0, 10), type: PT_INV_REPAYMENT, principal_amount: principal,
+                due_date: pEnd.toISOString().slice(0, 10), payment_type: PT_INV_REPAYMENT, principal_amount: principal,
                 payment_amount: principal, signed_payment_amount: Math.abs(principal), direction_from_company: "IN",
                 original_payment_amount: principal, 
                 applied_to: "Principal Amount",
                 term_start: pEnd.toISOString().slice(0, 10), term_end: pEnd.toISOString().slice(0, 10),
-                status: "Due", notes: `Principal Repayment [Batch: ${batchId}]`, created_at: serverTimestamp(), batch_id: batchId
+                status: "Due", notes: `Principal Repayment [Deal: ${deal.name || deal.id}]`, created_at: serverTimestamp(),
+                is_distribution: true
               });
             }
 
@@ -322,23 +324,12 @@ export default function PageDeals({ t, isDark, DEALS = [], INVESTMENTS = [], SCH
         await Promise.all(chunk.map(e => setDoc(doc(db, schedulePath, e.version_id), e)));
       }
 
-      // Create batch record
-      await addDoc(collection(db, batchPath), {
-        id: batchId,
-        created_at: serverTimestamp(),
-        total_amount: entries.reduce((acc, x) => acc + (x.direction_from_company === "OUT" ? x.payment_amount : 0), 0),
-        recipient_count: entries.length,
-        status: "Draft",
-        notes: distModal.data.notes || "Full distribution life-cycle generation",
-        deal_ids: selectedRows.map(d => d.id)
-      });
-
       setGenResult({
         title: "Success",
         lines: [
             `Distribution schedules generated for ${selectedRows.length} deals.`,
-            `Created ${entries.length} distribution entries in Batch ${batchId}.`,
-            `The schedules have been added to the Distribution Schedule.`
+            `Created ${entries.length} distribution entries.`,
+            `The schedules have been added to the Payment Schedule.`
         ]
       });
       setDistModal({ ...distModal, open: false });
@@ -363,7 +354,7 @@ export default function PageDeals({ t, isDark, DEALS = [], INVESTMENTS = [], SCH
       const availableForRows = gridContainerHeight - 90; // Header + Footer + padding
       const calculatedRows = Math.floor(availableForRows / 40); // 40px estimated row height
 
-      const newPageSize = Math.max(20, calculatedRows); 
+      const newPageSize = Math.max(20, calculatedRows);
       setPageSize(newPageSize);
     };
 
@@ -422,7 +413,7 @@ export default function PageDeals({ t, isDark, DEALS = [], INVESTMENTS = [], SCH
     <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 16, marginBottom: 28 }}>
       {[{ label: "Total", value: DEALS.length, accent: isDark ? "#60A5FA" : "#3B82F6", bg: isDark ? "rgba(96,165,250,0.08)" : "#EFF6FF", border: isDark ? "rgba(96,165,250,0.15)" : "#BFDBFE" }, { label: "Active", value: DEALS.filter(p => p.status !== "Closed" && p.status !== "Liquidated").length, accent: isDark ? "#34D399" : "#059669", bg: isDark ? "rgba(52,211,153,0.08)" : "#ECFDF5", border: isDark ? "rgba(52,211,153,0.15)" : "#A7F3D0" }, { label: "Closed", value: DEALS.filter(p => p.status === "Closed" || p.status === "Liquidated").length, accent: isDark ? "rgba(255,255,255,0.4)" : "#6B7280", bg: isDark ? "rgba(255,255,255,0.05)" : "#F9FAFB", border: isDark ? "rgba(255,255,255,0.1)" : "#E5E7EB" }].map(s => <StatCard key={s.label} {...s} titleFont={t.titleFont} isDark={isDark} />)}
     </div>
-    
+
 
     <div style={{ height: 'calc(100vh - 420px)', width: '100%', minHeight: '500px' }}>
       <TanStackTable
@@ -435,14 +426,14 @@ export default function PageDeals({ t, isDark, DEALS = [], INVESTMENTS = [], SCH
         onSelectionChange={(selected) => setSelectedRows(selected)}
       />
     </div>
-    <Modal 
-      open={modal.open} 
-      onClose={close} 
-      title={modal.mode === "add" ? "New Deal" : "Edit Deal"} 
-      onSave={handleSaveDeal} 
+    <Modal
+      open={modal.open}
+      onClose={close}
+      title={modal.mode === "add" ? "New Deal" : "Edit Deal"}
+      onSave={handleSaveDeal}
       saveLabel={isUploading ? "Saving..." : "Save Deal"}
-      width={520} 
-      t={t} 
+      width={520}
+      t={t}
       isDark={isDark}
       loading={isUploading}
     >
@@ -482,7 +473,7 @@ export default function PageDeals({ t, isDark, DEALS = [], INVESTMENTS = [], SCH
       )}
     </Modal>
     <DelModal target={delT} onClose={() => setDelT(null)} onConfirm={handleDeleteDeal} label="This deal" t={t} isDark={isDark} />
-    
+
     {/* Generate Distribution Modal */}
     <Modal open={distModal.open} onClose={() => setDistModal({ ...distModal, open: false })} title="Generate Distribution Schedule" onSave={handleGenerateDistribution} width={450} t={t} isDark={isDark} saveLabel={isUploading ? "Generating..." : "Create"} loading={isUploading}>
       <div style={{ marginBottom: 16 }}>
@@ -509,7 +500,10 @@ export default function PageDeals({ t, isDark, DEALS = [], INVESTMENTS = [], SCH
         <div style={{ position: "fixed", inset: 0, zIndex: 99999, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.55)", backdropFilter: "blur(6px)" }}>
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 20, background: isDark ? "rgba(30,30,40,0.95)" : "#fff", padding: "40px 52px", borderRadius: 18, boxShadow: "0 8px 40px rgba(0,0,0,0.3)", border: `1px solid ${isDark ? "rgba(255,255,255,0.1)" : "#E5E7EB"}` }}>
             <div style={{ width: 44, height: 44, border: `4px solid ${isDark ? "rgba(255,255,255,0.1)" : "#E5E7EB"}`, borderTopColor: isDark ? "#60A5FA" : "#3B82F6", borderRadius: "50%", animation: "cfm-spin 0.8s linear infinite" }} />
-            <span style={{ fontSize: 15, fontWeight: 600, color: isDark ? "rgba(255,255,255,0.85)" : "#1C1917", letterSpacing: "0.2px" }}>Distribution Generation In Progress...</span>
+            <span style={{ fontSize: 15, fontWeight: 600, color: isDark ? "rgba(255,255,255,0.85)" : "#1C1917", letterSpacing: "0.2px" }}>Distribution Generation In Cancelled
+              Due
+              Paid
+              Waived...</span>
             <span style={{ fontSize: 12, color: isDark ? "rgba(255,255,255,0.4)" : "#9CA3AF" }}>Please wait while lifecycle is being created</span>
           </div>
         </div>

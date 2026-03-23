@@ -133,6 +133,12 @@ export const getDealInvestmentColumns = (permissions, isDark, t, context) => {
       }
     },
     {
+      header: "Status",
+      accessorKey: "status",
+      size: 90,
+      cell: ({ getValue }) => <Bdg status={getValue()} isDark={isDark} />
+    },
+    {
       header: "Capital Amount",
       accessorKey: "amount",
       size: 130,
@@ -153,12 +159,6 @@ export const getDealInvestmentColumns = (permissions, isDark, t, context) => {
       accessorKey: "freq",
       size: 100,
       cell: ({ getValue }) => <span style={{ fontSize: '11px', color: t.textMuted }}>{getValue()}</span>
-    },
-    {
-      header: "Status",
-      accessorKey: "status",
-      size: 100,
-      cell: ({ getValue }) => <Bdg status={getValue()} isDark={isDark} />
     },
     {
       header: "Fees",
