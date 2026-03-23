@@ -123,22 +123,22 @@ export const ActBtns = ({ show, t, onEdit, onDel, onUndo }) => {
     <div style={{ display: "flex", gap: 6, opacity: show ? 1 : 0, transition: "opacity 0.15s ease", pointerEvents: show ? "auto" : "none" }}>
       {onUndo && (
         <Tooltip text="Undo last action" t={t}>
-          <button className="action-btn" onClick={e => { e.stopPropagation(); onUndo(e); }} style={{ width: 30, height: 30, background: "transparent", color: t.accent, display: "flex", alignItems: "center", justifyContent: "center", border: "none", cursor: "pointer" }}>
-            <RotateCcw size={14} />
+          <button className="action-btn" onClick={e => { e.stopPropagation(); onUndo(e); }} style={{ padding: "4px 8px", borderRadius: 6, background: "rgba(251,191,36,0.1)", color: "#FBBF24", border: "none", cursor: "pointer", fontSize: 11, fontWeight: 600 }}>
+            Undo
           </button>
         </Tooltip>
       )}
       {onEdit && (
         <Tooltip text="Edit this record" t={t}>
-          <button className="action-btn" onClick={e => { e.stopPropagation(); onEdit(e); }} style={{ width: 30, height: 30, background: "transparent", color: t.editBtn[1], display: "flex", alignItems: "center", justifyContent: "center", border: "none", cursor: "pointer" }}>
-            <Pencil size={14} />
+          <button className="action-btn" onClick={e => { e.stopPropagation(); onEdit(e); }} style={{ padding: "4px 8px", borderRadius: 6, background: "rgba(96,165,250,0.1)", color: "#60A5FA", border: "none", cursor: "pointer", fontSize: 11, fontWeight: 600 }}>
+            Edit
           </button>
         </Tooltip>
       )}
       {onDel && (
         <Tooltip text="Delete this record" t={t}>
-          <button className="action-btn" onClick={e => { e.stopPropagation(); onDel(e); }} style={{ width: 30, height: 30, background: "transparent", color: t.deleteBtn[1], display: "flex", alignItems: "center", justifyContent: "center", border: "none", cursor: "pointer" }}>
-            <Trash2 size={14} />
+          <button className="action-btn" onClick={e => { e.stopPropagation(); onDel(e); }} style={{ padding: "4px 8px", borderRadius: 6, background: "rgba(248,113,113,0.1)", color: "#F87171", border: "none", cursor: "pointer", fontSize: 11, fontWeight: 600 }}>
+            Del
           </button>
         </Tooltip>
       )}

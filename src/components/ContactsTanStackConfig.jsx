@@ -175,12 +175,12 @@ export const getContactColumns = (permissions, isDark, t, context) => {
                   onClick={(e) => { e.stopPropagation(); callbacks.onInvite(data); }}
                   disabled={invitingId === data.id}
                   style={{
-                    background: "none", border: `1px solid ${t.surfaceBorder}`,
-                    borderRadius: 7, padding: "5px 8px", cursor: invitingId === data.id ? "default" : "pointer",
-                    fontSize: 13, color: t.textMuted, opacity: invitingId === data.id ? 0.5 : 1
+                    background: "rgba(96,165,250,0.1)", border: `none`,
+                    borderRadius: 6, padding: "4px 8px", cursor: invitingId === data.id ? "default" : "pointer",
+                    fontSize: 11, fontWeight: 600, color: t.accent, opacity: invitingId === data.id ? 0.5 : 1
                   }}
                 >
-                  {invitingId === data.id ? "..." : "✉️"}
+                  {invitingId === data.id ? "..." : "Invite"}
                 </button>
               </Tooltip>
             )}

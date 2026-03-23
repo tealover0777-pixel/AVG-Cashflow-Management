@@ -209,8 +209,8 @@ export const getInvestmentColumns = (permissions, isDark, t, context) => {
         const data = row.original;
         return (
           <div style={{ display: 'flex', gap: 6 }}>
-            <button onClick={() => callbacks.onEdit?.(data)} style={{ width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 8, background: 'rgba(96,165,250,0.1)', color: '#60A5FA', border: 'none', cursor: 'pointer' }}><Edit2 size={13}/></button>
-            <button onClick={() => callbacks.onDelete?.(data)} style={{ width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 8, background: 'rgba(248,113,113,0.1)', color: '#F87171', border: 'none', cursor: 'pointer' }}><Trash2 size={13}/></button>
+            <button onClick={() => callbacks.onEdit?.(data)} style={{ padding: '4px 8px', borderRadius: 6, background: 'rgba(96,165,250,0.1)', color: '#60A5FA', border: 'none', cursor: 'pointer', fontSize: 11, fontWeight: 600 }}>Edit</button>
+            <button onClick={() => callbacks.onDelete?.(data)} style={{ padding: '4px 8px', borderRadius: 6, background: 'rgba(248,113,113,0.1)', color: '#F87171', border: 'none', cursor: 'pointer', fontSize: 11, fontWeight: 600 }}>Del</button>
           </div>
         );
       }
