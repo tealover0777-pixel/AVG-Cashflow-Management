@@ -30,11 +30,12 @@ const TanStackTable = React.forwardRef(({
   globalFilter,
   setGlobalFilter,
   getRowId,
+  initialSorting = [],
   // Controlled Selection props
   rowSelection: controlledRowSelection,
   onRowSelectionChange: controlledOnRowSelectionChange,
 }, ref) => {
-  const [sorting, setSorting] = useState([]);
+  const [sorting, setSorting] = useState(initialSorting);
   const [columnFilters, setColumnFilters] = useState([]);
   const [internalRowSelection, setInternalRowSelection] = useState({});
 

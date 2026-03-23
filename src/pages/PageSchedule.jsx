@@ -1010,6 +1010,7 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
         isDark={isDark}
         t={t}
         pageSize={pageSize}
+        initialSorting={[{ id: 'dueDate', desc: false }]}
         rowStyle={(data) => {
           if (data.active_version === false) {
             return { 

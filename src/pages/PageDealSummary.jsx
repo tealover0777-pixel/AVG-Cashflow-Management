@@ -1314,6 +1314,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
                 data={dealSchedules}
                 columns={scheduleColumnDefs}
                 pageSize={100}
+                initialSorting={[{ id: 'dueDate', desc: false }]}
                 t={t}
                 isDark={isDark}
                 rowSelection={rowSelection}
