@@ -389,7 +389,9 @@ function AppContent() {
 
   const FEES_DATA = rawFees.map(d => ({
     id: d.id, docId: d.doc_id || d.id, name: d.fee_name || "", fee_type: d.fee_type || "", method: d.calculation_method || "",
-    rate: d.default_rate || "", applied_to: d.applied_to || "Principal Amount", direction: d.direction || "IN", fee_charge_at: d.fee_charge_at || "", fee_frequency: d.fee_frequency || "",
+    rate: Number(String(d.default_rate).replace(/[^0-9.-]/g, "")) || 0, 
+    signed_rate: Number(d.signed_rate) || 0,
+    applied_to: d.applied_to || "Principal Amount", direction: d.direction || "IN", fee_charge_at: d.fee_charge_at || "", fee_frequency: d.fee_frequency || "",
     description: d.description || "",
   }));
   const ACH_BATCHES = rawACHBatches.map(d => ({

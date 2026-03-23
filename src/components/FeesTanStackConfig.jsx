@@ -36,8 +36,8 @@ export const getFeeColumns = (permissions, isDark, t, onEdit, onDel) => {
         const val = getValue();
         let bg = "rgba(107, 114, 128, 0.1)";
         let text = "#6B7280";
-        if (val === "Fixed") { bg = "rgba(96, 165, 250, 0.1)"; text = "#60A5FA"; }
-        else if (val === "Percentage") { bg = "rgba(139, 92, 246, 0.1)"; text = "#8B5CF6"; }
+        if (val === "Fixed Amount") { bg = "rgba(96, 165, 250, 0.1)"; text = "#60A5FA"; }
+        else if (val === "% of Amount") { bg = "rgba(139, 92, 246, 0.1)"; text = "#8B5CF6"; }
         else if (val === "Hybrid") { bg = "rgba(245, 158, 11, 0.1)"; text = "#F59E0B"; }
         return <Bdg label={val} bg={bg} text={text} t={t} />;
       },
@@ -58,7 +58,7 @@ export const getFeeColumns = (permissions, isDark, t, onEdit, onDel) => {
       size: 100,
       cell: ({ getValue }) => {
         const val = getValue();
-        const isIn = val === "In";
+        const isIn = val === "IN" || val === "In";
         return (
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '12px', fontWeight: 600, color: isIn ? '#10B981' : '#F43F5E' }}>
             <div style={{ width: 6, height: 6, borderRadius: '50%', background: isIn ? '#10B981' : '#F43F5E' }} />
@@ -70,12 +70,29 @@ export const getFeeColumns = (permissions, isDark, t, onEdit, onDel) => {
     {
       accessorKey: 'rate',
       header: 'Rate',
-      size: 130,
+      size: 120,
       cell: ({ getValue, row }) => {
         const val = getValue();
         const method = row.original.method;
-        if (method === "Fixed") return <span style={{ fontFamily: t.mono }}>{fmtCurr(val)}</span>;
-        return <span style={{ fontFamily: t.mono }}>{val}%</span>;
+        const isFixed = method === "Fixed Amount";
+        return <span style={{ fontFamily: t.mono, fontSize: "12.5px" }}>{isFixed ? fmtCurr(val) : `${val}%`}</span>;
+      },
+    },
+    {
+      accessorKey: 'signed_rate',
+      header: 'Signed Rate',
+      size: 130,
+      cell: ({ row }) => {
+        const rateVal = parseFloat(String(row.original.rate || 0).replace(/[^0-9.-]/g, ""));
+        const dir = row.original.direction || "IN";
+        const signed = (dir === "OUT") ? -rateVal : rateVal;
+        const method = row.original.method;
+        const isFixed = method === "Fixed Amount";
+        
+        let color = signed >= 0 ? (isDark ? "#34D399" : "#059669") : (isDark ? "#F87171" : "#DC2626");
+        let formatted = isFixed ? fmtCurr(signed) : `${signed}%`;
+
+        return <span style={{ fontFamily: t.mono, fontWeight: 700, fontSize: "12.5px", color }}>{formatted}</span>;
       },
     },
     {

@@ -54,11 +54,15 @@ export default function PageFees({ t, isDark, FEES_DATA = [], DIMENSIONS = [], c
   const setF = (k, v) => setModal(m => ({ ...m, data: { ...m.data, [k]: v } }));
   const handleSaveFee = async () => {
     const d = modal.data;
+    const rateNum = parseFloat(String(d.rate).replace(/[^0-9.-]/g, "")) || 0;
+    const signedRate = (d.direction || "IN") === "OUT" ? -Math.abs(rateNum) : Math.abs(rateNum);
+
     const payload = {
       fee_name: d.name || "",
       fee_type: d.fee_type || "",
       calculation_method: d.method || "",
-      default_rate: d.rate || "",
+      default_rate: rateNum,
+      signed_rate: signedRate,
       applied_to: d.applied_to || "Principal Amount",
       direction: d.direction || "IN",
       fee_charge_at: d.fee_charge_at || "",
