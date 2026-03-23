@@ -521,7 +521,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
       </div>
 
       {activeTab === "Investments" ? (
-        <div style={{ height: '500px', width: "100%", minHeight: '500px' }}>
+        <div style={{ height: '1200px', width: "100%", minHeight: '1200px' }}>
             <TanStackTable
                 data={dealInvestments}
                 columns={columnDefs}
@@ -568,7 +568,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
           </div>
 
           {distributionView === "table" ? (
-            <div style={{ height: '500px', width: "100%", minHeight: '500px' }}>
+            <div style={{ height: '1200px', width: "100%", minHeight: '1200px' }}>
               <TanStackTable
                 data={dealSchedules}
                 columns={scheduleColumnDefs}
@@ -584,7 +584,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
               borderRadius: 12,
               padding: 24,
               overflow: "auto",
-              maxHeight: "650px",
+              maxHeight: "1300px",
               position: "relative"
             }}>
               <h3 style={{ fontSize: 16, fontWeight: 700, color: t.text, marginBottom: 20 }}>
