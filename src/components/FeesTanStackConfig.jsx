@@ -68,17 +68,6 @@ export const getFeeColumns = (permissions, isDark, t, onEdit, onDel) => {
       },
     },
     {
-      accessorKey: 'rate',
-      header: 'Rate',
-      size: 120,
-      cell: ({ getValue, row }) => {
-        const val = getValue();
-        const method = row.original.method;
-        const isFixed = method === "Fixed Amount";
-        return <span style={{ fontFamily: t.mono, fontSize: "12.5px" }}>{isFixed ? fmtCurr(val) : `${val}%`}</span>;
-      },
-    },
-    {
       accessorKey: 'signed_rate',
       header: 'Signed Rate',
       size: 130,
