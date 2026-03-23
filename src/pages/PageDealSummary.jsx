@@ -210,8 +210,9 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
         await addDoc(collection(db, investmentCollection), { ...payload, investment_id: d.id || "", created_at: serverTimestamp() });
       }
       // Also update the contact's default payment method if it changed
-      if (parObj && parObj.docId && d.payment_method) {
-        await updateDoc(doc(db, "parties", parObj.docId), { payment_method: d.payment_method, updated_at: serverTimestamp() });
+      if (parObj && d.payment_method) {
+        const contactRef = parObj._path ? doc(db, parObj._path) : doc(db, "parties", parObj.docId || parObj.id);
+        await updateDoc(contactRef, { payment_method: d.payment_method, updated_at: serverTimestamp() }).catch(e => console.error("Sync contact error:", e));
       }
       setModal(m => ({ ...m, open: false }));
     } catch (err) { 
