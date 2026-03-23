@@ -1329,7 +1329,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
               </h3>
 
               {pivotData.rows.length > 0 ? (
-                <div style={{ overflow: "auto", maxHeight: "calc(100vh - 350px)", border: `1px solid ${t.surfaceBorder}`, borderRadius: 8, background: isDark ? "#121212" : "#fff" }}>
+                <div style={{ overflow: "auto", maxHeight: "calc(100vh - 500px)", border: `1px solid ${t.surfaceBorder}`, borderRadius: 8, background: isDark ? "#121212" : "#fff" }}>
                   <table style={{
                     width: "max-content",
                     minWidth: "100%",
