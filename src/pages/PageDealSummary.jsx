@@ -60,18 +60,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
     INVESTMENTS.filter(c => c.deal_id === dealId || c.deal === deal.name)
   , [dealId, deal.name, INVESTMENTS]);
 
-  const totalFundBalance = useMemo(() => {
-    let sum = 0;
-    dealInvestments.forEach(inv => {
-      const amt = Number(String(inv.amount || 0).replace(/[^0-9.-]/g, ""));
-      const typeMatch = (inv.type || "").toUpperCase() === "INVESTOR_PRINCIPAL_PAYMENT";
-      const isWithdrawal = (inv.status || "").toLowerCase().includes("withdraw"); // Handles "Withdrawl" and "Withdrawal"
-      
-      if (typeMatch) sum += amt;
-      if (isWithdrawal) sum -= amt;
-    });
-    return fmtCurr(sum);
-  }, [dealInvestments]);
+// Fund balance calculation moved to dealSchedules useMemo
 
   const dealContacts = useMemo(() => {
     const partyIds = new Set(dealInvestments.map(inv => inv.party_id));
@@ -81,6 +70,20 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
   const dealSchedules = useMemo(() =>
     SCHEDULES.filter(s => s.deal_id === dealId)
   , [dealId, SCHEDULES]);
+
+  const totalFundBalance = useMemo(() => {
+    let sum = 0;
+    dealSchedules.forEach(sch => {
+      // Use original numeric amount if available, or parse from signed_payment_amount string
+      const amt = Number(String(sch.signed_payment_amount || 0).replace(/[^0-9.-]/g, "")) || 0;
+      const typeMatch = (sch.type || "").toUpperCase() === "INVESTOR_PRINCIPAL_PAYMENT";
+      const isWithdrawal = (sch.status || "").toLowerCase().includes("withdraw"); // Handles "Withdrawl" and "Withdrawal"
+      
+      if (typeMatch) sum += amt;
+      if (isWithdrawal) sum -= amt;
+    });
+    return fmtCurr(sum);
+  }, [dealSchedules]);
 
   // Pivot data for distribution chart view
   const pivotData = useMemo(() => {

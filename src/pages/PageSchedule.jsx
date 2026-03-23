@@ -25,7 +25,7 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
   const canDelete = isSuperAdmin || hasPermission("PAYMENT_SCHEDULE_DELETE");
   const canUpdate = isSuperAdmin || hasPermission("PAYMENT_SCHEDULE_UPDATE");
   const getNextScheduleId = () => mkId("S");
-  const paymentStatusOpts = (DIMENSIONS.find(d => d.name === "ScheduleStatus" || d.name === "Schedule Status") || {}).items || ["Due", "Paid", "Partial", "Missed", "Cancelled"];
+  const paymentStatusOpts = (DIMENSIONS.find(d => d.name === "ScheduleStatus" || d.name === "Schedule Status" || d.name === "Payment Status" || d.name === "PaymentStatus") || {}).items?.filter(i => i) || ["Due", "Paid", "Partial", "Missed", "Cancelled"];
   const [hov, setHov] = useState(null); const [sel, setSel] = useState(new Set()); const [chip, setChip] = useState("All");
   const [showHistory, setShowHistory] = useState(false);
   const [modal, setModal] = useState({ open: false, mode: "add", data: {} });
