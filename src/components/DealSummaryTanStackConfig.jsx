@@ -80,8 +80,10 @@ export const getDealInvestmentColumns = (permissions, isDark, t, context) => {
       id: "paymentMethod",
       size: 140,
       cell: ({ row }) => {
-        const p = CONTACTS.find(x => x.name === row.original.party || x.id === row.original.party_id);
-        return <span style={{ fontSize: '11.5px', color: t.textSecondary }}>{p?.payment_method || "—"}</span>;
+        const d = row.original;
+        const p = CONTACTS.find(x => x.name === d.party || x.id === d.party_id);
+        const method = d.payment_method || p?.payment_method || "—";
+        return <span style={{ fontSize: '11.5px', color: t.textSecondary }}>{method}</span>;
       }
     },
     {

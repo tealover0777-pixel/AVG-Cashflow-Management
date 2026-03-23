@@ -290,6 +290,7 @@ function AppContent() {
         feeIds: typeof d.fees === "string" && d.fees ? d.fees.split(",").map(s => s.trim()) : [],
         created_at: fmtDate(d.created_at),
         updated_at: fmtDate(d.updated_at),
+        payment_method: d.payment_method || "",
       };
     });
 

@@ -16,6 +16,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
   const canUpdate = isSuperAdmin || hasPermission("INVESTMENT_UPDATE");
   const canDelete = isSuperAdmin || hasPermission("INVESTMENT_DELETE") || hasPermission("INVESTMENTS_DELETE");
   const canCreate = isSuperAdmin || hasPermission("INVESTMENT_CREATE");
+  const paymentMethods = (DIMENSIONS.find(d => d.name === "Payment Method" || d.name === "PaymentMethod") || {}).items || [];
 
   const deal = useMemo(() => DEALS.find(d => d.id === dealId) || {}, [dealId, DEALS]);
   const [activeTab, setActiveTab] = useState("Investments");
@@ -172,7 +173,8 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
         start_date: deal.startDate || "",
         maturity_date: deal.endDate || "",
         term_months: "",
-        calculator: ""
+        calculator: "",
+        payment_method: (CONTACTS.find(p => p.name === "")?.payment_method || (paymentMethods[0] || ""))
       }
     });
   };
@@ -197,6 +199,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
       start_date: d.start_date || null,
       maturity_date: d.maturity_date || null,
       status: d.status || "",
+      payment_method: d.payment_method || "",
       updated_at: serverTimestamp(),
     };
     try {
@@ -205,6 +208,10 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
         await updateDoc(docRef, payload);
       } else {
         await addDoc(collection(db, investmentCollection), { ...payload, investment_id: d.id || "", created_at: serverTimestamp() });
+      }
+      // Also update the contact's default payment method if it changed
+      if (parObj && parObj.docId && d.payment_method) {
+        await updateDoc(doc(db, "parties", parObj.docId), { payment_method: d.payment_method, updated_at: serverTimestamp() });
       }
       setModal(m => ({ ...m, open: false }));
     } catch (err) { 
@@ -998,6 +1005,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
           <FF label="Payment Freq" t={t}><FSel value={modal.data.freq} onChange={e => setModal(m => ({ ...m, data: { ...m.data, freq: e.target.value } }))} options={["Monthly", "Quarterly", "Semi-Annual", "Annual", "At Maturity"]} t={t} /></FF>
           <FF label="Status" t={t}><FSel value={modal.data.status} onChange={e => setModal(m => ({ ...m, data: { ...m.data, status: e.target.value } }))} options={["Open", "Active", "Closed"]} t={t} /></FF>
         </div>
+        <FF label="Payment Method" t={t}><FSel value={modal.data.payment_method} onChange={e => setModal(m => ({ ...m, data: { ...m.data, payment_method: e.target.value } }))} options={paymentMethods} t={t} /></FF>
       </Modal>
 
       {/* Asset Modal */}
