@@ -326,7 +326,7 @@ function AppContent() {
         batch_id: d.batch_id || "",
         type: d.payment_type || "", 
         payment: fmtCurr(d.payment_amount != null ? d.payment_amount : (Math.abs(d.signed_payment_amount || 0) || (isPrincipal ? d.principal_amount : 0))),
-        status: d.status || "", direction: dir, fee_id: d.fee_id || "",
+        status: d.status || "", direction: dir, fee_id: d.fee_id || "", fee_name: d.fee_name || "",
         party_id: partyId,
         party: partyMatch?.party_name || d.party_name || d.party_id || "",
         period_number: d.period_number != null ? String(d.period_number) : "",
