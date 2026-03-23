@@ -60,6 +60,19 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
     INVESTMENTS.filter(c => c.deal_id === dealId || c.deal === deal.name)
   , [dealId, deal.name, INVESTMENTS]);
 
+  const totalFundBalance = useMemo(() => {
+    let sum = 0;
+    dealInvestments.forEach(inv => {
+      const amt = Number(String(inv.amount || 0).replace(/[^0-9.-]/g, ""));
+      const typeMatch = (inv.type || "").toUpperCase() === "INVESTOR_PRINCIPAL_PAYMENT";
+      const isWithdrawal = (inv.status || "").toLowerCase().includes("withdraw"); // Handles "Withdrawl" and "Withdrawal"
+      
+      if (typeMatch) sum += amt;
+      if (isWithdrawal) sum -= amt;
+    });
+    return fmtCurr(sum);
+  }, [dealInvestments]);
+
   const dealContacts = useMemo(() => {
     const partyIds = new Set(dealInvestments.map(inv => inv.party_id));
     return CONTACTS.filter(c => partyIds.has(c.id) || partyIds.has(c.docId));
@@ -901,7 +914,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
          </div>
          <div style={{ background: isDark ? "rgba(255,255,255,0.03)" : "#fff", border: `1px solid ${t.surfaceBorder}`, borderRadius: 16, padding: 24 }}>
             <div style={{ fontSize: 14, color: t.textMuted, marginBottom: 8 }}>Fund Balance</div>
-            <div style={{ fontSize: 24, fontWeight: 800, color: isDark ? "#fff" : "#1C1917" }}>{deal.fundBalance || "$0"}</div>
+            <div style={{ fontSize: 24, fontWeight: 800, color: isDark ? "#fff" : "#1C1917" }}>{totalFundBalance || "$0"}</div>
          </div>
          <div style={{ background: isDark ? "rgba(255,255,255,0.03)" : "#fff", border: `1px solid ${t.surfaceBorder}`, borderRadius: 16, padding: 24 }}>
             <div style={{ fontSize: 14, color: t.textMuted, marginBottom: 8 }}>Fundraising Target</div>
