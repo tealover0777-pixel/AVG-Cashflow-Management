@@ -130,6 +130,12 @@ export const getContactColumns = (permissions, isDark, t, context) => {
       )
     },
     {
+      header: "Payment Method",
+      accessorKey: "payment_method",
+      size: 130,
+      cell: ({ getValue }) => <span style={{ fontSize: '11px', color: t.textSecondary }}>{getValue() || "—"}</span>
+    },
+    {
       header: "Phone",
       accessorKey: "phone",
       size: 120,

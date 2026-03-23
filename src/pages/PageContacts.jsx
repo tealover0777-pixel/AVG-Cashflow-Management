@@ -17,6 +17,7 @@ export default function PageContacts({ t, isDark, CONTACTS = [], INVESTMENTS = [
   const roleOpts = (DIMENSIONS.find(d => d.name === "ContactRole") || {}).items || ["Investor", "Borrower"];
   const partyTypeOpts = (DIMENSIONS.find(d => d.name === "ContactType") || {}).items || ["Individual", "Company", "Trust", "Partnership"];
   const investorTypeOpts = (DIMENSIONS.find(d => d.name === "InvestorType") || {}).items || ["Fixed", "Equity", "Both"];
+  const paymentMethods = (DIMENSIONS.find(d => d.name === "Payment Method" || d.name === "PaymentMethod") || {}).items || [];
   const [chip, setChip] = useState("All");
   const [modal, setModal] = useState({ open: false, mode: "add", data: {} });
   const [delT, setDelT] = useState(null);
@@ -25,7 +26,7 @@ export default function PageContacts({ t, isDark, CONTACTS = [], INVESTMENTS = [
     const maxNum = Math.max(...CONTACTS.map(p => { const m = String(p.id).match(/^M(\d+)$/); return m ? Number(m[1]) : 0; }));
     return "M" + (maxNum + 1);
   })();
-  const openAdd = () => setModal({ open: true, mode: "add", data: { id: nextContactId, first_name: "", last_name: "", type: "Individual", role: "Investor", email: "" } });
+  const openAdd = () => setModal({ open: true, mode: "add", data: { id: nextContactId, first_name: "", last_name: "", type: "Individual", role: "Investor", email: "", payment_method: paymentMethods[0] || "" } });
   const openEdit = r => {
     let fn = r.first_name || "";
     let ln = r.last_name || "";
@@ -56,6 +57,7 @@ export default function PageContacts({ t, isDark, CONTACTS = [], INVESTMENTS = [
       address: d.address || "",
       tax_id: d.tax_id || "",
       bank_information: d.bank_information || "",
+      payment_method: d.payment_method || "",
       updated_at: serverTimestamp(),
     };
     try {
@@ -239,7 +241,10 @@ export default function PageContacts({ t, isDark, CONTACTS = [], INVESTMENTS = [
         <FF label="Phone" t={t}><FIn value={modal.data.phone || ""} onChange={e => setF("phone", e.target.value)} placeholder="e.g. 212-411-4566" t={t} /></FF>
       </div>
       <FF label="Address" t={t}><FIn value={modal.data.address || ""} onChange={e => setF("address", e.target.value)} placeholder="Full address" t={t} /></FF>
-      <FF label="Bank Information" t={t}><FIn value={modal.data.bank_information || ""} onChange={e => setF("bank_information", e.target.value)} placeholder="e.g. Citibank" t={t} /></FF>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+        <FF label="Bank Information" t={t}><FIn value={modal.data.bank_information || ""} onChange={e => setF("bank_information", e.target.value)} placeholder="e.g. Citibank" t={t} /></FF>
+        <FF label="Payment Method" t={t}><FSel value={modal.data.payment_method} onChange={e => setF("payment_method", e.target.value)} options={paymentMethods} t={t} /></FF>
+      </div>
     </Modal>
     <DelModal target={delT} onClose={() => setDelT(null)} onConfirm={handleDeleteContact} label="This contact" t={t} isDark={isDark} />
     <Modal open={!!inviteConfirm} onClose={() => setInviteConfirm(null)} title="Invite as Member" onSave={executeInvite} saveLabel="Invite" t={t} isDark={isDark}>

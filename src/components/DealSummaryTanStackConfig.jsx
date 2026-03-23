@@ -76,6 +76,15 @@ export const getDealInvestmentColumns = (permissions, isDark, t, context) => {
       }
     },
     {
+      header: "Payment Method",
+      id: "paymentMethod",
+      size: 140,
+      cell: ({ row }) => {
+        const p = CONTACTS.find(x => x.name === row.original.party || x.id === row.original.party_id);
+        return <span style={{ fontSize: '11.5px', color: t.textSecondary }}>{p?.payment_method || "—"}</span>;
+      }
+    },
+    {
       header: "Start Date",
       accessorKey: "start_date",
       size: 100,

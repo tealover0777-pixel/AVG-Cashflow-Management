@@ -233,7 +233,6 @@ function AppContent() {
         fundBalance: fmtCurr(fundBalance),
         fundBalanceRaw: fundBalance,
         type: d.deal_type || "",
-        paymentMethod: d.payment_method || "",
         feeIds: typeof d.fees === "string" && d.fees ? d.fees.split(",").map(s => s.trim()) : [],
       };
     });
@@ -249,6 +248,7 @@ function AppContent() {
       first_name: d.first_name || "", last_name: d.last_name || "",
       email: d.email || "", phone: d.phone || "", investor_type: d.investor_type || "",
       address: d.address || "", bank_information: d.bank_information || "", tax_id: d.tax_id || "",
+      payment_method: d.payment_method || "",
       created_at: fmtDate(d.created_at), updated_at: fmtDate(d.updated_at),
     }));
  
