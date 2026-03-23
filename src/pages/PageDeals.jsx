@@ -441,131 +441,48 @@ export default function PageDeals({ t, isDark, DEALS = [], INVESTMENTS = [], SCH
     <Modal 
       open={modal.open} 
       onClose={close} 
-      title={modal.step === 1 ? (modal.mode === "add" ? "New Deal" : "Edit Deal") : "Add assets"} 
-      onSave={modal.step === 1 ? () => setModal(m => ({ ...m, step: 2 })) : handleSaveDeal} 
-      saveLabel={modal.step === 1 ? "Next" : (isUploading ? "Saving..." : "Save")}
-      secondaryAction={modal.step === 2 ? () => setModal(m => ({ ...m, step: 1 })) : null}
-      secondaryLabel="Back"
-      width={580} 
+      title={modal.mode === "add" ? "New Deal" : "Edit Deal"} 
+      onSave={handleSaveDeal} 
+      saveLabel={isUploading ? "Saving..." : "Save Deal"}
+      width={520} 
       t={t} 
       isDark={isDark}
       loading={isUploading}
     >
-      {/* Stepper */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 32, position: "relative" }}>
-        <div style={{ position: "absolute", top: "14px", left: "25%", right: "25%", height: 2, background: isDark ? "rgba(255,255,255,0.06)" : "#F3F4F6", zIndex: 0 }} />
-        <div style={{ position: "absolute", top: "14px", left: "25%", width: modal.step === 2 ? "50%" : "0%", height: 2, background: t.accent, transition: "width 0.3s ease", zIndex: 1 }} />
-        
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8, zIndex: 2, width: 80 }}>
-          <div style={{ width: 28, height: 28, borderRadius: "50%", background: modal.step > 1 ? "#34D399" : t.accent, color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", border: `2px solid ${modal.step > 1 ? "#34D399" : t.accent}` }}>
-            {modal.step > 1 ? <Check size={14} /> : <span style={{ fontSize: 13, fontWeight: 700 }}>1</span>}
-          </div>
-          <span style={{ fontSize: 11, fontWeight: 700, color: modal.step >= 1 ? (isDark ? "#fff" : "#1C1917") : t.textMuted }}>Deal</span>
-        </div>
-
-        <div style={{ width: "35%" }} />
-
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8, zIndex: 2, width: 80 }}>
-          <div style={{ width: 28, height: 28, borderRadius: "50%", background: modal.step === 2 ? t.accent : (isDark ? "#1e293b" : "#fff"), color: modal.step === 2 ? "#fff" : t.textMuted, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 700, border: `2px solid ${modal.step === 2 ? t.accent : (isDark ? "rgba(255,255,255,0.1)" : "#E5E7EB")}`, transition: "all 0.3s ease" }}>
-            2
-          </div>
-          <span style={{ fontSize: 11, fontWeight: 700, color: modal.step === 2 ? (isDark ? "#fff" : "#1C1917") : t.textMuted }}>Assets</span>
-        </div>
+      <FF label="Deal ID" t={t}>
+        <div style={{ fontFamily: t.mono, fontSize: 13, color: t.idText, background: isDark ? "rgba(255,255,255,0.04)" : "#F5F4F1", border: `1px solid ${t.surfaceBorder}`, borderRadius: 9, padding: "10px 13px", letterSpacing: "0.5px" }}>{modal.data.id}</div>
+      </FF>
+      <FF label="Deal Name" t={t}><FIn value={modal.data.name} onChange={e => setF("name", e.target.value)} placeholder="e.g. Palm Springs Villas" t={t} /></FF>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+        <FF label="Deal Stage" t={t}><FSel value={modal.data.status} onChange={e => setF("status", e.target.value)} options={dealStatuses} t={t} /></FF>
+        <FF label="Deal Type" t={t}><FSel value={modal.data.type} onChange={e => setF("type", e.target.value)} options={dealTypes} t={t} /></FF>
       </div>
-
-      {modal.step === 1 ? (
-        <>
-          <FF label="Deal ID" t={t}>
-            <div style={{ fontFamily: t.mono, fontSize: 13, color: t.idText, background: isDark ? "rgba(255,255,255,0.04)" : "#F5F4F1", border: `1px solid ${t.surfaceBorder}`, borderRadius: 9, padding: "10px 13px", letterSpacing: "0.5px" }}>{modal.data.id}</div>
-          </FF>
-          <FF label="Deal Name" t={t}><FIn value={modal.data.name} onChange={e => setF("name", e.target.value)} placeholder="e.g. Palm Springs Villas" t={t} /></FF>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
-            <FF label="Deal Stage" t={t}><FSel value={modal.data.status} onChange={e => setF("status", e.target.value)} options={dealStatuses} t={t} /></FF>
-            <FF label="Deal Type" t={t}><FSel value={modal.data.type} onChange={e => setF("type", e.target.value)} options={dealTypes} t={t} /></FF>
+      <FF label="Payment Method" t={t}><FSel value={modal.data.paymentMethod} onChange={e => setF("paymentMethod", e.target.value)} options={paymentMethods} t={t} /></FF>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+        <FF label="Start Date" t={t}><FIn value={modal.data.startDate || ""} onChange={e => setF("startDate", e.target.value)} t={t} type="date" /></FF>
+        <FF label="End Date" t={t}><FIn value={modal.data.endDate || ""} onChange={e => setF("endDate", e.target.value)} t={t} type="date" /></FF>
+      </div>
+      <FF label="Funding Target" t={t}><FIn value={modal.data.valuation || ""} onChange={e => setF("valuation", e.target.value)} placeholder="e.g. 2,500,000" t={t} /></FF>
+      <FF label="Description" t={t}><FIn value={modal.data.description} onChange={e => setF("description", e.target.value)} placeholder="Brief description..." t={t} /></FF>
+      {FEES_DATA.filter(f => f.name !== "Late Fee").length > 0 && (
+        <FF label="Applicable Fees" t={t}>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+            {FEES_DATA.filter(f => f.name !== "Late Fee").map(f => {
+              const selected = (modal.data.feeIds || []).includes(f.id);
+              const toggleFee = () => {
+                const cur = modal.data.feeIds || [];
+                setF("feeIds", selected ? cur.filter(x => x !== f.id) : [...cur, f.id]);
+              };
+              return (
+                <div key={f.id} onClick={toggleFee} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12.5, fontWeight: selected ? 600 : 400, padding: "5px 12px", borderRadius: 20, cursor: "pointer", transition: "all 0.15s ease", background: selected ? (isDark ? "rgba(52,211,153,0.15)" : "#ECFDF5") : t.chipBg, color: selected ? (isDark ? "#34D399" : "#059669") : t.textSecondary, border: `1px solid ${selected ? (isDark ? "rgba(52,211,153,0.4)" : "#A7F3D0") : t.chipBorder}` }}>
+                  {selected ? <Check size={12} strokeWidth={3} /> : <Plus size={12} />}
+                  {f.name}
+                  <span style={{ fontFamily: t.mono, fontSize: 10.5, opacity: 0.7 }}>({f.rate})</span>
+                </div>
+              );
+            })}
           </div>
-          <FF label="Payment Method" t={t}><FSel value={modal.data.paymentMethod} onChange={e => setF("paymentMethod", e.target.value)} options={paymentMethods} t={t} /></FF>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
-            <FF label="Start Date" t={t}><FIn value={modal.data.startDate || ""} onChange={e => setF("startDate", e.target.value)} t={t} type="date" /></FF>
-            <FF label="End Date" t={t}><FIn value={modal.data.endDate || ""} onChange={e => setF("endDate", e.target.value)} t={t} type="date" /></FF>
-          </div>
-          <FF label="Fundraising Target" t={t}><FIn value={modal.data.valuation || ""} onChange={e => setF("valuation", e.target.value)} placeholder="e.g. 2,500,000" t={t} /></FF>
-          <FF label="Description" t={t}><FIn value={modal.data.description} onChange={e => setF("description", e.target.value)} placeholder="Brief description..." t={t} /></FF>
-          {FEES_DATA.filter(f => f.name !== "Late Fee").length > 0 && (
-            <FF label="Applicable Fees" t={t}>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                {FEES_DATA.filter(f => f.name !== "Late Fee").map(f => {
-                  const selected = (modal.data.feeIds || []).includes(f.id);
-                  const toggleFee = () => {
-                    const cur = modal.data.feeIds || [];
-                    setF("feeIds", selected ? cur.filter(x => x !== f.id) : [...cur, f.id]);
-                  };
-                  return (
-                    <div key={f.id} onClick={toggleFee} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12.5, fontWeight: selected ? 600 : 400, padding: "5px 12px", borderRadius: 20, cursor: "pointer", transition: "all 0.15s ease", background: selected ? (isDark ? "rgba(52,211,153,0.15)" : "#ECFDF5") : t.chipBg, color: selected ? (isDark ? "#34D399" : "#059669") : t.textSecondary, border: `1px solid ${selected ? (isDark ? "rgba(52,211,153,0.4)" : "#A7F3D0") : t.chipBorder}` }}>
-                      {selected ? <Check size={12} strokeWidth={3} /> : <Plus size={12} />}
-                      {f.name}
-                      <span style={{ fontFamily: t.mono, fontSize: 10.5, opacity: 0.7 }}>({f.rate})</span>
-                    </div>
-                  );
-                })}
-              </div>
-            </FF>
-          )}
-        </>
-      ) : (
-        <>
-          <FF label="Name of property" t={t}><FIn value={modal.data.propName} onChange={e => setF("propName", e.target.value)} placeholder="Enter a name" t={t} /></FF>
-          
-          <div style={{ marginBottom: 20 }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: isDark ? "#fff" : "#1C1917", marginBottom: 12 }}>Address</div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-              <FF label="Country" t={t}><FSel value={modal.data.country} onChange={e => setF("country", e.target.value)} options={["United States of America", "Canada", "United Kingdom", "Australia"]} t={t} /></FF>
-              <FF label="Street address line 1" t={t}><FIn value={modal.data.addr1} onChange={e => setF("addr1", e.target.value)} placeholder="Type to search" t={t} /></FF>
-              <FF label="Street address line 2" t={t}><FIn value={modal.data.addr2} onChange={e => setF("addr2", e.target.value)} t={t} /></FF>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
-                <FF label="City" t={t}><FIn value={modal.data.city} onChange={e => setF("city", e.target.value)} t={t} /></FF>
-                <FF label="State" t={t}><FIn value={modal.data.state} onChange={e => setF("state", e.target.value)} t={t} /></FF>
-              </div>
-              <FF label="Zip code" t={t}><FIn value={modal.data.zip} onChange={e => setF("zip", e.target.value)} t={t} /></FF>
-            </div>
-          </div>
-
-
-          <FF label="Upload images" t={t}>
-            <div 
-              onDragOver={e => e.preventDefault()}
-              onDrop={e => {
-                e.preventDefault();
-                const files = Array.from(e.dataTransfer.files);
-                const added = files.map(file => ({ file, preview: URL.createObjectURL(file), id: Math.random().toString(36).substr(2, 9) }));
-                setNewFiles(prev => [...prev, ...added]);
-              }}
-              onClick={() => document.getElementById("file-up").click()}
-              style={{ border: `2px dashed ${isDark ? "rgba(255,255,255,0.1)" : "#E5E7EB"}`, borderRadius: 14, padding: "40px 20px", textAlign: "center", cursor: "pointer", background: isDark ? "rgba(255,255,255,0.01)" : "#F9FAFB", marginBottom: (newFiles.length > 0 || assetImages.length > 0) ? 20 : 0 }}>
-              <input id="file-up" type="file" multiple hidden onChange={handleFileSelect} accept="image/*" />
-              <div style={{ fontSize: 40, marginBottom: 16, opacity: 0.5 }}>🖼️</div>
-              <div style={{ fontSize: 14, fontWeight: 700, color: isDark ? "#fff" : "#1C1917", marginBottom: 4 }}>Drag and drop photos</div>
-              <div style={{ fontSize: 13, color: t.textMuted }}>or <span style={{ color: t.accent, fontWeight: 600 }}>browse</span> to choose files</div>
-            </div>
-
-            {(newFiles.length > 0 || assetImages.length > 0) && (
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(80px, 1fr))", gap: 12, marginTop: 8 }}>
-                { assetImages.map(img => (
-                  <div key={img.id} style={{ position: "relative", aspectRatio: "1", borderRadius: 10, overflow: "hidden", border: `1px solid ${t.surfaceBorder}` }}>
-                    <img src={img.url} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                    <button onClick={(e) => { e.stopPropagation(); deleteExistingImage(img.id); }} style={{ position: "absolute", top: 4, right: 4, width: 20, height: 20, borderRadius: "50%", background: "rgba(0,0,0,0.5)", border: "none", color: "#fff", fontSize: 12, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>×</button>
-                  </div>
-                ))}
-                { newFiles.map(f => (
-                  <div key={f.id} style={{ position: "relative", aspectRatio: "1", borderRadius: 10, overflow: "hidden", border: `1px solid ${t.accent}`, opacity: 0.8 }}>
-                    <img src={f.preview} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                    <button onClick={(e) => { e.stopPropagation(); removeNewFile(f.id); }} style={{ position: "absolute", top: 4, right: 4, width: 20, height: 20, borderRadius: "50%", background: t.accent, border: "none", color: "#fff", fontSize: 12, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>×</button>
-                    <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, background: t.accent, color: "#fff", fontSize: 8, textAlign: "center", padding: "2px 0", fontWeight: 700 }}>NEW</div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </FF>
-        </>
+        </FF>
       )}
     </Modal>
     <DelModal target={delT} onClose={() => setDelT(null)} onConfirm={handleDeleteDeal} label="This deal" t={t} isDark={isDark} />
