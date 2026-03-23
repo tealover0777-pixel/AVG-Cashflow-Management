@@ -993,9 +993,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
                 </button>
               )}
 
-              {activeTab !== "Investments" && !(activeTab === "Distributions" && distributionView === "table") && (
-                <button style={{ background: isDark ? "rgba(255,255,255,0.05)" : "#fff", border: `1px solid ${t.surfaceBorder}`, padding: "8px 16px", borderRadius: 8, fontSize: 13, fontWeight: 600, color: t.textSecondary }}>Manage deal</button>
-              )}
+
              {canCreate && activeTab === "Investments" && <button onClick={openAdd} style={{ background: t.accent, color: "#fff", border: "none", padding: "8px 18px", borderRadius: 9, fontSize: 13.5, fontWeight: 700, boxShadow: `0 4px 12px ${t.accentShadow || "none"}` }}>+ Add investment</button>}
              {canCreate && activeTab === "Assets" && <button onClick={openAddAsset} style={{ background: t.accent, color: "#fff", border: "none", padding: "8px 16px", borderRadius: 8, fontSize: 13, fontWeight: 600 }}>+ Add asset</button>}
           </div>
@@ -1112,7 +1110,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
               borderRadius: 12,
               padding: 24,
               overflow: "auto",
-              maxHeight: "1300px",
+              maxHeight: "calc(100vh - 280px)",
               position: "relative"
             }}>
               <h3 style={{ fontSize: 16, fontWeight: 700, color: t.text, marginBottom: 20 }}>
@@ -1120,7 +1118,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
               </h3>
 
               {pivotData.rows.length > 0 ? (
-                <div style={{ overflow: "auto", maxHeight: "800px", border: `1px solid ${t.surfaceBorder}`, borderRadius: 8, background: isDark ? "#121212" : "#fff" }}>
+                <div style={{ overflow: "auto", maxHeight: "calc(100vh - 350px)", border: `1px solid ${t.surfaceBorder}`, borderRadius: 8, background: isDark ? "#121212" : "#fff" }}>
                   <table style={{
                     width: "max-content",
                     minWidth: "100%",
@@ -1156,7 +1154,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
                             onChange={(e) => setPivotFilters({...pivotFilters, investor: e.target.value})}
                             style={{ width: "100%", fontSize: 10, padding: "4px 6px", borderRadius: 4, background: isDark ? "#1a1a1a" : "#fff", color: t.text, border: `1px solid ${t.surfaceBorder}` }}
                           />
-                          <div onMouseDown={(e) => handleResize(0, e)} style={{ position: "absolute", right: 0, top: 0, bottom: 0, width: 6, cursor: "col-resize", background: "rgba(0,0,0,0.1)", zIndex: 60 }} />
+                          <div onMouseDown={(e) => handleResize(0, e)} style={{ position: "absolute", right: 0, top: 0, bottom: 0, width: 2, cursor: "col-resize", background: "transparent", zIndex: 60 }} />
                         </th>
                         <th style={{
                           padding: "10px 12px",
@@ -1182,7 +1180,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
                             onChange={(e) => setPivotFilters({...pivotFilters, type: e.target.value})}
                             style={{ width: "100%", fontSize: 10, padding: "4px 6px", borderRadius: 4, background: isDark ? "#1a1a1a" : "#fff", color: t.text, border: `1px solid ${t.surfaceBorder}` }}
                           />
-                          <div onMouseDown={(e) => handleResize(1, e)} style={{ position: "absolute", right: 0, top: 0, bottom: 0, width: 6, cursor: "col-resize", background: "rgba(0,0,0,0.1)", zIndex: 60 }} />
+                          <div onMouseDown={(e) => handleResize(1, e)} style={{ position: "absolute", right: 0, top: 0, bottom: 0, width: 2, cursor: "col-resize", background: "transparent", zIndex: 60 }} />
                         </th>
                         <th style={{
                           padding: "10px 12px",
@@ -1208,7 +1206,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
                             onChange={(e) => setPivotFilters({...pivotFilters, startDate: e.target.value})}
                             style={{ width: "100%", fontSize: 10, padding: "4px 6px", borderRadius: 4, background: isDark ? "#1a1a1a" : "#fff", color: t.text, border: `1px solid ${t.surfaceBorder}` }}
                           />
-                          <div onMouseDown={(e) => handleResize(2, e)} style={{ position: "absolute", right: 0, top: 0, bottom: 0, width: 6, cursor: "col-resize", background: "rgba(0,0,0,0.1)", zIndex: 60 }} />
+                          <div onMouseDown={(e) => handleResize(2, e)} style={{ position: "absolute", right: 0, top: 0, bottom: 0, width: 2, cursor: "col-resize", background: "transparent", zIndex: 60 }} />
                         </th>
                         <th style={{
                           padding: "10px 12px",
@@ -1234,7 +1232,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
                             onChange={(e) => setPivotFilters({...pivotFilters, endDate: e.target.value})}
                             style={{ width: "100%", fontSize: 10, padding: "4px 6px", borderRadius: 4, background: isDark ? "#1a1a1a" : "#fff", color: t.text, border: `1px solid ${t.surfaceBorder}` }}
                           />
-                          <div onMouseDown={(e) => handleResize(3, e)} style={{ position: "absolute", right: 0, top: 0, bottom: 0, width: 6, cursor: "col-resize", background: "rgba(0,0,0,0.1)", zIndex: 60 }} />
+                          <div onMouseDown={(e) => handleResize(3, e)} style={{ position: "absolute", right: 0, top: 0, bottom: 0, width: 2, cursor: "col-resize", background: "transparent", zIndex: 60 }} />
                         </th>
                         <th style={{
                           padding: "10px 12px",
@@ -1260,7 +1258,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
                             onChange={(e) => setPivotFilters({...pivotFilters, freq: e.target.value})}
                             style={{ width: "100%", fontSize: 10, padding: "4px 6px", borderRadius: 4, background: isDark ? "#1a1a1a" : "#fff", color: t.text, border: `1px solid ${t.surfaceBorder}` }}
                           />
-                          <div onMouseDown={(e) => handleResize(4, e)} style={{ position: "absolute", right: 0, top: 0, bottom: 0, width: 6, cursor: "col-resize", background: "rgba(0,0,0,0.1)", zIndex: 60 }} />
+                          <div onMouseDown={(e) => handleResize(4, e)} style={{ position: "absolute", right: 0, top: 0, bottom: 0, width: 2, cursor: "col-resize", background: "transparent", zIndex: 60 }} />
                         </th>
                         <th style={{
                           padding: "10px 12px",
@@ -1286,7 +1284,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
                             onChange={(e) => setPivotFilters({...pivotFilters, rate: e.target.value})}
                             style={{ width: "100%", fontSize: 10, padding: "4px 6px", borderRadius: 4, background: isDark ? "#1a1a1a" : "#fff", color: t.text, border: `1px solid ${t.surfaceBorder}` }}
                           />
-                          <div onMouseDown={(e) => handleResize(5, e)} style={{ position: "absolute", right: 0, top: 0, bottom: 0, width: 6, cursor: "col-resize", background: "rgba(0,0,0,0.1)", zIndex: 60 }} />
+                          <div onMouseDown={(e) => handleResize(5, e)} style={{ position: "absolute", right: 0, top: 0, bottom: 0, width: 2, cursor: "col-resize", background: "transparent", zIndex: 60 }} />
                         </th>
                         <th style={{
                           padding: "10px 12px",
@@ -1312,7 +1310,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
                             onChange={(e) => setPivotFilters({...pivotFilters, paymentMethod: e.target.value})}
                             style={{ width: "100%", fontSize: 10, padding: "4px 6px", borderRadius: 4, background: isDark ? "#1a1a1a" : "#fff", color: t.text, border: `1px solid ${t.surfaceBorder}` }}
                           />
-                          <div onMouseDown={(e) => handleResize(6, e)} style={{ position: "absolute", right: 0, top: 0, bottom: 0, width: 6, cursor: "col-resize", background: "rgba(0,0,0,0.1)", zIndex: 60 }} />
+                          <div onMouseDown={(e) => handleResize(6, e)} style={{ position: "absolute", right: 0, top: 0, bottom: 0, width: 2, cursor: "col-resize", background: "transparent", zIndex: 60 }} />
                         </th>
                         {pivotData.dates.map((date, idx) => (
                           <th key={idx} style={{
@@ -1469,7 +1467,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
                               minWidth: pivotColWidths[6],
                               maxWidth: pivotColWidths[6],
                               borderBottom: `1px solid ${t.surfaceBorder}`,
-                              borderRight: `2px solid ${t.surfaceBorder}`,
+                              borderRight: `1px solid ${t.surfaceBorder}`,
                               boxShadow: `2px 0 0 ${t.surfaceBorder}22`
                             }}>
                               {row.paymentMethod}
