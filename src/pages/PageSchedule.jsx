@@ -606,7 +606,7 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
               previous_version_id: d.version_id || docRefId,
               created_at: serverTimestamp(),
               updated_at: serverTimestamp(),
-              updated_by: user?.uid || "system"
+              updated_by: user?.displayName || user?.email || user?.uid || "system"
             });
             await updateDoc(ref, { 
               active_version: false, 
@@ -690,7 +690,7 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
               previous_version_id: d.version_id || docRefId,
               created_at: serverTimestamp(),
               updated_at: serverTimestamp(),
-              updated_by: user?.uid || "system"
+              updated_by: user?.displayName || user?.email || user?.uid || "system"
             });
             await updateDoc(ref, { 
               active_version: false, 
