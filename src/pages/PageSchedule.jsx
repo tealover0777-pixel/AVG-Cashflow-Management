@@ -374,10 +374,13 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
 
           const ref = s._path ? doc(db, s._path) : doc(db, collectionPath, s.docId);
           console.log("[Undo] Current doc ref created");
+          console.log("[Undo] Checks:", { isVersioned, previous_version_id: s.previous_version_id, isReplacement, hasSnapshot });
 
           if (isVersioned && s.previous_version_id) {
+            console.log("[Undo] Entering versioned undo block for previous_version_id:", s.previous_version_id);
             // 1. Find the predecessor
             const prev = SCHEDULES.find(x => x.docId === s.previous_version_id || x.version_id === s.previous_version_id);
+            console.log("[Undo] Previous version search result:", prev ? { docId: prev.docId, version_num: prev.version_num, version_id: prev.version_id } : "NOT FOUND");
             if (!prev) {
               alert(`Undo failed: Could not find the previous version record in the cache. Please refresh.`);
               return;
