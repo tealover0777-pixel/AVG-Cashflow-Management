@@ -164,7 +164,7 @@ export default function PageRoles({ t, isDark, collectionPath = "", DIMENSIONS =
                     <span>This role has access to <strong>all tenants</strong> (no tenant assignment needed)</span>
                 </label>
             </FF>
-            <FF label="Permissions" t={t}><FMultiSel value={modal.data.selectedPerms || []} onChange={v => setF("selectedPerms", v)} options={permDim} t={t} style={{ maxHeight: 600 }} /></FF>
+            <FF label="Permissions" t={t}><FMultiSel value={modal.data.selectedPerms || []} onChange={v => setF("selectedPerms", v)} options={[...permDim].sort((a, b) => a.localeCompare(b))} t={t} style={{ maxHeight: 600 }} /></FF>
         </Modal>
 
         <DelModal open={!!delT} onClose={() => setDelT(null)} onDel={handleDeleteRole} title="Delete Role?" t={t}>
