@@ -17,7 +17,7 @@ export const getDealColumns = (permissions, isDark, t, context) => {
           onClick={() => callbacks.onSelectDeal?.(row.original)}
           style={{ 
             fontSize: '11.5px', fontWeight: 600, 
-            color: isDark ? "#fff" : "#1C1917",
+            color: isDark ? "#60A5FA" : "#4F46E5",
             cursor: 'pointer',
             overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'
           }}
