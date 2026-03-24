@@ -290,8 +290,8 @@ export const FSel = ({ value, onChange, options, t, placeholder, disabled }) => 
   </select>
 );
 
-export const FMultiSel = ({ value = [], onChange, options, t }) => (
-  <div style={{ display: "flex", flexDirection: "column", gap: 6, maxHeight: 180, overflowY: "auto", background: t.searchBg, border: `1px solid ${t.searchBorder}`, borderRadius: 9, padding: "10px 12px" }}>
+export const FMultiSel = ({ value = [], onChange, options, t, style = {} }) => (
+  <div style={{ display: "flex", flexDirection: "column", gap: 6, maxHeight: 300, overflowY: "auto", background: t.searchBg, border: `1px solid ${t.searchBorder}`, borderRadius: 9, padding: "10px 12px", ...style }}>
     {options.map(o => (
       <label key={o} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12.5, color: t.searchText, cursor: "pointer", fontFamily: t.mono }}>
         <input
