@@ -22,18 +22,34 @@ export const getRoleColumns = (permissions, isDark, t, onEdit, onDel) => {
     {
       accessorKey: 'Permissions',
       header: 'PERMISSIONS',
-      size: 400,
-      cell: ({ getValue }) => (
-        <div style={{ 
-          fontSize: 12, 
-          color: t.textMuted, 
-          whiteSpace: 'nowrap', 
-          overflow: 'hidden', 
-          textOverflow: 'ellipsis' 
-        }} title={getValue()}>
-          {getValue() || "—"}
-        </div>
-      ),
+      size: 450,
+      cell: ({ getValue }) => {
+        const val = getValue();
+        if (!val) return <span style={{ color: t.textMuted }}>—</span>;
+        const perms = typeof val === 'string' ? val.split(',').map(s => s.trim()).filter(Boolean) : (Array.isArray(val) ? val : []);
+        
+        return (
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, padding: '4px 0' }}>
+            {perms.map((p, i) => (
+              <span 
+                key={i} 
+                style={{ 
+                  fontSize: '10.5px', 
+                  fontWeight: 600, 
+                  padding: '2px 10px', 
+                  borderRadius: '20px', 
+                  background: t.tagBg, 
+                  color: t.tagColor, 
+                  border: `1px solid ${t.tagBorder}`,
+                  whiteSpace: 'nowrap'
+                }}
+              >
+                {p}
+              </span>
+            ))}
+          </div>
+        );
+      },
       flex: 1,
     },
     {
