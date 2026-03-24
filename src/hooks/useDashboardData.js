@@ -184,7 +184,11 @@ export function useDashboardData({ DEALS = [], INVESTMENTS = [], CONTACTS = [], 
                 diversification: pieData
             },
             recentActivity: allFilteredSchedules
-                .sort((a, b) => (a.dueDate || '').localeCompare(b.dueDate || '')),
+                .sort((a, b) => {
+                    const da = a.dueDate ? new Date(a.dueDate).getTime() : 0;
+                    const db = b.dueDate ? new Date(b.dueDate).getTime() : 0;
+                    return da - db;
+                }),
             investments: filteredInvestments,
             isMember,
             myContact

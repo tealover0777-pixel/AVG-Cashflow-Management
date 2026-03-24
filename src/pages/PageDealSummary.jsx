@@ -1051,18 +1051,57 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
         });
       },
       onUndo: async (s) => {
+        const isVersioned = Number(s.version_num || 1) > 1;
+        const prevId = s.previous_version_id;
+
         setConfirmAction({
-          title: "Undo Action",
-          message: `Are you sure you want to revert last action for ${s.schedule_id || s.payment_id}? This will restore the previous version.`,
+          title: isVersioned ? "Revert to Previous Version" : "Undo Action",
+          message: isVersioned 
+            ? `This will delete current (V${s.version_num}) and reactivate the previous version. Are you sure?`
+            : `Are you sure you want to revert last action for ${s.schedule_id || s.payment_id}?`,
           onConfirm: async () => {
              try {
-                // If versioned, we delete the newer one and let the old one become active_version = true. 
-                // But the app uses a specific logic in PageSchedule. handleUndo is more complex.
-                // For simplicity, let's just do a basic undo: delete current and find previous by previous_version_id
-                const refPath = s._path || `${scheduleCollection}/${s.docId || s.id}`;
-                await deleteDoc(doc(db, refPath));
                 setConfirmAction(null);
-             } catch (e) { console.error("Undo error:", e); }
+                const refPath = s._path || `${scheduleCollection}/${s.docId || s.id}`;
+                const ref = doc(db, refPath);
+
+                if (isVersioned && prevId) {
+                   // 1. Find the predecessor in the global SCHEDULES array
+                   const prev = (SCHEDULES || []).find(x => x.docId === prevId || x.version_id === prevId);
+                   if (prev) {
+                      const prevRef = prev._path ? doc(db, prev._path) : doc(db, scheduleCollection, prev.docId);
+                      // Reactivate predecessor
+                      const restorePayload = {
+                        active_version: true,
+                        updated_at: serverTimestamp(),
+                        replaced_at: null,
+                        replaced_by: null,
+                        linked_schedule_id: ""
+                      };
+                      // If current version carries a snapshot, use it
+                      if (s._undo_snapshot) {
+                         Object.assign(restorePayload, s._undo_snapshot);
+                      } else {
+                         restorePayload.status = (prev.status === "REPLACED") ? "Due" : prev.status;
+                      }
+                      await updateDoc(prevRef, restorePayload);
+                   }
+                   // 2. Delete current
+                   await deleteDoc(ref);
+                   alert(`Succeeded! Reverted ${s.schedule_id} to previous version.`);
+                } else if (s._undo_snapshot) {
+                   // Snapshot revert for non-versioned
+                   await updateDoc(ref, { ...s._undo_snapshot, _undo_snapshot: null, updated_at: serverTimestamp() });
+                   alert(`Succeeded! Restored ${s.schedule_id} to previous state.`);
+                } else {
+                   // Basic delete fallback
+                   await deleteDoc(ref);
+                   alert(`Succeeded! Entry ${s.schedule_id} removed.`);
+                }
+             } catch (e) { 
+                console.error("Undo error:", e); 
+                alert(`Undo failed: ${e.message}`);
+             }
           }
         });
       }
@@ -2455,7 +2494,11 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
           const sPId = String(s.party_id || "").trim();
           const isMatched = sPId === dpId || (dpDocId && sPId === dpDocId);
           return isMatched || partyInvestments.some(c => c.id === s.investment);
-        }).sort((a, b) => (a.dueDate || '').localeCompare(b.dueDate || ''));
+        }).sort((a, b) => {
+          const da = a.dueDate ? new Date(a.dueDate).getTime() : 0;
+          const db = b.dueDate ? new Date(b.dueDate).getTime() : 0;
+          return da - db;
+        });
         const totalValue = partyInvestments.reduce((sum, c) => sum + Number(String(c.amount || 0).replace(/[^0-9.-]/g, '')), 0);
         return (
           <div style={{ position: "fixed", inset: 0, zIndex: 1100, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center" }}>

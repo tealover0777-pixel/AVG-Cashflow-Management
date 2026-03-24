@@ -68,6 +68,7 @@ export const getDistributionColumns = (isDark, t, CONTACTS, DEALS, INVESTMENTS =
     header: 'DUE DATE',
     size: 110,
     cell: ({ getValue }) => <span style={{ fontFamily: t.mono, fontSize: '11px' }}>{getValue()}</span>,
+    sortingFn: 'datetime'
   },
   {
     accessorKey: 'type',

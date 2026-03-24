@@ -58,7 +58,11 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
       if (child) { visited.add(child.schedule_id); chain.push(child); lastId = child.schedule_id; }
       else break;
     }
-    return chain.sort((a, b) => (a.dueDate || "").localeCompare(b.dueDate || ""));
+    return chain.sort((a, b) => {
+      const da = a.dueDate ? new Date(a.dueDate).getTime() : 0;
+      const db = b.dueDate ? new Date(b.dueDate).getTime() : 0;
+      return da - db;
+    });
   };
   const hasLink = (s) => s.linked || SCHEDULES.some(x => x.linked === s.schedule_id);
   const [sort, setSort] = useState({ key: "dueDate", direction: "asc" });
@@ -1543,7 +1547,11 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
         const sPId = String(s.party_id || "").trim();
         const isMatched = sPId === dpId || (dpDocId && sPId === dpDocId);
         return isMatched || partyInvestments.some(c => c.id === s.investment);
-      }).sort((a, b) => (a.dueDate || "").localeCompare(b.dueDate || ""));
+      }).sort((a, b) => {
+        const da = a.dueDate ? new Date(a.dueDate).getTime() : 0;
+        const db = b.dueDate ? new Date(b.dueDate).getTime() : 0;
+        return da - db;
+      });
       const totalValue = partyInvestments.reduce((sum, c) => sum + Number(String(c.amount || 0).replace(/[^0-9.-]/g, "")), 0);
       return (
         <div style={{ position: "fixed", inset: 0, zIndex: 1100, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center" }}>
