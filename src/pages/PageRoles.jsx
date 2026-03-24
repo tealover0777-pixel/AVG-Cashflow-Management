@@ -16,8 +16,12 @@ export default function PageRoles({ t, isDark, collectionPath = "", DIMENSIONS =
     const { data: rawRoles = [], loading, error } = useFirestoreCollection(collectionPath);
     const [modal, setModal] = useState({ open: false, mode: "add", data: {} });
     const [delT, setDelT] = useState(null);
+    const [showPermsModal, setShowPermsModal] = useState(false);
+    const [newPerm, setNewPerm] = useState("");
+    const [savingPerms, setSavingPerms] = useState(false);
 
-    const permDim = DIMENSIONS.find(d => d.name === "Permissions")?.items || [];
+    const permDimObj = DIMENSIONS.find(d => d.name === "Permissions") || { items: [], doc_id: "Permissions" };
+    const permDim = permDimObj.items || [];
 
     const nextRoleId = (() => {
         if (rawRoles.length === 0) return "R10001";
@@ -62,6 +66,29 @@ export default function PageRoles({ t, isDark, collectionPath = "", DIMENSIONS =
         catch (err) { console.error("Delete role error:", err); }
         setDelT(null);
     };
+    
+    const handleAddPerm = async () => {
+        const p = newPerm.trim().toUpperCase();
+        if (!p) return;
+        const current = [...permDim];
+        if (current.includes(p)) return;
+        setSavingPerms(true);
+        try {
+            await setDoc(doc(db, "dimensions", permDimObj.doc_id), { name: "Permissions", items: [...current, p], category: "Permissions" }, { merge: true });
+            setNewPerm("");
+        } catch (err) { console.error("Add perm error:", err); }
+        finally { setSavingPerms(false); }
+    };
+
+    const handleRemovePerm = async (p) => {
+        if (!confirm(`Are you sure you want to remove the permission "${p}"? This will NOT remove it from roles that already have it, but it will no longer be available for selection.`)) return;
+        const current = permDim.filter(x => x !== p);
+        setSavingPerms(true);
+        try {
+            await setDoc(doc(db, "dimensions", permDimObj.doc_id), { name: "Permissions", items: current, category: "Permissions" }, { merge: true });
+        } catch (err) { console.error("Remove perm error:", err); }
+        finally { setSavingPerms(false); }
+    };
 
     const permissions = { canUpdate, canDelete };
     const columnDefs = useMemo(() => {
@@ -95,7 +122,10 @@ export default function PageRoles({ t, isDark, collectionPath = "", DIMENSIONS =
                 <h1 style={{ fontFamily: t.titleFont, fontWeight: t.titleWeight, fontSize: t.titleSize, color: isDark ? "#fff" : "#1C1917", letterSpacing: t.titleTracking, lineHeight: 1, marginBottom: 6 }}>Role Types</h1>
                 <p style={{ fontSize: 13.5, color: t.textMuted }}>Define custom roles and map them to application permissions</p>
             </div>
-            {canCreate && <Tooltip text="Create a new role type" t={t}><button className="primary-btn" onClick={openAdd} style={{ background: t.accentGrad, color: "#fff", padding: "11px 22px", borderRadius: 11, fontSize: 13.5, fontWeight: 600, boxShadow: `0 4px 16px ${t.accentShadow}` }}>+ Add Role</button></Tooltip>}
+            <div style={{ display: "flex", gap: 12 }}>
+                {canUpdate && <button onClick={() => setShowPermsModal(true)} style={{ background: isDark ? "rgba(255,255,255,0.05)" : "#fff", color: t.text, border: `1px solid ${t.border}`, padding: "10px 18px", borderRadius: 10, fontSize: 13.5, fontWeight: 600, cursor: "pointer" }}>Manage Permissions</button>}
+                {canCreate && <Tooltip text="Create a new role type" t={t}><button className="primary-btn" onClick={openAdd} style={{ background: t.accentGrad, color: "#fff", padding: "11px 22px", borderRadius: 11, fontSize: 13.5, fontWeight: 600, boxShadow: `0 4px 16px ${t.accentShadow}` }}>+ Add Role</button></Tooltip>}
+            </div>
         </div>
 
         <div style={{ height: 'calc(100vh - 350px)', width: "100%", minHeight: '500px' }}>
@@ -127,5 +157,30 @@ export default function PageRoles({ t, isDark, collectionPath = "", DIMENSIONS =
                 Are you sure? This will remove the role <strong>{delT?.role_name || delT?.name}</strong>. This might affect users assigned to this role.
             </p>
         </DelModal>
+
+        <Modal open={showPermsModal} onClose={() => setShowPermsModal(false)} title="Manage Available Permissions" onSave={() => setShowPermsModal(false)} saveLabel="Done" width={540} t={t} isDark={isDark}>
+            <p style={{ fontSize: 13, color: t.textMuted, marginBottom: 16, lineHeight: 1.6 }}>
+                These permissions are used to control access across the application. Adding a new key here makes it available to assign to any Role Type.
+            </p>
+            
+            <div style={{ background: isDark ? "rgba(255,255,255,0.03)" : "#F9F8F6", padding: 16, borderRadius: 12, marginBottom: 20 }}>
+                <div style={{ display: "flex", gap: 10 }}>
+                    <FIn value={newPerm} onChange={e => setNewPerm(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleAddPerm()} placeholder="e.g. REPORT_VIEW" t={t} />
+                    <button onClick={handleAddPerm} disabled={savingPerms || !newPerm.trim()} style={{ background: t.accentGrad, color: "#fff", border: "none", borderRadius: 10, padding: "0 20px", fontSize: 13.5, fontWeight: 600, cursor: (savingPerms || !newPerm.trim()) ? "default" : "pointer", opacity: (savingPerms || !newPerm.trim()) ? 0.5 : 1 }}>
+                        {savingPerms ? "..." : "Add"}
+                    </button>
+                </div>
+            </div>
+
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, maxHeight: 400, overflowY: "auto", paddingRight: 4 }}>
+                {[...permDim].sort((a,b)=>a.localeCompare(b)).map(p => (
+                    <div key={p} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: isDark ? "rgba(255,255,255,0.04)" : "#fff", border: `1px solid ${t.surfaceBorder}`, padding: "10px 14px", borderRadius: 10 }}>
+                        <span style={{ fontSize: 12.5, fontWeight: 600, color: isDark ? t.text : t.textSecondary, fontFamily: t.mono }}>{p}</span>
+                        <button onClick={() => handleRemovePerm(p)} style={{ background: "none", border: "none", color: "#F87171", cursor: "pointer", fontSize: 16, padding: "0 4px" }}>×</button>
+                    </div>
+                ))}
+            </div>
+            {permDim.length === 0 && <div style={{ textAlign: "center", padding: 40, color: t.textMuted, fontSize: 13.5 }}>No permissions defined.</div>}
+        </Modal>
     </>);
 }

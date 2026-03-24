@@ -445,7 +445,7 @@ function AppContent() {
   const DIMENSIONS = rawDimensions.map(d => {
     const style = DIM_STYLES[d.category || d.name] || DEFAULT_DIM_STYLE;
     const items = d.options || d.items || [];
-    return { name: d.category || d.name || d.id, items, ...style };
+    return { name: d.category || d.name || d.id, items, ...style, doc_id: d.id || d.doc_id };
   });
 
   const nav = getNav(isSuperAdmin, isTenantAdmin, hasPermission, isR10010);
