@@ -400,12 +400,21 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
 
           await updateDoc(prevRef, restorePayload);
 
-          if (s.linked_schedule_id) {
-            const childReplacement = SCHEDULES.find(x => x.schedule_id === s.linked_schedule_id);
+          // Cleanup: delete any child replacement created by the undone version
+          // Check both the current version and the predecessor for the link
+          const childId = s.linked_schedule_id || prev.linked_schedule_id;
+          if (childId) {
+            const childReplacement = SCHEDULES.find(x => x.schedule_id === childId);
             if (childReplacement) {
               const cRef = childReplacement._path ? doc(db, childReplacement._path) : doc(db, collectionPath, childReplacement.docId);
               await deleteDoc(cRef);
             }
+          }
+          // Robust cleanup: find any other schedules that link to this one as their parent/source
+          const orphanChildren = SCHEDULES.filter(x => x.linked === s.schedule_id);
+          for (const child of orphanChildren) {
+             const cRef = child._path ? doc(db, child._path) : doc(db, collectionPath, child.docId);
+             await deleteDoc(cRef);
           }
 
           await deleteDoc(ref);
@@ -602,7 +611,7 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
             previousVersionId = docRefId;
           }
 
-          await addDoc(ref.parent, {
+          const newVerRef = await addDoc(ref.parent, {
             ...payload,
             version_num: newVersionNum,
             version_id: `${payload.schedule_id}-V${newVersionNum}`,
@@ -640,7 +649,7 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
           setModal({
             open: true,
             mode: "add_late",
-            originalDocId: d.docId,
+            originalDocId: newVerRef.id,
             data: { ...initialData, ...updates }
           });
           if (modal.mode === "edit" || modal.mode === "add_late" || modal.mode === "add_partial") {
@@ -690,7 +699,7 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
             previousVersionId = docRefId;
           }
 
-          await addDoc(ref.parent, {
+          const newVerRef = await addDoc(ref.parent, {
             ...payload,
             version_num: newVersionNum,
             version_id: `${payload.schedule_id}-V${newVersionNum}`,
@@ -729,7 +738,7 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
           setModal({
             open: true,
             mode: "add_partial",
-            originalDocId: d.docId,
+            originalDocId: newVerRef.id,
             data: { ...initialDataPartial, ...updatesPartial }
           });
         } catch (err) { console.error("Update partial error:", err); }
