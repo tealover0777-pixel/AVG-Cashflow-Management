@@ -18,6 +18,7 @@ export default function PageRoles({ t, isDark, collectionPath = "", DIMENSIONS =
     const [delT, setDelT] = useState(null);
     const [showPermsModal, setShowPermsModal] = useState(false);
     const [newPerm, setNewPerm] = useState("");
+    const [permToggles, setPermToggles] = useState({ VIEW: true, UPDATE: true, CREATE: true, DELETE: true });
     const [savingPerms, setSavingPerms] = useState(false);
 
     const permDimObj = DIMENSIONS.find(d => d.name === "Permissions") || { items: [], doc_id: "Permissions" };
@@ -68,13 +69,27 @@ export default function PageRoles({ t, isDark, collectionPath = "", DIMENSIONS =
     };
     
     const handleAddPerm = async () => {
-        const p = newPerm.trim().toUpperCase();
-        if (!p) return;
+        const base = newPerm.trim().toUpperCase();
+        if (!base) return;
+        
+        const toAdd = Object.keys(permToggles)
+            .filter(k => permToggles[k])
+            .map(k => `${base}_${k}`);
+        
+        if (toAdd.length === 0) {
+            // If no toggles, just add the base if it's not empty
+            toAdd.push(base);
+        }
+
         const current = [...permDim];
-        if (current.includes(p)) return;
+        const newItems = [...current];
+        toAdd.forEach(p => {
+            if (!newItems.includes(p)) newItems.push(p);
+        });
+
         setSavingPerms(true);
         try {
-            await setDoc(doc(db, "dimensions", permDimObj.doc_id), { name: "Permissions", items: [...current, p], category: "Permissions" }, { merge: true });
+            await setDoc(doc(db, "dimensions", permDimObj.doc_id), { name: "Permissions", items: newItems, category: "Permissions" }, { merge: true });
             setNewPerm("");
         } catch (err) { console.error("Add perm error:", err); }
         finally { setSavingPerms(false); }
@@ -164,12 +179,22 @@ export default function PageRoles({ t, isDark, collectionPath = "", DIMENSIONS =
             </p>
             
             <div style={{ background: isDark ? "rgba(255,255,255,0.03)" : "#F9F8F6", padding: 16, borderRadius: 12, marginBottom: 20 }}>
-                <div style={{ display: "flex", gap: 10 }}>
-                    <FIn value={newPerm} onChange={e => setNewPerm(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleAddPerm()} placeholder="e.g. REPORT_VIEW" t={t} />
+                <div style={{ display: "flex", gap: 10, marginBottom: newPerm.trim() ? 12 : 0 }}>
+                    <FIn value={newPerm} onChange={e => setNewPerm(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleAddPerm()} placeholder="e.g. REPORT (Suffixes will be added)" t={t} />
                     <button onClick={handleAddPerm} disabled={savingPerms || !newPerm.trim()} style={{ background: t.accentGrad, color: "#fff", border: "none", borderRadius: 10, padding: "0 20px", fontSize: 13.5, fontWeight: 600, cursor: (savingPerms || !newPerm.trim()) ? "default" : "pointer", opacity: (savingPerms || !newPerm.trim()) ? 0.5 : 1 }}>
                         {savingPerms ? "..." : "Add"}
                     </button>
                 </div>
+                {newPerm.trim() && (
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 12, padding: "4px 2px" }}>
+                        {Object.keys(permToggles).map(k => (
+                            <label key={k} style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer", fontSize: 12, fontWeight: 600, color: permToggles[k] ? t.accent : t.textMuted }}>
+                                <input type="checkbox" checked={permToggles[k]} onChange={e => setPermToggles(prev => ({ ...prev, [k]: e.target.checked }))} style={{ width: 15, height: 15, accentColor: t.accent }} />
+                                <span>{newPerm.trim().toUpperCase()}_{k}</span>
+                            </label>
+                        ))}
+                    </div>
+                )}
             </div>
 
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, maxHeight: 400, overflowY: "auto", paddingRight: 4 }}>
