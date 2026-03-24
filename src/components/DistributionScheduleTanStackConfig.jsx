@@ -78,6 +78,10 @@ export const getDistributionColumns = (isDark, t, CONTACTS, DEALS, INVESTMENTS =
     header: 'START DATE',
     size: 110,
     cell: ({ getValue, row }) => {
+      const type = row.original.type || row.original.payment_type || "";
+      if (type.toLowerCase().replace(/_/g, " ") === "investor principal payment") {
+        return <span style={{ fontFamily: t.mono, fontSize: '11px' }}>{row.original.dueDate || row.original.due_date || "—"}</span>;
+      }
       const inv = (INVESTMENTS || []).find(x => x.id === row.original.investment_id || x.id === row.original.investment);
       const val = getValue();
       const start = inv?.start_date;

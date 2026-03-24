@@ -215,9 +215,16 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
       let termStart = schedule.term_start || "—";
       if (invStart && termStart !== "—" && termStart < invStart) termStart = invStart;
 
+      // Special rule: Investor Principal Payment should have Start Date same as Due Date
+      let finalTermStart = termStart;
+      const typeStr = (paymentType || "").toString().toLowerCase().replace(/_/g, " ");
+      if (typeStr === "investor principal payment") {
+        finalTermStart = dueDate;
+      }
+
       dataMap[cellKey].records.push({
         ...schedule,
-        startDate: termStart,
+        startDate: finalTermStart,
         rate: rowMeta.rate,
         freq: rowMeta.freq
       });
