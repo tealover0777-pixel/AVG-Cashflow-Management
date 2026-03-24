@@ -83,8 +83,6 @@ const NAV_ITEMS = [
     expandable: true,
     children: [
       { label: "Deals", icon: "LayoutGrid" },
-      { label: "Contacts", icon: "Users" },
-      { label: "Investments", icon: "Coins" },
     ]
   },
   {
@@ -107,6 +105,8 @@ const NAV_ITEMS = [
       { label: "AI Admin", icon: "Bot" },
       { label: "Dimensions", icon: "Box" },
       { label: "Reports", icon: "BarChart3" },
+      { label: "Contacts", icon: "Users" },
+      { label: "Investments", icon: "Coins" },
       { label: "Payment Schedule", icon: "CalendarDays" },
       { label: "Payments", icon: "CreditCard" },
     ]
