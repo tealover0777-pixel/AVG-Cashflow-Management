@@ -159,7 +159,14 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
     dealSchedules.forEach(schedule => {
       const investor = CONTACTS.find(c => c.id === schedule.party_id);
       const investorName = investor ? investor.name : schedule.party_id || "Unknown";
-      const dueDate = schedule.dueDate || schedule.due_date || "No Date";
+      
+      const inv = INVESTMENTS.find(iv => iv.id === (schedule.investment_id || schedule.investment));
+      const invStart = inv?.start_date || "";
+      const invEnd = inv?.maturity_date || "";
+
+      let rawDueDate = schedule.dueDate || schedule.due_date || "No Date";
+      if (invEnd && rawDueDate !== "No Date" && rawDueDate > invEnd) rawDueDate = invEnd;
+      const dueDate = rawDueDate;
       let paymentType = schedule.type || schedule.payment_type || "Unknown Type";
       const hasFeeRef = schedule.fee_id || schedule.feeId || schedule.fee_name || schedule.feeName;
       if (hasFeeRef) {
@@ -192,7 +199,6 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
       dateSet.add(dueDate);
 
       if (!rowMetadata[rowKey]) {
-        const inv = INVESTMENTS.find(iv => iv.id === (schedule.investment_id || schedule.investment));
         rowMetadata[rowKey] = {
           startDate: inv?.start_date || "—",
           endDate: inv?.maturity_date || "—",
@@ -206,9 +212,12 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
       const cellKey = `${rowKey}|||${dueDate}`;
       if (!dataMap[cellKey]) dataMap[cellKey] = { amount: 0, records: [] };
       dataMap[cellKey].amount += amount;
+      let termStart = schedule.term_start || "—";
+      if (invStart && termStart !== "—" && termStart < invStart) termStart = invStart;
+
       dataMap[cellKey].records.push({
         ...schedule,
-        startDate: schedule.term_start || "—",
+        startDate: termStart,
         rate: rowMeta.rate,
         freq: rowMeta.freq
       });
@@ -1539,7 +1548,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
                           borderBottom: `2px solid ${t.surfaceBorder}`,
                           borderRight: `1px solid ${t.surfaceBorder}`,
                         }}>
-                          <div style={{ marginBottom: 8 }}>End Date</div>
+                          <div style={{ marginBottom: 8 }}>Payment Date</div>
                           <input 
                             type="text" 
                             placeholder="Filter..." 

@@ -77,14 +77,26 @@ export const getDistributionColumns = (isDark, t, CONTACTS, DEALS, INVESTMENTS =
     accessorKey: 'term_start',
     header: 'START DATE',
     size: 110,
-    cell: ({ getValue }) => <span style={{ fontFamily: t.mono, fontSize: '11px' }}>{getValue() || <span style={{ color: t.textMuted }}>—</span>}</span>,
+    cell: ({ getValue, row }) => {
+      const inv = (INVESTMENTS || []).find(x => x.id === row.original.investment_id || x.id === row.original.investment);
+      const val = getValue();
+      const start = inv?.start_date;
+      const displayVal = (start && val && val < start) ? start : (val || "—");
+      return <span style={{ fontFamily: t.mono, fontSize: '11px' }}>{displayVal}</span>;
+    },
     sortingFn: 'datetime'
   },
   {
     accessorKey: 'dueDate',
-    header: 'DUE DATE',
+    header: 'Payment Date',
     size: 110,
-    cell: ({ getValue }) => <span style={{ fontFamily: t.mono, fontSize: '11px' }}>{getValue()}</span>,
+    cell: ({ getValue, row }) => {
+      const inv = (INVESTMENTS || []).find(x => x.id === row.original.investment_id || x.id === row.original.investment);
+      const val = getValue();
+      const end = inv?.maturity_date;
+      const displayVal = (end && val && val > end) ? end : (val || "—");
+      return <span style={{ fontFamily: t.mono, fontSize: '11px' }}>{displayVal}</span>;
+    },
     sortingFn: 'datetime'
   },
   {
