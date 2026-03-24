@@ -135,7 +135,7 @@ export const getScheduleColumns = (permissions, isDark, t, context) => {
       )
     },
     {
-      header: "Contact",
+      header: "Contact ID",
       accessorKey: "party_id",
       size: 90,
       cell: ({ getValue, row }) => (
@@ -143,7 +143,7 @@ export const getScheduleColumns = (permissions, isDark, t, context) => {
           onClick={() => callbacks.onContactClick?.(row.original.party_id)}
           style={{ fontFamily: t.mono, fontSize: '11px', color: isDark ? "#60A5FA" : "#4F46E5", fontWeight: 600, cursor: 'pointer' }}
         >
-          {row.original.party || getValue()}
+          {getValue()}
         </span>
       )
     },
@@ -156,7 +156,7 @@ export const getScheduleColumns = (permissions, isDark, t, context) => {
           onClick={() => callbacks.onDealClick?.(getValue())}
           style={{ fontFamily: t.mono, fontSize: '11px', color: isDark ? "#60A5FA" : "#4F46E5", fontWeight: 600, cursor: 'pointer' }}
         >
-          {row.original.deal || getValue() || <span style={{ color: t.textMuted }}>—</span>}
+          {getValue() || <span style={{ color: t.textMuted }}>—</span>}
         </span>
       )
     },
