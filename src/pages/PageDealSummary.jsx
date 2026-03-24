@@ -292,7 +292,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
   ], [isDark, FEES_DATA, t]);
 
   const filteredPivotRows = useMemo(() => {
-    return pivotData.rows.filter(row => {
+    const filtered = pivotData.rows.filter(row => {
       const matchInvestor = !pivotFilters.investor || row.investor?.toLowerCase().includes(pivotFilters.investor.toLowerCase());
       const matchType = !pivotFilters.type || row.type?.replace(/_/g, ' ').toLowerCase().includes(pivotFilters.type.replace(/_/g, ' ').toLowerCase());
       const matchStart = !pivotFilters.startDate || row.startDate?.toLowerCase().includes(pivotFilters.startDate.toLowerCase());
@@ -302,6 +302,16 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
       const matchMethod = !pivotFilters.paymentMethod || row.paymentMethod?.toLowerCase().includes(pivotFilters.paymentMethod.toLowerCase());
       
       return matchInvestor && matchType && matchStart && matchEnd && matchFreq && matchRate && matchMethod;
+    });
+
+    let currentInv = null;
+    let currentIdx = -1;
+    return filtered.map(r => {
+      if (r.investor !== currentInv) {
+        currentInv = r.investor;
+        currentIdx++;
+      }
+      return { ...r, groupIndex: currentIdx };
     });
   }, [pivotData.rows, pivotFilters]);
 
@@ -1684,9 +1694,12 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
                     <tbody>
                       {filteredPivotRows.map((row, rowIdx) => {
                         let rowTotal = 0;
+                        const rowBg = row.groupIndex % 2 === 0 
+                          ? (isDark ? "#121212" : "#fff") 
+                          : (isDark ? "#1a1a1a" : "#f5f5f5");
                         return (
                           <tr key={rowIdx} style={{
-                            background: isDark ? "transparent" : "#fff",
+                            background: rowBg,
                             transition: "background 0.15s ease"
                           }}>
                             <td style={{
@@ -1695,7 +1708,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
                               color: t.text,
                               position: "sticky",
                               left: pivotOffsets[0],
-                              background: isDark ? "#1a1a1a" : "#fff",
+                              background: rowBg,
                               zIndex: 30,
                               width: pivotColWidths[0],
                               minWidth: pivotColWidths[0],
@@ -1726,7 +1739,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
                               color: t.textSecondary,
                               position: "sticky",
                               left: pivotOffsets[1],
-                              background: isDark ? "#1a1a1a" : "#fff",
+                              background: rowBg,
                               zIndex: 30,
                               width: pivotColWidths[1],
                               minWidth: pivotColWidths[1],
@@ -1745,7 +1758,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
                               color: t.textSecondary,
                               position: "sticky",
                               left: pivotOffsets[2],
-                              background: isDark ? "#1a1a1a" : "#fff",
+                              background: rowBg,
                               zIndex: 30,
                               width: pivotColWidths[2],
                               minWidth: pivotColWidths[2],
@@ -1761,7 +1774,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
                               color: t.textSecondary,
                               position: "sticky",
                               left: pivotOffsets[3],
-                              background: isDark ? "#1a1a1a" : "#fff",
+                              background: rowBg,
                               zIndex: 30,
                               width: pivotColWidths[3],
                               minWidth: pivotColWidths[3],
@@ -1777,7 +1790,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
                               color: t.textSecondary,
                               position: "sticky",
                               left: pivotOffsets[4],
-                              background: isDark ? "#1a1a1a" : "#fff",
+                              background: rowBg,
                               zIndex: 30,
                               width: pivotColWidths[4],
                               minWidth: pivotColWidths[4],
@@ -1793,7 +1806,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
                               color: t.textSecondary,
                               position: "sticky",
                               left: pivotOffsets[5],
-                              background: isDark ? "#1a1a1a" : "#fff",
+                              background: rowBg,
                               zIndex: 30,
                               width: pivotColWidths[5],
                               minWidth: pivotColWidths[5],
@@ -1809,7 +1822,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
                               color: t.textSecondary,
                               position: "sticky",
                               left: pivotOffsets[6],
-                              background: isDark ? "#1a1a1a" : "#fff",
+                              background: rowBg,
                               zIndex: 30,
                               width: pivotColWidths[6],
                               minWidth: pivotColWidths[6],
@@ -1835,7 +1848,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
                                   minWidth: 120,
                                   color: amount < 0 ? "#ef4444" : (hasAmount ? (isDark ? "#34D399" : "#059669") : t.textMuted),
                                   borderBottom: `1px solid ${t.surfaceBorder}`,
-                                  background: isDark ? "#1a1a1a" : "#fff"
+                                  background: rowBg
                                 }}>
                                   {hasAmount ? (
                                     <span 
