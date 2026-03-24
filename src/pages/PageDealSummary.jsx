@@ -978,15 +978,15 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
       visible_deal: d.visible_deal !== false,
       asset_type: d.asset_type || "",
       property_class: d.property_class || "",
-      num_units: d.num_units || null,
+      num_units: d.num_units ? Number(d.num_units) : null,
       units: d.units || "",
-      net_asset_value: d.net_asset_value || null,
-      acquisition_price: d.acquisition_price || null,
+      net_asset_value: d.net_asset_value ? Number(String(d.net_asset_value).replace(/[^0-9.-]/g, "")) : null,
+      acquisition_price: d.acquisition_price ? Number(String(d.acquisition_price).replace(/[^0-9.-]/g, "")) : null,
       acquisition_date: d.acquisition_date || null,
-      exit_price: d.exit_price || null,
+      exit_price: d.exit_price ? Number(String(d.exit_price).replace(/[^0-9.-]/g, "")) : null,
       exit_date: d.exit_date || null,
-      year_built: d.year_built || null,
-      year_renovated: d.year_renovated || null,
+      year_built: d.year_built ? Number(d.year_built) : null,
+      year_renovated: d.year_renovated ? Number(d.year_renovated) : null,
       images: uploadedPhotos.length + newPhotoFiles.length,
       updated_at: serverTimestamp(),
     };
@@ -1943,7 +1943,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
                         {pivotData.dates.map((date, idx) => {
                           const colTotal = filteredPivotRows.reduce((sum, row) => {
                             const cellKey = `${row.key}|||${date}`;
-                            return sum + (pivotData.data[cellKey] || 0);
+                            return sum + (pivotData.data[cellKey]?.amount || 0);
                           }, 0);
                           return (
                             <td key={idx} style={{
