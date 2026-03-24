@@ -151,11 +151,8 @@ export const getScheduleColumns = (permissions, isDark, t, context) => {
       header: "Deal ID",
       accessorKey: "deal_id",
       size: 90,
-      cell: ({ getValue, row }) => (
-        <span 
-          onClick={() => callbacks.onDealClick?.(getValue())}
-          style={{ fontFamily: t.mono, fontSize: '11px', color: isDark ? "#60A5FA" : "#4F46E5", fontWeight: 600, cursor: 'pointer' }}
-        >
+      cell: ({ getValue }) => (
+        <span style={{ fontFamily: t.mono, fontSize: '11px', fontWeight: 600 }}>
           {getValue() || <span style={{ color: t.textMuted }}>—</span>}
         </span>
       )
