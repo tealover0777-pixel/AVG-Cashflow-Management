@@ -240,7 +240,8 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
     // Rule 1: Signed Amount = -1 * Payment Amount
     // Rule 2: IN direction: Signed (+), Payment (-)
     // Rule 3: OUT direction: Signed (-), Payment (+)
-    const signedAmt = (dir === "IN") ? finalAmtAbs : -finalAmtAbs;
+    // Round to 2 decimals to avoid floating point precision errors
+    const signedAmt = Number(((dir === "IN") ? finalAmtAbs : -finalAmtAbs).toFixed(2));
     const paymentAmt = -signedAmt;
 
     let notes = (currentData.notes || "");
@@ -1128,7 +1129,7 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
             <FF label="Applied To" t={t}><FSel value={modal.data.applied_to || "Principal Amount"} onChange={e => setF("applied_to", e.target.value)} options={["Principal Amount", "Interest Amount", "Total Amount", "Balance"]} t={t} disabled={freeze} /></FF>
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14 }}>
-            <FF label="Payment Amount" t={t}><FIn value={(ZEROING_STATUSES.includes(modal.data.status) && modal.data.payment !== "$0.00") ? "$0.00" : (modal.data.payment || "")} onChange={e => {
+            <FF label="Payment Amount" t={t}><FIn value={(ZEROING_STATUSES.includes(modal.data.status) && modal.data.payment !== "$0.00") ? "$0.00" : (modal.data.isTyping === "payment" ? modal.data.payment : fmtCurr(modal.data.payment))} onChange={e => {
               const val = e.target.value;
               const raw = Number(String(val).replace(/[^0-9.-]/g, "")) || 0;
               const base = Math.abs(raw);
@@ -1138,8 +1139,14 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
               const updates = recalcReplacement({ ...modal.data, isTyping: false }, modal.data.fee_ids || []);
               setModal(m => ({ ...m, data: { ...m.data, ...updates } }));
             }} placeholder="$0" t={t} disabled={freeze} /></FF>
-            <FF label="Principal Amount" t={t}><FIn value={modal.data.principal_amount || ""} onChange={e => setF("principal_amount", e.target.value)} placeholder="$0" t={t} disabled={freeze} /></FF>
-            <FF label="Signed Amount" t={t}><FIn value={modal.data.signed_payment_amount || ""} onChange={e => setF("signed_payment_amount", e.target.value)} placeholder="$0" t={t} disabled={freeze} /></FF>
+            <FF label="Principal Amount" t={t}><FIn value={modal.data.isTyping === "principal" ? modal.data.principal_amount : fmtCurr(modal.data.principal_amount)} onChange={e => {
+              const val = e.target.value;
+              setModal(m => ({ ...m, data: { ...m.data, principal_amount: val, isTyping: "principal" } }));
+            }} onBlur={() => {
+              const updates = recalcReplacement({ ...modal.data, isTyping: false }, modal.data.fee_ids || []);
+              setModal(m => ({ ...m, data: { ...m.data, ...updates } }));
+            }} placeholder="$0" t={t} disabled={freeze} /></FF>
+            <FF label="Signed Amount" t={t}><FIn value={fmtCurr(modal.data.signed_payment_amount)} onChange={e => setF("signed_payment_amount", e.target.value)} placeholder="$0" t={t} disabled={freeze} /></FF>
           </div>
           {modal.mode === "add_late" ? (<>
             <FF label="Fee Selection" t={t}>
@@ -1186,7 +1193,7 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
                     }} placeholder="Enter amount paid..." style={{ width: "100%", background: isDark ? "rgba(251,191,36,0.08)" : "#fff", border: `1.5px solid ${isDark ? "rgba(251,191,36,0.4)" : "#FCD34D"}`, borderRadius: 9, padding: "10px 13px", color: isDark ? "#FBBF24" : "#92400E", fontSize: 13.5, fontWeight: 600, fontFamily: "inherit", outline: "none", boxSizing: "border-box" }} />
                   </div>
                   <FF label="Partial Unpaid" t={t}>
-                    <div style={{ fontFamily: t.mono, fontSize: 13, fontWeight: 600, color: isDark ? "#FBBF24" : "#D97706", background: isDark ? "rgba(251,191,36,0.08)" : "#FFFBEB", border: `1px solid ${isDark ? "rgba(251,191,36,0.2)" : "#FDE68A"}`, borderRadius: 9, padding: "10px 13px" }}>${partialUnpaid}</div>
+                    <div style={{ fontFamily: t.mono, fontSize: 13, fontWeight: 600, color: isDark ? "#FBBF24" : "#D97706", background: isDark ? "rgba(251,191,36,0.08)" : "#FFFBEB", border: `1px solid ${isDark ? "rgba(251,191,36,0.2)" : "#FDE68A"}`, borderRadius: 9, padding: "10px 13px" }}>{fmtCurr(partialUnpaid)}</div>
                   </FF>
                 </div>
                 <FF label="Fee Selection" t={t}>
