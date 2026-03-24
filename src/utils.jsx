@@ -99,16 +99,23 @@ const NAV_ITEMS = [
     icon: "ShieldAlert",
     expandable: true,
     children: [
-      { label: "Tenants", icon: "Building2" },
-      { label: "Role Types", icon: "ShieldCheck" },
-      { label: "User Admin", icon: "UserPlus" },
-      { label: "AI Admin", icon: "Bot" },
-      { label: "Dimensions", icon: "Box" },
       { label: "Reports", icon: "BarChart3" },
       { label: "Contacts", icon: "Users" },
       { label: "Investments", icon: "Coins" },
       { label: "Payment Schedule", icon: "CalendarDays" },
       { label: "Payments", icon: "CreditCard" },
+    ]
+  },
+  {
+    label: "Platform Admin",
+    icon: "Server",
+    expandable: true,
+    children: [
+      { label: "AI Admin", icon: "Bot" },
+      { label: "Dimensions", icon: "Box" },
+      { label: "Tenants", icon: "Building2" },
+      { label: "Role Types", icon: "ShieldCheck" },
+      { label: "User Admin", icon: "UserPlus" },
     ]
   },
   { label: "Profile", icon: "User", hidden: true },
