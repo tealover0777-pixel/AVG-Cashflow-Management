@@ -362,8 +362,17 @@ export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [
           if (!calcEnd || !pEnd) break;
 
           let interest = 0;
-          if (c.calculator === "ACT/360+30/360") interest = pmtCalculator_ACT360_30360(pStart, calcEnd, startDate, principal, rate, c.freq);
-          else interest = principal * (rate / 360) * 90;
+          if (c.calculator === "ACT/360+30/360") {
+            interest = pmtCalculator_ACT360_30360(pStart, calcEnd, startDate, principal, rate, c.freq);
+          } else {
+            const expectedDays = 360 / (freqValue || 1);
+            const actualDays = hybridDays(pStart, calcEnd);
+            if (actualDays > 0 && actualDays < expectedDays) {
+              interest = (principal * rate / 360) * actualDays;
+            } else {
+              interest = principal * (rate / (freqValue || 1));
+            }
+          }
 
           if (!isNaN(interest)) {
             const interestPT = isDisbursement ? PT_BOR_INTEREST : PT_INTEREST;

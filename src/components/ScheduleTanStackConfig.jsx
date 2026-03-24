@@ -160,6 +160,13 @@ export const getScheduleColumns = (permissions, isDark, t, context) => {
       )
     },
     {
+      header: "Start Date",
+      accessorKey: "term_start",
+      size: 100,
+      cell: ({ getValue }) => <span style={{ fontFamily: t.mono, fontSize: '12px' }}>{getValue() || <span style={{ color: t.textMuted }}>—</span>}</span>,
+      sortingFn: 'datetime'
+    },
+    {
       header: "Due Date",
       accessorKey: "dueDate",
       size: 100,

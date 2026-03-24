@@ -87,7 +87,9 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
         status: "Due",
         notes: "New Manual Schedule ",
         fee_ids: [],
-        basePayment: 0
+        basePayment: 0,
+        term_start: "",
+        term_end: ""
       }
     });
   };

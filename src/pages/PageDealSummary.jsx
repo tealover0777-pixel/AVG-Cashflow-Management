@@ -657,8 +657,17 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
           if (!calcEnd || !pEnd) break;
 
           let interest = 0;
-          if (c.calculator === "ACT/360+30/360") interest = pmtCalculator_ACT360_30360(pStart, calcEnd, startDate, principal, rate, c.freq);
-          else interest = principal * (rate / (freqValue || 1));
+          if (c.calculator === "ACT/360+30/360") {
+            interest = pmtCalculator_ACT360_30360(pStart, calcEnd, startDate, principal, rate, c.freq);
+          } else {
+            const expectedDays = 360 / (freqValue || 1);
+            const actualDays = hybridDays(pStart, calcEnd);
+            if (actualDays > 0 && actualDays < expectedDays) {
+              interest = (principal * rate / 360) * actualDays;
+            } else {
+              interest = principal * (rate / (freqValue || 1));
+            }
+          }
 
           if (!isNaN(interest)) {
             const interestPT = isDisbursement ? PT_BOR_INTEREST : PT_INTEREST;
@@ -826,16 +835,19 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
 
       // 5. Batch write to Firestore
       let count = 0;
+      let duplicateCount = 0;
       const existingKeys = new Set(SCHEDULES.map(s => `${s.investment_id || s.investment}|${s.due_date || s.dueDate}|${s.payment_type || s.type}|${s.fee_id || ""}`));
       for (const entry of entries) {
         const key = `${entry.investment_id}|${entry.due_date}|${entry.payment_type}|${entry.fee_id || ""}`;
         if (!existingKeys.has(key)) {
           await setDoc(doc(db, schedulePath, entry.version_id), entry);
           count++;
+        } else {
+          duplicateCount++;
         }
       }
       setGenerating(false);
-      setGenResult({ title: "Success", message: `Successfully generated ${count} schedule entries. ${skipped.length} skipped.` });
+      setGenResult({ title: "Success", message: `Successfully generated ${count} schedule entries. ${duplicateCount + skipped.length} skipped.` });
       setSel(new Set());
       setRowSelection({});
     } catch (err) {

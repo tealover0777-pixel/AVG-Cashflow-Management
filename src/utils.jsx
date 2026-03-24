@@ -288,16 +288,24 @@ export const pmtCalculator_ACT360_30360 = (periodStart, periodEnd, investDate, i
   const pEnd = new Date(periodEnd);
   const iDate = new Date(investDate);
   if (pEnd <= iDate) return 0;
-  else if (pStart < iDate && pEnd > iDate) {
+
+  let periodsPerYear = 1;
+  const f = frequency ? frequency.toLowerCase() : "";
+  if (f.includes("month")) periodsPerYear = 12;
+  else if (f.includes("quart")) periodsPerYear = 4;
+  else if (f.includes("semi")) periodsPerYear = 2;
+  else if (f.includes("annu")) periodsPerYear = 1;
+
+  if (pStart < iDate && pEnd > iDate) {
+    // Initial Proration
     return investAmount * (interestRate / 360) * hybridDays(iDate, pEnd);
   } else {
-    let periodsPerYear = 1;
-    const f = frequency ? frequency.toLowerCase() : "";
-    if (f.includes("month")) periodsPerYear = 12;
-    else if (f.includes("quart")) periodsPerYear = 4;
-    else if (f.includes("semi")) periodsPerYear = 2;
-    else if (f.includes("annu")) periodsPerYear = 1;
-    else return investAmount * (interestRate / 360) * hybridDays(pStart, pEnd);
+    const expectedDays = 360 / periodsPerYear;
+    const actualDays = hybridDays(pStart, pEnd);
+    // Prorate if actual days is less than what's expected for a full period (e.g. 90 days for quarterly)
+    if (actualDays > 0 && actualDays < expectedDays) {
+      return investAmount * (interestRate / 360) * actualDays;
+    }
     return investAmount * (interestRate / periodsPerYear);
   }
 };
