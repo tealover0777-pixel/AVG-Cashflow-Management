@@ -288,10 +288,10 @@ export const getScheduleColumns = (permissions, isDark, t, context) => {
         const data = row.original;
         return (
           <div style={{ display: 'flex', gap: 8 }}>
-            <button onClick={() => callbacks.onEdit?.(data)} style={{ padding: '4px 8px', borderRadius: 6, background: 'rgba(96,165,250,0.1)', color: '#60A5FA', border: 'none', cursor: 'pointer', fontSize: 11, fontWeight: 600 }}>Edit</button>
-            <button onClick={() => callbacks.onDelete?.(data)} style={{ padding: '4px 8px', borderRadius: 6, background: 'rgba(248,113,113,0.1)', color: '#F87171', border: 'none', cursor: 'pointer', fontSize: 11, fontWeight: 600 }}>Del</button>
+            <button onClick={(e) => { e.stopPropagation(); callbacks.onEdit?.(data); }} style={{ padding: '4px 8px', borderRadius: 6, background: 'rgba(96,165,250,0.1)', color: '#60A5FA', border: 'none', cursor: 'pointer', fontSize: 11, fontWeight: 600 }}>Edit</button>
+            <button onClick={(e) => { e.stopPropagation(); callbacks.onDelete?.(data); }} style={{ padding: '4px 8px', borderRadius: 6, background: 'rgba(248,113,113,0.1)', color: '#F87171', border: 'none', cursor: 'pointer', fontSize: 11, fontWeight: 600 }}>Del</button>
             {data.version_num > 1 && (
-              <button onClick={() => callbacks.onUndo?.(data)} style={{ padding: '4px 8px', borderRadius: 6, background: 'rgba(251,191,36,0.1)', color: '#FBBF24', border: 'none', cursor: 'pointer', fontSize: 11, fontWeight: 600 }}>Undo</button>
+              <button onClick={(e) => { e.stopPropagation(); callbacks.onUndo?.(data); }} style={{ padding: '4px 8px', borderRadius: 6, background: 'rgba(251,191,36,0.1)', color: '#FBBF24', border: 'none', cursor: 'pointer', fontSize: 11, fontWeight: 600 }}>Undo</button>
             )}
           </div>
         );

@@ -32,7 +32,10 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
   const [showHistory, setShowHistory] = useState(false);
   const [modal, setModal] = useState({ open: false, mode: "add", data: {} });
   const [delT, setDelT] = useState(null);
-  const [confirmAction, setConfirmAction] = useState(null); // { title, message, onConfirm }
+  const [dialog, setDialog] = useState(null); // { title, message, onConfirm, type: 'alert' | 'confirm', saveLabel }
+  const showDialog = (message, title = "Notification", type = "alert", onConfirm = null, saveLabel = "OK") => {
+    setDialog({ message, title, type, onConfirm, saveLabel });
+  };
   const [drillSchedule, setDrillSchedule] = useState(null);
   const [drillInvestment, setDrillInvestment] = useState(null);
   const [drillFee, setDrillFee] = useState(null);
@@ -350,7 +353,7 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
     // Safety: don't undo if there's a newer version (prevent inconsistent state)
     const newerVersion = SCHEDULES.find(x => x.previous_version_id === s.docId || (x.schedule_id === s.schedule_id && Number(x.version_num) > Number(s.version_num)));
     if (newerVersion && newerVersion.active_version) {
-      alert(`Cannot undo V${s.version_num} because there is a newer active version (V${newerVersion.version_num}). Please undo the latest version first.`);
+      showDialog(`Cannot undo V${s.version_num} because there is a newer active version (V${newerVersion.version_num}). Please undo the latest version first.`);
       return;
     }
 
@@ -362,96 +365,74 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
       message = `This will delete current (V${s.version_num}) and reactivate previous version (V${Number(s.version_num) - 1}) with its original data. Are you sure?`;
     }
 
-    setConfirmAction({
-      title,
-      message,
-      onConfirm: async () => {
-        setConfirmAction(null);
-        try {
-          console.log("[Undo] Starting for:", s.schedule_id, "v:", s.version_num);
-          console.log("[Undo] Document data:", { docId: s.docId, _path: s._path, collectionPath });
+    const onConfirmUndo = async () => {
+      setDialog(null);
+      try {
+        console.log("[Undo] Starting for:", s.schedule_id, "v:", s.version_num);
+        if (!s.docId && !s._path) {
+          showDialog("Undo failed: Document ID not found", "Error");
+          return;
+        }
 
-          if (!s.docId && !s._path) {
-            alert("Undo failed: Document ID not found");
+        const ref = s._path ? doc(db, s._path) : doc(db, collectionPath, s.docId);
+
+        if (isVersioned && s.previous_version_id) {
+          const prev = SCHEDULES.find(x => x.docId === s.previous_version_id || x.version_id === s.previous_version_id);
+          if (!prev) {
+            showDialog(`Undo failed: Could not find the previous version record in the cache. Please refresh.`, "Error");
             return;
           }
 
-          const ref = s._path ? doc(db, s._path) : doc(db, collectionPath, s.docId);
-          console.log("[Undo] Current doc ref created");
-          console.log("[Undo] Checks:", { isVersioned, previous_version_id: s.previous_version_id, isReplacement, hasSnapshot });
+          const prevRef = prev._path ? doc(db, prev._path) : doc(db, collectionPath, prev.docId);
+          const restorePayload = {
+            active_version: true,
+            updated_at: serverTimestamp(),
+            replaced_at: null,
+            replaced_by: null,
+            linked_schedule_id: ""
+          };
+          
+          if (s._undo_snapshot) {
+            Object.assign(restorePayload, s._undo_snapshot);
+          } else {
+            restorePayload.status = (prev.status === "REPLACED") ? "Due" : prev.status;
+          }
 
-          if (isVersioned && s.previous_version_id) {
-            console.log("[Undo] Entering versioned undo block for previous_version_id:", s.previous_version_id);
-            // 1. Find the predecessor
-            const prev = SCHEDULES.find(x => x.docId === s.previous_version_id || x.version_id === s.previous_version_id);
-            console.log("[Undo] Previous version search result:", prev ? { docId: prev.docId, version_num: prev.version_num, version_id: prev.version_id } : "NOT FOUND");
-            if (!prev) {
-              alert(`Undo failed: Could not find the previous version record in the cache. Please refresh.`);
-              return;
+          await updateDoc(prevRef, restorePayload);
+
+          if (s.linked_schedule_id) {
+            const childReplacement = SCHEDULES.find(x => x.schedule_id === s.linked_schedule_id);
+            if (childReplacement) {
+              const cRef = childReplacement._path ? doc(db, childReplacement._path) : doc(db, collectionPath, childReplacement.docId);
+              await deleteDoc(cRef);
             }
+          }
 
-            const prevRef = prev._path ? doc(db, prev._path) : doc(db, collectionPath, prev.docId);
-            
-            // 2. Prepare restoration payload for the predecessor
-            const restorePayload = {
-              active_version: true,
-              updated_at: serverTimestamp(),
-              replaced_at: null,
-              replaced_by: null,
-              linked_schedule_id: "" // Clear link to the current version we are deleting
-            };
-            
-            // If the current version carries a snapshot of the predecessor's state, use it
-            if (s._undo_snapshot) {
-              Object.assign(restorePayload, s._undo_snapshot);
-            } else {
-              // Fallback: just reactivate and hope for the best (usually means it was Due)
-              restorePayload.status = (prev.status === "REPLACED") ? "Due" : prev.status;
-            }
-
-            // 3. Reactivate predecessor and delete current version
-            console.log("[Undo] Reactivating previous version:", prev.docId, restorePayload);
-            await updateDoc(prevRef, restorePayload);
-            console.log("[Undo] Previous version reactivated successfully");
-
-            // 4. If this version created a child replacement (Missed/Partial workflow), clean it up
-            if (s.linked_schedule_id) {
-              const childReplacement = SCHEDULES.find(x => x.schedule_id === s.linked_schedule_id);
-              if (childReplacement) {
-                console.log("[Undo] Deleting child replacement:", childReplacement.schedule_id);
-                const cRef = childReplacement._path ? doc(db, childReplacement._path) : doc(db, collectionPath, childReplacement.docId);
-                await deleteDoc(cRef);
+          await deleteDoc(ref);
+          showDialog(`Succeeded! Reverted ${s.schedule_id} to V${prev.version_num}.`, "Success");
+        } 
+        else if (isReplacement) {
+           await deleteDoc(ref);
+           if (s.linked) {
+              const parent = SCHEDULES.find(x => x.schedule_id === s.linked);
+              if (parent) {
+                 const pRef = parent._path ? doc(db, parent._path) : doc(db, collectionPath, parent.docId);
+                 await updateDoc(pRef, { linked_schedule_id: "", updated_at: serverTimestamp() });
               }
-            }
-
-            console.log("[Undo] Deleting current version:", s.docId);
-            await deleteDoc(ref);
-            console.log("[Undo] Current version deleted successfully");
-            alert(`Succeeded! Reverted ${s.schedule_id} to V${prev.version_num}.`);
-          } 
-          else if (isReplacement) {
-             // Deleting the standalone replacement record itself
-             await deleteDoc(ref);
-             if (s.linked) {
-                const parent = SCHEDULES.find(x => x.schedule_id === s.linked);
-                if (parent) {
-                   const pRef = parent._path ? doc(db, parent._path) : doc(db, collectionPath, parent.docId);
-                   await updateDoc(pRef, { linked_schedule_id: "", updated_at: serverTimestamp() });
-                }
-             }
-             alert(`Succeeded! Deleted replacement schedule ${s.schedule_id}.`);
-          }
-          else if (hasSnapshot) {
-            // Non-versioned snapshot revert
-            await updateDoc(ref, { ...s._undo_snapshot, _undo_snapshot: null, updated_at: serverTimestamp() });
-            alert(`Succeeded! Restored ${s.schedule_id} to previous state.`);
-          }
-        } catch (err) {
-          console.error("[Undo] Error:", err);
-          alert(`Undo failed: ${err.message}`);
+           }
+           showDialog(`Succeeded! Deleted replacement schedule ${s.schedule_id}.`, "Success");
         }
+        else if (hasSnapshot) {
+          await updateDoc(ref, { ...s._undo_snapshot, _undo_snapshot: null, updated_at: serverTimestamp() });
+          showDialog(`Succeeded! Restored ${s.schedule_id} to previous state.`, "Success");
+        }
+      } catch (err) {
+        console.error("[Undo] Error:", err);
+        showDialog(`Undo failed: ${err.message}`, "Error");
       }
-    });
+    };
+
+    showDialog(message, title, "confirm", onConfirmUndo);
   };
 
   const handleSaveSchedule = async () => {
@@ -600,173 +581,161 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
 
     // Missed Payment Workflow (only Missed now, Cancelled removed)
     if (modal.mode === "edit" && d.status === "Missed" && d.status !== d.originalStatus) {
-      setConfirmAction({
-        title: "Replacement Schedule",
-        message: `Do you want to set "Missed" payment and book a replacement schedule?`,
-        onConfirm: async () => {
-          setConfirmAction(null);
-          try {
-            // Get original payment amount from original_payment_amount field or current payment
-            const originalSchedule = SCHEDULES.find(x => x.docId === d.docId || x.schedule_id === d.schedule_id);
-            const rawOrigAmt = originalSchedule?.original_payment_amount ||
-              originalSchedule?.payment_amount ||
-              originalSchedule?.payment || d.payment || 0;
-            const origPaymentNum = Math.abs(Number(String(rawOrigAmt).replace(/[^0-9.-]/g, "")));
-            const formattedOrigAmt = `$${origPaymentNum.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+        const onConfirmMissed = async () => {
+        setDialog(null);
+        try {
+          const originalSchedule = SCHEDULES.find(x => x.docId === d.docId || x.schedule_id === d.schedule_id);
+          const rawOrigAmt = originalSchedule?.original_payment_amount ||
+            originalSchedule?.payment_amount ||
+            originalSchedule?.payment || d.payment || 0;
+          const origPaymentNum = Math.abs(Number(String(rawOrigAmt).replace(/[^0-9.-]/g, "")));
+          const formattedOrigAmt = `$${origPaymentNum.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
-            const ref = d._path ? doc(db, d._path) : doc(db, collectionPath, docRefId);
+          const ref = d._path ? doc(db, d._path) : doc(db, collectionPath, docRefId);
+          const newVersionNum = Number(d.version_num || 1) + 1;
 
-            // Replaces updateDoc with Versioning logic
-            const newVersionNum = Number(d.version_num || 1) + 1;
-
-            // Determine the correct previous_version_id
-            let previousVersionId = d.version_id;
-            if (!previousVersionId && Number(d.version_num || 1) === 1) {
-              previousVersionId = `${d.schedule_id}-V1`;
-            }
-            if (!previousVersionId) {
-              previousVersionId = docRefId;
-            }
-
-            await addDoc(ref.parent, {
-              ...payload,
-              version_num: newVersionNum,
-              version_id: `${payload.schedule_id}-V${newVersionNum}`,
-              active_version: true,
-              previous_version_id: previousVersionId,
-              created_at: serverTimestamp(),
-              updated_at: serverTimestamp(),
-              updated_by: user?.displayName || user?.email || user?.uid || "system"
-            });
-            await updateDoc(ref, { 
-              active_version: false, 
-              status: "REPLACED", 
-              replaced_at: serverTimestamp(),
-              replaced_by: user?.uid || "system",
-              updated_at: serverTimestamp() 
-            });
-
-            const lateId = getNextScheduleId();
-            const nextDueDate = getNextTermDate(d.dueDate, d.investment);
-            const initialData = {
-              ...d,
-              schedule_id: lateId,
-              linked: d.schedule_id,
-              fee_ids: [],
-              status: "Due",
-              dueDate: nextDueDate,
-              term_start: getNextDay(d.dueDate),
-              term_end: nextDueDate,
-              basePayment: Math.abs(origPaymentNum),
-              payment_amount: originalSchedule?.payment_amount || originalSchedule?.original_payment_amount || d.payment || 0,
-              original_payment_amount: originalSchedule?.original_payment_amount || originalSchedule?.payment_amount || d.payment || 0,
-              notes: `Missed payment replacement for ${d.schedule_id} ${formattedOrigAmt}`,
-            };
-            const updates = recalcReplacement(initialData, []);
-            setModal({
-              open: true,
-              mode: "add_late",
-              originalDocId: d.docId,
-              data: { ...initialData, ...updates }
-            });
-            if (modal.mode === "edit" || modal.mode === "add_late" || modal.mode === "add_partial") {
-              const tenantPath = ref.path.split('/paymentSchedules')[0];
-              const ledgerRef = collection(db, tenantPath, 'ledger');
-              await addDoc(ledgerRef, {
-                entity_type: "Schedule",
-                entity_id: d.schedule_id,
-                amount: payload.payment_amount,
-                currency: "USD",
-                notes: `Schedule ${d.schedule_id} ${modal.mode === "edit" ? "updated" : "replacement created"} - Status: ${payload.status}`,
-                created_at: serverTimestamp(),
-                user_id: user?.uid || "system"
-              });
-            }
-            alert(`Missed status versioned to V${newVersionNum}. Now booking replacement...`);
-          } catch (err) { 
-            console.error("Save schedule error:", err);
-            alert(`Workflow failed: ${err.message}`);
+          let previousVersionId = d.version_id;
+          if (!previousVersionId && Number(d.version_num || 1) === 1) {
+            previousVersionId = `${d.schedule_id}-V1`;
           }
+          if (!previousVersionId) {
+            previousVersionId = docRefId;
+          }
+
+          await addDoc(ref.parent, {
+            ...payload,
+            version_num: newVersionNum,
+            version_id: `${payload.schedule_id}-V${newVersionNum}`,
+            active_version: true,
+            previous_version_id: previousVersionId,
+            created_at: serverTimestamp(),
+            updated_at: serverTimestamp(),
+            updated_by: user?.displayName || user?.email || user?.uid || "system"
+          });
+          await updateDoc(ref, { 
+            active_version: false, 
+            status: "REPLACED", 
+            replaced_at: serverTimestamp(),
+            replaced_by: user?.uid || "system",
+            updated_at: serverTimestamp() 
+          });
+
+          const lateId = getNextScheduleId();
+          const nextDueDate = getNextTermDate(d.dueDate, d.investment);
+          const initialData = {
+            ...d,
+            schedule_id: lateId,
+            linked: d.schedule_id,
+            fee_ids: [],
+            status: "Due",
+            dueDate: nextDueDate,
+            term_start: getNextDay(d.dueDate),
+            term_end: nextDueDate,
+            basePayment: Math.abs(origPaymentNum),
+            payment_amount: originalSchedule?.payment_amount || originalSchedule?.original_payment_amount || d.payment || 0,
+            original_payment_amount: originalSchedule?.original_payment_amount || originalSchedule?.payment_amount || d.payment || 0,
+            notes: `Missed payment replacement for ${d.schedule_id} ${formattedOrigAmt}`,
+          };
+          const updates = recalcReplacement(initialData, []);
+          setModal({
+            open: true,
+            mode: "add_late",
+            originalDocId: d.docId,
+            data: { ...initialData, ...updates }
+          });
+          if (modal.mode === "edit" || modal.mode === "add_late" || modal.mode === "add_partial") {
+            const tenantPath = ref.path.split('/paymentSchedules')[0];
+            const ledgerRef = collection(db, tenantPath, 'ledger');
+            await addDoc(ledgerRef, {
+              entity_type: "Schedule",
+              entity_id: d.schedule_id,
+              amount: payload.payment_amount,
+              currency: "USD",
+              notes: `Schedule ${d.schedule_id} ${modal.mode === "edit" ? "updated" : "replacement created"} - Status: ${payload.status}`,
+              created_at: serverTimestamp(),
+              user_id: user?.uid || "system"
+            });
+          }
+          showDialog(`Missed status versioned to V${newVersionNum}. Now booking replacement...`, "Success");
+        } catch (err) { 
+          console.error("Save schedule error:", err);
+          showDialog(`Workflow failed: ${err.message}`, "Error");
         }
-      });
+      };
+
+      showDialog(`Do you want to set "Missed" payment and book a replacement schedule?`, "Replacement Schedule", "confirm", onConfirmMissed);
       return;
     }
 
     // Partial Payment Workflow
     if (modal.mode === "edit" && d.status === "Partial" && d.status !== d.originalStatus) {
-      setConfirmAction({
-        title: "Partial Replacement",
-        message: `Do you want to set "Partial" payment and book a partial replacement schedule?`,
-        onConfirm: async () => {
-          setConfirmAction(null);
-          try {
-            // Get original payment amount from original_payment_amount field or current payment
-            const originalSchedule = SCHEDULES.find(x => x.docId === d.docId || x.schedule_id === d.schedule_id);
-            const rawOrigAmt = originalSchedule?.original_payment_amount ||
-              originalSchedule?.payment_amount ||
-              originalSchedule?.payment || d.payment || 0;
-            const origPaymentNum = Math.abs(Number(String(rawOrigAmt).replace(/[^0-9.-]/g, "")));
-            const formattedOrigAmt = `$${origPaymentNum.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+        const onConfirmPartial = async () => {
+        setDialog(null);
+        try {
+          const originalSchedule = SCHEDULES.find(x => x.docId === d.docId || x.schedule_id === d.schedule_id);
+          const rawOrigAmt = originalSchedule?.original_payment_amount ||
+            originalSchedule?.payment_amount ||
+            originalSchedule?.payment || d.payment || 0;
+          const origPaymentNum = Math.abs(Number(String(rawOrigAmt).replace(/[^0-9.-]/g, "")));
+          const formattedOrigAmt = `$${origPaymentNum.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
-            const ref = d._path ? doc(db, d._path) : doc(db, collectionPath, docRefId);
+          const ref = d._path ? doc(db, d._path) : doc(db, collectionPath, docRefId);
+          const newVersionNum = Number(d.version_num || 1) + 1;
 
-            // Replaces updateDoc with Versioning logic
-            const newVersionNum = Number(d.version_num || 1) + 1;
+          let previousVersionId = d.version_id;
+          if (!previousVersionId && Number(d.version_num || 1) === 1) {
+            previousVersionId = `${d.schedule_id}-V1`;
+          }
+          if (!previousVersionId) {
+            previousVersionId = docRefId;
+          }
 
-            // Determine the correct previous_version_id
-            let previousVersionId = d.version_id;
-            if (!previousVersionId && Number(d.version_num || 1) === 1) {
-              previousVersionId = `${d.schedule_id}-V1`;
-            }
-            if (!previousVersionId) {
-              previousVersionId = docRefId;
-            }
+          await addDoc(ref.parent, {
+            ...payload,
+            version_num: newVersionNum,
+            version_id: `${payload.schedule_id}-V${newVersionNum}`,
+            active_version: true,
+            previous_version_id: previousVersionId,
+            created_at: serverTimestamp(),
+            updated_at: serverTimestamp(),
+            updated_by: user?.displayName || user?.email || user?.uid || "system"
+          });
+          await updateDoc(ref, { 
+            active_version: false, 
+            status: "REPLACED", 
+            replaced_at: serverTimestamp(),
+            replaced_by: user?.uid || "system",
+            updated_at: serverTimestamp() 
+          });
 
-            await addDoc(ref.parent, {
-              ...payload,
-              version_num: newVersionNum,
-              version_id: `${payload.schedule_id}-V${newVersionNum}`,
-              active_version: true,
-              previous_version_id: previousVersionId,
-              created_at: serverTimestamp(),
-              updated_at: serverTimestamp(),
-              updated_by: user?.displayName || user?.email || user?.uid || "system"
-            });
-            await updateDoc(ref, { 
-              active_version: false, 
-              status: "REPLACED", 
-              replaced_at: serverTimestamp(),
-              replaced_by: user?.uid || "system",
-              updated_at: serverTimestamp() 
-            });
+          const partialId = getNextScheduleId();
+          const nextDueDatePartial = getNextTermDate(d.dueDate, d.investment);
+          const initialDataPartial = {
+            ...d,
+            schedule_id: partialId,
+            linked: d.schedule_id,
+            fee_ids: [],
+            status: "Due",
+            dueDate: nextDueDatePartial,
+            term_start: getNextDay(d.dueDate),
+            term_end: nextDueDatePartial,
+            partialPaid: "",
+            basePayment: Math.abs(origPaymentNum),
+            payment_amount: originalSchedule?.payment_amount || originalSchedule?.original_payment_amount || d.payment || 0,
+            original_payment_amount: originalSchedule?.original_payment_amount || originalSchedule?.payment_amount || d.payment || 0,
+            notes: `Partial payment replacement for ${d.schedule_id} ${formattedOrigAmt}`,
+          };
+          const updatesPartial = recalcReplacement(initialDataPartial, []);
+          setModal({
+            open: true,
+            mode: "add_partial",
+            originalDocId: d.docId,
+            data: { ...initialDataPartial, ...updatesPartial }
+          });
+        } catch (err) { console.error("Update partial error:", err); }
+      };
 
-            const partialId = getNextScheduleId();
-            const nextDueDatePartial = getNextTermDate(d.dueDate, d.investment);
-            const initialDataPartial = {
-              ...d,
-              schedule_id: partialId,
-              linked: d.schedule_id,
-              fee_ids: [],
-              status: "Due",
-              dueDate: nextDueDatePartial,
-              term_start: getNextDay(d.dueDate),
-              term_end: nextDueDatePartial,
-              partialPaid: "",
-              basePayment: Math.abs(origPaymentNum),
-              payment_amount: originalSchedule?.payment_amount || originalSchedule?.original_payment_amount || d.payment || 0,
-              original_payment_amount: originalSchedule?.original_payment_amount || originalSchedule?.payment_amount || d.payment || 0,
-              notes: `Partial payment replacement for ${d.schedule_id} ${formattedOrigAmt}`,
-            };
-            const updatesPartial = recalcReplacement(initialDataPartial, []);
-            setModal({
-              open: true,
-              mode: "add_partial",
-              originalDocId: d.docId,
-              data: { ...initialDataPartial, ...updatesPartial }
-            });
-          } catch (err) { console.error("Update partial error:", err); }
-        }
-      });
+      showDialog(`Do you want to set "Partial" payment and book a partial replacement schedule?`, "Partial Replacement", "confirm", onConfirmPartial);
       return;
     }
 
@@ -851,7 +820,7 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
       }
     } catch (err) {
       console.error("Failed to save schedule:", err);
-      alert(`Failed to save schedule: ${err.message || 'Unknown error'}`);
+      showDialog(`Failed to save schedule: ${err.message || 'Unknown error'}`, "Error");
     }
     close();
   };
@@ -861,7 +830,7 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
     console.log("[DELETE] collectionPath:", collectionPath);
     if (!delT || !delT.docId) {
       console.error("[DELETE] ABORTED: missing delT or delT.docId", delT);
-      alert("Delete failed: schedule reference is missing. Check console for details.");
+      showDialog("Delete failed: schedule reference is missing. Check console for details.", "Error");
       return;
     }
     try {
@@ -884,57 +853,51 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
       setDelT(null);
     } catch (err) {
       console.error("[DELETE] deleteDoc FAILED:", err.code, err.message, err);
-      alert(`Delete failed: ${err.code || err.message}. Check browser console (F12) for details.`);
+      showDialog(`Delete failed: ${err.code || err.message}. Check browser console (F12) for details.`, "Error");
     }
   };
   const [bulkStatus, setBulkStatus] = useState("");
   const handleBulkStatus = (status) => {
     if (!status || sel.size === 0) return;
-    setConfirmAction({
-      title: "Update Status",
-      message: `Are you sure you want to update status to "${status}" for ${sel.size} schedule(s)?`,
-      onConfirm: async () => {
-        setConfirmAction(null);
-        try {
-          await Promise.all([...sel].map(sid => {
-            const s = SCHEDULES.find(s => s.schedule_id === sid);
-            if (s && s.docId) {
-              const ref = s._path ? doc(db, s._path) : doc(db, collectionPath, s.docId);
-              return updateDoc(ref, { status, updated_at: serverTimestamp() });
-            }
-            return Promise.resolve();
-          }));
-          setSel(new Set()); setBulkStatus("");
-        } catch (err) { console.error("Bulk status update error:", err); }
+    showDialog(`Are you sure you want to update status to "${status}" for ${sel.size} schedule(s)?`, "Update Status", "confirm", async () => {
+      setDialog(null);
+      try {
+        await Promise.all([...sel].map(sid => {
+          const s = SCHEDULES.find(s => s.schedule_id === sid);
+          if (s && s.docId) {
+            const ref = s._path ? doc(db, s._path) : doc(db, collectionPath, s.docId);
+            return updateDoc(ref, { status, updated_at: serverTimestamp() });
+          }
+          return Promise.resolve();
+        }));
+        setSel(new Set()); setBulkStatus("");
+      } catch (err) { 
+        console.error("Bulk status update error:", err); 
       }
-    });
+    }
+    );
   };
   const handleBulkDelete = () => {
     if (sel.size === 0) return;
-    setConfirmAction({
-      title: "Delete Schedules",
-      message: `Are you sure you want to delete ${sel.size} schedule(s)? This action cannot be undone.`,
-      onConfirm: async () => {
-        setConfirmAction(null);
-        try {
-          const deletePromises = [];
-          [...sel].forEach(sid => {
-            // Find all historical and active versions for this schedule ID
-            const versions = SCHEDULES.filter(s => s.schedule_id === sid);
-            versions.forEach(v => {
-              const ref = v._path ? doc(db, v._path) : doc(db, collectionPath, v.docId);
-              deletePromises.push(deleteDoc(ref));
-            });
+    showDialog(`Are you sure you want to delete ${sel.size} schedule(s)? This action cannot be undone.`, "Delete Schedules", "confirm", async () => {
+      setDialog(null);
+      try {
+        const deletePromises = [];
+        [...sel].forEach(sid => {
+          const versions = SCHEDULES.filter(s => s.schedule_id === sid);
+          versions.forEach(v => {
+            const ref = v._path ? doc(db, v._path) : doc(db, collectionPath, v.docId);
+            deletePromises.push(deleteDoc(ref));
           });
-          
-          await Promise.all(deletePromises);
-          setSel(new Set());
-        } catch (err) {
-          console.error("Bulk delete error:", err);
-          alert("Failed to delete schedule(s). You may not have permission to perform this action.");
-        }
+        });
+        await Promise.all(deletePromises);
+        setSel(new Set());
+      } catch (err) {
+        console.error("Bulk delete error:", err);
+        showDialog("Failed to delete schedule(s). You may not have permission to perform this action.", "Error");
       }
-    });
+    }
+    );
   };
   // AG Grid setup
   const [pageSize, setPageSize] = useState(30);
@@ -1282,8 +1245,8 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
       })()}
     </Modal>
     <DelModal target={delT} onClose={() => setDelT(null)} onConfirm={handleDeleteSchedule} label="This schedule entry" t={t} isDark={isDark} />
-    <Modal open={!!confirmAction} onClose={() => setConfirmAction(null)} title={confirmAction?.title || "Confirm"} onSave={confirmAction?.onConfirm} saveLabel="Confirm" t={t} isDark={isDark}>
-      <div style={{ padding: "12px 0", fontSize: 14, color: t.textSecondary, lineHeight: 1.6, textAlign: "center" }}>{confirmAction?.message}</div>
+    <Modal open={!!dialog} onClose={() => setDialog(null)} title={dialog?.title || "Notification"} onSave={dialog?.onConfirm || (() => setDialog(null))} saveLabel={dialog?.saveLabel || (dialog?.type === "confirm" ? "Confirm" : "OK")} showCancel={dialog?.type === "confirm"} t={t} isDark={isDark}>
+      <div style={{ padding: "12px 0", fontSize: 14, color: t.textSecondary, lineHeight: 1.6, textAlign: "center" }}>{dialog?.message}</div>
     </Modal>
     {drillSchedule && (() => {
       const chain = buildChain(drillSchedule.schedule_id);
