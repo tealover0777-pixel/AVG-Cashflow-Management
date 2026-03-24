@@ -208,7 +208,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
       dataMap[cellKey].amount += amount;
       dataMap[cellKey].records.push({
         ...schedule,
-        startDate: rowMeta.startDate,
+        startDate: schedule.term_start || "—",
         rate: rowMeta.rate,
         freq: rowMeta.freq
       });
