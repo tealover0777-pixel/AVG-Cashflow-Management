@@ -75,6 +75,7 @@ const TanStackTable = React.forwardRef(({
     getRowId: (row, i) => getRowId ? getRowId(row, i) : (row.docId || row._docId || row.id || row.schedule_id || `idx-${i}`),
     autoResetRowSelection: false,
     autoResetPageIndex: false,
+    columnResizeMode: 'onChange',
   });
 
   // Synchronization with loop protection
@@ -103,7 +104,7 @@ const TanStackTable = React.forwardRef(({
       position: 'relative'
     }}>
       <div style={{ flex: 1, overflow: 'auto', position: 'relative', pointerEvents: 'auto' }} className="ts-scroller">
-        <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: 0, fontSize: '13px', tableLayout: 'fixed' }}>
+        <table style={{ width: table.getCenterTotalSize(), minWidth: '100%', borderCollapse: 'separate', borderSpacing: 0, fontSize: '13px', tableLayout: 'fixed' }}>
           <thead style={{ position: 'sticky', top: 0, zIndex: 10, background: isDark ? '#262626' : '#F9FAF9' }}>
             {table.getHeaderGroups().map(headerGroup => (
               <tr key={headerGroup.id}>
@@ -111,7 +112,8 @@ const TanStackTable = React.forwardRef(({
                   <th 
                     key={header.id}
                     style={{
-                      width: header.column.columnDef.size || 'auto',
+                      width: header.getSize(),
+                      position: 'relative',
                       padding: header.column.id === 'select' ? '12px 0' : '12px 14px', 
                       textAlign: 'left', fontWeight: 600,
                       color: t.textSubtle, borderBottom: `2px solid ${t.surfaceBorder}`,
@@ -146,6 +148,19 @@ const TanStackTable = React.forwardRef(({
                         />
                       )}
                     </div>
+                    {/* Resizer Handle */}
+                    {header.column.getCanResize() && (
+                      <div
+                        onMouseDown={header.getResizeHandler()}
+                        onTouchStart={header.getResizeHandler()}
+                        className={`resizer ${header.column.getIsResizing() ? 'isResizing' : ''}`}
+                        style={{
+                          position: 'absolute', right: 0, top: 0, height: '100%', width: '5px',
+                          background: header.column.getIsResizing() ? t.accent : 'transparent',
+                          cursor: 'col-resize', userSelect: 'none', touchAction: 'none'
+                        }}
+                      />
+                    )}
                   </th>
                 ))}
               </tr>
@@ -167,6 +182,7 @@ const TanStackTable = React.forwardRef(({
                   <td 
                     key={cell.id}
                     style={{
+                      width: cell.column.getSize(),
                       padding: cell.column.id === 'select' ? 0 : '10px 14px',
                       borderBottom: `1px solid ${isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'}`,
                       borderRight: `1px solid ${isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'}`,
@@ -218,6 +234,13 @@ const TanStackTable = React.forwardRef(({
           accent-color: ${t.accent};
           cursor: pointer;
           border-radius: 4px;
+        }
+        .resizer:hover {
+          background: ${isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)'} !important;
+        }
+        .resizer.isResizing {
+          background: ${t.accent} !important;
+          opacity: 1;
         }
       `}</style>
     </div>
