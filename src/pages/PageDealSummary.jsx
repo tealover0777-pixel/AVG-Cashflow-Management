@@ -54,6 +54,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
     rate: "",
     paymentMethod: ""
   });
+  const [drillDown, setDrillDown] = useState({ open: false, records: [], title: "" });
 
   const pivotOffsets = useMemo(() => {
     const offsets = [0];
@@ -155,8 +156,6 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
       return isNaN(parsed) ? 0 : parsed;
     };
 
-    console.log('Processing dealSchedules for pivot:', dealSchedules.length, 'records');
-
     dealSchedules.forEach(schedule => {
       const investor = CONTACTS.find(c => c.id === schedule.party_id);
       const investorName = investor ? investor.name : schedule.party_id || "Unknown";
@@ -204,7 +203,9 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
       }
 
       const cellKey = `${rowKey}|||${dueDate}`;
-      dataMap[cellKey] = (dataMap[cellKey] || 0) + amount;
+      if (!dataMap[cellKey]) dataMap[cellKey] = { amount: 0, records: [] };
+      dataMap[cellKey].amount += amount;
+      dataMap[cellKey].records.push(schedule);
     });
 
     // Convert row keys to objects with investor and type
@@ -223,11 +224,54 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
     });
 
     const dates = Array.from(dateSet).sort();
-
-    console.log('Pivot data calculated:', { rows: rows.length, dates: dates.length, dataMap });
-
     return { rows, dates, data: dataMap };
   }, [dealSchedules, CONTACTS, INVESTMENTS, FEES_DATA]);
+
+  const drillDownColumns = useMemo(() => [
+    { 
+      header: "Due Date", 
+      accessorKey: "dueDate", 
+      size: 100,
+      cell: ({ row }) => row.original.dueDate || row.original.due_date || "—"
+    },
+    { 
+      header: "Type", 
+      accessorKey: "type", 
+      size: 180,
+      cell: ({ row }) => {
+        let type = row.original.type || row.original.payment_type || "Unknown";
+        const hasFeeRef = row.original.fee_id || row.original.feeId || row.original.fee_name || row.original.feeName;
+        if (hasFeeRef) {
+          const fId = (row.original.fee_id || row.original.feeId || "");
+          const fee = fId ? (FEES_DATA.find(f => f.id === fId) || FEES_DATA.find(f => f.docId === fId)) : null;
+          let resolvedName = (row.original.fee_name || row.original.feeName || "").trim();
+          if (!resolvedName && fee) resolvedName = fee.name;
+          if (resolvedName) type = resolvedName;
+        }
+        return type.replace(/_/g, ' ');
+      }
+    },
+    { 
+      header: "Amount", 
+      accessorKey: "signed_payment_amount", 
+      size: 120,
+      cell: ({ row }) => {
+        const val = row.original.signed_payment_amount || row.original.signedPaymentAmount || row.original.amount || 0;
+        const amt = typeof val === 'number' ? val : (parseFloat(String(val).replace(/[$,\s]/g, '')) || 0);
+        return <div style={{ textAlign: 'right', fontWeight: 600, color: amt < 0 ? "#ef4444" : (isDark ? "#34D399" : "#059669"), fontFamily: t.mono }}>
+          ${Math.abs(amt).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+          {amt < 0 ? ' (Dr)' : ''}
+        </div>
+      }
+    },
+    { header: "Status", accessorKey: "status", size: 100 },
+    { 
+      header: "Investment ID", 
+      accessorKey: "investment_id", 
+      size: 120,
+      cell: ({ row }) => <span style={{ fontFamily: t.mono, fontSize: 11 }}>{row.original.investment_id || row.original.investment || "—"}</span>
+    },
+  ], [isDark, FEES_DATA, t]);
 
   const filteredPivotRows = useMemo(() => {
     return pivotData.rows.filter(row => {
@@ -1639,7 +1683,19 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
                               textOverflow: "ellipsis",
                               whiteSpace: "nowrap"
                             }}>
-                              {row.investor}
+                              <span 
+                                onClick={() => {
+                                  const inv = CONTACTS.find(c => c.name === row.investor);
+                                  if (inv) setDetailContact(inv);
+                                }}
+                                style={{ 
+                                  cursor: "pointer", 
+                                  color: isDark ? "#60A5FA" : "#4F46E5",
+                                  fontWeight: 600
+                                }}
+                              >
+                                {row.investor}
+                              </span>
                             </td>
                             <td style={{
                               padding: "12px 16px",
@@ -1743,7 +1799,8 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
                             </td>
                             {pivotData.dates.map((date, dateIdx) => {
                               const cellKey = `${row.key}|||${date}`;
-                              const amount = pivotData.data[cellKey] || 0;
+                              const cellData = pivotData.data[cellKey];
+                              const amount = cellData?.amount || 0;
                               rowTotal += amount;
                               const hasAmount = amount !== 0;
                               return (
@@ -1757,7 +1814,18 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
                                   borderBottom: `1px solid ${t.surfaceBorder}`,
                                   background: isDark ? "#1a1a1a" : "#fff"
                                 }}>
-                                  {hasAmount ? `$${amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : "—"}
+                                  {hasAmount ? (
+                                    <span 
+                                      onClick={() => setDrillDown({
+                                        open: true,
+                                        records: cellData?.records || [],
+                                        title: `${row.investor} - ${row.type.replace(/_/g, ' ')} (${date})`
+                                      })}
+                                      style={{ cursor: "pointer", textDecoration: "underline", textDecorationStyle: "dotted" }}
+                                    >
+                                      ${amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                    </span>
+                                  ) : "—"}
                                 </td>
                               );
                             })}
@@ -1776,7 +1844,19 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
                               minWidth: 120,
                               borderBottom: `1px solid ${t.surfaceBorder}`
                             }}>
-                              ${rowTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                              <span 
+                                onClick={() => {
+                                  const allRecs = pivotData.dates.flatMap(d => pivotData.data[`${row.key}|||${d}`]?.records || []);
+                                  setDrillDown({
+                                    open: true,
+                                    records: allRecs,
+                                    title: `${row.investor} - ${row.type.replace(/_/g, ' ')} (Total)`
+                                  });
+                                }}
+                                style={{ cursor: "pointer", textDecoration: "underline", textDecorationStyle: "dotted" }}
+                              >
+                                ${rowTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                              </span>
                             </td>
                           </tr>
                         );
@@ -1877,7 +1957,19 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
                               zIndex: 20,
                               borderTop: `2px solid ${t.surfaceBorder}`,
                             }}>
-                              ${colTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                              <span 
+                                onClick={() => {
+                                  const allRecs = filteredPivotRows.flatMap(r => pivotData.data[`${r.key}|||${date}`]?.records || []);
+                                  setDrillDown({
+                                    open: true,
+                                    records: allRecs,
+                                    title: `All Distributions - ${date}`
+                                  });
+                                }}
+                                style={{ cursor: "pointer", textDecoration: "underline", textDecorationStyle: "dotted" }}
+                              >
+                                ${colTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                              </span>
                             </td>
                           );
                         })}
@@ -1886,7 +1978,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
                             textAlign: "right",
                             fontFamily: t.mono,
                             fontSize: 14,
-                            color: filteredPivotRows.reduce((gt, r) => gt + pivotData.dates.reduce((rt, d) => rt + (pivotData.data[`${r.key}|||${d}`] || 0), 0), 0) < 0 ? "#ef4444" : t.text,
+                            color: filteredPivotRows.reduce((gt, r) => gt + pivotData.dates.reduce((rt, d) => rt + (pivotData.data[`${r.key}|||${d}`]?.amount || 0), 0), 0) < 0 ? "#ef4444" : t.text,
                             position: "sticky",
                             bottom: 0,
                             right: 0,
@@ -1894,12 +1986,24 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
                             zIndex: 50,
                             borderTop: `2px solid ${t.surfaceBorder}`,
                           }}>
-                            ${filteredPivotRows.reduce((grandTotal, row) => {
-                              return grandTotal + pivotData.dates.reduce((rowTotal, date) => {
-                                const cellKey = `${row.key}|||${date}`;
-                                return rowTotal + (pivotData.data[cellKey] || 0);
-                              }, 0);
-                            }, 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            <span 
+                              onClick={() => {
+                                const allRecs = filteredPivotRows.flatMap(r => pivotData.dates.flatMap(d => pivotData.data[`${r.key}|||${d}`]?.records || []));
+                                setDrillDown({
+                                  open: true,
+                                  records: allRecs,
+                                  title: "Grand Total"
+                                });
+                              }}
+                              style={{ cursor: "pointer", textDecoration: "underline", textDecorationStyle: "dotted" }}
+                            >
+                              ${filteredPivotRows.reduce((grandTotal, row) => {
+                                return grandTotal + pivotData.dates.reduce((rowTotal, date) => {
+                                  const cellKey = `${row.key}|||${date}`;
+                                  return rowTotal + (pivotData.data[cellKey]?.amount || 0);
+                                }, 0);
+                              }, 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            </span>
                           </td>
                       </tr>
                     </tbody>
@@ -2493,6 +2597,29 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
           </div>
         </Modal>
       )}
+
+      {/* Distribution Drill-Down Modal */}
+      <Modal 
+        open={drillDown.open} 
+        onClose={() => setDrillDown(prev => ({ ...prev, open: false }))} 
+        title={`Distribution Summary: ${drillDown.title}`}
+        width={850} 
+        t={t} 
+        isDark={isDark}
+        onSave={() => setDrillDown(prev => ({ ...prev, open: false }))}
+        saveLabel="Close"
+        showCancel={false}
+      >
+        <div style={{ height: 450, width: "100%", padding: "10px 0" }}>
+          <TanStackTable 
+            data={drillDown.records} 
+            columns={drillDownColumns} 
+            pageSize={50} 
+            t={t} 
+            isDark={isDark} 
+          />
+        </div>
+      </Modal>
 
       <InvestorSummaryModal 
         contact={detailContact}
