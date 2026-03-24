@@ -104,12 +104,12 @@ export const getDistributionColumns = (isDark, t, CONTACTS, DEALS, INVESTMENTS =
     sortingFn: 'datetime'
   },
   {
-    accessorKey: 'type',
+    id: 'type',
+    accessorFn: (row) => (row.type || "").toString().replace(/_/g, " "),
     header: 'TYPE',
     size: 140,
     cell: ({ getValue }) => {
-      const label = (getValue() || "").replace(/_/g, " ");
-      return <span style={{ fontSize: 12, color: t.textSecondary }}>{label}</span>;
+      return <span style={{ fontSize: 12, color: t.textSecondary }}>{getValue()}</span>;
     },
   },
   {
