@@ -97,7 +97,7 @@ export const getScheduleColumns = (permissions, isDark, t, context) => {
       }
     },
     {
-      header: "V",
+      header: "Version",
       accessorKey: "version_num",
       size: 60,
       cell: ({ row, getValue }) => {
