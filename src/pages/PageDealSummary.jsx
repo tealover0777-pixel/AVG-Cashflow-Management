@@ -202,10 +202,16 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
         };
       }
 
+      const rowMeta = rowMetadata[rowKey];
       const cellKey = `${rowKey}|||${dueDate}`;
       if (!dataMap[cellKey]) dataMap[cellKey] = { amount: 0, records: [] };
       dataMap[cellKey].amount += amount;
-      dataMap[cellKey].records.push(schedule);
+      dataMap[cellKey].records.push({
+        ...schedule,
+        startDate: rowMeta.startDate,
+        rate: rowMeta.rate,
+        freq: rowMeta.freq
+      });
     });
 
     // Convert row keys to objects with investor and type
@@ -234,6 +240,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
       size: 100,
       cell: ({ row }) => row.original.dueDate || row.original.due_date || "—"
     },
+    { header: "Start Date", accessorKey: "startDate", size: 100 },
     { 
       header: "Type", 
       accessorKey: "type", 
@@ -251,6 +258,8 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
         return type.replace(/_/g, ' ');
       }
     },
+    { header: "Rate", accessorKey: "rate", size: 80 },
+    { header: "Frequency", accessorKey: "freq", size: 100 },
     { 
       header: "Amount", 
       accessorKey: "signed_payment_amount", 
@@ -265,12 +274,6 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
       }
     },
     { header: "Status", accessorKey: "status", size: 100 },
-    { 
-      header: "Investment ID", 
-      accessorKey: "investment_id", 
-      size: 120,
-      cell: ({ row }) => <span style={{ fontFamily: t.mono, fontSize: 11 }}>{row.original.investment_id || row.original.investment || "—"}</span>
-    },
   ], [isDark, FEES_DATA, t]);
 
   const filteredPivotRows = useMemo(() => {
@@ -1816,11 +1819,14 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
                                 }}>
                                   {hasAmount ? (
                                     <span 
-                                      onClick={() => setDrillDown({
-                                        open: true,
-                                        records: cellData?.records || [],
-                                        title: `${row.investor} - ${row.type.replace(/_/g, ' ')} (${date})`
-                                      })}
+                                      onClick={() => {
+                                        const recs = [...(cellData?.records || [])].sort((a,b) => (a.dueDate||a.due_date||"").localeCompare(b.dueDate||b.due_date||""));
+                                        setDrillDown({
+                                          open: true,
+                                          records: recs,
+                                          title: `${row.investor} - ${row.type.replace(/_/g, ' ')} (${date})`
+                                        });
+                                      }}
                                       style={{ cursor: "pointer", textDecoration: "underline", textDecorationStyle: "dotted" }}
                                     >
                                       ${amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
@@ -1844,15 +1850,16 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
                               minWidth: 120,
                               borderBottom: `1px solid ${t.surfaceBorder}`
                             }}>
-                              <span 
-                                onClick={() => {
-                                  const allRecs = pivotData.dates.flatMap(d => pivotData.data[`${row.key}|||${d}`]?.records || []);
-                                  setDrillDown({
-                                    open: true,
-                                    records: allRecs,
-                                    title: `${row.investor} - ${row.type.replace(/_/g, ' ')} (Total)`
-                                  });
-                                }}
+                                <span 
+                                  onClick={() => {
+                                    const allRecs = pivotData.dates.flatMap(d => pivotData.data[`${row.key}|||${d}`]?.records || [])
+                                      .sort((a,b) => (a.dueDate||a.due_date||"").localeCompare(b.dueDate||b.due_date||""));
+                                    setDrillDown({
+                                      open: true,
+                                      records: allRecs,
+                                      title: `${row.investor} - ${row.type.replace(/_/g, ' ')} (Total)`
+                                    });
+                                  }}
                                 style={{ cursor: "pointer", textDecoration: "underline", textDecorationStyle: "dotted" }}
                               >
                                 ${rowTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
@@ -1957,15 +1964,16 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
                               zIndex: 20,
                               borderTop: `2px solid ${t.surfaceBorder}`,
                             }}>
-                              <span 
-                                onClick={() => {
-                                  const allRecs = filteredPivotRows.flatMap(r => pivotData.data[`${r.key}|||${date}`]?.records || []);
-                                  setDrillDown({
-                                    open: true,
-                                    records: allRecs,
-                                    title: `All Distributions - ${date}`
-                                  });
-                                }}
+                                <span 
+                                  onClick={() => {
+                                    const allRecs = filteredPivotRows.flatMap(r => pivotData.data[`${r.key}|||${date}`]?.records || [])
+                                      .sort((a,b) => (a.dueDate||a.due_date||"").localeCompare(b.dueDate||b.due_date||""));
+                                    setDrillDown({
+                                      open: true,
+                                      records: allRecs,
+                                      title: `All Distributions - ${date}`
+                                    });
+                                  }}
                                 style={{ cursor: "pointer", textDecoration: "underline", textDecorationStyle: "dotted" }}
                               >
                                 ${colTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
@@ -1988,7 +1996,8 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
                           }}>
                             <span 
                               onClick={() => {
-                                const allRecs = filteredPivotRows.flatMap(r => pivotData.dates.flatMap(d => pivotData.data[`${r.key}|||${d}`]?.records || []));
+                                const allRecs = filteredPivotRows.flatMap(r => pivotData.dates.flatMap(d => pivotData.data[`${r.key}|||${d}`]?.records || []))
+                                  .sort((a,b) => (a.dueDate||a.due_date||"").localeCompare(b.dueDate||b.due_date||""));
                                 setDrillDown({
                                   open: true,
                                   records: allRecs,
