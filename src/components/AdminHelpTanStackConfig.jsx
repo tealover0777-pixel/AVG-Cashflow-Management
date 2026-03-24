@@ -82,8 +82,8 @@ export const getAdminHelpColumns = (permissions, isDark, t, onEdit, onDel) => {
         <ActBtns
           show={true}
           t={t}
-          onEdit={(e) => { e.stopPropagation(); onEdit(row.original); }}
-          onDel={(e) => { e.stopPropagation(); onDel(row.original); }}
+          onEdit={() => onEdit(row.original)}
+          onDel={() => onDel(row.original)}
         />
       ),
     },
