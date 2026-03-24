@@ -1,6 +1,7 @@
 import React from 'react';
 import { CornerDownRight, ExternalLink } from 'lucide-react';
 import { Bdg } from '../components';
+import { fmtCurr } from '../utils';
 
 export const getScheduleColumns = (permissions, isDark, t, context) => {
   const { callbacks } = context;
@@ -203,7 +204,7 @@ export const getScheduleColumns = (permissions, isDark, t, context) => {
             fontWeight: 700, 
             color: isOut ? (isDark ? "#F87171" : "#DC2626") : (isDark ? "#34D399" : "#059669")
           }}>
-            {val}
+            {fmtCurr(val)}
           </span>
         );
       }

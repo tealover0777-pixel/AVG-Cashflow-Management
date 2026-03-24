@@ -25,7 +25,7 @@ export function useDashboardData({ DEALS = [], INVESTMENTS = [], CONTACTS = [], 
             ? DEALS.filter(p => filteredInvestments.some(c => c.deal_id === p.id))
             : DEALS;
 
-        const allFilteredSchedules = isMember
+        const allSchedules = isMember
             ? SCHEDULES.filter(s => {
                 const pId = String(s.party_id || "").trim();
                 const targetId = String(myContact?.id || "").trim();
@@ -34,6 +34,9 @@ export function useDashboardData({ DEALS = [], INVESTMENTS = [], CONTACTS = [], 
                 return isDirectMatch || filteredInvestments.some(c => c.id === s.investment);
             })
             : SCHEDULES;
+
+        // Only consider active versions for standard dashboard views
+        const allFilteredSchedules = allSchedules.filter(s => s.active_version !== false);
 
         // Derive valid Schedule Status values dynamically from Dimensions
         const scheduleStatusDim = DIMENSIONS.find(d => d.name === "ScheduleStatus" || d.name === "Schedule Status");
