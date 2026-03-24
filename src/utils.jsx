@@ -136,7 +136,7 @@ export const getNav = (isSuper, isAdmin, hasPermission, isR10010) => {
 
     if (!hasPermission) return false;
 
-    // Granular RBAC per section
+    // Granular RBAC per section (child items)
     if (item.label === "Dashboard" && !hasPermission("DASHBOARD_VIEW")) return false;
     if (item.label === "Deals" && !hasPermission("DEAL_VIEW")) return false;
     if (item.label === "Contacts") {
@@ -159,6 +159,19 @@ export const getNav = (isSuper, isAdmin, hasPermission, isR10010) => {
     return true;
   };
 
+  // Helper to check if a parent menu should be visible
+  const isParentVisible = (item, visibleChildren) => {
+    // If item has no children and is a direct menu item (like Dashboard), check normally
+    if (!item.expandable && !item.children) return isItemVisible(item);
+
+    // For expandable parent menus, they're only visible if they have at least one visible child
+    if (item.expandable && item.children) {
+      return visibleChildren && visibleChildren.length > 0;
+    }
+
+    return true;
+  };
+
   // Process items and filter children
   const nav = NAV_ITEMS.map(item => {
     // If item has children, filter them
@@ -169,7 +182,10 @@ export const getNav = (isSuper, isAdmin, hasPermission, isR10010) => {
       return { ...item, children: visibleChildren };
     }
     return item;
-  }).filter(item => item && isItemVisible(item));
+  }).filter(item => {
+    if (!item) return false;
+    return isParentVisible(item, item.children);
+  });
 
   if (typeof window !== 'undefined') window.__NAV__ = nav;
   return nav;
