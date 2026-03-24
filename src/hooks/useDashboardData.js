@@ -187,12 +187,23 @@ export function useDashboardData({ DEALS = [], INVESTMENTS = [], CONTACTS = [], 
                 diversification: pieData
             },
             recentActivity: allFilteredSchedules
+                .map(s => {
+                    const inv = (INVESTMENTS || []).find(i => i.id === s.investment);
+                    const deal = inv ? (DEALS || []).find(d => d.id === inv.deal_id) : null;
+                    return { 
+                        ...s, 
+                        deal_name: deal ? (deal.deal_name || deal.name) : (s.investment || s.schedule_id) 
+                    };
+                })
                 .sort((a, b) => {
                     const da = a.dueDate ? new Date(a.dueDate).getTime() : 0;
                     const db = b.dueDate ? new Date(b.dueDate).getTime() : 0;
                     return da - db;
                 }),
-            investments: filteredInvestments,
+            investments: filteredInvestments.map(inv => {
+                const deal = (DEALS || []).find(d => d.id === inv.deal_id);
+                return { ...inv, deal_name: deal ? (deal.deal_name || deal.name) : inv.id };
+            }),
             isMember,
             myContact
         };

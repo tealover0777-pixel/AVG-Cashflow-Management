@@ -182,7 +182,7 @@ export default function PageDashboard(props) {
                 <div key={c.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', borderRadius: 12, background: isDark ? 'rgba(255,255,255,0.03)' : '#F9FAFB', border: `1px solid ${isDark ? 'rgba(255,255,255,0.05)' : '#F3F4F6'}` }}>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3 }}>
-                      <span style={{ fontSize: 12.5, fontWeight: 600, color: isDark ? '#fff' : '#1C1917' }}>{c.id}</span>
+                      <span style={{ fontSize: 12.5, fontWeight: 600, color: isDark ? '#fff' : '#1C1917' }}>{c.deal_name}</span>
                       <Bdg status={c.status} isDark={isDark} />
                     </div>
                     <div style={{ fontSize: 11, color: t.textMuted, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -224,7 +224,7 @@ export default function PageDashboard(props) {
                   const [bg, color, brd] = badge(s.status, isDark);
                   return (
                     <tr key={s.schedule_id} style={{ borderBottom: i === recentActivity.length - 1 ? 'none' : `1px solid ${t.surfaceBorder}` }}>
-                      <td style={{ padding: '14px 24px', fontSize: 12.5, fontWeight: 500 }}>{s.investment || s.schedule_id}</td>
+                      <td style={{ padding: '14px 24px', fontSize: 12.5, fontWeight: 500 }}>{s.deal_name}</td>
                       <td style={{ padding: '14px 24px', fontSize: 12, fontFamily: t.mono, color: t.textMuted }}>{s.dueDate}</td>
                       <td style={{ padding: '14px 24px', fontSize: 12, color: t.textSecondary }}>{s.type}</td>
                       <td style={{ padding: '14px 24px', fontSize: 11, fontWeight: 600, color: s.direction === 'IN' ? '#10B981' : '#EF4444' }}>{s.direction}</td>
