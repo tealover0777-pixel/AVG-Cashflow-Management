@@ -234,13 +234,13 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
   }, [dealSchedules, CONTACTS, INVESTMENTS, FEES_DATA]);
 
   const drillDownColumns = useMemo(() => [
+    { header: "Start Date", accessorKey: "startDate", size: 100 },
     { 
       header: "Due Date", 
       accessorKey: "dueDate", 
       size: 100,
       cell: ({ row }) => row.original.dueDate || row.original.due_date || "—"
     },
-    { header: "Start Date", accessorKey: "startDate", size: 100 },
     { 
       header: "Type", 
       accessorKey: "type", 
@@ -269,7 +269,6 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
         const amt = typeof val === 'number' ? val : (parseFloat(String(val).replace(/[$,\s]/g, '')) || 0);
         return <div style={{ textAlign: 'right', fontWeight: 600, color: amt < 0 ? "#ef4444" : (isDark ? "#34D399" : "#059669"), fontFamily: t.mono }}>
           ${Math.abs(amt).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-          {amt < 0 ? ' (Dr)' : ''}
         </div>
       }
     },
