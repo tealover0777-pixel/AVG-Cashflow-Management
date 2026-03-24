@@ -68,7 +68,7 @@ export const getScheduleColumns = (permissions, isDark, t, context) => {
               style={{ 
                 fontFamily: t.mono, 
                 fontSize: '11px', 
-                color: isDark ? "#60A5FA" : "#2563EB",
+                color: isDark ? "#60A5FA" : "#4F46E5",
                 fontWeight: 600,
                 cursor: 'pointer'
               }}
@@ -140,10 +140,10 @@ export const getScheduleColumns = (permissions, isDark, t, context) => {
       size: 90,
       cell: ({ getValue, row }) => (
         <span 
-          onClick={() => callbacks.onContactClick?.(getValue())}
-          style={{ fontFamily: t.mono, fontSize: '11px', color: t.idText, cursor: 'pointer' }}
+          onClick={() => callbacks.onContactClick?.(row.original.party_id)}
+          style={{ fontFamily: t.mono, fontSize: '11px', color: isDark ? "#60A5FA" : "#4F46E5", fontWeight: 600, cursor: 'pointer' }}
         >
-          {getValue()}
+          {row.original.party || getValue()}
         </span>
       )
     },
@@ -154,9 +154,9 @@ export const getScheduleColumns = (permissions, isDark, t, context) => {
       cell: ({ getValue, row }) => (
         <span 
           onClick={() => callbacks.onDealClick?.(getValue())}
-          style={{ fontFamily: t.mono, fontSize: '11px', color: t.idText, cursor: 'pointer' }}
+          style={{ fontFamily: t.mono, fontSize: '11px', color: isDark ? "#60A5FA" : "#4F46E5", fontWeight: 600, cursor: 'pointer' }}
         >
-          {getValue() || <span style={{ color: t.textMuted }}>—</span>}
+          {row.original.deal || getValue() || <span style={{ color: t.textMuted }}>—</span>}
         </span>
       )
     },

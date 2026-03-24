@@ -41,10 +41,13 @@ export const getDistributionColumns = (isDark, t, CONTACTS, DEALS, INVESTMENTS =
       return c ? c.name : row.party_id;
     },
     size: 180,
-    cell: ({ getValue }) => {
+    cell: ({ getValue, row }) => {
       const name = getValue() || "Unknown Party";
       return (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, height: '100%', fontWeight: 600, color: isDark ? '#fff' : '#1C1917' }}>
+        <div 
+          onClick={() => callbacks.onContactClick?.(row.original.party_id)}
+          style={{ display: 'flex', alignItems: 'center', gap: 8, height: '100%', fontWeight: 600, color: isDark ? "#60A5FA" : "#4F46E5", cursor: 'pointer' }}
+        >
           <div style={{ width: 24, height: 24, borderRadius: 6, background: t.accent, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700 }}>
             {initials(name)}
           </div>
@@ -61,7 +64,14 @@ export const getDistributionColumns = (isDark, t, CONTACTS, DEALS, INVESTMENTS =
       return d ? d.deal_name || d.name : row.deal_id;
     },
     size: 180,
-    cell: ({ getValue }) => <span style={{ fontWeight: 500 }}>{getValue()}</span>,
+    cell: ({ getValue, row }) => (
+      <span 
+        onClick={() => callbacks.onDealClick?.(row.original.deal_id)}
+        style={{ fontWeight: 600, color: isDark ? "#60A5FA" : "#4F46E5", cursor: 'pointer' }}
+      >
+        {getValue()}
+      </span>
+    ),
   },
   {
     accessorKey: 'term_start',

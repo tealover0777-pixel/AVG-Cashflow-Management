@@ -73,7 +73,7 @@ export const getContactColumns = (permissions, isDark, t, context) => {
               onClick={(e) => { e.preventDefault(); e.stopPropagation(); callbacks.onNameClick(row.original); }}
               href="#"
               style={{
-                fontSize: 11.5, fontWeight: 500, color: isDark ? '#f8fafc' : '#2563EB',
+                fontSize: 11.5, fontWeight: 600, color: isDark ? '#60A5FA' : '#4F46E5',
                 overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                 cursor: 'pointer', textDecoration: 'none'
               }}

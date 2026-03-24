@@ -3,7 +3,7 @@
  * Reusable UI components and hooks.
  */
 import React, { useState, useRef, useEffect, useMemo } from "react";
-import { badge } from "./utils";
+import { badge, initials, fmtCurr, av } from "./utils";
 import { 
   ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, 
   Pencil, Trash2, RotateCcw, X, Info, Check, Plus, AlertCircle, FileText,
@@ -322,3 +322,148 @@ export const DelModal = ({ target, onClose, onConfirm, label, t, isDark }) => (
     </div>
   </Modal>
 );
+// ─────────────────────────────────────────────────────────────────────────────
+// INVESTOR SUMMARY MODAL
+// ─────────────────────────────────────────────────────────────────────────────
+
+export const InvestorSummaryModal = ({ contact, onClose, isDark, t, INVESTMENTS, SCHEDULES, DEALS }) => {
+  if (!contact) return null;
+  const dp = contact;
+  const dpId = String(dp.id || "").trim();
+  const dpDocId = String(dp.docId || "").trim();
+  
+  const partyInvestments = INVESTMENTS.filter(c => {
+    const cPId = String(c.party_id || "").trim();
+    return (cPId === dpId || (dpDocId && cPId === dpDocId));
+  });
+  
+  const partySchedules = SCHEDULES.filter(s => {
+    const sPId = String(s.party_id || "").trim();
+    const isMatched = sPId === dpId || (dpDocId && sPId === dpDocId);
+    return isMatched || partyInvestments.some(c => c.id === s.investment);
+  }).sort((a, b) => {
+    const da = a.dueDate ? new Date(a.dueDate).getTime() : 0;
+    const db = b.dueDate ? new Date(b.dueDate).getTime() : 0;
+    return da - db;
+  });
+  
+  const totalValue = partyInvestments.reduce((sum, c) => {
+    const amtStr = String(c.amount || 0).replace(/[^0-9.-]/g, '');
+    return sum + (Number(amtStr) || 0);
+  }, 0);
+
+  return (
+    <div style={{ position: "fixed", inset: 0, zIndex: 9999, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <div onClick={onClose} style={{ position: "absolute", inset: 0 }} />
+      <div style={{ position: "relative", background: isDark ? "#1C1917" : "#fff", borderRadius: 18, padding: 0, maxWidth: 720, width: "92%", maxHeight: "85vh", display: "flex", flexDirection: "column", boxShadow: "0 24px 60px rgba(0,0,0,0.3)", border: `1px solid ${t.surfaceBorder}` }}>
+        {/* Header */}
+        <div style={{ padding: "22px 28px", borderBottom: `1px solid ${t.surfaceBorder}`, display: "flex", justifyContent: "space-between", alignItems: "center", flexShrink: 0 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+            {(() => { 
+              const a2 = av(dp.name || dp.party_name, isDark); 
+              return <div style={{ width: 42, height: 42, borderRadius: 12, background: a2.bg, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, fontWeight: 700, color: a2.c, border: `1px solid ${a2.c}22` }}>{initials(dp.name || dp.party_name)}</div>; 
+            })()}
+            <div>
+              <div style={{ fontSize: 17, fontWeight: 700, color: isDark ? "#fff" : "#1C1917" }}>{dp.name || dp.party_name}</div>
+              <div style={{ fontSize: 12, marginTop: 2 }}>
+                <Bdg status={dp.role} isDark={isDark} />
+              </div>
+            </div>
+          </div>
+          <button onClick={onClose} style={{ width: 32, height: 32, borderRadius: 8, background: isDark ? "rgba(255,255,255,0.08)" : "#F5F4F1", border: `1px solid ${t.surfaceBorder}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, cursor: "pointer", color: t.textMuted }}>×</button>
+        </div>
+        {/* Body */}
+        <div style={{ flex: 1, overflow: "auto", padding: "20px 28px" }}>
+          {/* Investments grouped by project */}
+          {(() => {
+            const investmentsByProject = {};
+            partyInvestments.forEach(c => {
+              const key = c.project || "Unassigned";
+              (investmentsByProject[key] = investmentsByProject[key] || []).push(c);
+            });
+            const projectNames = Object.keys(investmentsByProject);
+            return (
+              <div style={{ marginBottom: 24 }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: isDark ? "#fff" : "#1C1917", marginBottom: 10, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <span>Investments ({partyInvestments.length})</span>
+                  <span style={{ fontSize: 12, fontWeight: 600, color: t.accent }}>{fmtCurr(totalValue)}</span>
+                </div>
+                {partyInvestments.length === 0 && <div style={{ fontSize: 12, color: t.textMuted, padding: "12px 0" }}>No investments found</div>}
+                {projectNames.map(projName => (
+                  <div key={projName} style={{ marginBottom: 12 }}>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: t.accent, marginBottom: 6, padding: "4px 0", borderBottom: `1px solid ${t.surfaceBorder}` }}>{projName}</div>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                      {investmentsByProject[projName].map(c => (
+                        <div key={c.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 14px", borderRadius: 12, background: isDark ? "rgba(255,255,255,0.03)" : "#F9FAFB", border: `1px solid ${isDark ? "rgba(255,255,255,0.05)" : "#F3F4F6"}` }}>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 3 }}>
+                              <span style={{ fontSize: 13, fontWeight: 700, color: isDark ? "#fff" : "#1C1917" }}>
+                                {DEALS.find(d => d.id === c.deal_id)?.name || c.id}
+                              </span>
+                              <Bdg status={c.status} isDark={isDark} />
+                            </div>
+                            <div style={{ fontSize: 11, color: t.textMuted }}>{c.type || "—"} · {c.rate || "—"} · {c.freq || "—"} · {c.start_date || "—"} ~ {c.maturity_date || "—"}</div>
+                          </div>
+                          <div style={{ fontSize: 13, fontWeight: 700, color: isDark ? "#fff" : "#1C1917", flexShrink: 0 }}>{c.amount}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            );
+          })()}
+          {/* Payment Schedules grouped by project */}
+          {(() => {
+            const schedulesByProject = {};
+            partySchedules.forEach(s => {
+              const investment = partyInvestments.find(c => c.id === s.investment);
+              const proj = DEALS.find(p => p.id === s.deal_id);
+              const key = investment?.project || proj?.name || "Unassigned";
+              (schedulesByProject[key] = schedulesByProject[key] || []).push(s);
+            });
+            const projectNames = Object.keys(schedulesByProject);
+            return (
+              <div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: isDark ? "#fff" : "#1C1917", marginBottom: 10 }}>Payment Schedules ({partySchedules.length})</div>
+                {partySchedules.length === 0 && <div style={{ fontSize: 12, color: t.textMuted, padding: "12px 0" }}>No payment schedules</div>}
+                {projectNames.map(projName => (
+                  <div key={projName} style={{ marginBottom: 16 }}>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: t.accent, marginBottom: 6, padding: "4px 0", borderBottom: `1px solid ${t.surfaceBorder}` }}>{projName}</div>
+                    <div style={{ borderRadius: 12, border: `1px solid ${t.surfaceBorder}`, overflow: "hidden" }}>
+                      <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left" }}>
+                        <thead style={{ background: isDark ? "rgba(255,255,255,0.03)" : "#FAFAFA" }}>
+                          <tr>
+                            <th style={{ padding: "10px 14px", fontSize: 10, fontWeight: 700, color: t.textMuted }}>DUE DATE</th>
+                            <th style={{ padding: "10px 14px", fontSize: 10, fontWeight: 700, color: t.textMuted }}>TYPE</th>
+                            <th style={{ padding: "10px 14px", fontSize: 10, fontWeight: 700, color: t.textMuted }}>DIR</th>
+                            <th style={{ padding: "10px 14px", fontSize: 10, fontWeight: 700, color: t.textMuted }}>AMOUNT</th>
+                            <th style={{ padding: "10px 14px", fontSize: 10, fontWeight: 700, color: t.textMuted }}>STATUS</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {schedulesByProject[projName].map((s, i) => {
+                            const arr = schedulesByProject[projName];
+                            return (
+                              <tr key={s.schedule_id || i} style={{ borderBottom: i < arr.length - 1 ? `1px solid ${t.surfaceBorder}` : "none" }}>
+                                <td style={{ padding: "10px 14px", fontSize: 11, fontFamily: t.mono, color: t.textMuted }}>{s.dueDate}</td>
+                                <td style={{ padding: "10px 14px", fontSize: 11, color: t.textSecondary }}>{s.type}{s.fee_id ? ` · ${s.fee_id}` : ""}</td>
+                                <td style={{ padding: "10px 14px", fontSize: 10, fontWeight: 600, color: s.direction === "IN" ? "#10B981" : "#EF4444" }}>{s.direction}</td>
+                                <td style={{ padding: "10px 14px", fontSize: 11.5, fontWeight: 600 }}>{fmtCurr(s.signed_payment_amount)}</td>
+                                <td style={{ padding: "10px 14px" }}><Bdg status={s.status} isDark={isDark} /></td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            );
+          })()}
+        </div>
+      </div>
+    </div>
+  );
+};

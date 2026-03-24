@@ -63,7 +63,7 @@ export const getDealInvestmentColumns = (permissions, isDark, t, context) => {
       cell: ({ row, getValue }) => (
         <span 
           onClick={(e) => { e.stopPropagation(); callbacks.onContactClick?.(row.original); }}
-          style={{ fontWeight: 600, color: isDark ? "#60A5FA" : "#2563EB", fontSize: '11.5px', cursor: 'pointer' }}
+          style={{ fontWeight: 600, color: isDark ? "#60A5FA" : "#4F46E5", fontSize: '11.5px', cursor: 'pointer' }}
         >
           {getValue()}
         </span>
