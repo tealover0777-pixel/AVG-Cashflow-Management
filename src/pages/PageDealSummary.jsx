@@ -1178,7 +1178,12 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
              }
           }
         });
-      }
+      },
+      onContactClick: (id) => {
+        const c = (CONTACTS || []).find(x => x.id === id);
+        if (c) setDetailContact(c);
+      },
+      onDealClick: (id) => setActivePage("Deals", { dealId: id })
     });
   }, [isDark, t, CONTACTS, DEALS, INVESTMENTS, scheduleCollection]);
 

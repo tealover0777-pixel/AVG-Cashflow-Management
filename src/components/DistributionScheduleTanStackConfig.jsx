@@ -46,11 +46,8 @@ export const getDistributionColumns = (isDark, t, CONTACTS, DEALS, INVESTMENTS =
       return (
         <div 
           onClick={() => callbacks.onContactClick?.(row.original.party_id)}
-          style={{ display: 'flex', alignItems: 'center', gap: 8, height: '100%', fontWeight: 600, color: isDark ? "#60A5FA" : "#4F46E5", cursor: 'pointer' }}
+          style={{ display: 'flex', alignItems: 'center', height: '100%', fontWeight: 600, color: isDark ? "#60A5FA" : "#4F46E5", cursor: 'pointer' }}
         >
-          <div style={{ width: 24, height: 24, borderRadius: 6, background: t.accent, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700 }}>
-            {initials(name)}
-          </div>
           {name}
         </div>
       );
@@ -67,7 +64,7 @@ export const getDistributionColumns = (isDark, t, CONTACTS, DEALS, INVESTMENTS =
     cell: ({ getValue, row }) => (
       <span 
         onClick={() => callbacks.onDealClick?.(row.original.deal_id)}
-        style={{ fontWeight: 600, color: isDark ? "#60A5FA" : "#4F46E5", cursor: 'pointer' }}
+        style={{ fontWeight: 600, color: isDark ? t.text : "#000", cursor: 'pointer' }}
       >
         {getValue()}
       </span>
