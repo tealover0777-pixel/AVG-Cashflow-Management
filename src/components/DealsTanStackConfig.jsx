@@ -9,50 +9,6 @@ export const getDealColumns = (permissions, isDark, t, context) => {
 
   const cols = [
     {
-      id: 'select',
-      header: ({ table }) => {
-        const rows = table.getFilteredRowModel().rows;
-        const allSelected = rows.length > 0 && rows.every(r => r.getIsSelected());
-        const someSelected = rows.some(r => r.getIsSelected());
-        return (
-          <label 
-            onClick={e => e.stopPropagation()} 
-            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', width: '100%', height: '32px' }}
-          >
-            <input
-              type="checkbox"
-              checked={allSelected}
-              ref={el => { if (el) el.indeterminate = someSelected && !allSelected; }}
-              onChange={() => {
-                const next = !allSelected;
-                rows.forEach(r => r.toggleSelected(next));
-              }}
-              style={{ accentColor: t.accent, cursor: 'pointer' }}
-            />
-          </label>
-        );
-      },
-      cell: ({ row }) => (
-        <label 
-          onClick={e => e.stopPropagation()} 
-          style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', width: '100%', height: '40px' }}
-        >
-          <input
-            type="checkbox"
-            checked={row.getIsSelected()}
-            onChange={row.getToggleSelectedHandler()}
-            style={{ accentColor: t.accent, cursor: 'pointer' }}
-          />
-        </label>
-      ),
-      size: 45,
-      enableSorting: false,
-      enableColumnFilter: false,
-      meta: {
-        style: { textAlign: 'center', padding: 0 }
-      }
-    },
-    {
       header: "Deal Name",
       accessorKey: "name",
       size: 180,
