@@ -309,19 +309,33 @@ export const FMultiSel = ({ value = [], onChange, options, t, style = {} }) => (
   </div>
 );
 
-export const DelModal = ({ target, onClose, onConfirm, label, t, isDark }) => (
-  <Modal open={!!target} onClose={onClose} title="Confirm Delete" onSave={onConfirm} saveLabel="Delete" danger t={t} isDark={isDark}>
-    <div style={{ display: "flex", flexDirection: "column", gap: 16, alignItems: "center", textAlign: "center", padding: "8px 0" }}>
-      <div style={{ width: 52, height: 52, borderRadius: 14, background: isDark ? "rgba(248,113,113,0.15)" : "#FEF2F2", border: `1px solid ${isDark ? "rgba(248,113,113,0.25)" : "#FECACA"}`, display: "flex", alignItems: "center", justifyContent: "center", color: isDark ? "#F87171" : "#DC2626" }}>
-        <AlertCircle size={28} />
-      </div>
-      <div>
-        <div style={{ fontSize: 15, fontWeight: 600, color: isDark ? "#fff" : "#1C1917", marginBottom: 8 }}>Delete "{target?.name}"?</div>
-        <div style={{ fontSize: 13, color: t.textMuted, lineHeight: 1.7 }}>{label || "This record"} will be permanently removed.<br />This action cannot be undone.</div>
-      </div>
-    </div>
-  </Modal>
-);
+export const DelModal = ({ target, open, onClose, onConfirm, onDel, label, title, t, isDark, children }) => {
+  const isOpen = open !== undefined ? open : !!target;
+  const onSave = onConfirm || onDel;
+  const modalTitle = title || (target?.name ? `Delete "${target.name}"?` : "Confirm Delete");
+
+  return (
+    <Modal open={isOpen} onClose={onClose} title={modalTitle} onSave={onSave} saveLabel="Delete" danger t={t} isDark={isDark}>
+      {children ? (
+        <div style={{ padding: "8px 0" }}>{children}</div>
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: 16, alignItems: "center", textAlign: "center", padding: "8px 0" }}>
+          <div style={{ width: 52, height: 52, borderRadius: 14, background: isDark ? "rgba(248,113,113,0.15)" : "#FEF2F2", border: `1px solid ${isDark ? "rgba(248,113,113,0.25)" : "#FECACA"}`, display: "flex", alignItems: "center", justifyContent: "center", color: isDark ? "#F87171" : "#DC2626" }}>
+            <AlertCircle size={28} />
+          </div>
+          <div>
+            <div style={{ fontSize: 15, fontWeight: 600, color: isDark ? "#fff" : "#1C1917", marginBottom: 8 }}>
+              {target?.name ? `Delete "${target.name}"?` : "Confirm Deletion"}
+            </div>
+            <div style={{ fontSize: 13, color: t.textMuted, lineHeight: 1.7 }}>
+              {label || "This record"} will be permanently removed.<br />This action cannot be undone.
+            </div>
+          </div>
+        </div>
+      )}
+    </Modal>
+  );
+};
 // ─────────────────────────────────────────────────────────────────────────────
 // INVESTOR SUMMARY MODAL
 // ─────────────────────────────────────────────────────────────────────────────
