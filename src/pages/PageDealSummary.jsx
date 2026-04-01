@@ -282,6 +282,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
     },
     { header: "Rate", accessorKey: "rate", size: 80 },
     { header: "Frequency", accessorKey: "freq", size: 100 },
+    { header: "Period", accessorKey: "period_number", size: 80 },
     { 
       header: "Amount", 
       accessorKey: "signed_payment_amount", 

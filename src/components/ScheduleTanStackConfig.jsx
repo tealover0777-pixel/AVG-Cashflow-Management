@@ -188,6 +188,12 @@ export const getScheduleColumns = (permissions, isDark, t, context) => {
       cell: ({ getValue }) => <span style={{ fontSize: '11px', color: t.textSecondary }}>{getValue()}</span>
     },
     {
+      header: "Period",
+      accessorKey: "period_number",
+      size: 70,
+      cell: ({ getValue }) => <span style={{ fontSize: '11px', color: t.textSecondary, fontFamily: t.mono }}>{getValue() || "—"}</span>
+    },
+    {
       header: "Amount",
       accessorKey: "signed_payment_amount",
       size: 110,
