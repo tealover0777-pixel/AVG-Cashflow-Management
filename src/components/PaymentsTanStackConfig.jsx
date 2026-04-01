@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useRef, useEffect } from "react";
 import { ActBtns, Bdg } from '../components';
-import { fmtCurr } from '../utils';
+import { fmtCurr, fmtDate } from '../utils';
 
 export const getPaymentColumns = (permissions, isDark, t, onEdit, onDel) => {
   return [
@@ -78,7 +78,7 @@ export const getPaymentColumns = (permissions, isDark, t, onEdit, onDel) => {
       accessorKey: 'date',
       header: 'Date',
       size: 110,
-      cell: ({ getValue }) => <span style={{ fontFamily: t.mono, fontSize: '11px', color: t.textMuted }}>{getValue()}</span>,
+      cell: ({ getValue }) => <span style={{ fontFamily: t.mono, fontSize: '11px', color: t.textMuted }}>{fmtDate(getValue())}</span>,
     },
     {
       accessorKey: 'status',
@@ -161,13 +161,13 @@ export const getBatchColumns = (permissions, isDark, t, onEdit, onDel) => {
       accessorKey: 'created_at',
       header: 'Created',
       size: 120,
-      cell: ({ getValue }) => <span style={{ fontFamily: t.mono, fontSize: '11px', color: t.textMuted }}>{getValue()}</span>,
+      cell: ({ getValue }) => <span style={{ fontFamily: t.mono, fontSize: '11px', color: t.textMuted }}>{fmtDate(getValue())}</span>,
     },
     {
       accessorKey: 'updated_at',
       header: 'Updated',
       size: 120,
-      cell: ({ getValue }) => <span style={{ fontFamily: t.mono, fontSize: '11px', color: t.textMuted }}>{getValue() || "—"}</span>,
+      cell: ({ getValue }) => <span style={{ fontFamily: t.mono, fontSize: '11px', color: t.textMuted }}>{fmtDate(getValue()) || "—"}</span>,
     },
     {
       accessorKey: 'notes',
@@ -201,7 +201,7 @@ export const getLedgerColumns = (permissions, isDark, t) => {
       accessorKey: 'created_at',
       header: 'Date',
       size: 110,
-      cell: ({ getValue }) => <span style={{ fontFamily: t.mono, fontSize: '11px', color: t.textMuted }}>{getValue()}</span>,
+      cell: ({ getValue }) => <span style={{ fontFamily: t.mono, fontSize: '11px', color: t.textMuted }}>{fmtDate(getValue())}</span>,
     },
     {
       accessorKey: 'entity_type',

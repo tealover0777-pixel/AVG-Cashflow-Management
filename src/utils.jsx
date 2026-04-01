@@ -15,6 +15,15 @@ export const fmtCurr = n => {
   return sign + "$" + Math.abs(num).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 };
 
+export const fmtDate = (val) => {
+  if (!val) return "";
+  let d;
+  if (val.seconds !== undefined && val.nanoseconds !== undefined) d = new Date(val.seconds * 1000);
+  else if (val.toDate && typeof val.toDate === 'function') d = val.toDate();
+  else { d = new Date(val); if (isNaN(d.getTime())) return String(val); }
+  return d.toISOString().split('T')[0];
+};
+
 
 export const mkId = (pre = "S") => `${pre}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
 

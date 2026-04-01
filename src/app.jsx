@@ -8,7 +8,7 @@ import { createRoot } from "react-dom/client";
 import { db, auth } from "./firebase";
 import { doc, getDoc } from "firebase/firestore";
 import { useFirestoreCollection } from "./useFirestoreCollection";
-import { mkTheme, getNav, getCollectionPaths, DIM_STYLES, DEFAULT_DIM_STYLE, MONTHLY, initials, av, fmtCurr } from "./utils";
+import { mkTheme, getNav, getCollectionPaths, DIM_STYLES, DEFAULT_DIM_STYLE, MONTHLY, initials, av, fmtCurr, fmtDate } from "./utils";
 import PageDashboard from "./pages/PageDashboard";
 import PageDeals from "./pages/PageDeals";
 import PageContacts from "./pages/PageContacts";
@@ -397,10 +397,10 @@ function AppContent() {
     description: d.description || "",
   }));
   const ACH_BATCHES = rawACHBatches.map(d => ({
-    id: d.batch_id || d.id, docId: d.doc_id || d.id, _path: d._path, batch_id: d.batch_id || "", status: d.status || "", created_at: d.created_at, updated_at: d.updated_at,
+    id: d.batch_id || d.id, docId: d.doc_id || d.id, _path: d._path, batch_id: d.batch_id || "", status: d.status || "", created_at: fmtDate(d.created_at), updated_at: fmtDate(d.updated_at),
   }));
   const LEDGER = rawLedger.map(d => ({
-    id: d.ledger_id || d.id, docId: d.doc_id || d.id, _path: d._path, entity_type: d.entity_type || "", entity_id: d.entity_id || "", amount: d.amount || 0, currency: d.currency || "", note: d.notes || "", created_at: d.created_at,
+    id: d.ledger_id || d.id, docId: d.doc_id || d.id, _path: d._path, entity_type: d.entity_type || "", entity_id: d.entity_id || "", amount: d.amount || 0, currency: d.currency || "", note: d.notes || "", created_at: fmtDate(d.created_at),
   }));
 
 
