@@ -341,6 +341,8 @@ export const DelModal = ({ target, open, onClose, onConfirm, onDel, label, title
 // ─────────────────────────────────────────────────────────────────────────────
 
 export const InvestorSummaryModal = ({ contact, onClose, isDark, t, INVESTMENTS, SCHEDULES, DEALS }) => {
+  const [activeTab, setActiveTab] = useState("Capital transactions");
+  
   if (!contact) return null;
   const dp = contact;
   const dpId = String(dp.id || "").trim();
@@ -361,121 +363,157 @@ export const InvestorSummaryModal = ({ contact, onClose, isDark, t, INVESTMENTS,
     return da - db;
   });
   
-  const totalValue = partyInvestments.reduce((sum, c) => {
+  const investedAmount = partyInvestments.reduce((sum, c) => {
     const amtStr = String(c.amount || 0).replace(/[^0-9.-]/g, '');
     return sum + (Number(amtStr) || 0);
   }, 0);
 
+  // Contributions logic: INVESTOR_PRINCIPAL_DEPOSIT
+  const contributions = partySchedules.filter(s => (s.payment_type || s.type) === "INVESTOR_PRINCIPAL_DEPOSIT" || (s.type === 'deposit'));
+  const totalContributions = contributions.reduce((sum, s) => sum + (Number(s.signed_payment_amount || s.payment_amount || String(s.amount || 0).replace(/[^0-9.-]/g,'')) || 0), 0);
+
+  // Withdrawals logic: PaymentStatus == "Withdrawals", or status
+  const withdrawals = partySchedules.filter(s => {
+      const st = (s.PaymentStatus || s.status || "").toLowerCase();
+      return st === "withdrawals" || st === "withdrawal";
+  });
+  const totalWithdrawals = withdrawals.reduce((sum, s) => sum + (Number(s.signed_payment_amount || s.payment_amount || String(s.amount || 0).replace(/[^0-9.-]/g,'')) || 0), 0);
+
+  const capitalBalance = totalContributions - Math.abs(totalWithdrawals);
+
+  // Distributed logic
+  const distributions = partySchedules.filter(s => {
+      const ty = (s.payment_type || s.type || "").toLowerCase();
+      return ty.includes("interest") || ty.includes("distribution");
+  });
+  const distributedAmount = distributions.reduce((sum, s) => sum + (Number(s.signed_payment_amount || s.payment_amount || String(s.amount || 0).replace(/[^0-9.-]/g,'')) || 0), 0);
+  
+  const tabs = ["Edit investment", "Investment documents", "Capital transactions", "Distributions", "Notes", "Investment changelog", "Investment sharing"];
+
+  // Helper for generic table rows
+  const renderDealTable = (items, emptyMsg) => {
+      if (!items || items.length === 0) return <div style={{ fontSize: 13, color: t.textMuted, padding: "16px 24px" }}>{emptyMsg}</div>;
+      return (
+        <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left" }}>
+          <thead style={{ background: isDark ? "rgba(255,255,255,0.02)" : "#FAFAFA", borderBottom: `1px solid ${t.surfaceBorder}` }}>
+            <tr>
+              <th style={{ padding: "12px 24px", fontSize: 11, fontWeight: 700, color: t.textMuted }}>DEAL</th>
+              <th style={{ padding: "12px 24px", fontSize: 11, fontWeight: 700, color: t.textMuted }}>TYPE</th>
+              <th style={{ padding: "12px 24px", fontSize: 11, fontWeight: 700, color: t.textMuted }}>MEMO</th>
+              <th style={{ padding: "12px 24px", fontSize: 11, fontWeight: 700, color: t.textMuted, textAlign: "right" }}>AMOUNT</th>
+              <th style={{ padding: "12px 24px", fontSize: 11, fontWeight: 700, color: t.textMuted, textAlign: "right" }}>RECEIVED DATE</th>
+            </tr>
+          </thead>
+          <tbody>
+            {items.map((s, i) => {
+              const d = DEALS.find(dd => dd.id === s.deal_id);
+              const dealName = d?.name || s.deal_id || s.project || "—";
+              return (
+                <tr key={i} style={{ borderBottom: i < items.length - 1 ? `1px solid ${t.surfaceBorder}` : "none" }}>
+                  <td style={{ padding: "14px 24px", fontSize: 13, fontWeight: 600, color: isDark ? "#fff" : "#1C1917" }}>{dealName}</td>
+                  <td style={{ padding: "14px 24px", fontSize: 13, color: t.textSecondary }}>{s.type || s.payment_type}</td>
+                  <td style={{ padding: "14px 24px", fontSize: 13, color: t.textSecondary }}>{s.memo || s.notes || "—"}</td>
+                  <td style={{ padding: "14px 24px", fontSize: 13, fontWeight: 600, color: isDark ? "#fff" : "#1C1917", textAlign: "right" }}>{fmtCurr(s.signed_payment_amount || s.payment_amount || s.amount)}</td>
+                  <td style={{ padding: "14px 24px", fontSize: 13, color: t.textSecondary, textAlign: "right" }}>{s.receivedDate || s.dueDate || s.date || "—"}</td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+      )
+  };
+
   return (
-    <div style={{ position: "fixed", inset: 0, zIndex: 9999, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+    <div style={{ position: "fixed", inset: 0, zIndex: 9999, background: "rgba(0,0,0,0.6)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center" }}>
       <div onClick={onClose} style={{ position: "absolute", inset: 0 }} />
-      <div style={{ position: "relative", background: isDark ? "#1C1917" : "#fff", borderRadius: 18, padding: 0, maxWidth: 720, width: "92%", maxHeight: "85vh", display: "flex", flexDirection: "column", boxShadow: "0 24px 60px rgba(0,0,0,0.3)", border: `1px solid ${t.surfaceBorder}` }}>
-        {/* Header */}
-        <div style={{ padding: "22px 28px", borderBottom: `1px solid ${t.surfaceBorder}`, display: "flex", justifyContent: "space-between", alignItems: "center", flexShrink: 0 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-            {(() => { 
-              const a2 = av(dp.name || dp.party_name, isDark); 
-              return <div style={{ width: 42, height: 42, borderRadius: 12, background: a2.bg, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, fontWeight: 700, color: a2.c, border: `1px solid ${a2.c}22` }}>{initials(dp.name || dp.party_name)}</div>; 
-            })()}
+      <div style={{ position: "relative", background: isDark ? "#0F0F0F" : "#fff", borderRadius: 16, padding: 0, maxWidth: 1100, width: "95%", height: "90vh", display: "flex", flexDirection: "column", boxShadow: "0 24px 60px rgba(0,0,0,0.4)", border: `1px solid ${isDark ? "rgba(255,255,255,0.08)" : "#E5E7EB"}`, overflow: "hidden" }}>
+        
+        {/* Header Section */}
+        <div style={{ padding: "32px 40px 0 40px", flexShrink: 0 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 24 }}>
             <div>
-              <div style={{ fontSize: 17, fontWeight: 700, color: isDark ? "#fff" : "#1C1917" }}>{dp.name || dp.party_name}</div>
-              <div style={{ fontSize: 12, marginTop: 2 }}>
+              <div style={{ fontSize: 24, fontWeight: 700, color: isDark ? "#fff" : "#111827", marginBottom: 8 }}>{dp.name || dp.party_name}</div>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <div style={{ fontSize: 14, color: isDark ? "#9CA3AF" : "#6B7280" }}>Holdings across all deals</div>
                 <Bdg status={dp.role} isDark={isDark} />
               </div>
             </div>
+            <button onClick={onClose} style={{ width: 36, height: 36, borderRadius: 18, background: isDark ? "rgba(255,255,255,0.1)" : "#F3F4F6", border: `1px solid ${t.surfaceBorder}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, cursor: "pointer", color: t.textSecondary, transition: "background 0.2s" }}>×</button>
           </div>
-          <button onClick={onClose} style={{ width: 32, height: 32, borderRadius: 8, background: isDark ? "rgba(255,255,255,0.08)" : "#F5F4F1", border: `1px solid ${t.surfaceBorder}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, cursor: "pointer", color: t.textMuted }}>×</button>
+
+          {/* Top Summary Cards */}
+          <div style={{ display: "flex", gap: 16, marginBottom: 32 }}>
+            {[
+              { label: "Invested amount", val: fmtCurr(investedAmount) },
+              { label: "Distributed amount", val: fmtCurr(distributedAmount) }
+            ].map((st, i) => (
+              <div key={i} style={{ flex: 1, padding: "20px 24px", borderRadius: 12, background: isDark ? "rgba(255,255,255,0.03)" : "#F9FAFB", border: `1px solid ${t.surfaceBorder}` }}>
+                <div style={{ fontSize: 12, fontWeight: 600, color: t.textMuted, marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.05em" }}>{st.label}</div>
+                <div style={{ fontSize: 24, fontWeight: 700, color: isDark ? "#fff" : "#111827" }}>{st.val}</div>
+              </div>
+            ))}
+          </div>
+
+          {/* Tabs */}
+          <div style={{ display: "flex", gap: 24, borderBottom: `1px solid ${t.surfaceBorder}` }}>
+            {tabs.map(tab => (
+              <div 
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                style={{ 
+                  padding: "12px 0", cursor: "pointer", fontSize: 14, fontWeight: activeTab === tab ? 600 : 500,
+                  color: activeTab === tab ? t.accent : t.textMuted,
+                  borderBottom: activeTab === tab ? `2px solid ${t.accent}` : "2px solid transparent",
+                  transition: "all 0.2s"
+                }}
+              >
+                {tab}
+              </div>
+            ))}
+          </div>
         </div>
-        {/* Body */}
-        <div style={{ flex: 1, overflow: "auto", padding: "20px 28px" }}>
-          {/* Investments grouped by project */}
-          {(() => {
-            const investmentsByProject = {};
-            partyInvestments.forEach(c => {
-              const key = c.project || "Unassigned";
-              (investmentsByProject[key] = investmentsByProject[key] || []).push(c);
-            });
-            const projectNames = Object.keys(investmentsByProject);
-            return (
-              <div style={{ marginBottom: 24 }}>
-                <div style={{ fontSize: 13, fontWeight: 700, color: isDark ? "#fff" : "#1C1917", marginBottom: 10, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <span>Investments ({partyInvestments.length})</span>
-                  <span style={{ fontSize: 12, fontWeight: 600, color: t.accent }}>{fmtCurr(totalValue)}</span>
+
+        {/* Body Section */}
+        <div style={{ flex: 1, overflow: "auto", padding: "32px 40px", background: isDark ? "#141414" : "#F9FAFB" }}>
+          
+          {activeTab === "Capital transactions" ? (
+            <div>
+              {/* Capital Balance Card (highlighted) */}
+              <div style={{ display: "flex", gap: 16, marginBottom: 32 }}>
+                <div style={{ width: 280, padding: "24px", borderRadius: 16, background: isDark ? "linear-gradient(145deg, rgba(59,130,246,0.15) 0%, rgba(37,99,235,0.05) 100%)" : "linear-gradient(145deg, #EFF6FF 0%, #DBEAFE 100%)", border: `1px solid ${isDark ? "rgba(59,130,246,0.2)" : "#BFDBFE"}`, boxShadow: isDark ? "none" : "0 4px 6px -1px rgba(59, 130, 246, 0.1)" }}>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: isDark ? "#93C5FD" : "#1D4ED8", marginBottom: 8, display: "flex", alignItems: "center", gap: 6 }}>
+                    <ArrowUp size={16} /> Capital balance
+                  </div>
+                  <div style={{ fontSize: 32, fontWeight: 700, color: isDark ? "#fff" : "#1E3A8A", marginBottom: 4 }}>{fmtCurr(capitalBalance)}</div>
+                  <div style={{ fontSize: 13, color: isDark ? "rgba(255,255,255,0.6)" : "#3B82F6" }}>Total contributions - Total withdrawals</div>
                 </div>
-                {partyInvestments.length === 0 && <div style={{ fontSize: 12, color: t.textMuted, padding: "12px 0" }}>No investments found</div>}
-                {projectNames.map(projName => (
-                  <div key={projName} style={{ marginBottom: 12 }}>
-                    <div style={{ fontSize: 11, fontWeight: 700, color: t.accent, marginBottom: 6, padding: "4px 0", borderBottom: `1px solid ${t.surfaceBorder}` }}>{projName}</div>
-                    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                      {investmentsByProject[projName].map(c => (
-                        <div key={c.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 14px", borderRadius: 12, background: isDark ? "rgba(255,255,255,0.03)" : "#F9FAFB", border: `1px solid ${isDark ? "rgba(255,255,255,0.05)" : "#F3F4F6"}` }}>
-                          <div style={{ flex: 1, minWidth: 0 }}>
-                            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 3 }}>
-                              <span style={{ fontSize: 13, fontWeight: 700, color: isDark ? "#fff" : "#1C1917" }}>
-                                {DEALS.find(d => d.id === c.deal_id)?.name || c.id}
-                              </span>
-                              <Bdg status={c.status} isDark={isDark} />
-                            </div>
-                            <div style={{ fontSize: 11, color: t.textMuted }}>{c.type || "—"} · {c.rate || "—"} · {c.freq || "—"} · {c.start_date || "—"} ~ {c.maturity_date || "—"}</div>
-                          </div>
-                          <div style={{ fontSize: 13, fontWeight: 700, color: isDark ? "#fff" : "#1C1917", flexShrink: 0 }}>{c.amount}</div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                ))}
               </div>
-            );
-          })()}
-          {/* Payment Schedules grouped by project */}
-          {(() => {
-            const schedulesByProject = {};
-            partySchedules.forEach(s => {
-              const investment = partyInvestments.find(c => c.id === s.investment);
-              const proj = DEALS.find(p => p.id === s.deal_id);
-              const key = investment?.project || proj?.name || "Unassigned";
-              (schedulesByProject[key] = schedulesByProject[key] || []).push(s);
-            });
-            const projectNames = Object.keys(schedulesByProject);
-            return (
-              <div>
-                <div style={{ fontSize: 13, fontWeight: 700, color: isDark ? "#fff" : "#1C1917", marginBottom: 10 }}>Payment Schedules ({partySchedules.length})</div>
-                {partySchedules.length === 0 && <div style={{ fontSize: 12, color: t.textMuted, padding: "12px 0" }}>No payment schedules</div>}
-                {projectNames.map(projName => (
-                  <div key={projName} style={{ marginBottom: 16 }}>
-                    <div style={{ fontSize: 11, fontWeight: 700, color: t.accent, marginBottom: 6, padding: "4px 0", borderBottom: `1px solid ${t.surfaceBorder}` }}>{projName}</div>
-                    <div style={{ borderRadius: 12, border: `1px solid ${t.surfaceBorder}`, overflow: "hidden" }}>
-                      <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left" }}>
-                        <thead style={{ background: isDark ? "rgba(255,255,255,0.03)" : "#FAFAFA" }}>
-                          <tr>
-                            <th style={{ padding: "10px 14px", fontSize: 10, fontWeight: 700, color: t.textMuted }}>DUE DATE</th>
-                            <th style={{ padding: "10px 14px", fontSize: 10, fontWeight: 700, color: t.textMuted }}>TYPE</th>
-                            <th style={{ padding: "10px 14px", fontSize: 10, fontWeight: 700, color: t.textMuted }}>DIR</th>
-                            <th style={{ padding: "10px 14px", fontSize: 10, fontWeight: 700, color: t.textMuted }}>AMOUNT</th>
-                            <th style={{ padding: "10px 14px", fontSize: 10, fontWeight: 700, color: t.textMuted }}>STATUS</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {schedulesByProject[projName].map((s, i) => {
-                            const arr = schedulesByProject[projName];
-                            return (
-                              <tr key={s.schedule_id || i} style={{ borderBottom: i < arr.length - 1 ? `1px solid ${t.surfaceBorder}` : "none" }}>
-                                <td style={{ padding: "10px 14px", fontSize: 11, fontFamily: t.mono, color: t.textMuted }}>{s.dueDate}</td>
-                                <td style={{ padding: "10px 14px", fontSize: 11, color: t.textSecondary }}>{s.type}{s.fee_id ? ` · ${s.fee_id}` : ""}</td>
-                                <td style={{ padding: "10px 14px", fontSize: 10, fontWeight: 600, color: s.direction === "IN" ? "#10B981" : "#EF4444" }}>{s.direction}</td>
-                                <td style={{ padding: "10px 14px", fontSize: 11.5, fontWeight: 600 }}>{fmtCurr(s.signed_payment_amount)}</td>
-                                <td style={{ padding: "10px 14px" }}><Bdg status={s.status} isDark={isDark} /></td>
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                ))}
+
+              {/* Contributions Table */}
+              <div style={{ background: isDark ? "#1C1917" : "#fff", borderRadius: 12, border: `1px solid ${t.surfaceBorder}`, overflow: "hidden", marginBottom: 32, boxShadow: "0 1px 2px rgba(0,0,0,0.05)" }}>
+                <div style={{ padding: "20px 24px", borderBottom: `1px solid ${t.surfaceBorder}`, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                  <div style={{ fontSize: 16, fontWeight: 700, color: isDark ? "#fff" : "#111827" }}>Contributions</div>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: t.accent }}>{fmtCurr(totalContributions)}</div>
+                </div>
+                {renderDealTable(contributions, "No contributions found.")}
               </div>
-            );
-          })()}
+
+              {/* Withdrawals Table */}
+              <div style={{ background: isDark ? "#1C1917" : "#fff", borderRadius: 12, border: `1px solid ${t.surfaceBorder}`, overflow: "hidden", marginBottom: 32, boxShadow: "0 1px 2px rgba(0,0,0,0.05)" }}>
+                <div style={{ padding: "20px 24px", borderBottom: `1px solid ${t.surfaceBorder}`, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                  <div style={{ fontSize: 16, fontWeight: 700, color: isDark ? "#fff" : "#111827" }}>Withdrawals</div>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: t.accent }}>{fmtCurr(Math.abs(totalWithdrawals))}</div>
+                </div>
+                {renderDealTable(withdrawals, "No withdrawals found.")}
+              </div>
+            </div>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "100%", opacity: 0.5 }}>
+              <Info size={48} style={{ marginBottom: 16, color: t.textMuted }} />
+              <div style={{ fontSize: 18, fontWeight: 600, color: isDark ? "#fff" : "#111827" }}>Coming Soon</div>
+              <div style={{ fontSize: 14, color: t.textMuted, marginTop: 8 }}>This tab is under construction.</div>
+            </div>
+          )}
         </div>
       </div>
     </div>
