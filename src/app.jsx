@@ -385,6 +385,8 @@ function AppContent() {
         date: fmtDate(d.payment_date),
         method: d.payment_method || "",
         direction: dir,
+        status: d.status || "Pending",
+        batch_id: d.batch_id || "",
         note: d.notes || ""
       };
     });

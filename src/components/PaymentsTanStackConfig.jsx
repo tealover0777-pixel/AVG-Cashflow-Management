@@ -81,6 +81,12 @@ export const getPaymentColumns = (permissions, isDark, t, onEdit, onDel) => {
       cell: ({ getValue }) => <span style={{ fontFamily: t.mono, fontSize: '11px', color: t.textMuted }}>{fmtDate(getValue())}</span>,
     },
     {
+      accessorKey: 'batch_id',
+      header: 'Batch',
+      size: 110,
+      cell: ({ getValue }) => <span style={{ fontFamily: t.mono, fontSize: '10.5px', color: t.idText }}>{getValue() || "—"}</span>,
+    },
+    {
       accessorKey: 'status',
       header: 'Status',
       size: 120,
@@ -90,7 +96,7 @@ export const getPaymentColumns = (permissions, isDark, t, onEdit, onDel) => {
         let text = "#6B7280";
         if (val === "Cleared" || val === "Sent") { bg = "rgba(16, 185, 129, 0.1)"; text = "#10B981"; }
         else if (val === "Pending") { bg = "rgba(245, 158, 11, 0.1)"; text = "#F59E0B"; }
-        else if (val === "Failed") { bg = "rgba(244, 63, 94, 0.1)"; text = "#F43F5E"; }
+        else if (val === "Failed") { bg = "rgba(244, 63, 128, 0.1)"; text = "#F43F5E"; }
         return <Bdg label={val} bg={bg} text={text} t={t} />;
       },
     },

@@ -69,11 +69,12 @@ export default function PagePayments({ t, isDark, PAYMENTS = [], INVESTMENTS = [
         payment_method: d.payment_method || "",
         direction: d.direction || "",
         status: d.status || "Pending",
-        batch_status: d.batch_status || "",
+        batch_id: d.batch_id || "", // Ensure batch_id is saved
         notes: d.notes || "",
         updated_at: serverTimestamp(),
       };
-      path = collectionPath;
+      // Use scheduleCollection if the item came from SCHEDULES
+      path = d._isSchedule ? scheduleCollection : collectionPath;
     } else if (type === "batch") {
       payload = {
         batch_id: d.batch_id || "",
@@ -115,14 +116,56 @@ export default function PagePayments({ t, isDark, PAYMENTS = [], INVESTMENTS = [
   const rowData = useMemo(() => {
     let baseData = [];
     if (activeTab === "Payments") {
-      baseData = chip === "All" ? PAYMENTS : PAYMENTS.filter(p => p.direction === chip);
+      // Include actual payments
+      const payments = PAYMENTS;
+      
+      // Include "Withdrawal" schedules that aren't processed yet
+      const withdrawals = SCHEDULES.filter(s => {
+        const type = (s.type || "").toLowerCase();
+        const status = (s.status || "").toLowerCase();
+        // Check for withdrawal type and ensure it's not already "Paid" or "Completed" in a way that implies it's done
+        const isWithdrawal = type.includes("withdrawal") || type.includes("withdrawl");
+        return isWithdrawal && status !== "paid" && status !== "completed";
+      }).map(s => ({
+        ...s,
+        id: s.id || s.docId,
+        investment: s.investment || s.investment_id || "",
+        amount: s.payment || s.amount || 0,
+        date: s.dueDate || s.date || "",
+        direction: "Sent", // Withdrawals are always outgoing
+        status: s.status || "Pending",
+        _isSchedule: true // Flag to distinguish from actual payment record if needed
+      }));
+
+      const merged = [...payments, ...withdrawals];
+      baseData = chip === "All" ? merged : merged.filter(p => p.direction === chip);
     } else if (activeTab === "ACH Batches") {
       baseData = ACH_BATCHES;
     } else {
       baseData = LEDGER;
     }
     return baseData;
-  }, [activeTab, chip, PAYMENTS, ACH_BATCHES, LEDGER]);
+  }, [activeTab, chip, PAYMENTS, SCHEDULES, ACH_BATCHES, LEDGER]);
+
+  const handleBulkBatchAssign = async (batchId) => {
+    if (!batchId) return;
+    const selectedIds = Array.from(sel);
+    const toUpdate = rowData.filter(r => selectedIds.includes(r.id));
+    
+    try {
+      for (const item of toUpdate) {
+        const path = item._isSchedule ? scheduleCollection : collectionPath;
+        const ref = doc(db, path, item.docId);
+        await updateDoc(ref, { 
+          batch_id: batchId,
+          updated_at: serverTimestamp()
+        });
+      }
+      setSel(new Set());
+    } catch (err) {
+      console.error("Bulk batch assign error:", err);
+    }
+  };
 
   return (<>
     <div style={{ marginBottom: 28, display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
@@ -166,7 +209,7 @@ export default function PagePayments({ t, isDark, PAYMENTS = [], INVESTMENTS = [
       </div>
     )}
 
-    <div style={{ height: "calc(100vh - 420px)", width: "100%", minHeight: "500px" }}>
+    <div style={{ height: "calc(100vh - 420px)", width: "100%", minHeight: "500px", position: "relative" }}>
       <TanStackTable
         ref={gridRef}
         data={rowData}
@@ -176,6 +219,26 @@ export default function PagePayments({ t, isDark, PAYMENTS = [], INVESTMENTS = [
         isDark={isDark}
         onSelectionChange={(selected) => setSel(new Set(selected.map(r => r.id)))}
       />
+
+      {/* Bulk Actions Bar */}
+      {sel.size > 0 && activeTab === "Payments" && (
+        <div style={{ position: "absolute", bottom: 24, left: "50%", transform: "translateX(-50%)", background: isDark ? "#1C1917" : "#fff", padding: "12px 24px", borderRadius: 12, boxShadow: "0 10px 25px rgba(0,0,0,0.2)", border: `1px solid ${t.surfaceBorder}`, display: "flex", alignItems: "center", gap: 20, zIndex: 100, animation: "slideUp 0.3s ease-out" }}>
+          <div style={{ fontSize: 13, fontWeight: 600, color: t.text }}>{sel.size} selected</div>
+          <div style={{ height: 20, width: 1, background: t.surfaceBorder }} />
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <span style={{ fontSize: 12, color: t.textMuted }}>Assign to Batch:</span>
+            <select 
+              onChange={(e) => handleBulkBatchAssign(e.target.value)}
+              value=""
+              style={{ padding: "6px 12px", borderRadius: 8, background: isDark ? "rgba(255,255,255,0.05)" : "#F3F4F6", border: `1px solid ${t.surfaceBorder}`, color: t.text, fontSize: 12, outline: "none" }}
+            >
+              <option value="" disabled>Select Batch...</option>
+              {ACH_BATCHES.map(b => <option key={b.id} value={b.batch_id}>{b.batch_id} ({b.status})</option>)}
+            </select>
+          </div>
+          <button onClick={() => setSel(new Set())} style={{ background: "none", border: "none", color: t.textMuted, fontSize: 12, cursor: "pointer", fontWeight: 500 }}>Cancel</button>
+        </div>
+      )}
     </div>
 
     {/* Modals */}
@@ -198,7 +261,17 @@ export default function PagePayments({ t, isDark, PAYMENTS = [], INVESTMENTS = [
             <FF label="Method" t={t}><FSel value={modal.data.payment_method} onChange={e => setF("payment_method", e.target.value)} options={["Wire", "ACH", "Check", "Internal"]} t={t} /></FF>
             <FF label="Status" t={t}><FSel value={modal.data.status} onChange={e => setF("status", e.target.value)} options={paymentStatusOpts} t={t} /></FF>
           </div>
-          <FF label="Notes" t={t}><FIn value={modal.data.notes} onChange={e => setF("notes", e.target.value)} placeholder="Optional note..." t={t} /></FF>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+            <FF label="Batch ID" t={t}>
+              <FSel 
+                value={modal.data.batch_id} 
+                onChange={e => setF("batch_id", e.target.value)} 
+                options={["", ...ACH_BATCHES.map(b => b.batch_id)]} 
+                t={t} 
+              />
+            </FF>
+            <FF label="Notes" t={t}><FIn value={modal.data.notes} onChange={e => setF("notes", e.target.value)} placeholder="Optional note..." t={t} /></FF>
+          </div>
         </>
       ) : (
         <>
