@@ -340,8 +340,14 @@ export const DelModal = ({ target, open, onClose, onConfirm, onDel, label, title
 // INVESTOR SUMMARY MODAL
 // ─────────────────────────────────────────────────────────────────────────────
 
-export const InvestorSummaryModal = ({ contact, onClose, isDark, t, INVESTMENTS, SCHEDULES, DEALS }) => {
+export const InvestorSummaryModal = ({ contact, defaultView = "simple", onClose, isDark, t, INVESTMENTS, SCHEDULES, DEALS }) => {
   const [activeTab, setActiveTab] = useState("Capital transactions");
+  const [viewMode, setViewMode] = useState(defaultView);
+  
+  useEffect(() => {
+    setViewMode(defaultView);
+  }, [defaultView, contact]);
+
   
   if (!contact) return null;
   const dp = contact;
@@ -438,45 +444,76 @@ export const InvestorSummaryModal = ({ contact, onClose, isDark, t, INVESTMENTS,
                 <Bdg status={dp.role} isDark={isDark} />
               </div>
             </div>
-            <button onClick={onClose} style={{ width: 36, height: 36, borderRadius: 18, background: isDark ? "rgba(255,255,255,0.1)" : "#F3F4F6", border: `1px solid ${t.surfaceBorder}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, cursor: "pointer", color: t.textSecondary, transition: "background 0.2s" }}>×</button>
+            <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+              <div style={{ display: "flex", background: isDark ? "rgba(255,255,255,0.05)" : "#F3F4F6", padding: 4, borderRadius: 8 }}>
+                <button onClick={() => setViewMode("simple")} style={{ padding: "6px 16px", borderRadius: 6, background: viewMode === "simple" ? (isDark ? "#3B82F6" : "#fff") : "transparent", color: viewMode === "simple" ? (isDark ? "#fff" : "#111827") : t.textSecondary, boxShadow: viewMode === "simple" && !isDark ? "0 1px 3px rgba(0,0,0,0.1)" : "none", border: "none", fontWeight: 600, cursor: "pointer", fontSize: 13, transition: "all 0.2s" }}>Simple View</button>
+                <button onClick={() => setViewMode("detail")} style={{ padding: "6px 16px", borderRadius: 6, background: viewMode === "detail" ? (isDark ? "#3B82F6" : "#fff") : "transparent", color: viewMode === "detail" ? (isDark ? "#fff" : "#111827") : t.textSecondary, boxShadow: viewMode === "detail" && !isDark ? "0 1px 3px rgba(0,0,0,0.1)" : "none", border: "none", fontWeight: 600, cursor: "pointer", fontSize: 13, transition: "all 0.2s" }}>Detail View</button>
+              </div>
+              <button onClick={onClose} style={{ width: 36, height: 36, borderRadius: 18, background: isDark ? "rgba(255,255,255,0.1)" : "#F3F4F6", border: `1px solid ${t.surfaceBorder}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, cursor: "pointer", color: t.textSecondary, transition: "background 0.2s" }}>×</button>
+            </div>
           </div>
 
-          {/* Top Summary Cards */}
-          <div style={{ display: "flex", gap: 16, marginBottom: 32 }}>
-            {[
-              { label: "Invested amount", val: fmtCurr(investedAmount) },
-              { label: "Distributed amount", val: fmtCurr(distributedAmount) }
-            ].map((st, i) => (
-              <div key={i} style={{ flex: 1, padding: "20px 24px", borderRadius: 12, background: isDark ? "rgba(255,255,255,0.03)" : "#F9FAFB", border: `1px solid ${t.surfaceBorder}` }}>
-                <div style={{ fontSize: 12, fontWeight: 600, color: t.textMuted, marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.05em" }}>{st.label}</div>
-                <div style={{ fontSize: 24, fontWeight: 700, color: isDark ? "#fff" : "#111827" }}>{st.val}</div>
+          {viewMode === "simple" && (
+            <>
+              {/* Top Summary Cards */}
+              <div style={{ display: "flex", gap: 16, marginBottom: 32 }}>
+                {[
+                  { label: "Invested amount", val: fmtCurr(investedAmount) },
+                  { label: "Distributed amount", val: fmtCurr(distributedAmount) }
+                ].map((st, i) => (
+                  <div key={i} style={{ flex: 1, padding: "20px 24px", borderRadius: 12, background: isDark ? "rgba(255,255,255,0.03)" : "#F9FAFB", border: `1px solid ${t.surfaceBorder}` }}>
+                    <div style={{ fontSize: 12, fontWeight: 600, color: t.textMuted, marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.05em" }}>{st.label}</div>
+                    <div style={{ fontSize: 24, fontWeight: 700, color: isDark ? "#fff" : "#111827" }}>{st.val}</div>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
 
-          {/* Tabs */}
-          <div style={{ display: "flex", gap: 24, borderBottom: `1px solid ${t.surfaceBorder}` }}>
-            {tabs.map(tab => (
-              <div 
-                key={tab}
-                onClick={() => setActiveTab(tab)}
-                style={{ 
-                  padding: "12px 0", cursor: "pointer", fontSize: 14, fontWeight: activeTab === tab ? 600 : 500,
-                  color: activeTab === tab ? t.accent : t.textMuted,
-                  borderBottom: activeTab === tab ? `2px solid ${t.accent}` : "2px solid transparent",
-                  transition: "all 0.2s"
-                }}
-              >
-                {tab}
+              {/* Tabs */}
+              <div style={{ display: "flex", gap: 24, borderBottom: `1px solid ${t.surfaceBorder}` }}>
+                {tabs.map(tab => (
+                  <div 
+                    key={tab}
+                    onClick={() => setActiveTab(tab)}
+                    style={{ 
+                      padding: "12px 0", cursor: "pointer", fontSize: 14, fontWeight: activeTab === tab ? 600 : 500,
+                      color: activeTab === tab ? t.accent : t.textMuted,
+                      borderBottom: activeTab === tab ? `2px solid ${t.accent}` : "2px solid transparent",
+                      transition: "all 0.2s"
+                    }}
+                  >
+                    {tab}
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
+            </>
+          )}
         </div>
 
         {/* Body Section */}
         <div style={{ flex: 1, overflow: "auto", padding: "32px 40px", background: isDark ? "#141414" : "#F9FAFB" }}>
           
-          {activeTab === "Capital transactions" ? (
+          {viewMode === "detail" ? (
+            <div style={{ display: "flex", flexDirection: "column", gap: 24, maxWidth: 800 }}>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
+                <FF label="First Name" t={t}><div style={{ padding: "12px 16px", background: isDark ? "rgba(255,255,255,0.03)" : "#fff", border: `1px solid ${t.surfaceBorder}`, borderRadius: 8, color: t.text, fontWeight: 500 }}>{dp.first_name || dp.party_name || "—"}</div></FF>
+                <FF label="Last Name" t={t}><div style={{ padding: "12px 16px", background: isDark ? "rgba(255,255,255,0.03)" : "#fff", border: `1px solid ${t.surfaceBorder}`, borderRadius: 8, color: t.text, fontWeight: 500 }}>{dp.last_name || "—"}</div></FF>
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
+                <FF label="Contact Type" t={t}><div style={{ padding: "12px 16px", background: isDark ? "rgba(255,255,255,0.03)" : "#fff", border: `1px solid ${t.surfaceBorder}`, borderRadius: 8, color: t.text, fontWeight: 500 }}>{dp.party_type || dp.type || "—"}</div></FF>
+                <FF label="Role" t={t}><div style={{ padding: "12px 16px", background: isDark ? "rgba(255,255,255,0.03)" : "#fff", border: `1px solid ${t.surfaceBorder}`, borderRadius: 8, color: t.text, fontWeight: 500 }}>{dp.role_type || dp.role || "—"}</div></FF>
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
+                <FF label="Email" t={t}><div style={{ padding: "12px 16px", background: isDark ? "rgba(255,255,255,0.03)" : "#fff", border: `1px solid ${t.surfaceBorder}`, borderRadius: 8, color: t.text, fontWeight: 500 }}>{dp.email || "—"}</div></FF>
+                <FF label="Phone" t={t}><div style={{ padding: "12px 16px", background: isDark ? "rgba(255,255,255,0.03)" : "#fff", border: `1px solid ${t.surfaceBorder}`, borderRadius: 8, color: t.text, fontWeight: 500 }}>{dp.phone || "—"}</div></FF>
+              </div>
+              <FF label="Address" t={t}><div style={{ padding: "12px 16px", background: isDark ? "rgba(255,255,255,0.03)" : "#fff", border: `1px solid ${t.surfaceBorder}`, borderRadius: 8, color: t.text, fontWeight: 500 }}>{dp.address || "—"}</div></FF>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
+                <FF label="Bank Information" t={t}><div style={{ padding: "12px 16px", background: isDark ? "rgba(255,255,255,0.03)" : "#fff", border: `1px solid ${t.surfaceBorder}`, borderRadius: 8, color: t.text, fontWeight: 500 }}>{dp.bank_information || "—"}</div></FF>
+                <FF label="Tax ID" t={t}><div style={{ padding: "12px 16px", background: isDark ? "rgba(255,255,255,0.03)" : "#fff", border: `1px solid ${t.surfaceBorder}`, borderRadius: 8, color: t.text, fontWeight: 500 }}>{dp.tax_id || "—"}</div></FF>
+              </div>
+              <FF label="Payment Method" t={t}><div style={{ padding: "12px 16px", background: isDark ? "rgba(255,255,255,0.03)" : "#fff", border: `1px solid ${t.surfaceBorder}`, borderRadius: 8, color: t.text, fontWeight: 500 }}>{dp.payment_method || "—"}</div></FF>
+            </div>
+          ) : activeTab === "Capital transactions" ? (
             <div>
               {/* Capital Balance Card (highlighted) */}
               <div style={{ display: "flex", gap: 16, marginBottom: 32 }}>

@@ -43,8 +43,14 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
   const [bulkInvestmentStatus, setBulkInvestmentStatus] = useState(investmentStatusOpts[0] || "");
   const [bulkScheduleStatus, setBulkScheduleStatus] = useState(paymentStatusOpts[0] || "");
   const [scheduleModal, setScheduleModal] = useState({ open: false, data: {} });
+  const [contactModal, setContactModal] = useState({ open: false, mode: "existing", data: {} });
   const [confirmAction, setConfirmAction] = useState(null); // { title: string, message: string, onConfirm: () => void }
-  const [pivotColWidths, setPivotColWidths] = useState([180, 150, 100, 100, 80, 70, 110]); // Name, Type, Start, End, Freq, Rate, Method
+  
+  const roleOpts = (DIMENSIONS.find(d => d.name === "ContactRole") || {}).items || ["Investor", "Borrower"];
+  const partyTypeOpts = (DIMENSIONS.find(d => d.name === "ContactType") || {}).items || ["Individual", "Company", "Trust", "Partnership"];
+  const investorTypeOpts = (DIMENSIONS.find(d => d.name === "InvestorType") || {}).items || ["Fixed", "Equity", "Both"];
+
+  const pivotColWidths = [180, 150, 100, 100, 80, 70, 110]; // Name, Type, Start, End, Freq, Rate, Method
   const [pivotFilters, setPivotFilters] = useState({
     investor: "",
     type: "",
@@ -396,6 +402,86 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
     setModal({ open: true, mode: "edit", data: { ...r, feeIds } });
   };
   
+  const openAddContactModal = () => setContactModal({ open: true, mode: "existing", data: { type: "Individual", role: "Investor", investor_type: "Fixed" } });
+
+  const handleSaveContactToDeal = async () => {
+    try {
+      let partyId = "";
+      let partyName = "";
+      const isNew = contactModal.mode === "new";
+
+      if (isNew) {
+        if (!contactModal.data.first_name || !contactModal.data.last_name || !contactModal.data.email) {
+          alert("Please fill in first name, last name, and email.");
+          return;
+        }
+        partyId = `P${Date.now()}R${Math.floor(Math.random() * 1000)}`;
+        partyName = (contactModal.data.type === "Company" && contactModal.data.company_name)
+          ? contactModal.data.company_name
+          : `${contactModal.data.first_name} ${contactModal.data.last_name}`.trim();
+
+        const partyPathPrefix = investmentCollection.includes("/") 
+          ? investmentCollection.substring(0, investmentCollection.lastIndexOf("/")) + "/parties" 
+          : "parties";
+
+        const docRef = doc(db, partyPathPrefix, partyId);
+        await setDoc(docRef, {
+          id: partyId,
+          party_id: partyId,
+          doc_id: partyId,
+          party_name: partyName,
+          first_name: contactModal.data.first_name || "",
+          last_name: contactModal.data.last_name || "",
+          email: contactModal.data.email || "",
+          phone: contactModal.data.phone || "",
+          party_type: contactModal.data.type || "Individual",
+          role_type: contactModal.data.role || "Investor",
+          investor_type: contactModal.data.investor_type || "Fixed",
+          address: contactModal.data.address || "",
+          bank_information: contactModal.data.bank_information || "",
+          tax_id: contactModal.data.tax_id || "",
+          payment_method: contactModal.data.payment_method || "",
+          created_at: serverTimestamp(),
+          updated_at: serverTimestamp(),
+        });
+      } else {
+        if (!contactModal.data.selectedPartyId) {
+          alert("Please select a contact.");
+          return;
+        }
+        partyId = contactModal.data.selectedPartyId;
+        const party = CONTACTS.find(p => p.id === partyId || p.docId === partyId);
+        partyName = party ? party.name : partyId;
+      }
+
+      // Create $0 investment record
+      const invId = `INV${Date.now()}R${Math.floor(Math.random() * 100)}`;
+      
+      const newInv = {
+        id: invId,
+        investment_id: invId,
+        doc_id: invId,
+        amount: 0,
+        deal_id: deal.id,
+        deal_name: deal.name,
+        party_id: partyId,
+        party_name: partyName,
+        investment_type: "Investor",
+        status: "Active",
+        start_date: deal.startDate || "",
+        created_at: serverTimestamp(),
+        updated_at: serverTimestamp(),
+      };
+      const invRef = doc(db, investmentCollection, invId);
+      await setDoc(invRef, newInv);
+
+      setContactModal({ open: false, mode: "existing", data: {} });
+    } catch (err) {
+      console.error(err);
+      alert("Failed to add contact: " + (err.message || String(err)));
+    }
+  };
+
   const handleSaveInvestment = async () => {
     const d = modal.data;
     const dealObj = DEALS.find(p => p.name === d.deal);
@@ -1056,7 +1142,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
     onDelete: setDelT,
     onContactClick: (r) => {
       const cp = CONTACTS.find(x => x.name === r.party || x.id === r.party_id || x.docId === r.party_id);
-      if (cp) setDetailContact(cp);
+      if (cp) setDetailContact({ data: cp, view: "simple" });
     }
   };
   const context = { CONTACTS, FEES_DATA, callbacks, permissions, isDark, t };
@@ -1137,7 +1223,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
       },
       onContactClick: (id) => {
         const c = (CONTACTS || []).find(x => x.id === id);
-        if (c) setDetailContact(c);
+        if (c) setDetailContact({ data: c, view: "simple" });
       },
       onDealClick: (id) => setActivePage("Deals", { dealId: id })
     });
@@ -1147,7 +1233,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
     // Standardized context for contact columns
     const contactContext = {
       callbacks: {
-        onNameClick: (r) => setDetailContact(r),
+        onNameClick: (r) => setDetailContact({ data: r, view: "detail" }),
         onEdit: (r) => { /* Optional: specific logic */ },
         onDelete: (r) => { /* Optional: specific logic */ },
         onInvite: (r) => { /* Optional: specific logic */ }
@@ -1287,6 +1373,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
 
              {canCreate && activeTab === "Investments" && <button onClick={openAdd} style={{ background: t.accentGrad || t.accent, color: "#fff", border: "none", padding: "11px 22px", borderRadius: 11, fontSize: 13.5, fontWeight: 600, boxShadow: `0 4px 16px ${t.accentShadow || "none"}`, display: "flex", alignItems: "center", gap: 7 }}><span style={{ fontSize: 18, lineHeight: 1 }}>+</span> Add investment</button>}
              {canCreate && activeTab === "Assets" && <button onClick={openAddAsset} style={{ background: t.accentGrad || t.accent, color: "#fff", border: "none", padding: "11px 20px", borderRadius: 11, fontSize: 13, fontWeight: 600, boxShadow: `0 4px 16px ${t.accentShadow || "none"}`, display: "flex", alignItems: "center", gap: 7 }}><span style={{ fontSize: 18, lineHeight: 1 }}>+</span> Add asset</button>}
+             {canCreate && activeTab === "Contacts" && <button onClick={openAddContactModal} style={{ background: t.accentGrad || t.accent, color: "#fff", border: "none", padding: "11px 20px", borderRadius: 11, fontSize: 13, fontWeight: 600, boxShadow: `0 4px 16px ${t.accentShadow || "none"}`, display: "flex", alignItems: "center", gap: 7 }}><span style={{ fontSize: 18, lineHeight: 1 }}>+</span> New/Add Contact</button>}
           </div>
         </div>
       </div>
@@ -1668,7 +1755,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
                               <span 
                                 onClick={() => {
                                   const inv = CONTACTS.find(c => c.name === row.investor);
-                                  if (inv) setDetailContact(inv);
+                                  if (inv) setDetailContact({ data: inv, view: "simple" });
                                 }}
                                 style={{ 
                                   cursor: "pointer", 
@@ -2098,6 +2185,77 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
           </FF>
         )}
       </Modal>
+
+      {/* Add Contact Modal */}
+      <Modal 
+        open={contactModal.open} 
+        onClose={() => setContactModal({ open: false, mode: "existing", data: {} })} 
+        title={contactModal.mode === "new" ? "Add New Contact to Deal" : "Add Existing Contact to Deal"} 
+        onSave={handleSaveContactToDeal} 
+        width={600} 
+        t={t} 
+        isDark={isDark}
+      >
+        <div style={{ display: "flex", gap: 12, marginBottom: 20 }}>
+          <button 
+            type="button"
+            onClick={() => setContactModal(prev => ({ ...prev, mode: "existing" }))} 
+            style={{ flex: 1, padding: "8px 16px", borderRadius: 8, border: `1px solid ${contactModal.mode === "existing" ? t.accent : t.surfaceBorder}`, background: contactModal.mode === "existing" ? (isDark ? "rgba(59,130,246,0.1)" : "#EFF6FF") : "transparent", color: contactModal.mode === "existing" ? t.accent : t.text, fontWeight: 600, cursor: "pointer" }}
+          >
+            Select Existing Contact
+          </button>
+          <button 
+            type="button"
+            onClick={() => setContactModal(prev => ({ ...prev, mode: "new" }))} 
+            style={{ flex: 1, padding: "8px 16px", borderRadius: 8, border: `1px solid ${contactModal.mode === "new" ? t.accent : t.surfaceBorder}`, background: contactModal.mode === "new" ? (isDark ? "rgba(59,130,246,0.1)" : "#EFF6FF") : "transparent", color: contactModal.mode === "new" ? t.accent : t.text, fontWeight: 600, cursor: "pointer" }}
+          >
+            Create New Contact
+          </button>
+        </div>
+
+        {contactModal.mode === "existing" ? (
+          <FF label="Select Contact" t={t}>
+            <select
+              value={contactModal.data.selectedPartyId || ""}
+              onChange={e => setContactModal(prev => ({ ...prev, data: { ...prev.data, selectedPartyId: e.target.value } }))}
+              style={{ width: "100%", background: t.searchBg, border: `1px solid ${t.searchBorder}`, borderRadius: 9, padding: "10px 13px", color: contactModal.data.selectedPartyId ? t.searchText : (t.textMuted), fontSize: 13.5, fontFamily: "inherit", outline: "none", cursor: "pointer" }}
+            >
+              <option value="">Select an existing contact...</option>
+              {CONTACTS.map(c => (
+                <option key={c.id} value={c.id}>{c.name} ({c.email || c.role || c.type || "Unknown"})</option>
+              ))}
+            </select>
+          </FF>
+        ) : (
+          <>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+              <FF label="First Name" t={t}><FIn value={contactModal.data.first_name || ""} onChange={e => setContactModal(prev => ({ ...prev, data: { ...prev.data, first_name: e.target.value } }))} placeholder="e.g. John" t={t} /></FF>
+              <FF label="Last Name" t={t}><FIn value={contactModal.data.last_name || ""} onChange={e => setContactModal(prev => ({ ...prev, data: { ...prev.data, last_name: e.target.value } }))} placeholder="e.g. Doe" t={t} /></FF>
+            </div>
+            {contactModal.data.type === "Company" && (
+              <FF label="Company Name" t={t}><FIn value={contactModal.data.company_name || ""} onChange={e => setContactModal(prev => ({ ...prev, data: { ...prev.data, company_name: e.target.value } }))} placeholder="e.g. Acme Corp" t={t} /></FF>
+            )}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+              <FF label="Contact Type" t={t}><FSel value={contactModal.data.type || "Individual"} onChange={e => setContactModal(prev => ({ ...prev, data: { ...prev.data, type: e.target.value } }))} options={partyTypeOpts} t={t} /></FF>
+              <FF label="Role" t={t}><FSel value={contactModal.data.role || "Investor"} onChange={e => setContactModal(prev => ({ ...prev, data: { ...prev.data, role: e.target.value } }))} options={roleOpts} t={t} /></FF>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+              <FF label="Investor Type" t={t}><FSel value={contactModal.data.investor_type || "Fixed"} onChange={e => setContactModal(prev => ({ ...prev, data: { ...prev.data, investor_type: e.target.value } }))} options={investorTypeOpts} t={t} /></FF>
+              <FF label="Email" t={t}><FIn value={contactModal.data.email || ""} onChange={e => setContactModal(prev => ({ ...prev, data: { ...prev.data, email: e.target.value } }))} placeholder="email@example.com" t={t} type="email" /></FF>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+              <FF label="Phone" t={t}><FIn value={contactModal.data.phone || ""} onChange={e => setContactModal(prev => ({ ...prev, data: { ...prev.data, phone: e.target.value } }))} placeholder="e.g. 555-123-4567" t={t} /></FF>
+              <FF label="Tax ID" t={t}><FIn value={contactModal.data.tax_id || ""} onChange={e => setContactModal(prev => ({ ...prev, data: { ...prev.data, tax_id: e.target.value } }))} placeholder="e.g. 12-3456789" t={t} /></FF>
+            </div>
+            <FF label="Address" t={t}><FIn value={contactModal.data.address || ""} onChange={e => setContactModal(prev => ({ ...prev, data: { ...prev.data, address: e.target.value } }))} placeholder="Full address" t={t} /></FF>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+              <FF label="Bank Information" t={t}><FIn value={contactModal.data.bank_information || ""} onChange={e => setContactModal(prev => ({ ...prev, data: { ...prev.data, bank_information: e.target.value } }))} placeholder="e.g. Citibank" t={t} /></FF>
+              <FF label="Payment Method" t={t}><FSel value={contactModal.data.payment_method || ""} onChange={e => setContactModal(prev => ({ ...prev, data: { ...prev.data, payment_method: e.target.value } }))} options={paymentMethods} t={t} /></FF>
+            </div>
+          </>
+        )}
+      </Modal>
+
 
       {/* Schedule Edit Modal */}
       <Modal
@@ -2610,7 +2768,8 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
       </Modal>
 
       <InvestorSummaryModal 
-        contact={detailContact}
+        contact={detailContact?.data || detailContact}
+        defaultView={detailContact?.view || "simple"}
         onClose={() => setDetailContact(null)}
         isDark={isDark}
         t={t}
