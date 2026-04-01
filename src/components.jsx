@@ -381,7 +381,7 @@ export const InvestorSummaryModal = ({ contact, defaultView = "simple", onClose,
   // Withdrawals logic: PaymentStatus == "Withdrawals", or status
   const withdrawals = partySchedules.filter(s => {
       const st = (s.PaymentStatus || s.status || "").toLowerCase();
-      return st === "withdrawals" || st === "withdrawal";
+      return st === "withdrawals" || st === "withdrawal" || st === "withdrawl";
   });
   const totalWithdrawals = withdrawals.reduce((sum, s) => sum + (Number(s.signed_payment_amount || s.payment_amount || String(s.amount || 0).replace(/[^0-9.-]/g,'')) || 0), 0);
 
@@ -461,7 +461,8 @@ export const InvestorSummaryModal = ({ contact, defaultView = "simple", onClose,
               <div style={{ display: "flex", gap: 16, marginBottom: 32 }}>
                 {[
                   { label: "Invested amount", val: fmtCurr(investedAmount) },
-                  { label: "Distributed amount", val: fmtCurr(distributedAmount) }
+                  { label: "Distributed amount", val: fmtCurr(distributedAmount) },
+                  { label: "Net capital", val: fmtCurr(capitalBalance) }
                 ].map((st, i) => (
                   <div key={i} style={{ flex: 1, padding: "20px 24px", borderRadius: 12, background: isDark ? "rgba(255,255,255,0.03)" : "#F9FAFB", border: `1px solid ${t.surfaceBorder}` }}>
                     <div style={{ fontSize: 12, fontWeight: 600, color: t.textMuted, marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.05em" }}>{st.label}</div>
