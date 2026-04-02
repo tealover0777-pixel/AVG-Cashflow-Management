@@ -340,19 +340,63 @@ export const DelModal = ({ target, open, onClose, onConfirm, onDel, label, title
 // INVESTOR SUMMARY MODAL
 // ─────────────────────────────────────────────────────────────────────────────
 
-export const InvestorSummaryModal = ({ contact, defaultView = "simple", onClose, isDark, t, INVESTMENTS, SCHEDULES, DEALS }) => {
+export const InvestorSummaryModal = ({ contact, defaultView = "simple", onClose, isDark, t, INVESTMENTS, SCHEDULES, DEALS, onUpdate, DIMENSIONS = [] }) => {
   const [activeTab, setActiveTab] = useState("Capital transactions");
   const [viewMode, setViewMode] = useState(defaultView);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editData, setEditData] = useState({});
+  const [saving, setSaving] = useState(false);
   
   useEffect(() => {
     setViewMode(defaultView);
+    if (contact) {
+      setEditData({ 
+        ...contact,
+        first_name: contact.first_name || "",
+        last_name: contact.last_name || "",
+        party_type: contact.party_type || contact.type || "Individual",
+        role_type: contact.role_type || contact.role || "Investor",
+        email: contact.email || "",
+        phone: contact.phone || "",
+        address: contact.address || "",
+        bank_information: contact.bank_information || "",
+        tax_id: contact.tax_id || "",
+        payment_method: contact.payment_method || ""
+      });
+      setIsEditing(false);
+    }
   }, [defaultView, contact]);
 
-  
   if (!contact) return null;
   const dp = contact;
+  const showData = isEditing ? editData : contact;
   const dpId = String(dp.id || "").trim();
   const dpDocId = String(dp.docId || "").trim();
+
+  const roleOpts = (DIMENSIONS.find(d => d.name === "ContactRole" || d.name === "Contact Role") || {}).items || ["Investor", "Borrower"];
+  const partyTypeOpts = (DIMENSIONS.find(d => d.name === "ContactType" || d.name === "Contact Type") || {}).items || ["Individual", "Company", "Trust", "Partnership"];
+  const paymentMethods = (DIMENSIONS.find(d => d.name === "Payment Method" || d.name === "PaymentMethod") || {}).items || [];
+
+  const handleSave = async () => {
+    if (!onUpdate) return;
+    setSaving(true);
+    try {
+      await onUpdate(editData);
+      setIsEditing(false);
+    } catch (err) {
+      alert("Failed to update contact: " + err.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const setED = (newVal) => {
+    const next = { ...editData, ...newVal };
+    if (newVal.hasOwnProperty('first_name') || newVal.hasOwnProperty('last_name')) {
+      next.party_name = `${next.first_name || ""} ${next.last_name || ""}`.trim() || next.name || "";
+    }
+    setEditData(next);
+  };
   
   const partyInvestments = INVESTMENTS.filter(c => {
     const cPId = String(c.party_id || "").trim();
@@ -440,17 +484,40 @@ export const InvestorSummaryModal = ({ contact, defaultView = "simple", onClose,
         <div style={{ padding: "32px 40px 0 40px", flexShrink: 0 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 24 }}>
             <div>
-              <div style={{ fontSize: 24, fontWeight: 700, color: isDark ? "#fff" : "#111827", marginBottom: 8 }}>{dp.name || dp.party_name}</div>
+              <div style={{ fontSize: 24, fontWeight: 700, color: isDark ? "#fff" : "#111827", marginBottom: 8 }}>
+                {showData.party_name || showData.name || "—"}
+              </div>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <div style={{ fontSize: 14, color: isDark ? "#9CA3AF" : "#6B7280" }}>Holdings across all deals</div>
-                <Bdg status={dp.role} isDark={isDark} />
+                <Bdg status={showData.role_type || showData.role} isDark={isDark} />
               </div>
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
               <div style={{ display: "flex", background: isDark ? "rgba(255,255,255,0.05)" : "#F3F4F6", padding: 4, borderRadius: 8 }}>
-                <button onClick={() => setViewMode("simple")} style={{ padding: "6px 16px", borderRadius: 6, background: viewMode === "simple" ? (isDark ? "#3B82F6" : "#fff") : "transparent", color: viewMode === "simple" ? (isDark ? "#fff" : "#111827") : t.textSecondary, boxShadow: viewMode === "simple" && !isDark ? "0 1px 3px rgba(0,0,0,0.1)" : "none", border: "none", fontWeight: 600, cursor: "pointer", fontSize: 13, transition: "all 0.2s" }}>Transaction View</button>
-                <button onClick={() => setViewMode("detail")} style={{ padding: "6px 16px", borderRadius: 6, background: viewMode === "detail" ? (isDark ? "#3B82F6" : "#fff") : "transparent", color: viewMode === "detail" ? (isDark ? "#fff" : "#111827") : t.textSecondary, boxShadow: viewMode === "detail" && !isDark ? "0 1px 3px rgba(0,0,0,0.1)" : "none", border: "none", fontWeight: 600, cursor: "pointer", fontSize: 13, transition: "all 0.2s" }}>Detail View</button>
+                <button 
+                  onClick={() => { setViewMode("simple"); setIsEditing(false); }} 
+                  style={{ padding: "6px 16px", borderRadius: 6, background: viewMode === "simple" ? (isDark ? "#3B82F6" : "#fff") : "transparent", color: viewMode === "simple" ? (isDark ? "#fff" : "#111827") : t.textSecondary, boxShadow: viewMode === "simple" && !isDark ? "0 1px 3px rgba(0,0,0,0.1)" : "none", border: "none", fontWeight: 600, cursor: "pointer", fontSize: 13, transition: "all 0.2s" }}>
+                  Transaction View
+                </button>
+                <button 
+                  onClick={() => setViewMode("detail")} 
+                  style={{ padding: "6px 16px", borderRadius: 6, background: viewMode === "detail" ? (isDark ? "#3B82F6" : "#fff") : "transparent", color: viewMode === "detail" ? (isDark ? "#fff" : "#111827") : t.textSecondary, boxShadow: viewMode === "detail" && !isDark ? "0 1px 3px rgba(0,0,0,0.1)" : "none", border: "none", fontWeight: 600, cursor: "pointer", fontSize: 13, transition: "all 0.2s" }}>
+                  Detail View
+                </button>
               </div>
+
+              {viewMode === "detail" && (
+                <div style={{ marginLeft: 8 }}>
+                  {isEditing ? (
+                    <div style={{ display: "flex", gap: 8 }}>
+                      <button onClick={handleSave} disabled={saving} style={{ padding: "8px 20px", borderRadius: 8, background: t.accentGrad, color: "#fff", border: "none", fontWeight: 600, cursor: "pointer", fontSize: 13, boxShadow: `0 4px 12px ${t.accentShadow}`, opacity: saving ? 0.7 : 1 }}>{saving ? "Saving..." : "Save Changes"}</button>
+                      <button onClick={() => setIsEditing(false)} disabled={saving} style={{ padding: "8px 16px", borderRadius: 8, background: isDark ? "rgba(255,255,255,0.05)" : "#F3F4F6", color: t.textSecondary, border: `1px solid ${t.surfaceBorder}`, fontWeight: 600, cursor: "pointer", fontSize: 13 }}>Cancel</button>
+                    </div>
+                  ) : (
+                    <button onClick={() => setIsEditing(true)} style={{ padding: "8px 20px", borderRadius: 8, background: t.accentGrad, color: "#fff", border: "none", fontWeight: 600, cursor: "pointer", fontSize: 13, boxShadow: `0 4px 12px ${t.accentShadow}` }}>Edit Profile</button>
+                  )}
+                </div>
+              )}
               <button onClick={onClose} style={{ width: 36, height: 36, borderRadius: 18, background: isDark ? "rgba(255,255,255,0.1)" : "#F3F4F6", border: `1px solid ${t.surfaceBorder}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, cursor: "pointer", color: t.textSecondary, transition: "background 0.2s" }}>×</button>
             </div>
           </div>
@@ -498,25 +565,45 @@ export const InvestorSummaryModal = ({ contact, defaultView = "simple", onClose,
           {viewMode === "detail" ? (
             <div style={{ display: "flex", flexDirection: "column", gap: 24, maxWidth: 800 }}>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
-                <FF label="First Name" t={t}><div style={{ padding: "12px 16px", background: isDark ? "rgba(255,255,255,0.03)" : "#fff", border: `1px solid ${t.surfaceBorder}`, borderRadius: 8, color: t.text, fontWeight: 500 }}>{dp.first_name || dp.party_name || "—"}</div></FF>
-                <FF label="Last Name" t={t}><div style={{ padding: "12px 16px", background: isDark ? "rgba(255,255,255,0.03)" : "#fff", border: `1px solid ${t.surfaceBorder}`, borderRadius: 8, color: t.text, fontWeight: 500 }}>{dp.last_name || "—"}</div></FF>
+                <FF label="First Name" t={t}>
+                  {isEditing ? <FIn value={editData.first_name} onChange={e => setED({ first_name: e.target.value })} t={t} /> : <div style={{ padding: "12px 16px", background: isDark ? "rgba(255,255,255,0.03)" : "#fff", border: `1px solid ${t.surfaceBorder}`, borderRadius: 8, color: t.text, fontWeight: 500 }}>{showData.first_name || showData.party_name || "—"}</div>}
+                </FF>
+                <FF label="Last Name" t={t}>
+                  {isEditing ? <FIn value={editData.last_name} onChange={e => setED({ last_name: e.target.value })} t={t} /> : <div style={{ padding: "12px 16px", background: isDark ? "rgba(255,255,255,0.03)" : "#fff", border: `1px solid ${t.surfaceBorder}`, borderRadius: 8, color: t.text, fontWeight: 500 }}>{showData.last_name || "—"}</div>}
+                </FF>
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
-                <FF label="Contact Type" t={t}><div style={{ padding: "12px 16px", background: isDark ? "rgba(255,255,255,0.03)" : "#fff", border: `1px solid ${t.surfaceBorder}`, borderRadius: 8, color: t.text, fontWeight: 500 }}>{dp.party_type || dp.type || "—"}</div></FF>
-                <FF label="Role" t={t}><div style={{ padding: "12px 16px", background: isDark ? "rgba(255,255,255,0.03)" : "#fff", border: `1px solid ${t.surfaceBorder}`, borderRadius: 8, color: t.text, fontWeight: 500 }}>{dp.role_type || dp.role || "—"}</div></FF>
+                <FF label="Contact Type" t={t}>
+                  {isEditing ? <FSel value={editData.party_type} options={partyTypeOpts} onChange={e => setED({ party_type: e.target.value })} t={t} /> : <div style={{ padding: "12px 16px", background: isDark ? "rgba(255,255,255,0.03)" : "#fff", border: `1px solid ${t.surfaceBorder}`, borderRadius: 8, color: t.text, fontWeight: 500 }}>{showData.party_type || showData.type || "—"}</div>}
+                </FF>
+                <FF label="Role" t={t}>
+                  {isEditing ? <FSel value={editData.role_type} options={roleOpts} onChange={e => setED({ role_type: e.target.value })} t={t} /> : <div style={{ padding: "12px 16px", background: isDark ? "rgba(255,255,255,0.03)" : "#fff", border: `1px solid ${t.surfaceBorder}`, borderRadius: 8, color: t.text, fontWeight: 500 }}>{showData.role_type || showData.role || "—"}</div>}
+                </FF>
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
-                <FF label="Email" t={t}><div style={{ padding: "12px 16px", background: isDark ? "rgba(255,255,255,0.03)" : "#fff", border: `1px solid ${t.surfaceBorder}`, borderRadius: 8, color: t.text, fontWeight: 500 }}>{dp.email || "—"}</div></FF>
-                <FF label="Phone" t={t}><div style={{ padding: "12px 16px", background: isDark ? "rgba(255,255,255,0.03)" : "#fff", border: `1px solid ${t.surfaceBorder}`, borderRadius: 8, color: t.text, fontWeight: 500 }}>{dp.phone || "—"}</div></FF>
+                <FF label="Email" t={t}>
+                  {isEditing ? <FIn value={editData.email} onChange={e => setED({ email: e.target.value })} t={t} /> : <div style={{ padding: "12px 16px", background: isDark ? "rgba(255,255,255,0.03)" : "#fff", border: `1px solid ${t.surfaceBorder}`, borderRadius: 8, color: t.text, fontWeight: 500 }}>{showData.email || "—"}</div>}
+                </FF>
+                <FF label="Phone" t={t}>
+                  {isEditing ? <FIn value={editData.phone} onChange={e => setED({ phone: e.target.value })} t={t} /> : <div style={{ padding: "12px 16px", background: isDark ? "rgba(255,255,255,0.03)" : "#fff", border: `1px solid ${t.surfaceBorder}`, borderRadius: 8, color: t.text, fontWeight: 500 }}>{showData.phone || "—"}</div>}
+                </FF>
               </div>
-              <FF label="Address" t={t}><div style={{ padding: "12px 16px", background: isDark ? "rgba(255,255,255,0.03)" : "#fff", border: `1px solid ${t.surfaceBorder}`, borderRadius: 8, color: t.text, fontWeight: 500 }}>{dp.address || "—"}</div></FF>
+              <FF label="Address" t={t}>
+                {isEditing ? <FIn value={editData.address} onChange={e => setED({ address: e.target.value })} t={t} /> : <div style={{ padding: "12px 16px", background: isDark ? "rgba(255,255,255,0.03)" : "#fff", border: `1px solid ${t.surfaceBorder}`, borderRadius: 8, color: t.text, fontWeight: 500 }}>{showData.address || "—"}</div>}
+              </FF>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
-                <FF label="Bank Information" t={t}><div style={{ padding: "12px 16px", background: isDark ? "rgba(255,255,255,0.03)" : "#fff", border: `1px solid ${t.surfaceBorder}`, borderRadius: 8, color: t.text, fontWeight: 500 }}>{dp.bank_information || "—"}</div></FF>
-                <FF label="Tax ID" t={t}><div style={{ padding: "12px 16px", background: isDark ? "rgba(255,255,255,0.03)" : "#fff", border: `1px solid ${t.surfaceBorder}`, borderRadius: 8, color: t.text, fontWeight: 500 }}>{dp.tax_id || "—"}</div></FF>
+                <FF label="Bank Information" t={t}>
+                  {isEditing ? <FIn value={editData.bank_information} onChange={e => setED({ bank_information: e.target.value })} t={t} /> : <div style={{ padding: "12px 16px", background: isDark ? "rgba(255,255,255,0.03)" : "#fff", border: `1px solid ${t.surfaceBorder}`, borderRadius: 8, color: t.text, fontWeight: 500 }}>{showData.bank_information || "—"}</div>}
+                </FF>
+                <FF label="Tax ID" t={t}>
+                  {isEditing ? <FIn value={editData.tax_id} onChange={e => setED({ tax_id: e.target.value })} t={t} /> : <div style={{ padding: "12px 16px", background: isDark ? "rgba(255,255,255,0.03)" : "#fff", border: `1px solid ${t.surfaceBorder}`, borderRadius: 8, color: t.text, fontWeight: 500 }}>{showData.tax_id || "—"}</div>}
+                </FF>
               </div>
-              <FF label="Payment Method" t={t}><div style={{ padding: "12px 16px", background: isDark ? "rgba(255,255,255,0.03)" : "#fff", border: `1px solid ${t.surfaceBorder}`, borderRadius: 8, color: t.text, fontWeight: 500 }}>{dp.payment_method || "—"}</div></FF>
+              <FF label="Payment Method" t={t}>
+                {isEditing ? <FSel value={editData.payment_method} options={paymentMethods} onChange={e => setED({ payment_method: e.target.value })} t={t} /> : <div style={{ padding: "12px 16px", background: isDark ? "rgba(255,255,255,0.03)" : "#fff", border: `1px solid ${t.surfaceBorder}`, borderRadius: 8, color: t.text, fontWeight: 500 }}>{showData.payment_method || "—"}</div>}
+              </FF>
             </div>
-          ) : activeTab === "Capital transactions" ? (
+          ) : viewMode === "simple" && activeTab === "Capital transactions" ? (
             <div>
               {/* Capital Balance Card (highlighted) */}
               <div style={{ display: "flex", gap: 16, marginBottom: 32 }}>

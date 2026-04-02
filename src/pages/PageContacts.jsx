@@ -86,6 +86,33 @@ export default function PageContacts({ t, isDark, CONTACTS = [], INVESTMENTS = [
       alert("Delete contact error: " + err.message);
     }
   };
+
+  const handleUpdateContact = async (updatedData) => {
+    const d = updatedData;
+    const payload = {
+      party_name: `${d.first_name || ""} ${d.last_name || ""}`.trim() || d.name || "",
+      first_name: d.first_name || "",
+      last_name: d.last_name || "",
+      party_type: d.party_type || d.type || "",
+      role_type: d.role_type || d.role || "",
+      investor_type: d.investor_type || "",
+      email: d.email || "",
+      phone: d.phone || "",
+      address: d.address || "",
+      tax_id: d.tax_id || "",
+      bank_information: d.bank_information || "",
+      payment_method: d.payment_method || "",
+      updated_at: serverTimestamp(),
+    };
+    try {
+      const docRef = d._path ? doc(db, d._path) : doc(db, collectionPath, d.docId || d.id);
+      await updateDoc(docRef, payload);
+      setDetailContact(prev => ({ ...prev, ...payload }));
+    } catch (err) {
+      console.error("Update contact error:", err);
+      throw err;
+    }
+  };
   const [detailContact, setDetailContact] = useState(null);
   const [invitingId, setInvitingId] = useState(null);
   const [processing, setProcessing] = useState(false);
@@ -264,6 +291,8 @@ export default function PageContacts({ t, isDark, CONTACTS = [], INVESTMENTS = [
       INVESTMENTS={INVESTMENTS}
       SCHEDULES={SCHEDULES}
       DEALS={DEALS}
+      DIMENSIONS={DIMENSIONS}
+      onUpdate={handleUpdateContact}
     />
     {inviteResult && (
       <div style={{ position: "fixed", inset: 0, zIndex: 1100, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center" }}>
