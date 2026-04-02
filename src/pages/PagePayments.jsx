@@ -3,7 +3,7 @@ import TanStackTable from "../components/TanStackTable";
 import { getPaymentColumns, getBatchColumns, getLedgerColumns } from "../components/PaymentsTanStackConfig";
 import { db } from "../firebase";
 import { collection, doc, addDoc, updateDoc, deleteDoc, serverTimestamp } from "firebase/firestore";
-import { sortData, fmtCurr } from "../utils";
+import { sortData, fmtCurr, fmtDate } from "../utils";
 import { Modal, FF, FIn, FSel, DelModal, Tooltip, Bdg } from "../components";
 import { useAuth } from "../AuthContext";
 
