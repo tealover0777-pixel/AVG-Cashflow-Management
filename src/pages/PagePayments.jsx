@@ -123,8 +123,9 @@ export default function PagePayments({ t, isDark, PAYMENTS = [], INVESTMENTS = [
       const withdrawals = SCHEDULES.filter(s => {
         const type = (s.type || "").toLowerCase();
         const status = (s.status || "").toLowerCase();
-        // Check for withdrawal type and ensure it's not already "Paid" or "Completed" in a way that implies it's done
-        const isWithdrawal = type.includes("withdrawal") || type.includes("withdrawl");
+        // Check for withdrawal type or status and ensure it's not already "Paid" or "Completed"
+        const isWithdrawal = type.includes("withdrawal") || type.includes("withdrawl")
+          || status.includes("withdrawal") || status.includes("withdrawl");
         return isWithdrawal && status !== "paid" && status !== "completed";
       }).map(s => ({
         ...s,
