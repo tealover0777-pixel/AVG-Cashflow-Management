@@ -2768,7 +2768,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
         </div>
       </Modal>
 
-      <InvestorSummaryModal 
+      <InvestorSummaryModal
         contact={detailContact?.data || detailContact}
         defaultView={detailContact?.view || "simple"}
         onClose={() => setDetailContact(null)}
@@ -2777,6 +2777,33 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
         INVESTMENTS={INVESTMENTS}
         SCHEDULES={SCHEDULES}
         DEALS={DEALS}
+        DIMENSIONS={DIMENSIONS}
+        onUpdate={async (updatedData) => {
+          const d = updatedData;
+          const payload = {
+            party_name: `${d.first_name || ""} ${d.last_name || ""}`.trim() || d.name || "",
+            first_name: d.first_name || "",
+            last_name: d.last_name || "",
+            party_type: d.party_type || d.type || "",
+            role_type: d.role_type || d.role || "",
+            investor_type: d.investor_type || "",
+            email: d.email || "",
+            phone: d.phone || "",
+            address: d.address || "",
+            tax_id: d.tax_id || "",
+            bank_information: d.bank_information || "",
+            payment_method: d.payment_method || "",
+            updated_at: serverTimestamp(),
+          };
+          const docRef = d._path ? doc(db, d._path) : null;
+          if (!docRef) throw new Error("Cannot update: missing document path");
+          await updateDoc(docRef, payload);
+          setDetailContact(prev => {
+            const base = prev?.data || prev;
+            const updated = { ...base, ...payload };
+            return prev?.data ? { ...prev, data: updated } : updated;
+          });
+        }}
       />
     </div>
   );
