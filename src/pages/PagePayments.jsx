@@ -80,8 +80,7 @@ export default function PagePayments({ t, isDark, PAYMENTS = [], INVESTMENTS = [
         notes: d.notes || "",
         updated_at: serverTimestamp(),
       };
-      // Use scheduleCollection if the item came from SCHEDULES
-      path = d._isSchedule ? scheduleCollection : collectionPath;
+      path = collectionPath;
     } else if (type === "batch") {
       payload = {
         batch_id: d.batch_id || "",
@@ -94,7 +93,8 @@ export default function PagePayments({ t, isDark, PAYMENTS = [], INVESTMENTS = [
 
     try {
       if (modal.mode === "edit" && d.docId) {
-        await updateDoc(doc(db, path, d.docId), payload);
+        const docRef = d._path ? doc(db, d._path) : doc(db, path, d.docId);
+        await updateDoc(docRef, payload);
       } else {
         await addDoc(collection(db, path), { ...payload, created_at: serverTimestamp() });
       }
@@ -162,8 +162,7 @@ export default function PagePayments({ t, isDark, PAYMENTS = [], INVESTMENTS = [
     
     try {
       for (const item of toUpdate) {
-        const path = item._isSchedule ? scheduleCollection : collectionPath;
-        const ref = doc(db, path, item.docId);
+        const ref = item._path ? doc(db, item._path) : doc(db, collectionPath, item.docId);
         await updateDoc(ref, { 
           batch_id: batchId,
           updated_at: serverTimestamp()
