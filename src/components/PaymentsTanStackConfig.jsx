@@ -2,7 +2,7 @@ import React, { useState, useMemo, useRef, useEffect } from "react";
 import { ActBtns, Bdg } from '../components';
 import { fmtCurr, fmtDate } from '../utils';
 
-export const getPaymentColumns = (permissions, isDark, t, onEdit, onDel) => {
+export const getPaymentColumns = (permissions, isDark, t, onEdit, onDel, onBatchClick) => {
   return [
     {
       id: 'select',
@@ -84,7 +84,21 @@ export const getPaymentColumns = (permissions, isDark, t, onEdit, onDel) => {
       accessorKey: 'batch_id',
       header: 'Batch',
       size: 110,
-      cell: ({ getValue }) => <span style={{ fontFamily: t.mono, fontSize: '10.5px', color: t.idText }}>{getValue() || "—"}</span>,
+      cell: ({ getValue }) => (
+        <span 
+          onClick={getValue() ? () => onBatchClick && onBatchClick(getValue()) : null}
+          style={{ 
+            fontFamily: t.mono, 
+            fontSize: '10.5px', 
+            color: (getValue() && onBatchClick) ? (isDark ? "#60A5FA" : "#4F46E5") : t.idText,
+            cursor: (getValue() && onBatchClick) ? 'pointer' : 'default',
+            textDecoration: (getValue() && onBatchClick) ? 'underline' : 'none',
+            textUnderlineOffset: '2px'
+          }}
+        >
+          {getValue() || "—"}
+        </span>
+      ),
     },
     {
       accessorKey: 'status',
@@ -116,7 +130,7 @@ export const getPaymentColumns = (permissions, isDark, t, onEdit, onDel) => {
   ];
 };
 
-export const getBatchColumns = (permissions, isDark, t, onEdit, onDel) => {
+export const getBatchColumns = (permissions, isDark, t, onEdit, onDel, onBatchClick) => {
   return [
     {
       id: 'select',
@@ -147,7 +161,22 @@ export const getBatchColumns = (permissions, isDark, t, onEdit, onDel) => {
       accessorKey: 'batch_id',
       header: 'Batch ID',
       size: 130,
-      cell: ({ getValue }) => <span style={{ fontFamily: t.mono, fontSize: '11px', color: t.idText, fontWeight: 600 }}>{getValue()}</span>,
+      cell: ({ getValue, row }) => (
+        <span 
+          onClick={() => onBatchClick && onBatchClick(row.original.batch_id)}
+          style={{ 
+            fontFamily: t.mono, 
+            fontSize: '11px', 
+            color: onBatchClick ? (isDark ? "#60A5FA" : "#4F46E5") : t.idText, 
+            fontWeight: 600,
+            cursor: onBatchClick ? 'pointer' : 'default',
+            textDecoration: onBatchClick ? 'underline' : 'none',
+            textUnderlineOffset: '2px'
+          }}
+        >
+          {getValue()}
+        </span>
+      ),
     },
     {
       accessorKey: 'status',

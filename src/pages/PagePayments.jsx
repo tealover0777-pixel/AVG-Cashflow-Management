@@ -16,6 +16,7 @@ export default function PagePayments({ t, isDark, PAYMENTS = [], INVESTMENTS = [
   const [activeTab, setActiveTab] = useState("Payments");
   const [chip, setChip] = useState("All");
   const [modal, setModal] = useState({ open: false, mode: "add", data: {}, type: "payment" });
+  const [batchSummary, setBatchSummary] = useState(null); // Current Batch ID being viewed
   const [delT, setDelT] = useState(null);
   const [sel, setSel] = useState(new Set());
   
@@ -115,10 +116,12 @@ export default function PagePayments({ t, isDark, PAYMENTS = [], INVESTMENTS = [
   const columnDefs = useMemo(() => {
     const editCb = activeTab === "Payments" ? openEditPayment : openEditBatch;
     const delCb = (target) => setDelT(target);
-    if (activeTab === "Payments") return getPaymentColumns(permissions, isDark, t, editCb, delCb);
-    if (activeTab === "ACH Batches") return getBatchColumns(permissions, isDark, t, editCb, delCb);
+    const batchSummaryCb = (batchId) => setBatchSummary(batchId);
+
+    if (activeTab === "Payments") return getPaymentColumns(permissions, isDark, t, editCb, delCb, batchSummaryCb);
+    if (activeTab === "ACH Batches") return getBatchColumns(permissions, isDark, t, editCb, delCb, batchSummaryCb);
     return getLedgerColumns(permissions, isDark, t);
-  }, [activeTab, permissions, isDark, t]);
+  }, [activeTab, permissions, isDark, t, openEditPayment, openEditBatch]);
 
   const rowData = useMemo(() => {
     let baseData = [];
@@ -289,5 +292,66 @@ export default function PagePayments({ t, isDark, PAYMENTS = [], INVESTMENTS = [
       )}
     </Modal>
     <DelModal target={delT} onClose={() => setDelT(null)} onConfirm={handleDelete} label={`This ${activeTab.slice(0, -1)}`} t={t} isDark={isDark} />
+
+    {/* Batch Summary Modal */}
+    <Modal 
+      open={!!batchSummary} 
+      onClose={() => setBatchSummary(null)} 
+      title={`Batch Summary: ${batchSummary}`} 
+      onSave={null} 
+      width={700} 
+      t={t} 
+      isDark={isDark}
+    >
+      <div style={{ maxHeight: '60vh', overflowY: 'auto', padding: '0 4px' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+          <thead>
+            <tr style={{ borderBottom: `1px solid ${t.surfaceBorder}`, color: t.textSubtle, textAlign: 'left' }}>
+              <th style={{ padding: '12px 8px' }}>Date</th>
+              <th style={{ padding: '12px 8px' }}>Party</th>
+              <th style={{ padding: '12px 8px' }}>Investment</th>
+              <th style={{ padding: '12px 8px' }}>Type</th>
+              <th style={{ padding: '12px 8px', textAlign: 'right' }}>Amount</th>
+            </tr>
+          </thead>
+          <tbody>
+            {(() => {
+              const matchedPayments = PAYMENTS.filter(p => p.batch_id === batchSummary);
+              const matchedWithdrawals = SCHEDULES.filter(s => {
+                const t2 = (s.type || "").toLowerCase();
+                const st = (s.status || "").toLowerCase();
+                const isWithdrawal = t2.includes("withdrawal") || t2.includes("withdrawl") || st.includes("withdrawal") || st.includes("withdrawl");
+                return isWithdrawal && s.batch_id === batchSummary;
+              });
+              
+              const allItems = [...matchedPayments, ...matchedWithdrawals].sort((a, b) => new Date(a.date || a.dueDate) - new Date(b.date || b.dueDate));
+              
+              if (allItems.length === 0) return <tr><td colSpan="5" style={{ padding: 24, textAlign: 'center', color: t.textSubtle }}>No payments assigned to this batch.</td></tr>;
+              
+              let total = 0;
+              return (<>
+                {allItems.map((item, idx) => {
+                  const amt = item.amount || item.payment || 0;
+                  total += amt;
+                  return (
+                    <tr key={idx} style={{ borderBottom: idx === allItems.length - 1 ? 'none' : `1px solid ${t.rowDivider}` }}>
+                      <td style={{ padding: '12px 8px', fontFamily: t.mono, fontSize: 11 }}>{fmtDate(item.date || item.dueDate)}</td>
+                      <td style={{ padding: '12px 8px', fontWeight: 500 }}>{item.party}</td>
+                      <td style={{ padding: '12px 8px', fontFamily: t.mono, fontSize: 11 }}>{item.investment}</td>
+                      <td style={{ padding: '12px 8px', fontSize: 12 }}>{item.type}</td>
+                      <td style={{ padding: '12px 8px', textAlign: 'right', fontFamily: t.mono, fontWeight: 700, color: amt < 0 ? "#F87171" : "#34D399" }}>{fmtCurr(amt)}</td>
+                    </tr>
+                  );
+                })}
+                <tr style={{ background: isDark ? "rgba(255,255,255,0.02)" : "#FAFAF9", fontWeight: 700 }}>
+                  <td colSpan="4" style={{ padding: '14px 8px', textAlign: 'right' }}>Total Batch Volume</td>
+                  <td style={{ padding: '14px 8px', textAlign: 'right', fontFamily: t.mono, color: total < 0 ? "#F87171" : "#34D399" }}>{fmtCurr(total)}</td>
+                </tr>
+              </>);
+            })()}
+          </tbody>
+        </table>
+      </div>
+    </Modal>
   </>);
 }
