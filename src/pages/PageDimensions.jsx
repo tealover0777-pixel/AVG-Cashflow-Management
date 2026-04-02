@@ -1,12 +1,14 @@
 import React, { useState, useRef, useEffect, useMemo } from "react";
 import { db } from "../firebase";
-import { doc, updateDoc, collection, addDoc } from "firebase/firestore";
+import { doc, updateDoc, collection, addDoc, deleteDoc } from "firebase/firestore";
 import { useAuth } from "../AuthContext";
 import { Modal, FIn, FF } from "../components";
+import { Trash2, Pencil, Check } from "lucide-react";
 
 export default function PageDimensions({ t, isDark, DIMENSIONS = [], rawDimensions = [], collectionPath = "" }) {
   const { hasPermission } = useAuth();
   const canUpdate = hasPermission("DIMENTION_UPDATE");
+  const canDelete = hasPermission("DIMENTION_DELETE");
   const [editing, setEditing] = useState(null);
   const [newVals, setNewVals] = useState({});
   const [showNewModal, setShowNewModal] = useState(false);
@@ -48,6 +50,19 @@ export default function PageDimensions({ t, isDark, DIMENSIONS = [], rawDimensio
     } catch (err) {
       console.error("Remove dimension value error:", err);
       alert("Failed to remove value: " + (err.message || err));
+    }
+  };
+
+  const handleDelete = async (groupName) => {
+    if (!window.confirm(`Are you sure you want to delete the dimension group "${groupName}"? This cannot be undone.`)) return;
+    const rawDoc = getRawDoc(groupName);
+    if (!rawDoc) return;
+    try {
+      await deleteDoc(doc(db, collectionPath, rawDoc.doc_id));
+      if (editing === groupName) setEditing(null);
+    } catch (err) {
+      console.error("Delete dimension error:", err);
+      alert("Failed to delete dimension: " + (err.message || err));
     }
   };
 
@@ -97,7 +112,12 @@ export default function PageDimensions({ t, isDark, DIMENSIONS = [], rawDimensio
                 <span style={{ fontFamily: t.mono, fontSize: 11.5, color: accent, background: isDark ? "rgba(255,255,255,0.08)" : "#fff", padding: "2px 10px", borderRadius: 20, border: `1px solid ${border}`, fontWeight: 500 }}>{g.items.length} values</span>
                 {canUpdate && (
                   <button onClick={() => setEditing(isEd ? null : g.name)} style={{ width: 28, height: 28, borderRadius: 7, background: isEd ? accent : t.editBtn[0], color: isEd ? (isDark ? "#050c15" : "#fff") : t.editBtn[1], display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, border: "none", cursor: "pointer" }}>
-                    {isEd ? "✓" : "✎"}
+                    {isEd ? <Check size={14} /> : <Pencil size={13} />}
+                  </button>
+                )}
+                {canDelete && (
+                  <button onClick={() => handleDelete(g.name)} style={{ width: 28, height: 28, borderRadius: 7, background: "rgba(248,113,113,0.1)", color: "#F87171", display: "flex", alignItems: "center", justifyContent: "center", border: "none", cursor: "pointer" }}>
+                    <Trash2 size={13} />
                   </button>
                 )}
               </div>
