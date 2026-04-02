@@ -48,7 +48,14 @@ export default function PagePayments({ t, isDark, PAYMENTS = [], INVESTMENTS = [
   const setF = (k, v) => setModal(m => ({ ...m, data: { ...m.data, [k]: v } }));
 
   const openAddPayment = () => setModal({ open: true, mode: "add", type: "payment", data: { investment_id: "", party_name: "", payment_type: "Principal", amount: "", payment_date: "", payment_method: "Wire", direction: "Received", status: "Pending", notes: "" } });
-  const openEditPayment = r => setModal({ open: true, mode: "edit", type: "payment", data: { ...r } });
+  const openEditPayment = r => setModal({ open: true, mode: "edit", type: "payment", data: {
+    ...r,
+    investment_id: r.investment_id || r.investment || "",
+    party_name: r.party_name || r.party || "",
+    payment_type: r.payment_type || r.type || "",
+    payment_date: r.payment_date || r.date || "",
+    payment_method: r.payment_method || r.method || "",
+  } });
   
   const openAddBatch = () => setModal({ open: true, mode: "add", type: "batch", data: { batch_id: `B${Date.now().toString().slice(-6)}`, status: "VERSION_CREATED", notes: "" } });
   const openEditBatch = r => setModal({ open: true, mode: "edit", type: "batch", data: { ...r } });
