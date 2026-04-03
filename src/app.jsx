@@ -246,8 +246,9 @@ function AppContent() {
       id: d.id, docId: d.doc_id || d.id, _path: d._path, name: d.party_name || "", type: d.party_type || "", role: d.role_type || "",
       first_name: d.first_name || "", last_name: d.last_name || "",
       email: d.email || "", phone: d.phone || "", investor_type: d.investor_type || "",
-      address: d.address || "", bank_information: d.bank_information || "", tax_id: d.tax_id || "",
-      payment_method: d.payment_method || "",
+      address: d.address || "", bank_information: d.bank_information || "",
+      bank_address: d.bank_address || "", bank_routing_number: d.bank_routing_number || "", bank_account_number: d.bank_account_number || "",
+      tax_id: d.tax_id || "", payment_method: d.payment_method || "",
       created_at: fmtDate(d.created_at), updated_at: fmtDate(d.updated_at),
     }));
  

@@ -360,6 +360,9 @@ export const InvestorSummaryModal = ({ contact, defaultView = "simple", onClose,
         phone: contact.phone || "",
         address: contact.address || "",
         bank_information: contact.bank_information || "",
+        bank_address: contact.bank_address || "",
+        bank_routing_number: contact.bank_routing_number || "",
+        bank_account_number: contact.bank_account_number || "",
         tax_id: contact.tax_id || "",
         payment_method: contact.payment_method || ""
       });
@@ -592,9 +595,22 @@ export const InvestorSummaryModal = ({ contact, defaultView = "simple", onClose,
                 {isEditing ? <FIn value={editData.address} onChange={e => setED({ address: e.target.value })} t={t} /> : <div style={{ padding: "12px 16px", background: isDark ? "rgba(255,255,255,0.03)" : "#fff", border: `1px solid ${t.surfaceBorder}`, borderRadius: 8, color: t.text, fontWeight: 500 }}>{showData.address || "—"}</div>}
               </FF>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
-                <FF label="Bank Information" t={t}>
+                <FF label="Bank Name" t={t}>
                   {isEditing ? <FIn value={editData.bank_information} onChange={e => setED({ bank_information: e.target.value })} t={t} /> : <div style={{ padding: "12px 16px", background: isDark ? "rgba(255,255,255,0.03)" : "#fff", border: `1px solid ${t.surfaceBorder}`, borderRadius: 8, color: t.text, fontWeight: 500 }}>{showData.bank_information || "—"}</div>}
                 </FF>
+                <FF label="Bank Address" t={t}>
+                  {isEditing ? <FIn value={editData.bank_address} onChange={e => setED({ bank_address: e.target.value })} t={t} /> : <div style={{ padding: "12px 16px", background: isDark ? "rgba(255,255,255,0.03)" : "#fff", border: `1px solid ${t.surfaceBorder}`, borderRadius: 8, color: t.text, fontWeight: 500 }}>{showData.bank_address || "—"}</div>}
+                </FF>
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
+                <FF label="Bank Routing Number" t={t}>
+                  {isEditing ? <FIn value={editData.bank_routing_number} onChange={e => setED({ bank_routing_number: e.target.value })} t={t} /> : <div style={{ padding: "12px 16px", background: isDark ? "rgba(255,255,255,0.03)" : "#fff", border: `1px solid ${t.surfaceBorder}`, borderRadius: 8, color: t.text, fontWeight: 500 }}>{showData.bank_routing_number || "—"}</div>}
+                </FF>
+                <FF label="Bank Account Number" t={t}>
+                  {isEditing ? <FIn value={editData.bank_account_number} onChange={e => setED({ bank_account_number: e.target.value })} t={t} /> : <div style={{ padding: "12px 16px", background: isDark ? "rgba(255,255,255,0.03)" : "#fff", border: `1px solid ${t.surfaceBorder}`, borderRadius: 8, color: t.text, fontWeight: 500 }}>{showData.bank_account_number || "—"}</div>}
+                </FF>
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
                 <FF label="Tax ID" t={t}>
                   {isEditing ? <FIn value={editData.tax_id} onChange={e => setED({ tax_id: e.target.value })} t={t} /> : <div style={{ padding: "12px 16px", background: isDark ? "rgba(255,255,255,0.03)" : "#fff", border: `1px solid ${t.surfaceBorder}`, borderRadius: 8, color: t.text, fontWeight: 500 }}>{showData.tax_id || "—"}</div>}
                 </FF>

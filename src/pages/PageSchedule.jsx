@@ -1548,6 +1548,9 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
           address: d.address || "",
           tax_id: d.tax_id || "",
           bank_information: d.bank_information || "",
+          bank_address: d.bank_address || "",
+          bank_routing_number: d.bank_routing_number || "",
+          bank_account_number: d.bank_account_number || "",
           payment_method: d.payment_method || "",
           updated_at: serverTimestamp(),
         };
