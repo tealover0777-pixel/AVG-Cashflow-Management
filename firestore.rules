@@ -149,11 +149,11 @@ service cloud.firestore {
         allow delete: if isTenantMember(tenantId) && hasPermission('PAYMENT_SCHEDULE_DELETE');
     }
 
-    match /tenants/{tenantId}/parties/{docId} {
-        allow read: if isTenantMember(tenantId) && hasPermission('PARTY_VIEW');
-        allow create: if isTenantMember(tenantId) && hasPermission('PARTY_CREATE');
-        allow update: if isTenantMember(tenantId) && hasPermission('PARTY_UPDATE');
-        allow delete: if isTenantMember(tenantId) && hasPermission('PARTY_DELETE');
+    match /tenants/{tenantId}/contacts/{docId} {
+        allow read: if isTenantMember(tenantId) && hasPermission('CONTACT_VIEW');
+        allow create: if isTenantMember(tenantId) && hasPermission('CONTACT_CREATE');
+        allow update: if isTenantMember(tenantId) && hasPermission('CONTACT_UPDATE');
+        allow delete: if isTenantMember(tenantId) && hasPermission('CONTACT_DELETE');
     }
 
     match /tenants/{tenantId}/fees/{docId} {

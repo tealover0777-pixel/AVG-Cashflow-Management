@@ -28,7 +28,7 @@ The build uses `vite-plugin-singlefile` to bundle the entire app into a single H
 ### Multi-Tenant Data Model
 
 All tenant data lives under `tenants/{tenantId}/` in Firestore:
-- `users/`, `deals/`, `parties/`, `investments/`, `paymentSchedules/`, `payments/`, `fees/`, `roles/`, `dimensions/`
+- `users/`, `deals/`, `contacts/`, `investments/`, `paymentSchedules/`, `payments/`, `fees/`, `roles/`, `dimensions/`
 
 Global collections: `global_users/`, `role_types/`, `dimensions/`
 
@@ -68,9 +68,9 @@ Firestore rules (`firestore.rules`) enforce multi-tenancy at the database level 
 
 ### BigQuery Integration
 
-11 Firebase Extensions auto-export Firestore collection changes to BigQuery in real-time (deals, parties, investments, paymentSchedules, payments, fees, tenant-users). Configured in `firebase.json` under `extensions`.
+11 Firebase Extensions auto-export Firestore collection changes to BigQuery in real-time (deals, contacts, investments, paymentSchedules, payments, fees, tenant-users). Configured in `firebase.json` under `extensions`.
 
-**Note:** One extension is still named `firestore-bigquery-export-projects` but exports the `deals/` collection (reflects legacy naming from projects → deals refactoring).
+**Note:** Extensions are now named to match their collections: `firestore-bigquery-export-deals`, `firestore-bigquery-export-contacts`, `firestore-bigquery-export-investments`, etc.
 
 ### Firebase Data Connect
 
@@ -78,5 +78,4 @@ Firestore rules (`firestore.rules`) enforce multi-tenancy at the database level 
 
 ## Recent Changes
 
-- **Projects → Deals Terminology**: The codebase has undergone a refactoring to rename "Projects" to "Deals" throughout the application. The Firestore collection is now `deals/`, and all components reference `DEALS` instead of `PROJECTS`. See `scripts/README.md` for migration details.
-- **Contracts → Investments Terminology**: The codebase has been refactored to rename "Contracts" to "Investments". The Firestore collection is now `investments/`, permissions use `INVESTMENT_*` instead of `CONTRACT_*`, and the page is `PageInvestments`.
+- **Terminology Migrations**: Projects → Deals, Contracts → Investments, Parties → Contacts. Firestore collections are `deals/`, `investments/`, `contacts/`. Permissions use `DEAL_*`, `INVESTMENT_*`, `CONTACT_*`. See `scripts/README.md` for migration details.

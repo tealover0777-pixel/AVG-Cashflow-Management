@@ -5,12 +5,12 @@ Transform the current dashboard into a high-end financial command center with dy
 ## 1. System Architecture
 ### Data Slicing by Role
 *   **Member Dashboard (Read Only)**: Filter all views to ONLY show data linked to the logged-in user's `PartyID` (found in `global_users` or tenant-specific `users`).
-*   **Tenant Dashboard**: View all members, projects, and payments scoped to the current `TenantID`.
+*   **Tenant Dashboard**: View all members, deals, and payments scoped to the current `TenantID`.
 *   **Global Dashboard (L2 Admin)**: System-wide aggregation, tenant performance metrics, and global capital summary.
 
 ### Data Sources
 *   **User/Org**: `global_users`, `tenants/{tid}/users`, `role_types`
-*   **Financial**: `projects`, `parties`, `investments`, `payment_schedules`, `payments`, `fees`
+*   **Financial**: `deals`, `contacts`, `investments`, `payment_schedules`, `payments`, `fees`
 
 ## 2. Dashboard Components (Based on Reference UI)
 ### A. Header & Key Metrics

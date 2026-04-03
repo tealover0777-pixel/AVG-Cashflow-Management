@@ -149,7 +149,7 @@ export const getNav = (isSuper, isAdmin, hasPermission, isR10010) => {
     if (item.label === "Dashboard" && !hasPermission("DASHBOARD_VIEW")) return false;
     if (item.label === "Deals" && !hasPermission("DEAL_VIEW")) return false;
     if (item.label === "Contacts") {
-      const hasContact = hasPermission("CONTACT_VIEW") || hasPermission("PARTY_VIEW");
+      const hasContact = hasPermission("CONTACT_VIEW");
       if (!hasContact) return false;
     }
     if (item.label === "Investments") {
@@ -207,7 +207,7 @@ export const getCollectionPaths = (tenantId) => {
   const tenantPath = `tenants/${tenantId}`;
   return {
     deals: `${tenantPath}/deals`,
-    parties: `${tenantPath}/parties`,
+    contacts: `${tenantPath}/contacts`,
     investments: `${tenantPath}/investments`,
     paymentSchedules: `${tenantPath}/paymentSchedules`,
     payments: `${tenantPath}/payments`,

@@ -1427,7 +1427,7 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
             <div>{drillInvestment.status ? <Bdg status={drillInvestment.status} isDark={isDark} /> : "—"}</div>
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
-            <span style={{ fontSize: 10, fontWeight: 700, color: t.textSecondary, textTransform: "uppercase", letterSpacing: "0.8px", fontFamily: t.mono }}>Project Name</span>
+            <span style={{ fontSize: 10, fontWeight: 700, color: t.textSecondary, textTransform: "uppercase", letterSpacing: "0.8px", fontFamily: t.mono }}>Deal Name</span>
             <div style={{ fontSize: 13, color: isDark ? "rgba(255,255,255,0.8)" : "#44403C" }}>{drillInvestment.project_name || drillInvestment.project || "—"}</div>
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
