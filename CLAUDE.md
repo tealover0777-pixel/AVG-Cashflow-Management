@@ -28,7 +28,7 @@ The build uses `vite-plugin-singlefile` to bundle the entire app into a single H
 ### Multi-Tenant Data Model
 
 All tenant data lives under `tenants/{tenantId}/` in Firestore:
-- `users/`, `deals/`, `parties/`, `contracts/`, `paymentSchedules/`, `payments/`, `fees/`, `roles/`, `dimensions/`
+- `users/`, `deals/`, `parties/`, `investments/`, `paymentSchedules/`, `payments/`, `fees/`, `roles/`, `dimensions/`
 
 Global collections: `global_users/`, `role_types/`, `dimensions/`
 
@@ -46,8 +46,8 @@ Firestore rules (`firestore.rules`) enforce multi-tenancy at the database level 
 ### Data Flow
 
 1. `src/app.jsx` — root router/state manager, fetches all collections via `useFirestoreCollection.js`, filters by `activeTenantId`
-2. `src/hooks/useDashboardData.js` — computes dashboard metrics (Total Income, Missed Payments, Active Contracts, Avg Yield, quarterly charts) from the fetched data
-3. `src/pages/*.jsx` — 15 page components (Dashboard, Deals, Parties, Contracts, Schedule, Payments, Fees, Reports, Tenants, UserProfiles, Roles, SuperAdmin, Profile, Dimensions, AdminHelp); navigation and visible pages are gated by `hasPermission()` checks
+2. `src/hooks/useDashboardData.js` — computes dashboard metrics (Total Income, Missed Payments, Active Investments, Avg Yield, quarterly charts) from the fetched data
+3. `src/pages/*.jsx` — 15 page components (Dashboard, Deals, Parties, Investments, Schedule, Payments, Fees, Reports, Tenants, UserProfiles, Roles, SuperAdmin, Profile, Dimensions, AdminHelp); navigation and visible pages are gated by `hasPermission()` checks
 4. `src/components.jsx` — shared UI components (cards, tables, buttons, tooltips, pagination)
 5. `src/components/SidebarHelp.jsx` — contextual help sidebar component
 6. `functions/index.js` — Cloud Functions for `inviteUser` (creates Auth user, sets claims, creates Firestore profiles), `resendVerification`, `createFirstAdmin`
@@ -68,7 +68,7 @@ Firestore rules (`firestore.rules`) enforce multi-tenancy at the database level 
 
 ### BigQuery Integration
 
-11 Firebase Extensions auto-export Firestore collection changes to BigQuery in real-time (deals, parties, contracts, paymentSchedules, payments, fees, tenant-users). Configured in `firebase.json` under `extensions`.
+11 Firebase Extensions auto-export Firestore collection changes to BigQuery in real-time (deals, parties, investments, paymentSchedules, payments, fees, tenant-users). Configured in `firebase.json` under `extensions`.
 
 **Note:** One extension is still named `firestore-bigquery-export-projects` but exports the `deals/` collection (reflects legacy naming from projects → deals refactoring).
 
@@ -79,3 +79,4 @@ Firestore rules (`firestore.rules`) enforce multi-tenancy at the database level 
 ## Recent Changes
 
 - **Projects → Deals Terminology**: The codebase has undergone a refactoring to rename "Projects" to "Deals" throughout the application. The Firestore collection is now `deals/`, and all components reference `DEALS` instead of `PROJECTS`. See `scripts/README.md` for migration details.
+- **Contracts → Investments Terminology**: The codebase has been refactored to rename "Contracts" to "Investments". The Firestore collection is now `investments/`, permissions use `INVESTMENT_*` instead of `CONTRACT_*`, and the page is `PageInvestments`.

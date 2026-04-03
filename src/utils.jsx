@@ -153,7 +153,7 @@ export const getNav = (isSuper, isAdmin, hasPermission, isR10010) => {
       if (!hasContact) return false;
     }
     if (item.label === "Investments") {
-      const hasInvest = hasPermission("INVESTMENT_VIEW") || hasPermission("CONTRACT_VIEW");
+      const hasInvest = hasPermission("INVESTMENT_VIEW");
       if (!hasInvest) return false;
     }
     if (item.label === "Payment Schedule" && !hasPermission("PAYMENT_SCHEDULE_VIEW")) return false;

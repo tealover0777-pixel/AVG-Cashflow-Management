@@ -10,7 +10,7 @@ Transform the current dashboard into a high-end financial command center with dy
 
 ### Data Sources
 *   **User/Org**: `global_users`, `tenants/{tid}/users`, `role_types`
-*   **Financial**: `projects`, `parties`, `contracts`, `payment_schedules`, `payments`, `fees`
+*   **Financial**: `projects`, `parties`, `investments`, `payment_schedules`, `payments`, `fees`
 
 ## 2. Dashboard Components (Based on Reference UI)
 ### A. Header & Key Metrics
@@ -18,14 +18,14 @@ Transform the current dashboard into a high-end financial command center with dy
 - **Secondary Stat Cards**: 
     - **Total Income**: Sum of all "Paid" schedule entries.
     - **Missed/Late**: Count/Value of payments past due date.
-    - **Yield %**: Average interest rate of the active contract portfolio.
+    - **Yield %**: Average interest rate of the active investment portfolio.
 
 ### B. Visualizations
 - **Cashflow Analysis**: Bar Chart showing Projected vs. Actual monthly cashflow ($ value).
 - **Portfolio Breakdown**: Circular chart showing distribution by Project Type (e.g., Real Estate, Debt, Construction).
 
 ### C. Activity & Operations
-- **Recent Activity Feed**: Real-time log of contract creations, payment receipts, and user invitations.
+- **Recent Activity Feed**: Real-time log of investment creations, payment receipts, and user invitations.
 - **Top Actions**: Quick links to "New Project", "Issue Payment", "Export Report".
 - **Upcoming Payments**: Mini-table showing the next 5 expected cash inflows.
 

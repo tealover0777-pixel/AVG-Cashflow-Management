@@ -141,7 +141,7 @@ After this migration, all new payment schedules will automatically be saved with
    - `project_id` → `deal_id`
 
 3. **Updates Related Collections**:
-   - **Contracts**: Updates `project_id` → `deal_id`, `project_name` → `deal_name`
+   - **Investments**: Updates `project_id` → `deal_id`, `project_name` → `deal_name`
    - **Payment Schedules**: Updates `project_id` → `deal_id`
 
 ### Post-Migration Steps

@@ -10,9 +10,9 @@ import { Check, Plus, Construction, AlertTriangle, FileCheck } from "lucide-reac
 
 export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [], CONTACTS = [], DIMENSIONS = [], FEES_DATA = [], SCHEDULES = [], collectionPath = "", schedulePath = "" }) {
   const { hasPermission, isSuperAdmin } = useAuth();
-  const canCreate = isSuperAdmin || hasPermission("INVESTMENT_CREATE") || hasPermission("CONTRACT_CREATE");
-  const canUpdate = isSuperAdmin || hasPermission("INVESTMENT_UPDATE") || hasPermission("CONTRACT_UPDATE");
-  const canDelete = isSuperAdmin || hasPermission("INVESTMENT_DELETE") || hasPermission("INVESTMENTS_DELETE") || hasPermission("CONTRACT_DELETE");
+  const canCreate = isSuperAdmin || hasPermission("INVESTMENT_CREATE");
+  const canUpdate = isSuperAdmin || hasPermission("INVESTMENT_UPDATE");
+  const canDelete = isSuperAdmin || hasPermission("INVESTMENT_DELETE");
   const canGenerate = isSuperAdmin || hasPermission("PAYMENT_SCHEDULE_CREATE");
   const [sel, setSel] = useState(new Set());
   const [chip, setChip] = useState("All");
