@@ -4,6 +4,7 @@ import { doc, setDoc, updateDoc, serverTimestamp, collection, query, where, getD
 import { sendPasswordResetEmail } from "firebase/auth";
 import { useAuth } from "../AuthContext";
 import { FF, FIn, Modal } from "../components";
+import { uploadFile } from "../utils/storageUtils";
 
 export default function PageProfile({ t, isDark, setIsDark, ROLES = [], collectionPath = "", activeTenantId = "" }) {
     const { user, profile, tenantId: authTenantId, isSuperAdmin } = useAuth();
@@ -73,22 +74,35 @@ export default function PageProfile({ t, isDark, setIsDark, ROLES = [], collecti
         }
     };
 
-    const handlePhotoChange = (e, target) => {
+    const handlePhotoChange = async (e, target) => {
         const file = e.target.files[0];
         if (!file) return;
-        if (file.size > 800 * 1024) {
-            alert("File is too large! Please choose an image under 800KB.");
+
+        // Validation - now 2MB for storage
+        if (file.size > 2 * 1024 * 1024) {
+            alert("File is too large! Please choose an image under 2MB for cloud storage.");
             return;
         }
-        const reader = new FileReader();
-        reader.onloadend = () => {
+
+        try {
+            let path = "";
             if (target === "profile") {
-                setData(s => ({ ...s, photo_url: reader.result }));
+                path = `users/${user.uid}/profile_${Date.now()}`;
             } else {
-                setTenantData(s => ({ ...s, logo: reader.result }));
+                path = `tenants/${tenantId}/branding/logo_${Date.now()}`;
             }
-        };
-        reader.readAsDataURL(file);
+
+            const url = await uploadFile(file, path);
+            
+            if (target === "profile") {
+                setData(s => ({ ...s, photo_url: url }));
+            } else {
+                setTenantData(s => ({ ...s, logo: url }));
+            }
+        } catch (err) {
+            console.error("Storage upload error:", err);
+            alert("Failed to upload image to storage.");
+        }
     };
 
     const handleSave = () => setShowConfirm(true);

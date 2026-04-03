@@ -6,6 +6,7 @@ import { useFirestoreCollection } from "../useFirestoreCollection";
 import { Modal, FF, FIn, FSel, DelModal } from "../components";
 import TanStackTable from "../components/TanStackTable";
 import { getSuperAdminColumns } from "../components/SuperAdminTanStackConfig";
+import MigrationTool from "../components/MigrationTool";
 
 export default function PageSuperAdmin({ t, isDark, DIMENSIONS = [], ROLES = [], TENANTS = [] }) {
     const { data: rawUsers = [], loading, error } = useFirestoreCollection("global_users");
@@ -13,6 +14,7 @@ export default function PageSuperAdmin({ t, isDark, DIMENSIONS = [], ROLES = [],
     const [delT, setDelT] = useState(null);
     const [inviting, setInviting] = useState(false);
     const [inviteResult, setInviteResult] = useState(null);
+    const [migrationOpen, setMigrationOpen] = useState(false);
 
     const getRoleName = (role_id) => {
         const found = ROLES.find(r => r.id === role_id || r.role_id === role_id);
@@ -126,7 +128,15 @@ export default function PageSuperAdmin({ t, isDark, DIMENSIONS = [], ROLES = [],
                 <h1 style={{ fontFamily: t.titleFont, fontWeight: t.titleWeight, fontSize: t.titleSize, color: isDark ? "#fff" : "#1C1917", letterSpacing: t.titleTracking, lineHeight: 1, marginBottom: 6 }}>User Admin</h1>
                 <p style={{ fontSize: 13.5, color: t.textMuted }}>Manage global user permissions and tenant associations</p>
             </div>
-            <button className="primary-btn" onClick={openInvite} style={{ background: t.accentGrad, color: "#fff", padding: "11px 22px", borderRadius: 11, fontSize: 13.5, fontWeight: 600, boxShadow: `0 4px 16px ${t.accentShadow}` }}>✉️ Invite Global User</button>
+            <div style={{ display: "flex", gap: 12 }}>
+                <button 
+                    onClick={() => setMigrationOpen(true)}
+                    style={{ background: isDark ? "rgba(255,255,255,0.05)" : "#F5F4F1", color: t.textSecondary, border: `1px solid ${t.border}`, padding: "11px 20px", borderRadius: 11, fontSize: 13.5, fontWeight: 600, cursor: "pointer" }}
+                >
+                    📦 Run Image Migration
+                </button>
+                <button className="primary-btn" onClick={openInvite} style={{ background: t.accentGrad, color: "#fff", padding: "11px 22px", borderRadius: 11, fontSize: 13.5, fontWeight: 600, boxShadow: `0 4px 16px ${t.accentShadow}` }}>✉️ Invite Global User</button>
+            </div>
         </div>
 
         <div style={{ height: 'calc(100vh - 350px)', width: "100%", minHeight: '500px' }}>
@@ -170,6 +180,13 @@ export default function PageSuperAdmin({ t, isDark, DIMENSIONS = [], ROLES = [],
                     <div style={{ padding: "12px 14px", borderRadius: 10, background: isDark ? "rgba(255,255,255,0.04)" : "#F3F4F6", fontSize: 13, color: t.textMuted, border: `1px solid ${t.surfaceBorder}` }}>Tenant mapping not required for Global roles.</div>
                 )}
             </FF>
+        </Modal>
+
+        <Modal open={migrationOpen} onClose={() => setMigrationOpen(false)} title="System Migration Tool" width={560} t={t} isDark={isDark} hideSave>
+            <MigrationTool t={t} isDark={isDark} onComplete={() => {}} />
+            <div style={{ marginTop: 20, textAlign: "center", fontSize: 12, color: t.textSubtle }}>
+                This tool is restricted to Super Admins only.
+            </div>
         </Modal>
 
         <DelModal open={!!delT} onClose={() => setDelT(null)} onDel={handleDeleteUser} title="Delete Global User?" t={t}>

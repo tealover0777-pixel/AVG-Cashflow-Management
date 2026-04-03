@@ -1,0 +1,28 @@
+rules_version = '2';
+
+// Craft rules based on data in Firestore
+service firebase.storage {
+  match /b/{bucket}/o {
+    
+    // Helper to check if user is authenticated
+    function isAuth() {
+      return request.auth != null;
+    }
+
+    // Storage Rules
+    match /{allPaths=**} {
+      // For now, allow authenticated users to read and write.
+      // In a production environment, we should restrict this based on tenant_id
+      allow read, write: if isAuth();
+    }
+
+    // Better scoped rules (Future optimization)
+    // match /tenants/{tenantId}/{allPaths=**} {
+    //   allow read, write: if isAuth(); // Additional check for tenant membership
+    // }
+
+    // match /users/{userId}/{allPaths=**} {
+    //   allow read, write: if isAuth() && request.auth.uid == userId;
+    // }
+  }
+}

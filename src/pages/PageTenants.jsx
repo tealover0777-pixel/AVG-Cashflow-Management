@@ -5,6 +5,7 @@ import { db } from "../firebase";
 import { doc, setDoc, updateDoc, deleteDoc, serverTimestamp } from "firebase/firestore";
 import { StatCard, Modal, FF, FIn, DelModal, Tooltip } from "../components";
 import { useAuth } from "../AuthContext";
+import { uploadFile } from "../utils/storageUtils";
 
 export default function PageTenants({ t, isDark, TENANTS = [], collectionPath = "" }) {
     const { hasPermission, isSuperAdmin } = useAuth();
@@ -81,18 +82,25 @@ export default function PageTenants({ t, isDark, TENANTS = [], collectionPath = 
         close();
     };
 
-    const handleFileChange = (e) => {
+    const handleFileChange = async (e) => {
         const file = e.target.files[0];
         if (!file) return;
-        if (file.size > 1024 * 1024) {
-            alert("File is too large! Please choose an image under 1MB.");
+        
+        // Basic validation
+        if (file.size > 2 * 1024 * 1024) {
+            alert("File is too large! Max size is 2MB for storage.");
             return;
         }
-        const reader = new FileReader();
-        reader.onloadend = () => {
-            setF("logo", reader.result);
-        };
-        reader.readAsDataURL(file);
+
+        try {
+            const tenantId = modal.data.id;
+            const path = `tenants/${tenantId}/branding/logo_${Date.now()}`;
+            const url = await uploadFile(file, path);
+            setF("logo", url);
+        } catch (err) {
+            console.error("Logo upload failed:", err);
+            alert("Failed to upload logo to storage.");
+        }
     };
 
     const handleDeleteTenant = async () => {

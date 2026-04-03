@@ -9,6 +9,7 @@ import { getDistributionColumns } from "../components/DistributionScheduleTanSta
 import { getContactColumns } from "../components/ContactsTanStackConfig";
 import { getAssetColumns } from "../components/AssetsTanStackConfig";
 import TanStackTable from "../components/TanStackTable";
+import DocumentsTab from "../components/DocumentsTab";
 import { X, Check, Plus, Construction, AlertTriangle, FileCheck } from "lucide-react";
 import { normalizeDateAtNoon, getFrequencyValue, pmtCalculator_ACT360_30360, feeCalculator_ACT360_30360, fmtCurr, initials, av, badge } from "../utils";
 
@@ -2119,6 +2120,10 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
                 t={t}
                 isDark={isDark}
             />
+        </div>
+      ) : activeTab === "Documents" ? (
+        <div style={{ minHeight: '500px' }}>
+          <DocumentsTab t={t} isDark={isDark} dealId={dealId} />
         </div>
       ) : (
         <div style={{ padding: 40, textAlign: "center", color: t.textMuted, background: isDark ? "rgba(255,255,255,0.02)" : "#FAFAFA", borderRadius: 12 }}>
