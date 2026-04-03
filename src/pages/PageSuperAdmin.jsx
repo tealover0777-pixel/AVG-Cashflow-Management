@@ -13,6 +13,8 @@ export default function PageSuperAdmin({ t, isDark, DIMENSIONS = [], ROLES = [],
     const [delT, setDelT] = useState(null);
     const [inviting, setInviting] = useState(false);
     const [inviteResult, setInviteResult] = useState(null);
+    const [invitingId, setInvitingId] = useState(null);
+    const [processing, setProcessing] = useState(false);
 
     const getRoleName = (role_id) => {
         const found = ROLES.find(r => r.id === role_id || r.role_id === role_id);
@@ -52,6 +54,24 @@ export default function PageSuperAdmin({ t, isDark, DIMENSIONS = [], ROLES = [],
             alert("Invite failed: " + (err.message || "Unknown error"));
         } finally {
             setInviting(false);
+        }
+    };
+
+    // Invite user from row action
+    const handleRowInvite = async (user) => {
+        if (!user.email || !user.role) return;
+        setProcessing(true);
+        setInvitingId(user.id);
+        try {
+            const inviteUserFn = httpsCallable(functions, "inviteUser");
+            const result = await inviteUserFn({ email: user.email, role: user.role, tenantId: user.tenantId || "" });
+            setInviteResult({ link: result.data.link, email: user.email });
+        } catch (err) {
+            console.error("Row invite error:", err);
+            alert("Invite failed: " + (err.message || "Unknown error"));
+        } finally {
+            setInvitingId(null);
+            setProcessing(false);
         }
     };
 
@@ -100,13 +120,24 @@ export default function PageSuperAdmin({ t, isDark, DIMENSIONS = [], ROLES = [],
     };
 
     const columnDefs = useMemo(() => {
-        return getSuperAdminColumns({}, isDark, t, openEdit, setDelT, getRoleName, getTenantName);
-    }, [isDark, t, ROLES, TENANTS]);
+        return getSuperAdminColumns({}, isDark, t, openEdit, setDelT, getRoleName, getTenantName, handleRowInvite, invitingId);
+    }, [isDark, t, ROLES, TENANTS, invitingId]);
 
     if (loading) return <div style={{ padding: 40, color: t.textMuted }}>Loading global users...</div>;
     if (error) return <div style={{ padding: 40, color: "red" }}>Error loading users: {error.message}</div>;
 
+    if (error) return <div style={{ padding: 40, color: "red" }}>Error loading users: {error.message}</div>;
+
     return (<>
+        {/* Full-screen Loading Overlay */}
+        {processing && (
+            <div style={{ position: "fixed", inset: 0, zIndex: 9999, background: "rgba(0,0,0,0.6)", backdropFilter: "blur(4px)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", color: "#fff" }}>
+                <div style={{ width: 44, height: 44, border: "3px solid rgba(255,255,255,0.2)", borderTopColor: "#fff", borderRadius: "50%", animation: "spin 0.8s linear infinite", marginBottom: 16 }} />
+                <div style={{ fontSize: 16, fontWeight: 600, letterSpacing: "0.5px" }}>Generating Invite Link...</div>
+                <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+            </div>
+        )}
+
         {inviteResult && (
             <div style={{ position: "fixed", inset: 0, zIndex: 1100, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center" }}>
                 <div style={{ background: isDark ? "#1C1917" : "#fff", borderRadius: 16, padding: 28, maxWidth: 540, width: "90%", boxShadow: "0 24px 60px rgba(0,0,0,0.3)" }}>

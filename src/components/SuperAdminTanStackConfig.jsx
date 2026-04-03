@@ -24,7 +24,7 @@ const StatusBadge = ({ status, t, isDark }) => {
     );
 };
 
-export const getSuperAdminColumns = (permissions, isDark, t, onEdit, onDel, getRoleName, getTenantName) => {
+export const getSuperAdminColumns = (permissions, isDark, t, onEdit, onDel, getRoleName, getTenantName, onInvite, invitingId) => {
   const cols = [
     {
       accessorKey: 'email',
@@ -81,12 +81,25 @@ export const getSuperAdminColumns = (permissions, isDark, t, onEdit, onDel, getR
       header: 'ACTIONS',
       size: 80,
       cell: ({ row }) => (
-        <ActBtns
-          show={true}
-          t={t}
-          onEdit={() => onEdit(row.original)}
-          onDel={() => onDel(row.original)}
-        />
+        <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+          <ActBtns
+            show={true}
+            t={t}
+            onEdit={() => onEdit(row.original)}
+            onDel={() => onDel(row.original)}
+          />
+          <button
+            onClick={(e) => { e.stopPropagation(); onInvite(row.original); }}
+            disabled={invitingId === row.original.id}
+            style={{
+              background: "rgba(96,165,250,0.1)", border: `none`,
+              borderRadius: 6, padding: "4px 8px", cursor: invitingId === row.original.id ? "default" : "pointer",
+              fontSize: 11, fontWeight: 600, color: t.accent, opacity: invitingId === row.original.id ? 0.5 : 1
+            }}
+          >
+            {invitingId === row.original.id ? "..." : "Invite"}
+          </button>
+        </div>
       ),
     },
   ];
