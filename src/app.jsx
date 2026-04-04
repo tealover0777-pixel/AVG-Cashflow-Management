@@ -273,6 +273,7 @@ function AppContent() {
         docId: d.doc_id || d.id,
         _path: d._path,
         investment_id: d.investment_id || "",
+        investment_name: d.investment_name || "",
         deal: dealMatch?.deal_name || d.deal_name || d.deal_id || "",
         deal_id: dealId,
         party: partyMatch?.party_name || d.party_name || d.party_id || "",

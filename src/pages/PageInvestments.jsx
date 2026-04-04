@@ -59,7 +59,8 @@ export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [
         maturity_date: ed,
         term_months: termM,
         calculator: "",
-        rollover: false
+        rollover: false,
+        investment_name: ""
       }
     });
   };
@@ -85,6 +86,7 @@ export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [
       status: d.status || "",
       fees: (d.feeIds || []).join(","),
       rollover: !!d.rollover,
+      investment_name: d.investment_name || "",
       updated_at: serverTimestamp(),
     };
     try {
@@ -663,6 +665,7 @@ export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [
           </FF>
         </div>
       )}
+      <FF label="Investment Name" t={t}><FIn value={modal.data.investment_name || ""} onChange={e => setF("investment_name", e.target.value)} placeholder="e.g. Q1 2024 Investment" t={t} /></FF>
       <FF label="Deal name" t={t}><FSel value={modal.data.deal} onChange={e => setF("deal", e.target.value)} options={DEALS.map(p => p.name)} t={t} /></FF>
       <FF label="Contact" t={t}><FSel value={modal.data.party} onChange={e => setF("party", e.target.value)} options={CONTACTS.map(p => p.name)} t={t} /></FF>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14 }}>
@@ -831,8 +834,12 @@ export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [
             <div>{drillInvestment.status ? <Bdg status={drillInvestment.status} isDark={isDark} /> : "—"}</div>
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+            <span style={{ fontSize: 10, fontWeight: 700, color: t.textSecondary, textTransform: "uppercase", letterSpacing: "0.8px", fontFamily: t.mono }}>Investment Name</span>
+            <div style={{ fontSize: 13, color: isDark ? "#fff" : "#1C1917", fontWeight: 600 }}>{drillInvestment.investment_name || "—"}</div>
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
             <span style={{ fontSize: 10, fontWeight: 700, color: t.textSecondary, textTransform: "uppercase", letterSpacing: "0.8px", fontFamily: t.mono }}>Deal Name</span>
-            <div style={{ fontSize: 13, color: isDark ? "rgba(255,255,255,0.8)" : "#44403C" }}>{drillInvestment.deal_name || drillInvestment.deal || "—"}</div>
+            <div style={{ fontSize: 13, color: isDark ? "rgba(255,255,255,0.8)" : "#44403C" }}>{drillInvestment.deal_name || drillInvestment.deal || DEALS.find(d => d.id === drillInvestment.deal_id)?.name || "—"}</div>
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
             <span style={{ fontSize: 10, fontWeight: 700, color: t.textSecondary, textTransform: "uppercase", letterSpacing: "0.8px", fontFamily: t.mono }}>Contact Name</span>

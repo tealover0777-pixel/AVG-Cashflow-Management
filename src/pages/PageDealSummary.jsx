@@ -394,6 +394,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
         calculator: "",
         rollover: false,
         feeIds: [],
+        investment_name: "",
         payment_method: (CONTACTS.find(p => p.name === "")?.payment_method || (paymentMethods[0] || ""))
       }
     });
@@ -508,6 +509,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
       payment_method: d.payment_method || "",
       fees: (d.feeIds || []).join(","),
       rollover: !!d.rollover,
+      investment_name: d.investment_name || "",
       updated_at: serverTimestamp(),
     };
     try {
@@ -2149,6 +2151,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
             </FF>
           </div>
         )}
+        <FF label="Investment Name" t={t}><FIn value={modal.data.investment_name || ""} onChange={e => setF("investment_name", e.target.value)} placeholder="e.g. Initial Investment" t={t} /></FF>
         <FF label="Deal name" t={t}><FSel value={modal.data.deal} onChange={e => setF("deal", e.target.value)} options={DEALS.map(p => p.name)} t={t} /></FF>
         <FF label="Contact" t={t}><FSel value={modal.data.party} onChange={e => setF("party", e.target.value)} options={CONTACTS.map(p => p.name)} t={t} /></FF>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14 }}>
