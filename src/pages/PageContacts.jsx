@@ -299,6 +299,7 @@ export default function PageContacts({ t, isDark, CONTACTS = [], INVESTMENTS = [
       DEALS={DEALS}
       DIMENSIONS={DIMENSIONS}
       onUpdate={handleUpdateContact}
+      tenantId={tenantId}
     />
     {inviteResult && (
       <div style={{ position: "fixed", inset: 0, zIndex: 1100, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center" }}>

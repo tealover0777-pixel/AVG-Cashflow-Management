@@ -53,3 +53,4 @@ dataconnect/.dataconnect
 
 # Secrets
 serviceAccountKey.json
+serviceAccount.json

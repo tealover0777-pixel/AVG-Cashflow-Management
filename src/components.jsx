@@ -9,6 +9,7 @@ import {
   Pencil, Trash2, RotateCcw, X, Info, Check, Plus, AlertCircle, FileText,
   ArrowUp, ArrowDown
 } from "lucide-react";
+import InvestmentDocumentsTab from "./components/InvestmentDocumentsTab";
 
 export const Bdg = ({ status, label, isDark, bg, text, border }) => {
   const actualStatus = status || label || "";
@@ -340,7 +341,7 @@ export const DelModal = ({ target, open, onClose, onConfirm, onDel, label, title
 // INVESTOR SUMMARY MODAL
 // ─────────────────────────────────────────────────────────────────────────────
 
-export const InvestorSummaryModal = ({ contact, defaultView = "simple", onClose, isDark, t, INVESTMENTS, SCHEDULES, DEALS, onUpdate, DIMENSIONS = [] }) => {
+export const InvestorSummaryModal = ({ contact, defaultView = "simple", onClose, isDark, t, INVESTMENTS, SCHEDULES, DEALS, onUpdate, DIMENSIONS = [], tenantId }) => {
   const [activeTab, setActiveTab] = useState("Capital transactions");
   const [viewMode, setViewMode] = useState(defaultView);
   const [isEditing, setIsEditing] = useState(false);
@@ -661,6 +662,15 @@ export const InvestorSummaryModal = ({ contact, defaultView = "simple", onClose,
                 {renderDealTable(partySchedules, "No transactions found.")}
               </div>
             </div>
+          ) : viewMode === "simple" && activeTab === "Investment documents" ? (
+            <InvestmentDocumentsTab 
+              t={t} 
+              isDark={isDark} 
+              tenantId={tenantId} 
+              party={contact} 
+              DEALS={DEALS} 
+              INVESTMENTS={INVESTMENTS} 
+            />
           ) : (
             <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "100%", opacity: 0.5 }}>
               <Info size={48} style={{ marginBottom: 16, color: t.textMuted }} />

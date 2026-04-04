@@ -13,7 +13,7 @@ import DocumentsTab from "../components/DocumentsTab";
 import { X, Check, Plus, Construction, AlertTriangle, FileCheck } from "lucide-react";
 import { normalizeDateAtNoon, getFrequencyValue, pmtCalculator_ACT360_30360, feeCalculator_ACT360_30360, fmtCurr, initials, av, badge } from "../utils";
 
-export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTMENTS = [], CONTACTS = [], DIMENSIONS = [], FEES_DATA = [], SCHEDULES = [], USERS = [], setActivePage, investmentCollection = "investments", scheduleCollection = "paymentSchedules" }) {
+export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTMENTS = [], CONTACTS = [], DIMENSIONS = [], FEES_DATA = [], SCHEDULES = [], USERS = [], setActivePage, investmentCollection = "investments", scheduleCollection = "paymentSchedules", tenantId }) {
   const { hasPermission, isSuperAdmin } = useAuth();
   const canUpdate = isSuperAdmin || hasPermission("INVESTMENT_UPDATE");
   const canDelete = isSuperAdmin || hasPermission("INVESTMENT_DELETE") || hasPermission("INVESTMENTS_DELETE");
@@ -2792,29 +2792,37 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
             party_name: `${d.first_name || ""} ${d.last_name || ""}`.trim() || d.name || "",
             first_name: d.first_name || "",
             last_name: d.last_name || "",
-            party_type: d.party_type || d.type || "",
-            role_type: d.role_type || d.role || "",
-            investor_type: d.investor_type || "",
+            party_type: d.party_type || d.type || "Individual",
+            role_type: d.role_type || d.role || "Investor",
             email: d.email || "",
             phone: d.phone || "",
             address: d.address || "",
-            tax_id: d.tax_id || "",
             bank_information: d.bank_information || "",
             bank_address: d.bank_address || "",
             bank_routing_number: d.bank_routing_number || "",
             bank_account_number: d.bank_account_number || "",
+            tax_id: d.tax_id || "",
             payment_method: d.payment_method || "",
-            updated_at: serverTimestamp(),
+            updatedAt: serverTimestamp()
           };
-          const docRef = d._path ? doc(db, d._path) : null;
-          if (!docRef) throw new Error("Cannot update: missing document path");
-          await updateDoc(docRef, payload);
-          setDetailContact(prev => {
-            const base = prev?.data || prev;
-            const updated = { ...base, ...payload };
-            return prev?.data ? { ...prev, data: updated } : updated;
-          });
+          try {
+            const docId = d.docId || d.id;
+            if (!docId) throw new Error("Missing document ID");
+            // If tenantId is not provided, try to extract from investmentCollection path
+            let tId = tenantId;
+            if (!tId && investmentCollection.includes("tenants/")) {
+              tId = investmentCollection.split("/")[1];
+            }
+            if (!tId) throw new Error("Missing tenant ID");
+            
+            await updateDoc(doc(db, "tenants", tId, "parties", docId), payload);
+            setDetailContact({ ...detailContact, data: { ...d, ...payload } });
+          } catch (err) {
+            console.error("Update error:", err);
+            alert("Failed to update contact: " + err.message);
+          }
         }}
+        tenantId={tenantId}
       />
     </div>
   );

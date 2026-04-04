@@ -18,7 +18,7 @@ const fmtCurr = v => {
 
 const ZEROING_STATUSES = ["Missed", "Cancelled", "VOID", "WAIVED", "REPLACED"];
 
-export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = [], CONTACTS = [], DEALS = [], DIMENSIONS = [], FEES_DATA = [], USERS = [], collectionPath = "", setActivePage, setSelectedDealId }) {
+export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = [], CONTACTS = [], DEALS = [], DIMENSIONS = [], FEES_DATA = [], USERS = [], collectionPath = "", setActivePage, setSelectedDealId, tenantId }) {
 
   const { user, hasPermission, isSuperAdmin } = useAuth();
   const canCreate = isSuperAdmin || hasPermission("PAYMENT_SCHEDULE_CREATE");
@@ -1540,25 +1540,30 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
           party_name: `${d.first_name || ""} ${d.last_name || ""}`.trim() || d.name || "",
           first_name: d.first_name || "",
           last_name: d.last_name || "",
-          party_type: d.party_type || d.type || "",
-          role_type: d.role_type || d.role || "",
-          investor_type: d.investor_type || "",
+          party_type: d.party_type || d.type || "Individual",
+          role_type: d.role_type || d.role || "Investor",
           email: d.email || "",
           phone: d.phone || "",
           address: d.address || "",
-          tax_id: d.tax_id || "",
           bank_information: d.bank_information || "",
           bank_address: d.bank_address || "",
           bank_routing_number: d.bank_routing_number || "",
           bank_account_number: d.bank_account_number || "",
+          tax_id: d.tax_id || "",
           payment_method: d.payment_method || "",
-          updated_at: serverTimestamp(),
+          updatedAt: serverTimestamp()
         };
-        const docRef = d._path ? doc(db, d._path) : null;
-        if (!docRef) throw new Error("Cannot update: missing document path");
-        await updateDoc(docRef, payload);
-        setDetailContact(prev => ({ ...prev, ...payload }));
+        try {
+          const docId = d.docId || d.id;
+          if (!docId) throw new Error("Missing document ID");
+          await updateDoc(doc(db, "tenants", tenantId, "parties", docId), payload);
+          setDetailContact({ ...d, ...payload });
+        } catch (err) {
+          console.error("Update error:", err);
+          alert("Failed to update contact: " + err.message);
+        }
       }}
+      tenantId={tenantId}
     />
   </>);
 }
