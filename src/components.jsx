@@ -426,10 +426,11 @@ export const InvestorSummaryModal = ({ contact, defaultView = "simple", onClose,
   const contributions = partySchedules.filter(s => (s.payment_type || s.type) === "INVESTOR_PRINCIPAL_DEPOSIT" || (s.type === 'deposit'));
   const totalContributions = contributions.reduce((sum, s) => sum + (Number(s.signed_payment_amount || s.payment_amount || String(s.amount || 0).replace(/[^0-9.-]/g,'')) || 0), 0);
 
-  // Withdrawals logic: PaymentStatus == "Withdrawals", or status
+  // Withdrawals logic: PaymentType is INVESTOR_PRINCIPAL_PAYMENT and PaymentStatus is Withdrawal
   const withdrawals = partySchedules.filter(s => {
+      const ty = (s.payment_type || s.type || "");
       const st = (s.PaymentStatus || s.status || "").toLowerCase();
-      return st === "withdrawals" || st === "withdrawal" || st === "withdrawl";
+      return ty === "INVESTOR_PRINCIPAL_PAYMENT" && (st === "withdrawals" || st === "withdrawal" || st === "withdrawl");
   });
   const totalWithdrawals = withdrawals.reduce((sum, s) => sum + (Number(s.signed_payment_amount || s.payment_amount || String(s.amount || 0).replace(/[^0-9.-]/g,'')) || 0), 0);
 
