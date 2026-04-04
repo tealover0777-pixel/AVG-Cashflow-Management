@@ -10,6 +10,8 @@ import {
   ArrowUp, ArrowDown
 } from "lucide-react";
 import InvestmentDocumentsTab from "./components/InvestmentDocumentsTab";
+import TanStackTable from "./components/TanStackTable";
+import { getContactTransactionColumns } from "./components/ContactTransactionsTanStackConfig";
 
 export const Bdg = ({ status, label, isDark, bg, text, border }) => {
   const actualStatus = status || label || "";
@@ -660,7 +662,15 @@ export const InvestorSummaryModal = ({ contact, defaultView = "simple", onClose,
                     {fmtCurr(partySchedules.reduce((sum, s) => sum + (Number(s.signed_payment_amount || s.payment_amount || String(s.amount || 0).replace(/[^0-9.-]/g,'')) || 0), 0))}
                   </div>
                 </div>
-                {renderDealTable(partySchedules, "No transactions found.")}
+                <div style={{ height: 400 }}>
+                  <TanStackTable
+                    data={partySchedules}
+                    columns={getContactTransactionColumns(isDark, t, { DEALS })}
+                    isDark={isDark}
+                    t={t}
+                    pageSize={50}
+                  />
+                </div>
               </div>
             </div>
           ) : viewMode === "simple" && activeTab === "Investment documents" ? (
