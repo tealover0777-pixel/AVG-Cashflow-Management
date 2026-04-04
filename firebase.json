@@ -34,19 +34,7 @@
       "emailPassword": true
     }
   },
-  "extensions": {
-    "firestore-bigquery-export": "firebase/firestore-bigquery-export@0.2.9",
-    "firestore-bigquery-export-2": "firebase/firestore-bigquery-export@0.2.9",
-    "firestore-bigquery-export-3": "firebase/firestore-bigquery-export@0.2.9",
-    "firestore-bigquery-export-4": "firebase/firestore-bigquery-export@0.2.9",
-    "firestore-bigquery-export-deals": "firebase/firestore-bigquery-export@0.2.9",
-    "firestore-bigquery-export-contacts": "firebase/firestore-bigquery-export@0.2.9",
-    "firestore-bigquery-export-investments": "firebase/firestore-bigquery-export@0.2.9",
-    "firestore-bigquery-export-schedules": "firebase/firestore-bigquery-export@0.2.9",
-    "firestore-bigquery-export-payments": "firebase/firestore-bigquery-export@0.2.9",
-    "firestore-bigquery-export-fees": "firebase/firestore-bigquery-export@0.2.9",
-    "firestore-bigquery-export-tenant-users": "firebase/firestore-bigquery-export@0.2.9"
-  },
+
   "emulators": {
     "dataconnect": {
       "dataDir": "dataconnect/.dataconnect/pgliteData"

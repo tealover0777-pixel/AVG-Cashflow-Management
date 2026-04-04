@@ -583,6 +583,30 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
     });
   };
 
+  const handleUpdateInvestmentModal = async (inv) => {
+    if (!inv.id) return;
+    const { id, ...rest } = inv;
+    const payload = {
+      ...rest,
+      amount: rest.amount ? Number(String(rest.amount).replace(/[^0-9.-]/g, "")) || null : null,
+      rate: rest.rate ? Number(String(rest.rate).replace(/[^0-9.-]/g, "")) || null : null,
+      interest_rate: rest.rate ? Number(String(rest.rate).replace(/[^0-9.-]/g, "")) || null : null,
+      term_months: rest.term_months ? Number(rest.term_months) || null : null,
+      fees: (rest.feeIds || []).join(","),
+      updated_at: serverTimestamp()
+    };
+    delete payload.docId;
+    delete payload._path;
+    
+    try {
+      const docRef = inv._path ? doc(db, inv._path) : doc(db, "tenants", tenantId, "investments", id);
+      await updateDoc(docRef, payload);
+    } catch (err) {
+      console.error("Update investment modal error:", err);
+      throw err;
+    }
+  };
+
   const handleBulkScheduleStatus = (status) => {
     if (!status || Object.keys(rowSelection).length === 0) return;
     setConfirmAction({
@@ -2825,6 +2849,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
             alert("Failed to update contact: " + err.message);
           }
         }}
+        onUpdateInvestment={handleUpdateInvestmentModal}
         tenantId={tenantId}
       />
     </div>

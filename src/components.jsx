@@ -343,12 +343,16 @@ export const DelModal = ({ target, open, onClose, onConfirm, onDel, label, title
 // INVESTOR SUMMARY MODAL
 // ─────────────────────────────────────────────────────────────────────────────
 
-export const InvestorSummaryModal = ({ contact, defaultView = "simple", onClose, isDark, t, INVESTMENTS, SCHEDULES, DEALS, onUpdate, DIMENSIONS = [], tenantId }) => {
+export const InvestorSummaryModal = ({ contact, defaultView = "simple", onClose, isDark, t, INVESTMENTS, SCHEDULES, DEALS, onUpdate, onUpdateInvestment, DIMENSIONS = [], tenantId }) => {
   const [activeTab, setActiveTab] = useState("Capital transactions");
   const [viewMode, setViewMode] = useState(defaultView);
   const [isEditing, setIsEditing] = useState(false);
   const [editData, setEditData] = useState({});
   const [saving, setSaving] = useState(false);
+
+  const [selectedInvestmentId, setSelectedInvestmentId] = useState("");
+  const [investmentEditData, setInvestmentEditData] = useState({});
+  const [savingInvestment, setSavingInvestment] = useState(false);
   
   useEffect(() => {
     setViewMode(defaultView);
@@ -408,6 +412,32 @@ export const InvestorSummaryModal = ({ contact, defaultView = "simple", onClose,
     const cPId = String(c.party_id || "").trim();
     return (cPId === dpId || (dpDocId && cPId === dpDocId));
   });
+
+  useEffect(() => {
+    if (partyInvestments.length > 0 && !selectedInvestmentId) {
+      setSelectedInvestmentId(partyInvestments[0].id);
+    }
+  }, [partyInvestments, selectedInvestmentId]);
+
+  useEffect(() => {
+    const inv = partyInvestments.find(i => i.id === selectedInvestmentId);
+    if (inv) {
+      setInvestmentEditData({
+        ...inv,
+        amount: inv.amount || "",
+        rate: inv.rate || inv.interest_rate || "",
+        freq: inv.freq || inv.payment_frequency || "",
+        term_months: inv.term_months || "",
+        status: inv.status || "Open",
+        rollover: !!inv.rollover,
+        calculator: inv.calculator || "",
+        start_date: inv.start_date || "",
+        maturity_date: inv.maturity_date || "",
+        payment_method: inv.payment_method || "",
+        feeIds: Array.isArray(inv.feeIds) ? inv.feeIds : (inv.fees ? String(inv.fees).split(",").filter(Boolean) : [])
+      });
+    }
+  }, [selectedInvestmentId]);
   
   const partySchedules = SCHEDULES.filter(s => {
     const sPId = String(s.party_id || "").trim();
@@ -446,6 +476,27 @@ export const InvestorSummaryModal = ({ contact, defaultView = "simple", onClose,
   const distributedAmount = distributions.reduce((sum, s) => sum + (Number(s.signed_payment_amount || s.payment_amount || String(s.amount || 0).replace(/[^0-9.-]/g,'')) || 0), 0);
   
   const tabs = ["Edit investment", "Investment documents", "Capital transactions", "Distributions", "Notes", "Investment changelog", "Investment sharing"];
+
+  // Helper for Investment Form
+  const handleSaveInvestment = async () => {
+    if (!onUpdateInvestment) return;
+    setSavingInvestment(true);
+    try {
+      await onUpdateInvestment(investmentEditData);
+    } catch (err) {
+      alert("Failed to update investment: " + err.message);
+    } finally {
+      setSavingInvestment(false);
+    }
+  };
+
+  const setIED = (newVal) => setInvestmentEditData(prev => ({ ...prev, ...newVal }));
+
+  const investorEditTypeOpts = (DIMENSIONS.find(d => d.name === "InvestorInvestmentEditType") || {}).items || [];
+  const borrowerEditTypeOpts = (DIMENSIONS.find(d => d.name === "BorrowerInvestmentEditType") || {}).items || [];
+  const scheduleFrequencyOpts = (DIMENSIONS.find(d => d.name === "ScheduleFrequency" || d.name === "Schedule Frequency") || {}).items || ["Monthly", "Quarterly", "Semi-Annual", "Annual", "At Maturity"];
+  const calculatorOpts = (DIMENSIONS.find(d => d.name === "CalculatorType") || {}).items || ["ACT/360", "30/360", "ACT/ACT", "ACT/365"];
+  const FEES_DATA = (DIMENSIONS.find(d => d.name === "Fees") || {}).items || [];
 
   // Helper for generic table rows
   const renderDealTable = (items, emptyMsg) => {
@@ -672,6 +723,112 @@ export const InvestorSummaryModal = ({ contact, defaultView = "simple", onClose,
                   />
                 </div>
               </div>
+            </div>
+          ) : viewMode === "simple" && activeTab === "Edit investment" ? (
+            <div style={{ maxWidth: 800 }}>
+              {partyInvestments.length > 1 && (
+                <div style={{ marginBottom: 24, padding: "16px 20px", background: isDark ? "rgba(59,130,246,0.1)" : "#EFF6FF", borderRadius: 12, border: `1px solid ${isDark ? "rgba(59,130,246,0.2)" : "#BFDBFE"}` }}>
+                  <FF label="Switch Investment" t={t}>
+                    <select 
+                      value={selectedInvestmentId} 
+                      onChange={e => setSelectedInvestmentId(e.target.value)}
+                      style={{ width: "100%", background: t.searchBg, border: `1px solid ${t.searchBorder}`, borderRadius: 9, padding: "10px 13px", color: t.searchText, fontSize: 13.5, fontFamily: "inherit", outline: "none", cursor: "pointer" }}
+                    >
+                      {partyInvestments.map(inv => (
+                        <option key={inv.id} value={inv.id}>
+                          {inv.investment_name || inv.id} ({inv.deal || "No Deal"}) — {fmtCurr(inv.amount)}
+                        </option>
+                      ))}
+                    </select>
+                  </FF>
+                </div>
+              )}
+
+              {!investmentEditData.id ? (
+                <div style={{ padding: 40, textAlign: "center", color: t.textMuted }}>No investment selected or available.</div>
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
+                    <FF label="Investment ID" t={t}>
+                      <div style={{ padding: "10px 13px", background: isDark ? "rgba(255,255,255,0.03)" : "#f9f9f9", border: `1px solid ${t.surfaceBorder}`, borderRadius: 8, color: t.textMuted, fontSize: 13, fontFamily: t.mono }}>{investmentEditData.id}</div>
+                    </FF>
+                    <FF label="Deal ID" t={t}>
+                      <div style={{ padding: "10px 13px", background: isDark ? "rgba(255,255,255,0.03)" : "#f9f9f9", border: `1px solid ${t.surfaceBorder}`, borderRadius: 8, color: t.textMuted, fontSize: 13, fontFamily: t.mono }}>{investmentEditData.deal_id || "—"}</div>
+                    </FF>
+                  </div>
+                  
+                  <FF label="Investment Name" t={t}><FIn value={investmentEditData.investment_name} onChange={e => setIED({ investment_name: e.target.value })} placeholder="e.g. Initial Investment" t={t} /></FF>
+                  
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
+                    <FF label="Deal" t={t}><FSel value={investmentEditData.deal} onChange={e => setIED({ deal: e.target.value })} options={DEALS.map(d => d.name)} t={t} /></FF>
+                    <FF label="Type" t={t}>
+                      <FSel 
+                        value={investmentEditData.type || investmentEditData.investment_type} 
+                        onChange={e => setIED({ type: e.target.value, investment_type: e.target.value })} 
+                        options={dp.role_type === "Borrower" ? borrowerEditTypeOpts : investorEditTypeOpts} 
+                        t={t} 
+                      />
+                    </FF>
+                  </div>
+
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 20 }}>
+                    <FF label="Amount" t={t}><FIn value={investmentEditData.amount} onChange={e => setIED({ amount: e.target.value })} placeholder="$0" t={t} /></FF>
+                    <FF label="Rate (%)" t={t}><FIn value={investmentEditData.rate} onChange={e => setIED({ rate: e.target.value, interest_rate: e.target.value })} placeholder="e.g. 10" t={t} /></FF>
+                    <FF label="Frequency" t={t}><FSel value={investmentEditData.freq} onChange={e => setIED({ freq: e.target.value, payment_frequency: e.target.value })} options={scheduleFrequencyOpts} t={t} /></FF>
+                  </div>
+
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 20 }}>
+                    <FF label="Term (months)" t={t}><FIn value={investmentEditData.term_months} onChange={e => setIED({ term_months: e.target.value })} placeholder="e.g. 24" t={t} /></FF>
+                    <FF label="Status" t={t}><FSel value={investmentEditData.status} onChange={e => setIED({ status: e.target.value })} options={["Open", "Active", "Closed"]} t={t} /></FF>
+                    <FF label="Calculator" t={t}><FSel value={investmentEditData.calculator} onChange={e => setIED({ calculator: e.target.value })} options={calculatorOpts} t={t} /></FF>
+                  </div>
+
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
+                    <FF label="Start Date" t={t}><FIn value={investmentEditData.start_date} onChange={e => setIED({ start_date: e.target.value })} t={t} type="date" /></FF>
+                    <FF label="Maturity Date" t={t}><FIn value={investmentEditData.maturity_date} onChange={e => setIED({ maturity_date: e.target.value })} t={t} type="date" /></FF>
+                  </div>
+
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
+                    <FF label="Payment Method" t={t}><FSel value={investmentEditData.payment_method} onChange={e => setIED({ payment_method: e.target.value })} options={paymentMethods} t={t} /></FF>
+                    <FF label="Rollover at Maturity" t={t}>
+                      <div style={{ display: "flex", alignItems: "center", height: 40 }}>
+                        <input type="checkbox" checked={investmentEditData.rollover} onChange={e => setIED({ rollover: e.target.checked })} style={{ cursor: "pointer", width: 18, height: 18 }} />
+                        <span style={{ marginLeft: 10, fontSize: 13, color: t.textSecondary }}>Rollover Principal</span>
+                      </div>
+                    </FF>
+                  </div>
+
+                  {FEES_DATA.length > 0 && (
+                    <FF label="Applicable Fees" t={t}>
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                        {FEES_DATA.map(f => {
+                          const selected = (investmentEditData.feeIds || []).includes(f.id);
+                          const toggleFee = () => {
+                            const cur = investmentEditData.feeIds || [];
+                            setIED({ feeIds: selected ? cur.filter(x => x !== f.id) : [...cur, f.id] });
+                          };
+                          return (
+                            <div key={f.id} onClick={toggleFee} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: selected ? 600 : 400, padding: "6px 12px", borderRadius: 20, cursor: "pointer", transition: "all 0.15s ease", background: selected ? (isDark ? "rgba(52,211,153,0.15)" : "#ECFDF5") : t.chipBg, color: selected ? (isDark ? "#34D399" : "#059669") : t.textSecondary, border: `1px solid ${selected ? (isDark ? "rgba(52,211,153,0.4)" : "#A7F3D0") : t.chipBorder}` }}>
+                              <span style={{ fontSize: 11, fontWeight: 700 }}>{selected ? "✓" : "+"}</span>
+                              {f.name} {f.rate ? `(${f.rate})` : ""}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </FF>
+                  )}
+
+                  <div style={{ marginTop: 12, pt: 12, borderTop: `1px solid ${t.surfaceBorder}`, display: "flex", justifyContent: "flex-end" }}>
+                    <button 
+                      onClick={handleSaveInvestment} 
+                      disabled={savingInvestment}
+                      style={{ padding: "10px 24px", borderRadius: 10, background: t.accentGrad, color: "#fff", border: "none", fontWeight: 700, cursor: "pointer", fontSize: 14, boxShadow: `0 4px 12px ${t.accentShadow}`, opacity: savingInvestment ? 0.7 : 1 }}
+                    >
+                      {savingInvestment ? "Saving..." : "Save Investment"}
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           ) : viewMode === "simple" && activeTab === "Investment documents" ? (
             <InvestmentDocumentsTab 

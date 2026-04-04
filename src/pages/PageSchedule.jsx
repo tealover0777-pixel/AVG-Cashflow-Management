@@ -40,6 +40,30 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
   const [drillInvestment, setDrillInvestment] = useState(null);
   const [drillFee, setDrillFee] = useState(null);
   const [detailContact, setDetailContact] = useState(null);
+
+  const handleUpdateInvestment = async (inv) => {
+    if (!inv.id) return;
+    const { id, ...rest } = inv;
+    const payload = {
+      ...rest,
+      amount: rest.amount ? Number(String(rest.amount).replace(/[^0-9.-]/g, "")) || null : null,
+      rate: rest.rate ? Number(String(rest.rate).replace(/[^0-9.-]/g, "")) || null : null,
+      interest_rate: rest.rate ? Number(String(rest.rate).replace(/[^0-9.-]/g, "")) || null : null,
+      term_months: rest.term_months ? Number(rest.term_months) || null : null,
+      updated_at: serverTimestamp()
+    };
+    delete payload.docId;
+    delete payload._path;
+    
+    try {
+      const docRef = inv._path ? doc(db, inv._path) : doc(db, "tenants", tenantId, "investments", id);
+      await updateDoc(docRef, payload);
+    } catch (err) {
+      console.error("Update investment error:", err);
+      throw err;
+    }
+  };
+
   const buildChain = (scheduleId) => {
     const visited = new Set();
     const chain = [];
@@ -1534,6 +1558,8 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
       SCHEDULES={SCHEDULES}
       DEALS={DEALS}
       DIMENSIONS={DIMENSIONS}
+      tenantId={tenantId}
+      onUpdateInvestment={handleUpdateInvestment}
       onUpdate={async (updatedData) => {
         const d = updatedData;
         const payload = {
@@ -1563,7 +1589,6 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
           alert("Failed to update contact: " + err.message);
         }
       }}
-      tenantId={tenantId}
     />
   </>);
 }

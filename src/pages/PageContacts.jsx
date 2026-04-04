@@ -43,6 +43,30 @@ export default function PageContacts({ t, isDark, CONTACTS = [], INVESTMENTS = [
   };
   const close = () => setModal(m => ({ ...m, open: false }));
   const setF = (k, v) => setModal(m => ({ ...m, data: { ...m.data, [k]: v } }));
+
+  const handleUpdateInvestment = async (inv) => {
+    if (!inv.id) return;
+    const { id, ...rest } = inv;
+    const payload = {
+      ...rest,
+      amount: rest.amount ? Number(String(rest.amount).replace(/[^0-9.-]/g, "")) || null : null,
+      rate: rest.rate ? Number(String(rest.rate).replace(/[^0-9.-]/g, "")) || null : null,
+      interest_rate: rest.rate ? Number(String(rest.rate).replace(/[^0-9.-]/g, "")) || null : null,
+      term_months: rest.term_months ? Number(rest.term_months) || null : null,
+      updated_at: serverTimestamp()
+    };
+    delete payload.docId;
+    delete payload._path;
+    
+    try {
+      const docRef = inv._path ? doc(db, inv._path) : doc(db, "tenants", tenantId, "investments", id);
+      await updateDoc(docRef, payload);
+    } catch (err) {
+      console.error("Update investment error:", err);
+      throw err;
+    }
+  };
+
   const handleSaveContact = async () => {
     const d = modal.data;
     const payload = {
@@ -167,23 +191,16 @@ export default function PageContacts({ t, isDark, CONTACTS = [], INVESTMENTS = [
   const [sel, setSel] = useState(new Set());
   const gridRef = useRef(null);
 
-  // Dynamically calculate page size based on available vertical space
   useEffect(() => {
     const calculatePageSize = () => {
       const viewportHeight = window.innerHeight;
-
-      // Table container matches: calc(100vh - 480px)
       const gridContainerHeight = viewportHeight - 480;
-      const availableForRows = gridContainerHeight - 90; // Header + Footer + padding
-      const calculatedRows = Math.floor(availableForRows / 40); // 40px estimated row height
-
+      const availableForRows = gridContainerHeight - 90;
+      const calculatedRows = Math.floor(availableForRows / 40);
       const newPageSize = Math.max(20, calculatedRows); 
       setPageSize(newPageSize);
     };
-
-    // Initial calculation with a slight delay to ensure layout is settled
     const timer = setTimeout(calculatePageSize, 100);
-
     calculatePageSize();
     window.addEventListener('resize', calculatePageSize);
     return () => {
@@ -192,8 +209,6 @@ export default function PageContacts({ t, isDark, CONTACTS = [], INVESTMENTS = [
     };
   }, []);
 
-
-  // TanStack Table: Data filtering (memoized)
   const filteredData = useMemo(() => {
     return CONTACTS.filter(p => {
       if (chip === "Investors" && p.role !== "Investor") return false;
@@ -203,7 +218,6 @@ export default function PageContacts({ t, isDark, CONTACTS = [], INVESTMENTS = [
     });
   }, [CONTACTS, chip]);
 
-  // TanStack Table: Column definitions
   const permissions = { canUpdate, canDelete, canInvite };
   
   const columnContext = useMemo(() => ({
@@ -224,7 +238,6 @@ export default function PageContacts({ t, isDark, CONTACTS = [], INVESTMENTS = [
   }, [permissions, isDark, t, columnContext]);
 
   return (<>
-    {/* Full-screen Loading Overlay (Freeze) */}
     {processing && (
       <div style={{ position: "fixed", inset: 0, zIndex: 9999, background: "rgba(0,0,0,0.6)", backdropFilter: "blur(4px)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", color: "#fff" }}>
         <div style={{ width: 44, height: 44, border: "3px solid rgba(255,255,255,0.2)", borderTopColor: "#fff", borderRadius: "50%", animation: "spin 0.8s linear infinite", marginBottom: 16 }} />
@@ -299,6 +312,7 @@ export default function PageContacts({ t, isDark, CONTACTS = [], INVESTMENTS = [
       DEALS={DEALS}
       DIMENSIONS={DIMENSIONS}
       onUpdate={handleUpdateContact}
+      onUpdateInvestment={handleUpdateInvestment}
       tenantId={tenantId}
     />
     {inviteResult && (

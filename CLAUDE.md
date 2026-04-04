@@ -21,7 +21,7 @@ npm run logs             # View Firebase function logs
 
 ## Architecture
 
-**Stack:** React 19 + Vite SPA, Firebase (Firestore + Auth + Cloud Functions), BigQuery exports via Firebase Extensions, Firebase Data Connect with PostgreSQL (Cloud SQL).
+**Stack:** React 19 + Vite SPA, Firebase (Firestore + Auth + Cloud Functions), Firebase Data Connect with PostgreSQL (Cloud SQL).
 
 The build uses `vite-plugin-singlefile` to bundle the entire app into a single HTML file served from `dist/`.
 
@@ -64,13 +64,8 @@ Firestore rules (`firestore.rules`) enforce multi-tenancy at the database level 
 | `src/utils.jsx` | Theme definitions, formatting, nav constants |
 | `functions/index.js` | All Cloud Functions (user management) |
 | `firestore.rules` | Multi-tenant security rules |
-| `firebase.json` | Hosting, Functions, BigQuery extension configs |
+| `firebase.json` | Hosting, Functions, Data Connect configs |
 
-### BigQuery Integration
-
-11 Firebase Extensions auto-export Firestore collection changes to BigQuery in real-time (deals, contacts, investments, paymentSchedules, payments, fees, tenant-users). Configured in `firebase.json` under `extensions`.
-
-**Note:** Extensions are now named to match their collections: `firestore-bigquery-export-deals`, `firestore-bigquery-export-contacts`, `firestore-bigquery-export-investments`, etc.
 
 ### Firebase Data Connect
 
