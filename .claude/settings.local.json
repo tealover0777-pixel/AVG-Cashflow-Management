@@ -10,7 +10,8 @@
       "Bash(node -e:*)",
       "Bash(npx vite build)",
       "Bash(timeout 10 npx vite:*)",
-      "Bash(cd /Users/kyuahn/Documents/AVG/AVG\\\\ Cashflow\\\\ Management && npm run dev:*)"
+      "Bash(cd /Users/kyuahn/Documents/AVG/AVG\\\\ Cashflow\\\\ Management && npm run dev:*)",
+      "Bash(npm run:*)"
     ]
   }
 }

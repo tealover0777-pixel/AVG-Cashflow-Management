@@ -357,7 +357,7 @@ export const InvestorSummaryModal = ({ contact, defaultView = "simple", onClose,
   useEffect(() => {
     setViewMode(defaultView);
     if (contact) {
-      setEditData({ 
+      setEditData({
         ...contact,
         first_name: contact.first_name || "",
         last_name: contact.last_name || "",
@@ -377,41 +377,13 @@ export const InvestorSummaryModal = ({ contact, defaultView = "simple", onClose,
     }
   }, [defaultView, contact]);
 
-  if (!contact) return null;
-  const dp = contact;
-  const showData = isEditing ? editData : contact;
-  const dpId = String(dp.id || "").trim();
-  const dpDocId = String(dp.docId || "").trim();
+  const dpId = contact ? String(contact.id || "").trim() : "";
+  const dpDocId = contact ? String(contact.docId || "").trim() : "";
 
-  const roleOpts = (DIMENSIONS.find(d => d.name === "ContactRole" || d.name === "Contact Role") || {}).items || ["Investor", "Borrower"];
-  const partyTypeOpts = (DIMENSIONS.find(d => d.name === "ContactType" || d.name === "Contact Type") || {}).items || ["Individual", "Company", "Trust", "Partnership"];
-  const paymentMethods = (DIMENSIONS.find(d => d.name === "Payment Method" || d.name === "PaymentMethod") || {}).items || [];
-
-  const handleSave = async () => {
-    if (!onUpdate) return;
-    setSaving(true);
-    try {
-      await onUpdate(editData);
-      setIsEditing(false);
-    } catch (err) {
-      alert("Failed to update contact: " + err.message);
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const setED = (newVal) => {
-    const next = { ...editData, ...newVal };
-    if (newVal.hasOwnProperty('first_name') || newVal.hasOwnProperty('last_name')) {
-      next.party_name = `${next.first_name || ""} ${next.last_name || ""}`.trim() || next.name || "";
-    }
-    setEditData(next);
-  };
-  
-  const partyInvestments = INVESTMENTS.filter(c => {
+  const partyInvestments = contact ? INVESTMENTS.filter(c => {
     const cPId = String(c.party_id || "").trim();
     return (cPId === dpId || (dpDocId && cPId === dpDocId));
-  });
+  }) : [];
 
   useEffect(() => {
     if (partyInvestments.length > 0 && !selectedInvestmentId) {
@@ -438,7 +410,36 @@ export const InvestorSummaryModal = ({ contact, defaultView = "simple", onClose,
       });
     }
   }, [selectedInvestmentId]);
-  
+
+  if (!contact) return null;
+  const dp = contact;
+  const showData = isEditing ? editData : contact;
+
+  const roleOpts = (DIMENSIONS.find(d => d.name === "ContactRole" || d.name === "Contact Role") || {}).items || ["Investor", "Borrower"];
+  const partyTypeOpts = (DIMENSIONS.find(d => d.name === "ContactType" || d.name === "Contact Type") || {}).items || ["Individual", "Company", "Trust", "Partnership"];
+  const paymentMethods = (DIMENSIONS.find(d => d.name === "Payment Method" || d.name === "PaymentMethod") || {}).items || [];
+
+  const handleSave = async () => {
+    if (!onUpdate) return;
+    setSaving(true);
+    try {
+      await onUpdate(editData);
+      setIsEditing(false);
+    } catch (err) {
+      alert("Failed to update contact: " + err.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const setED = (newVal) => {
+    const next = { ...editData, ...newVal };
+    if (newVal.hasOwnProperty('first_name') || newVal.hasOwnProperty('last_name')) {
+      next.party_name = `${next.first_name || ""} ${next.last_name || ""}`.trim() || next.name || "";
+    }
+    setEditData(next);
+  };
+
   const partySchedules = SCHEDULES.filter(s => {
     const sPId = String(s.party_id || "").trim();
     const isMatched = sPId === dpId || (dpDocId && sPId === dpDocId);
