@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import { db, storage } from "../firebase";
-import { doc, getDocs, collection, updateDoc, setDoc, deleteDoc, serverTimestamp } from "firebase/firestore";
+import { doc, getDocs, collection, addDoc, updateDoc, setDoc, deleteDoc, serverTimestamp } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL, deleteObject } from "firebase/storage";
 import { Modal, FF, FIn, FSel, DelModal, Bdg, InvestorSummaryModal } from "../components";
 import { useAuth } from "../AuthContext";
