@@ -24,7 +24,7 @@ export default function InvestmentDocumentsTab({ t, isDark, tenantId, party, DEA
 
     useEffect(() => {
         if (!tenantId || !partyId) return;
-        const q = query(collection(db, "tenants", tenantId, "parties", partyId, "documents"));
+        const q = query(collection(db, "tenants", tenantId, "contacts", partyId, "documents"));
         const unsub = onSnapshot(q, (snap) => {
             setDocs(snap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a,b) => (b.date_added?.seconds || 0) - (a.date_added?.seconds || 0)));
             setLoading(false);
@@ -43,14 +43,14 @@ export default function InvestmentDocumentsTab({ t, isDark, tenantId, party, DEA
         setProgress(10);
         try {
             const timestamp = Date.now();
-            const path = `tenants/${tenantId}/parties/${partyId}/documents/${timestamp}_${newDoc.file.name}`;
+            const path = `tenants/${tenantId}/contacts/${partyId}/documents/${timestamp}_${newDoc.file.name}`;
             const url = await uploadFile(newDoc.file, path);
             setProgress(90);
 
             const deal = DEALS.find(d => d.id === newDoc.dealId);
             const docId = `DOC_${timestamp}`;
             
-            await setDoc(doc(db, "tenants", tenantId, "parties", partyId, "documents", docId), {
+            await setDoc(doc(db, "tenants", tenantId, "contacts", partyId, "documents", docId), {
                 id: docId,
                 name: newDoc.file.name,
                 url: url,
@@ -81,7 +81,7 @@ export default function InvestmentDocumentsTab({ t, isDark, tenantId, party, DEA
     const handleDelete = async (docObj) => {
         if (!window.confirm(`Delete ${docObj.name}?`)) return;
         try {
-            await deleteDoc(doc(db, "tenants", tenantId, "parties", partyId, "documents", docObj.id));
+            await deleteDoc(doc(db, "tenants", tenantId, "contacts", partyId, "documents", docObj.id));
         } catch (err) {
             console.error("Delete error:", err);
         }

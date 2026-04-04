@@ -424,8 +424,8 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
           : `${contactModal.data.first_name} ${contactModal.data.last_name}`.trim();
 
         const partyPathPrefix = investmentCollection.includes("/") 
-          ? investmentCollection.substring(0, investmentCollection.lastIndexOf("/")) + "/parties" 
-          : "parties";
+          ? investmentCollection.substring(0, investmentCollection.lastIndexOf("/")) + "/contacts"
+          : "contacts";
 
         const docRef = doc(db, partyPathPrefix, partyId);
         await setDoc(docRef, {
@@ -521,7 +521,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
       }
       // Also update the contact's default payment method if it changed
       if (parObj && d.payment_method) {
-        const contactRef = parObj._path ? doc(db, parObj._path) : doc(db, "parties", parObj.docId || parObj.id);
+        const contactRef = parObj._path ? doc(db, parObj._path) : doc(db, "contacts", parObj.docId || parObj.id);
         await updateDoc(contactRef, { payment_method: d.payment_method, updated_at: serverTimestamp() }).catch(e => console.error("Sync contact error:", e));
       }
       setModal(m => ({ ...m, open: false }));
@@ -2818,7 +2818,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
             }
             if (!tId) throw new Error("Missing tenant ID");
             
-            await updateDoc(doc(db, "tenants", tId, "parties", docId), payload);
+            await updateDoc(doc(db, "tenants", tId, "contacts", docId), payload);
             setDetailContact({ ...detailContact, data: { ...d, ...payload } });
           } catch (err) {
             console.error("Update error:", err);

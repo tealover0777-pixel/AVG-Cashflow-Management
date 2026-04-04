@@ -10,9 +10,9 @@ import { useAuth } from "../AuthContext";
 
 export default function PageContacts({ t, isDark, CONTACTS = [], INVESTMENTS = [], SCHEDULES = [], DEALS = [], collectionPath = "", DIMENSIONS = [], tenantId = "" }) {
   const { hasPermission, isSuperAdmin } = useAuth();
-  const canCreate = hasPermission("CONTACT_CREATE") || hasPermission("PARTY_CREATE");
-  const canUpdate = hasPermission("CONTACT_UPDATE") || hasPermission("PARTY_UPDATE");
-  const canDelete = hasPermission("CONTACT_DELETE") || hasPermission("PARTY_DELETE");
+  const canCreate = hasPermission("CONTACT_CREATE");
+  const canUpdate = hasPermission("CONTACT_UPDATE");
+  const canDelete = hasPermission("CONTACT_DELETE");
   const canInvite = isSuperAdmin || hasPermission("USER_INVITE") || hasPermission("USER_CREATE");
   const roleOpts = (DIMENSIONS.find(d => d.name === "ContactRole") || {}).items || ["Investor", "Borrower"];
   const partyTypeOpts = (DIMENSIONS.find(d => d.name === "ContactType") || {}).items || ["Individual", "Company", "Trust", "Partnership"];

@@ -47,7 +47,7 @@ Firestore rules (`firestore.rules`) enforce multi-tenancy at the database level 
 
 1. `src/app.jsx` — root router/state manager, fetches all collections via `useFirestoreCollection.js`, filters by `activeTenantId`
 2. `src/hooks/useDashboardData.js` — computes dashboard metrics (Total Income, Missed Payments, Active Investments, Avg Yield, quarterly charts) from the fetched data
-3. `src/pages/*.jsx` — 15 page components (Dashboard, Deals, Parties, Investments, Schedule, Payments, Fees, Reports, Tenants, UserProfiles, Roles, SuperAdmin, Profile, Dimensions, AdminHelp); navigation and visible pages are gated by `hasPermission()` checks
+3. `src/pages/*.jsx` — 15 page components (Dashboard, Deals, Contacts, Investments, Schedule, Payments, Fees, Reports, Tenants, UserProfiles, Roles, SuperAdmin, Profile, Dimensions, AdminHelp); navigation and visible pages are gated by `hasPermission()` checks
 4. `src/components.jsx` — shared UI components (cards, tables, buttons, tooltips, pagination)
 5. `src/components/SidebarHelp.jsx` — contextual help sidebar component
 6. `functions/index.js` — Cloud Functions for `inviteUser` (creates Auth user, sets claims, creates Firestore profiles), `resendVerification`, `createFirstAdmin`

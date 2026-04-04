@@ -261,7 +261,7 @@ export default function PagePayments({ t, isDark, PAYMENTS = [], INVESTMENTS = [
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
             <FF label="Investment ID" t={t}><FSel value={modal.data.investment_id} onChange={e => setF("investment_id", e.target.value)} options={INVESTMENTS.map(i => i.id)} t={t} /></FF>
-            <FF label="Party" t={t}><FSel value={modal.data.party_name} onChange={e => setF("party_name", e.target.value)} options={CONTACTS.map(c => c.name)} t={t} /></FF>
+            <FF label="Contact" t={t}><FSel value={modal.data.party_name} onChange={e => setF("party_name", e.target.value)} options={CONTACTS.map(c => c.name)} t={t} /></FF>
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
             <FF label="Amount" t={t}><FIn value={modal.data.amount} onChange={e => setF("amount", e.target.value)} placeholder="0.00" t={t} /></FF>
