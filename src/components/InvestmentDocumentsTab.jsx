@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { db } from "../firebase";
 import { collection, query, onSnapshot, doc, setDoc, deleteDoc, serverTimestamp } from "firebase/firestore";
 import { uploadFile } from "../utils/storageUtils";
-import { FileText, File, Trash2, Download, Plus, Loader2, eye, X, HelpCircle, Eye } from "lucide-react";
+import { FileText, File, Trash2, Download, Plus, Loader2, X, HelpCircle, Eye } from "lucide-react";
 import { Modal, FF, FIn, FSel, Tooltip } from "../components";
 
 export default function InvestmentDocumentsTab({ t, isDark, tenantId, party, DEALS, INVESTMENTS }) {
