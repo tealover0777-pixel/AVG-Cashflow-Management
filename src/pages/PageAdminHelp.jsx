@@ -1,11 +1,16 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { collection, query, orderBy, getDocs, doc, getDoc, setDoc, updateDoc, deleteDoc } from "firebase/firestore";
-import { db } from "../firebase";
 import { useAuth } from "../AuthContext";
 import { Tooltip, Modal, Bdg, DelModal } from "../components";
 import TanStackTable from "../components/TanStackTable";
 import { getAdminHelpColumns } from "../components/AdminHelpTanStackConfig";
 import { Bot, Search, Trash2 } from "lucide-react";
+import {
+  loadConversations,
+  readKnowledgeBase,
+  writeKnowledgeBase,
+  updateConversation,
+  deleteConversation,
+} from "../utils/helpStorage";
 
 // ── Similarity helper ──────────────────────────────────────────────────────────
 function tokenize(text) {
@@ -39,38 +44,28 @@ export default function PageAdminHelp({ t, isDark }) {
   const [deleteTarget, setDeleteTarget] = useState(null);
 
   // ── Duplicate banner ─────────────────────────────────────────────────────────
-  const [dupBanner, setDupBanner] = useState(null); // {count, type: "found"|"none"}
+  const [dupBanner, setDupBanner] = useState(null);
 
   const loadData = async () => {
     setLoading(true);
     setError(null);
     try {
-      const q = query(collection(db, "help_conversations"), orderBy("created_at", "desc"));
-      const snap = await getDocs(q);
-      const data = snap.docs.map(d => ({
-        id: d.id,
-        user_email: d.data().user_email || "Unknown",
-        question: d.data().question || "",
-        answer: d.data().answer || "",
-        feedback: d.data().feedback || "none",
-        status: d.data().status || "pending",
-        date: d.data().created_at ? new Date(d.data().created_at.seconds * 1000).toLocaleString() : "Just now",
-        // TanStack needs docId usually, but we can use id
-        docId: d.id,
-      }));
-      setConversations(data);
+      const convs = await loadConversations();
+      setConversations(convs.map(c => ({
+        ...c,
+        docId: c.id,
+        feedback: c.feedback || "none",
+        status: c.status || "pending",
+        date: c.created_at ? new Date(c.created_at).toLocaleString() : "Just now",
+      })));
 
       setKbLoading(true);
-      const kbSnap = await getDoc(doc(db, "system", "knowledge_base"));
-      if (kbSnap.exists() && kbSnap.data().content) {
-        setKbContent(kbSnap.data().content);
-      } else {
-        setKbContent("You are a helpful assistant for AVG Cashflow Management. Answer questions concisely and professionally. You assist users with Projects, Contacts, Schedules, and Payments.");
-      }
+      const kb = await readKnowledgeBase();
+      setKbContent(kb || "You are a helpful assistant for AVG Cashflow Management. Answer questions concisely and professionally. You assist users with Projects, Contacts, Schedules, and Payments.");
       setKbLoading(false);
     } catch (err) {
       console.error(err);
-      setError("Failed to load help data. Are you sure you are a admin with sufficient permissions?");
+      setError("Failed to load help data. Are you sure you are an admin with sufficient permissions?");
     } finally {
       setLoading(false);
     }
@@ -92,7 +87,7 @@ export default function PageAdminHelp({ t, isDark }) {
     setIsBulkDeleting(true);
     try {
       const idsToDelete = Object.keys(rowSelection).filter(k => rowSelection[k]);
-      await Promise.all(idsToDelete.map(id => deleteDoc(doc(db, "help_conversations", id))));
+      await Promise.all(idsToDelete.map(id => deleteConversation(id)));
       setConversations(prev => prev.filter(c => !rowSelection[c.id]));
       setRowSelection({});
     } catch (err) {
@@ -112,7 +107,7 @@ export default function PageAdminHelp({ t, isDark }) {
     if (!deleteTarget) return;
     try {
       setLoading(true);
-      await deleteDoc(doc(db, "help_conversations", deleteTarget.id));
+      await deleteConversation(deleteTarget.id);
       setConversations(prev => prev.filter(c => c.id !== deleteTarget.id));
       setRowSelection(prev => { const next = { ...prev }; delete next[deleteTarget.id]; return next; });
       if (selectedConv?.id === deleteTarget.id) { setSelectedConv(null); setNewRule(""); }
@@ -137,7 +132,7 @@ export default function PageAdminHelp({ t, isDark }) {
     const nextSelection = {};
 
     conversations.forEach(c => {
-      if (c.status === "resolved") return; // skip already-resolved
+      if (c.status === "resolved") return;
       const tokens = tokenize(c.question);
       const isDup = resolvedTokens.some(rt => jaccardSimilarity(tokens, rt) >= DUPLICATE_THRESHOLD);
       if (isDup) nextSelection[c.id] = true;
@@ -156,7 +151,7 @@ export default function PageAdminHelp({ t, isDark }) {
   const handleSaveKnowledgeBase = async () => {
     try {
       setKbLoading(true);
-      await setDoc(doc(db, "system", "knowledge_base"), { content: kbContent }, { merge: true });
+      await writeKnowledgeBase(kbContent);
       alert("Knowledge base updated successfully! AI will use this on next load.");
     } catch (err) {
       alert("Failed to update knowledge base.");
@@ -171,9 +166,9 @@ export default function PageAdminHelp({ t, isDark }) {
     try {
       setLoading(true);
       const updatedKb = `${kbContent}\n\nQ: ${selectedConv.question}\nA: ${newRule}`;
-      await setDoc(doc(db, "system", "knowledge_base"), { content: updatedKb }, { merge: true });
+      await writeKnowledgeBase(updatedKb);
       setKbContent(updatedKb);
-      await updateDoc(doc(db, "help_conversations", selectedConv.id), { status: "resolved" });
+      await updateConversation(selectedConv.id, { status: "resolved" });
       setConversations(prev => prev.map(c => c.id === selectedConv.id ? { ...c, status: "resolved" } : c));
       setSelectedConv(null);
       setNewRule("");
@@ -189,7 +184,7 @@ export default function PageAdminHelp({ t, isDark }) {
     if (!selectedConv) return;
     try {
       setLoading(true);
-      await updateDoc(doc(db, "help_conversations", selectedConv.id), { status: "resolved" });
+      await updateConversation(selectedConv.id, { status: "resolved" });
       setConversations(prev => prev.map(c => c.id === selectedConv.id ? { ...c, status: "resolved" } : c));
       setSelectedConv(null);
       setNewRule("");
@@ -234,7 +229,6 @@ export default function PageAdminHelp({ t, isDark }) {
               <h2 style={{ fontSize: 16, fontWeight: 600, color: t.text, display: "flex", alignItems: "center", gap: 8 }}>
                 <Bot size={18} /> Chat Log
               </h2>
-              {/* Find Duplicates button */}
               <Tooltip text="Compute Jaccard similarity to suggest duplicates" t={t}>
                 <button
                   onClick={handleFindDuplicates}

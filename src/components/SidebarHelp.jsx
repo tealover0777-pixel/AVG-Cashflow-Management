@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef } from "react";
 import { getGenerativeModel } from "@firebase/vertexai";
-import { collection, addDoc, doc, getDoc, updateDoc, serverTimestamp } from "firebase/firestore";
-import { vertexAI, db } from "../firebase";
+import { vertexAI } from "../firebase";
 import { Send, X, ThumbsUp, ThumbsDown, Bot, Loader2 } from "lucide-react";
 import { useAuth } from "../AuthContext";
+import { readKnowledgeBase, saveConversation, updateConversation } from "../utils/helpStorage";
 
 export default function SidebarHelp({ open, onClose, t, isDark }) {
   const { user } = useAuth();
@@ -13,26 +13,20 @@ export default function SidebarHelp({ open, onClose, t, isDark }) {
   const [modelOptions, setModelOptions] = useState(null);
   const scrollRef = useRef(null);
 
-  // Fetch knowledge base text and initialize model options
+  // Fetch knowledge base from Storage and initialize model options
   useEffect(() => {
     async function fetchKB() {
       if (!open || !user?.uid) return;
-
       try {
         console.log("Refreshing Knowledge Base for User:", user.email);
-        const docSnap = await getDoc(doc(db, "system", "knowledge_base"));
-        let kbText = "You are a helpful assistant for AVG Cashflow Management. Answer questions concisely and professionally. You assist users with Projects, Contacts, Schedules, and Payments. If you don't know an answer, tell the user to contact the admin at admin@avg-cashflow.com.";
-        if (docSnap.exists() && docSnap.data().content) {
-          kbText = docSnap.data().content;
-        }
+        const kbText = await readKnowledgeBase();
         setModelOptions({
           model: "gemini-2.5-flash",
-          systemInstruction: kbText,
+          systemInstruction: kbText || "You are a helpful assistant for AVG Cashflow Management. Answer questions concisely and professionally. You assist users with Projects, Contacts, Schedules, and Payments. If you don't know an answer, tell the user to contact the admin at admin@avg-cashflow.com.",
         });
         console.log("Model Initialized with latest KB.");
       } catch (err) {
-        console.error("Failed to load KB from Firestore:", err);
-        // Fallback options
+        console.error("Failed to load KB from Storage:", err);
         setModelOptions({
           model: "gemini-2.5-flash",
           systemInstruction: "You are a helpful assistant for AVG Cashflow Management. You provide information about Projects, Contacts, and Schedules. If you don't know the answer, politely suggest contacting the admin.",
@@ -55,13 +49,11 @@ export default function SidebarHelp({ open, onClose, t, isDark }) {
     const userText = input.trim();
     setInput("");
 
-    // Add user message to UI
     const tempMessageId = Date.now().toString();
     setMessages(prev => [...prev, { id: tempMessageId, role: "user", text: userText }]);
     setLoading(true);
 
     try {
-      // Send to Gemini with conversation history (excluding the first greeting, though it's fine)
       const model = getGenerativeModel(vertexAI, modelOptions);
       const chatHistory = messages.filter(m => m.id).map(m => ({
         role: m.role,
@@ -72,24 +64,23 @@ export default function SidebarHelp({ open, onClose, t, isDark }) {
       const result = await chat.sendMessage(userText);
       const aiResponseText = result.response.text();
 
-      // Save Q&A to Firestore exactly as planned
-      const savedDoc = await addDoc(collection(db, "help_conversations"), {
+      // Save Q&A to Firebase Storage
+      const savedId = await saveConversation({
         user_id: user?.uid || "unknown",
         user_email: user?.email || "unknown",
         question: userText,
         answer: aiResponseText,
-        created_at: serverTimestamp(),
-        feedback: null // Will be updated to 'up' or 'down' based on user interaction
+        feedback: null,
+        status: "pending",
       });
 
-      // Add AI response to UI, using the Firestore doc string ID so we can update feedback later
       setMessages(prev => [
         ...prev,
-        { id: savedDoc.id, role: "model", text: aiResponseText, docId: savedDoc.id }
+        { id: savedId, role: "model", text: aiResponseText, docId: savedId }
       ]);
 
     } catch (err) {
-      console.error("Error from AI/Firestore:", err);
+      console.error("Error from AI/Storage:", err);
       setMessages(prev => [...prev, { id: Date.now().toString(), role: "model", text: `I'm sorry, I encountered an error: ${err.message || String(err)}` }]);
     } finally {
       setLoading(false);
@@ -98,8 +89,7 @@ export default function SidebarHelp({ open, onClose, t, isDark }) {
 
   const handleFeedback = async (docId, type) => {
     try {
-      await updateDoc(doc(db, "help_conversations", docId), { feedback: type });
-      // Update local state to visually indicate the feedback has been logged
+      await updateConversation(docId, { feedback: type });
       setMessages(prev => prev.map(m => m.docId === docId ? { ...m, feedback: type } : m));
     } catch (err) {
       console.error("Failed to save feedback", err);
