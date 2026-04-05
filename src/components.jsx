@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import InvestmentDocumentsTab from "./components/InvestmentDocumentsTab";
 import InvestmentChangelogTab from "./components/InvestmentChangelogTab";
-import TanStackTable from "./components/TanStackTable";
+export { default as TanStackTable } from "./components/TanStackTable";
 import { getContactTransactionColumns } from "./components/ContactTransactionsTanStackConfig";
 
 export const Bdg = ({ status, label, isDark, bg, text, border }) => {
