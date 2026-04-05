@@ -1,8 +1,10 @@
-import { ref, uploadString, getDownloadURL, listAll, deleteObject } from "firebase/storage";
+import { ref, uploadString, getBytes, listAll, deleteObject } from "firebase/storage";
 import { storage } from "../firebase";
 
 const KB_PATH = "system/knowledge_base.txt";
 const CONV_DIR = "help_conversations";
+
+const decoder = new TextDecoder();
 
 function generateId() {
   return typeof crypto !== "undefined" && crypto.randomUUID
@@ -10,24 +12,16 @@ function generateId() {
     : `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
 }
 
-async function fetchJSON(url) {
-  const res = await fetch(url);
-  if (!res.ok) throw new Error(`Storage fetch failed: ${res.status}`);
-  return res.json();
-}
-
-async function fetchText(url) {
-  const res = await fetch(url);
-  if (!res.ok) throw new Error(`Storage fetch failed: ${res.status}`);
-  return res.text();
+async function readBytes(storageRef) {
+  const buf = await getBytes(storageRef);
+  return decoder.decode(buf);
 }
 
 // ── Knowledge Base ─────────────────────────────────────────────────────────
 
 export async function readKnowledgeBase() {
   try {
-    const url = await getDownloadURL(ref(storage, KB_PATH));
-    return await fetchText(url);
+    return await readBytes(ref(storage, KB_PATH));
   } catch (err) {
     if (err.code === "storage/object-not-found") return null;
     throw err;
@@ -57,8 +51,8 @@ export async function loadConversations() {
   if (listResult.items.length === 0) return [];
   const items = await Promise.all(
     listResult.items.map(async (itemRef) => {
-      const url = await getDownloadURL(itemRef);
-      return fetchJSON(url);
+      const text = await readBytes(itemRef);
+      return JSON.parse(text);
     })
   );
   return items.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
@@ -66,8 +60,7 @@ export async function loadConversations() {
 
 export async function updateConversation(id, updates) {
   const fileRef = ref(storage, `${CONV_DIR}/${id}.json`);
-  const url = await getDownloadURL(fileRef);
-  const existing = await fetchJSON(url);
+  const existing = JSON.parse(await readBytes(fileRef));
   const updated = { ...existing, ...updates };
   await uploadString(fileRef, JSON.stringify(updated), "raw", { contentType: "application/json" });
 }
