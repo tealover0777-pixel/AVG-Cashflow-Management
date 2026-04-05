@@ -343,7 +343,7 @@ export const DelModal = ({ target, open, onClose, onConfirm, onDel, label, title
 // INVESTOR SUMMARY MODAL
 // ─────────────────────────────────────────────────────────────────────────────
 
-export const InvestorSummaryModal = ({ contact, defaultView = "simple", onClose, isDark, t, INVESTMENTS, SCHEDULES, DEALS, onUpdate, onUpdateInvestment, DIMENSIONS = [], tenantId }) => {
+export const InvestorSummaryModal = ({ contact, defaultView = "simple", onClose, isDark, t, INVESTMENTS, SCHEDULES, DEALS, onUpdate, onUpdateInvestment, onAddNote, DIMENSIONS = [], tenantId }) => {
   const [activeTab, setActiveTab] = useState("Capital transactions");
   const [viewMode, setViewMode] = useState(defaultView);
   const [isEditing, setIsEditing] = useState(false);
@@ -353,6 +353,10 @@ export const InvestorSummaryModal = ({ contact, defaultView = "simple", onClose,
   const [selectedInvestmentId, setSelectedInvestmentId] = useState("");
   const [investmentEditData, setInvestmentEditData] = useState({});
   const [savingInvestment, setSavingInvestment] = useState(false);
+
+  const [notes, setNotes] = useState([]);
+  const [noteText, setNoteText] = useState("");
+  const [savingNote, setSavingNote] = useState(false);
   
   useEffect(() => {
     setViewMode(defaultView);
@@ -410,6 +414,12 @@ export const InvestorSummaryModal = ({ contact, defaultView = "simple", onClose,
       });
     }
   }, [selectedInvestmentId]);
+
+  // Reset notes when contact changes
+  useEffect(() => {
+    setNotes([]);
+    setNoteText("");
+  }, [contact?.id]);
 
   if (!contact) return null;
   const dp = contact;
@@ -848,6 +858,58 @@ export const InvestorSummaryModal = ({ contact, defaultView = "simple", onClose,
                   />
                 </div>
               </div>
+            </div>
+          ) : viewMode === "simple" && activeTab === "Notes" ? (
+            <div style={{ display: "flex", flexDirection: "column", gap: 20, maxWidth: 700 }}>
+              {/* Add note form */}
+              <div style={{ background: isDark ? "rgba(255,255,255,0.03)" : "#FAFAF9", border: `1px solid ${t.surfaceBorder}`, borderRadius: 12, padding: 20 }}>
+                <div style={{ fontSize: 13, fontWeight: 600, color: t.text, marginBottom: 10 }}>Add Note</div>
+                <textarea
+                  value={noteText}
+                  onChange={e => setNoteText(e.target.value)}
+                  placeholder="Write a note about this contact..."
+                  rows={4}
+                  style={{ width: "100%", padding: "10px 13px", borderRadius: 9, border: `1px solid ${t.surfaceBorder}`, background: isDark ? "rgba(0,0,0,0.2)" : "#fff", color: t.text, fontSize: 13.5, fontFamily: "inherit", resize: "vertical", outline: "none", boxSizing: "border-box" }}
+                />
+                <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 10 }}>
+                  <button
+                    disabled={savingNote || !noteText.trim()}
+                    onClick={async () => {
+                      if (!noteText.trim() || !onAddNote) return;
+                      setSavingNote(true);
+                      try {
+                        const saved = await onAddNote({ text: noteText.trim() });
+                        setNotes(prev => [saved, ...prev]);
+                        setNoteText("");
+                      } catch (err) {
+                        alert("Failed to save note: " + err.message);
+                      } finally {
+                        setSavingNote(false);
+                      }
+                    }}
+                    style={{ padding: "9px 22px", borderRadius: 9, background: noteText.trim() ? t.accentGrad : (isDark ? "rgba(255,255,255,0.07)" : "#e5e7eb"), color: noteText.trim() ? "#fff" : t.textMuted, border: "none", fontWeight: 700, fontSize: 13.5, cursor: noteText.trim() && !savingNote ? "pointer" : "default", boxShadow: noteText.trim() ? `0 4px 12px ${t.accentShadow}` : "none" }}
+                  >
+                    {savingNote ? "Saving..." : "Save Note"}
+                  </button>
+                </div>
+              </div>
+
+              {/* Notes list */}
+              {notes.length === 0 ? (
+                <div style={{ textAlign: "center", padding: "40px 0", color: t.textMuted, fontSize: 13.5 }}>No notes yet. Add the first one above.</div>
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                  {notes.map((n, i) => (
+                    <div key={n.id || i} style={{ background: isDark ? "#1C1917" : "#fff", border: `1px solid ${t.surfaceBorder}`, borderRadius: 12, padding: "16px 20px", boxShadow: "0 1px 2px rgba(0,0,0,0.04)" }}>
+                      <div style={{ fontSize: 13.5, color: t.text, lineHeight: 1.6, whiteSpace: "pre-wrap" }}>{n.text}</div>
+                      <div style={{ fontSize: 11.5, color: t.textMuted, marginTop: 10, display: "flex", gap: 12 }}>
+                        <span>{n.author || "—"}</span>
+                        <span>{n.created_at ? new Date(n.created_at).toLocaleString() : ""}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           ) : viewMode === "simple" && activeTab === "Investment documents" ? (
             <InvestmentDocumentsTab

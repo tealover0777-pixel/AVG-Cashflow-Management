@@ -2850,6 +2850,16 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
           }
         }}
         onUpdateInvestment={handleUpdateInvestmentModal}
+        onAddNote={async ({ text }) => {
+          const contact = detailContact?.data || detailContact;
+          const contactId = contact?.docId || contact?.id;
+          if (!contactId || !tenantId) throw new Error("Missing contact or tenant ID");
+          const noteRef = await addDoc(
+            collection(db, "tenants", tenantId, "contacts", contactId, "notes"),
+            { text, created_at: serverTimestamp(), author: "" }
+          );
+          return { id: noteRef.id, text, created_at: new Date().toISOString(), author: "" };
+        }}
         tenantId={tenantId}
       />
     </div>

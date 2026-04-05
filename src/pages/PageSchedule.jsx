@@ -1560,6 +1560,15 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
       DIMENSIONS={DIMENSIONS}
       tenantId={tenantId}
       onUpdateInvestment={handleUpdateInvestment}
+      onAddNote={async ({ text }) => {
+        const contactId = detailContact?.docId || detailContact?.id;
+        if (!contactId || !tenantId) throw new Error("Missing contact or tenant ID");
+        const noteRef = await addDoc(
+          collection(db, "tenants", tenantId, "contacts", contactId, "notes"),
+          { text, created_at: serverTimestamp(), author: "" }
+        );
+        return { id: noteRef.id, text, created_at: new Date().toISOString(), author: "" };
+      }}
       onUpdate={async (updatedData) => {
         const d = updatedData;
         const payload = {

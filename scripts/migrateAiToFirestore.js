@@ -1,85 +1,95 @@
-import { initializeApp } from "firebase/app";
-import { getFirestore, doc, setDoc, collection, addDoc, serverTimestamp } from "firebase/firestore";
-import { getStorage, ref, listAll, getBytes } from "firebase/storage";
+import admin from "firebase-admin";
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from 'url';
 
-const firebaseConfig = {
-  apiKey: "AIzaSyAD8G1WvI0SniOw5qvt_RrYIy5PkhF01Js",
-  authDomain: "avg-cashflow-management.firebaseapp.com",
-  projectId: "avg-cashflow-management",
-  storageBucket: "avg-cashflow-management.firebasestorage.app",
-};
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
-const storage = getStorage(app);
+const serviceAccountPath = path.join(__dirname, "serviceAccountKey.json");
 
-const decoder = new TextDecoder();
-
-async function readBytes(storageRef) {
-  try {
-    const buf = await getBytes(storageRef);
-    return decoder.decode(buf);
-  } catch (err) {
-    if (err.code === "storage/object-not-found") return null;
-    throw err;
-  }
+if (!fs.existsSync(serviceAccountPath)) {
+  console.error(`Service account key not found at: ${serviceAccountPath}`);
+  process.exit(1);
 }
 
+const serviceAccount = JSON.parse(fs.readFileSync(serviceAccountPath, "utf8"));
+
+admin.initializeApp({
+  credential: admin.credential.cert(serviceAccount),
+  storageBucket: "avg-cashflow-management.firebasestorage.app"
+});
+
+const db = admin.firestore();
+const bucket = admin.storage().bucket();
+
 async function migrate() {
-  console.log("Starting AI Data Migration...");
+  console.log("🚀 Starting AI Data Migration (Storage -> Firestore)...");
 
   // 1. Migrate Knowledge Base
-  const kbRef = ref(storage, "system/knowledge_base.txt");
-  const kbContent = await readBytes(kbRef);
-  if (kbContent) {
-    console.log("Migrating Knowledge Base...");
-    await setDoc(doc(db, "system", "ai_config"), {
-      content: kbContent,
-      updated_at: serverTimestamp(),
-      migrated_at: serverTimestamp()
-    });
-    console.log("Knowledge Base migrated.");
-  } else {
-    console.log("No Knowledge Base found in Storage.");
+  console.log("\n--- Migrating Knowledge Base ---");
+  const kbFile = bucket.file("system/knowledge_base.txt");
+  
+  try {
+    const [exists] = await kbFile.exists();
+    if (exists) {
+      const [content] = await kbFile.download();
+      const kbText = content.toString("utf8");
+      
+      console.log("Saving Knowledge Base to Firestore...");
+      await db.doc("system/ai_config").set({
+        content: kbText,
+        updated_at: admin.firestore.FieldValue.serverTimestamp(),
+        migrated_at: admin.firestore.FieldValue.serverTimestamp()
+      }, { merge: true });
+      console.log("✅ Knowledge Base migrated.");
+    } else {
+      console.log("ℹ️ No Knowledge Base found in Storage.");
+    }
+  } catch (err) {
+    console.error("❌ Error migrating Knowledge Base:", err.message);
   }
 
   // 2. Migrate Conversations
-  const convDirRef = ref(storage, "help_conversations");
+  console.log("\n--- Migrating Conversations ---");
   try {
-    const listResult = await listAll(convDirRef);
-    console.log(`Found ${listResult.items.length} conversations to migrate.`);
+    const [files] = await bucket.getFiles({ prefix: "help_conversations/" });
+    const jsonFiles = files.filter(f => f.name.endsWith(".json"));
+    
+    console.log(`Found ${jsonFiles.length} conversations to migrate.`);
 
-    for (const itemRef of listResult.items) {
-      const text = await readBytes(itemRef);
-      if (text) {
-        const data = JSON.parse(text);
-        console.log(`Migrating conversation: ${itemRef.name}`);
+    for (const file of jsonFiles) {
+      try {
+        const [content] = await file.download();
+        const data = JSON.parse(content.toString("utf8"));
         
-        // Use addDoc but try to preserve the old ID if possible (though Firestore IDs are different)
-        // We'll just add them as new docs to avoid conflicts.
-        await addDoc(collection(db, "ai_conversations"), {
+        console.log(`Migrating conversation: ${path.basename(file.name)}`);
+        
+        // Use the file name (ID) as document ID to maintain consistency if possible
+        const docId = path.basename(file.name, ".json");
+        
+        await db.collection("ai_conversations").doc(docId).set({
           ...data,
           migrated_from_storage: true,
-          migrated_at: serverTimestamp(),
-          // Ensure created_at is a proper date or timestamp if it exists as a string
-          created_at: data.created_at ? new Date(data.created_at) : serverTimestamp()
-        });
+          migrated_at: admin.firestore.FieldValue.serverTimestamp(),
+          // Ensure created_at is handled properly
+          created_at: data.created_at ? new Date(data.created_at) : admin.firestore.FieldValue.serverTimestamp()
+        }, { merge: true });
+      } catch (fileErr) {
+        console.error(`❌ Failed to migrate ${file.name}:`, fileErr.message);
       }
     }
-    console.log("Conversations migration complete.");
+    console.log("✅ Conversations migration complete.");
   } catch (err) {
-    if (err.code === "storage/object-not-found") {
-      console.log("No conversations folder found in Storage.");
-    } else {
-      console.error("Error migrating conversations:", err);
-    }
+    console.error("❌ Error listing conversations:", err.message);
   }
 
-  console.log("Migration finished successfully!");
+  console.log("\n✨ Migration finished successfully!");
   process.exit(0);
 }
 
 migrate().catch(err => {
-  console.error("Migration failed:", err);
+  console.error("\n💥 Migration failed:", err);
   process.exit(1);
 });
+
