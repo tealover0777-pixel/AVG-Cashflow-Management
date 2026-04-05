@@ -10,6 +10,7 @@ import {
   ArrowUp, ArrowDown
 } from "lucide-react";
 import InvestmentDocumentsTab from "./components/InvestmentDocumentsTab";
+import InvestmentChangelogTab from "./components/InvestmentChangelogTab";
 import TanStackTable from "./components/TanStackTable";
 import { getContactTransactionColumns } from "./components/ContactTransactionsTanStackConfig";
 
@@ -343,7 +344,7 @@ export const DelModal = ({ target, open, onClose, onConfirm, onDel, label, title
 // INVESTOR SUMMARY MODAL
 // ─────────────────────────────────────────────────────────────────────────────
 
-export const InvestorSummaryModal = ({ contact, defaultView = "simple", onClose, isDark, t, INVESTMENTS, SCHEDULES, DEALS, onUpdate, onUpdateInvestment, onAddNote, DIMENSIONS = [], tenantId }) => {
+export const InvestorSummaryModal = ({ contact, defaultView = "simple", onClose, isDark, t, INVESTMENTS, SCHEDULES, DEALS, onUpdate, onUpdateInvestment, onAddNote, DIMENSIONS = [], tenantId, LEDGER = [], USERS = [] }) => {
   const [activeTab, setActiveTab] = useState("Capital transactions");
   const [viewMode, setViewMode] = useState(defaultView);
   const [isEditing, setIsEditing] = useState(false);
@@ -919,6 +920,15 @@ export const InvestorSummaryModal = ({ contact, defaultView = "simple", onClose,
               party={contact}
               DEALS={DEALS}
               INVESTMENTS={INVESTMENTS}
+            />
+          ) : viewMode === "simple" && activeTab === "Investment changelog" ? (
+            <InvestmentChangelogTab
+              t={t}
+              isDark={isDark}
+              LEDGER={LEDGER}
+              USERS={USERS}
+              contact={contact}
+              selectedInvestmentId={selectedInvestmentId}
             />
           ) : (
             <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "100%", opacity: 0.5 }}>

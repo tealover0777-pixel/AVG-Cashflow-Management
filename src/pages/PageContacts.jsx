@@ -2,13 +2,13 @@ import React, { useState, useMemo, useRef, useEffect } from "react";
 import TanStackTable from '../components/TanStackTable';
 import { getContactColumns } from '../components/ContactsTanStackConfig';
 import { db, functions } from "../firebase";
-import { doc, setDoc, updateDoc, deleteDoc, serverTimestamp } from "firebase/firestore";
+import { collection, doc, setDoc, updateDoc, deleteDoc, addDoc, serverTimestamp } from "firebase/firestore";
 import { httpsCallable } from "firebase/functions";
 import { initials, av, badge, sortData, fmtCurr } from "../utils";
 import { StatCard, Bdg, Pagination, ActBtns, Modal, FF, FIn, FSel, DelModal, Tooltip, InvestorSummaryModal } from "../components";
 import { useAuth } from "../AuthContext";
 
-export default function PageContacts({ t, isDark, CONTACTS = [], INVESTMENTS = [], SCHEDULES = [], DEALS = [], collectionPath = "", DIMENSIONS = [], tenantId = "" }) {
+export default function PageContacts({ t, isDark, CONTACTS = [], INVESTMENTS = [], SCHEDULES = [], DEALS = [], collectionPath = "", DIMENSIONS = [], tenantId = "", LEDGER = [], USERS = [] }) {
   const { hasPermission, isSuperAdmin } = useAuth();
   const canCreate = hasPermission("CONTACT_CREATE");
   const canUpdate = hasPermission("CONTACT_UPDATE");
@@ -61,6 +61,16 @@ export default function PageContacts({ t, isDark, CONTACTS = [], INVESTMENTS = [
     try {
       const docRef = inv._path ? doc(db, inv._path) : doc(db, "tenants", tenantId, "investments", id);
       await updateDoc(docRef, payload);
+      
+      const tenantPath = docRef.path.split("/investments")[0];
+      const ledgerRef = collection(db, tenantPath, "ledger");
+      await addDoc(ledgerRef, {
+        entity_type: "Investment",
+        entity_id: id,
+        note: `Investment ${id} updated: ${Object.keys(rest).join(", ")}`,
+        created_at: serverTimestamp(),
+        user_id: user?.uid || "system"
+      });
     } catch (err) {
       console.error("Update investment error:", err);
       throw err;
@@ -138,6 +148,16 @@ export default function PageContacts({ t, isDark, CONTACTS = [], INVESTMENTS = [
       const docRef = d._path ? doc(db, d._path) : doc(db, collectionPath, d.docId || d.id);
       await updateDoc(docRef, payload);
       setDetailContact(prev => ({ ...prev, ...payload }));
+
+      const tenantPath = docRef.path.split("/contacts")[0];
+      const ledgerRef = collection(db, tenantPath, "ledger");
+      await addDoc(ledgerRef, {
+        entity_type: "Contact",
+        entity_id: d.id || d.docId,
+        note: `Contact profile updated: ${Object.keys(payload).filter(k => k !== 'updated_at').join(", ")}`,
+        created_at: serverTimestamp(),
+        user_id: user?.uid || "system"
+      });
     } catch (err) {
       console.error("Update contact error:", err);
       throw err;
@@ -314,6 +334,8 @@ export default function PageContacts({ t, isDark, CONTACTS = [], INVESTMENTS = [
       onUpdate={handleUpdateContact}
       onUpdateInvestment={handleUpdateInvestment}
       tenantId={tenantId}
+      LEDGER={LEDGER}
+      USERS={USERS}
     />
     {inviteResult && (
       <div style={{ position: "fixed", inset: 0, zIndex: 1100, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center" }}>

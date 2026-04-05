@@ -18,7 +18,7 @@ const fmtCurr = v => {
 
 const ZEROING_STATUSES = ["Missed", "Cancelled", "VOID", "WAIVED", "REPLACED"];
 
-export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = [], CONTACTS = [], DEALS = [], DIMENSIONS = [], FEES_DATA = [], USERS = [], collectionPath = "", setActivePage, setSelectedDealId, tenantId }) {
+export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = [], CONTACTS = [], DEALS = [], DIMENSIONS = [], FEES_DATA = [], USERS = [], LEDGER = [], collectionPath = "", setActivePage, setSelectedDealId, tenantId }) {
 
   const { user, hasPermission, isSuperAdmin } = useAuth();
   const canCreate = isSuperAdmin || hasPermission("PAYMENT_SCHEDULE_CREATE");
@@ -58,6 +58,16 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
     try {
       const docRef = inv._path ? doc(db, inv._path) : doc(db, "tenants", tenantId, "investments", id);
       await updateDoc(docRef, payload);
+
+      const tenantPath = docRef.path.split("/investments")[0];
+      const ledgerRef = collection(db, tenantPath, "ledger");
+      await addDoc(ledgerRef, {
+        entity_type: "Investment",
+        entity_id: id,
+        note: `Investment ${id} updated: ${Object.keys(rest).join(", ")}`,
+        created_at: serverTimestamp(),
+        user_id: user?.uid || "system"
+      });
     } catch (err) {
       console.error("Update investment error:", err);
       throw err;
@@ -1559,7 +1569,12 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
       DEALS={DEALS}
       DIMENSIONS={DIMENSIONS}
       tenantId={tenantId}
-      onUpdateInvestment={handleUpdateInvestment}
+      LEDGER={LEDGER}
+      USERS={USERS}
+      onUpdateInvestment={async (inv) => {
+        console.log("Updating investment:", inv);
+        await handleUpdateInvestment(inv);
+      }}
       onAddNote={async ({ text }) => {
         const contactId = detailContact?.docId || detailContact?.id;
         if (!contactId || !tenantId) throw new Error("Missing contact or tenant ID");

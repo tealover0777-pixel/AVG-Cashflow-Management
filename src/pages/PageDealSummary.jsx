@@ -13,7 +13,7 @@ import DocumentsTab from "../components/DocumentsTab";
 import { X, Check, Plus, Construction, AlertTriangle, FileCheck } from "lucide-react";
 import { normalizeDateAtNoon, getFrequencyValue, pmtCalculator_ACT360_30360, feeCalculator_ACT360_30360, fmtCurr, initials, av, badge } from "../utils";
 
-export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTMENTS = [], CONTACTS = [], DIMENSIONS = [], FEES_DATA = [], SCHEDULES = [], USERS = [], setActivePage, investmentCollection = "investments", scheduleCollection = "paymentSchedules", tenantId }) {
+export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTMENTS = [], CONTACTS = [], DIMENSIONS = [], FEES_DATA = [], SCHEDULES = [], USERS = [], LEDGER = [], setActivePage, investmentCollection = "investments", scheduleCollection = "paymentSchedules", tenantId }) {
   const { hasPermission, isSuperAdmin } = useAuth();
   const canUpdate = isSuperAdmin || hasPermission("INVESTMENT_UPDATE");
   const canDelete = isSuperAdmin || hasPermission("INVESTMENT_DELETE") || hasPermission("INVESTMENTS_DELETE");
@@ -601,6 +601,16 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
     try {
       const docRef = inv._path ? doc(db, inv._path) : doc(db, "tenants", tenantId, "investments", id);
       await updateDoc(docRef, payload);
+
+      const tenantPath = docRef.path.split("/investments")[0];
+      const ledgerRef = collection(db, tenantPath, "ledger");
+      await addDoc(ledgerRef, {
+        entity_type: "Investment",
+        entity_id: id,
+        note: `Investment ${id} updated: ${Object.keys(rest).join(", ")}`,
+        created_at: serverTimestamp(),
+        user_id: user?.uid || "system"
+      });
     } catch (err) {
       console.error("Update investment modal error:", err);
       throw err;
@@ -2842,8 +2852,18 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
             }
             if (!tId) throw new Error("Missing tenant ID");
             
+            
             await updateDoc(doc(db, "tenants", tId, "contacts", docId), payload);
             setDetailContact({ ...detailContact, data: { ...d, ...payload } });
+
+            const ledgerRef = collection(db, "tenants", tId, "ledger");
+            await addDoc(ledgerRef, {
+              entity_type: "Contact",
+              entity_id: docId,
+              note: `Contact profile updated: ${Object.keys(payload).filter(k => k !== 'updatedAt').join(", ")}`,
+              created_at: serverTimestamp(),
+              user_id: user?.uid || "system"
+            });
           } catch (err) {
             console.error("Update error:", err);
             alert("Failed to update contact: " + err.message);
@@ -2861,6 +2881,8 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
           return { id: noteRef.id, text, created_at: new Date().toISOString(), author: "" };
         }}
         tenantId={tenantId}
+        LEDGER={LEDGER}
+        USERS={USERS}
       />
     </div>
   );
