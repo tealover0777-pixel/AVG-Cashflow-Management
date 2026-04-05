@@ -49,12 +49,21 @@ export async function saveConversation(data) {
 export async function loadConversations() {
   const listResult = await listAll(ref(storage, CONV_DIR));
   if (listResult.items.length === 0) return [];
-  const items = await Promise.all(
+  const results = await Promise.allSettled(
     listResult.items.map(async (itemRef) => {
       const text = await readBytes(itemRef);
       return JSON.parse(text);
     })
   );
+  const items = results
+    .filter(r => {
+      if (r.status === "rejected") {
+        console.error("helpStorage: failed to load file:", r.reason);
+        return false;
+      }
+      return true;
+    })
+    .map(r => r.value);
   return items.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
 }
 

@@ -64,8 +64,8 @@ export default function PageAdminHelp({ t, isDark }) {
       setKbContent(kb || "You are a helpful assistant for AVG Cashflow Management. Answer questions concisely and professionally. You assist users with Projects, Contacts, Schedules, and Payments.");
       setKbLoading(false);
     } catch (err) {
-      console.error(err);
-      setError("Failed to load help data. Are you sure you are an admin with sufficient permissions?");
+      console.error("PageAdminHelp loadData error:", err);
+      setError(`Failed to load help data: ${err?.message || String(err)}`);
     } finally {
       setLoading(false);
     }
@@ -273,17 +273,25 @@ export default function PageAdminHelp({ t, isDark }) {
               </div>
             )}
 
-            <div style={{ flex: 1, minHeight: 0 }}>
-              <TanStackTable
-                data={conversations}
-                columns={columnDefs}
-                pageSize={20}
-                t={t}
-                isDark={isDark}
-                rowSelection={rowSelection}
-                onRowSelectionChange={setRowSelection}
-              />
+            <div style={{ flex: 1, minHeight: 0, position: "relative" }}>
+              {loading && conversations.length === 0 ? (
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%", gap: 12, color: t.textMuted }}>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ animation: "spin 1s linear infinite" }}><path d="M21 12a9 9 0 1 1-6.219-8.56" /></svg>
+                  <span style={{ fontSize: 13 }}>Loading conversations...</span>
+                </div>
+              ) : (
+                <TanStackTable
+                  data={conversations}
+                  columns={columnDefs}
+                  pageSize={20}
+                  t={t}
+                  isDark={isDark}
+                  rowSelection={rowSelection}
+                  onRowSelectionChange={setRowSelection}
+                />
+              )}
             </div>
+            <style>{`@keyframes spin { 100% { transform: rotate(360deg); } }`}</style>
           </div>
 
           {/* ── Right Column: Knowledge Base Editor ──────────────────────────── */}
