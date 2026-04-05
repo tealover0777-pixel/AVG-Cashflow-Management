@@ -5,7 +5,8 @@ import { getScheduleColumns } from "../components/ScheduleTanStackConfig";
 import { db } from "../firebase";
 import { collection, doc, addDoc, updateDoc, deleteDoc, serverTimestamp } from "firebase/firestore";
 import { sortData, badge, initials, av, pmtCalculator_ACT360_30360, getFeeFrequencyString, normalizeDateAtNoon, mkId } from "../utils";
-import { StatCard, Bdg, Pagination, Modal, FF, FIn, FSel, DelModal, Tooltip, InvestorSummaryModal } from "../components";
+import { StatCard, Bdg, Pagination, Modal, FF, FIn, FSel, DelModal, Tooltip } from "../components";
+import { InvestorSummaryModal } from "../components/InvestorSummaryModal";
 import { useAuth } from "../AuthContext";
 
 const fmtCurr = v => {

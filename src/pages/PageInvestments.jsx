@@ -5,10 +5,11 @@ import { db } from "../firebase";
 import { collection, doc, addDoc, updateDoc, deleteDoc, serverTimestamp } from "firebase/firestore";
 import { normalizeDateAtNoon, hybridDays, pmtCalculator_ACT360_30360, feeCalculator_ACT360_30360, getFrequencyValue, fmtCurr } from "../utils";
 import { StatCard, Bdg, Pagination, Modal, FF, FIn, FSel, DelModal, Tooltip } from "../components";
+import { InvestorSummaryModal } from "../components/InvestorSummaryModal";
 import { useAuth } from "../AuthContext";
 import { Check, Plus, Construction, AlertTriangle, FileCheck } from "lucide-react";
 
-export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [], CONTACTS = [], DIMENSIONS = [], FEES_DATA = [], SCHEDULES = [], collectionPath = "", schedulePath = "" }) {
+export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [], CONTACTS = [], DIMENSIONS = [], FEES_DATA = [], SCHEDULES = [], LEDGER = [], USERS = [], collectionPath = "", schedulePath = "" }) {
   const { hasPermission, isSuperAdmin } = useAuth();
   const canCreate = isSuperAdmin || hasPermission("INVESTMENT_CREATE");
   const canUpdate = isSuperAdmin || hasPermission("INVESTMENT_UPDATE");
@@ -22,6 +23,35 @@ export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [
   const [genConfirm, setGenConfirm] = useState(null);
   const [genResult, setGenResult] = useState(null); // { title, message }
   const [drillInvestment, setDrillInvestment] = useState(null);
+  const drillContact = useMemo(() => {
+    if (!drillInvestment) return null;
+    const pId = drillInvestment.party_id || "";
+    return CONTACTS.find(c => c.id === pId || c.docId === pId) || { name: drillInvestment.party || drillInvestment.party_name, id: pId };
+  }, [drillInvestment, CONTACTS]);
+
+  const handleUpdateInvestmentModal = async (updatedData) => {
+    if (!updatedData.docId) return;
+    try {
+      const docRef = updatedData._path ? doc(db, updatedData._path) : doc(db, collectionPath, updatedData.docId);
+      
+      const payload = {
+        investment_name: updatedData.investment_name || "",
+        status: updatedData.status || "",
+        amount: updatedData.amount != null ? Number(String(updatedData.amount).replace(/[^0-9.-]/g, "")) || null : null,
+        interest_rate: updatedData.interest_rate != null ? Number(String(updatedData.interest_rate).replace(/[^0-9.-]/g, "")) || (updatedData.rate ? Number(String(updatedData.rate).replace(/[^0-9.-]/g, "")) : null) : null,
+        payment_frequency: updatedData.payment_frequency || updatedData.freq || "",
+        term_months: updatedData.term_months ? Number(updatedData.term_months) : null,
+        start_date: updatedData.start_date || null,
+        maturity_date: updatedData.maturity_date || null,
+        updated_at: serverTimestamp(),
+      };
+
+      await updateDoc(docRef, payload);
+      // We don't necessarily close the modal if they are just editing inside it
+    } catch (err) {
+      console.error("Error updating investment from modal:", err);
+    }
+  };
   const gridRef = useRef(null);
   const [pageSize, setPageSize] = useState(30);
   const [confirmAction, setConfirmAction] = useState(null); // { title: string, message: string, onConfirm: () => void }
@@ -818,67 +848,19 @@ export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [
         </div>
       </Modal>
     )}
-    {drillInvestment && (
-      <Modal open={!!drillInvestment} onClose={() => setDrillInvestment(null)} title="Investment Summary" saveLabel="OK" onSave={() => setDrillInvestment(null)} width={580} t={t} isDark={isDark}>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px 24px", padding: "10px 0" }}>
-          <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
-            <span style={{ fontSize: 10, fontWeight: 700, color: t.textSecondary, textTransform: "uppercase", letterSpacing: "0.8px", fontFamily: t.mono }}>Investment ID / Deal ID</span>
-            <div style={{ fontSize: 13.5, fontWeight: 700, color: isDark ? "#fff" : "#1C1917", display: "flex", gap: 8, alignItems: "center" }}>
-              <span style={{ fontFamily: t.mono }}>{drillInvestment.investment_id || drillInvestment.id}</span>
-              <span style={{ color: t.surfaceBorder }}>|</span>
-              <span style={{ fontFamily: t.mono, color: t.idText }}>{drillInvestment.deal_id || "—"}</span>
-            </div>
-          </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
-            <span style={{ fontSize: 10, fontWeight: 700, color: t.textSecondary, textTransform: "uppercase", letterSpacing: "0.8px", fontFamily: t.mono }}>Status</span>
-            <div>{drillInvestment.status ? <Bdg status={drillInvestment.status} isDark={isDark} /> : "—"}</div>
-          </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
-            <span style={{ fontSize: 10, fontWeight: 700, color: t.textSecondary, textTransform: "uppercase", letterSpacing: "0.8px", fontFamily: t.mono }}>Deal Name</span>
-            <div style={{ fontSize: 13, color: isDark ? "rgba(255,255,255,0.8)" : "#44403C" }}>{drillInvestment.deal_name || drillInvestment.deal || DEALS.find(d => d.id === drillInvestment.deal_id)?.name || "—"}</div>
-          </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
-            <span style={{ fontSize: 10, fontWeight: 700, color: t.textSecondary, textTransform: "uppercase", letterSpacing: "0.8px", fontFamily: t.mono }}>Contact Name</span>
-            <div style={{ fontSize: 13, fontWeight: 600, color: isDark ? "#fff" : "#1C1917" }}>{drillInvestment.party_name || drillInvestment.party || "—"}</div>
-          </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
-            <span style={{ fontSize: 10, fontWeight: 700, color: t.textSecondary, textTransform: "uppercase", letterSpacing: "0.8px", fontFamily: t.mono }}>Amount</span>
-            <div style={{ fontSize: 15, fontWeight: 700, color: isDark ? "#60A5FA" : "#2563EB", fontFamily: t.mono }}>{drillInvestment.amount || "—"}</div>
-          </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
-            <span style={{ fontSize: 10, fontWeight: 700, color: t.textSecondary, textTransform: "uppercase", letterSpacing: "0.8px", fontFamily: t.mono }}>Interest Rate / Frequency</span>
-            <div style={{ fontSize: 13, color: isDark ? "rgba(255,255,255,0.8)" : "#44403C", fontWeight: 500 }}>{drillInvestment.interest_rate || drillInvestment.rate || "—"} / {drillInvestment.payment_frequency || drillInvestment.freq || "—"}</div>
-          </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
-            <span style={{ fontSize: 10, fontWeight: 700, color: t.textSecondary, textTransform: "uppercase", letterSpacing: "0.8px", fontFamily: t.mono }}>Term (months)</span>
-            <div style={{ fontSize: 13, color: isDark ? "#fff" : "#1C1917", fontWeight: 600 }}>{drillInvestment.term_months ? `${drillInvestment.term_months} Months` : "—"}</div>
-          </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
-            <span style={{ fontSize: 10, fontWeight: 700, color: t.textSecondary, textTransform: "uppercase", letterSpacing: "0.8px", fontFamily: t.mono }}>Investment Type</span>
-            <div style={{ fontSize: 13, color: isDark ? "#fff" : "#1C1917", fontWeight: 600 }}>{drillInvestment.investment_type || drillInvestment.type || "—"}</div>
-          </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
-            <span style={{ fontSize: 10, fontWeight: 700, color: t.textSecondary, textTransform: "uppercase", letterSpacing: "0.8px", fontFamily: t.mono }}>Start Date</span>
-            <div style={{ fontSize: 13, color: isDark ? "rgba(255,255,255,0.8)" : "#44403C", fontFamily: t.mono }}>{drillInvestment.start_date || "—"}</div>
-          </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
-            <span style={{ fontSize: 10, fontWeight: 700, color: t.textSecondary, textTransform: "uppercase", letterSpacing: "0.8px", fontFamily: t.mono }}>Maturity Date</span>
-            <div style={{ fontSize: 13, color: isDark ? "rgba(255,255,255,0.8)" : "#44403C", fontFamily: t.mono }}>{drillInvestment.maturity_date || "—"}</div>
-          </div>
-          <div style={{ gridColumn: "span 2", display: "flex", flexDirection: "column", gap: 8, marginTop: 4 }}>
-            <span style={{ fontSize: 10, fontWeight: 700, color: t.textSecondary, textTransform: "uppercase", letterSpacing: "0.8px", fontFamily: t.mono }}>Applicable Fees</span>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-              {(() => {
-                const fids = String(drillInvestment.fees || drillInvestment.feeIds || "").split(",").filter(Boolean);
-                return fids.length > 0 ? fids.map(fid => {
-                  const f = FEES_DATA.find(x => x.id === fid);
-                  return <span key={fid} style={{ fontSize: 11, fontWeight: 600, padding: "3px 10px", borderRadius: 20, background: isDark ? "rgba(52,211,153,0.12)" : "#ECFDF5", color: isDark ? "#34D399" : "#059669", border: `1px solid ${isDark ? "rgba(52,211,153,0.25)" : "#A7F3D0"}` }}>{f?.name || fid} {f?.rate ? `(${f.rate})` : ""}</span>;
-                }) : <span style={{ fontSize: 12, color: t.textMuted, fontStyle: "italic" }}>No applicable fees</span>;
-              })()}
-            </div>
-          </div>
-        </div>
-      </Modal>
-    )}
+    <InvestorSummaryModal 
+      contact={drillContact}
+      selectedInvestmentId={drillInvestment?.investment_id || drillInvestment?.id}
+      onClose={() => setDrillInvestment(null)}
+      isDark={isDark}
+      t={t}
+      INVESTMENTS={INVESTMENTS}
+      SCHEDULES={SCHEDULES}
+      DEALS={DEALS}
+      DIMENSIONS={DIMENSIONS}
+      LEDGER={LEDGER}
+      USERS={USERS}
+      onUpdateInvestment={handleUpdateInvestmentModal}
+    />
   </>);
 }
