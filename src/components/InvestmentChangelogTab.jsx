@@ -25,8 +25,9 @@ export default function InvestmentChangelogTab({ t, isDark, LEDGER = [], USERS =
 
   // 2. Helper to find user name
   const getUser = (uid) => {
-    const u = USERS.find(user => user.uid === uid || user.id === uid);
-    return u || { user_name: uid || "System", role: "User" };
+    if (!uid) return { user_name: "System", role: "System" };
+    const u = USERS.find(user => user.auth_uid === uid || user.id === uid || user.user_id === uid);
+    return u || { user_name: uid, role: "Team member" };
   };
 
   // 3. Helper for relative time (simplified)

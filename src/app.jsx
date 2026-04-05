@@ -404,7 +404,7 @@ function AppContent() {
     id: d.batch_id || d.id, docId: d.doc_id || d.id, _path: d._path, batch_id: d.batch_id || "", status: d.status || "", created_at: fmtDate(d.created_at), updated_at: fmtDate(d.updated_at),
   }));
   const LEDGER = rawLedger.map(d => ({
-    id: d.ledger_id || d.id, docId: d.doc_id || d.id, _path: d._path, entity_type: d.entity_type || "", entity_id: d.entity_id || "", amount: d.amount || 0, currency: d.currency || "", note: d.notes || "", created_at: fmtDate(d.created_at),
+    id: d.ledger_id || d.id, docId: d.doc_id || d.id, _path: d._path, entity_type: d.entity_type || "", entity_id: d.entity_id || "", amount: d.amount || 0, currency: d.currency || "", note: d.notes || d.note || "", user_id: d.user_id || "", created_at: fmtDate(d.created_at),
   }));
 
 
