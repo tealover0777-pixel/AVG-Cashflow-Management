@@ -831,14 +831,32 @@ export const InvestorSummaryModal = ({ contact, defaultView = "simple", onClose,
                 </div>
               )}
             </div>
+          ) : viewMode === "simple" && activeTab === "Distributions" ? (
+            <div>
+              <div style={{ background: isDark ? "#1C1917" : "#fff", borderRadius: 12, border: `1px solid ${t.surfaceBorder}`, overflow: "hidden", marginBottom: 32, boxShadow: "0 1px 2px rgba(0,0,0,0.05)" }}>
+                <div style={{ padding: "20px 24px", borderBottom: `1px solid ${t.surfaceBorder}`, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                  <div style={{ fontSize: 16, fontWeight: 700, color: isDark ? "#fff" : "#111827" }}>Interest Payments</div>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: t.accent }}>{fmtCurr(distributedAmount)}</div>
+                </div>
+                <div style={{ height: 400 }}>
+                  <TanStackTable
+                    data={distributions}
+                    columns={getContactTransactionColumns(isDark, t, { DEALS })}
+                    isDark={isDark}
+                    t={t}
+                    pageSize={50}
+                  />
+                </div>
+              </div>
+            </div>
           ) : viewMode === "simple" && activeTab === "Investment documents" ? (
-            <InvestmentDocumentsTab 
-              t={t} 
-              isDark={isDark} 
-              tenantId={tenantId} 
-              party={contact} 
-              DEALS={DEALS} 
-              INVESTMENTS={INVESTMENTS} 
+            <InvestmentDocumentsTab
+              t={t}
+              isDark={isDark}
+              tenantId={tenantId}
+              party={contact}
+              DEALS={DEALS}
+              INVESTMENTS={INVESTMENTS}
             />
           ) : (
             <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "100%", opacity: 0.5 }}>
