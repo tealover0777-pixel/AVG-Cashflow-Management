@@ -15,7 +15,7 @@ import { X, Check, Plus, Construction, AlertTriangle, FileCheck } from "lucide-r
 import { normalizeDateAtNoon, getFrequencyValue, pmtCalculator_ACT360_30360, feeCalculator_ACT360_30360, fmtCurr, initials, av, badge } from "../utils";
 
 export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTMENTS = [], CONTACTS = [], DIMENSIONS = [], FEES_DATA = [], SCHEDULES = [], USERS = [], LEDGER = [], setActivePage, investmentCollection = "investments", scheduleCollection = "paymentSchedules", tenantId }) {
-  const { hasPermission, isSuperAdmin } = useAuth();
+  const { hasPermission, isSuperAdmin, user } = useAuth();
   const canUpdate = isSuperAdmin || hasPermission("INVESTMENT_UPDATE");
   const canDelete = isSuperAdmin || hasPermission("INVESTMENT_DELETE") || hasPermission("INVESTMENTS_DELETE");
   const canCreate = isSuperAdmin || hasPermission("INVESTMENT_CREATE");
