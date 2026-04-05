@@ -1,79 +1,101 @@
-import { ref, uploadString, getBytes, listAll, deleteObject } from "firebase/storage";
-import { storage } from "../firebase";
+import { 
+  doc, 
+  getDoc, 
+  setDoc, 
+  collection, 
+  addDoc, 
+  getDocs, 
+  query, 
+  orderBy, 
+  updateDoc, 
+  deleteDoc, 
+  serverTimestamp 
+} from "firebase/firestore";
+import { db } from "../firebase";
 
-const KB_PATH = "system/knowledge_base.txt";
-const CONV_DIR = "help_conversations";
-
-const decoder = new TextDecoder();
-
-function generateId() {
-  return typeof crypto !== "undefined" && crypto.randomUUID
-    ? crypto.randomUUID()
-    : `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
-}
-
-async function readBytes(storageRef) {
-  const buf = await getBytes(storageRef);
-  return decoder.decode(buf);
-}
+const AI_CONFIG_DOC = "system/ai_config";
+const CONV_COLLECTION = "ai_conversations";
 
 // ── Knowledge Base ─────────────────────────────────────────────────────────
 
 export async function readKnowledgeBase() {
   try {
-    return await readBytes(ref(storage, KB_PATH));
+    const snap = await getDoc(doc(db, AI_CONFIG_DOC));
+    if (snap.exists()) {
+      return snap.data().content || "";
+    }
+    return null;
   } catch (err) {
-    if (err.code === "storage/object-not-found") return null;
+    console.error("helpStorage: readKnowledgeBase error:", err);
     throw err;
   }
 }
 
 export async function writeKnowledgeBase(content) {
-  await uploadString(ref(storage, KB_PATH), content, "raw", { contentType: "text/plain" });
+  try {
+    await setDoc(doc(db, AI_CONFIG_DOC), { 
+      content, 
+      updated_at: serverTimestamp() 
+    }, { merge: true });
+  } catch (err) {
+    console.error("helpStorage: writeKnowledgeBase error:", err);
+    throw err;
+  }
 }
 
 // ── Conversations ──────────────────────────────────────────────────────────
 
 export async function saveConversation(data) {
-  const id = generateId();
-  const payload = { ...data, id, created_at: new Date().toISOString() };
-  await uploadString(
-    ref(storage, `${CONV_DIR}/${id}.json`),
-    JSON.stringify(payload),
-    "raw",
-    { contentType: "application/json" }
-  );
-  return id;
+  try {
+    const docRef = await addDoc(collection(db, CONV_COLLECTION), { 
+      ...data, 
+      created_at: serverTimestamp() 
+    });
+    return docRef.id;
+  } catch (err) {
+    console.error("helpStorage: saveConversation error:", err);
+    throw err;
+  }
 }
 
 export async function loadConversations() {
-  const listResult = await listAll(ref(storage, CONV_DIR));
-  if (listResult.items.length === 0) return [];
-  const results = await Promise.allSettled(
-    listResult.items.map(async (itemRef) => {
-      const text = await readBytes(itemRef);
-      return JSON.parse(text);
-    })
-  );
-  const items = results
-    .filter(r => {
-      if (r.status === "rejected") {
-        console.error("helpStorage: failed to load file:", r.reason);
-        return false;
-      }
-      return true;
-    })
-    .map(r => r.value);
-  return items.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+  try {
+    const q = query(collection(db, CONV_COLLECTION), orderBy("created_at", "desc"));
+    const snap = await getDocs(q);
+    return snap.docs.map(d => {
+      const data = d.data();
+      return {
+        id: d.id,
+        ...data,
+        // Convert Firestore Timestamp to ISO string for compatibility with existing code
+        created_at: data.created_at?.toDate ? data.created_at.toDate().toISOString() : new Date().toISOString()
+      };
+    });
+  } catch (err) {
+    console.error("helpStorage: loadConversations error:", err);
+    throw err;
+  }
 }
 
 export async function updateConversation(id, updates) {
-  const fileRef = ref(storage, `${CONV_DIR}/${id}.json`);
-  const existing = JSON.parse(await readBytes(fileRef));
-  const updated = { ...existing, ...updates };
-  await uploadString(fileRef, JSON.stringify(updated), "raw", { contentType: "application/json" });
+  try {
+    const docRef = doc(db, CONV_COLLECTION, id);
+    await updateDoc(docRef, {
+      ...updates,
+      updated_at: serverTimestamp()
+    });
+  } catch (err) {
+    console.error("helpStorage: updateConversation error:", err);
+    throw err;
+  }
 }
 
 export async function deleteConversation(id) {
-  await deleteObject(ref(storage, `${CONV_DIR}/${id}.json`));
+  try {
+    await deleteDoc(doc(db, CONV_COLLECTION, id));
+  } catch (err) {
+    console.error("helpStorage: deleteConversation error:", err);
+    throw err;
+  }
 }
+
