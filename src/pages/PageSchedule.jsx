@@ -1572,6 +1572,7 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
       tenantId={tenantId}
       LEDGER={LEDGER}
       USERS={USERS}
+      currentUser={user}
       onUpdateInvestment={async (inv) => {
         console.log("Updating investment:", inv);
         await handleUpdateInvestment(inv);

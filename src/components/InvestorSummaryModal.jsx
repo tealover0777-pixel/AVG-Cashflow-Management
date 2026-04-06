@@ -22,8 +22,9 @@ export const InvestorSummaryModal = ({
   onAddNote, 
   DIMENSIONS = [], 
   tenantId, 
-  LEDGER = [], 
-  USERS = [] 
+  LEDGER = [],
+  USERS = [],
+  currentUser = null
 }) => {
   const [activeTab, setActiveTab] = useState("Capital Transactions");
   const [viewMode, setViewMode] = useState(defaultView);
@@ -535,6 +536,7 @@ export const InvestorSummaryModal = ({
             isDark={isDark}
             LEDGER={LEDGER}
             USERS={USERS}
+            currentUser={currentUser}
             contact={contact}
             selectedInvestmentId={selectedInvestmentId}
           />

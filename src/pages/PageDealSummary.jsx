@@ -598,17 +598,44 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
     };
     delete payload.docId;
     delete payload._path;
-    
+
+    // Human-readable field labels for diff
+    const FIELD_LABELS = {
+      investment_name: "Investment Name", type: "Type", amount: "Amount",
+      rate: "Rate", freq: "Frequency", status: "Status", calculator: "Calculator",
+      term_months: "Term (months)", start_date: "Start Date", maturity_date: "Maturity Date",
+      payment_method: "Payment Method", rollover: "Rollover", deal: "Deal", fees: "Fees",
+    };
+    const SKIP = new Set(["docId", "_path", "id", "docId", "deal_id", "party_id", "party",
+      "investment_id", "interest_rate", "payment_frequency", "feeIds", "created_at", "updated_at"]);
+
+    const original = INVESTMENTS.find(i => i.id === id) || {};
+    const changes = Object.entries(FIELD_LABELS)
+      .filter(([key]) => {
+        if (SKIP.has(key)) return false;
+        const oldVal = String(original[key] ?? "").trim();
+        const newVal = String(rest[key] ?? "").trim();
+        return oldVal !== newVal;
+      })
+      .map(([key, label]) => {
+        const oldVal = original[key] ?? "—";
+        const newVal = rest[key] ?? "—";
+        return `${label}: "${oldVal}" → "${newVal}"`;
+      });
+
+    const note = changes.length > 0
+      ? `Investment updated:\n${changes.join("\n")}`
+      : "Investment saved (no field changes detected)";
+
     try {
       const docRef = inv._path ? doc(db, inv._path) : doc(db, "tenants", tenantId, "investments", id);
       await updateDoc(docRef, payload);
 
       const tenantPath = docRef.path.split("/investments")[0];
-      const ledgerRef = collection(db, tenantPath, "ledger");
-      await addDoc(ledgerRef, {
+      await addDoc(collection(db, tenantPath, "ledger"), {
         entity_type: "Investment",
         entity_id: id,
-        note: `Investment ${id} updated: ${Object.keys(rest).join(", ")}`,
+        note,
         created_at: serverTimestamp(),
         user_id: user?.uid || "system"
       });
@@ -2884,6 +2911,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
         tenantId={tenantId}
         LEDGER={LEDGER}
         USERS={USERS}
+        currentUser={user}
       />
     </div>
   );

@@ -1,7 +1,7 @@
 import React from "react";
 import { initials } from "../utils";
 
-export default function InvestmentChangelogTab({ t, isDark, LEDGER = [], USERS = [], contact, selectedInvestmentId }) {
+export default function InvestmentChangelogTab({ t, isDark, LEDGER = [], USERS = [], currentUser = null, contact, selectedInvestmentId }) {
   // 1. Filter ledger entries: Only selected investment OR the contact profile
   const filteredLogs = LEDGER.filter(l => 
      (l.entity_id === selectedInvestmentId && selectedInvestmentId) || 
@@ -26,8 +26,12 @@ export default function InvestmentChangelogTab({ t, isDark, LEDGER = [], USERS =
   // 2. Helper to find user name
   const getUser = (uid) => {
     if (!uid) return { user_name: "System", role: "System" };
-    const u = USERS.find(user => user.auth_uid === uid || user.id === uid || user.user_id === uid);
-    return u || { user_name: uid, role: "Team member" };
+    const u = USERS.find(u => u.auth_uid === uid || u.id === uid || u.user_id === uid);
+    if (u) return u;
+    if (currentUser?.uid === uid && currentUser?.email) {
+      return { user_name: currentUser.displayName || currentUser.email, role: "Team member" };
+    }
+    return { user_name: uid, role: "Team member" };
   };
 
   // 3. Helper for relative time (simplified)
