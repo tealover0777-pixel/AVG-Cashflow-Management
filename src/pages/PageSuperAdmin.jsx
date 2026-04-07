@@ -3,11 +3,17 @@ import { db, functions } from "../firebase";
 import { doc, setDoc, deleteDoc, serverTimestamp, collection, query, where, getDocs, updateDoc } from "firebase/firestore";
 import { httpsCallable } from "firebase/functions";
 import { useFirestoreCollection } from "../useFirestoreCollection";
+import { useAuth } from "../AuthContext";
 import { Modal, FF, FIn, FSel, DelModal } from "../components";
 import TanStackTable from "../components/TanStackTable";
 import { getSuperAdminColumns } from "../components/SuperAdminTanStackConfig";
 
 export default function PageSuperAdmin({ t, isDark, DIMENSIONS = [], ROLES = [], TENANTS = [] }) {
+    const { hasPermission, isSuperAdmin } = useAuth();
+    const canCreate = isSuperAdmin || hasPermission("PLATFORM_USER_CREATE");
+    const canView = isSuperAdmin || hasPermission("PLATFORM_USER_VIEW");
+    const canUpdate = isSuperAdmin || hasPermission("PLATFORM_USER_UPDATE");
+    const canDelete = isSuperAdmin || hasPermission("PLATFORM_USER_DELETE");
     const { data: rawUsers = [], loading, error } = useFirestoreCollection("global_users");
     const [modal, setModal] = useState({ open: false, mode: "add", data: {} });
     const [delT, setDelT] = useState(null);
@@ -96,13 +102,16 @@ export default function PageSuperAdmin({ t, isDark, DIMENSIONS = [], ROLES = [],
         };
         try {
             await setDoc(doc(db, "global_users", d.uid), payload, { merge: true });
-            // Sync role to tenant user doc
+            // Sync to tenant user doc
             const tid = d.tenantId || "";
             if (tid) {
                 const q = query(collection(db, `tenants/${tid}/users`), where("auth_uid", "==", d.uid));
                 const snap = await getDocs(q);
                 if (!snap.empty) {
                     await updateDoc(snap.docs[0].ref, {
+                        first_name: d.first_name || "",
+                        last_name: d.last_name || "",
+                        email: d.email || "",
                         role_id: d.role || "",
                         updated_at: serverTimestamp()
                     });
@@ -127,13 +136,13 @@ export default function PageSuperAdmin({ t, isDark, DIMENSIONS = [], ROLES = [],
         }
     };
 
+    const permissions = { canUpdate, canDelete, canCreate };
     const columnDefs = useMemo(() => {
-        return getSuperAdminColumns({}, isDark, t, openEdit, setDelT, getRoleName, getTenantName, handleRowInvite, invitingId);
-    }, [isDark, t, ROLES, TENANTS, invitingId]);
+        return getSuperAdminColumns(permissions, isDark, t, openEdit, setDelT, getRoleName, getTenantName, handleRowInvite, invitingId);
+    }, [permissions, isDark, t, ROLES, TENANTS, invitingId]);
 
+    if (!canView) return <div style={{ padding: 40, color: t.textMuted }}>You don't have permission to view this page.</div>;
     if (loading) return <div style={{ padding: 40, color: t.textMuted }}>Loading global users...</div>;
-    if (error) return <div style={{ padding: 40, color: "red" }}>Error loading users: {error.message}</div>;
-
     if (error) return <div style={{ padding: 40, color: "red" }}>Error loading users: {error.message}</div>;
 
     return (<>
@@ -165,7 +174,7 @@ export default function PageSuperAdmin({ t, isDark, DIMENSIONS = [], ROLES = [],
                 <h1 style={{ fontFamily: t.titleFont, fontWeight: t.titleWeight, fontSize: t.titleSize, color: isDark ? "#fff" : "#1C1917", letterSpacing: t.titleTracking, lineHeight: 1, marginBottom: 6 }}>User Admin</h1>
                 <p style={{ fontSize: 13.5, color: t.textMuted }}>Manage global user permissions and tenant associations</p>
             </div>
-            <button className="primary-btn" onClick={openInvite} style={{ background: t.accentGrad, color: "#fff", padding: "11px 22px", borderRadius: 11, fontSize: 13.5, fontWeight: 600, boxShadow: `0 4px 16px ${t.accentShadow}` }}>✉️ Invite Global User</button>
+            {canCreate && <button className="primary-btn" onClick={openInvite} style={{ background: t.accentGrad, color: "#fff", padding: "11px 22px", borderRadius: 11, fontSize: 13.5, fontWeight: 600, boxShadow: `0 4px 16px ${t.accentShadow}` }}>✉️ Invite Global User</button>}
         </div>
 
         <div style={{ height: 'calc(100vh - 350px)', width: "100%", minHeight: '500px' }}>

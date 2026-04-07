@@ -43,26 +43,16 @@ export const getUserProfileColumns = (permissions, isDark, t, onEdit, onDel, onR
       cell: ({ getValue }) => <span style={{ fontSize: 13, color: t.textSecondary, fontFamily: t.mono }}>{getValue() || "—"}</span>,
     },
     {
-      accessorKey: 'user_name',
-      header: 'NAME',
-      size: 150,
-      cell: ({ row }) => (
-        <span style={{ fontSize: 13.5, fontWeight: 500, color: isDark ? "rgba(255,255,255,0.85)" : "#44403C" }}>
-          {row.original.user_name || row.original.name || "—"}
-        </span>
-      ),
-    },
-    {
       accessorKey: 'first_name',
       header: 'FIRST NAME',
-      size: 120,
-      cell: ({ getValue }) => <span style={{ fontSize: 13, color: t.text }}>{getValue() || "—"}</span>,
+      size: 140,
+      cell: ({ getValue }) => <span style={{ fontSize: 13.5, fontWeight: 500, color: t.text }}>{getValue() || "—"}</span>,
     },
     {
       accessorKey: 'last_name',
       header: 'LAST NAME',
-      size: 120,
-      cell: ({ getValue }) => <span style={{ fontSize: 13, color: t.text }}>{getValue() || "—"}</span>,
+      size: 140,
+      cell: ({ getValue }) => <span style={{ fontSize: 13.5, fontWeight: 500, color: t.text }}>{getValue() || "—"}</span>,
     },
     {
       accessorKey: 'email',

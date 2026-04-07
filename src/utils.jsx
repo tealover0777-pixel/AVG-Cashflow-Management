@@ -135,7 +135,7 @@ export const getNav = (isSuper, isAdmin, hasPermission, isR10010) => {
   const isItemVisible = (item) => {
     if (item.hidden) return false;
 
-    // User Admin section is restricted ONLY to R10010 role
+    // User Admin section requires PLATFORM_USER_VIEW permission (or R10010 legacy role)
     if (item.label === "User Admin") return isR10010;
 
     // AI Admin restricted to Super Admins (you can change this to global roles if needed)

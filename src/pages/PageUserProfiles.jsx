@@ -160,6 +160,8 @@ export default function PageUserProfiles({ t, isDark, USERS = [], ROLES = [], co
                     role: d.role_id,
                     user_id: d.user_id,
                     user_name: d.user_name || d.name || "",
+                    first_name: d.first_name || "",
+                    last_name: d.last_name || "",
                     phone: d.phone || "",
                     notes: d.notes || ""
                 });
@@ -176,9 +178,16 @@ export default function PageUserProfiles({ t, isDark, USERS = [], ROLES = [], co
                     updated_at: serverTimestamp(),
                 };
                 await updateDoc(doc(db, collectionPath, d.id), payload);
+                // Sync to global_users to keep data consistent
                 const authUid = d.auth_uid || d.id;
                 if (authUid && !/^U\d+$/.test(authUid)) {
-                    await setDoc(doc(db, "global_users", authUid), { role: d.role_id || "", last_updated: serverTimestamp() }, { merge: true });
+                    await setDoc(doc(db, "global_users", authUid), {
+                        first_name: d.first_name || "",
+                        last_name: d.last_name || "",
+                        email: d.email || "",
+                        role: d.role_id || "",
+                        last_updated: serverTimestamp()
+                    }, { merge: true });
                 }
             }
             close();

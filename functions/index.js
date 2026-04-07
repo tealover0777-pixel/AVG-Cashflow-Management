@@ -349,7 +349,7 @@ exports.updateUserTenant = functions.https.onCall(async (data, context) => {
     throw new functions.https.HttpsError('unauthenticated', 'Must be authenticated.');
   }
 
-  const { uid, email, newTenantId, oldTenantId, role, user_id, user_name, phone, notes } = data;
+  const { uid, email, newTenantId, oldTenantId, role, user_id, user_name, first_name, last_name, phone, notes } = data;
   if (!uid || !email || !newTenantId) {
     throw new functions.https.HttpsError('invalid-argument', 'Missing required fields: uid, email, newTenantId.');
   }
@@ -369,6 +369,9 @@ exports.updateUserTenant = functions.https.onCall(async (data, context) => {
 
     // 3. Update Global Profile (global_users)
     await db.collection('global_users').doc(uid).set({
+      email: email,
+      first_name: first_name || '',
+      last_name: last_name || '',
       tenantId: newTenantId,
       role: role,
       last_updated: admin.firestore.FieldValue.serverTimestamp()
@@ -377,7 +380,7 @@ exports.updateUserTenant = functions.https.onCall(async (data, context) => {
     // 4. Move Tenant Profile
     if (user_id) {
       // 4a. Read existing profile if not fully provided (though UI should provide it)
-      let profileData = { user_id, user_name, email, role_id: role, phone, notes, auth_uid: uid };
+      let profileData = { user_id, user_name, first_name: first_name || '', last_name: last_name || '', email, role_id: role, phone, notes, auth_uid: uid };
 
       if (oldTenantId && oldTenantId !== newTenantId) {
         // Optionally read from old location if data is missing
