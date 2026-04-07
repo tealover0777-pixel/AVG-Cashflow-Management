@@ -46,16 +46,26 @@ export default function PageUserProfiles({ t, isDark, USERS = [], ROLES = [], co
         }
     }, [DIMENSIONS]);
 
-    const nextUserId = (() => {
-        if (USERS.length === 0) return "U10001";
-        const maxNum = Math.max(...USERS.map(u => { const m = String(u.user_id || "").match(/^U(\d+)$/); return m ? Number(m[1]) : 0; }));
-        return "U" + String(maxNum + 1).padStart(5, "0");
-    })();
-
     const isSelectedRoleGlobal = (roleId) => {
         const found = ROLES.find(r => (r.id || r.role_id) === roleId);
         return found && found.IsGlobal === true;
     };
+
+    // Filter out platform/global users (users with global roles)
+    const filteredUsers = useMemo(() => {
+        return USERS.filter(user => {
+            const roleId = user.role_id;
+            if (!roleId) return true; // Include users without role
+            const isGlobal = isSelectedRoleGlobal(roleId);
+            return !isGlobal; // Exclude users with global roles
+        });
+    }, [USERS, ROLES]);
+
+    const nextUserId = useMemo(() => {
+        if (filteredUsers.length === 0) return "U10001";
+        const maxNum = Math.max(...filteredUsers.map(u => { const m = String(u.user_id || "").match(/^U(\d+)$/); return m ? Number(m[1]) : 0; }));
+        return "U" + String(maxNum + 1).padStart(5, "0");
+    }, [filteredUsers]);
 
     const openInvite = () => setModal({ open: true, mode: "invite", data: { email: "", role_id: "", user_name: "" } });
     const openEdit = r => {
@@ -267,7 +277,7 @@ export default function PageUserProfiles({ t, isDark, USERS = [], ROLES = [], co
 
         <div style={{ height: 'calc(100vh - 420px)', width: "100%", minHeight: '500px' }}>
             <TanStackTable
-                data={USERS}
+                data={filteredUsers}
                 columns={columnDefs}
                 pageSize={pageSize}
                 t={t}
