@@ -37,7 +37,7 @@ service cloud.firestore {
     function isCompanySuperAdmin() {
       return isRole('R10009') || isRole('R10010') ||
              isRole('Platform Admin') || isRole('Super Admin') ||
-             isRole('L2 Admin') || isRole('company_super_admin_read_write');
+             isRole('Admin') || isRole('L2 Admin') || isRole('company_super_admin_read_write');
     }
 
     function isCompanySupport() {

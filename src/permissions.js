@@ -23,6 +23,7 @@ export const PERMISSIONS_LIST = [
 export const DEFAULT_ROLE_PERMISSIONS = {
     "Super Admin": [...PERMISSIONS_LIST], // Full access
     "Platform Admin": [...PERMISSIONS_LIST], // Full access
+    "Admin": [...PERMISSIONS_LIST], // Full access (alias for Platform Admin)
     "company_super_admin_read_write": [...PERMISSIONS_LIST], // Full access
     "L2 Admin": [...PERMISSIONS_LIST], // Full access
     "Tenant Owner": [
