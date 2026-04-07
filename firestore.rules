@@ -37,7 +37,7 @@ service cloud.firestore {
     function isCompanySuperAdmin() {
       return isRole('R10009') || isRole('R10010') ||
              isRole('Platform Admin') || isRole('Super Admin') ||
-             isRole('Admin') || isRole('L2 Admin') || isRole('company_super_admin_read_write');
+             isRole('L2 Admin') || isRole('company_super_admin_read_write');
     }
 
     function isCompanySupport() {
@@ -54,6 +54,7 @@ service cloud.firestore {
             getRole() == 'R10004' ||
             getRole() == 'R10005' ||
             getRole() == 'Tenant Admin' ||
+            getRole() == 'Admin' ||
             getRole() == 'Tenant Owner' ||
             getRole() == 'tenant_admin_super_user' ||
             getRole() == 'tenant_admin_read_write'

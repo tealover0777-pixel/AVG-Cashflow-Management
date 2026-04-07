@@ -4,11 +4,11 @@ import { doc, setDoc, deleteDoc, serverTimestamp, collection, query, where, getD
 import { httpsCallable } from "firebase/functions";
 import { useFirestoreCollection } from "../useFirestoreCollection";
 import { useAuth } from "../AuthContext";
-import { Modal, FF, FIn, FSel, DelModal } from "../components";
+import { Modal, FF, FIn, DelModal } from "../components";
 import TanStackTable from "../components/TanStackTable";
 import { getSuperAdminColumns } from "../components/SuperAdminTanStackConfig";
 
-export default function PageSuperAdmin({ t, isDark, DIMENSIONS = [], ROLES = [], TENANTS = [] }) {
+export default function PageSuperAdmin({ t, isDark, ROLES = [], TENANTS = [] }) {
     const { hasPermission, isSuperAdmin } = useAuth();
     const canCreate = isSuperAdmin || hasPermission("PLATFORM_USER_CREATE");
     const canView = isSuperAdmin || hasPermission("PLATFORM_USER_VIEW");
@@ -35,20 +35,20 @@ export default function PageSuperAdmin({ t, isDark, DIMENSIONS = [], ROLES = [],
         return found && found.IsGlobal === true;
     };
 
-    const roleDim = DIMENSIONS.find(d => d.name === "Role")?.items || [
-        "Tenant Member", "Tenant Viewer", "Tenant Manager", "Tenant Admin", "Tenant Owner",
-        "Support Admin", "Auditor", "Platform_Operator", "Platform Admin", "Super Admin", "L2 Admin"
-    ];
+    // Get role options from ROLES collection
+    const roleOptions = useMemo(() => {
+        return ROLES.map(r => ({
+            id: r.id || r.role_id,
+            name: r.role_name || r.name || r.id || r.role_id
+        })).sort((a, b) => a.name.localeCompare(b.name));
+    }, [ROLES]);
 
     const openInvite = () => setModal({ open: true, mode: "invite", data: { email: "", first_name: "", last_name: "", role: "", tenantId: "" } });
     const openEdit = r => {
-        console.log("Opening edit modal with user:", r);
-        console.log("Current role:", r.role);
         setModal({ open: true, mode: "edit", data: { ...r, uid: r.id } });
     };
     const close = () => setModal(m => ({ ...m, open: false }));
     const setF = (k, v) => {
-        console.log(`Setting field ${k} to:`, v);
         setModal(m => ({ ...m, data: { ...m.data, [k]: v } }));
     };
 
@@ -99,9 +99,6 @@ export default function PageSuperAdmin({ t, isDark, DIMENSIONS = [], ROLES = [],
         const d = modal.data;
         if (!d.uid) return;
 
-        console.log("Saving user with data:", d);
-        console.log("Role before String conversion:", d.role, typeof d.role);
-
         // Ensure all values are plain strings, not Firestore objects
         const payload = {
             email: String(d.email || ""),
@@ -112,8 +109,6 @@ export default function PageSuperAdmin({ t, isDark, DIMENSIONS = [], ROLES = [],
             status: String(d.status || "Active"),
             updated_at: serverTimestamp(),
         };
-
-        console.log("Payload being saved:", payload);
 
         try {
             await setDoc(doc(db, "global_users", d.uid), payload, { merge: true });
@@ -210,7 +205,12 @@ export default function PageSuperAdmin({ t, isDark, DIMENSIONS = [], ROLES = [],
               <FF label="First Name" t={t}><FIn value={modal.data.first_name || ""} onChange={e => setF("first_name", e.target.value)} placeholder="Jane" t={t} /></FF>
               <FF label="Last Name" t={t}><FIn value={modal.data.last_name || ""} onChange={e => setF("last_name", e.target.value)} placeholder="Doe" t={t} /></FF>
             </div>
-            <FF label="Global Role" t={t}><FSel value={modal.data.role} onChange={e => setF("role", e.target.value)} options={roleDim} t={t} isDark={isDark} /></FF>
+            <FF label="Global Role" t={t}>
+                <select value={modal.data.role || ""} onChange={e => setF("role", e.target.value)} style={{ background: isDark ? "rgba(255,255,255,0.05)" : "#fff", color: t.text, border: `1px solid ${t.border}`, borderRadius: 10, padding: 12, fontSize: 14, outline: "none", width: "100%" }}>
+                    <option value="">Select Role</option>
+                    {roleOptions.map(r => <option key={r.id} value={r.id} style={{ color: "#000" }}>{r.name}</option>)}
+                </select>
+            </FF>
             <FF label="Tenant Assignment" t={t}>
                 {!isRoleGlobal(modal.data.role) ? (
                     <select value={modal.data.tenantId || ""} onChange={e => setF("tenantId", e.target.value)} style={{ background: isDark ? "rgba(255,255,255,0.05)" : "#fff", color: t.text, border: `1px solid ${t.border}`, borderRadius: 10, padding: 12, fontSize: 14, outline: "none", width: "100%" }}>
@@ -230,7 +230,12 @@ export default function PageSuperAdmin({ t, isDark, DIMENSIONS = [], ROLES = [],
               <FF label="First Name" t={t}><FIn value={modal.data.first_name || ""} onChange={e => setF("first_name", e.target.value)} placeholder="Jane" t={t} /></FF>
               <FF label="Last Name" t={t}><FIn value={modal.data.last_name || ""} onChange={e => setF("last_name", e.target.value)} placeholder="Doe" t={t} /></FF>
             </div>
-            <FF label="Global Role" t={t}><FSel value={modal.data.role} onChange={e => setF("role", e.target.value)} options={roleDim} t={t} isDark={isDark} /></FF>
+            <FF label="Global Role" t={t}>
+                <select value={modal.data.role || ""} onChange={e => setF("role", e.target.value)} style={{ background: isDark ? "rgba(255,255,255,0.05)" : "#fff", color: t.text, border: `1px solid ${t.border}`, borderRadius: 10, padding: 12, fontSize: 14, outline: "none", width: "100%" }}>
+                    <option value="">Select Role</option>
+                    {roleOptions.map(r => <option key={r.id} value={r.id} style={{ color: "#000" }}>{r.name}</option>)}
+                </select>
+            </FF>
             <FF label="Tenant Assignment" t={t}>
                 {!isRoleGlobal(modal.data.role) ? (
                     <select value={modal.data.tenantId || ""} onChange={e => setF("tenantId", e.target.value)} style={{ background: isDark ? "rgba(255,255,255,0.05)" : "#fff", color: t.text, border: `1px solid ${t.border}`, borderRadius: 10, padding: 12, fontSize: 14, outline: "none", width: "100%" }}>

@@ -158,11 +158,11 @@ export function AuthProvider({ children }) {
             const role = (profile?.role || "").toLowerCase();
             const roleName = (profile?.roleName || "").toLowerCase();
             if (role === "r10001" || roleName.includes("member")) return false; // Members are never super admins
-            return ["super admin", "platform admin", "admin", "company_super_admin_read_write", "l2 admin"].includes(role) || profile?.isGlobalRole === true || profile?.isGlobal === true;
+            return ["super admin", "platform admin", "company_super_admin_read_write", "l2 admin"].includes(role) || profile?.isGlobalRole === true || profile?.isGlobal === true;
         })(),
         isTenantAdmin: (() => {
             const role = (profile?.role || "");
-            const isT = role.includes("Tenant") || role.includes("tenant") || ["tenant_admin_super_user", "tenant_admin_read_write"].includes(role);
+            const isT = role.includes("Tenant") || role.includes("tenant") || role.includes("Admin") || role === "R10004" || ["tenant_admin_super_user", "tenant_admin_read_write"].includes(role);
             return isT && !(profile?.isGlobalRole === true || profile?.isGlobal === true);
         })(),
         isGlobalRole: profile?.isGlobalRole === true || profile?.isGlobal === true,
