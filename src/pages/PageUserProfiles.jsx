@@ -166,26 +166,27 @@ export default function PageUserProfiles({ t, isDark, USERS = [], ROLES = [], co
                     notes: d.notes || ""
                 });
             } else if (modal.mode === "edit" && d.id) {
+                // Ensure all values are plain strings, not Firestore objects
                 const payload = {
-                    user_id: d.user_id || "",
-                    user_name: d.user_name || d.name || "",
-                    first_name: d.first_name || "",
-                    last_name: d.last_name || "",
-                    email: d.email || "",
-                    role_id: d.role_id || "",
-                    phone: d.phone || "",
-                    notes: d.notes || "",
+                    user_id: String(d.user_id || ""),
+                    user_name: String(d.user_name || d.name || ""),
+                    first_name: String(d.first_name || ""),
+                    last_name: String(d.last_name || ""),
+                    email: String(d.email || ""),
+                    role_id: String(d.role_id || ""),
+                    phone: String(d.phone || ""),
+                    notes: String(d.notes || ""),
                     updated_at: serverTimestamp(),
                 };
                 await updateDoc(doc(db, collectionPath, d.id), payload);
                 // Sync to global_users to keep data consistent
-                const authUid = d.auth_uid || d.id;
+                const authUid = String(d.auth_uid || d.id);
                 if (authUid && !/^U\d+$/.test(authUid)) {
                     await setDoc(doc(db, "global_users", authUid), {
-                        first_name: d.first_name || "",
-                        last_name: d.last_name || "",
-                        email: d.email || "",
-                        role: d.role_id || "",
+                        first_name: String(d.first_name || ""),
+                        last_name: String(d.last_name || ""),
+                        email: String(d.email || ""),
+                        role: String(d.role_id || ""),
                         last_updated: serverTimestamp()
                     }, { merge: true });
                 }

@@ -91,28 +91,31 @@ export default function PageSuperAdmin({ t, isDark, DIMENSIONS = [], ROLES = [],
     const handleSaveUser = async () => {
         const d = modal.data;
         if (!d.uid) return;
+
+        // Ensure all values are plain strings, not Firestore objects
         const payload = {
-            email: d.email || "",
-            first_name: d.first_name || "",
-            last_name: d.last_name || "",
-            role: d.role || "",
-            tenantId: d.tenantId || "",
-            status: d.status || "Active",
+            email: String(d.email || ""),
+            first_name: String(d.first_name || ""),
+            last_name: String(d.last_name || ""),
+            role: String(d.role || ""),
+            tenantId: String(d.tenantId || ""),
+            status: String(d.status || "Active"),
             updated_at: serverTimestamp(),
         };
+
         try {
             await setDoc(doc(db, "global_users", d.uid), payload, { merge: true });
             // Sync to tenant user doc
-            const tid = d.tenantId || "";
+            const tid = String(d.tenantId || "");
             if (tid) {
                 const q = query(collection(db, `tenants/${tid}/users`), where("auth_uid", "==", d.uid));
                 const snap = await getDocs(q);
                 if (!snap.empty) {
                     await updateDoc(snap.docs[0].ref, {
-                        first_name: d.first_name || "",
-                        last_name: d.last_name || "",
-                        email: d.email || "",
-                        role_id: d.role || "",
+                        first_name: String(d.first_name || ""),
+                        last_name: String(d.last_name || ""),
+                        email: String(d.email || ""),
+                        role_id: String(d.role || ""),
                         updated_at: serverTimestamp()
                     });
                 }
