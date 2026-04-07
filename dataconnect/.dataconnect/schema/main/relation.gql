@@ -244,7 +244,7 @@ extend type Movie {
   """
   A generated field that is used for caching results in SDKs.
   """
-  _id: ID! @fdc_generated(from: "Movie.id", purpose: GLOBAL_ID)
+  _id: ID! @fdc_generated(from: "Movie.id", purpose: ENTITY_ID)
 }
 extend type MovieList {
   """
@@ -380,7 +380,7 @@ extend type MovieList {
   """
   A generated field that is used for caching results in SDKs.
   """
-  _id: ID! @fdc_generated(from: "MovieList.id", purpose: GLOBAL_ID)
+  _id: ID! @fdc_generated(from: "MovieList.id", purpose: ENTITY_ID)
 }
 extend type MovieListEntry {
   """
@@ -456,7 +456,7 @@ extend type MovieListEntry {
   """
   A generated field that is used for caching results in SDKs.
   """
-  _id: ID! @fdc_generated(from: "MovieListEntry.movieListId,movieId,position", purpose: GLOBAL_ID)
+  _id: ID! @fdc_generated(from: "MovieListEntry.movieListId,movieId,position", purpose: ENTITY_ID)
 }
 extend type Review {
   """
@@ -602,7 +602,7 @@ extend type Review {
   """
   A generated field that is used for caching results in SDKs.
   """
-  _id: ID! @fdc_generated(from: "Review.id", purpose: GLOBAL_ID)
+  _id: ID! @fdc_generated(from: "Review.id", purpose: ENTITY_ID)
 }
 extend type User {
   """
@@ -780,7 +780,7 @@ extend type User {
   """
   A generated field that is used for caching results in SDKs.
   """
-  _id: ID! @fdc_generated(from: "User.id", purpose: GLOBAL_ID)
+  _id: ID! @fdc_generated(from: "User.id", purpose: ENTITY_ID)
 }
 extend type Watch {
   """
@@ -907,5 +907,5 @@ extend type Watch {
   """
   A generated field that is used for caching results in SDKs.
   """
-  _id: ID! @fdc_generated(from: "Watch.id", purpose: GLOBAL_ID)
+  _id: ID! @fdc_generated(from: "Watch.id", purpose: ENTITY_ID)
 }

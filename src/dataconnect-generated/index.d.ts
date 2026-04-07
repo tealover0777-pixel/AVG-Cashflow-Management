@@ -1,4 +1,4 @@
-import { ConnectorConfig, DataConnect, QueryRef, QueryPromise, MutationRef, MutationPromise } from 'firebase/data-connect';
+import { ConnectorConfig, DataConnect, QueryRef, QueryPromise, ExecuteQueryOptions, MutationRef, MutationPromise } from 'firebase/data-connect';
 
 export const connectorConfig: ConnectorConfig;
 
@@ -98,8 +98,8 @@ interface ListAllMoviesRef {
 }
 export const listAllMoviesRef: ListAllMoviesRef;
 
-export function listAllMovies(): QueryPromise<ListAllMoviesData, undefined>;
-export function listAllMovies(dc: DataConnect): QueryPromise<ListAllMoviesData, undefined>;
+export function listAllMovies(options?: ExecuteQueryOptions): QueryPromise<ListAllMoviesData, undefined>;
+export function listAllMovies(dc: DataConnect, options?: ExecuteQueryOptions): QueryPromise<ListAllMoviesData, undefined>;
 
 interface GetUserWatchHistoryRef {
   /* Allow users to create refs without passing in DataConnect */
@@ -110,8 +110,8 @@ interface GetUserWatchHistoryRef {
 }
 export const getUserWatchHistoryRef: GetUserWatchHistoryRef;
 
-export function getUserWatchHistory(): QueryPromise<GetUserWatchHistoryData, undefined>;
-export function getUserWatchHistory(dc: DataConnect): QueryPromise<GetUserWatchHistoryData, undefined>;
+export function getUserWatchHistory(options?: ExecuteQueryOptions): QueryPromise<GetUserWatchHistoryData, undefined>;
+export function getUserWatchHistory(dc: DataConnect, options?: ExecuteQueryOptions): QueryPromise<GetUserWatchHistoryData, undefined>;
 
 interface CreateNewMovieListRef {
   /* Allow users to create refs without passing in DataConnect */

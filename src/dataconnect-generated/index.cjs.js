@@ -1,4 +1,4 @@
-const { queryRef, executeQuery, mutationRef, executeMutation, validateArgs } = require('firebase/data-connect');
+const { queryRef, executeQuery, validateArgsWithOptions, mutationRef, executeMutation, validateArgs } = require('firebase/data-connect');
 
 const connectorConfig = {
   connector: 'example',
@@ -15,9 +15,12 @@ const listAllMoviesRef = (dc) => {
 listAllMoviesRef.operationName = 'ListAllMovies';
 exports.listAllMoviesRef = listAllMoviesRef;
 
-exports.listAllMovies = function listAllMovies(dc) {
-  return executeQuery(listAllMoviesRef(dc));
-};
+exports.listAllMovies = function listAllMovies(dcOrOptions, options) {
+  
+  const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrOptions, options, undefined,false, false);
+  return executeQuery(listAllMoviesRef(dcInstance, inputVars), inputOpts && inputOpts.fetchPolicy);
+}
+;
 
 const getUserWatchHistoryRef = (dc) => {
   const { dc: dcInstance} = validateArgs(connectorConfig, dc, undefined);
@@ -27,9 +30,12 @@ const getUserWatchHistoryRef = (dc) => {
 getUserWatchHistoryRef.operationName = 'GetUserWatchHistory';
 exports.getUserWatchHistoryRef = getUserWatchHistoryRef;
 
-exports.getUserWatchHistory = function getUserWatchHistory(dc) {
-  return executeQuery(getUserWatchHistoryRef(dc));
-};
+exports.getUserWatchHistory = function getUserWatchHistory(dcOrOptions, options) {
+  
+  const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrOptions, options, undefined,false, false);
+  return executeQuery(getUserWatchHistoryRef(dcInstance, inputVars), inputOpts && inputOpts.fetchPolicy);
+}
+;
 
 const createNewMovieListRef = (dcOrVars, vars) => {
   const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
@@ -40,8 +46,10 @@ createNewMovieListRef.operationName = 'CreateNewMovieList';
 exports.createNewMovieListRef = createNewMovieListRef;
 
 exports.createNewMovieList = function createNewMovieList(dcOrVars, vars) {
-  return executeMutation(createNewMovieListRef(dcOrVars, vars));
-};
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(createNewMovieListRef(dcInstance, inputVars));
+}
+;
 
 const addMovieToMovieListRef = (dcOrVars, vars) => {
   const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
@@ -52,5 +60,7 @@ addMovieToMovieListRef.operationName = 'AddMovieToMovieList';
 exports.addMovieToMovieListRef = addMovieToMovieListRef;
 
 exports.addMovieToMovieList = function addMovieToMovieList(dcOrVars, vars) {
-  return executeMutation(addMovieToMovieListRef(dcOrVars, vars));
-};
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(addMovieToMovieListRef(dcInstance, inputVars));
+}
+;

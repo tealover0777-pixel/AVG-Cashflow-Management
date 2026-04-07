@@ -64,7 +64,7 @@ Below are examples of how to use the `example` connector's generated functions t
 ## ListAllMovies
 You can execute the `ListAllMovies` query using the following action shortcut function, or by calling `executeQuery()` after calling the following `QueryRef` function, both of which are defined in [dataconnect-generated/index.d.ts](./index.d.ts):
 ```typescript
-listAllMovies(): QueryPromise<ListAllMoviesData, undefined>;
+listAllMovies(options?: ExecuteQueryOptions): QueryPromise<ListAllMoviesData, undefined>;
 
 interface ListAllMoviesRef {
   ...
@@ -75,7 +75,7 @@ export const listAllMoviesRef: ListAllMoviesRef;
 ```
 You can also pass in a `DataConnect` instance to the action shortcut function or `QueryRef` function.
 ```typescript
-listAllMovies(dc: DataConnect): QueryPromise<ListAllMoviesData, undefined>;
+listAllMovies(dc: DataConnect, options?: ExecuteQueryOptions): QueryPromise<ListAllMoviesData, undefined>;
 
 interface ListAllMoviesRef {
   ...
@@ -164,7 +164,7 @@ executeQuery(ref).then((response) => {
 ## GetUserWatchHistory
 You can execute the `GetUserWatchHistory` query using the following action shortcut function, or by calling `executeQuery()` after calling the following `QueryRef` function, both of which are defined in [dataconnect-generated/index.d.ts](./index.d.ts):
 ```typescript
-getUserWatchHistory(): QueryPromise<GetUserWatchHistoryData, undefined>;
+getUserWatchHistory(options?: ExecuteQueryOptions): QueryPromise<GetUserWatchHistoryData, undefined>;
 
 interface GetUserWatchHistoryRef {
   ...
@@ -175,7 +175,7 @@ export const getUserWatchHistoryRef: GetUserWatchHistoryRef;
 ```
 You can also pass in a `DataConnect` instance to the action shortcut function or `QueryRef` function.
 ```typescript
-getUserWatchHistory(dc: DataConnect): QueryPromise<GetUserWatchHistoryData, undefined>;
+getUserWatchHistory(dc: DataConnect, options?: ExecuteQueryOptions): QueryPromise<GetUserWatchHistoryData, undefined>;
 
 interface GetUserWatchHistoryRef {
   ...
