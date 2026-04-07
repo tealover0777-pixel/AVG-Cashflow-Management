@@ -35,7 +35,9 @@ service cloud.firestore {
     }
 
     function isCompanySuperAdmin() {
-      return isRole('R10009') || isRole('R10010');
+      return isRole('R10009') || isRole('R10010') ||
+             isRole('Platform Admin') || isRole('Super Admin') ||
+             isRole('L2 Admin') || isRole('company_super_admin_read_write');
     }
 
     function isCompanySupport() {
@@ -50,7 +52,11 @@ service cloud.firestore {
     function isTenantAdmin(tenantId) {
         return isTenantMember(tenantId) && (
             getRole() == 'R10004' ||
-            getRole() == 'R10005'
+            getRole() == 'R10005' ||
+            getRole() == 'Tenant Admin' ||
+            getRole() == 'Tenant Owner' ||
+            getRole() == 'tenant_admin_super_user' ||
+            getRole() == 'tenant_admin_read_write'
         );
     }
 
@@ -177,6 +183,16 @@ service cloud.firestore {
     match /tenants/{tenantId}/reports/{docId} {
         allow read: if isTenantMember(tenantId) && hasPermission('REPORT_VIEW');
         allow create, update, delete: if isTenantMember(tenantId) && (hasPermission('REPORT_CREATE') || hasPermission('REPORT_UPDATE') || hasPermission('REPORT_DELETE'));
+    }
+
+    match /tenants/{tenantId}/ledger/{docId} {
+        allow read: if isTenantMember(tenantId) && hasPermission('PAYMENT_VIEW');
+        allow create, update, delete: if isTenantMember(tenantId) && hasPermission('PAYMENT_CREATE');
+    }
+
+    match /tenants/{tenantId}/achBatches/{docId} {
+        allow read: if isTenantMember(tenantId) && hasPermission('PAYMENT_VIEW');
+        allow create, update, delete: if isTenantMember(tenantId) && hasPermission('PAYMENT_CREATE');
     }
   }
 }

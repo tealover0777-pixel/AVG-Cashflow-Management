@@ -41,9 +41,16 @@ export default function PageSuperAdmin({ t, isDark, DIMENSIONS = [], ROLES = [],
     ];
 
     const openInvite = () => setModal({ open: true, mode: "invite", data: { email: "", first_name: "", last_name: "", role: "", tenantId: "" } });
-    const openEdit = r => setModal({ open: true, mode: "edit", data: { ...r, uid: r.id } });
+    const openEdit = r => {
+        console.log("Opening edit modal with user:", r);
+        console.log("Current role:", r.role);
+        setModal({ open: true, mode: "edit", data: { ...r, uid: r.id } });
+    };
     const close = () => setModal(m => ({ ...m, open: false }));
-    const setF = (k, v) => setModal(m => ({ ...m, data: { ...m.data, [k]: v } }));
+    const setF = (k, v) => {
+        console.log(`Setting field ${k} to:`, v);
+        setModal(m => ({ ...m, data: { ...m.data, [k]: v } }));
+    };
 
     // Invite user via Cloud Function
     const handleInviteUser = async () => {
@@ -92,6 +99,9 @@ export default function PageSuperAdmin({ t, isDark, DIMENSIONS = [], ROLES = [],
         const d = modal.data;
         if (!d.uid) return;
 
+        console.log("Saving user with data:", d);
+        console.log("Role before String conversion:", d.role, typeof d.role);
+
         // Ensure all values are plain strings, not Firestore objects
         const payload = {
             email: String(d.email || ""),
@@ -102,6 +112,8 @@ export default function PageSuperAdmin({ t, isDark, DIMENSIONS = [], ROLES = [],
             status: String(d.status || "Active"),
             updated_at: serverTimestamp(),
         };
+
+        console.log("Payload being saved:", payload);
 
         try {
             await setDoc(doc(db, "global_users", d.uid), payload, { merge: true });
