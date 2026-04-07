@@ -198,7 +198,7 @@ export default function PageSuperAdmin({ t, isDark, DIMENSIONS = [], ROLES = [],
               <FF label="First Name" t={t}><FIn value={modal.data.first_name || ""} onChange={e => setF("first_name", e.target.value)} placeholder="Jane" t={t} /></FF>
               <FF label="Last Name" t={t}><FIn value={modal.data.last_name || ""} onChange={e => setF("last_name", e.target.value)} placeholder="Doe" t={t} /></FF>
             </div>
-            <FF label="Global Role" t={t}><FSel value={modal.data.role} onChange={v => setF("role", v)} options={roleDim} t={t} isDark={isDark} /></FF>
+            <FF label="Global Role" t={t}><FSel value={modal.data.role} onChange={e => setF("role", e.target.value)} options={roleDim} t={t} isDark={isDark} /></FF>
             <FF label="Tenant Assignment" t={t}>
                 {!isRoleGlobal(modal.data.role) ? (
                     <select value={modal.data.tenantId || ""} onChange={e => setF("tenantId", e.target.value)} style={{ background: isDark ? "rgba(255,255,255,0.05)" : "#fff", color: t.text, border: `1px solid ${t.border}`, borderRadius: 10, padding: 12, fontSize: 14, outline: "none", width: "100%" }}>
@@ -218,7 +218,7 @@ export default function PageSuperAdmin({ t, isDark, DIMENSIONS = [], ROLES = [],
               <FF label="First Name" t={t}><FIn value={modal.data.first_name || ""} onChange={e => setF("first_name", e.target.value)} placeholder="Jane" t={t} /></FF>
               <FF label="Last Name" t={t}><FIn value={modal.data.last_name || ""} onChange={e => setF("last_name", e.target.value)} placeholder="Doe" t={t} /></FF>
             </div>
-            <FF label="Global Role" t={t}><FSel value={modal.data.role} onChange={v => setF("role", v)} options={roleDim} t={t} isDark={isDark} /></FF>
+            <FF label="Global Role" t={t}><FSel value={modal.data.role} onChange={e => setF("role", e.target.value)} options={roleDim} t={t} isDark={isDark} /></FF>
             <FF label="Tenant Assignment" t={t}>
                 {!isRoleGlobal(modal.data.role) ? (
                     <select value={modal.data.tenantId || ""} onChange={e => setF("tenantId", e.target.value)} style={{ background: isDark ? "rgba(255,255,255,0.05)" : "#fff", color: t.text, border: `1px solid ${t.border}`, borderRadius: 10, padding: 12, fontSize: 14, outline: "none", width: "100%" }}>
