@@ -81,6 +81,8 @@ export default function PageSuperAdmin({ t, isDark, DIMENSIONS = [], ROLES = [],
         if (!d.uid) return;
         const payload = {
             email: d.email || "",
+            first_name: d.first_name || "",
+            last_name: d.last_name || "",
             role: d.role || "",
             tenantId: d.tenantId || "",
             status: d.status || "Active",
@@ -174,6 +176,10 @@ export default function PageSuperAdmin({ t, isDark, DIMENSIONS = [], ROLES = [],
         <Modal open={modal.open && modal.mode === "edit"} onClose={close} title="Edit User Mapping" onSave={handleSaveUser} width={520} t={t} isDark={isDark}>
             <FF label="Email" t={t}><FIn value={modal.data.email} disabled t={t} /></FF>
             <FF label="Firebase UID" t={t}><FIn value={modal.data.uid} disabled t={t} /></FF>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+              <FF label="First Name" t={t}><FIn value={modal.data.first_name || ""} onChange={e => setF("first_name", e.target.value)} placeholder="Jane" t={t} /></FF>
+              <FF label="Last Name" t={t}><FIn value={modal.data.last_name || ""} onChange={e => setF("last_name", e.target.value)} placeholder="Doe" t={t} /></FF>
+            </div>
             <FF label="Global Role" t={t}><FSel value={modal.data.role} onChange={v => setF("role", v)} options={roleDim} t={t} isDark={isDark} /></FF>
             <FF label="Tenant Assignment" t={t}>
                 {!isRoleGlobal(modal.data.role) ? (
