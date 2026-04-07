@@ -21,7 +21,7 @@ const PERMISSIONS_LIST = [
     "CONTACT_CREATE", "CONTACT_VIEW", "CONTACT_UPDATE", "CONTACT_DELETE"
 ];
 
-export default function PageUserProfiles({ t, isDark, USERS = [], ROLES = [], collectionPath = "", DIMENSIONS = [], tenantId = "", TENANTS = [], CONTACTS = [] }) {
+export default function PageUserProfiles({ t, isDark, USERS = [], GLOBAL_USERS = [], ROLES = [], collectionPath = "", DIMENSIONS = [], tenantId = "", TENANTS = [], CONTACTS = [] }) {
     const { hasPermission, isSuperAdmin } = useAuth();
     const canCreate = isSuperAdmin || hasPermission("USER_PROFILE_CREATE") || hasPermission("USER_CREATE");
     const canInvite = isSuperAdmin || hasPermission("USER_PROFILE_CREATE") || hasPermission("USER_INVITE");
@@ -51,15 +51,33 @@ export default function PageUserProfiles({ t, isDark, USERS = [], ROLES = [], co
         return found && found.IsGlobal === true;
     };
 
+    // Merge tenant users with global users data (for first_name/last_name)
+    const mergedUsers = useMemo(() => {
+        return USERS.map(user => {
+            // Find matching global user by auth_uid or email
+            const globalUser = GLOBAL_USERS.find(gu =>
+                (user.auth_uid && gu.id === user.auth_uid) ||
+                (user.email && gu.email && gu.email.toLowerCase() === user.email.toLowerCase())
+            );
+
+            // Merge: use global user's first_name/last_name if available, otherwise use tenant user's
+            return {
+                ...user,
+                first_name: globalUser?.first_name || user.first_name,
+                last_name: globalUser?.last_name || user.last_name
+            };
+        });
+    }, [USERS, GLOBAL_USERS]);
+
     // Filter out platform/global users (users with global roles)
     const filteredUsers = useMemo(() => {
-        return USERS.filter(user => {
+        return mergedUsers.filter(user => {
             const roleId = user.role_id;
             if (!roleId) return true; // Include users without role
             const isGlobal = isSelectedRoleGlobal(roleId);
             return !isGlobal; // Exclude users with global roles
         });
-    }, [USERS, ROLES]);
+    }, [mergedUsers, ROLES]);
 
     const nextUserId = useMemo(() => {
         if (filteredUsers.length === 0) return "U10001";
