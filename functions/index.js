@@ -27,7 +27,7 @@ exports.inviteUser = functions.https.onCall(async (data, context) => {
     throw new functions.https.HttpsError('unauthenticated', 'The function must be called while authenticated.');
   }
 
-  const { email, role, tenantId, user_name, phone, notes, user_id: providedUserId, partyId } = data;
+  const { email, role, tenantId, user_name, phone, notes, user_id: providedUserId, partyId, first_name, last_name } = data;
   const db = admin.firestore();
 
   try {
@@ -70,6 +70,8 @@ exports.inviteUser = functions.https.onCall(async (data, context) => {
     // 4. Create/Update Firestore Global Profile
     await db.collection('global_users').doc(uid).set({
       email,
+      first_name: first_name || '',
+      last_name: last_name || '',
       role,
       tenantId,
       isGlobal,
@@ -104,6 +106,8 @@ exports.inviteUser = functions.https.onCall(async (data, context) => {
       await db.doc(`tenants/${tenantId}/users/${user_id}`).set({
         user_id,
         user_name: user_name || userRecord.displayName || email.split('@')[0],
+        first_name: first_name || '',
+        last_name: last_name || '',
         email,
         role_id: role,
         status: 'Pending',

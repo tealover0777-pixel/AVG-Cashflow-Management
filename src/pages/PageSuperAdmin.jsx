@@ -34,7 +34,7 @@ export default function PageSuperAdmin({ t, isDark, DIMENSIONS = [], ROLES = [],
         "Support Admin", "Auditor", "Platform_Operator", "Platform Admin", "Super Admin", "L2 Admin"
     ];
 
-    const openInvite = () => setModal({ open: true, mode: "invite", data: { email: "", role: "", tenantId: "" } });
+    const openInvite = () => setModal({ open: true, mode: "invite", data: { email: "", first_name: "", last_name: "", role: "", tenantId: "" } });
     const openEdit = r => setModal({ open: true, mode: "edit", data: { ...r, uid: r.id } });
     const close = () => setModal(m => ({ ...m, open: false }));
     const setF = (k, v) => setModal(m => ({ ...m, data: { ...m.data, [k]: v } }));
@@ -46,7 +46,13 @@ export default function PageSuperAdmin({ t, isDark, DIMENSIONS = [], ROLES = [],
         setInviting(true);
         try {
             const inviteUserFn = httpsCallable(functions, "inviteUser");
-            const result = await inviteUserFn({ email: d.email, role: d.role, tenantId: d.tenantId || "" });
+            const result = await inviteUserFn({
+                email: d.email,
+                role: d.role,
+                tenantId: d.tenantId || "",
+                first_name: d.first_name || "",
+                last_name: d.last_name || ""
+            });
             close();
             setInviteResult({ link: result.data.link, email: d.email });
         } catch (err) {
@@ -195,7 +201,11 @@ export default function PageSuperAdmin({ t, isDark, DIMENSIONS = [], ROLES = [],
 
         {/* Invite Modal */}
         <Modal open={modal.open && modal.mode === "invite"} onClose={close} title="Invite Global User" onSave={handleInviteUser} saveLabel={inviting ? "Inviting..." : "Invite User"} width={520} t={t} isDark={isDark}>
-            <FF label="Email Address" t={t}><FIn value={modal.data.email} onChange={e => setF("email", e.target.value)} placeholder="Email" t={t} /></FF>
+            <FF label="Email Address" t={t}><FIn value={modal.data.email} onChange={e => setF("email", e.target.value)} placeholder="user@example.com" t={t} /></FF>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+              <FF label="First Name" t={t}><FIn value={modal.data.first_name || ""} onChange={e => setF("first_name", e.target.value)} placeholder="Jane" t={t} /></FF>
+              <FF label="Last Name" t={t}><FIn value={modal.data.last_name || ""} onChange={e => setF("last_name", e.target.value)} placeholder="Doe" t={t} /></FF>
+            </div>
             <FF label="Global Role" t={t}><FSel value={modal.data.role} onChange={v => setF("role", v)} options={roleDim} t={t} isDark={isDark} /></FF>
             <FF label="Tenant Assignment" t={t}>
                 {!isRoleGlobal(modal.data.role) ? (
