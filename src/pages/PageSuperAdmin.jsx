@@ -37,10 +37,14 @@ export default function PageSuperAdmin({ t, isDark, ROLES = [], TENANTS = [] }) 
 
     // Get role options from ROLES collection
     const roleOptions = useMemo(() => {
-        return ROLES.map(r => ({
-            id: r.id || r.role_id,
-            name: r.role_name || r.name || r.id || r.role_id
-        })).sort((a, b) => a.name.localeCompare(b.name));
+        return ROLES.map(r => {
+            const id = r.id || r.role_id;
+            const name = r.role_name || r.name || id;
+            return {
+                id: id,
+                display: `${id} - ${name}`
+            };
+        }).sort((a, b) => a.display.localeCompare(b.display));
     }, [ROLES]);
 
     const openInvite = () => setModal({ open: true, mode: "invite", data: { email: "", first_name: "", last_name: "", role: "", tenantId: "" } });
@@ -208,7 +212,7 @@ export default function PageSuperAdmin({ t, isDark, ROLES = [], TENANTS = [] }) 
             <FF label="Global Role" t={t}>
                 <select value={modal.data.role || ""} onChange={e => setF("role", e.target.value)} style={{ background: isDark ? "rgba(255,255,255,0.05)" : "#fff", color: t.text, border: `1px solid ${t.border}`, borderRadius: 10, padding: 12, fontSize: 14, outline: "none", width: "100%" }}>
                     <option value="">Select Role</option>
-                    {roleOptions.map(r => <option key={r.id} value={r.id} style={{ color: "#000" }}>{r.name}</option>)}
+                    {roleOptions.map(r => <option key={r.id} value={r.id} style={{ color: "#000" }}>{r.display}</option>)}
                 </select>
             </FF>
             <FF label="Tenant Assignment" t={t}>
@@ -233,7 +237,7 @@ export default function PageSuperAdmin({ t, isDark, ROLES = [], TENANTS = [] }) 
             <FF label="Global Role" t={t}>
                 <select value={modal.data.role || ""} onChange={e => setF("role", e.target.value)} style={{ background: isDark ? "rgba(255,255,255,0.05)" : "#fff", color: t.text, border: `1px solid ${t.border}`, borderRadius: 10, padding: 12, fontSize: 14, outline: "none", width: "100%" }}>
                     <option value="">Select Role</option>
-                    {roleOptions.map(r => <option key={r.id} value={r.id} style={{ color: "#000" }}>{r.name}</option>)}
+                    {roleOptions.map(r => <option key={r.id} value={r.id} style={{ color: "#000" }}>{r.display}</option>)}
                 </select>
             </FF>
             <FF label="Tenant Assignment" t={t}>
