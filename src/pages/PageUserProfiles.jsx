@@ -225,6 +225,7 @@ export default function PageUserProfiles({ t, isDark, USERS = [], GLOBAL_USERS =
                         last_name: String(d.last_name || ""),
                         email: String(d.email || ""),
                         role: String(d.role_id || ""),
+                        notes: String(d.notes || ""),
                         last_updated: serverTimestamp()
                     }, { merge: true });
                 }
