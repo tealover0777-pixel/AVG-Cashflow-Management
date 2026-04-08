@@ -162,7 +162,7 @@ export const getSuperAdminColumns = (permissions, isDark, t, onEdit, onDel, getR
     {
       id: 'actions',
       header: 'ACTIONS',
-      size: 80,
+      size: 150,
       cell: ({ row }) => {
         const hasActions = permissions.canUpdate || permissions.canDelete || permissions.canCreate;
         if (!hasActions) return null;
