@@ -220,6 +220,7 @@ export default function PageUserProfiles({ t, isDark, USERS = [], GLOBAL_USERS =
                 const authUid = String(d.auth_uid || d.id);
                 if (authUid && !/^U\d+$/.test(authUid)) {
                     await setDoc(doc(db, "global_users", authUid), {
+                        user_id: String(d.user_id || ""),
                         first_name: String(d.first_name || ""),
                         last_name: String(d.last_name || ""),
                         email: String(d.email || ""),

@@ -101,6 +101,11 @@ exports.inviteUser = functions.https.onCall(async (data, context) => {
     }
     if (!user_id) user_id = 'U' + Date.now(); // Final fallback
 
+    // Update global_users with user_id
+    await db.collection('global_users').doc(uid).update({
+      user_id: user_id
+    });
+
     // 5. Create Tenant Profile
     if (tenantId) {
       await db.doc(`tenants/${tenantId}/users/${user_id}`).set({
