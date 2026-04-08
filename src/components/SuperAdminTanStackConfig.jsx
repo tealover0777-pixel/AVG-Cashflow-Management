@@ -54,6 +54,12 @@ export const getSuperAdminColumns = (permissions, isDark, t, onEdit, onDel, getR
 
   const cols = [
     {
+      accessorKey: 'user_id',
+      header: 'USER ID',
+      size: 100,
+      cell: ({ getValue }) => <span style={{ fontSize: 13, color: t.textSecondary, fontFamily: t.mono }}>{getValue() || "—"}</span>,
+    },
+    {
       accessorKey: 'email',
       header: 'EMAIL ADDRESS',
       size: 200,
@@ -129,6 +135,29 @@ export const getSuperAdminColumns = (permissions, isDark, t, onEdit, onDel, getR
       header: 'STATUS',
       size: 110,
       cell: ({ getValue }) => <StatusBadge status={getValue()} t={t} isDark={isDark} />,
+    },
+    {
+      accessorKey: 'id',
+      header: 'AUTH UID',
+      size: 240,
+      cell: ({ row }) => {
+        const val = row.original.id;
+        return (
+          <span style={{ fontFamily: t.mono, fontSize: 10, color: t.textMuted, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={val}>
+            {val || "—"}
+          </span>
+        );
+      },
+    },
+    {
+      accessorKey: 'notes',
+      header: 'NOTES',
+      size: 180,
+      cell: ({ getValue }) => (
+        <span style={{ fontSize: 12, color: t.textMuted, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={getValue() || ""}>
+          {getValue() || "—"}
+        </span>
+      ),
     },
     {
       id: 'actions',

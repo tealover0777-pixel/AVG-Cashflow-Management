@@ -24,17 +24,12 @@ const StatusBadge = ({ status, t, isDark }) => {
     );
 };
 
-const isSelectedRoleGlobal = (roleId, ROLES) => {
-    const found = ROLES.find(r => (r.id || r.role_id) === roleId);
-    return found && found.IsGlobal === true;
-};
-
 const getRoleName = (role_id, ROLES) => {
     const found = ROLES.find(r => r.id === role_id || r.role_id === role_id);
     return found ? (found.role_name || found.name || role_id) : (role_id || "—");
 };
 
-export const getUserProfileColumns = (permissions, isDark, t, onEdit, onDel, onResend, ROLES, isSuperAdmin, tenantId) => {
+export const getUserProfileColumns = (permissions, isDark, t, onEdit, onDel, onResend, ROLES) => {
   const cols = [
     {
       accessorKey: 'user_id',
@@ -95,25 +90,6 @@ export const getUserProfileColumns = (permissions, isDark, t, onEdit, onDel, onR
       },
     },
   ];
-
-  if (isSuperAdmin) {
-    cols.push({
-      accessorKey: 'tenantId',
-      header: 'TENANT ID',
-      size: 120,
-      cell: ({ row }) => {
-        const p = row.original;
-        const tid = p.tenantId || p.tenant_id || p.Tenant_ID || tenantId;
-        return (
-          <div style={{ fontFamily: t.mono, fontSize: 12, fontWeight: 600, color: t.text }}>
-            {isSelectedRoleGlobal(p.role_id, ROLES)
-              ? <span style={{ color: "#22C55E", fontWeight: 600 }}>🌐 Global</span>
-              : (tid || <span style={{ color: t.textMuted }}>—</span>)}
-          </div>
-        );
-      },
-    });
-  }
 
   cols.push(
     {

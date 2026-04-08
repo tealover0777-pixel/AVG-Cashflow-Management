@@ -239,8 +239,8 @@ export default function PageUserProfiles({ t, isDark, USERS = [], GLOBAL_USERS =
 
     const permissions = { canUpdate, canDelete, canInvite };
     const columnDefs = useMemo(() => {
-        return getUserProfileColumns(permissions, isDark, t, openEdit, setDelT, openResendInvite, ROLES, isSuperAdmin, tenantId);
-    }, [permissions, isDark, t, ROLES, isSuperAdmin, tenantId]);
+        return getUserProfileColumns(permissions, isDark, t, openEdit, setDelT, openResendInvite, ROLES);
+    }, [permissions, isDark, t, ROLES]);
 
     return (<>
         {processing && (
