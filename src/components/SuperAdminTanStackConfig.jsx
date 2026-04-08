@@ -7,24 +7,51 @@ const StatusBadge = ({ status, t, isDark }) => {
     const color = isPending ? "#F59E0B" : "#22C55E";
     const border = isPending ? "1px solid rgba(245,158,11,0.35)" : "1px solid rgba(34,197,94,0.35)";
     return (
-        <span style={{ 
-            display: "inline-block", 
-            padding: "2px 10px", 
-            borderRadius: 20, 
-            fontSize: 11.5, 
-            fontWeight: 500, 
-            background: bg, 
-            color, 
-            border, 
-            letterSpacing: "0.02em", 
-            whiteSpace: "nowrap" 
+        <span style={{
+            display: "inline-block",
+            padding: "2px 10px",
+            borderRadius: 20,
+            fontSize: 11.5,
+            fontWeight: 500,
+            background: bg,
+            color,
+            border,
+            letterSpacing: "0.02em",
+            whiteSpace: "nowrap"
         }}>
             {isPending ? "⏳ Pending" : "✓ Active"}
         </span>
     );
 };
 
-export const getSuperAdminColumns = (permissions, isDark, t, onEdit, onDel, getRoleName, getTenantName, onInvite, invitingId) => {
+const UserTypeBadge = ({ isGlobal, t, isDark }) => {
+    const bg = isGlobal ? (isDark ? "rgba(96,165,250,0.15)" : "#EFF6FF") : (isDark ? "rgba(168,85,247,0.15)" : "#FAF5FF");
+    const color = isGlobal ? "#60A5FA" : "#A855F7";
+    const border = isGlobal ? "1px solid rgba(96,165,250,0.35)" : "1px solid rgba(168,85,247,0.35)";
+    return (
+        <span style={{
+            display: "inline-block",
+            padding: "2px 10px",
+            borderRadius: 20,
+            fontSize: 11.5,
+            fontWeight: 600,
+            background: bg,
+            color,
+            border,
+            letterSpacing: "0.02em",
+            whiteSpace: "nowrap"
+        }}>
+            {isGlobal ? "🌐 Global" : "🏢 Tenant"}
+        </span>
+    );
+};
+
+export const getSuperAdminColumns = (permissions, isDark, t, onEdit, onDel, getRoleName, getTenantName, onInvite, invitingId, ROLES = []) => {
+  const isRoleGlobal = (roleId) => {
+    const found = ROLES.find(r => (r.id || r.role_id) === roleId);
+    return found && found.IsGlobal === true;
+  };
+
   const cols = [
     {
       accessorKey: 'email',
@@ -61,6 +88,17 @@ export const getSuperAdminColumns = (permissions, isDark, t, onEdit, onDel, getR
             ) : (role_id || "—")}
           </div>
         );
+      },
+    },
+    {
+      accessorKey: 'role',
+      id: 'userType',
+      header: 'USER TYPE',
+      size: 120,
+      cell: ({ getValue }) => {
+        const role_id = getValue();
+        const isGlobal = isRoleGlobal(role_id);
+        return <UserTypeBadge isGlobal={isGlobal} t={t} isDark={isDark} />;
       },
     },
     {

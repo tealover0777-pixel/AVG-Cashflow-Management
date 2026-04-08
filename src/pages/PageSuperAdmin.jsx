@@ -164,7 +164,7 @@ export default function PageSuperAdmin({ t, isDark, ROLES = [], TENANTS = [] }) 
 
     const permissions = { canUpdate, canDelete, canCreate };
     const columnDefs = useMemo(() => {
-        return getSuperAdminColumns(permissions, isDark, t, openEdit, setDelT, getRoleName, getTenantName, handleRowInvite, invitingId);
+        return getSuperAdminColumns(permissions, isDark, t, openEdit, setDelT, getRoleName, getTenantName, handleRowInvite, invitingId, ROLES);
     }, [permissions, isDark, t, ROLES, TENANTS, invitingId]);
 
     if (!canView) return <div style={{ padding: 40, color: t.textMuted }}>You don't have permission to view this page.</div>;
