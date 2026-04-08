@@ -91,15 +91,19 @@ export const getSuperAdminColumns = (permissions, isDark, t, onEdit, onDel, getR
       },
     },
     {
-      accessorKey: 'role',
       id: 'userType',
       header: 'USER TYPE',
       size: 120,
-      cell: ({ getValue }) => {
-        const role_id = getValue();
-        const isGlobal = isRoleGlobal(role_id);
+      accessorFn: (row) => {
+        const isGlobal = isRoleGlobal(row.role);
+        return isGlobal ? 'Global' : 'Tenant';
+      },
+      cell: ({ row }) => {
+        const isGlobal = isRoleGlobal(row.original.role);
         return <UserTypeBadge isGlobal={isGlobal} t={t} isDark={isDark} />;
       },
+      filterFn: 'equalsString',
+      enableColumnFilter: true,
     },
     {
       accessorKey: 'tenantId',
