@@ -12,7 +12,8 @@ export default function PageProfile({ t, isDark, setIsDark, ROLES = [], collecti
     const [saving, setSaving] = useState(false);
     const [showConfirm, setShowConfirm] = useState(false);
     const [data, setData] = useState({
-        name: profile?.user_name || profile?.name || user?.displayName || "",
+        first_name: profile?.first_name || "",
+        last_name: profile?.last_name || "",
         email: user?.email || "",
         phone: profile?.phone || "",
         photo_url: profile?.photo_url || profile?.photoURL || "",
@@ -39,7 +40,8 @@ export default function PageProfile({ t, isDark, setIsDark, ROLES = [], collecti
     useEffect(() => {
         if (profile) {
             setData({
-                name: profile.user_name || profile.name || user?.displayName || "",
+                first_name: profile.first_name || "",
+                last_name: profile.last_name || "",
                 email: user?.email || "",
                 phone: profile.phone || "",
                 photo_url: profile.photo_url || profile.photoURL || "",
@@ -115,7 +117,8 @@ export default function PageProfile({ t, isDark, setIsDark, ROLES = [], collecti
 
             // 1. Update global_users record
             await setDoc(doc(db, "global_users", uid), {
-                user_name: data.name || "",
+                first_name: data.first_name || "",
+                last_name: data.last_name || "",
                 phone: data.phone || "",
                 photo_url: data.photo_url || "",
                 last_updated: serverTimestamp(),
@@ -128,7 +131,8 @@ export default function PageProfile({ t, isDark, setIsDark, ROLES = [], collecti
                 const snap = await getDocs(q);
                 if (!snap.empty) {
                     await updateDoc(snap.docs[0].ref, {
-                        user_name: data.name || "",
+                        first_name: data.first_name || "",
+                        last_name: data.last_name || "",
                         phone: data.phone || "",
                         photo_url: data.photo_url || "",
                         updated_at: serverTimestamp(),
@@ -190,7 +194,7 @@ export default function PageProfile({ t, isDark, setIsDark, ROLES = [], collecti
                                 {data.photo_url ? (
                                     <img src={data.photo_url} alt="Profile" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                                 ) : (
-                                    (data.name || "?").charAt(0).toUpperCase()
+                                    (data.first_name || data.last_name || "?").charAt(0).toUpperCase()
                                 )}
                             </div>
                             <input type="file" id="profile-photo-upload" accept="image/*" onChange={e => handlePhotoChange(e, "profile")} style={{ display: "none" }} />
@@ -199,7 +203,9 @@ export default function PageProfile({ t, isDark, setIsDark, ROLES = [], collecti
                             </label>
                         </div>
                         <div>
-                            <div style={{ fontSize: 20, fontWeight: 700, color: isDark ? "#fff" : "#1C1917", marginBottom: 2 }}>{data.name}</div>
+                            <div style={{ fontSize: 20, fontWeight: 700, color: isDark ? "#fff" : "#1C1917", marginBottom: 2 }}>
+                                {[data.first_name, data.last_name].filter(Boolean).join(" ") || "—"}
+                            </div>
                             <div style={{ fontFamily: t.mono, fontSize: 12.5, color: t.textMuted, opacity: 0.8 }}>{roleDisplay}</div>
                         </div>
                     </div>
@@ -221,7 +227,8 @@ export default function PageProfile({ t, isDark, setIsDark, ROLES = [], collecti
                             </div>
                         </FF>
 
-                        <FF label="Full Name" t={t}><FIn value={data.name} onChange={e => setData(s => ({ ...s, name: e.target.value }))} placeholder="Your name" t={t} /></FF>
+                        <FF label="First Name" t={t}><FIn value={data.first_name} onChange={e => setData(s => ({ ...s, first_name: e.target.value }))} placeholder="First name" t={t} /></FF>
+                        <FF label="Last Name" t={t}><FIn value={data.last_name} onChange={e => setData(s => ({ ...s, last_name: e.target.value }))} placeholder="Last name" t={t} /></FF>
                         <FF label="Email Address" t={t}><FIn value={data.email} disabled t={t} /></FF>
                         <FF label="Phone Number" t={t}><FIn value={data.phone} onChange={e => setData(s => ({ ...s, phone: e.target.value }))} placeholder="e.g. +1 555 000 0000" t={t} /></FF>
                         <FF label="User Role" t={t}>
