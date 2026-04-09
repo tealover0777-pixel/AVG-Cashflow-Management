@@ -94,12 +94,12 @@ export default function PageUserProfiles({ t, isDark, USERS = [], GLOBAL_USERS =
         return "U" + String(maxNum + 1).padStart(5, "0");
     }, [filteredUsers]);
 
-    const openInvite = () => setModal({ open: true, mode: "invite", data: { email: "", role_id: "", user_name: "" } });
+    const openInvite = () => setModal({ open: true, mode: "invite", data: { email: "", role_id: "", first_name: "", last_name: "" } });
     const openEdit = r => {
         const tid = r.tenantId || r.tenant_id || r.Tenant_ID || tenantId;
         setModal({ open: true, mode: "edit", data: { ...r, role_id: r.role_id || "", tenantId: tid, _origTenantId: tid } });
     };
-    const openResendInvite = r => setModal({ open: true, mode: "resend", data: { email: r.email, role_id: r.role_id || "", user_name: r.user_name || "", phone: r.phone || "", notes: r.notes || "", user_id: r.user_id || "" } });
+    const openResendInvite = r => setModal({ open: true, mode: "resend", data: { email: r.email, role_id: r.role_id || "", first_name: r.first_name || "", last_name: r.last_name || "", phone: r.phone || "", notes: r.notes || "", user_id: r.user_id || "" } });
     const close = () => setModal(m => ({ ...m, open: false }));
     const setF = (k, v) => setModal(m => ({ ...m, data: { ...m.data, [k]: v } }));
 
@@ -121,7 +121,8 @@ export default function PageUserProfiles({ t, isDark, USERS = [], GLOBAL_USERS =
                 role: d.role_id,
                 tenantId: resolvedTenantId,
                 user_id: nextUserId,
-                user_name: d.user_name || "",
+                first_name: d.first_name || "",
+                last_name: d.last_name || "",
                 phone: d.phone || "",
                 notes: d.notes || ""
             });
@@ -196,7 +197,6 @@ export default function PageUserProfiles({ t, isDark, USERS = [], GLOBAL_USERS =
                     oldTenantId: d._origTenantId,
                     role: d.role_id,
                     user_id: d.user_id,
-                    user_name: d.user_name || d.name || "",
                     first_name: d.first_name || "",
                     last_name: d.last_name || "",
                     phone: d.phone || "",
@@ -206,7 +206,6 @@ export default function PageUserProfiles({ t, isDark, USERS = [], GLOBAL_USERS =
                 // Ensure all values are plain strings, not Firestore objects
                 const payload = {
                     user_id: String(d.user_id || ""),
-                    user_name: String(d.user_name || d.name || ""),
                     first_name: String(d.first_name || ""),
                     last_name: String(d.last_name || ""),
                     email: String(d.email || ""),
@@ -324,7 +323,10 @@ export default function PageUserProfiles({ t, isDark, USERS = [], GLOBAL_USERS =
                 <div style={{ fontFamily: t.mono, fontSize: 13, color: t.idText, background: isDark ? "rgba(255,255,255,0.04)" : "#F5F4F1", border: `1px solid ${t.surfaceBorder}`, borderRadius: 9, padding: "10px 13px" }}>{nextUserId}</div>
             </FF>
             <FF label="Email Address" t={t}><FIn value={modal.data.email} onChange={e => setF("email", e.target.value)} placeholder="user@company.com" t={t} /></FF>
-            <FF label="Full Name (optional)" t={t}><FIn value={modal.data.user_name} onChange={e => setF("user_name", e.target.value)} placeholder="Jane Doe" t={t} /></FF>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+              <FF label="First Name (optional)" t={t}><FIn value={modal.data.first_name || ""} onChange={e => setF("first_name", e.target.value)} placeholder="Jane" t={t} /></FF>
+              <FF label="Last Name (optional)" t={t}><FIn value={modal.data.last_name || ""} onChange={e => setF("last_name", e.target.value)} placeholder="Doe" t={t} /></FF>
+            </div>
             <FF label="Phone (optional)" t={t}><FIn value={modal.data.phone || ""} onChange={e => setF("phone", e.target.value)} placeholder="+1 555 000 0000" t={t} /></FF>
             <FF label="Role" t={t}>
                 <select value={modal.data.role_id || ""} onChange={e => setF("role_id", e.target.value)} style={{ background: isDark ? "rgba(255,255,255,0.04)" : "#fff", color: isDark ? "#fff" : "#000", border: `1px solid ${t.border}`, borderRadius: 9, padding: "10px 13px", fontSize: 13.5, outline: "none", width: "100%", fontFamily: t.font, appearance: "none" }}>
@@ -353,7 +355,6 @@ export default function PageUserProfiles({ t, isDark, USERS = [], GLOBAL_USERS =
         <Modal open={modal.open && modal.mode === "edit"} onClose={close} title="Edit User Profile" onSave={handleSaveUser} saveLabel={saving ? "Saving..." : "Save Changes"} width={520} t={t} isDark={isDark}>
             <FF label="User ID" t={t}><FIn value={modal.data.user_id} onChange={e => setF("user_id", e.target.value)} t={t} /></FF>
             <FF label="Auth UID (Firebase)" t={t}><FIn value={modal.data.auth_uid || modal.data.id} disabled t={t} /></FF>
-            <FF label="Full Name" t={t}><FIn value={modal.data.user_name || modal.data.name} onChange={e => setF("user_name", e.target.value)} t={t} /></FF>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
               <FF label="First Name" t={t}><FIn value={modal.data.first_name || ""} onChange={e => setF("first_name", e.target.value)} placeholder="Jane" t={t} /></FF>
               <FF label="Last Name" t={t}><FIn value={modal.data.last_name || ""} onChange={e => setF("last_name", e.target.value)} placeholder="Doe" t={t} /></FF>

@@ -278,10 +278,12 @@ export const getScheduleColumns = (permissions, isDark, t, context) => {
           u.doc_id === uid || 
           u.user_id === uid
         );
-        
-        // Prioritize user_name (requested), then fallback to common display names
-        const displayName = foundUser ? (foundUser.user_name || foundUser.name || foundUser.email || uid) : uid;
-        
+
+        // Combine first_name and last_name, then fallback to email or uid
+        const displayName = foundUser
+          ? ([foundUser.first_name, foundUser.last_name].filter(Boolean).join(" ") || foundUser.email || uid)
+          : uid;
+
         return (
           <span title={uid} style={{ fontSize: '11px', color: t.textSecondary, fontWeight: 500 }}>
             {displayName}

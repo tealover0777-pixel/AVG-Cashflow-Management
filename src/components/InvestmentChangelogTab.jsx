@@ -25,13 +25,13 @@ export default function InvestmentChangelogTab({ t, isDark, LEDGER = [], USERS =
 
   // 2. Helper to find user name
   const getUser = (uid) => {
-    if (!uid) return { user_name: "System", role: "System" };
+    if (!uid) return { first_name: "System", last_name: "", role: "System" };
     const u = USERS.find(u => u.auth_uid === uid || u.id === uid || u.user_id === uid);
     if (u) return u;
     if (currentUser?.uid === uid && currentUser?.email) {
-      return { user_name: currentUser.displayName || currentUser.email, role: "Team member" };
+      return { first_name: currentUser.displayName || currentUser.email, last_name: "", role: "Team member" };
     }
-    return { user_name: uid, role: "Team member" };
+    return { first_name: uid, last_name: "", role: "Team member" };
   };
 
   // 3. Helper for relative time (simplified)
@@ -61,7 +61,7 @@ export default function InvestmentChangelogTab({ t, isDark, LEDGER = [], USERS =
     <div style={{ display: "flex", flexDirection: "column", gap: 32, padding: "10px 12px 40px 24px" }}>
       {filteredLogs.map((log, i) => {
         const user = getUser(log.user_id);
-        const name = user.user_name || user.name || "System";
+        const name = [user.first_name, user.last_name].filter(Boolean).join(" ") || "System";
         const role = user.role || (log.user_id === "system" ? "System" : "Team member");
         const date = log.created_at?.toDate ? log.created_at.toDate() : new Date(log.created_at);
         const formattedDate = date.toLocaleString('en-US', { 

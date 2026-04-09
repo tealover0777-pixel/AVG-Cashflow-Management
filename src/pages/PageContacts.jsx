@@ -189,11 +189,16 @@ export default function PageContacts({ t, isDark, CONTACTS = [], INVESTMENTS = [
     setInvitingId(party.id);
     try {
       const inviteUserFn = httpsCallable(functions, "inviteUser");
+      // Split name into first/last if possible
+      const nameParts = (party.name || "").trim().split(/\s+/);
+      const firstName = nameParts[0] || "";
+      const lastName = nameParts.slice(1).join(" ") || "";
       const result = await inviteUserFn({
         email: party.email,
         role: "R10001",
         tenantId: tenantId || "",
-        user_name: party.name || "",
+        first_name: firstName,
+        last_name: lastName,
         phone: party.phone || "",
         partyId: party.id || "",
         notes: `Invited from Contacts page — ${party.id}`,

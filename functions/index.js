@@ -27,7 +27,7 @@ exports.inviteUser = functions.https.onCall(async (data, context) => {
     throw new functions.https.HttpsError('unauthenticated', 'The function must be called while authenticated.');
   }
 
-  const { email, role, tenantId, user_name, phone, notes, user_id: providedUserId, partyId, first_name, last_name } = data;
+  const { email, role, tenantId, phone, notes, user_id: providedUserId, partyId, first_name, last_name } = data;
   const db = admin.firestore();
 
   try {
@@ -41,7 +41,7 @@ exports.inviteUser = functions.https.onCall(async (data, context) => {
       if (e.code === 'auth/user-not-found') {
         userRecord = await admin.auth().createUser({
           email: email,
-          displayName: user_name || '',
+          displayName: [first_name, last_name].filter(Boolean).join(' ') || '',
           emailVerified: false,
           disabled: false
         });
@@ -111,7 +111,6 @@ exports.inviteUser = functions.https.onCall(async (data, context) => {
     if (tenantId) {
       await db.doc(`tenants/${tenantId}/users/${user_id}`).set({
         user_id,
-        user_name: user_name || userRecord.displayName || email.split('@')[0],
         first_name: first_name || '',
         last_name: last_name || '',
         email,
@@ -263,7 +262,6 @@ exports.syncAuthUsers = functions.https.onRequest(async (req, res) => {
         const tenantUserRef = db.doc(`tenants/${tenantId}/users/${user.uid}`);
         batch.set(tenantUserRef, {
           user_id: user.uid,
-          user_name: user.displayName || user.email.split('@')[0],
           email: user.email,
           phone: user.phoneNumber || '',
         }, { merge: true });
@@ -355,7 +353,7 @@ exports.updateUserTenant = functions.https.onCall(async (data, context) => {
     throw new functions.https.HttpsError('unauthenticated', 'Must be authenticated.');
   }
 
-  const { uid, email, newTenantId, oldTenantId, role, user_id, user_name, first_name, last_name, phone, notes } = data;
+  const { uid, email, newTenantId, oldTenantId, role, user_id, first_name, last_name, phone, notes } = data;
   if (!uid || !email || !newTenantId) {
     throw new functions.https.HttpsError('invalid-argument', 'Missing required fields: uid, email, newTenantId.');
   }
@@ -386,7 +384,7 @@ exports.updateUserTenant = functions.https.onCall(async (data, context) => {
     // 4. Move Tenant Profile
     if (user_id) {
       // 4a. Read existing profile if not fully provided (though UI should provide it)
-      let profileData = { user_id, user_name, first_name: first_name || '', last_name: last_name || '', email, role_id: role, phone, notes, auth_uid: uid };
+      let profileData = { user_id, first_name: first_name || '', last_name: last_name || '', email, role_id: role, phone, notes, auth_uid: uid };
 
       if (oldTenantId && oldTenantId !== newTenantId) {
         // Optionally read from old location if data is missing

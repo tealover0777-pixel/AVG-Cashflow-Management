@@ -91,7 +91,7 @@ function AppContent() {
   // ─────────────────────────────────────────────────────────────────────────────
   if (!user && typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
     user = { email: 'kyuahn@yahoo.com', uid: '7DgzeXHgLmgP04H4XQJSC3X12It1' };
-    profile = { user_name: 'Kyu Ahn (Mock)', role: 'L2 Admin', isGlobal: true, tenantId: 'T10001', status: 'Active' };
+    profile = { first_name: 'Kyu', last_name: 'Ahn (Mock)', role: 'L2 Admin', isGlobal: true, tenantId: 'T10001', status: 'Active' };
     isSuperAdmin = true;
     isTenantAdmin = false;
     isMember = false;
@@ -593,12 +593,15 @@ function AppContent() {
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <Tooltip text="View your profile settings" t={t}>
               <div onClick={() => setActivePage("Profile")} style={{ cursor: "pointer", width: isDark ? 32 : 34, height: isDark ? 32 : 34, borderRadius: isDark ? 8 : 9, background: isDark ? "linear-gradient(135deg,#60A5FA,#3B82F6)" : "linear-gradient(135deg,#F472B6,#EC4899)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700, color: "#fff" }}>
-                {(profile?.name || user.email || "A").charAt(0).toUpperCase()}
+                {(profile?.first_name || profile?.last_name || user.email || "A").charAt(0).toUpperCase()}
               </div>
             </Tooltip>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: isDark ? 11 : 12, fontWeight: isDark ? 500 : 700, color: isDark ? "rgba(255,255,255,0.9)" : "#292524", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                {(profile?.user_name || profile?.name) ? `${profile?.user_name || profile?.name} (${user.email})` : user.email}
+                {(() => {
+                  const fullName = [profile?.first_name, profile?.last_name].filter(Boolean).join(" ");
+                  return fullName ? `${fullName} (${user.email})` : user.email;
+                })()}
               </div>
               <div style={{ fontSize: 10, color: t.textMuted, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                 {profile?.role}{profile?.roleName && profile?.roleName !== profile?.role ? ` - ${profile?.roleName}` : ""}
@@ -649,7 +652,9 @@ function AppContent() {
           </div>
           <div style={{ display: "flex", gap: 16, fontSize: 12.5, alignItems: "center" }}>
             <span style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer" }} onClick={() => setActivePage("Profile")}>
-              <span style={{ color: t.text, fontWeight: 500 }}>{profile?.user_name || profile?.name || user.email}</span>
+              <span style={{ color: t.text, fontWeight: 500 }}>
+                {[profile?.first_name, profile?.last_name].filter(Boolean).join(" ") || user.email}
+              </span>
               <span style={{ color: t.textSecondary }}>Profile</span>
             </span>
             <Tooltip text="Ask AI Assistant" t={t}>
