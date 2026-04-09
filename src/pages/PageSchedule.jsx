@@ -1008,6 +1008,7 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
     feesData: FEES_DATA,
     INVESTMENTS,
     CONTACTS,
+    DEALS,
     callbacks: {
       hasLink,
       onScheduleClick: setDrillSchedule,
@@ -1041,7 +1042,7 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
       onUndo: handleUndo
     },
     USERS
-  }), [isDark, t, permissions, FEES_DATA, SCHEDULES, INVESTMENTS, CONTACTS, USERS]);
+  }), [isDark, t, permissions, FEES_DATA, SCHEDULES, INVESTMENTS, CONTACTS, DEALS, USERS]);
 
   const columnDefs = useMemo(() => {
     return getScheduleColumns(permissions, isDark, t, context);

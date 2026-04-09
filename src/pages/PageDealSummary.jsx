@@ -125,6 +125,11 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
     SCHEDULES.filter(s => s.deal_id === dealId)
   , [dealId, SCHEDULES]);
 
+  // Filter to only active versions for table view
+  const activeDealSchedules = useMemo(() =>
+    dealSchedules.filter(s => s.active_version === true)
+  , [dealSchedules]);
+
   const totalFundBalance = useMemo(() => {
     let sum = 0;
     dealSchedules.forEach(sch => {
@@ -1544,7 +1549,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
           {distributionView === "table" ? (
             <div style={{ height: '1000px', width: "100%", minHeight: '1000px' }}>
               <TanStackTable
-                data={dealSchedules}
+                data={activeDealSchedules}
                 columns={scheduleColumnDefs}
                 pageSize={100}
                 initialSorting={[{ id: 'dueDate', desc: false }]}

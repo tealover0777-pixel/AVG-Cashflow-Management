@@ -4,7 +4,7 @@ import { Bdg } from '../components';
 import { fmtCurr } from '../utils';
 
 export const getScheduleColumns = (permissions, isDark, t, context) => {
-  const { callbacks } = context;
+  const { callbacks, CONTACTS = [], DEALS = [] } = context;
 
   const cols = [
     {
@@ -137,25 +137,38 @@ export const getScheduleColumns = (permissions, isDark, t, context) => {
     {
       header: "Contact ID",
       accessorKey: "party_id",
-      size: 90,
-      cell: ({ getValue, row }) => (
-        <span 
-          onClick={() => callbacks.onContactClick?.(row.original.party_id)}
-          style={{ fontFamily: t.mono, fontSize: '11px', color: isDark ? "#60A5FA" : "#4F46E5", fontWeight: 600, cursor: 'pointer' }}
-        >
-          {getValue()}
-        </span>
-      )
+      size: 200,
+      cell: ({ getValue, row }) => {
+        const partyId = getValue();
+        const contact = CONTACTS.find(c => c.id === partyId);
+        const contactName = contact?.name || "";
+        return (
+          <span
+            onClick={() => callbacks.onContactClick?.(row.original.party_id)}
+            style={{ fontSize: '11px', color: isDark ? "#60A5FA" : "#4F46E5", fontWeight: 600, cursor: 'pointer' }}
+          >
+            <span style={{ fontFamily: t.mono }}>{partyId}</span>
+            {contactName && <span style={{ fontFamily: t.font, marginLeft: 6 }}>- {contactName}</span>}
+          </span>
+        );
+      }
     },
     {
       header: "Deal ID",
       accessorKey: "deal_id",
-      size: 90,
-      cell: ({ getValue }) => (
-        <span style={{ fontFamily: t.mono, fontSize: '11px', fontWeight: 600 }}>
-          {getValue() || <span style={{ color: t.textMuted }}>—</span>}
-        </span>
-      )
+      size: 200,
+      cell: ({ getValue }) => {
+        const dealId = getValue();
+        if (!dealId) return <span style={{ color: t.textMuted }}>—</span>;
+        const deal = DEALS.find(d => d.id === dealId);
+        const dealName = deal?.name || "";
+        return (
+          <span style={{ fontSize: '11px', fontWeight: 600 }}>
+            <span style={{ fontFamily: t.mono }}>{dealId}</span>
+            {dealName && <span style={{ fontFamily: t.font, marginLeft: 6 }}>- {dealName}</span>}
+          </span>
+        );
+      }
     },
     {
       header: "Start Date",
