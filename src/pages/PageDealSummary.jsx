@@ -165,9 +165,12 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
     };
 
     dealSchedules.forEach(schedule => {
+      // Only include active version (latest version) of each schedule in pivot view
+      if (schedule.active_version !== true) return;
+
       const investor = CONTACTS.find(c => c.id === schedule.party_id);
       const investorName = investor ? investor.name : schedule.party_id || "Unknown";
-      
+
       const inv = INVESTMENTS.find(iv => iv.id === (schedule.investment_id || schedule.investment));
       const invStart = inv?.start_date || "";
       const invEnd = inv?.maturity_date || "";
