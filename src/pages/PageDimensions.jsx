@@ -103,7 +103,7 @@ export default function PageDimensions({ t, isDark, DIMENSIONS = [], rawDimensio
       )}
     </div>
     <div style={{ display: "grid", gridTemplateColumns: "repeat(2,1fr)", gap: 20 }}>
-      {DIMENSIONS.map(g => {
+      {[...DIMENSIONS].sort((a, b) => a.name.localeCompare(b.name)).map(g => {
         const accent = g.accent(isDark), bg = g.bg(isDark), border = g.border(isDark), isEd = editing === g.name; return (
           <div key={g.name} className="dim-card" style={{ background: t.surface, borderRadius: 16, border: `1px solid ${t.surfaceBorder}`, overflow: "hidden", backdropFilter: isDark ? "blur(20px)" : "none" }}>
             <div style={{ padding: "16px 20px", borderBottom: `1px solid ${t.surfaceBorder}`, display: "flex", justifyContent: "space-between", alignItems: "center", background: bg }}>
