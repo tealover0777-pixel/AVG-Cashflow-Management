@@ -159,12 +159,14 @@ export default function PageRoles({ t, isDark, collectionPath = "", DIMENSIONS =
                 <div style={{ fontFamily: t.mono, fontSize: 13, color: t.idText, background: isDark ? "rgba(255,255,255,0.04)" : "#F5F4F1", border: `1px solid ${t.surfaceBorder}`, borderRadius: 9, padding: "10px 13px", letterSpacing: "0.5px" }}>{modal.data.role_id}</div>
             </FF>
             <FF label="Role Name" t={t}><FIn value={modal.data.role_name || modal.data.name} onChange={e => setF("role_name", e.target.value)} placeholder="e.g. Project Manager" t={t} /></FF>
-            <FF label="Global Role" t={t}>
-                <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer", fontSize: 13.5, color: t.text }}>
-                    <input type="checkbox" checked={modal.data.IsGlobal === true} onChange={e => setF("IsGlobal", e.target.checked)} style={{ width: 18, height: 18, accentColor: "#22C55E" }} />
-                    <span>This role has access to <strong>all tenants</strong> (no tenant assignment needed)</span>
-                </label>
-            </FF>
+            {(isSuperAdmin || isGlobalRole) && (
+                <FF label="Global Role" t={t}>
+                    <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer", fontSize: 13.5, color: t.text }}>
+                        <input type="checkbox" checked={modal.data.IsGlobal === true} onChange={e => setF("IsGlobal", e.target.checked)} style={{ width: 18, height: 18, accentColor: "#22C55E" }} />
+                        <span>This role has access to <strong>all tenants</strong> (no tenant assignment needed)</span>
+                    </label>
+                </FF>
+            )}
             <FF label="Permissions" t={t}>
                 <FMultiSel
                     value={(modal.data.selectedPerms || []).filter(p => !globalPermDim.includes(p))}
