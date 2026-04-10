@@ -14,7 +14,7 @@ export default function PageContacts({ t, isDark, CONTACTS = [], INVESTMENTS = [
   const canCreate = hasPermission("CONTACT_CREATE");
   const canUpdate = hasPermission("CONTACT_UPDATE");
   const canDelete = hasPermission("CONTACT_DELETE");
-  const canInvite = isSuperAdmin || hasPermission("USER_INVITE") || hasPermission("USER_CREATE");
+  const canInvite = isSuperAdmin || hasPermission("CONTACT_INVITE");
   const roleOpts = (DIMENSIONS.find(d => d.name === "ContactRole") || {}).items || ["Investor", "Borrower"];
   const partyTypeOpts = (DIMENSIONS.find(d => d.name === "ContactType") || {}).items || ["Individual", "Company", "Trust", "Partnership"];
   const investorTypeOpts = (DIMENSIONS.find(d => d.name === "InvestorType") || {}).items || ["Fixed", "Equity", "Both"];
