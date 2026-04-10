@@ -63,7 +63,7 @@ export const getContactColumns = (permissions, isDark, t, context) => {
       )
     },
     {
-      header: "Name",
+      header: "Contact Name",
       accessorKey: "name",
       size: 200,
       cell: ({ row, getValue }) => {
