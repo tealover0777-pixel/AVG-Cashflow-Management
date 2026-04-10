@@ -32,6 +32,7 @@ export default function PageProfile({ t, isDark, setIsDark, ROLES = [], collecti
         roleId === "R10010" ||
         roleId === "R10007" ||
         roleId === "R10006" ||
+        roleId === "R10004" ||
         roleName.toLowerCase().includes("super user") ||
         roleName.toLowerCase().includes("owner") ||
         roleName.toLowerCase().includes("tenant owner");
