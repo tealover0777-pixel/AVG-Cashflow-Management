@@ -53,6 +53,16 @@ export const getContactColumns = (permissions, isDark, t, context) => {
       }
     },
     {
+      header: "Contact ID",
+      accessorKey: "id",
+      size: 100,
+      cell: ({ getValue }) => (
+        <span style={{ fontFamily: t.mono, fontSize: '11px', fontWeight: 600, color: t.idText }}>
+          {getValue() || "—"}
+        </span>
+      )
+    },
+    {
       header: "Name",
       accessorKey: "name",
       size: 200,
