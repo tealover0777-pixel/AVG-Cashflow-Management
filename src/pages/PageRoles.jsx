@@ -23,6 +23,7 @@ export default function PageRoles({ t, isDark, collectionPath = "", DIMENSIONS =
 
     const permDimObj = DIMENSIONS.find(d => d.name === "Permissions") || { items: [], doc_id: "Permissions" };
     const permDim = permDimObj.items || [];
+    const globalPermDim = (DIMENSIONS.find(d => d.name === "Permissions_Global") || {}).items || [];
 
     const nextRoleId = (() => {
         if (rawRoles.length === 0) return "R10001";
@@ -166,12 +167,12 @@ export default function PageRoles({ t, isDark, collectionPath = "", DIMENSIONS =
             </FF>
             <FF label="Permissions" t={t}>
                 <FMultiSel
-                    value={(modal.data.selectedPerms || []).filter(p => !p.startsWith("PLATFORM_"))}
+                    value={(modal.data.selectedPerms || []).filter(p => !globalPermDim.includes(p))}
                     onChange={v => {
-                        const platformPerms = (modal.data.selectedPerms || []).filter(p => p.startsWith("PLATFORM_"));
-                        setF("selectedPerms", [...v, ...platformPerms]);
+                        const globalPerms = (modal.data.selectedPerms || []).filter(p => globalPermDim.includes(p));
+                        setF("selectedPerms", [...v, ...globalPerms]);
                     }}
-                    options={[...permDim].filter(p => !p.startsWith("PLATFORM_")).sort((a, b) => a.localeCompare(b))}
+                    options={[...permDim].filter(p => !globalPermDim.includes(p)).sort((a, b) => a.localeCompare(b))}
                     t={t}
                     style={{ maxHeight: 400 }}
                 />
@@ -179,12 +180,12 @@ export default function PageRoles({ t, isDark, collectionPath = "", DIMENSIONS =
             {(isSuperAdmin || isGlobalRole) && (
                 <FF label="Platform Admin Permissions" t={t}>
                     <FMultiSel
-                        value={(modal.data.selectedPerms || []).filter(p => p.startsWith("PLATFORM_"))}
+                        value={(modal.data.selectedPerms || []).filter(p => globalPermDim.includes(p))}
                         onChange={v => {
-                            const generalPerms = (modal.data.selectedPerms || []).filter(p => !p.startsWith("PLATFORM_"));
+                            const generalPerms = (modal.data.selectedPerms || []).filter(p => !globalPermDim.includes(p));
                             setF("selectedPerms", [...generalPerms, ...v]);
                         }}
-                        options={[...permDim].filter(p => p.startsWith("PLATFORM_")).sort((a, b) => a.localeCompare(b))}
+                        options={[...globalPermDim].sort((a, b) => a.localeCompare(b))}
                         t={t}
                         style={{ maxHeight: 200 }}
                     />
