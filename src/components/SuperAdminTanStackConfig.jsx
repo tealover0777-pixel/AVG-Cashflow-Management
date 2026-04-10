@@ -57,7 +57,10 @@ export const getSuperAdminColumns = (permissions, isDark, t, onEdit, onDel, getR
       accessorKey: 'user_id',
       header: 'USER ID',
       size: 100,
-      cell: ({ getValue }) => <span style={{ fontSize: 13, color: t.textSecondary, fontFamily: t.mono }}>{getValue() || "—"}</span>,
+      cell: ({ getValue, row }) => {
+        const val = getValue() || row.original.id || "—";
+        return <span style={{ fontSize: 13, color: t.textSecondary, fontFamily: t.mono }}>{val}</span>;
+      },
     },
     {
       accessorKey: 'email',

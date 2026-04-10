@@ -249,7 +249,7 @@ export default function PageProfile({ t, isDark, setIsDark, ROLES = [], collecti
                 {canEditTenant && (
                     <div style={{ background: t.surface, borderRadius: 16, border: `1px solid ${t.surfaceBorder}`, padding: 32, backdropFilter: isDark ? "blur(20px)" : "none", boxShadow: t.tableShadow }}>
                         <div style={{ marginBottom: 24 }}>
-                            <h3 style={{ fontFamily: t.titleFont, fontSize: 17, fontWeight: 700, color: isDark ? "#fff" : "#1C1917", marginBottom: 6 }}>Tenant Branding</h3>
+                            <h3 style={{ fontFamily: t.titleFont, fontSize: 17, fontWeight: 700, color: isDark ? "#fff" : "#1C1917", marginBottom: 6 }}>Organization Branding</h3>
                             <p style={{ fontSize: 12.5, color: t.textMuted, lineHeight: 1.5 }}>As an administrator, you can manage the corporate identity for your organization.</p>
                         </div>
 
