@@ -35,6 +35,13 @@ export default function PageUserProfiles({ t, isDark, USERS = [], GLOBAL_USERS =
     const [saving, setSaving] = useState(false);
     const [fixing, setFixing] = useState(false);
     const [inviteResult, setInviteResult] = useState(null);
+    const [toast, setToast] = useState(null); // { msg, type: 'success'|'error'|'info' }
+    const [confirmFix, setConfirmFix] = useState(false);
+
+    const showToast = (msg, type = "info") => {
+        setToast({ msg, type });
+        setTimeout(() => setToast(null), 4000);
+    };
 
     const [sel, setSel] = useState(new Set());
     const [pageSize, setPageSize] = useState(20);
@@ -108,7 +115,7 @@ export default function PageUserProfiles({ t, isDark, USERS = [], GLOBAL_USERS =
         if (!d.email || !d.role_id) return;
         const emailExists = CONTACTS.some(p => p.email && p.email.toLowerCase() === d.email.toLowerCase());
         if (!emailExists) {
-            alert("This email does not belong to any existing Contact. Please create a Contact record first on the Contacts page.");
+            showToast("This email does not belong to any existing Contact. Please create a Contact record first on the Contacts page.", "error");
             return;
         }
         setProcessing(true);
@@ -130,7 +137,7 @@ export default function PageUserProfiles({ t, isDark, USERS = [], GLOBAL_USERS =
             setInviteResult({ email: d.email, user_id: result.data.user_id, emailSent: result.data.emailSent, link: result.data.link });
         } catch (err) {
             console.error("Invite error:", err);
-            alert("Invite failed: " + (err.message || "Unknown error"));
+            showToast("Invite failed: " + (err.message || "Unknown error"), "error");
         } finally {
             setInviting(false);
             setProcessing(false);
@@ -148,22 +155,26 @@ export default function PageUserProfiles({ t, isDark, USERS = [], GLOBAL_USERS =
             setInviteResult({ email: d.email, user_id: d.user_id, emailSent: result.data.emailSent, link: result.data.link });
         } catch (err) {
             console.error("Resend error:", err);
-            alert("Re-send failed: " + (err.message || "Unknown error"));
+            showToast("Re-send failed: " + (err.message || "Unknown error"), "error");
         } finally {
             setInviting(false);
         }
     };
 
     const handleFixStatuses = async () => {
-        if (!confirm("This will set all 'Pending' users to 'Active' (except L2 Admin). Proceed?")) return;
+        setConfirmFix(true);
+    };
+
+    const executeFixStatuses = async () => {
+        setConfirmFix(false);
         setFixing(true);
         try {
             const fixFn = httpsCallable(functions, "fixAllStatuses");
             const res = await fixFn();
-            alert(res.data.message || "Updated statuses successfully.");
+            showToast(res.data.message || "Updated statuses successfully.", "success");
         } catch (err) {
             console.error("Fix statuses error:", err);
-            alert("Failed to fix statuses: " + (err.message || "Unknown error"));
+            showToast("Failed to fix statuses: " + (err.message || "Unknown error"), "error");
         } finally {
             setFixing(false);
         }
@@ -230,9 +241,10 @@ export default function PageUserProfiles({ t, isDark, USERS = [], GLOBAL_USERS =
                 }
             }
             close();
+            showToast("User saved successfully.", "success");
         } catch (err) {
             console.error("Save user error:", err);
-            alert("Save failed: " + (err.message || "Unknown error"));
+            showToast("Save failed: " + (err.message || "Unknown error"), "error");
         } finally {
             setSaving(false);
         }
@@ -244,6 +256,30 @@ export default function PageUserProfiles({ t, isDark, USERS = [], GLOBAL_USERS =
     }, [permissions, isDark, t, ROLES]);
 
     return (<>
+        {/* Toast Notification */}
+        {toast && (
+            <div style={{
+                position: "fixed", bottom: 28, right: 28, zIndex: 10000,
+                background: toast.type === "success" ? (isDark ? "#052e16" : "#f0fdf4") : toast.type === "error" ? (isDark ? "#2d0a0a" : "#fef2f2") : (isDark ? "#1e1b4b" : "#eff6ff"),
+                border: `1px solid ${toast.type === "success" ? "#22c55e" : toast.type === "error" ? "#ef4444" : "#60a5fa"}`,
+                color: toast.type === "success" ? "#22c55e" : toast.type === "error" ? "#ef4444" : "#60a5fa",
+                borderRadius: 12, padding: "14px 20px", fontSize: 13.5, fontWeight: 500,
+                boxShadow: "0 8px 32px rgba(0,0,0,0.18)", maxWidth: 420, lineHeight: 1.5,
+                display: "flex", alignItems: "center", gap: 10
+            }}>
+                <span>{toast.type === "success" ? "✅" : toast.type === "error" ? "❌" : "ℹ️"}</span>
+                <span>{toast.msg}</span>
+                <span onClick={() => setToast(null)} style={{ marginLeft: "auto", cursor: "pointer", opacity: 0.6, fontSize: 16 }}>✕</span>
+            </div>
+        )}
+
+        {/* Fix Statuses Confirm Modal */}
+        <Modal open={confirmFix} onClose={() => setConfirmFix(false)} title="Confirm Status Fix" onSave={executeFixStatuses} saveLabel={fixing ? "Updating..." : "Proceed"} t={t} isDark={isDark} loading={fixing}>
+            <p style={{ fontSize: 13.5, color: t.textMuted, lineHeight: 1.7 }}>
+                This will set all <strong>Pending</strong> users to <strong>Active</strong> (except L2 Admin). Are you sure you want to proceed?
+            </p>
+        </Modal>
+
         {processing && (
             <div style={{ position: "fixed", inset: 0, zIndex: 9999, background: "rgba(0,0,0,0.6)", backdropFilter: "blur(4px)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", color: "#fff" }}>
                 <div style={{ width: 44, height: 44, border: "3px solid rgba(255,255,255,0.2)", borderTopColor: "#fff", borderRadius: "50%", animation: "spin 0.8s linear infinite", marginBottom: 16 }} />

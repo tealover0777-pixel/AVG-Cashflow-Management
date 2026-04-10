@@ -90,10 +90,10 @@ service cloud.firestore {
       allow read: if request.auth != null;
       allow create: if request.auth != null && request.auth.uid == docId
          && request.resource.data.keys().hasAll(['email'])
-         && request.resource.data.keys().hasOnly(['email', 'user_name', 'phone', 'photo_url', 'role', 'tenantId', 'status', 'last_login', 'last_updated', 'updated_at', 'isGlobal']);
+         && request.resource.data.keys().hasOnly(['email', 'first_name', 'last_name', 'user_name', 'phone', 'photo_url', 'role', 'tenantId', 'status', 'last_login', 'last_updated', 'updated_at', 'isGlobal']);
       allow update: if request.auth != null && request.auth.uid == docId
-         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['user_name', 'phone', 'photo_url', 'status', 'last_login', 'last_updated', 'updated_at']);
-      allow write: if isSecretAdmin() || isGlobalRole() || isCompanySuperAdmin();
+         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['first_name', 'last_name', 'user_name', 'phone', 'photo_url', 'status', 'last_login', 'last_updated', 'updated_at']);
+      allow write: if isSecretAdmin() || isGlobalRole() || isCompanySuperAdmin() || isTenantAdmin(request.auth.token.tenantId);
     }
 
     // Global role definitions (role_types)
@@ -133,7 +133,7 @@ service cloud.firestore {
         allow read: if isTenantMember(tenantId) && (request.auth.uid == userId || resource.data.auth_uid == request.auth.uid || hasPermission('USER_VIEW') || hasPermission('USER_PROFILE_VIEW'));
         allow create: if isTenantMember(tenantId) && hasPermission('USER_CREATE');
         allow update: if isTenantMember(tenantId) && (resource.data.auth_uid == request.auth.uid || hasPermission('USER_UPDATE') || hasPermission('USER_PROFILE_UPDATE'))
-           && (resource.data.auth_uid != request.auth.uid ? true : request.resource.data.diff(resource.data).affectedKeys().hasOnly(['user_name', 'phone', 'photo_url', 'status', 'last_login', 'last_updated', 'updated_at']));
+           && (resource.data.auth_uid != request.auth.uid ? true : request.resource.data.diff(resource.data).affectedKeys().hasOnly(['first_name', 'last_name', 'user_name', 'phone', 'photo_url', 'status', 'last_login', 'last_updated', 'updated_at']));
         allow delete: if isTenantMember(tenantId) && (hasPermission('USER_DELETE') || hasPermission('USER_PROFILE_DELETE'));
     }
 
