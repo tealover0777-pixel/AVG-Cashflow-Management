@@ -164,7 +164,32 @@ export default function PageRoles({ t, isDark, collectionPath = "", DIMENSIONS =
                     <span>This role has access to <strong>all tenants</strong> (no tenant assignment needed)</span>
                 </label>
             </FF>
-            <FF label="Permissions" t={t}><FMultiSel value={modal.data.selectedPerms || []} onChange={v => setF("selectedPerms", v)} options={[...permDim].sort((a, b) => a.localeCompare(b))} t={t} style={{ maxHeight: 600 }} /></FF>
+            <FF label="Permissions" t={t}>
+                <FMultiSel
+                    value={(modal.data.selectedPerms || []).filter(p => !p.startsWith("PLATFORM_"))}
+                    onChange={v => {
+                        const platformPerms = (modal.data.selectedPerms || []).filter(p => p.startsWith("PLATFORM_"));
+                        setF("selectedPerms", [...v, ...platformPerms]);
+                    }}
+                    options={[...permDim].filter(p => !p.startsWith("PLATFORM_")).sort((a, b) => a.localeCompare(b))}
+                    t={t}
+                    style={{ maxHeight: 400 }}
+                />
+            </FF>
+            {(isSuperAdmin || isGlobalRole) && (
+                <FF label="Platform Admin Permissions" t={t}>
+                    <FMultiSel
+                        value={(modal.data.selectedPerms || []).filter(p => p.startsWith("PLATFORM_"))}
+                        onChange={v => {
+                            const generalPerms = (modal.data.selectedPerms || []).filter(p => !p.startsWith("PLATFORM_"));
+                            setF("selectedPerms", [...generalPerms, ...v]);
+                        }}
+                        options={[...permDim].filter(p => p.startsWith("PLATFORM_")).sort((a, b) => a.localeCompare(b))}
+                        t={t}
+                        style={{ maxHeight: 200 }}
+                    />
+                </FF>
+            )}
         </Modal>
 
         <DelModal open={!!delT} onClose={() => setDelT(null)} onDel={handleDeleteRole} title="Delete Role?" t={t}>
