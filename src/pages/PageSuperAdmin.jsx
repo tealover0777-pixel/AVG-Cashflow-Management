@@ -141,8 +141,12 @@ export default function PageSuperAdmin({ t, isDark, ROLES = [], TENANTS = [] }) 
     const handleDeleteUser = async () => {
         if (!delT) return;
         try {
-            const deleteGlobalFn = httpsCallable(functions, "deleteGlobalUser");
-            await deleteGlobalFn({ uid: delT.id });
+            const deleteUserFn = httpsCallable(functions, "deleteUser");
+            await deleteUserFn({
+                email: delT.email,
+                docId: delT.id,
+                tenantId: delT.tenantId || ""
+            });
             setDelT(null);
         } catch (err) {
             console.error("Delete global user error:", err);
