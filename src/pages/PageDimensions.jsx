@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect, useMemo } from "react";
 import { db } from "../firebase";
 import { doc, updateDoc, collection, addDoc, deleteDoc } from "firebase/firestore";
 import { useAuth } from "../AuthContext";
-import { Modal, FIn, FF } from "../components";
+import { Modal, FIn, FF, DelModal } from "../components";
 import { Trash2, Pencil, Check } from "lucide-react";
 
 export default function PageDimensions({ t, isDark, DIMENSIONS = [], rawDimensions = [], collectionPath = "" }) {
@@ -15,6 +15,9 @@ export default function PageDimensions({ t, isDark, DIMENSIONS = [], rawDimensio
   const [newName, setNewName] = useState("");
   const [newValuesStr, setNewValuesStr] = useState("");
   const [loading, setLoading] = useState(false);
+  const [toast, setToast] = useState(null);
+  const showToast = (msg, type = "info") => { setToast({ msg, type }); setTimeout(() => setToast(null), 4000); };
+  const [confirmDelete, setConfirmDelete] = useState(null);
 
   const getRawDoc = (name) => rawDimensions.find(d => (d.category || d.name || d.id) === name);
   const getItemsField = (rawDoc) => {
@@ -36,7 +39,7 @@ export default function PageDimensions({ t, isDark, DIMENSIONS = [], rawDimensio
       setNewVals(v => ({ ...v, [groupName]: "" }));
     } catch (err) {
       console.error("Add dimension value error:", err);
-      alert("Failed to add value: " + (err.message || err));
+      showToast("Failed to add value: " + (err.message || err), "error");
     }
   };
 
@@ -49,12 +52,13 @@ export default function PageDimensions({ t, isDark, DIMENSIONS = [], rawDimensio
       await updateDoc(doc(db, collectionPath, rawDoc.doc_id), { [field]: current.filter(v => v !== item) });
     } catch (err) {
       console.error("Remove dimension value error:", err);
-      alert("Failed to remove value: " + (err.message || err));
+      showToast("Failed to remove value: " + (err.message || err), "error");
     }
   };
 
-  const handleDelete = async (groupName) => {
-    if (!window.confirm(`Are you sure you want to delete the dimension group "${groupName}"? This cannot be undone.`)) return;
+  const handleDelete = (groupName) => setConfirmDelete(groupName);
+
+  const doDelete = async (groupName) => {
     const rawDoc = getRawDoc(groupName);
     if (!rawDoc) return;
     try {
@@ -62,7 +66,7 @@ export default function PageDimensions({ t, isDark, DIMENSIONS = [], rawDimensio
       if (editing === groupName) setEditing(null);
     } catch (err) {
       console.error("Delete dimension error:", err);
-      alert("Failed to delete dimension: " + (err.message || err));
+      showToast("Failed to delete dimension: " + (err.message || err), "error");
     }
   };
 
@@ -81,7 +85,7 @@ export default function PageDimensions({ t, isDark, DIMENSIONS = [], rawDimensio
       setNewValuesStr("");
     } catch (err) {
       console.error("Create dimension error:", err);
-      alert("Failed to create dimension: " + (err.message || err));
+      showToast("Failed to create dimension: " + (err.message || err), "error");
     } finally {
       setLoading(false);
     }
@@ -162,5 +166,19 @@ export default function PageDimensions({ t, isDark, DIMENSIONS = [], rawDimensio
         <div style={{ fontSize: 11, color: t.textMuted, marginTop: 4 }}>Separate items with commas.</div>
       </FF>
     </Modal>
+
+    <DelModal open={!!confirmDelete} onClose={() => setConfirmDelete(null)} onDel={async () => { await doDelete(confirmDelete); setConfirmDelete(null); }} title="Delete Dimension?" t={t}>
+      <p style={{ fontSize: 13.5, lineHeight: 1.6, color: t.textMuted }}>
+        Are you sure you want to delete <strong>{confirmDelete}</strong>? This cannot be undone.
+      </p>
+    </DelModal>
+
+    {toast && (
+      <div style={{ position: "fixed", bottom: 28, right: 28, zIndex: 9999, background: toast.type === "success" ? (isDark ? "#052e16" : "#f0fdf4") : (isDark ? "#2d0a0a" : "#fef2f2"), border: `1px solid ${toast.type === "success" ? "#22c55e" : "#ef4444"}`, color: toast.type === "success" ? "#22c55e" : "#ef4444", borderRadius: 12, padding: "14px 20px", fontSize: 13.5, fontWeight: 600, boxShadow: "0 8px 32px rgba(0,0,0,0.18)", display: "flex", alignItems: "center", gap: 10, maxWidth: 380 }}>
+        <span>{toast.type === "success" ? "✅" : "❌"}</span>
+        <span>{toast.msg}</span>
+        <button onClick={() => setToast(null)} style={{ background: "none", border: "none", color: "inherit", cursor: "pointer", fontSize: 16, marginLeft: 8, opacity: 0.7 }}>✕</button>
+      </div>
+    )}
   </>);
 }

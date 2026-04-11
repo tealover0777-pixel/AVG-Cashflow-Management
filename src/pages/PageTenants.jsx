@@ -15,6 +15,8 @@ export default function PageTenants({ t, isDark, TENANTS = [], collectionPath = 
     const [modal, setModal] = useState({ open: false, mode: "add", data: {} });
     const [delT, setDelT] = useState(null);
     const [sel, setSel] = useState(new Set());
+    const [toast, setToast] = useState(null);
+    const showToast = (msg, type = "info") => { setToast({ msg, type }); setTimeout(() => setToast(null), 4000); };
     const gridRef = useRef(null);
     const [pageSize, setPageSize] = useState(30);
 
@@ -88,7 +90,7 @@ export default function PageTenants({ t, isDark, TENANTS = [], collectionPath = 
         
         // Basic validation
         if (file.size > 2 * 1024 * 1024) {
-            alert("File is too large! Max size is 2MB for storage.");
+            showToast("File is too large! Max size is 2MB for storage.", "error");
             return;
         }
 
@@ -99,7 +101,7 @@ export default function PageTenants({ t, isDark, TENANTS = [], collectionPath = 
             setF("logo", url);
         } catch (err) {
             console.error("Logo upload failed:", err);
-            alert("Failed to upload logo to storage.");
+            showToast("Failed to upload logo to storage.", "error");
         }
     };
 
@@ -175,5 +177,12 @@ export default function PageTenants({ t, isDark, TENANTS = [], collectionPath = 
         </Modal>
 
         <DelModal target={delT} onClose={() => setDelT(null)} onConfirm={handleDeleteTenant} label="This tenant" t={t} isDark={isDark} />
+        {toast && (
+            <div style={{ position: "fixed", bottom: 28, right: 28, zIndex: 9999, background: toast.type === "success" ? (isDark ? "#052e16" : "#f0fdf4") : (isDark ? "#2d0a0a" : "#fef2f2"), border: `1px solid ${toast.type === "success" ? "#22c55e" : "#ef4444"}`, color: toast.type === "success" ? "#22c55e" : "#ef4444", borderRadius: 12, padding: "14px 20px", fontSize: 13.5, fontWeight: 600, boxShadow: "0 8px 32px rgba(0,0,0,0.18)", display: "flex", alignItems: "center", gap: 10, maxWidth: 380 }}>
+                <span>{toast.type === "success" ? "✅" : "❌"}</span>
+                <span>{toast.msg}</span>
+                <button onClick={() => setToast(null)} style={{ background: "none", border: "none", color: "inherit", cursor: "pointer", fontSize: 16, marginLeft: 8, opacity: 0.7 }}>✕</button>
+            </div>
+        )}
     </>);
 }

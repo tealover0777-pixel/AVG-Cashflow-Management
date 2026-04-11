@@ -20,6 +20,9 @@ export default function PageRoles({ t, isDark, collectionPath = "", DIMENSIONS =
     const [newPerm, setNewPerm] = useState("");
     const [permToggles, setPermToggles] = useState({ VIEW: true, UPDATE: true, CREATE: true, DELETE: true });
     const [savingPerms, setSavingPerms] = useState(false);
+    const [toast, setToast] = useState(null);
+    const showToast = (msg, type = "info") => { setToast({ msg, type }); setTimeout(() => setToast(null), 4000); };
+    const [confirmRemovePerm, setConfirmRemovePerm] = useState(null);
 
     const permDimObj = DIMENSIONS.find(d => d.name === "Permissions") || { items: [], doc_id: "Permissions" };
     const permDim = permDimObj.items || [];
@@ -96,8 +99,9 @@ export default function PageRoles({ t, isDark, collectionPath = "", DIMENSIONS =
         finally { setSavingPerms(false); }
     };
 
-    const handleRemovePerm = async (p) => {
-        if (!confirm(`Are you sure you want to remove the permission "${p}"? This will NOT remove it from roles that already have it, but it will no longer be available for selection.`)) return;
+    const handleRemovePerm = (p) => setConfirmRemovePerm(p);
+
+    const doRemovePerm = async (p) => {
         const current = permDim.filter(x => x !== p);
         setSavingPerms(true);
         try {
@@ -235,5 +239,19 @@ export default function PageRoles({ t, isDark, collectionPath = "", DIMENSIONS =
             </div>
             {permDim.length === 0 && <div style={{ textAlign: "center", padding: 40, color: t.textMuted, fontSize: 13.5 }}>No permissions defined.</div>}
         </Modal>
+
+        <Modal open={!!confirmRemovePerm} onClose={() => setConfirmRemovePerm(null)} title="Remove Permission?" onSave={async () => { await doRemovePerm(confirmRemovePerm); setConfirmRemovePerm(null); }} saveLabel="Remove" width={440} t={t} isDark={isDark}>
+            <p style={{ fontSize: 13.5, lineHeight: 1.6, color: t.textMuted }}>
+                Are you sure you want to remove <strong style={{ fontFamily: t.mono, color: t.text }}>{confirmRemovePerm}</strong>? This will NOT remove it from roles that already have it, but it will no longer be available for selection.
+            </p>
+        </Modal>
+
+        {toast && (
+            <div style={{ position: "fixed", bottom: 28, right: 28, zIndex: 9999, background: toast.type === "success" ? (isDark ? "#052e16" : "#f0fdf4") : (isDark ? "#2d0a0a" : "#fef2f2"), border: `1px solid ${toast.type === "success" ? "#22c55e" : "#ef4444"}`, color: toast.type === "success" ? "#22c55e" : "#ef4444", borderRadius: 12, padding: "14px 20px", fontSize: 13.5, fontWeight: 600, boxShadow: "0 8px 32px rgba(0,0,0,0.18)", display: "flex", alignItems: "center", gap: 10, maxWidth: 380 }}>
+                <span>{toast.type === "success" ? "✅" : "❌"}</span>
+                <span>{toast.msg}</span>
+                <button onClick={() => setToast(null)} style={{ background: "none", border: "none", color: "inherit", cursor: "pointer", fontSize: 16, marginLeft: 8, opacity: 0.7 }}>✕</button>
+            </div>
+        )}
     </>);
 }

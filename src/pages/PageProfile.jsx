@@ -11,6 +11,11 @@ export default function PageProfile({ t, isDark, setIsDark, ROLES = [], collecti
     const tenantId = activeTenantId || authTenantId;
     const [saving, setSaving] = useState(false);
     const [showConfirm, setShowConfirm] = useState(false);
+    const [toast, setToast] = useState(null);
+    const showToast = (msg, type = "success") => {
+        setToast({ msg, type });
+        setTimeout(() => setToast(null), 4000);
+    };
     const [data, setData] = useState({
         first_name: profile?.first_name || "",
         last_name: profile?.last_name || "",
@@ -68,10 +73,10 @@ export default function PageProfile({ t, isDark, setIsDark, ROLES = [], collecti
         setResetting(true);
         try {
             await sendPasswordResetEmail(auth, user.email);
-            alert("Password reset email sent to " + user.email + ". Check your inbox.");
+            showToast("Password reset email sent to " + user.email + ". Check your inbox.", "success");
         } catch (err) {
             console.error("Password reset error:", err);
-            alert("Failed to send reset email: " + (err.message || "Unknown error"));
+            showToast("Failed to send reset email: " + (err.message || "Unknown error"), "error");
         } finally {
             setResetting(false);
         }
@@ -83,7 +88,7 @@ export default function PageProfile({ t, isDark, setIsDark, ROLES = [], collecti
 
         // Validation - now 2MB for storage
         if (file.size > 2 * 1024 * 1024) {
-            alert("File is too large! Please choose an image under 2MB for cloud storage.");
+            showToast("File is too large! Please choose an image under 2MB for cloud storage.", "error");
             return;
         }
 
@@ -104,7 +109,7 @@ export default function PageProfile({ t, isDark, setIsDark, ROLES = [], collecti
             }
         } catch (err) {
             console.error("Storage upload error:", err);
-            alert("Failed to upload image to storage.");
+            showToast("Failed to upload image to storage.", "error");
         }
     };
 
@@ -150,11 +155,11 @@ export default function PageProfile({ t, isDark, setIsDark, ROLES = [], collecti
                 });
             }
 
-            alert("Profile updated successfully.");
+            showToast("Profile updated successfully.", "success");
             setShowConfirm(false);
         } catch (err) {
             console.error("Save profile error:", err);
-            alert("Save failed: " + (err.message || "Unknown error"));
+            showToast("Save failed: " + (err.message || "Unknown error"), "error");
             setShowConfirm(false);
         } finally {
             setSaving(false);
@@ -163,6 +168,21 @@ export default function PageProfile({ t, isDark, setIsDark, ROLES = [], collecti
 
     return (
         <>
+            {toast && (
+                <div style={{
+                    position: "fixed", bottom: 28, right: 28, zIndex: 10000,
+                    background: toast.type === "success" ? (isDark ? "#052e16" : "#f0fdf4") : (isDark ? "#2d0a0a" : "#fef2f2"),
+                    border: `1px solid ${toast.type === "success" ? "#22c55e" : "#ef4444"}`,
+                    color: toast.type === "success" ? "#22c55e" : "#ef4444",
+                    borderRadius: 12, padding: "14px 20px", fontSize: 13.5, fontWeight: 500,
+                    boxShadow: "0 8px 32px rgba(0,0,0,0.18)", maxWidth: 380, lineHeight: 1.5,
+                    display: "flex", alignItems: "center", gap: 10
+                }}>
+                    <span>{toast.type === "success" ? "✅" : "❌"}</span>
+                    <span>{toast.msg}</span>
+                    <span onClick={() => setToast(null)} style={{ marginLeft: "auto", cursor: "pointer", opacity: 0.6, fontSize: 16 }}>✕</span>
+                </div>
+            )}
             <Modal
                 open={showConfirm}
                 onClose={() => setShowConfirm(false)}

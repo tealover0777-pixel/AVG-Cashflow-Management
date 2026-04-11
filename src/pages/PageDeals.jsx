@@ -24,6 +24,9 @@ export default function PageDeals({ t, isDark, DEALS = [], INVESTMENTS = [], SCH
   const canDelete = isSuperAdmin || hasPermission("DEAL_DELETE");
   const [modal, setModal] = useState({ open: false, mode: "add", step: 1, data: {} });
   const [delT, setDelT] = useState(null);
+  const [toast, setToast] = useState(null);
+  const showToast = (msg, type = "info") => { setToast({ msg, type }); setTimeout(() => setToast(null), 4000); };
+  const [confirmDelImg, setConfirmDelImg] = useState(null);
   const [assetImages, setAssetImages] = useState([]); // { url, name, id }
   const [newFiles, setNewFiles] = useState([]); // { file, preview }
   const [isUploading, setIsUploading] = useState(false);
@@ -134,7 +137,7 @@ export default function PageDeals({ t, isDark, DEALS = [], INVESTMENTS = [], SCH
       close();
     } catch (err) {
       console.error("Failed to save deal:", err);
-      alert("Failed to save deal. " + err.message);
+      showToast("Failed to save deal. " + err.message, "error");
       setIsUploading(false);
     }
   };
@@ -157,8 +160,9 @@ export default function PageDeals({ t, isDark, DEALS = [], INVESTMENTS = [], SCH
     });
   };
 
-  const deleteExistingImage = async (imgId) => {
-    if (!window.confirm("Delete this image?")) return;
+  const deleteExistingImage = (imgId) => setConfirmDelImg(imgId);
+
+  const doDeleteExistingImage = async (imgId) => {
     try {
       await deleteDoc(doc(db, "deals", modal.data.id, "asset_images", imgId));
       setAssetImages(prev => prev.filter(img => img.id !== imgId));
@@ -173,7 +177,7 @@ export default function PageDeals({ t, isDark, DEALS = [], INVESTMENTS = [], SCH
       }
     } catch (err) {
       console.error("Delete deal error:", err);
-      alert("Delete deal error: " + err.message);
+      showToast("Delete deal error: " + err.message, "error");
     }
   };
 
@@ -312,6 +316,16 @@ export default function PageDeals({ t, isDark, DEALS = [], INVESTMENTS = [], SCH
       </div>
     </Modal>
 
+    <DelModal open={!!confirmDelImg} onClose={() => setConfirmDelImg(null)} onDel={async () => { await doDeleteExistingImage(confirmDelImg); setConfirmDelImg(null); }} title="Delete Image?" t={t}>
+      <p style={{ fontSize: 13.5, lineHeight: 1.6, color: t.textMuted }}>Are you sure you want to delete this image? This cannot be undone.</p>
+    </DelModal>
 
+    {toast && (
+      <div style={{ position: "fixed", bottom: 28, right: 28, zIndex: 9999, background: toast.type === "success" ? (isDark ? "#052e16" : "#f0fdf4") : (isDark ? "#2d0a0a" : "#fef2f2"), border: `1px solid ${toast.type === "success" ? "#22c55e" : "#ef4444"}`, color: toast.type === "success" ? "#22c55e" : "#ef4444", borderRadius: 12, padding: "14px 20px", fontSize: 13.5, fontWeight: 600, boxShadow: "0 8px 32px rgba(0,0,0,0.18)", display: "flex", alignItems: "center", gap: 10, maxWidth: 380 }}>
+        <span>{toast.type === "success" ? "✅" : "❌"}</span>
+        <span>{toast.msg}</span>
+        <button onClick={() => setToast(null)} style={{ background: "none", border: "none", color: "inherit", cursor: "pointer", fontSize: 16, marginLeft: 8, opacity: 0.7 }}>✕</button>
+      </div>
+    )}
   </>);
 }

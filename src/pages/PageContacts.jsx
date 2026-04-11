@@ -22,6 +22,8 @@ export default function PageContacts({ t, isDark, CONTACTS = [], INVESTMENTS = [
   const [chip, setChip] = useState("All");
   const [modal, setModal] = useState({ open: false, mode: "add", data: {} });
   const [delT, setDelT] = useState(null);
+  const [toast, setToast] = useState(null);
+  const showToast = (msg, type = "info") => { setToast({ msg, type }); setTimeout(() => setToast(null), 4000); };
   const nextContactId = (() => {
     if (CONTACTS.length === 0) return "M10001";
     const maxNum = Math.max(...CONTACTS.map(p => { const m = String(p.id).match(/^M(\d+)$/); return m ? Number(m[1]) : 0; }));
@@ -108,7 +110,7 @@ export default function PageContacts({ t, isDark, CONTACTS = [], INVESTMENTS = [
       close();
     } catch (err) { 
       console.error("Save contact error:", err);
-      alert("Failed to save contact. " + err.message);
+      showToast("Failed to save contact. " + err.message, "error");
     }
   };
 
@@ -121,7 +123,7 @@ export default function PageContacts({ t, isDark, CONTACTS = [], INVESTMENTS = [
       }
     } catch (err) { 
       console.error("Delete contact error:", err); 
-      alert("Delete contact error: " + err.message);
+      showToast("Delete contact error: " + err.message, "error");
     }
   };
 
@@ -171,12 +173,12 @@ export default function PageContacts({ t, isDark, CONTACTS = [], INVESTMENTS = [
   const [inviteConfirm, setInviteConfirm] = useState(null);
   const handleInviteContact = (party) => {
     if (!party.email) {
-      alert("This contact has no email address. Please add a valid email first.");
+      showToast("This contact has no email address. Please add a valid email first.", "error");
       return;
     }
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(party.email)) {
-      alert("The email address provided is not in a valid format. Please correct it first.");
+      showToast("The email address provided is not in a valid format. Please correct it first.", "error");
       return;
     }
     setInviteConfirm(party);
@@ -206,7 +208,7 @@ export default function PageContacts({ t, isDark, CONTACTS = [], INVESTMENTS = [
       setInviteResult({ email: party.email, user_id: result.data.user_id, link: result.data.link });
     } catch (err) {
       console.error("Invite contact error:", err);
-      alert("Invite failed: " + (err.message || "Unknown error"));
+      showToast("Invite failed: " + (err.message || "Unknown error"), "error");
     } finally {
       setInvitingId(null);
       setProcessing(false);
@@ -365,6 +367,13 @@ export default function PageContacts({ t, isDark, CONTACTS = [], INVESTMENTS = [
             <button onClick={() => setInviteResult(null)} style={{ flex: 1, background: isDark ? "rgba(255,255,255,0.08)" : "#F5F4F1", color: t.text, border: `1px solid ${t.border}`, borderRadius: 9, padding: "10px 18px", fontSize: 13.5, cursor: "pointer" }}>Close</button>
           </div>
         </div>
+      </div>
+    )}
+    {toast && (
+      <div style={{ position: "fixed", bottom: 28, right: 28, zIndex: 9999, background: toast.type === "success" ? (isDark ? "#052e16" : "#f0fdf4") : (isDark ? "#2d0a0a" : "#fef2f2"), border: `1px solid ${toast.type === "success" ? "#22c55e" : "#ef4444"}`, color: toast.type === "success" ? "#22c55e" : "#ef4444", borderRadius: 12, padding: "14px 20px", fontSize: 13.5, fontWeight: 600, boxShadow: "0 8px 32px rgba(0,0,0,0.18)", display: "flex", alignItems: "center", gap: 10, maxWidth: 380 }}>
+        <span>{toast.type === "success" ? "✅" : "❌"}</span>
+        <span>{toast.msg}</span>
+        <button onClick={() => setToast(null)} style={{ background: "none", border: "none", color: "inherit", cursor: "pointer", fontSize: 16, marginLeft: 8, opacity: 0.7 }}>✕</button>
       </div>
     )}
   </>);

@@ -3,7 +3,7 @@ import { db } from "../firebase";
 import { collection, query, onSnapshot, doc, setDoc, deleteDoc, serverTimestamp } from "firebase/firestore";
 import { uploadFile } from "../utils/storageUtils";
 import { FileText, File, Trash2, Download, Plus, Loader2, X, HelpCircle, Eye } from "lucide-react";
-import { Modal, FF, FIn, FSel, Tooltip } from "../components";
+import { Modal, FF, FIn, FSel, Tooltip, DelModal } from "../components";
 
 export default function InvestmentDocumentsTab({ t, isDark, tenantId, party, DEALS, INVESTMENTS }) {
     const [docs, setDocs] = useState([]);
@@ -19,6 +19,9 @@ export default function InvestmentDocumentsTab({ t, isDark, tenantId, party, DEA
         dealId: "",
         label: ""
     });
+    const [toast, setToast] = useState(null);
+    const showToast = (msg, type = "info") => { setToast({ msg, type }); setTimeout(() => setToast(null), 4000); };
+    const [confirmDelDoc, setConfirmDelDoc] = useState(null);
 
     const partyId = String(party.id || party.docId || "").trim();
 
@@ -36,8 +39,8 @@ export default function InvestmentDocumentsTab({ t, isDark, tenantId, party, DEA
     }, [tenantId, partyId]);
 
     const handleUpload = async () => {
-        if (!newDoc.file) return alert("Please select a file.");
-        if (!newDoc.dealId) return alert("Please select a deal.");
+        if (!newDoc.file) { showToast("Please select a file.", "error"); return; }
+        if (!newDoc.dealId) { showToast("Please select a deal.", "error"); return; }
 
         setUploading(true);
         setProgress(10);
@@ -73,13 +76,14 @@ export default function InvestmentDocumentsTab({ t, isDark, tenantId, party, DEA
             }, 500);
         } catch (err) {
             console.error("Upload error:", err);
-            alert("Failed to upload: " + err.message);
+            showToast("Failed to upload: " + err.message, "error");
             setUploading(false);
         }
     };
 
-    const handleDelete = async (docObj) => {
-        if (!window.confirm(`Delete ${docObj.name}?`)) return;
+    const handleDelete = (docObj) => setConfirmDelDoc(docObj);
+
+    const doDelete = async (docObj) => {
         try {
             await deleteDoc(doc(db, "tenants", tenantId, "contacts", partyId, "documents", docObj.id));
         } catch (err) {
@@ -210,6 +214,16 @@ export default function InvestmentDocumentsTab({ t, isDark, tenantId, party, DEA
                         </FF>
                     </div>
                 </Modal>
+            )}
+            <DelModal open={!!confirmDelDoc} onClose={() => setConfirmDelDoc(null)} onDel={async () => { await doDelete(confirmDelDoc); setConfirmDelDoc(null); }} title="Delete Document?" t={t}>
+                <p style={{ fontSize: 13.5, lineHeight: 1.6, color: t?.textMuted }}>Delete <strong>{confirmDelDoc?.name}</strong>? This cannot be undone.</p>
+            </DelModal>
+            {toast && (
+                <div style={{ position: "fixed", bottom: 28, right: 28, zIndex: 9999, background: toast.type === "error" ? (isDark ? "#2d0a0a" : "#fef2f2") : (isDark ? "#052e16" : "#f0fdf4"), border: `1px solid ${toast.type === "error" ? "#ef4444" : "#22c55e"}`, color: toast.type === "error" ? "#ef4444" : "#22c55e", borderRadius: 12, padding: "14px 20px", fontSize: 13.5, fontWeight: 600, boxShadow: "0 8px 32px rgba(0,0,0,0.18)", display: "flex", alignItems: "center", gap: 10, maxWidth: 380 }}>
+                    <span>{toast.type === "error" ? "❌" : "✅"}</span>
+                    <span>{toast.msg}</span>
+                    <button onClick={() => setToast(null)} style={{ background: "none", border: "none", color: "inherit", cursor: "pointer", fontSize: 16, marginLeft: 8, opacity: 0.7 }}>✕</button>
+                </div>
             )}
         </div>
     );

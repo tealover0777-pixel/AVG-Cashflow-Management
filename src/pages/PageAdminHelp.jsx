@@ -42,6 +42,9 @@ export default function PageAdminHelp({ t, isDark }) {
   const [rowSelection, setRowSelection] = useState({});
   const [isBulkDeleting, setIsBulkDeleting] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState(null);
+  const [toast, setToast] = useState(null);
+  const showToast = (msg, type = "info") => { setToast({ msg, type }); setTimeout(() => setToast(null), 4000); };
+  const [confirmBulkDel, setConfirmBulkDel] = useState(false);
 
   // ── Duplicate banner ─────────────────────────────────────────────────────────
   const [dupBanner, setDupBanner] = useState(null);
@@ -81,9 +84,12 @@ export default function PageAdminHelp({ t, isDark }) {
   const selectedCount = Object.keys(rowSelection).filter(k => rowSelection[k]).length;
 
   // ── Bulk Delete ──────────────────────────────────────────────────────────────
-  const handleBulkDelete = async () => {
+  const handleBulkDelete = () => {
     if (selectedCount === 0) return;
-    if (!window.confirm(`Delete ${selectedCount} selected conversation(s)? This cannot be undone.`)) return;
+    setConfirmBulkDel(true);
+  };
+
+  const doBulkDelete = async () => {
     setIsBulkDeleting(true);
     try {
       const idsToDelete = Object.keys(rowSelection).filter(k => rowSelection[k]);
@@ -91,7 +97,7 @@ export default function PageAdminHelp({ t, isDark }) {
       setConversations(prev => prev.filter(c => !rowSelection[c.id]));
       setRowSelection({});
     } catch (err) {
-      alert("Failed to delete some records.");
+      showToast("Failed to delete some records.", "error");
       console.error(err);
     } finally {
       setIsBulkDeleting(false);
@@ -113,7 +119,7 @@ export default function PageAdminHelp({ t, isDark }) {
       if (selectedConv?.id === deleteTarget.id) { setSelectedConv(null); setNewRule(""); }
       setDeleteTarget(null);
     } catch (err) {
-      alert("Failed to delete.");
+      showToast("Failed to delete.", "error");
       console.error(err);
     } finally {
       setLoading(false);
@@ -152,9 +158,9 @@ export default function PageAdminHelp({ t, isDark }) {
     try {
       setKbLoading(true);
       await writeKnowledgeBase(kbContent);
-      alert("Knowledge base updated successfully! AI will use this on next load.");
+      showToast("Knowledge base updated successfully! AI will use this on next load.", "success");
     } catch (err) {
-      alert("Failed to update knowledge base.");
+      showToast("Failed to update knowledge base.", "error");
       console.error(err);
     } finally {
       setKbLoading(false);
@@ -173,7 +179,7 @@ export default function PageAdminHelp({ t, isDark }) {
       setSelectedConv(null);
       setNewRule("");
     } catch (err) {
-      alert("Failed to update system.");
+      showToast("Failed to update system.", "error");
       console.error(err);
     } finally {
       setLoading(false);
@@ -189,7 +195,7 @@ export default function PageAdminHelp({ t, isDark }) {
       setSelectedConv(null);
       setNewRule("");
     } catch (err) {
-      alert("Failed to mark as resolved.");
+      showToast("Failed to mark as resolved.", "error");
       console.error(err);
     } finally {
       setLoading(false);
@@ -356,6 +362,18 @@ export default function PageAdminHelp({ t, isDark }) {
       <DelModal open={!!deleteTarget} onClose={() => setDeleteTarget(null)} onDel={handleConfirmDelete} title="Delete Interaction?" t={t}>
         <p style={{ fontSize: 13.5, lineHeight: 1.6, color: t.textMuted }}>Are you sure you want to remove this record?</p>
       </DelModal>
+
+      <DelModal open={confirmBulkDel} onClose={() => setConfirmBulkDel(false)} onDel={async () => { setConfirmBulkDel(false); await doBulkDelete(); }} title={`Delete ${selectedCount} Conversation(s)?`} t={t}>
+        <p style={{ fontSize: 13.5, lineHeight: 1.6, color: t.textMuted }}>This will permanently delete {selectedCount} selected conversation(s). This cannot be undone.</p>
+      </DelModal>
+
+      {toast && (
+        <div style={{ position: "fixed", bottom: 28, right: 28, zIndex: 9999, background: toast.type === "success" ? (isDark ? "#052e16" : "#f0fdf4") : (isDark ? "#2d0a0a" : "#fef2f2"), border: `1px solid ${toast.type === "success" ? "#22c55e" : "#ef4444"}`, color: toast.type === "success" ? "#22c55e" : "#ef4444", borderRadius: 12, padding: "14px 20px", fontSize: 13.5, fontWeight: 600, boxShadow: "0 8px 32px rgba(0,0,0,0.18)", display: "flex", alignItems: "center", gap: 10, maxWidth: 380 }}>
+          <span>{toast.type === "success" ? "✅" : "❌"}</span>
+          <span>{toast.msg}</span>
+          <button onClick={() => setToast(null)} style={{ background: "none", border: "none", color: "inherit", cursor: "pointer", fontSize: 16, marginLeft: 8, opacity: 0.7 }}>✕</button>
+        </div>
+      )}
     </div>
   );
 }

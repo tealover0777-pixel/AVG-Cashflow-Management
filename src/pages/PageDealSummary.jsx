@@ -47,6 +47,8 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
   const [scheduleModal, setScheduleModal] = useState({ open: false, data: {} });
   const [contactModal, setContactModal] = useState({ open: false, mode: "existing", data: {} });
   const [confirmAction, setConfirmAction] = useState(null); // { title: string, message: string, onConfirm: () => void }
+  const [toast, setToast] = useState(null);
+  const showToast = (msg, type = "info") => { setToast({ msg, type }); setTimeout(() => setToast(null), 4000); };
   
   const roleOpts = (DIMENSIONS.find(d => d.name === "ContactRole") || {}).items || ["Investor", "Borrower"];
   const partyTypeOpts = (DIMENSIONS.find(d => d.name === "ContactType") || {}).items || ["Individual", "Company", "Trust", "Partnership"];
@@ -424,7 +426,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
 
       if (isNew) {
         if (!contactModal.data.first_name || !contactModal.data.last_name || !contactModal.data.email) {
-          alert("Please fill in first name, last name, and email.");
+          showToast("Please fill in first name, last name, and email.", "error");
           return;
         }
         partyId = `P${Date.now()}R${Math.floor(Math.random() * 1000)}`;
@@ -461,7 +463,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
         });
       } else {
         if (!contactModal.data.selectedPartyId) {
-          alert("Please select a contact.");
+          showToast("Please select a contact.", "error");
           return;
         }
         partyId = contactModal.data.selectedPartyId;
@@ -493,7 +495,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
       setContactModal({ open: false, mode: "existing", data: {} });
     } catch (err) {
       console.error(err);
-      alert("Failed to add contact: " + (err.message || String(err)));
+      showToast("Failed to add contact: " + (err.message || String(err)), "error");
     }
   };
 
@@ -1281,19 +1283,19 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
                    }
                    // 2. Delete current
                    await deleteDoc(ref);
-                   alert(`Succeeded! Reverted ${s.schedule_id} to previous version.`);
+                   showToast(`Succeeded! Reverted ${s.schedule_id} to previous version.`, "success");
                 } else if (s._undo_snapshot) {
                    // Snapshot revert for non-versioned
                    await updateDoc(ref, { ...s._undo_snapshot, _undo_snapshot: null, updated_at: serverTimestamp() });
-                   alert(`Succeeded! Restored ${s.schedule_id} to previous state.`);
+                   showToast(`Succeeded! Restored ${s.schedule_id} to previous state.`, "success");
                 } else {
                    // Basic delete fallback
                    await deleteDoc(ref);
-                   alert(`Succeeded! Entry ${s.schedule_id} removed.`);
+                   showToast(`Succeeded! Entry ${s.schedule_id} removed.`, "success");
                 }
-             } catch (e) { 
-                console.error("Undo error:", e); 
-                alert(`Undo failed: ${e.message}`);
+             } catch (e) {
+                console.error("Undo error:", e);
+                showToast(`Undo failed: ${e.message}`, "error");
              }
           }
         });
@@ -2902,7 +2904,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
             });
           } catch (err) {
             console.error("Update error:", err);
-            alert("Failed to update contact: " + err.message);
+            showToast("Failed to update contact: " + err.message, "error");
           }
         }}
         onUpdateInvestment={handleUpdateInvestmentModal}
@@ -2921,6 +2923,13 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
         USERS={USERS}
         currentUser={user}
       />
+      {toast && (
+        <div style={{ position: "fixed", bottom: 28, right: 28, zIndex: 9999, background: toast.type === "success" ? (isDark ? "#052e16" : "#f0fdf4") : (isDark ? "#2d0a0a" : "#fef2f2"), border: `1px solid ${toast.type === "success" ? "#22c55e" : "#ef4444"}`, color: toast.type === "success" ? "#22c55e" : "#ef4444", borderRadius: 12, padding: "14px 20px", fontSize: 13.5, fontWeight: 600, boxShadow: "0 8px 32px rgba(0,0,0,0.18)", display: "flex", alignItems: "center", gap: 10, maxWidth: 380 }}>
+          <span>{toast.type === "success" ? "✅" : "❌"}</span>
+          <span>{toast.msg}</span>
+          <button onClick={() => setToast(null)} style={{ background: "none", border: "none", color: "inherit", cursor: "pointer", fontSize: 16, marginLeft: 8, opacity: 0.7 }}>✕</button>
+        </div>
+      )}
     </div>
   );
 }

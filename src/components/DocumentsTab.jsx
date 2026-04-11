@@ -10,6 +10,9 @@ export default function DocumentsTab({ t, isDark, dealId }) {
     const [loading, setLoading] = useState(true);
     const [uploading, setUploading] = useState(false);
     const [progress, setProgress] = useState(0);
+    const [toast, setToast] = useState(null);
+    const showToast = (msg, type = "info") => { setToast({ msg, type }); setTimeout(() => setToast(null), 4000); };
+    const [confirmDelDoc, setConfirmDelDoc] = useState(null);
 
     useEffect(() => {
         if (!dealId) return;
@@ -51,13 +54,14 @@ export default function DocumentsTab({ t, isDark, dealId }) {
             }, 500);
         } catch (err) {
             console.error("Upload error:", err);
-            alert("Failed to upload: " + err.message);
+            showToast("Failed to upload: " + err.message, "error");
             setUploading(false);
         }
     };
 
-    const handleDelete = async (docObj) => {
-        if (!window.confirm(`Delete ${docObj.name}?`)) return;
+    const handleDelete = (docObj) => setConfirmDelDoc(docObj);
+
+    const doDelete = async (docObj) => {
         try {
             await deleteDoc(doc(db, "deals", dealId, "documents", docObj.id));
             // Note: We should also delete from Storage, but for now we focus on Firestore consistency.
@@ -163,6 +167,25 @@ export default function DocumentsTab({ t, isDark, dealId }) {
                 .animate-spin { animation: spin 1s linear infinite; }
                 @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
             `}</style>
+            {confirmDelDoc && (
+                <div style={{ position: "fixed", inset: 0, zIndex: 9000, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <div style={{ background: isDark ? "#1C1917" : "#fff", borderRadius: 14, padding: 24, maxWidth: 380, width: "90%", boxShadow: "0 20px 60px rgba(0,0,0,0.3)" }}>
+                        <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 8, color: isDark ? "#fff" : "#1C1917" }}>Delete Document?</div>
+                        <p style={{ fontSize: 13.5, color: isDark ? "rgba(255,255,255,0.5)" : "#6B7280", marginBottom: 20, lineHeight: 1.6 }}>Delete <strong>{confirmDelDoc.name}</strong>? This cannot be undone.</p>
+                        <div style={{ display: "flex", gap: 10 }}>
+                            <button onClick={async () => { await doDelete(confirmDelDoc); setConfirmDelDoc(null); }} style={{ flex: 1, background: "#EF4444", color: "#fff", border: "none", borderRadius: 9, padding: "10px", fontSize: 13.5, fontWeight: 600, cursor: "pointer" }}>Delete</button>
+                            <button onClick={() => setConfirmDelDoc(null)} style={{ flex: 1, background: isDark ? "rgba(255,255,255,0.08)" : "#F5F4F1", color: isDark ? "#fff" : "#1C1917", border: "none", borderRadius: 9, padding: "10px", fontSize: 13.5, cursor: "pointer" }}>Cancel</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+            {toast && (
+                <div style={{ position: "fixed", bottom: 28, right: 28, zIndex: 9999, background: toast.type === "error" ? (isDark ? "#2d0a0a" : "#fef2f2") : (isDark ? "#052e16" : "#f0fdf4"), border: `1px solid ${toast.type === "error" ? "#ef4444" : "#22c55e"}`, color: toast.type === "error" ? "#ef4444" : "#22c55e", borderRadius: 12, padding: "14px 20px", fontSize: 13.5, fontWeight: 600, boxShadow: "0 8px 32px rgba(0,0,0,0.18)", display: "flex", alignItems: "center", gap: 10, maxWidth: 380 }}>
+                    <span>{toast.type === "error" ? "❌" : "✅"}</span>
+                    <span>{toast.msg}</span>
+                    <button onClick={() => setToast(null)} style={{ background: "none", border: "none", color: "inherit", cursor: "pointer", fontSize: 16, marginLeft: 8, opacity: 0.7 }}>✕</button>
+                </div>
+            )}
         </div>
     );
 }

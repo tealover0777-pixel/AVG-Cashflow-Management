@@ -1613,7 +1613,7 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
           setDetailContact({ ...d, ...payload });
         } catch (err) {
           console.error("Update error:", err);
-          alert("Failed to update contact: " + err.message);
+          showDialog("Failed to update contact: " + err.message, "Error", "alert");
         }
       }}
     />

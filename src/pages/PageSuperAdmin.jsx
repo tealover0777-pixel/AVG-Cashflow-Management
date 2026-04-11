@@ -21,6 +21,8 @@ export default function PageSuperAdmin({ t, isDark, ROLES = [], TENANTS = [] }) 
     const [inviteResult, setInviteResult] = useState(null);
     const [invitingId, setInvitingId] = useState(null);
     const [processing, setProcessing] = useState(false);
+    const [toast, setToast] = useState(null);
+    const showToast = (msg, type = "info") => { setToast({ msg, type }); setTimeout(() => setToast(null), 4000); };
 
     const getRoleName = (role_id) => {
         const found = ROLES.find(r => r.id === role_id || r.role_id === role_id);
@@ -74,7 +76,7 @@ export default function PageSuperAdmin({ t, isDark, ROLES = [], TENANTS = [] }) 
             setInviteResult({ link: result.data.link, email: d.email });
         } catch (err) {
             console.error("Invite error:", err);
-            alert("Invite failed: " + (err.message || "Unknown error"));
+            showToast("Invite failed: " + (err.message || "Unknown error"), "error");
         } finally {
             setInviting(false);
         }
@@ -91,7 +93,7 @@ export default function PageSuperAdmin({ t, isDark, ROLES = [], TENANTS = [] }) 
             setInviteResult({ link: result.data.link, email: user.email });
         } catch (err) {
             console.error("Row invite error:", err);
-            alert("Invite failed: " + (err.message || "Unknown error"));
+            showToast("Invite failed: " + (err.message || "Unknown error"), "error");
         } finally {
             setInvitingId(null);
             setProcessing(false);
@@ -134,7 +136,7 @@ export default function PageSuperAdmin({ t, isDark, ROLES = [], TENANTS = [] }) 
             close();
         } catch (err) {
             console.error("Save global user error:", err);
-            alert("Save failed: " + (err.message || "Unknown error"));
+            showToast("Save failed: " + (err.message || "Unknown error"), "error");
         }
     };
 
@@ -150,7 +152,7 @@ export default function PageSuperAdmin({ t, isDark, ROLES = [], TENANTS = [] }) 
             setDelT(null);
         } catch (err) {
             console.error("Delete global user error:", err);
-            alert("Delete failed: " + (err.message || "Unknown error"));
+            showToast("Delete failed: " + (err.message || "Unknown error"), "error");
         }
     };
 
@@ -176,6 +178,13 @@ export default function PageSuperAdmin({ t, isDark, ROLES = [], TENANTS = [] }) 
     if (error) return <div style={{ padding: 40, color: "red" }}>Error loading users: {error.message}</div>;
 
     return (<>
+        {toast && (
+            <div style={{ position: "fixed", bottom: 28, right: 28, zIndex: 9999, background: toast.type === "success" ? (isDark ? "#052e16" : "#f0fdf4") : (isDark ? "#2d0a0a" : "#fef2f2"), border: `1px solid ${toast.type === "success" ? "#22c55e" : "#ef4444"}`, color: toast.type === "success" ? "#22c55e" : "#ef4444", borderRadius: 12, padding: "14px 20px", fontSize: 13.5, fontWeight: 600, boxShadow: "0 8px 32px rgba(0,0,0,0.18)", display: "flex", alignItems: "center", gap: 10, maxWidth: 380 }}>
+                <span>{toast.type === "success" ? "✅" : "❌"}</span>
+                <span>{toast.msg}</span>
+                <button onClick={() => setToast(null)} style={{ background: "none", border: "none", color: "inherit", cursor: "pointer", fontSize: 16, marginLeft: 8, opacity: 0.7 }}>✕</button>
+            </div>
+        )}
         {/* Full-screen Loading Overlay */}
         {processing && (
             <div style={{ position: "fixed", inset: 0, zIndex: 9999, background: "rgba(0,0,0,0.6)", backdropFilter: "blur(4px)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", color: "#fff" }}>

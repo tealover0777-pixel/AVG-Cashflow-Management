@@ -39,6 +39,8 @@ export const InvestorSummaryModal = ({
   const [notes, setNotes] = useState([]);
   const [noteText, setNoteText] = useState("");
   const [savingNote, setSavingNote] = useState(false);
+  const [toast, setToast] = useState(null);
+  const showToast = (msg, type = "info") => { setToast({ msg, type }); setTimeout(() => setToast(null), 4000); };
   
   useEffect(() => {
     setViewMode(defaultView);
@@ -117,7 +119,7 @@ export const InvestorSummaryModal = ({
       await onUpdate(editData);
       setIsEditing(false);
     } catch (err) {
-      alert("Failed to update contact: " + err.message);
+      showToast("Failed to update contact: " + err.message, "error");
     } finally {
       setSaving(false);
     }
@@ -175,7 +177,7 @@ export const InvestorSummaryModal = ({
     try {
       await onUpdateInvestment(investmentEditData);
     } catch (err) {
-      alert("Failed to update investment: " + err.message);
+      showToast("Failed to update investment: " + err.message, "error");
     } finally {
       setSavingInvestment(false);
     }
@@ -487,7 +489,7 @@ export const InvestorSummaryModal = ({
                       setNotes(prev => [saved, ...prev]);
                       setNoteText("");
                     } catch (err) {
-                      alert("Failed to save note: " + err.message);
+                      showToast("Failed to save note: " + err.message, "error");
                     } finally {
                       setSavingNote(false);
                     }
@@ -667,6 +669,13 @@ export const InvestorSummaryModal = ({
           {renderTabContent()}
         </div>
       </div>
+      {toast && (
+        <div style={{ position: "fixed", bottom: 28, right: 28, zIndex: 9999, background: toast.type === "success" ? (isDark ? "#052e16" : "#f0fdf4") : (isDark ? "#2d0a0a" : "#fef2f2"), border: `1px solid ${toast.type === "success" ? "#22c55e" : "#ef4444"}`, color: toast.type === "success" ? "#22c55e" : "#ef4444", borderRadius: 12, padding: "14px 20px", fontSize: 13.5, fontWeight: 600, boxShadow: "0 8px 32px rgba(0,0,0,0.18)", display: "flex", alignItems: "center", gap: 10, maxWidth: 380 }}>
+          <span>{toast.type === "success" ? "✅" : "❌"}</span>
+          <span>{toast.msg}</span>
+          <button onClick={() => setToast(null)} style={{ background: "none", border: "none", color: "inherit", cursor: "pointer", fontSize: 16, marginLeft: 8, opacity: 0.7 }}>✕</button>
+        </div>
+      )}
     </div>
   );
 };
