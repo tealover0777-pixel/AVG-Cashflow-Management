@@ -1,7 +1,7 @@
 import React from 'react';
 import { Edit2, Trash2, Mail, User, Shield, Info } from 'lucide-react';
 import { Bdg, ActBtns, Tooltip } from '../components';
-import { initials, av } from '../utils';
+import { initials, av, fmtCurr } from '../utils';
 
 export const getContactColumns = (permissions, isDark, t, context) => {
   const { callbacks, invitingId, INVESTMENTS } = context;
@@ -155,6 +155,33 @@ export const getContactColumns = (permissions, isDark, t, context) => {
               padding: "2px 8px", borderRadius: 12
             }}>
               {dealIds.size} {dealIds.size === 1 ? 'deal' : 'deals'}
+            </span>
+          </div>
+        );
+      }
+    },
+    {
+      header: "Invested Amount",
+      id: "invested_amount",
+      size: 130,
+      cell: ({ row }) => {
+        const contact = row.original;
+        const dpId = String(contact.id || "").trim();
+        const dpDocId = String(contact.docId || "").trim();
+        const partyInvestments = (INVESTMENTS || []).filter(c => {
+          const cPId = String(c.party_id || "").trim();
+          return (cPId && (cPId === dpId || (dpDocId && cPId === dpDocId)));
+        });
+        
+        const totalInvested = partyInvestments.reduce((sum, c) => {
+          const amtStr = String(c.amount || 0).replace(/[^0-9.-]/g, '');
+          return sum + (Number(amtStr) || 0);
+        }, 0);
+        
+        return (
+          <div style={{ display: 'flex', alignItems: 'center', height: '100%' }}>
+            <span style={{ fontSize: '11px', fontWeight: 600, color: isDark ? "#34D399" : "#059669" }}>
+              {fmtCurr(totalInvested)}
             </span>
           </div>
         );
