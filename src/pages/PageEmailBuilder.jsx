@@ -1,4 +1,6 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
+import { ref, uploadBytesResumable, getDownloadURL, listAll } from "firebase/storage";
+import { storage } from "../firebase";
 import { 
   ChevronLeft, Edit2, UploadCloud, Calendar, Mail, Send,
   FileEdit, Settings, Smartphone, Monitor, Paperclip, Save,
@@ -395,25 +397,150 @@ function ImagesTab({ t }) {
 }
 
 function UploadsTab({ t, isDark }) {
+  const [uploads, setUploads] = useState([]);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const fileInputRef = useRef(null);
+
+  useEffect(() => {
+    fetchUploads();
+  }, []);
+
+  const fetchUploads = async () => {
+    try {
+      const listRef = ref(storage, 'marketing_uploads');
+      const res = await listAll(listRef);
+      // Fetch latest uploads first
+      const itemRefs = res.items.reverse();
+      const urlPromises = itemRefs.map(itemRef => getDownloadURL(itemRef));
+      const urls = await Promise.all(urlPromises);
+      setUploads(urls);
+    } catch (error) {
+      console.error("Error fetching uploads:", error);
+    }
+  };
+
+  const handleFileSelect = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      uploadFile(file);
+    }
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    const file = e.dataTransfer.files[0];
+    if (file) {
+      uploadFile(file);
+    }
+  };
+
+  const handleDragOver = (e) => {
+    e.preventDefault();
+  };
+
+  const uploadFile = async (file) => {
+    if (!file) return;
+    setIsUploading(true);
+    const storageRef = ref(storage, `marketing_uploads/${Date.now()}_${file.name}`);
+    const uploadTask = uploadBytesResumable(storageRef, file);
+
+    uploadTask.on(
+      'state_changed',
+      (snapshot) => {
+        const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+        setUploadProgress(progress);
+      },
+      (error) => {
+        console.error("Error uploading:", error);
+        setIsUploading(false);
+      },
+      () => {
+        getDownloadURL(uploadTask.snapshot.ref).then((downloadURL) => {
+          setUploads(prev => [downloadURL, ...prev]);
+          setIsUploading(false);
+          setUploadProgress(0);
+        });
+      }
+    );
+  };
+
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
       <div style={{ padding: "16px", borderBottom: `1px solid ${t.border}` }}>
         <h3 style={{ fontSize: 16, fontWeight: 700, margin: "0 0 16px 0", color: t.text }}>Uploads</h3>
-        <button style={{ width: "100%", background: isDark ? "#333" : "#222", color: "#fff", border: "none", padding: "12px", borderRadius: 4, fontWeight: 600, fontSize: 13, marginBottom: 16, cursor: "pointer" }}>
-          Upload Image
+        
+        <input 
+          type="file" 
+          ref={fileInputRef} 
+          style={{ display: 'none' }} 
+          accept="image/*"
+          onChange={handleFileSelect} 
+        />
+
+        <button 
+          onClick={() => fileInputRef.current.click()}
+          style={{ 
+            width: "100%", 
+            background: isDark ? "#333" : "#222", 
+            color: "#fff", 
+            border: "none", 
+            padding: "12px", 
+            borderRadius: 4, 
+            fontWeight: 600, 
+            fontSize: 13, 
+            marginBottom: 16, 
+            cursor: isUploading ? "not-allowed" : "pointer",
+            opacity: isUploading ? 0.7 : 1
+          }}
+          disabled={isUploading}
+        >
+          {isUploading ? `Uploading... ${Math.round(uploadProgress)}%` : 'Upload Image'}
         </button>
         
-        <div style={{ border: `1px dashed ${t.border}`, borderRadius: 4, padding: "32px 16px", textAlign: "center", background: t.surface }}>
+        <div 
+          onDrop={handleDrop}
+          onDragOver={handleDragOver}
+          onClick={() => fileInputRef.current.click()}
+          style={{ 
+            border: `1px dashed ${t.border}`, 
+            borderRadius: 4, 
+            padding: "32px 16px", 
+            textAlign: "center", 
+            background: t.surface,
+            cursor: "pointer",
+            transition: "all 0.2s ease"
+          }}
+          onMouseEnter={(e) => e.currentTarget.style.borderColor = "#3A86FF"}
+          onMouseLeave={(e) => e.currentTarget.style.borderColor = t.border}
+        >
           <UploadCloud size={24} color={t.textMuted} style={{ margin: "0 auto 8px" }} />
           <p style={{ margin: 0, fontSize: 12, color: t.textMuted }}>Drop a new image here, or click to select files to upload.</p>
         </div>
       </div>
 
       <div style={{ padding: 16, flex: 1, overflowY: "auto", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, alignContent: "flex-start" }}>
-         <div style={{ height: 120, background: "#EAEAEA", borderRadius: 4 }}></div>
-         <div style={{ height: 60, background: "#CCC", borderRadius: 4 }}></div>
-         <div style={{ height: 160, background: "#999", borderRadius: 4 }}></div>
-         <div style={{ height: 100, background: "#AAA", borderRadius: 4 }}></div>
+         {uploads.length === 0 ? (
+           <div style={{ gridColumn: "1 / -1", textAlign: "center", fontSize: 12, color: t.textMuted, padding: "32px 0" }}>
+             {isUploading ? "Processing..." : "No uploads yet"}
+           </div>
+         ) : (
+           uploads.map((url, i) => (
+             <div 
+               key={i} 
+               style={{ 
+                 height: 100, 
+                 background: t.surface, 
+                 borderRadius: 4, 
+                 backgroundImage: `url(${url})`, 
+                 backgroundSize: 'cover', 
+                 backgroundPosition: 'center', 
+                 border: `1px solid ${t.border}`,
+                 cursor: "pointer"
+               }}
+             />
+           ))
+         )}
       </div>
     </div>
   );
