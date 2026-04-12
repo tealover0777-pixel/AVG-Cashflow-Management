@@ -364,33 +364,136 @@ function BodyTab({ t, isDark }) {
 }
 
 function ImagesTab({ t }) {
+  const [query, setQuery] = useState("");
+  const [images, setImages] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [apiKey, setApiKey] = useState(localStorage.getItem("UNSPLASH_API_KEY") || "");
+  const [showKeyInput, setShowKeyInput] = useState(!localStorage.getItem("UNSPLASH_API_KEY"));
+  const [error, setError] = useState(null);
+
+  const searchImages = async (e) => {
+    if (e) e.preventDefault();
+    if (!query.trim()) return;
+    if (!apiKey) {
+      setShowKeyInput(true);
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch(`https://api.unsplash.com/search/photos?page=1&per_page=20&query=${encodeURIComponent(query)}`, {
+        headers: {
+          Authorization: `Client-ID ${apiKey}`
+        }
+      });
+      
+      if (res.status === 401) {
+        setError("Invalid API Key. Please check your Access Key.");
+        setShowKeyInput(true);
+        setLoading(false);
+        return;
+      }
+      
+      if (!res.ok) throw new Error("Failed to fetch images");
+
+      const data = await res.json();
+      setImages(data.results);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const saveApiKey = () => {
+    localStorage.setItem("UNSPLASH_API_KEY", apiKey);
+    setShowKeyInput(false);
+    if (query.trim()) searchImages();
+  };
+
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
       <div style={{ padding: "16px", borderBottom: `1px solid ${t.border}` }}>
         <h3 style={{ fontSize: 16, fontWeight: 700, margin: "0 0 16px 0", color: t.text }}>Images</h3>
-        <div style={{ position: "relative", marginBottom: 12 }}>
+        
+        <form onSubmit={searchImages} style={{ position: "relative", marginBottom: 12 }}>
            <Search size={16} color={t.textMuted} style={{ position: "absolute", left: 12, top: 10 }} />
-           <input placeholder="Search millions of images" style={{ width: "100%", padding: "10px 10px 10px 36px", border: `1px solid ${t.border}`, borderRadius: 4, background: t.surface, color: t.text }} />
+           <input 
+             value={query}
+             onChange={(e) => setQuery(e.target.value)}
+             placeholder="Search Unsplash..." 
+             style={{ width: "100%", padding: "10px 10px 10px 36px", border: `1px solid ${t.border}`, borderRadius: 4, background: t.surface, color: t.text }} 
+           />
+        </form>
+
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <p style={{ fontSize: 10, color: t.textMuted, margin: 0, lineHeight: 1.4 }}>
+            Powered by Unsplash.
+          </p>
+          <button 
+            onClick={() => setShowKeyInput(!showKeyInput)}
+            style={{ background: "none", border: "none", color: "#3A86FF", fontSize: 10, cursor: "pointer" }}
+          >
+            {showKeyInput ? "Hide API Key" : "Settings"}
+          </button>
         </div>
-        <p style={{ fontSize: 10, color: t.textMuted, textAlign: "center", margin: 0, lineHeight: 1.4 }}>
-          Powered by Unsplash, Pexels, Pixabay.<br/>All images licensed under Creative Commons Zero.
-        </p>
       </div>
       
-      <div style={{ padding: 16, flex: 1, overflowY: "auto", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, alignContent: "flex-start" }}>
-         <div style={{ height: 100, background: "#FF7E67", borderRadius: 4 }}></div>
-         <div style={{ height: 140, background: "#3A86FF", borderRadius: 4 }}></div>
-         
-         <div style={{ gridColumn: "1 / -1", background: "#06D6A0", borderRadius: 4, padding: 16, color: "#fff", display: "flex", flexDirection: "column", alignItems: "flex-start" }}>
-            <h4 style={{ margin: "0 0 8px", fontSize: 16, fontWeight: 700 }}>Let <span style={{ color: "#E0F2FE" }}>AI</span> Create Images</h4>
-            <p style={{ margin: "0 0 16px", fontSize: 12, opacity: 0.9, lineHeight: 1.4 }}>Get the perfect image with AI. Just type what you want and AI will create it for you.</p>
-            <button style={{ background: "#059669", border: "none", color: "#fff", padding: "8px 16px", borderRadius: 4, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>See the Magic</button>
-         </div>
+      <div style={{ padding: 16, flex: 1, overflowY: "auto", display: "flex", flexDirection: "column", gap: 16 }}>
+        
+        {showKeyInput && (
+          <div style={{ padding: 16, background: t.surface, borderRadius: 4, border: `1px solid ${t.border}` }}>
+            <h4 style={{ margin: "0 0 8px", fontSize: 13, color: t.text }}>Unsplash Setup</h4>
+            <p style={{ margin: "0 0 12px", fontSize: 11, color: t.textMuted }}>
+              To search millions of images, you need a free Unsplash Access Key. Create an app on the <a href="https://unsplash.com/developers" target="_blank" rel="noreferrer" style={{ color: "#3A86FF", textDecoration: "none" }}>Unsplash Developer</a> portal.
+            </p>
+            <input 
+              value={apiKey}
+              onChange={(e) => setApiKey(e.target.value)}
+              placeholder="Paste Access Key here" 
+              style={{ width: "100%", padding: "8px", border: `1px solid ${t.border}`, borderRadius: 4, background: t.background, color: t.text, marginBottom: 8, fontSize: 12 }} 
+            />
+            {error && <p style={{ color: "#EF4444", fontSize: 11, margin: "0 0 8px" }}>{error}</p>}
+            <button 
+              onClick={saveApiKey}
+              style={{ width: "100%", background: "#3A86FF", color: "#fff", border: "none", padding: "8px", borderRadius: 4, fontSize: 12, fontWeight: 600, cursor: "pointer" }}
+            >
+              Save Key
+            </button>
+          </div>
+        )}
 
-         <div style={{ height: 120, background: "#8338EC", borderRadius: 4 }}></div>
-         <div style={{ height: 160, background: "#FF006E", borderRadius: 4 }}></div>
-         <div style={{ height: 140, background: "#FFBE0B", borderRadius: 4 }}></div>
-         <div style={{ height: 100, background: "#FB5607", borderRadius: 4 }}></div>
+        {!showKeyInput && images.length === 0 && !loading && (
+          <div style={{ gridColumn: "1 / -1", background: "#06D6A0", borderRadius: 4, padding: 16, color: "#fff", display: "flex", flexDirection: "column", alignItems: "flex-start" }}>
+             <h4 style={{ margin: "0 0 8px", fontSize: 16, fontWeight: 700 }}>Let <span style={{ color: "#E0F2FE" }}>AI</span> Create Images</h4>
+             <p style={{ margin: "0 0 16px", fontSize: 12, opacity: 0.9, lineHeight: 1.4 }}>If you can't find what you need by searching, AI can create it.</p>
+             <button style={{ background: "#059669", border: "none", color: "#fff", padding: "8px 16px", borderRadius: 4, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>See the Magic</button>
+          </div>
+        )}
+
+        {loading && <div style={{ textAlign: "center", padding: "32px 0", color: t.textMuted, fontSize: 12 }}>Loading images...</div>}
+
+        {!loading && images.length > 0 && (
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, alignContent: "flex-start" }}>
+            {images.map(img => (
+              <div 
+                key={img.id} 
+                style={{ 
+                  height: 120, 
+                  borderRadius: 4, 
+                  backgroundImage: `url(${img.urls.small})`, 
+                  backgroundSize: 'cover', 
+                  backgroundPosition: 'center',
+                  cursor: "pointer",
+                  border: `1px solid ${t.border}`
+                }}
+                title={img.alt_description}
+              />
+            ))}
+          </div>
+        )}
+
       </div>
     </div>
   );
