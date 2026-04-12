@@ -18,6 +18,7 @@ export default function PageDimensions({ t, isDark, DIMENSIONS = [], rawDimensio
   const [toast, setToast] = useState(null);
   const showToast = (msg, type = "info") => { setToast({ msg, type }); setTimeout(() => setToast(null), 4000); };
   const [confirmDelete, setConfirmDelete] = useState(null);
+  const [editingItem, setEditingItem] = useState(null); // { group, item, value }
 
   const getRawDoc = (name) => rawDimensions.find(d => (d.category || d.name || d.id) === name);
   const getItemsField = (rawDoc) => {
@@ -67,6 +68,23 @@ export default function PageDimensions({ t, isDark, DIMENSIONS = [], rawDimensio
     } catch (err) {
       console.error("Delete dimension error:", err);
       showToast("Failed to delete dimension: " + (err.message || err), "error");
+    }
+  };
+
+  const handleRenameItem = async (groupName, oldVal, newVal) => {
+    const trimmed = newVal.trim();
+    if (!trimmed || trimmed === oldVal) { setEditingItem(null); return; }
+    const rawDoc = getRawDoc(groupName);
+    if (!rawDoc) return;
+    const field = getItemsField(rawDoc);
+    const current = rawDoc[field] || [];
+    if (current.includes(trimmed)) { showToast(`"${trimmed}" already exists.`, "error"); return; }
+    try {
+      await updateDoc(doc(db, collectionPath, rawDoc.doc_id), { [field]: current.map(v => v === oldVal ? trimmed : v) });
+      setEditingItem(null);
+    } catch (err) {
+      console.error("Rename dimension value error:", err);
+      showToast("Failed to rename value: " + (err.message || err), "error");
     }
   };
 
@@ -127,12 +145,37 @@ export default function PageDimensions({ t, isDark, DIMENSIONS = [], rawDimensio
               </div>
             </div>
             <div style={{ padding: "16px 20px", display: "flex", flexWrap: "wrap", gap: 8 }}>
-              {g.items.map(item => (
-                <div key={item} style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 11.5, fontWeight: 500, padding: "2px 10px", borderRadius: 20, background: t.tagBg, color: t.tagColor, border: `1px solid ${t.tagBorder}`, whiteSpace: "nowrap" }}>
-                  {item}
-                  {isEd && <span onClick={() => handleRemove(g.name, item)} style={{ fontSize: 13, color: isDark ? "#F87171" : "#DC2626", fontWeight: 700, lineHeight: 1, marginLeft: 2, cursor: "pointer" }}>×</span>}
-                </div>
-              ))}
+              {g.items.map(item => {
+                const isEditingThis = editingItem?.group === g.name && editingItem?.item === item;
+                if (isEditingThis) {
+                  return (
+                    <div key={item} style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                      <input
+                        autoFocus
+                        value={editingItem.value}
+                        onChange={e => setEditingItem(prev => ({ ...prev, value: e.target.value }))}
+                        onKeyDown={e => {
+                          if (e.key === "Enter") handleRenameItem(g.name, item, editingItem.value);
+                          if (e.key === "Escape") setEditingItem(null);
+                        }}
+                        onBlur={() => handleRenameItem(g.name, item, editingItem.value)}
+                        style={{ background: t.searchBg, border: `1px solid ${t.accent}`, borderRadius: 20, padding: "3px 10px", color: t.searchText, fontSize: 12.5, width: 110, outline: "none" }}
+                      />
+                    </div>
+                  );
+                }
+                return (
+                  <div key={item} style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 11.5, fontWeight: 500, padding: "2px 10px", borderRadius: 20, background: t.tagBg, color: t.tagColor, border: `1px solid ${t.tagBorder}`, whiteSpace: "nowrap" }}>
+                    {item}
+                    {isEd && (
+                      <>
+                        <span onClick={() => setEditingItem({ group: g.name, item, value: item })} style={{ fontSize: 11, color: t.textMuted, lineHeight: 1, marginLeft: 2, cursor: "pointer", opacity: 0.7 }}>✏️</span>
+                        <span onClick={() => handleRemove(g.name, item)} style={{ fontSize: 13, color: isDark ? "#F87171" : "#DC2626", fontWeight: 700, lineHeight: 1, cursor: "pointer" }}>×</span>
+                      </>
+                    )}
+                  </div>
+                );
+              })}
               {isEd && <div style={{ display: "flex", alignItems: "center", gap: 6 }}><input value={newVals[g.name] || ""} onChange={e => setNewVals(v => ({ ...v, [g.name]: e.target.value }))} onKeyDown={e => { if (e.key === "Enter") handleAdd(g.name); }} placeholder="Add value..." style={{ background: t.searchBg, border: `1px solid ${t.searchBorder}`, borderRadius: 20, padding: "5px 12px", color: t.searchText, fontSize: 12.5, width: 120 }} /><button onClick={() => handleAdd(g.name)} style={{ width: 28, height: 28, borderRadius: 8, background: t.addItemBg, color: t.addItemColor, border: `1px solid ${t.addItemBorder}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, cursor: "pointer", fontWeight: 700 }}>+</button></div>}
             </div>
           </div>
