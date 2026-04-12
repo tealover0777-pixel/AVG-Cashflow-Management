@@ -39,6 +39,8 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
   const [uploadedPhotos, setUploadedPhotos] = useState([]);
   const [newPhotoFiles, setNewPhotoFiles] = useState([]);
   const photoInputRef = useRef(null);
+  const dealCoverPhotoRef = useRef(null);
+  const [uploadingCover, setUploadingCover] = useState(false);
   const [attributes, setAttributes] = useState([]);
   const [generating, setGenerating] = useState(false);
   const [genConfirm, setGenConfirm] = useState(null);
@@ -103,7 +105,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
   useEffect(() => {
     if (deal.id) {
       getDocs(collection(db, "deals", deal.id, "asset_images")).then(snap => {
-        setAssetImages(snap.docs.map(d => d.data()));
+        setAssetImages(snap.docs.map(d => ({ id: d.id, ...d.data() })));
       }).catch(console.error);
 
       // Fetch assets
@@ -1208,6 +1210,52 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
     setNewPhotoFiles(prev => prev.filter((_, i) => i !== index));
   };
 
+  const handleDealCoverUpload = async (e) => {
+    if (!deal || !deal.id) {
+      showToast("Please ensure the deal is saved before uploading photos.", "error");
+      return;
+    }
+    const files = Array.from(e.target.files || e.dataTransfer?.files || []);
+    if (!files.length) return;
+    setUploadingCover(true);
+    try {
+      for (const file of files) {
+        const path = `deals/${deal.id}/asset_images/${Date.now()}_${file.name}`;
+        const storageRef = ref(storage, path);
+        const uploadResult = await uploadBytes(storageRef, file);
+        const url = await getDownloadURL(uploadResult.ref);
+        await addDoc(collection(db, "deals", deal.id, "asset_images"), {
+          url,
+          path,
+          name: file.name,
+          created_at: serverTimestamp()
+        });
+      }
+      const snap = await getDocs(collection(db, "deals", deal.id, "asset_images"));
+      setAssetImages(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    } catch (err) {
+      console.error(err);
+      showToast("Failed to upload deal cover photo", "error");
+    } finally {
+      setUploadingCover(false);
+    }
+  };
+
+  const removeDealCoverPhoto = async (photo) => {
+    try {
+      if (photo.id) {
+        await deleteDoc(doc(db, "deals", deal.id, "asset_images", photo.id));
+      }
+      if (photo.path) {
+        try { await deleteObject(ref(storage, photo.path)); } catch (_) {}
+      }
+      setAssetImages(prev => prev.filter(p => p.id !== photo.id));
+    } catch (err) {
+      console.error("Error removing photo:", err);
+      showToast("Failed to remove cover photo", "error");
+    }
+  };
+
   const removeUploadedPhoto = async (photo) => {
     try {
       await deleteDoc(doc(db, "deals", deal.id, "assets", assetModal.data.docId, "photos", photo.id));
@@ -2182,14 +2230,105 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
           )}
         </div>
       ) : activeTab === "Assets" ? (
-        <div style={{ height: '500px', width: "100%", minHeight: '500px' }}>
-          <TanStackTable
-            data={assets}
-            columns={assetColumnDefs}
-            pageSize={pageSize}
-            t={t}
-            isDark={isDark}
-          />
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 40, paddingBottom: 40 }}>
+          <div style={{ width: "100%", minHeight: '300px' }}>
+            <TanStackTable
+              data={assets}
+              columns={assetColumnDefs}
+              pageSize={pageSize}
+              t={t}
+              isDark={isDark}
+            />
+          </div>
+          <div>
+            <div style={{ display: "flex", gap: 16, marginBottom: 16, alignItems: 'flex-start' }}>
+              <div style={{ width: 180 }}>
+                <h3 style={{ fontSize: 16, fontWeight: 600, color: t.text, margin: 0 }}>Deal cover photo</h3>
+              </div>
+              <p style={{ fontSize: 13, color: t.textSecondary, margin: 0, lineHeight: 1.5, flex: 1, maxWidth: 600 }}>
+                Upload your asset cover photo(s) here. For property-specific photos, add them to each asset.<br/>
+                Recommended: 16:9 for single photo or 4:3 for multiple photos. Minimum 1000px width.
+              </p>
+            </div>
+            <div style={{ display: "flex", gap: 24, alignItems: "flex-start", flexWrap: "wrap" }}>
+              <div
+                style={{
+                  border: `2px dashed ${t.surfaceBorder || "rgba(0,0,0,0.2)"}`,
+                  borderRadius: 12,
+                  padding: "30px 20px",
+                  textAlign: "center",
+                  background: isDark ? "rgba(255,255,255,0.02)" : "#FAFAFA",
+                  cursor: "pointer",
+                  position: "relative",
+                  width: 180,
+                  boxSizing: "border-box"
+                }}
+                onClick={() => dealCoverPhotoRef.current?.click()}
+                onDragOver={(e) => e.preventDefault()}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                    handleDealCoverUpload({ target: { files: e.dataTransfer.files } });
+                  }
+                }}
+              >
+                <div style={{ fontSize: 28, marginBottom: 8 }}>📷</div>
+                <div style={{ fontSize: 13, fontWeight: 600, color: t.text, marginBottom: 4 }}>
+                  {uploadingCover ? "Uploading..." : "Drag and drop photos"}
+                </div>
+                {!uploadingCover && <div style={{ fontSize: 12, color: t.textMuted }}>or browse to choose files</div>}
+                <input
+                  ref={dealCoverPhotoRef}
+                  type="file"
+                  multiple
+                  accept="image/*"
+                  onChange={handleDealCoverUpload}
+                  style={{ display: "none" }}
+                />
+              </div>
+              {assetImages.length > 0 && (
+                <div style={{ flex: 1, display: "flex", flexWrap: "wrap", gap: 16 }}>
+                  {assetImages.map((photo, i) => (
+                    <div
+                      key={photo.id || i}
+                      style={{
+                        position: "relative",
+                        borderRadius: 12,
+                        overflow: "hidden",
+                        border: `1px solid ${t.surfaceBorder || "rgba(0,0,0,0.1)"}`,
+                        width: 200,
+                        aspectRatio: "16/9"
+                      }}
+                    >
+                      <img
+                        src={photo.url}
+                        alt={photo.name || "Cover"}
+                        style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                      />
+                      <button
+                        onClick={(e) => { e.stopPropagation(); removeDealCoverPhoto(photo); }}
+                        style={{
+                          position: "absolute",
+                          top: 8,
+                          right: 8,
+                          background: "rgba(0,0,0,0.6)",
+                          border: "none",
+                          borderRadius: 6,
+                          padding: 6,
+                          cursor: "pointer",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center"
+                        }}
+                      >
+                        <X size={14} color="#fff" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       ) : activeTab === "Contacts" ? (
         <div style={{ height: '500px', width: "100%", minHeight: '500px' }}>
