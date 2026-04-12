@@ -366,20 +366,11 @@ function BodyTab({ t, isDark }) {
 }
 
 function ImagesTab({ t }) {
-  const { user, profile, isSuperAdmin, isGlobalRole, isR10010 } = useAuth();
-  const rawRole = (profile?.role || "").toLowerCase();
-  const isAdmin = isSuperAdmin || isGlobalRole || isR10010 || 
-                  ["super admin", "platform admin", "r10009", "r10010"].includes(rawRole) || 
-                  rawRole.includes("admin") ||
-                  user?.email?.toLowerCase() === "kyuahn@yahoo.com";
-
   const [query, setQuery] = useState("");
   const [images, setImages] = useState([]);
   const [loading, setLoading] = useState(false);
   const [apiKey, setApiKey] = useState("");
-  const [showKeyInput, setShowKeyInput] = useState(false);
   const [error, setError] = useState(null);
-  const [isInitializing, setIsInitializing] = useState(true);
 
   useEffect(() => {
     const fetchKey = async () => {
@@ -388,23 +379,19 @@ function ImagesTab({ t }) {
         const docSnap = await getDoc(docRef);
         if (docSnap.exists() && docSnap.data().unsplash_api_key) {
           setApiKey(docSnap.data().unsplash_api_key);
-        } else if (isAdmin) {
-          setShowKeyInput(true);
         }
       } catch (err) {
         console.error("Error fetching Unsplash API Key:", err);
-      } finally {
-        setIsInitializing(false);
       }
     };
     fetchKey();
-  }, [isAdmin]);
+  }, []);
 
   const searchImages = async (e) => {
     if (e) e.preventDefault();
     if (!query.trim()) return;
     if (!apiKey) {
-      setShowKeyInput(true);
+      setError("Unsplash integration is currently unavailable.");
       return;
     }
 
@@ -417,13 +404,6 @@ function ImagesTab({ t }) {
         }
       });
       
-      if (res.status === 401) {
-        setError("Invalid API Key. Please check your Access Key.");
-        setShowKeyInput(true);
-        setLoading(false);
-        return;
-      }
-      
       if (!res.ok) throw new Error("Failed to fetch images");
 
       const data = await res.json();
@@ -434,25 +414,6 @@ function ImagesTab({ t }) {
       setLoading(false);
     }
   };
-
-  const saveApiKey = async () => {
-    try {
-      await setDoc(doc(db, "system", "integrations"), { unsplash_api_key: apiKey }, { merge: true });
-      setShowKeyInput(false);
-      if (query.trim()) searchImages();
-    } catch (err) {
-      console.error("Error saving API key", err);
-      setError("Failed to save API key.");
-    }
-  };
-
-  if (isInitializing) {
-    return (
-      <div style={{ display: "flex", justifyContent: "center", alignItems: "center", padding: 32, fontSize: 12, color: t.textMuted }}>
-        Loading integration...
-      </div>
-    );
-  }
 
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
@@ -473,48 +434,14 @@ function ImagesTab({ t }) {
           <p style={{ fontSize: 10, color: t.textMuted, margin: 0, lineHeight: 1.4 }}>
             Powered by Unsplash.
           </p>
-          {isAdmin && (
-            <button 
-              onClick={() => setShowKeyInput(!showKeyInput)}
-              style={{ background: "none", border: "none", color: "#3A86FF", fontSize: 10, cursor: "pointer" }}
-            >
-              {showKeyInput ? "Hide API Key" : "Settings"}
-            </button>
-          )}
         </div>
       </div>
       
       <div style={{ padding: 16, flex: 1, overflowY: "auto", display: "flex", flexDirection: "column", gap: 16 }}>
         
-        {showKeyInput && isAdmin && (
-          <div style={{ padding: 16, background: t.surface, borderRadius: 4, border: `1px solid ${t.border}` }}>
-            <h4 style={{ margin: "0 0 8px", fontSize: 13, color: t.text }}>Unsplash Setup</h4>
-            <p style={{ margin: "0 0 12px", fontSize: 11, color: t.textMuted }}>
-              To search millions of images, you need a free Unsplash Access Key. Create an app on the <a href="https://unsplash.com/developers" target="_blank" rel="noreferrer" style={{ color: "#3A86FF", textDecoration: "none" }}>Unsplash Developer</a> portal.
-            </p>
-            <input 
-              value={apiKey}
-              onChange={(e) => setApiKey(e.target.value)}
-              placeholder="Paste Access Key here" 
-              style={{ width: "100%", padding: "8px", border: `1px solid ${t.border}`, borderRadius: 4, background: t.background, color: t.text, marginBottom: 8, fontSize: 12 }} 
-            />
-            {error && <p style={{ color: "#EF4444", fontSize: 11, margin: "0 0 8px" }}>{error}</p>}
-            <button 
-              onClick={saveApiKey}
-              style={{ width: "100%", background: "#3A86FF", color: "#fff", border: "none", padding: "8px", borderRadius: 4, fontSize: 12, fontWeight: 600, cursor: "pointer" }}
-            >
-              Save Key
-            </button>
-          </div>
-        )}
+        {error && <p style={{ color: "#EF4444", fontSize: 12, margin: "0 0 8px" }}>{error}</p>}
 
-        {!apiKey && !isAdmin && images.length === 0 && (
-          <div style={{ textAlign: "center", padding: "32px 16px", color: t.textMuted, fontSize: 12, background: t.surface, borderRadius: 4, border: `1px dashed ${t.border}` }}>
-            Unsplash integration is not configured. Please contact a Platform Administrator to set it up.
-          </div>
-        )}
-
-        {!showKeyInput && images.length === 0 && !loading && apiKey && (
+        {images.length === 0 && !loading && (
           <div style={{ gridColumn: "1 / -1", background: "#06D6A0", borderRadius: 4, padding: 16, color: "#fff", display: "flex", flexDirection: "column", alignItems: "flex-start" }}>
              <h4 style={{ margin: "0 0 8px", fontSize: 16, fontWeight: 700 }}>Let <span style={{ color: "#E0F2FE" }}>AI</span> Create Images</h4>
              <p style={{ margin: "0 0 16px", fontSize: 12, opacity: 0.9, lineHeight: 1.4 }}>If you can't find what you need by searching, AI can create it.</p>
