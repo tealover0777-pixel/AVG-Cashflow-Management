@@ -163,6 +163,9 @@ export const getNav = (isSuper, isAdmin, hasPermission, isR10010) => {
     // AI Admin restricted to Super Admins (you can change this to global roles if needed)
     if (item.label === "AI Admin") return isSuper;
 
+    // Strict check for Marketing emails regardless of platform user status
+    if (item.label === "Marketing emails" && (!hasPermission || !hasPermission("MARTETING_VIEW"))) return false;
+
     if (isSuper) return true; // Super Admins always see everything else
 
     if (!hasPermission) return false;
@@ -186,7 +189,6 @@ export const getNav = (isSuper, isAdmin, hasPermission, isR10010) => {
     if (item.label === "Tenants" && !(hasPermission("PLATFORM_TENANT_VIEW") || hasPermission("TENANT_VIEW"))) return false;
     if (item.label === "Dimensions" && !(hasPermission("DIMENSION_VIEW") || hasPermission("DIMENTION_VIEW"))) return false;
     if (item.label === "Reports" && !hasPermission("REPORT_VIEW")) return false;
-    if (item.label === "Marketing emails" && !hasPermission("MARKETING_VIEW")) return false;
 
     return true;
   };

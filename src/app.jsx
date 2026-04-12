@@ -24,6 +24,7 @@ import PageProfile from "./pages/PageProfile";
 import PageReports from "./pages/PageReports";
 import PageDimensions from "./pages/PageDimensions";
 import PageMarketingEmails from "./pages/PageMarketingEmails";
+import PageManageTemplates from "./pages/PageManageTemplates";
 import PageEmailBuilder from "./pages/PageEmailBuilder";
 import {
   LayoutDashboard, Briefcase, Users, PieChart, Calendar, 
@@ -704,6 +705,7 @@ function AppContent() {
                   {activePage === "Dimensions" && <PageDimensions t={t} isDark={isDark} DIMENSIONS={DIMENSIONS} rawDimensions={rawDimensions} collectionPath={fetchPaths.dimensions} />}
                   {activePage === "Reports" && <PageReports t={t} isDark={isDark} MONTHLY={MONTHLY} activeTenantId={activeTenantId} />}
                   {activePage === "Marketing emails" && <PageMarketingEmails t={t} isDark={isDark} setActivePage={setActivePage} />}
+                  {activePage === "Manage Templates" && <PageManageTemplates t={t} isDark={isDark} setActivePage={setActivePage} />}
                   {activePage === "Email Builder" && <PageEmailBuilder t={t} isDark={isDark} setActivePage={setActivePage} />}
                   {activePage === "AI Admin" && <PageAdminHelp t={t} isDark={isDark} />}
                 </>

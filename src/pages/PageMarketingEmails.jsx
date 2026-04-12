@@ -44,18 +44,31 @@ export default function PageMarketingEmails({ t, isDark, setActivePage }) {
           <h1 style={{ fontSize: 24, fontWeight: 700, margin: "0 0 4px 0", color: t.text }}>Marketing Emails</h1>
           <p style={{ margin: 0, fontSize: 13, color: t.textMuted }}>Manage your campaigns, newsletters, and communications.</p>
         </div>
-        <button
-          className="btn-primary"
-          onClick={() => setShowTemplateModal(true)}
-          style={{
-            display: "flex", alignItems: "center", gap: 8,
-            padding: "10px 18px", borderRadius: 8, background: t.accentGrad,
-            color: "#fff", fontWeight: 600, fontSize: 13, border: "none", cursor: "pointer",
-            boxShadow: "0 4px 12px rgba(59,130,246,0.25)"
-          }}
-        >
-          <Plus size={16} /> New Draft
-        </button>
+        <div style={{ display: "flex", gap: 12 }}>
+          <button
+            className="btn-secondary"
+            onClick={() => setActivePage("Manage Templates")}
+            style={{
+              display: "flex", alignItems: "center", gap: 8,
+              padding: "10px 18px", borderRadius: 8, background: isDark ? "rgba(255,255,255,0.05)" : "#fff",
+              color: t.text, fontWeight: 600, fontSize: 13, border: `1px solid ${t.border}`, cursor: "pointer",
+            }}
+          >
+            <LayoutTemplate size={16} /> Templates
+          </button>
+          <button
+            className="btn-primary"
+            onClick={() => setShowTemplateModal(true)}
+            style={{
+              display: "flex", alignItems: "center", gap: 8,
+              padding: "10px 18px", borderRadius: 8, background: t.accentGrad,
+              color: "#fff", fontWeight: 600, fontSize: 13, border: "none", cursor: "pointer",
+              boxShadow: "0 4px 12px rgba(59,130,246,0.25)"
+            }}
+          >
+            <Plus size={16} /> New Draft
+          </button>
+        </div>
       </div>
 
       {/* Tabs Layout */}
