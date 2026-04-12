@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { 
-  ChevronLeft, Edit2, CloudSelect, Calendar, Mail, Send,
+  ChevronLeft, Edit2, UploadCloud, Calendar, Mail, Send,
   FileEdit, Settings, Smartphone, Monitor, Paperclip, Save,
   Columns, TrendingUp, Square, Minus, Type, AlignLeft, Image as ImageIcon,
   FileText, Video, Users, Menu, Code, Table
@@ -14,7 +14,7 @@ export default function PageEmailBuilder({ t, isDark, setActivePage }) {
     { id: "Blocks", icon: Columns },
     { id: "Body", icon: AlignLeft },
     { id: "Images", icon: ImageIcon },
-    { id: "Uploads", icon: CloudSelect },
+    { id: "Uploads", icon: UploadCloud },
     { id: "Audit", icon: FileText },
   ];
 
@@ -53,7 +53,7 @@ export default function PageEmailBuilder({ t, isDark, setActivePage }) {
 
         <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
           <span style={{ fontSize: 12, color: t.textMuted, display: "flex", alignItems: "center", gap: 4 }}>
-            <CloudSelect size={14} /> Saved
+            <UploadCloud size={14} /> Saved
           </span>
           <button style={{ background: "transparent", border: "none", color: isDark ? "#60A5FA" : "#3B82F6", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
             Schedule a demo
