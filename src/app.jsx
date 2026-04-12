@@ -29,7 +29,7 @@ import {
   HelpCircle, LogOut, ChevronDown, Sparkles, Sun, Moon, 
   TableProperties, Hash, LayoutGrid, Coins, CircleDollarSign,
   UserSquare, ShieldAlert, Building2, ShieldCheck, UserPlus,
-  Bot, Box, CalendarDays, User, ChevronRight, Server, HeartHandshake
+  Bot, Box, CalendarDays, User, ChevronRight, Server, HeartHandshake, Landmark
 } from "lucide-react";
 import { Tooltip } from "./components";
 import SidebarHelp from "./components/SidebarHelp";
@@ -44,7 +44,7 @@ const Icon = ({ name, size = 18, color = "currentColor" }) => {
     UserPlus, Bot, Box, BarChart3, CalendarDays, PieChart, CreditCard, 
     User, ChevronRight, HelpCircle, LogOut, Sparkles, Sun, Moon,
     Shield, UserCircle, ChevronDown, TableProperties, Hash, Calendar,
-    Server, HeartHandshake
+    Server, HeartHandshake, Landmark
   };
   const LucideIcon = icons[name];
   return LucideIcon ? <LucideIcon size={size} color={color} style={{ flexShrink: 0 }} /> : null;

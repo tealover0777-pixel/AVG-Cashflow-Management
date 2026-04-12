@@ -112,6 +112,14 @@ const NAV_ITEMS = [
     ]
   },
   {
+    label: "Banking",
+    icon: "Landmark",
+    expandable: true,
+    children: [
+      { label: "Payments", icon: "CreditCard" },
+    ]
+  },
+  {
     label: "Administration",
     icon: "ShieldAlert",
     expandable: true,
@@ -120,7 +128,6 @@ const NAV_ITEMS = [
       { label: "Investments", icon: "Coins" },
       { label: "Role Types", icon: "ShieldCheck" },
       { label: "Payment Schedule", icon: "CalendarDays" },
-      { label: "Payments", icon: "CreditCard" },
     ]
   },
   {
