@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
+import { doc, getDoc, setDoc } from "firebase/firestore";
 import { ref, uploadBytesResumable, getDownloadURL, listAll } from "firebase/storage";
-import { storage } from "../firebase";
+import { db, storage } from "../firebase";
 import { useAuth } from "../AuthContext";
 import { 
   ChevronLeft, Edit2, UploadCloud, Calendar, Mail, Send,
@@ -365,15 +366,35 @@ function BodyTab({ t, isDark }) {
 }
 
 function ImagesTab({ t }) {
-  const { profile } = useAuth();
-  const isAdmin = ["super admin", "platform admin"].includes(profile?.role?.toLowerCase());
+  const { profile, isSuperAdmin, isGlobalRole } = useAuth();
+  const isAdmin = isSuperAdmin || isGlobalRole || ["super admin", "platform admin", "r10009"].includes(profile?.role?.toLowerCase()) || ["R10009"].includes(profile?.role?.toUpperCase());
 
   const [query, setQuery] = useState("");
   const [images, setImages] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [apiKey, setApiKey] = useState(localStorage.getItem("UNSPLASH_API_KEY") || "");
-  const [showKeyInput, setShowKeyInput] = useState(!localStorage.getItem("UNSPLASH_API_KEY") && isAdmin);
+  const [apiKey, setApiKey] = useState("");
+  const [showKeyInput, setShowKeyInput] = useState(false);
   const [error, setError] = useState(null);
+  const [isInitializing, setIsInitializing] = useState(true);
+
+  useEffect(() => {
+    const fetchKey = async () => {
+      try {
+        const docRef = doc(db, "system", "integrations");
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists() && docSnap.data().unsplash_api_key) {
+          setApiKey(docSnap.data().unsplash_api_key);
+        } else if (isAdmin) {
+          setShowKeyInput(true);
+        }
+      } catch (err) {
+        console.error("Error fetching Unsplash API Key:", err);
+      } finally {
+        setIsInitializing(false);
+      }
+    };
+    fetchKey();
+  }, [isAdmin]);
 
   const searchImages = async (e) => {
     if (e) e.preventDefault();
@@ -410,11 +431,24 @@ function ImagesTab({ t }) {
     }
   };
 
-  const saveApiKey = () => {
-    localStorage.setItem("UNSPLASH_API_KEY", apiKey);
-    setShowKeyInput(false);
-    if (query.trim()) searchImages();
+  const saveApiKey = async () => {
+    try {
+      await setDoc(doc(db, "system", "integrations"), { unsplash_api_key: apiKey }, { merge: true });
+      setShowKeyInput(false);
+      if (query.trim()) searchImages();
+    } catch (err) {
+      console.error("Error saving API key", err);
+      setError("Failed to save API key.");
+    }
   };
+
+  if (isInitializing) {
+    return (
+      <div style={{ display: "flex", justifyContent: "center", alignItems: "center", padding: 32, fontSize: 12, color: t.textMuted }}>
+        Loading integration...
+      </div>
+    );
+  }
 
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
