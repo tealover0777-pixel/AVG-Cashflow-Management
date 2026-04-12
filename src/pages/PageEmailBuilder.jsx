@@ -479,7 +479,7 @@ function ImagesTab({ t }) {
         
         {showKeyInput && isAdmin && (
           <div style={{ padding: 16, background: t.surface, borderRadius: 4, border: `1px solid ${t.border}` }}>
-            <h4 style={{ margin: "0 0 8px", fontSize: 13, color: t.text }}>Unsplash Setup</h4>
+            <h4 style={{ margin: "0 0 8px", fontSize: 13, color: t.text }}>Unsplash Setup <span style={{ fontSize: 10, color: t.textMuted, fontWeight: 400, marginLeft: 4 }}>(Platform-wide Integration)</span></h4>
             <p style={{ margin: "0 0 12px", fontSize: 11, color: t.textMuted }}>
               To search millions of images, you need a free Unsplash Access Key. Create an app on the <a href="https://unsplash.com/developers" target="_blank" rel="noreferrer" style={{ color: "#3A86FF", textDecoration: "none" }}>Unsplash Developer</a> portal.
             </p>
