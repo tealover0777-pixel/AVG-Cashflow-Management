@@ -49,7 +49,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
   const [confirmAction, setConfirmAction] = useState(null); // { title: string, message: string, onConfirm: () => void }
   const [toast, setToast] = useState(null);
   const showToast = (msg, type = "info") => { setToast({ msg, type }); setTimeout(() => setToast(null), 4000); };
-  
+
   const roleOpts = (DIMENSIONS.find(d => d.name === "ContactRole") || {}).items || ["Investor", "Borrower"];
   const partyTypeOpts = (DIMENSIONS.find(d => d.name === "ContactType") || {}).items || ["Individual", "Company", "Trust", "Partnership"];
   const investorTypeOpts = (DIMENSIONS.find(d => d.name === "InvestorType") || {}).items || ["Fixed", "Equity", "Both"];
@@ -101,22 +101,22 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
 
   useEffect(() => {
     if (deal.id) {
-       getDocs(collection(db, "deals", deal.id, "asset_images")).then(snap => {
-         setAssetImages(snap.docs.map(d => d.data()));
-       }).catch(console.error);
+      getDocs(collection(db, "deals", deal.id, "asset_images")).then(snap => {
+        setAssetImages(snap.docs.map(d => d.data()));
+      }).catch(console.error);
 
-       // Fetch assets
-       getDocs(collection(db, "deals", deal.id, "assets")).then(snap => {
-         setAssets(snap.docs.map(d => ({ docId: d.id, ...d.data() })));
-       }).catch(console.error);
+      // Fetch assets
+      getDocs(collection(db, "deals", deal.id, "assets")).then(snap => {
+        setAssets(snap.docs.map(d => ({ docId: d.id, ...d.data() })));
+      }).catch(console.error);
     }
   }, [deal.id]);
 
-  const dealInvestments = useMemo(() => 
+  const dealInvestments = useMemo(() =>
     INVESTMENTS.filter(c => c.deal_id === dealId || c.deal === deal.name)
-  , [dealId, deal.name, INVESTMENTS]);
+    , [dealId, deal.name, INVESTMENTS]);
 
-// Fund balance calculation moved to dealSchedules useMemo
+  // Fund balance calculation moved to dealSchedules useMemo
 
   const dealContacts = useMemo(() => {
     const partyIds = new Set(dealInvestments.map(inv => inv.party_id));
@@ -125,12 +125,12 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
 
   const dealSchedules = useMemo(() =>
     SCHEDULES.filter(s => s.deal_id === dealId)
-  , [dealId, SCHEDULES]);
+    , [dealId, SCHEDULES]);
 
   // Filter to only active versions for table view
   const activeDealSchedules = useMemo(() =>
     dealSchedules.filter(s => s.active_version === true)
-  , [dealSchedules]);
+    , [dealSchedules]);
 
   const totalFundBalance = useMemo(() => {
     let sum = 0;
@@ -138,11 +138,11 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
       // Use original numeric amount if available, or parse from signed_payment_amount string
       const amt = Number(String(sch.signed_payment_amount || 0).replace(/[^0-9.-]/g, "")) || 0;
       const ut = (sch.payment_type || sch.type || "").toUpperCase();
-      
+
       if (ut === "INVESTOR_PRINCIPAL_DEPOSIT") {
         sum += amt;
       }
-      
+
       if ((sch.status || "").toLowerCase().includes("withdraw")) {
         sum -= amt;
       }
@@ -190,13 +190,13 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
       if (hasFeeRef) {
         const fId = (schedule.fee_id || schedule.feeId || "");
         const fee = fId ? (FEES_DATA.find(f => f.id === fId) || FEES_DATA.find(f => f.docId === fId)) : null;
-        
+
         // Use explicit fee_name on schedule OR lookup fee name
         let resolvedName = (schedule.fee_name || schedule.feeName || "").trim();
         if (!resolvedName && fee) {
           resolvedName = fee.name;
         }
-        
+
         if (resolvedName) paymentType = resolvedName;
       }
 
@@ -251,9 +251,9 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
     // Convert row keys to objects with investor and type
     const rows = Array.from(rowSet).map(key => {
       const [investor, type] = key.split('|||');
-      return { 
-        investor, 
-        type, 
+      return {
+        investor,
+        type,
         key,
         ...rowMetadata[key]
       };
@@ -269,15 +269,15 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
 
   const drillDownColumns = useMemo(() => [
     { header: "Start Date", accessorKey: "startDate", size: 100 },
-    { 
-      header: "Due Date", 
-      accessorKey: "dueDate", 
+    {
+      header: "Due Date",
+      accessorKey: "dueDate",
       size: 100,
       cell: ({ row }) => row.original.dueDate || row.original.due_date || "—"
     },
-    { 
-      header: "Type", 
-      accessorKey: "type", 
+    {
+      header: "Type",
+      accessorKey: "type",
       size: 180,
       cell: ({ row }) => {
         let type = row.original.type || row.original.payment_type || "Unknown";
@@ -295,9 +295,9 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
     { header: "Rate", accessorKey: "rate", size: 80 },
     { header: "Frequency", accessorKey: "freq", size: 100 },
     { header: "Period", accessorKey: "period_number", size: 80 },
-    { 
-      header: "Amount", 
-      accessorKey: "signed_payment_amount", 
+    {
+      header: "Amount",
+      accessorKey: "signed_payment_amount",
       size: 120,
       cell: ({ row }) => {
         const val = row.original.signed_payment_amount || row.original.signedPaymentAmount || row.original.amount || 0;
@@ -319,7 +319,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
       const matchFreq = !pivotFilters.freq || row.freq?.toLowerCase().includes(pivotFilters.freq.toLowerCase());
       const matchRate = !pivotFilters.rate || String(row.rate)?.toLowerCase().includes(pivotFilters.rate.toLowerCase());
       const matchMethod = !pivotFilters.paymentMethod || row.paymentMethod?.toLowerCase().includes(pivotFilters.paymentMethod.toLowerCase());
-      
+
       return matchInvestor && matchType && matchStart && matchEnd && matchFreq && matchRate && matchMethod;
     });
 
@@ -343,7 +343,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
   const investorNewTypeOpts = (DIMENSIONS.find(d => d.name === "InvestorInvestmentNewType") || {}).items || [];
   const borrowerNewTypeOpts = (DIMENSIONS.find(d => d.name === "BorrowerInvestmentNewType") || {}).items || [];
   const scheduleFrequencyOpts = (DIMENSIONS.find(d => d.name === "ScheduleFrequency" || d.name === "Schedule Frequency") || {}).items || ["Monthly", "Quarterly", "Semi-Annual", "Annual", "At Maturity"];
-  
+
   const selectedContact = CONTACTS.find(p => p.name === modal.data.party);
   const contactRole = selectedContact ? selectedContact.role : "";
   const getTypeOpts = () => {
@@ -415,7 +415,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
     const feeIds = r.fees ? String(r.fees).split(",").filter(Boolean) : [];
     setModal({ open: true, mode: "edit", data: { ...r, feeIds } });
   };
-  
+
   const openAddContactModal = () => setContactModal({ open: true, mode: "existing", data: { type: "Individual", role: "Investor", investor_type: "Fixed" } });
 
   const handleSaveContactToDeal = async () => {
@@ -434,7 +434,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
           ? contactModal.data.company_name
           : `${contactModal.data.first_name} ${contactModal.data.last_name}`.trim();
 
-        const partyPathPrefix = investmentCollection.includes("/") 
+        const partyPathPrefix = investmentCollection.includes("/")
           ? investmentCollection.substring(0, investmentCollection.lastIndexOf("/")) + "/contacts"
           : "contacts";
 
@@ -473,7 +473,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
 
       // Create $0 investment record
       const invId = `INV${Date.now()}R${Math.floor(Math.random() * 100)}`;
-      
+
       const newInv = {
         id: invId,
         investment_id: invId,
@@ -536,7 +536,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
         await updateDoc(contactRef, { payment_method: d.payment_method, updated_at: serverTimestamp() }).catch(e => console.error("Sync contact error:", e));
       }
       setModal(m => ({ ...m, open: false }));
-    } catch (err) { 
+    } catch (err) {
       console.error("Save investment error:", err);
       setGenResult({ title: "Error", message: "Failed to save investment. " + err.message });
     }
@@ -985,7 +985,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
         const finalNewEntries = [...nonFeeEntries, ...mergedFees];
 
         // --- 5. SAFE REFRESH LOGIC ---
-        const existingSchedules = SCHEDULES.filter(s => (s.investment_id||s.investment) === c.id);
+        const existingSchedules = SCHEDULES.filter(s => (s.investment_id || s.investment) === c.id);
         const dueSchedules = existingSchedules.filter(s => s.status === "Due");
         const lockedSchedules = existingSchedules.filter(s => s.status !== "Due");
         const handledIds = new Set();
@@ -1078,8 +1078,8 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
 
     // Parse attributes from data
     const attrFields = ["asset_type", "property_class", "num_units", "units", "net_asset_value",
-                        "acquisition_price", "acquisition_date", "exit_price", "exit_date",
-                        "year_built", "year_renovated"];
+      "acquisition_price", "acquisition_date", "exit_price", "exit_date",
+      "year_built", "year_renovated"];
     const attrs = [];
     attrFields.forEach(field => {
       if (r[field] !== undefined && r[field] !== null && r[field] !== "") {
@@ -1216,8 +1216,8 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
   };
 
   const permissions = { canUpdate, canDelete };
-  const callbacks = { 
-    onEdit: openEdit, 
+  const callbacks = {
+    onEdit: openEdit,
     onDelete: setDelT,
     onContactClick: (r) => {
       const cp = CONTACTS.find(x => x.name === r.party || x.id === r.party_id || x.docId === r.party_id);
@@ -1251,52 +1251,52 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
 
         setConfirmAction({
           title: isVersioned ? "Revert to Previous Version" : "Undo Action",
-          message: isVersioned 
+          message: isVersioned
             ? `This will delete current (V${s.version_num}) and reactivate the previous version. Are you sure?`
             : `Are you sure you want to revert last action for ${s.schedule_id || s.payment_id}?`,
           onConfirm: async () => {
-             try {
-                setConfirmAction(null);
-                const refPath = s._path || `${scheduleCollection}/${s.docId || s.id}`;
-                const ref = doc(db, refPath);
+            try {
+              setConfirmAction(null);
+              const refPath = s._path || `${scheduleCollection}/${s.docId || s.id}`;
+              const ref = doc(db, refPath);
 
-                if (isVersioned && prevId) {
-                   // 1. Find the predecessor in the global SCHEDULES array
-                   const prev = (SCHEDULES || []).find(x => x.docId === prevId || x.version_id === prevId);
-                   if (prev) {
-                      const prevRef = prev._path ? doc(db, prev._path) : doc(db, scheduleCollection, prev.docId);
-                      // Reactivate predecessor
-                      const restorePayload = {
-                        active_version: true,
-                        updated_at: serverTimestamp(),
-                        replaced_at: null,
-                        replaced_by: null,
-                        linked_schedule_id: ""
-                      };
-                      // If current version carries a snapshot, use it
-                      if (s._undo_snapshot) {
-                         Object.assign(restorePayload, s._undo_snapshot);
-                      } else {
-                         restorePayload.status = (prev.status === "REPLACED") ? "Due" : prev.status;
-                      }
-                      await updateDoc(prevRef, restorePayload);
-                   }
-                   // 2. Delete current
-                   await deleteDoc(ref);
-                   showToast(`Succeeded! Reverted ${s.schedule_id} to previous version.`, "success");
-                } else if (s._undo_snapshot) {
-                   // Snapshot revert for non-versioned
-                   await updateDoc(ref, { ...s._undo_snapshot, _undo_snapshot: null, updated_at: serverTimestamp() });
-                   showToast(`Succeeded! Restored ${s.schedule_id} to previous state.`, "success");
-                } else {
-                   // Basic delete fallback
-                   await deleteDoc(ref);
-                   showToast(`Succeeded! Entry ${s.schedule_id} removed.`, "success");
+              if (isVersioned && prevId) {
+                // 1. Find the predecessor in the global SCHEDULES array
+                const prev = (SCHEDULES || []).find(x => x.docId === prevId || x.version_id === prevId);
+                if (prev) {
+                  const prevRef = prev._path ? doc(db, prev._path) : doc(db, scheduleCollection, prev.docId);
+                  // Reactivate predecessor
+                  const restorePayload = {
+                    active_version: true,
+                    updated_at: serverTimestamp(),
+                    replaced_at: null,
+                    replaced_by: null,
+                    linked_schedule_id: ""
+                  };
+                  // If current version carries a snapshot, use it
+                  if (s._undo_snapshot) {
+                    Object.assign(restorePayload, s._undo_snapshot);
+                  } else {
+                    restorePayload.status = (prev.status === "REPLACED") ? "Due" : prev.status;
+                  }
+                  await updateDoc(prevRef, restorePayload);
                 }
-             } catch (e) {
-                console.error("Undo error:", e);
-                showToast(`Undo failed: ${e.message}`, "error");
-             }
+                // 2. Delete current
+                await deleteDoc(ref);
+                showToast(`Succeeded! Reverted ${s.schedule_id} to previous version.`, "success");
+              } else if (s._undo_snapshot) {
+                // Snapshot revert for non-versioned
+                await updateDoc(ref, { ...s._undo_snapshot, _undo_snapshot: null, updated_at: serverTimestamp() });
+                showToast(`Succeeded! Restored ${s.schedule_id} to previous state.`, "success");
+              } else {
+                // Basic delete fallback
+                await deleteDoc(ref);
+                showToast(`Succeeded! Entry ${s.schedule_id} removed.`, "success");
+              }
+            } catch (e) {
+              console.error("Undo error:", e);
+              showToast(`Undo failed: ${e.message}`, "error");
+            }
           }
         });
       },
@@ -1352,142 +1352,142 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
       {/* Breadcrumbs & Title */}
       <div style={{ marginBottom: 24 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 11.5, color: t.textMuted, marginBottom: 12 }}>
-           <span style={{ cursor: "pointer" }} onClick={() => setActivePage("Dashboard")}>🏠</span>
-           <span>›</span>
-           <span style={{ cursor: "pointer" }} onClick={() => setActivePage("Deals")}>Deals</span>
-           <span>›</span>
-           <span style={{ color: t.textSecondary, fontWeight: 500 }}>{deal.name || "Loading..."}</span>
+          <span style={{ cursor: "pointer" }} onClick={() => setActivePage("Dashboard")}>🏠</span>
+          <span>›</span>
+          <span style={{ cursor: "pointer" }} onClick={() => setActivePage("Deals")}>Deals</span>
+          <span>›</span>
+          <span style={{ color: t.textSecondary, fontWeight: 500 }}>{deal.name || "Loading..."}</span>
         </div>
-        
+
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
           <div>
             <h1 style={{ fontFamily: t.titleFont, fontWeight: 800, fontSize: 28, color: isDark ? "#fff" : "#1C1917", marginBottom: 4 }}>
               {deal.name || "Deal Details"}
             </h1>
             <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-               <button onClick={() => setActivePage("Deals")} style={{ background: "none", border: "none", color: t.accent, fontSize: 13, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>
-                 <span>‹</span> Back
-               </button>
-               <h2 style={{ fontSize: 18, color: t.textSecondary, fontWeight: 600 }}>Deal summary</h2>
-               <span style={{ color: t.accent, fontSize: 13, fontWeight: 500 }}>{deal.status || "—"}</span>
+              <button onClick={() => setActivePage("Deals")} style={{ background: "none", border: "none", color: t.accent, fontSize: 13, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>
+                <span>‹</span> Back
+              </button>
+              <h2 style={{ fontSize: 18, color: t.textSecondary, fontWeight: 600 }}>Deal summary</h2>
+              <span style={{ color: t.accent, fontSize: 13, fontWeight: 500 }}>{deal.status || "—"}</span>
             </div>
           </div>
-          
+
           <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-              {/* --- Investment Bulk Actions --- */}
-              {activeTab === "Investments" && sel.size > 0 && (
-                <div style={{ display: "flex", alignItems: "center", gap: 10, background: isDark ? "rgba(255,255,255,0.03)" : "#f8f9fa", padding: "5px 12px", borderRadius: 10, border: `1px solid ${t.surfaceBorder}`, animation: "fadeIn 0.2s ease" }}>
-                  <span style={{ fontSize: 13, fontWeight: 700, color: t.accent }}>{sel.size} selected</span>
-                  <FSel 
-                    width={130} 
-                    value={bulkInvestmentStatus} 
-                    onChange={ev => setBulkInvestmentStatus(ev.target.value)} 
-                    options={investmentStatusOpts} 
-                    t={t} 
-                    placeholder="Set Status..." 
-                  />
-                  <button 
-                    onClick={() => handleBulkInvestmentStatus(bulkInvestmentStatus)}
-                    disabled={!bulkInvestmentStatus}
-                    style={{ background: bulkInvestmentStatus ? (t.accentGrad || t.accent) : (isDark ? "rgba(255,255,255,0.06)" : "#E5E7EB"), color: bulkInvestmentStatus ? "#fff" : t.textMuted, border: "none", padding: "6px 14px", borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: bulkInvestmentStatus ? "pointer" : "default" }}
-                  >
-                    Apply
-                  </button>
-                  <button 
-                    onClick={handleBulkInvestmentDelete}
-                    style={{ background: isDark ? "rgba(248,113,113,0.1)" : "#FEF2F2", color: isDark ? "#F87171" : "#DC2626", border: `1px solid ${isDark ? "rgba(248,113,113,0.2)" : "#FECACA"}`, padding: "6px 14px", borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: "pointer" }}
-                  >
-                    Delete
-                  </button>
-                  <button onClick={() => setSel(new Set())} style={{ background: "none", border: "none", color: t.textMuted, fontSize: 11, fontWeight: 600, cursor: "pointer" }}>Clear</button>
-                </div>
-              )}
-
-              {/* --- Distributions/Table Bulk Actions --- */}
-              {activeTab === "Distributions" && distributionView === "table" && Object.keys(rowSelection).length > 0 && (
-                <div style={{ display: "flex", alignItems: "center", gap: 10, background: isDark ? "rgba(255,255,255,0.03)" : "#f8f9fa", padding: "5px 12px", borderRadius: 10, border: `1px solid ${t.surfaceBorder}`, animation: "fadeIn 0.2s ease" }}>
-                  <span style={{ fontSize: 13, fontWeight: 700, color: t.accent }}>{Object.keys(rowSelection).length} selected</span>
-                  <FSel 
-                    width={130} 
-                    value={bulkScheduleStatus} 
-                    onChange={ev => setBulkScheduleStatus(ev.target.value)} 
-                    options={paymentStatusOpts} 
-                    t={t} 
-                    placeholder="Set Status..." 
-                  />
-                  <button 
-                    onClick={() => handleBulkScheduleStatus(bulkScheduleStatus)}
-                    disabled={!bulkScheduleStatus}
-                    style={{ background: bulkScheduleStatus ? (t.accentGrad || t.accent) : (isDark ? "rgba(255,255,255,0.06)" : "#E5E7EB"), color: bulkScheduleStatus ? "#fff" : t.textMuted, border: "none", padding: "8px 16px", borderRadius: 11, fontSize: 12, fontWeight: 600, cursor: bulkScheduleStatus ? "pointer" : "default", boxShadow: bulkScheduleStatus ? `0 4px 12px ${t.accentShadow || "none"}` : "none" }}
-                  >
-                    Apply
-                  </button>
-                  <button 
-                    onClick={handleBulkScheduleDelete}
-                    style={{ background: isDark ? "rgba(248,113,113,0.1)" : "#FEF2F2", color: isDark ? "#F87171" : "#DC2626", border: `1px solid ${isDark ? "rgba(248,113,113,0.2)" : "#FECACA"}`, padding: "8px 16px", borderRadius: 11, fontSize: 12, fontWeight: 600, cursor: "pointer" }}
-                  >
-                    Delete
-                  </button>
-                  <button onClick={() => setRowSelection({})} style={{ background: "none", border: "none", color: t.textMuted, fontSize: 11, fontWeight: 600, cursor: "pointer" }}>Clear</button>
-                </div>
-              )}
-
-              {/* --- Generate Button (Unified) --- */}
-              {activeTab === "Investments" && (
-                <button 
-                  onClick={handleGenerateSchedules}
-                  disabled={generating || (activeTab === "Investments" ? sel.size === 0 : Object.keys(rowSelection).length === 0)}
-                  style={{ 
-                    display: "flex", alignItems: "center", gap: 7, background: t.successGrad || "#10B981", color: "#fff", 
-                    border: "none", padding: "11px 20px", borderRadius: 11, fontSize: 13, fontWeight: 600, 
-                    cursor: (generating || (activeTab === "Investments" ? sel.size === 0 : Object.keys(rowSelection).length === 0)) ? "default" : "pointer",
-                    boxShadow: (activeTab === "Investments" ? sel.size > 0 : Object.keys(rowSelection).length > 0) ? `0 4px 16px ${t.successShadow || "rgba(16,185,129,0.2)"}` : "none",
-                    opacity: (generating || (activeTab === "Investments" ? sel.size === 0 : Object.keys(rowSelection).length === 0)) ? 0.45 : 1
-                  }}
+            {/* --- Investment Bulk Actions --- */}
+            {activeTab === "Investments" && sel.size > 0 && (
+              <div style={{ display: "flex", alignItems: "center", gap: 10, background: isDark ? "rgba(255,255,255,0.03)" : "#f8f9fa", padding: "5px 12px", borderRadius: 10, border: `1px solid ${t.surfaceBorder}`, animation: "fadeIn 0.2s ease" }}>
+                <span style={{ fontSize: 13, fontWeight: 700, color: t.accent }}>{sel.size} selected</span>
+                <FSel
+                  width={130}
+                  value={bulkInvestmentStatus}
+                  onChange={ev => setBulkInvestmentStatus(ev.target.value)}
+                  options={investmentStatusOpts}
+                  t={t}
+                  placeholder="Set Status..."
+                />
+                <button
+                  onClick={() => handleBulkInvestmentStatus(bulkInvestmentStatus)}
+                  disabled={!bulkInvestmentStatus}
+                  style={{ background: bulkInvestmentStatus ? (t.accentGrad || t.accent) : (isDark ? "rgba(255,255,255,0.06)" : "#E5E7EB"), color: bulkInvestmentStatus ? "#fff" : t.textMuted, border: "none", padding: "6px 14px", borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: bulkInvestmentStatus ? "pointer" : "default" }}
                 >
-                  ▤ {generating ? "Generating..." : (activeTab === "Investments" ? (sel.size > 0 ? `Generate Schedules (${sel.size})` : "Generate Schedules") : (Object.keys(rowSelection).length > 0 ? `Generate Schedules (${Object.keys(rowSelection).length})` : "Generate Schedules"))}
+                  Apply
                 </button>
-              )}
+                <button
+                  onClick={handleBulkInvestmentDelete}
+                  style={{ background: isDark ? "rgba(248,113,113,0.1)" : "#FEF2F2", color: isDark ? "#F87171" : "#DC2626", border: `1px solid ${isDark ? "rgba(248,113,113,0.2)" : "#FECACA"}`, padding: "6px 14px", borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: "pointer" }}
+                >
+                  Delete
+                </button>
+                <button onClick={() => setSel(new Set())} style={{ background: "none", border: "none", color: t.textMuted, fontSize: 11, fontWeight: 600, cursor: "pointer" }}>Clear</button>
+              </div>
+            )}
+
+            {/* --- Distributions/Table Bulk Actions --- */}
+            {activeTab === "Distributions" && distributionView === "table" && Object.keys(rowSelection).length > 0 && (
+              <div style={{ display: "flex", alignItems: "center", gap: 10, background: isDark ? "rgba(255,255,255,0.03)" : "#f8f9fa", padding: "5px 12px", borderRadius: 10, border: `1px solid ${t.surfaceBorder}`, animation: "fadeIn 0.2s ease" }}>
+                <span style={{ fontSize: 13, fontWeight: 700, color: t.accent }}>{Object.keys(rowSelection).length} selected</span>
+                <FSel
+                  width={130}
+                  value={bulkScheduleStatus}
+                  onChange={ev => setBulkScheduleStatus(ev.target.value)}
+                  options={paymentStatusOpts}
+                  t={t}
+                  placeholder="Set Status..."
+                />
+                <button
+                  onClick={() => handleBulkScheduleStatus(bulkScheduleStatus)}
+                  disabled={!bulkScheduleStatus}
+                  style={{ background: bulkScheduleStatus ? (t.accentGrad || t.accent) : (isDark ? "rgba(255,255,255,0.06)" : "#E5E7EB"), color: bulkScheduleStatus ? "#fff" : t.textMuted, border: "none", padding: "8px 16px", borderRadius: 11, fontSize: 12, fontWeight: 600, cursor: bulkScheduleStatus ? "pointer" : "default", boxShadow: bulkScheduleStatus ? `0 4px 12px ${t.accentShadow || "none"}` : "none" }}
+                >
+                  Apply
+                </button>
+                <button
+                  onClick={handleBulkScheduleDelete}
+                  style={{ background: isDark ? "rgba(248,113,113,0.1)" : "#FEF2F2", color: isDark ? "#F87171" : "#DC2626", border: `1px solid ${isDark ? "rgba(248,113,113,0.2)" : "#FECACA"}`, padding: "8px 16px", borderRadius: 11, fontSize: 12, fontWeight: 600, cursor: "pointer" }}
+                >
+                  Delete
+                </button>
+                <button onClick={() => setRowSelection({})} style={{ background: "none", border: "none", color: t.textMuted, fontSize: 11, fontWeight: 600, cursor: "pointer" }}>Clear</button>
+              </div>
+            )}
+
+            {/* --- Generate Button (Unified) --- */}
+            {activeTab === "Investments" && (
+              <button
+                onClick={handleGenerateSchedules}
+                disabled={generating || (activeTab === "Investments" ? sel.size === 0 : Object.keys(rowSelection).length === 0)}
+                style={{
+                  display: "flex", alignItems: "center", gap: 7, background: t.successGrad || "#10B981", color: "#fff",
+                  border: "none", padding: "11px 20px", borderRadius: 11, fontSize: 13, fontWeight: 600,
+                  cursor: (generating || (activeTab === "Investments" ? sel.size === 0 : Object.keys(rowSelection).length === 0)) ? "default" : "pointer",
+                  boxShadow: (activeTab === "Investments" ? sel.size > 0 : Object.keys(rowSelection).length > 0) ? `0 4px 16px ${t.successShadow || "rgba(16,185,129,0.2)"}` : "none",
+                  opacity: (generating || (activeTab === "Investments" ? sel.size === 0 : Object.keys(rowSelection).length === 0)) ? 0.45 : 1
+                }}
+              >
+                ▤ {generating ? "Generating..." : (activeTab === "Investments" ? (sel.size > 0 ? `Generate Schedules (${sel.size})` : "Generate Schedules") : (Object.keys(rowSelection).length > 0 ? `Generate Schedules (${Object.keys(rowSelection).length})` : "Generate Schedules"))}
+              </button>
+            )}
 
 
-             {canCreate && activeTab === "Investments" && <button onClick={openAdd} style={{ background: t.accentGrad || t.accent, color: "#fff", border: "none", padding: "11px 22px", borderRadius: 11, fontSize: 13.5, fontWeight: 600, boxShadow: `0 4px 16px ${t.accentShadow || "none"}`, display: "flex", alignItems: "center", gap: 7 }}><span style={{ fontSize: 18, lineHeight: 1 }}>+</span> Add investment</button>}
-             {canCreate && activeTab === "Assets" && <button onClick={openAddAsset} style={{ background: t.accentGrad || t.accent, color: "#fff", border: "none", padding: "11px 20px", borderRadius: 11, fontSize: 13, fontWeight: 600, boxShadow: `0 4px 16px ${t.accentShadow || "none"}`, display: "flex", alignItems: "center", gap: 7 }}><span style={{ fontSize: 18, lineHeight: 1 }}>+</span> Add asset</button>}
-             {canCreate && activeTab === "Contacts" && <button onClick={openAddContactModal} style={{ background: t.accentGrad || t.accent, color: "#fff", border: "none", padding: "11px 20px", borderRadius: 11, fontSize: 13, fontWeight: 600, boxShadow: `0 4px 16px ${t.accentShadow || "none"}`, display: "flex", alignItems: "center", gap: 7 }}><span style={{ fontSize: 18, lineHeight: 1 }}>+</span> New/Add Contact</button>}
+            {canCreate && activeTab === "Investments" && <button onClick={openAdd} style={{ background: t.accentGrad || t.accent, color: "#fff", border: "none", padding: "11px 22px", borderRadius: 11, fontSize: 13.5, fontWeight: 600, boxShadow: `0 4px 16px ${t.accentShadow || "none"}`, display: "flex", alignItems: "center", gap: 7 }}><span style={{ fontSize: 18, lineHeight: 1 }}>+</span> Add investment</button>}
+            {canCreate && activeTab === "Assets" && <button onClick={openAddAsset} style={{ background: t.accentGrad || t.accent, color: "#fff", border: "none", padding: "11px 20px", borderRadius: 11, fontSize: 13, fontWeight: 600, boxShadow: `0 4px 16px ${t.accentShadow || "none"}`, display: "flex", alignItems: "center", gap: 7 }}><span style={{ fontSize: 18, lineHeight: 1 }}>+</span> Add asset</button>}
+            {canCreate && activeTab === "Contacts" && <button onClick={openAddContactModal} style={{ background: t.accentGrad || t.accent, color: "#fff", border: "none", padding: "11px 20px", borderRadius: 11, fontSize: 13, fontWeight: 600, boxShadow: `0 4px 16px ${t.accentShadow || "none"}`, display: "flex", alignItems: "center", gap: 7 }}><span style={{ fontSize: 18, lineHeight: 1 }}>+</span> New/Add Contact</button>}
           </div>
         </div>
       </div>
 
       {/* Stat Cards */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16, marginBottom: 32 }}>
-         <div style={{ background: isDark ? "rgba(255,255,255,0.03)" : "#fff", border: `1px solid ${t.surfaceBorder}`, borderRadius: 16, padding: 24 }}>
-            <div style={{ fontSize: 14, color: t.textMuted, marginBottom: 8 }}>Fundraising Progress</div>
-            <div style={{ fontSize: 24, fontWeight: 800, color: isDark ? "#fff" : "#1C1917" }}>
-              {fmtCurrency(deal.fundraisingAmount || 0)} <span style={{ fontSize: 16, color: t.accent }}>({(deal.fundraisingProgress || 0).toFixed(1)}%)</span>
-            </div>
-         </div>
-         <div style={{ background: isDark ? "rgba(255,255,255,0.03)" : "#fff", border: `1px solid ${t.surfaceBorder}`, borderRadius: 16, padding: 24 }}>
-            <div style={{ fontSize: 14, color: t.textMuted, marginBottom: 8 }}>Fund Balance</div>
-            <div style={{ fontSize: 24, fontWeight: 800, color: isDark ? "#fff" : "#1C1917" }}>{totalFundBalance || "$0"}</div>
-         </div>
-         <div style={{ background: isDark ? "rgba(255,255,255,0.03)" : "#fff", border: `1px solid ${t.surfaceBorder}`, borderRadius: 16, padding: 24 }}>
-            <div style={{ fontSize: 14, color: t.textMuted, marginBottom: 8 }}>Fundraising Target</div>
-            <div style={{ fontSize: 24, fontWeight: 800, color: isDark ? "#fff" : "#1C1917" }}>{deal.valuation || "$0"}</div>
-         </div>
+        <div style={{ background: isDark ? "rgba(255,255,255,0.03)" : "#fff", border: `1px solid ${t.surfaceBorder}`, borderRadius: 16, padding: 24 }}>
+          <div style={{ fontSize: 14, color: t.textMuted, marginBottom: 8 }}>Fund Raising Progress</div>
+          <div style={{ fontSize: 24, fontWeight: 800, color: isDark ? "#fff" : "#1C1917" }}>
+            {fmtCurrency(deal.fundraisingAmount || 0)} <span style={{ fontSize: 16, color: t.accent }}>({(deal.fundraisingProgress || 0).toFixed(1)}%)</span>
+          </div>
+        </div>
+        <div style={{ background: isDark ? "rgba(255,255,255,0.03)" : "#fff", border: `1px solid ${t.surfaceBorder}`, borderRadius: 16, padding: 24 }}>
+          <div style={{ fontSize: 14, color: t.textMuted, marginBottom: 8 }}>Fund Balance</div>
+          <div style={{ fontSize: 24, fontWeight: 800, color: isDark ? "#fff" : "#1C1917" }}>{totalFundBalance || "$0"}</div>
+        </div>
+        <div style={{ background: isDark ? "rgba(255,255,255,0.03)" : "#fff", border: `1px solid ${t.surfaceBorder}`, borderRadius: 16, padding: 24 }}>
+          <div style={{ fontSize: 14, color: t.textMuted, marginBottom: 8 }}>Fund Raising Target</div>
+          <div style={{ fontSize: 24, fontWeight: 800, color: isDark ? "#fff" : "#1C1917" }}>{deal.valuation || "$0"}</div>
+        </div>
       </div>
 
       {/* Tabs */}
       <div style={{ borderBottom: `1px solid ${t.surfaceBorder}`, marginBottom: 24, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div style={{ display: "flex", gap: 32 }}>
           {tabs.map(tab => (
-            <div 
-              key={tab} 
+            <div
+              key={tab}
               onClick={() => setActiveTab(tab)}
-              style={{ 
-                padding: "12px 0", 
-                fontSize: 14, 
-                fontWeight: 600, 
-                color: activeTab === tab ? t.text : t.textMuted, 
-                cursor: "pointer", 
+              style={{
+                padding: "12px 0",
+                fontSize: 14,
+                fontWeight: 600,
+                color: activeTab === tab ? t.text : t.textMuted,
+                cursor: "pointer",
                 position: "relative",
                 transition: "all 0.2s ease"
               }}>
@@ -1502,14 +1502,14 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
       {activeTab === "Investments" ? (
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
           <div style={{ height: '1200px', width: "100%", minHeight: '1200px' }}>
-              <TanStackTable
-                  data={dealInvestments}
-                  columns={columnDefs}
-                  pageSize={pageSize}
-                  t={t}
-                  isDark={isDark}
-                  onSelectionChange={(selected) => setSel(new Set(selected.map(r => r.id)))}
-              />
+            <TanStackTable
+              data={dealInvestments}
+              columns={columnDefs}
+              pageSize={pageSize}
+              t={t}
+              isDark={isDark}
+              onSelectionChange={(selected) => setSel(new Set(selected.map(r => r.id)))}
+            />
           </div>
         </div>
       ) : activeTab === "Distributions" ? (
@@ -1605,11 +1605,11 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
                           borderRight: `1px solid ${t.surfaceBorder}`,
                         }}>
                           <div style={{ marginBottom: 8 }}>Investor Name</div>
-                          <input 
-                            type="text" 
-                            placeholder="Filter..." 
+                          <input
+                            type="text"
+                            placeholder="Filter..."
                             value={pivotFilters.investor}
-                            onChange={(e) => setPivotFilters({...pivotFilters, investor: e.target.value})}
+                            onChange={(e) => setPivotFilters({ ...pivotFilters, investor: e.target.value })}
                             style={{ width: "100%", fontSize: 10, padding: "4px 6px", borderRadius: 4, background: isDark ? "#1a1a1a" : "#fff", color: t.text, border: `1px solid ${t.surfaceBorder}` }}
                           />
                           <div onMouseDown={(e) => handleResize(0, e)} style={{ position: "absolute", right: 0, top: 0, bottom: 0, width: 2, cursor: "col-resize", background: "transparent", zIndex: 60 }} />
@@ -1631,11 +1631,11 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
                           borderRight: `1px solid ${t.surfaceBorder}`,
                         }}>
                           <div style={{ marginBottom: 8 }}>Type</div>
-                          <input 
-                            type="text" 
-                            placeholder="Filter..." 
+                          <input
+                            type="text"
+                            placeholder="Filter..."
                             value={pivotFilters.type}
-                            onChange={(e) => setPivotFilters({...pivotFilters, type: e.target.value})}
+                            onChange={(e) => setPivotFilters({ ...pivotFilters, type: e.target.value })}
                             style={{ width: "100%", fontSize: 10, padding: "4px 6px", borderRadius: 4, background: isDark ? "#1a1a1a" : "#fff", color: t.text, border: `1px solid ${t.surfaceBorder}` }}
                           />
                           <div onMouseDown={(e) => handleResize(1, e)} style={{ position: "absolute", right: 0, top: 0, bottom: 0, width: 2, cursor: "col-resize", background: "transparent", zIndex: 60 }} />
@@ -1657,11 +1657,11 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
                           borderRight: `1px solid ${t.surfaceBorder}`,
                         }}>
                           <div style={{ marginBottom: 8 }}>Start Date</div>
-                          <input 
-                            type="text" 
-                            placeholder="Filter..." 
+                          <input
+                            type="text"
+                            placeholder="Filter..."
                             value={pivotFilters.startDate}
-                            onChange={(e) => setPivotFilters({...pivotFilters, startDate: e.target.value})}
+                            onChange={(e) => setPivotFilters({ ...pivotFilters, startDate: e.target.value })}
                             style={{ width: "100%", fontSize: 10, padding: "4px 6px", borderRadius: 4, background: isDark ? "#1a1a1a" : "#fff", color: t.text, border: `1px solid ${t.surfaceBorder}` }}
                           />
                           <div onMouseDown={(e) => handleResize(2, e)} style={{ position: "absolute", right: 0, top: 0, bottom: 0, width: 2, cursor: "col-resize", background: "transparent", zIndex: 60 }} />
@@ -1683,11 +1683,11 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
                           borderRight: `1px solid ${t.surfaceBorder}`,
                         }}>
                           <div style={{ marginBottom: 8 }}>Payment Date</div>
-                          <input 
-                            type="text" 
-                            placeholder="Filter..." 
+                          <input
+                            type="text"
+                            placeholder="Filter..."
                             value={pivotFilters.endDate}
-                            onChange={(e) => setPivotFilters({...pivotFilters, endDate: e.target.value})}
+                            onChange={(e) => setPivotFilters({ ...pivotFilters, endDate: e.target.value })}
                             style={{ width: "100%", fontSize: 10, padding: "4px 6px", borderRadius: 4, background: isDark ? "#1a1a1a" : "#fff", color: t.text, border: `1px solid ${t.surfaceBorder}` }}
                           />
                           <div onMouseDown={(e) => handleResize(3, e)} style={{ position: "absolute", right: 0, top: 0, bottom: 0, width: 2, cursor: "col-resize", background: "transparent", zIndex: 60 }} />
@@ -1709,11 +1709,11 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
                           borderRight: `1px solid ${t.surfaceBorder}`,
                         }}>
                           <div style={{ marginBottom: 8 }}>Freq</div>
-                          <input 
-                            type="text" 
-                            placeholder="Filter..." 
+                          <input
+                            type="text"
+                            placeholder="Filter..."
                             value={pivotFilters.freq}
-                            onChange={(e) => setPivotFilters({...pivotFilters, freq: e.target.value})}
+                            onChange={(e) => setPivotFilters({ ...pivotFilters, freq: e.target.value })}
                             style={{ width: "100%", fontSize: 10, padding: "4px 6px", borderRadius: 4, background: isDark ? "#1a1a1a" : "#fff", color: t.text, border: `1px solid ${t.surfaceBorder}` }}
                           />
                           <div onMouseDown={(e) => handleResize(4, e)} style={{ position: "absolute", right: 0, top: 0, bottom: 0, width: 2, cursor: "col-resize", background: "transparent", zIndex: 60 }} />
@@ -1735,11 +1735,11 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
                           borderRight: `1px solid ${t.surfaceBorder}`,
                         }}>
                           <div style={{ marginBottom: 8 }}>Rate</div>
-                          <input 
-                            type="text" 
-                            placeholder="Filter..." 
+                          <input
+                            type="text"
+                            placeholder="Filter..."
                             value={pivotFilters.rate}
-                            onChange={(e) => setPivotFilters({...pivotFilters, rate: e.target.value})}
+                            onChange={(e) => setPivotFilters({ ...pivotFilters, rate: e.target.value })}
                             style={{ width: "100%", fontSize: 10, padding: "4px 6px", borderRadius: 4, background: isDark ? "#1a1a1a" : "#fff", color: t.text, border: `1px solid ${t.surfaceBorder}` }}
                           />
                           <div onMouseDown={(e) => handleResize(5, e)} style={{ position: "absolute", right: 0, top: 0, bottom: 0, width: 2, cursor: "col-resize", background: "transparent", zIndex: 60 }} />
@@ -1761,11 +1761,11 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
                           borderRight: `2px solid ${t.surfaceBorder}`,
                         }}>
                           <div style={{ marginBottom: 8 }}>Pay Method</div>
-                          <input 
-                            type="text" 
-                            placeholder="Filter..." 
+                          <input
+                            type="text"
+                            placeholder="Filter..."
                             value={pivotFilters.paymentMethod}
-                            onChange={(e) => setPivotFilters({...pivotFilters, paymentMethod: e.target.value})}
+                            onChange={(e) => setPivotFilters({ ...pivotFilters, paymentMethod: e.target.value })}
                             style={{ width: "100%", fontSize: 10, padding: "4px 6px", borderRadius: 4, background: isDark ? "#1a1a1a" : "#fff", color: t.text, border: `1px solid ${t.surfaceBorder}` }}
                           />
                           <div onMouseDown={(e) => handleResize(6, e)} style={{ position: "absolute", right: 0, top: 0, bottom: 0, width: 2, cursor: "col-resize", background: "transparent", zIndex: 60 }} />
@@ -1806,8 +1806,8 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
                     <tbody>
                       {filteredPivotRows.map((row, rowIdx) => {
                         let rowTotal = 0;
-                        const rowBg = row.groupIndex % 2 === 0 
-                          ? (isDark ? "#121212" : "#fff") 
+                        const rowBg = row.groupIndex % 2 === 0
+                          ? (isDark ? "#121212" : "#fff")
                           : (isDark ? "#1a1a1a" : "#f5f5f5");
                         return (
                           <tr key={rowIdx} style={{
@@ -1831,13 +1831,13 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
                               textOverflow: "ellipsis",
                               whiteSpace: "nowrap"
                             }}>
-                              <span 
+                              <span
                                 onClick={() => {
                                   const inv = CONTACTS.find(c => c.name === row.investor);
                                   if (inv) setDetailContact({ data: inv, view: "simple" });
                                 }}
-                                style={{ 
-                                  cursor: "pointer", 
+                                style={{
+                                  cursor: "pointer",
                                   color: isDark ? "#60A5FA" : "#4F46E5",
                                   fontWeight: 600
                                 }}
@@ -1963,9 +1963,9 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
                                   background: rowBg
                                 }}>
                                   {hasAmount ? (
-                                    <span 
+                                    <span
                                       onClick={() => {
-                                        const recs = [...(cellData?.records || [])].sort((a,b) => (a.dueDate||a.due_date||"").localeCompare(b.dueDate||b.due_date||""));
+                                        const recs = [...(cellData?.records || [])].sort((a, b) => (a.dueDate || a.due_date || "").localeCompare(b.dueDate || b.due_date || ""));
                                         setDrillDown({
                                           open: true,
                                           records: recs,
@@ -1995,16 +1995,16 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
                               minWidth: 120,
                               borderBottom: `1px solid ${t.surfaceBorder}`
                             }}>
-                                <span 
-                                  onClick={() => {
-                                    const allRecs = pivotData.dates.flatMap(d => pivotData.data[`${row.key}|||${d}`]?.records || [])
-                                      .sort((a,b) => (a.dueDate||a.due_date||"").localeCompare(b.dueDate||b.due_date||""));
-                                    setDrillDown({
-                                      open: true,
-                                      records: allRecs,
-                                      title: `${row.investor} - ${row.type.replace(/_/g, ' ')} (Total)`
-                                    });
-                                  }}
+                              <span
+                                onClick={() => {
+                                  const allRecs = pivotData.dates.flatMap(d => pivotData.data[`${row.key}|||${d}`]?.records || [])
+                                    .sort((a, b) => (a.dueDate || a.due_date || "").localeCompare(b.dueDate || b.due_date || ""));
+                                  setDrillDown({
+                                    open: true,
+                                    records: allRecs,
+                                    title: `${row.investor} - ${row.type.replace(/_/g, ' ')} (Total)`
+                                  });
+                                }}
                                 style={{ cursor: "pointer", textDecoration: "underline", textDecorationStyle: "dotted" }}
                               >
                                 ${rowTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
@@ -2013,7 +2013,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
                           </tr>
                         );
                       })}
-                                              {/* Column totals row */}
+                      {/* Column totals row */}
                       <tr style={{
                         background: isDark ? "#1e3a8a" : "#EFF6FF",
                         fontWeight: 700
@@ -2057,7 +2057,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
                           bottom: 0,
                           left: pivotOffsets[3],
                           background: isDark ? "#1e3a8a" : "#DBEAFE",
-                           zIndex: 45,
+                          zIndex: 45,
                           width: pivotColWidths[3],
                           borderTop: `2px solid ${t.surfaceBorder}`,
                         }} />
@@ -2076,21 +2076,21 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
                           position: "sticky",
                           bottom: 0,
                           left: pivotOffsets[5],
-                           background: isDark ? "#1e3a8a" : "#DBEAFE",
+                          background: isDark ? "#1e3a8a" : "#DBEAFE",
                           zIndex: 45,
                           width: pivotColWidths[5],
                           borderTop: `2px solid ${t.surfaceBorder}`,
                         }} />
-                         <td style={{
+                        <td style={{
                           padding: "12px 16px",
                           position: "sticky",
                           bottom: 0,
                           left: pivotOffsets[6],
                           background: isDark ? "#1e3a8a" : "#DBEAFE",
                           zIndex: 45,
-                           width: pivotColWidths[6],
+                          width: pivotColWidths[6],
                           borderTop: `2px solid ${t.surfaceBorder}`,
-                           boxShadow: `1px 0 0 ${t.surfaceBorder}`
+                          boxShadow: `1px 0 0 ${t.surfaceBorder}`
                         }} />
                         {pivotData.dates.map((date, idx) => {
                           const colTotal = filteredPivotRows.reduce((sum, row) => {
@@ -2109,16 +2109,16 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
                               zIndex: 20,
                               borderTop: `2px solid ${t.surfaceBorder}`,
                             }}>
-                                <span 
-                                  onClick={() => {
-                                    const allRecs = filteredPivotRows.flatMap(r => pivotData.data[`${r.key}|||${date}`]?.records || [])
-                                      .sort((a,b) => (a.dueDate||a.due_date||"").localeCompare(b.dueDate||b.due_date||""));
-                                    setDrillDown({
-                                      open: true,
-                                      records: allRecs,
-                                      title: `All Distributions - ${date}`
-                                    });
-                                  }}
+                              <span
+                                onClick={() => {
+                                  const allRecs = filteredPivotRows.flatMap(r => pivotData.data[`${r.key}|||${date}`]?.records || [])
+                                    .sort((a, b) => (a.dueDate || a.due_date || "").localeCompare(b.dueDate || b.due_date || ""));
+                                  setDrillDown({
+                                    open: true,
+                                    records: allRecs,
+                                    title: `All Distributions - ${date}`
+                                  });
+                                }}
                                 style={{ cursor: "pointer", textDecoration: "underline", textDecorationStyle: "dotted" }}
                               >
                                 ${colTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
@@ -2126,44 +2126,44 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
                             </td>
                           );
                         })}
-                          <td style={{
-                            padding: "12px 16px",
-                            textAlign: "right",
-                            fontFamily: t.mono,
-                            fontSize: 14,
-                            color: filteredPivotRows.reduce((gt, r) => gt + pivotData.dates.reduce((rt, d) => rt + (pivotData.data[`${r.key}|||${d}`]?.amount || 0), 0), 0) < 0 ? "#ef4444" : t.text,
-                            position: "sticky",
-                            bottom: 0,
-                            right: 0,
-                            background: isDark ? "#1e3a8a" : "#BFDBFE",
-                            zIndex: 50,
-                            borderTop: `2px solid ${t.surfaceBorder}`,
-                          }}>
-                            <span 
-                              onClick={() => {
-                                const allRecs = filteredPivotRows.flatMap(r => pivotData.dates.flatMap(d => pivotData.data[`${r.key}|||${d}`]?.records || []))
-                                  .sort((a,b) => (a.dueDate||a.due_date||"").localeCompare(b.dueDate||b.due_date||""));
-                                setDrillDown({
-                                  open: true,
-                                  records: allRecs,
-                                  title: "Grand Total"
-                                });
-                              }}
-                              style={{ cursor: "pointer", textDecoration: "underline", textDecorationStyle: "dotted" }}
-                            >
-                              ${filteredPivotRows.reduce((grandTotal, row) => {
-                                return grandTotal + pivotData.dates.reduce((rowTotal, date) => {
-                                  const cellKey = `${row.key}|||${date}`;
-                                  return rowTotal + (pivotData.data[cellKey]?.amount || 0);
-                                }, 0);
-                              }, 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                            </span>
-                          </td>
+                        <td style={{
+                          padding: "12px 16px",
+                          textAlign: "right",
+                          fontFamily: t.mono,
+                          fontSize: 14,
+                          color: filteredPivotRows.reduce((gt, r) => gt + pivotData.dates.reduce((rt, d) => rt + (pivotData.data[`${r.key}|||${d}`]?.amount || 0), 0), 0) < 0 ? "#ef4444" : t.text,
+                          position: "sticky",
+                          bottom: 0,
+                          right: 0,
+                          background: isDark ? "#1e3a8a" : "#BFDBFE",
+                          zIndex: 50,
+                          borderTop: `2px solid ${t.surfaceBorder}`,
+                        }}>
+                          <span
+                            onClick={() => {
+                              const allRecs = filteredPivotRows.flatMap(r => pivotData.dates.flatMap(d => pivotData.data[`${r.key}|||${d}`]?.records || []))
+                                .sort((a, b) => (a.dueDate || a.due_date || "").localeCompare(b.dueDate || b.due_date || ""));
+                              setDrillDown({
+                                open: true,
+                                records: allRecs,
+                                title: "Grand Total"
+                              });
+                            }}
+                            style={{ cursor: "pointer", textDecoration: "underline", textDecorationStyle: "dotted" }}
+                          >
+                            ${filteredPivotRows.reduce((grandTotal, row) => {
+                              return grandTotal + pivotData.dates.reduce((rowTotal, date) => {
+                                const cellKey = `${row.key}|||${date}`;
+                                return rowTotal + (pivotData.data[cellKey]?.amount || 0);
+                              }, 0);
+                            }, 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </span>
+                        </td>
                       </tr>
                     </tbody>
-                </table>
-              </div>
-            ) : (
+                  </table>
+                </div>
+              ) : (
                 <div style={{
                   padding: 40,
                   textAlign: "center",
@@ -2177,23 +2177,23 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
         </div>
       ) : activeTab === "Assets" ? (
         <div style={{ height: '500px', width: "100%", minHeight: '500px' }}>
-            <TanStackTable
-                data={assets}
-                columns={assetColumnDefs}
-                pageSize={pageSize}
-                t={t}
-                isDark={isDark}
-            />
+          <TanStackTable
+            data={assets}
+            columns={assetColumnDefs}
+            pageSize={pageSize}
+            t={t}
+            isDark={isDark}
+          />
         </div>
       ) : activeTab === "Contacts" ? (
         <div style={{ height: '500px', width: "100%", minHeight: '500px' }}>
-            <TanStackTable
-                data={dealContacts}
-                columns={contactColumnDefs}
-                pageSize={pageSize}
-                t={t}
-                isDark={isDark}
-            />
+          <TanStackTable
+            data={dealContacts}
+            columns={contactColumnDefs}
+            pageSize={pageSize}
+            t={t}
+            isDark={isDark}
+          />
         </div>
       ) : activeTab === "Documents" ? (
         <div style={{ minHeight: '500px' }}>
@@ -2204,13 +2204,13 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
           Section "{activeTab}" is coming soon.
         </div>
       )}
-      <Modal 
-        open={modal.open} 
-        onClose={() => setModal(m => ({ ...m, open: false }))} 
-        title={modal.mode === "add" ? "New Investment" : "Edit Investment"} 
-        onSave={handleSaveInvestment} 
-        width={620} 
-        t={t} 
+      <Modal
+        open={modal.open}
+        onClose={() => setModal(m => ({ ...m, open: false }))}
+        title={modal.mode === "add" ? "New Investment" : "Edit Investment"}
+        onSave={handleSaveInvestment}
+        width={620}
+        t={t}
         isDark={isDark}
       >
         {(modal.mode === "edit" || (modal.mode === "add" && modal.data.id)) && (
@@ -2271,26 +2271,26 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
       </Modal>
 
       {/* Add Contact Modal */}
-      <Modal 
-        open={contactModal.open} 
-        onClose={() => setContactModal({ open: false, mode: "existing", data: {} })} 
-        title={contactModal.mode === "new" ? "Add New Contact to Deal" : "Add Existing Contact to Deal"} 
-        onSave={handleSaveContactToDeal} 
-        width={600} 
-        t={t} 
+      <Modal
+        open={contactModal.open}
+        onClose={() => setContactModal({ open: false, mode: "existing", data: {} })}
+        title={contactModal.mode === "new" ? "Add New Contact to Deal" : "Add Existing Contact to Deal"}
+        onSave={handleSaveContactToDeal}
+        width={600}
+        t={t}
         isDark={isDark}
       >
         <div style={{ display: "flex", gap: 12, marginBottom: 20 }}>
-          <button 
+          <button
             type="button"
-            onClick={() => setContactModal(prev => ({ ...prev, mode: "existing" }))} 
+            onClick={() => setContactModal(prev => ({ ...prev, mode: "existing" }))}
             style={{ flex: 1, padding: "8px 16px", borderRadius: 8, border: `1px solid ${contactModal.mode === "existing" ? t.accent : t.surfaceBorder}`, background: contactModal.mode === "existing" ? (isDark ? "rgba(59,130,246,0.1)" : "#EFF6FF") : "transparent", color: contactModal.mode === "existing" ? t.accent : t.text, fontWeight: 600, cursor: "pointer" }}
           >
             Select Existing Contact
           </button>
-          <button 
+          <button
             type="button"
-            onClick={() => setContactModal(prev => ({ ...prev, mode: "new" }))} 
+            onClick={() => setContactModal(prev => ({ ...prev, mode: "new" }))}
             style={{ flex: 1, padding: "8px 16px", borderRadius: 8, border: `1px solid ${contactModal.mode === "new" ? t.accent : t.surfaceBorder}`, background: contactModal.mode === "new" ? (isDark ? "rgba(59,130,246,0.1)" : "#EFF6FF") : "transparent", color: contactModal.mode === "new" ? t.accent : t.text, fontWeight: 600, cursor: "pointer" }}
           >
             Create New Contact
@@ -2361,18 +2361,18 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
             await updateDoc(doc(db, refPath), dataToSave);
             setScheduleModal({ open: false, data: {} });
           } catch (err) { console.error("Save schedule error:", err); }
-        } }
+        }}
         width={500}
         t={t}
         isDark={isDark}
       >
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
-            <FF label="Due Date" t={t}><FIn value={scheduleModal.data.dueDate || ""} onChange={e => setScheduleModal(m => ({ ...m, data: { ...m.data, dueDate: e.target.value } }))} t={t} type="date" /></FF>
-            <FF label="Status" t={t}><FSel value={scheduleModal.data.status} onChange={e => setScheduleModal(m => ({ ...m, data: { ...m.data, status: e.target.value } }))} options={paymentStatusOpts} t={t} /></FF>
+          <FF label="Due Date" t={t}><FIn value={scheduleModal.data.dueDate || ""} onChange={e => setScheduleModal(m => ({ ...m, data: { ...m.data, dueDate: e.target.value } }))} t={t} type="date" /></FF>
+          <FF label="Status" t={t}><FSel value={scheduleModal.data.status} onChange={e => setScheduleModal(m => ({ ...m, data: { ...m.data, status: e.target.value } }))} options={paymentStatusOpts} t={t} /></FF>
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
-           <FF label="Payment Amount" t={t}><FIn value={scheduleModal.data.payment_amount} onChange={e => setScheduleModal(m => ({ ...m, data: { ...m.data, payment_amount: e.target.value } }))} placeholder="e.g. 100.00" t={t} /></FF>
-           <FF label="Signed Amount" t={t}><FIn value={scheduleModal.data.signed_payment_amount} onChange={e => setScheduleModal(m => ({ ...m, data: { ...m.data, signed_payment_amount: e.target.value } }))} placeholder="e.g. -100.00" t={t} /></FF>
+          <FF label="Payment Amount" t={t}><FIn value={scheduleModal.data.payment_amount} onChange={e => setScheduleModal(m => ({ ...m, data: { ...m.data, payment_amount: e.target.value } }))} placeholder="e.g. 100.00" t={t} /></FF>
+          <FF label="Signed Amount" t={t}><FIn value={scheduleModal.data.signed_payment_amount} onChange={e => setScheduleModal(m => ({ ...m, data: { ...m.data, signed_payment_amount: e.target.value } }))} placeholder="e.g. -100.00" t={t} /></FF>
         </div>
         <FF label="Notes" t={t}><FIn value={scheduleModal.data.notes || ""} onChange={e => setScheduleModal(m => ({ ...m, data: { ...m.data, notes: e.target.value } }))} placeholder="Edit notes..." t={t} /></FF>
       </Modal>
@@ -2722,13 +2722,13 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
 
       {/* Confirmation Modal for Bulk Actions */}
       {confirmAction && (
-        <Modal 
-          open={!!confirmAction} 
-          onClose={() => setConfirmAction(null)} 
-          title={confirmAction.title} 
-          onSave={confirmAction.onConfirm} 
-          t={t} 
-          isDark={isDark} 
+        <Modal
+          open={!!confirmAction}
+          onClose={() => setConfirmAction(null)}
+          title={confirmAction.title}
+          onSave={confirmAction.onConfirm}
+          t={t}
+          isDark={isDark}
           width={450}
           saveLabel="Confirm"
         >
@@ -2809,16 +2809,16 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
       {genResult && (
         <Modal open={!!genResult} onClose={() => setGenResult(null)} title={genResult.title} hideFooter t={t} isDark={isDark} width={400}>
           <div style={{ padding: "10px 0", textAlign: "center" }}>
-            <div style={{ 
-              width: 56, height: 56, borderRadius: 28, 
-              background: genResult.title === "Error" ? "rgba(239,68,68,0.1)" : "rgba(34,197,94,0.1)", 
-              display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px" 
+            <div style={{
+              width: 56, height: 56, borderRadius: 28,
+              background: genResult.title === "Error" ? "rgba(239,68,68,0.1)" : "rgba(34,197,94,0.1)",
+              display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px"
             }}>
               {genResult.title === "Error" ? <AlertTriangle size={28} color="#EF4444" /> : <Check size={28} color="#22C55E" />}
             </div>
             <div style={{ fontWeight: 700, color: t.text, fontSize: 16, marginBottom: 8 }}>{genResult.title}</div>
             <p style={{ fontSize: 14, color: t.textSecondary, lineHeight: 1.5 }}>{genResult.message}</p>
-            <button 
+            <button
               onClick={() => setGenResult(null)}
               style={{ padding: "10px 24px", borderRadius: 8, background: t.accent, color: "#fff", border: "none", fontWeight: 700, marginTop: 20, cursor: "pointer" }}
             >
@@ -2829,24 +2829,24 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
       )}
 
       {/* Distribution Drill-Down Modal */}
-      <Modal 
-        open={drillDown.open} 
-        onClose={() => setDrillDown(prev => ({ ...prev, open: false }))} 
+      <Modal
+        open={drillDown.open}
+        onClose={() => setDrillDown(prev => ({ ...prev, open: false }))}
         title={`Distribution Summary: ${drillDown.title}`}
-        width={850} 
-        t={t} 
+        width={850}
+        t={t}
         isDark={isDark}
         onSave={() => setDrillDown(prev => ({ ...prev, open: false }))}
         saveLabel="Close"
         showCancel={false}
       >
         <div style={{ height: 450, width: "100%", padding: "10px 0" }}>
-          <TanStackTable 
-            data={drillDown.records} 
-            columns={drillDownColumns} 
-            pageSize={50} 
-            t={t} 
-            isDark={isDark} 
+          <TanStackTable
+            data={drillDown.records}
+            columns={drillDownColumns}
+            pageSize={50}
+            t={t}
+            isDark={isDark}
           />
         </div>
       </Modal>
@@ -2889,8 +2889,8 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
               tId = investmentCollection.split("/")[1];
             }
             if (!tId) throw new Error("Missing tenant ID");
-            
-            
+
+
             await updateDoc(doc(db, "tenants", tId, "contacts", docId), payload);
             setDetailContact({ ...detailContact, data: { ...d, ...payload } });
 
