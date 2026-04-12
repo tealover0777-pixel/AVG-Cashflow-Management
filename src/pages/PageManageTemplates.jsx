@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { ArrowLeft, Search, MoreHorizontal, FileText, Image as ImageIcon, Briefcase, Star, Users, X } from "lucide-react";
 
-export default function PageManageTemplates({ t, isDark, setActivePage }) {
+export default function PageManageTemplates({ t, isDark, setActivePage, setActiveEmailTemplate }) {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedTemplate, setSelectedTemplate] = useState(null);
 
@@ -277,7 +277,10 @@ export default function PageManageTemplates({ t, isDark, setActivePage }) {
               display: "flex", justifyContent: "center", gap: 16
             }}>
               <button 
-                onClick={() => setActivePage("Email Builder")}
+                onClick={() => {
+                  if (setActiveEmailTemplate) setActiveEmailTemplate(selectedTemplate);
+                  setActivePage("Email Builder");
+                }}
                 style={{
                   padding: "10px 24px", borderRadius: 6, backgroundColor: "#1D4ED8",
                   color: "#fff", fontWeight: 600, fontSize: 14, border: "none", cursor: "pointer"
@@ -286,7 +289,10 @@ export default function PageManageTemplates({ t, isDark, setActivePage }) {
                 Use template
               </button>
               <button 
-                onClick={() => setActivePage("Email Builder")}
+                onClick={() => {
+                  if (setActiveEmailTemplate) setActiveEmailTemplate(selectedTemplate);
+                  setActivePage("Email Builder");
+                }}
                 style={{
                   padding: "10px 24px", borderRadius: 6, backgroundColor: "#1D4ED8",
                   color: "#fff", fontWeight: 600, fontSize: 14, border: "none", cursor: "pointer"

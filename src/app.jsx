@@ -111,6 +111,7 @@ function AppContent() {
     return saved !== null ? saved === "dark" : true;
   });
   const [activePage, setActivePage] = useState("Dashboard");
+  const [activeEmailTemplate, setActiveEmailTemplate] = useState(null);
   const [selectedDealId, setSelectedDealId] = useState(null);
   const [activeTenantId, setActiveTenantId] = useState("");
   const [helpOpen, setHelpOpen] = useState(false);
@@ -705,8 +706,8 @@ function AppContent() {
                   {activePage === "Dimensions" && <PageDimensions t={t} isDark={isDark} DIMENSIONS={DIMENSIONS} rawDimensions={rawDimensions} collectionPath={fetchPaths.dimensions} />}
                   {activePage === "Reports" && <PageReports t={t} isDark={isDark} MONTHLY={MONTHLY} activeTenantId={activeTenantId} />}
                   {activePage === "Marketing emails" && <PageMarketingEmails t={t} isDark={isDark} setActivePage={setActivePage} />}
-                  {activePage === "Manage Templates" && <PageManageTemplates t={t} isDark={isDark} setActivePage={setActivePage} />}
-                  {activePage === "Email Builder" && <PageEmailBuilder t={t} isDark={isDark} setActivePage={setActivePage} />}
+                  {activePage === "Manage Templates" && <PageManageTemplates t={t} isDark={isDark} setActivePage={setActivePage} setActiveEmailTemplate={setActiveEmailTemplate} />}
+                  {activePage === "Email Builder" && <PageEmailBuilder t={t} isDark={isDark} setActivePage={setActivePage} activeEmailTemplate={activeEmailTemplate} />}
                   {activePage === "AI Admin" && <PageAdminHelp t={t} isDark={isDark} />}
                 </>
               )}
