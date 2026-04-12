@@ -2625,6 +2625,13 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
                   position: "relative"
                 }}
                 onClick={() => photoInputRef.current?.click()}
+                onDragOver={(e) => e.preventDefault()}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                    handlePhotoUpload({ target: { files: e.dataTransfer.files } });
+                  }
+                }}
               >
                 <div style={{ fontSize: 40, marginBottom: 8 }}>📷</div>
                 <div style={{ fontSize: 14, fontWeight: 600, color: t.text, marginBottom: 4 }}>
