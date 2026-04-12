@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { db } from "../firebase";
 import { collection, query, onSnapshot, doc, setDoc, deleteDoc, serverTimestamp } from "firebase/firestore";
-import { uploadFile } from "../utils/storageUtils";
+import { uploadFile, deleteFile } from "../utils/storageUtils";
 import { FileText, File, Trash2, Download, Plus, Loader2, X, HelpCircle, Eye } from "lucide-react";
 import { Modal, FF, FIn, FSel, Tooltip, DelModal } from "../components";
 
@@ -86,6 +86,7 @@ export default function InvestmentDocumentsTab({ t, isDark, tenantId, party, DEA
     const doDelete = async (docObj) => {
         try {
             await deleteDoc(doc(db, "tenants", tenantId, "contacts", partyId, "documents", docObj.id));
+            if (docObj.path) await deleteFile(docObj.path);
         } catch (err) {
             console.error("Delete error:", err);
         }

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { db } from "../firebase";
 import { collection, query, onSnapshot, doc, setDoc, deleteDoc, serverTimestamp } from "firebase/firestore";
-import { uploadFile } from "../utils/storageUtils";
+import { uploadFile, deleteFile } from "../utils/storageUtils";
 import { FileText, File, Trash2, Download, Plus, Loader2, X } from "lucide-react";
 import { fmtCurr } from "../utils";
 
@@ -64,8 +64,7 @@ export default function DocumentsTab({ t, isDark, dealId }) {
     const doDelete = async (docObj) => {
         try {
             await deleteDoc(doc(db, "deals", dealId, "documents", docObj.id));
-            // Note: We should also delete from Storage, but for now we focus on Firestore consistency.
-            // storageUtils could be expanded with deleteFile if needed.
+            if (docObj.path) await deleteFile(docObj.path);
         } catch (err) {
             console.error("Delete error:", err);
         }

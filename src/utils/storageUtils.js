@@ -1,4 +1,4 @@
-import { ref, uploadBytes, getDownloadURL, uploadString } from "firebase/storage";
+import { ref, uploadBytes, getDownloadURL, uploadString, deleteObject } from "firebase/storage";
 import { storage } from "../firebase";
 
 /**
@@ -16,6 +16,22 @@ export const uploadFile = async (file, path) => {
     } catch (error) {
         console.error("Storage upload error:", error);
         throw error;
+    }
+};
+
+/**
+ * Deletes a file from Firebase Storage by its path.
+ * Silently ignores "not found" errors (object may have already been deleted).
+ * @param {string} path - The storage path.
+ */
+export const deleteFile = async (path) => {
+    if (!path) return;
+    try {
+        await deleteObject(ref(storage, path));
+    } catch (error) {
+        if (error.code !== "storage/object-not-found") {
+            console.error("Storage delete error:", error);
+        }
     }
 };
 

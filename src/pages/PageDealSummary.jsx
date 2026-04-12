@@ -38,6 +38,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
   const [pageSize, setPageSize] = useState(30);
   const [uploadedPhotos, setUploadedPhotos] = useState([]);
   const [newPhotoFiles, setNewPhotoFiles] = useState([]);
+  const photoInputRef = useRef(null);
   const [attributes, setAttributes] = useState([]);
   const [generating, setGenerating] = useState(false);
   const [genConfirm, setGenConfirm] = useState(null);
@@ -1146,12 +1147,14 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
       if (newPhotoFiles.length > 0) {
         const assetId = assetModal.mode === "edit" ? d.docId : assetDocRef.id;
         for (const fileObj of newPhotoFiles) {
-          const storageRef = ref(storage, `deals/${deal.id}/assets/${assetId}/${Date.now()}_${fileObj.file.name}`);
+          const path = `deals/${deal.id}/assets/${assetId}/${Date.now()}_${fileObj.file.name}`;
+          const storageRef = ref(storage, path);
           const uploadResult = await uploadBytes(storageRef, fileObj.file);
           const url = await getDownloadURL(uploadResult.ref);
 
           await addDoc(collection(db, "deals", deal.id, "assets", assetId, "photos"), {
             url,
+            path,
             name: fileObj.file.name,
             created_at: serverTimestamp()
           });
@@ -1208,6 +1211,9 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
   const removeUploadedPhoto = async (photo) => {
     try {
       await deleteDoc(doc(db, "deals", deal.id, "assets", assetModal.data.docId, "photos", photo.id));
+      if (photo.path) {
+        try { await deleteObject(ref(storage, photo.path)); } catch (_) {}
+      }
       setUploadedPhotos(prev => prev.filter(p => p.id !== photo.id));
     } catch (e) {
       console.error("Error deleting photo:", e);
@@ -2618,7 +2624,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
                   cursor: "pointer",
                   position: "relative"
                 }}
-                onClick={() => document.getElementById("photo-upload").click()}
+                onClick={() => photoInputRef.current?.click()}
               >
                 <div style={{ fontSize: 40, marginBottom: 8 }}>📷</div>
                 <div style={{ fontSize: 14, fontWeight: 600, color: t.text, marginBottom: 4 }}>
@@ -2626,7 +2632,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
                 </div>
                 <div style={{ fontSize: 12, color: t.textMuted }}>or browse to choose files</div>
                 <input
-                  id="photo-upload"
+                  ref={photoInputRef}
                   type="file"
                   multiple
                   accept="image/*"
