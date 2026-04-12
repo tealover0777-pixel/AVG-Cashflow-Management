@@ -2240,7 +2240,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
               isDark={isDark}
             />
           </div>
-          <div>
+          <div style={{ border: `1px solid ${t.surfaceBorder || "rgba(0,0,0,0.1)"}`, borderRadius: 12, padding: 24, background: isDark ? "rgba(255,255,255,0.02)" : "#fff" }}>
             <div style={{ display: "flex", gap: 16, marginBottom: 16, alignItems: 'flex-start' }}>
               <div style={{ width: 180 }}>
                 <h3 style={{ fontSize: 16, fontWeight: 600, color: t.text, margin: 0 }}>Deal cover photo</h3>
