@@ -164,7 +164,8 @@ export const getNav = (isSuper, isAdmin, hasPermission, isR10010) => {
     if (item.label === "AI Admin") return isSuper;
 
     // Strict check for Marketing emails regardless of platform user status
-    if (item.label === "Marketing emails" && (!hasPermission || !hasPermission("MARTETING_VIEW"))) return false;
+    const isMarketingNav = item.label === "Marketing" || item.label === "Marketing emails";
+    if (isMarketingNav && (!hasPermission || !(hasPermission("MARKETING_VIEW") || hasPermission("MARTETING_VIEW")))) return false;
 
     if (isSuper) return true; // Super Admins always see everything else
 
