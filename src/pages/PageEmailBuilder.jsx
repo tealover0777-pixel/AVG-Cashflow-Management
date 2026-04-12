@@ -3,7 +3,8 @@ import {
   ChevronLeft, Edit2, UploadCloud, Calendar, Mail, Send,
   FileEdit, Settings, Smartphone, Monitor, Paperclip, Save,
   Columns, TrendingUp, Square, Minus, Type, AlignLeft, Image as ImageIcon,
-  FileText, Video, Users, Menu, Code, Table
+  FileText, Video, Users, Menu, Code, Table,
+  Search, ChevronRight, ChevronDown, ChevronUp, X as XIcon, CheckCircle
 } from "lucide-react";
 
 export default function PageEmailBuilder({ t, isDark, setActivePage }) {
@@ -113,24 +114,18 @@ export default function PageEmailBuilder({ t, isDark, setActivePage }) {
         <div style={{ width: 380, background: t.surface, borderLeft: `1px solid ${t.border}`, display: "flex" }}>
           
           {/* Tools Grid */}
-          <div style={{ flex: 1, padding: 16, overflowY: "auto" }}>
-             <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12 }}>
-                {contentBlocks.map((block) => (
-                  <div key={block.label} style={{
-                    display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 8,
-                    background: isDark ? "#1F2937" : "#fff", border: `1px solid ${t.border}`, borderRadius: 4,
-                    padding: "16px 8px", cursor: "grab", color: t.text,
-                    boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
-                    transition: "border-color 0.2s"
-                  }}
-                  onMouseEnter={(e) => e.currentTarget.style.borderColor = isDark ? "#60A5FA" : "#3B82F6"}
-                  onMouseLeave={(e) => e.currentTarget.style.borderColor = t.border}
-                  >
-                    <block.icon size={24} strokeWidth={1.5} color={t.textMuted} />
-                    <span style={{ fontSize: 10, fontWeight: 600, letterSpacing: 0.5 }}>{block.label}</span>
-                  </div>
-                ))}
-             </div>
+          <div style={{ flex: 1, overflowY: "auto", display: "flex", flexDirection: "column" }}>
+             {activeRightTab === "Content" && <ContentTab t={t} isDark={isDark} contentBlocks={contentBlocks} />}
+             {activeRightTab === "Blocks" && <BlocksTab t={t} isDark={isDark} />}
+             {activeRightTab === "Body" && <BodyTab t={t} isDark={isDark} />}
+             {activeRightTab === "Images" && <ImagesTab t={t} isDark={isDark} />}
+             {activeRightTab === "Uploads" && <UploadsTab t={t} isDark={isDark} />}
+             {activeRightTab === "Audit" && (
+                <div style={{ padding: 16, textAlign: "center", color: t.textMuted, fontSize: 13, marginTop: 40 }}>
+                   <FileText size={32} style={{ margin: "0 auto 16px", opacity: 0.5 }} />
+                   No audits found. Your email looks great!
+                </div>
+             )}
           </div>
 
           {/* Far Right Tabs */}
@@ -149,7 +144,12 @@ export default function PageEmailBuilder({ t, isDark, setActivePage }) {
                     color: active ? (isDark ? "#60A5FA" : "#3B82F6") : t.textMuted
                   }}
                 >
-                  <rtab.icon size={20} strokeWidth={1.5} />
+                  <div style={{ position: "relative" }}>
+                     <rtab.icon size={20} strokeWidth={1.5} />
+                     {rtab.id === "Audit" && (
+                       <span style={{ position: "absolute", top: -6, right: -8, background: "#EF4444", color: "#fff", fontSize: 9, fontWeight: 700, width: 14, height: 14, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center" }}>2</span>
+                     )}
+                  </div>
                   <span style={{ fontSize: 9, fontWeight: active ? 600 : 500 }}>{rtab.id}</span>
                 </div>
               );
@@ -185,6 +185,236 @@ function TabButton({ icon, label, active, t, isDark }) {
     }}>
       {icon}
       {label}
+    </div>
+  );
+}
+
+function ContentTab({ t, isDark, contentBlocks }) {
+  return (
+    <div style={{ padding: 16 }}>
+       <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12 }}>
+          {contentBlocks.map((block) => (
+            <div key={block.label} style={{
+              display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 8,
+              background: isDark ? "#1F2937" : "#fff", border: `1px solid ${t.border}`, borderRadius: 4,
+              padding: "16px 8px", cursor: "grab", color: t.text,
+              boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
+              transition: "border-color 0.2s"
+            }}
+            onMouseEnter={(e) => e.currentTarget.style.borderColor = isDark ? "#60A5FA" : "#3B82F6"}
+            onMouseLeave={(e) => e.currentTarget.style.borderColor = t.border}
+            >
+              <block.icon size={24} strokeWidth={1.5} color={t.textMuted} />
+              <span style={{ fontSize: 10, fontWeight: 600, letterSpacing: 0.5 }}>{block.label}</span>
+            </div>
+          ))}
+       </div>
+    </div>
+  );
+}
+
+function BlocksTab({ t, isDark }) {
+  return (
+    <div>
+       <div style={{ padding: "16px", borderBottom: `1px solid ${t.border}` }}>
+         <h3 style={{ fontSize: 16, fontWeight: 700, margin: "0 0 16px 0", color: t.text }}>Blocks</h3>
+         <div style={{ position: "relative" }}>
+           <Search size={16} color={t.textMuted} style={{ position: "absolute", left: 12, top: 10 }} />
+           <input placeholder="Search" style={{ width: "100%", padding: "10px 10px 10px 36px", border: `1px solid ${t.border}`, borderRadius: 4, background: t.surface, color: t.text }} />
+         </div>
+       </div>
+
+       <div style={{ padding: 16 }}>
+         <div style={{ marginBottom: 24 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 12, alignItems: "center" }}>
+              <span style={{ fontSize: 14, color: t.text, fontWeight: 500 }}>Blank</span>
+              <span style={{ fontSize: 12, color: t.textMuted, cursor: "pointer", display: "flex", alignItems: "center" }}>All <ChevronRight size={14} /></span>
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              <div style={{ height: 60, border: `1px solid ${t.border}`, background: isDark ? "#333" : "#F3F4F6", borderRadius: 2 }}></div>
+              <div style={{ display: "flex", gap: 8, height: 60 }}>
+                <div style={{ flex: 1, border: `1px solid ${t.border}`, background: isDark ? "#333" : "#F3F4F6", borderRadius: 2 }}></div>
+                <div style={{ flex: 1, border: `1px solid ${t.border}`, background: isDark ? "#333" : "#F3F4F6", borderRadius: 2 }}></div>
+              </div>
+            </div>
+         </div>
+
+         <div>
+            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 12, alignItems: "center" }}>
+              <span style={{ fontSize: 14, color: t.text, fontWeight: 500 }}>AVG Overview</span>
+              <span style={{ fontSize: 12, color: t.textMuted, cursor: "pointer", display: "flex", alignItems: "center" }}>All <ChevronRight size={14} /></span>
+            </div>
+            <div style={{ height: 120, background: "#555", borderRadius: 2, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", flexDirection: "column" }}>
+               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", width: "100%", textAlign: "center", padding: "0 10px" }}>
+                  <div><div style={{ fontSize: 18, fontWeight: "bold" }}>10+</div><div style={{ fontSize: 7 }}>years of consistent outperformance</div></div>
+                  <div><div style={{ fontSize: 18, fontWeight: "bold" }}>$250 M+</div><div style={{ fontSize: 7 }}>Assets Under Managed</div></div>
+                  <div><div style={{ fontSize: 18, fontWeight: "bold" }}>300+</div><div style={{ fontSize: 7 }}>Trusted by investors</div></div>
+                  <div><div style={{ fontSize: 18, fontWeight: "bold" }}>100+</div><div style={{ fontSize: 7 }}>Properties Managed</div></div>
+               </div>
+            </div>
+         </div>
+       </div>
+    </div>
+  );
+}
+
+function BodyTab({ t, isDark }) {
+  const [openSections, setOpenSections] = React.useState({ general: true, emailSettings: true, links: true, accessibility: true });
+  
+  const toggle = (sec) => setOpenSections(prev => ({ ...prev, [sec]: !prev[sec] }));
+  
+  const AccordionHeader = ({ id, label }) => (
+    <div onClick={() => toggle(id)} style={{ padding: "12px 16px", display: "flex", justifyContent: "space-between", cursor: "pointer", background: isDark ? "#1F2937" : "#F9FAFB", borderBottom: `1px solid ${t.border}` }}>
+      <span style={{ fontSize: 13, fontWeight: 700, color: t.text }}>{label}</span>
+      {openSections[id] ? <ChevronUp size={16} color={t.textMuted} /> : <ChevronDownIcon size={16} />}
+    </div>
+  );
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column" }}>
+      <AccordionHeader id="general" label="General" />
+      {openSections.general && (
+        <div style={{ padding: 16, display: "flex", flexDirection: "column", gap: 20 }}>
+           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+             <span style={{ fontSize: 12, color: t.text }}>Text Color</span>
+             <div style={{ width: 24, height: 24, background: "#000", border: `1px solid ${t.border}`, borderRadius: 4 }}></div>
+           </div>
+           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+             <span style={{ fontSize: 12, color: t.text }}>Background Color</span>
+             <div style={{ width: 24, height: 24, background: "#fff", border: `1px solid ${t.border}`, borderRadius: 4, position: "relative" }}>
+               <div style={{ position: "absolute", top: -6, right: -6, background: "#666", borderRadius: "50%", width: 14, height: 14, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <XIcon size={10} color="#fff" />
+               </div>
+             </div>
+           </div>
+           
+           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+             <span style={{ fontSize: 12, color: t.text }}>Content Width</span>
+             <div style={{ display: "flex", border: `1px solid ${t.border}`, borderRadius: 4, overflow: "hidden" }}>
+                <input type="text" value="600" readOnly style={{ width: 44, padding: "6px", textAlign: "center", border: "none", borderRight: `1px solid ${t.border}`, background: t.surface, color: t.text, fontSize: 12 }} />
+                <div style={{ width: 30, padding: "6px", textAlign: "center", background: isDark ? "#1F2937" : "#F3F4F6", borderRight: `1px solid ${t.border}`, fontSize: 12, color: t.textMuted }}>px</div>
+                <button style={{ width: 30, background: t.surface, border: "none", borderRight: `1px solid ${t.border}`, cursor: "pointer", color: t.textMuted }}>-</button>
+                <button style={{ width: 30, background: t.surface, border: "none", cursor: "pointer", color: t.textMuted }}>+</button>
+             </div>
+           </div>
+
+           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+             <span style={{ fontSize: 12, color: t.text }}>Content Alignment</span>
+             <div style={{ display: "flex", border: `1px solid ${t.border}`, borderRadius: 4, overflow: "hidden" }}>
+                <button style={{ padding: "6px 12px", background: t.surface, border: "none", borderRight: `1px solid ${t.border}`, cursor: "pointer", color: t.textMuted }}><AlignLeft size={14} /></button>
+                <button style={{ padding: "6px 12px", background: isDark ? "#60A5FA" : "#1F2937", border: "none", cursor: "pointer", color: "#fff" }}><Menu size={14} /></button>
+             </div>
+           </div>
+
+           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+             <span style={{ fontSize: 12, color: t.text }}>Font Family</span>
+             <div style={{ display: "flex", alignItems: "center", padding: "6px 12px", border: `1px solid ${t.border}`, borderRadius: 4, fontSize: 12, gap: 8, cursor: "pointer", color: t.text }}>
+                Montserrat <ChevronDownIcon size={14} />
+             </div>
+           </div>
+
+           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+             <span style={{ fontSize: 12, color: t.text }}>Font Weight</span>
+             <div style={{ display: "flex", alignItems: "center", padding: "6px 12px", border: `1px solid ${t.border}`, borderRadius: 4, fontSize: 12, gap: 8, cursor: "pointer", color: t.text }}>
+                Regular <ChevronDownIcon size={14} />
+             </div>
+           </div>
+        </div>
+      )}
+      
+      <AccordionHeader id="emailSettings" label="Email Settings" />
+      {openSections.emailSettings && (
+        <div style={{ padding: 16 }}>
+           <span style={{ fontSize: 12, color: t.text, display: "block", marginBottom: 8 }}>Preheader Text</span>
+           <input type="text" style={{ width: "100%", padding: 8, border: `1px solid ${t.border}`, borderRadius: 4, background: t.surface, color: t.text, marginBottom: 8 }} />
+           <p style={{ margin: 0, fontSize: 10, color: t.textMuted }}>A preheader is the short summary text that follows the subject line when viewing an email from the inbox.</p>
+        </div>
+      )}
+
+      <AccordionHeader id="links" label="Links" />
+      {openSections.links && (
+        <div style={{ padding: 16, display: "flex", flexDirection: "column", gap: 16 }}>
+           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+             <span style={{ fontSize: 12, color: t.text }}>Color</span>
+             <div style={{ width: 24, height: 24, background: "#0000FF", border: `1px solid ${t.border}`, borderRadius: 4 }}></div>
+           </div>
+           
+           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+             <span style={{ fontSize: 12, color: t.text }}>Underline</span>
+             <div style={{ width: 36, height: 20, background: isDark ? "#60A5FA" : "#1F2937", borderRadius: 10, position: "relative", cursor: "pointer" }}>
+               <div style={{ position: "absolute", right: 2, top: 2, width: 16, height: 16, background: "#fff", borderRadius: "50%" }}></div>
+               <CheckCircle size={12} color={isDark ? "#1F2937" : "#fff"} style={{ position: "absolute", left: 4, top: 4 }} />
+             </div>
+           </div>
+        </div>
+      )}
+
+      <AccordionHeader id="accessibility" label="Accessibility" />
+      {openSections.accessibility && (
+        <div style={{ padding: 16 }}>
+           <span style={{ fontSize: 12, color: t.text, display: "block", marginBottom: 8 }}>HTML Title</span>
+           <input type="text" style={{ width: "100%", padding: 8, border: `1px solid ${t.border}`, borderRadius: 4, background: t.surface, color: t.text, marginBottom: 8 }} />
+           <p style={{ margin: 0, fontSize: 10, color: t.textMuted }}>Sets the HTML &lt;title&gt; tag in the exported HTML.</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ImagesTab({ t }) {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
+      <div style={{ padding: "16px", borderBottom: `1px solid ${t.border}` }}>
+        <h3 style={{ fontSize: 16, fontWeight: 700, margin: "0 0 16px 0", color: t.text }}>Images</h3>
+        <div style={{ position: "relative", marginBottom: 12 }}>
+           <Search size={16} color={t.textMuted} style={{ position: "absolute", left: 12, top: 10 }} />
+           <input placeholder="Search millions of images" style={{ width: "100%", padding: "10px 10px 10px 36px", border: `1px solid ${t.border}`, borderRadius: 4, background: t.surface, color: t.text }} />
+        </div>
+        <p style={{ fontSize: 10, color: t.textMuted, textAlign: "center", margin: 0, lineHeight: 1.4 }}>
+          Powered by Unsplash, Pexels, Pixabay.<br/>All images licensed under Creative Commons Zero.
+        </p>
+      </div>
+      
+      <div style={{ padding: 16, flex: 1, overflowY: "auto", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, alignContent: "flex-start" }}>
+         <div style={{ height: 100, background: "#FF7E67", borderRadius: 4 }}></div>
+         <div style={{ height: 140, background: "#3A86FF", borderRadius: 4 }}></div>
+         
+         <div style={{ gridColumn: "1 / -1", background: "#06D6A0", borderRadius: 4, padding: 16, color: "#fff", display: "flex", flexDirection: "column", alignItems: "flex-start" }}>
+            <h4 style={{ margin: "0 0 8px", fontSize: 16, fontWeight: 700 }}>Let <span style={{ color: "#E0F2FE" }}>AI</span> Create Images</h4>
+            <p style={{ margin: "0 0 16px", fontSize: 12, opacity: 0.9, lineHeight: 1.4 }}>Get the perfect image with AI. Just type what you want and AI will create it for you.</p>
+            <button style={{ background: "#059669", border: "none", color: "#fff", padding: "8px 16px", borderRadius: 4, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>See the Magic</button>
+         </div>
+
+         <div style={{ height: 120, background: "#8338EC", borderRadius: 4 }}></div>
+         <div style={{ height: 160, background: "#FF006E", borderRadius: 4 }}></div>
+         <div style={{ height: 140, background: "#FFBE0B", borderRadius: 4 }}></div>
+         <div style={{ height: 100, background: "#FB5607", borderRadius: 4 }}></div>
+      </div>
+    </div>
+  );
+}
+
+function UploadsTab({ t, isDark }) {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
+      <div style={{ padding: "16px", borderBottom: `1px solid ${t.border}` }}>
+        <h3 style={{ fontSize: 16, fontWeight: 700, margin: "0 0 16px 0", color: t.text }}>Uploads</h3>
+        <button style={{ width: "100%", background: isDark ? "#333" : "#222", color: "#fff", border: "none", padding: "12px", borderRadius: 4, fontWeight: 600, fontSize: 13, marginBottom: 16, cursor: "pointer" }}>
+          Upload Image
+        </button>
+        
+        <div style={{ border: `1px dashed ${t.border}`, borderRadius: 4, padding: "32px 16px", textAlign: "center", background: t.surface }}>
+          <UploadCloud size={24} color={t.textMuted} style={{ margin: "0 auto 8px" }} />
+          <p style={{ margin: 0, fontSize: 12, color: t.textMuted }}>Drop a new image here, or click to select files to upload.</p>
+        </div>
+      </div>
+
+      <div style={{ padding: 16, flex: 1, overflowY: "auto", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, alignContent: "flex-start" }}>
+         <div style={{ height: 120, background: "#EAEAEA", borderRadius: 4 }}></div>
+         <div style={{ height: 60, background: "#CCC", borderRadius: 4 }}></div>
+         <div style={{ height: 160, background: "#999", borderRadius: 4 }}></div>
+         <div style={{ height: 100, background: "#AAA", borderRadius: 4 }}></div>
+      </div>
     </div>
   );
 }
