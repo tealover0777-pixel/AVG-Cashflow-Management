@@ -29,7 +29,7 @@ export default function PageContacts({ t, isDark, CONTACTS = [], INVESTMENTS = [
     const maxNum = Math.max(...CONTACTS.map(p => { const m = String(p.id).match(/^M(\d+)$/); return m ? Number(m[1]) : 0; }));
     return "M" + (maxNum + 1);
   })();
-  const openAdd = () => setModal({ open: true, mode: "add", data: { id: nextContactId, first_name: "", last_name: "", type: "Individual", role: "Investor", email: "", payment_method: paymentMethods[0] || "" } });
+  const openAdd = () => setModal({ open: true, mode: "add", data: { id: nextContactId, first_name: "", last_name: "", type: "Individual", role: "Investor", email: "", payment_method: paymentMethods[0] || "", marketing_emails: "Subscribed" } });
   const openEdit = r => {
     let fn = r.first_name || "";
     let ln = r.last_name || "";
@@ -98,6 +98,7 @@ export default function PageContacts({ t, isDark, CONTACTS = [], INVESTMENTS = [
       bank_routing_number: d.bank_routing_number || "",
       bank_account_number: d.bank_account_number || "",
       payment_method: d.payment_method || "",
+      marketing_emails: d.marketing_emails || "Subscribed",
       updated_at: serverTimestamp(),
     };
     try {
@@ -145,6 +146,7 @@ export default function PageContacts({ t, isDark, CONTACTS = [], INVESTMENTS = [
       bank_routing_number: d.bank_routing_number || "",
       bank_account_number: d.bank_account_number || "",
       payment_method: d.payment_method || "",
+      marketing_emails: d.marketing_emails || "Subscribed",
       updated_at: serverTimestamp(),
     };
     try {
@@ -318,6 +320,9 @@ export default function PageContacts({ t, isDark, CONTACTS = [], INVESTMENTS = [
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
         <FF label="Bank Information" t={t}><FIn value={modal.data.bank_information || ""} onChange={e => setF("bank_information", e.target.value)} placeholder="e.g. Citibank" t={t} /></FF>
         <FF label="Payment Method" t={t}><FSel value={modal.data.payment_method} onChange={e => setF("payment_method", e.target.value)} options={paymentMethods} t={t} /></FF>
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+        <FF label="Marketing Emails?" t={t}><FSel value={modal.data.marketing_emails || "Subscribed"} onChange={e => setF("marketing_emails", e.target.value)} options={["Subscribed", "Unsubscribed"]} t={t} /></FF>
       </div>
     </Modal>
     <DelModal target={delT} onClose={() => setDelT(null)} onConfirm={handleDeleteContact} label="This contact" t={t} isDark={isDark} />

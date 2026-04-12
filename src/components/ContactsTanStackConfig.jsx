@@ -140,6 +140,12 @@ export const getContactColumns = (permissions, isDark, t, context) => {
       )
     },
     {
+      header: "Marketing Emails?",
+      accessorKey: "marketing_emails",
+      size: 130,
+      cell: ({ getValue }) => <span style={{ fontSize: '11px', color: t.textSecondary }}>{getValue() || "Subscribed"}</span>
+    },
+    {
       header: "Payment Method",
       accessorKey: "payment_method",
       size: 130,
