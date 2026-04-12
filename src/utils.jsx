@@ -112,6 +112,14 @@ const NAV_ITEMS = [
     ]
   },
   {
+    label: "Marketing",
+    icon: "Megaphone",
+    expandable: true,
+    children: [
+      { label: "Marketing emails", icon: "Mail" },
+    ]
+  },
+  {
     label: "Banking",
     icon: "Landmark",
     expandable: true,
@@ -178,6 +186,7 @@ export const getNav = (isSuper, isAdmin, hasPermission, isR10010) => {
     if (item.label === "Tenants" && !(hasPermission("PLATFORM_TENANT_VIEW") || hasPermission("TENANT_VIEW"))) return false;
     if (item.label === "Dimensions" && !(hasPermission("DIMENSION_VIEW") || hasPermission("DIMENTION_VIEW"))) return false;
     if (item.label === "Reports" && !hasPermission("REPORT_VIEW")) return false;
+    if (item.label === "Marketing emails" && !hasPermission("MARKETING_VIEW")) return false;
 
     return true;
   };

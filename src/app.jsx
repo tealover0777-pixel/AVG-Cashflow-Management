@@ -23,13 +23,16 @@ import PageSuperAdmin from "./pages/PageSuperAdmin";
 import PageProfile from "./pages/PageProfile";
 import PageReports from "./pages/PageReports";
 import PageDimensions from "./pages/PageDimensions";
+import PageMarketingEmails from "./pages/PageMarketingEmails";
+import PageEmailBuilder from "./pages/PageEmailBuilder";
 import {
   LayoutDashboard, Briefcase, Users, PieChart, Calendar, 
   CreditCard, BarChart3, Settings, Shield, UserCircle, 
   HelpCircle, LogOut, ChevronDown, Sparkles, Sun, Moon, 
   TableProperties, Hash, LayoutGrid, Coins, CircleDollarSign,
   UserSquare, ShieldAlert, Building2, ShieldCheck, UserPlus,
-  Bot, Box, CalendarDays, User, ChevronRight, Server, HeartHandshake, Landmark
+  Bot, Box, CalendarDays, User, ChevronRight, Server, HeartHandshake, Landmark,
+  Megaphone, Mail
 } from "lucide-react";
 import { Tooltip } from "./components";
 import SidebarHelp from "./components/SidebarHelp";
@@ -44,7 +47,7 @@ const Icon = ({ name, size = 18, color = "currentColor" }) => {
     UserPlus, Bot, Box, BarChart3, CalendarDays, PieChart, CreditCard, 
     User, ChevronRight, HelpCircle, LogOut, Sparkles, Sun, Moon,
     Shield, UserCircle, ChevronDown, TableProperties, Hash, Calendar,
-    Server, HeartHandshake, Landmark
+    Server, HeartHandshake, Landmark, Megaphone, Mail
   };
   const LucideIcon = icons[name];
   return LucideIcon ? <LucideIcon size={size} color={color} style={{ flexShrink: 0 }} /> : null;
@@ -700,6 +703,8 @@ function AppContent() {
                   {activePage === "Profile" && <PageProfile t={t} isDark={isDark} setIsDark={setIsDark} ROLES={rawRoles} collectionPath={fetchPaths.users} activeTenantId={activeTenantId} />}
                   {activePage === "Dimensions" && <PageDimensions t={t} isDark={isDark} DIMENSIONS={DIMENSIONS} rawDimensions={rawDimensions} collectionPath={fetchPaths.dimensions} />}
                   {activePage === "Reports" && <PageReports t={t} isDark={isDark} MONTHLY={MONTHLY} activeTenantId={activeTenantId} />}
+                  {activePage === "Marketing emails" && <PageMarketingEmails t={t} isDark={isDark} setActivePage={setActivePage} />}
+                  {activePage === "Email Builder" && <PageEmailBuilder t={t} isDark={isDark} setActivePage={setActivePage} />}
                   {activePage === "AI Admin" && <PageAdminHelp t={t} isDark={isDark} />}
                 </>
               )}
