@@ -4,7 +4,7 @@ import { Bdg, ActBtns, Tooltip } from '../components';
 import { initials, av } from '../utils';
 
 export const getContactColumns = (permissions, isDark, t, context) => {
-  const { callbacks, invitingId } = context;
+  const { callbacks, invitingId, INVESTMENTS } = context;
   const { canUpdate, canDelete, canInvite } = permissions;
 
   const cols = [
@@ -127,6 +127,38 @@ export const getContactColumns = (permissions, isDark, t, context) => {
       accessorKey: "investor_type",
       size: 80,
       cell: ({ getValue }) => <span style={{ fontSize: '11px', color: t.textMuted }}>{getValue() || "—"}</span>
+    },
+    {
+      header: "Deals invested in",
+      id: "deals_invested",
+      size: 130,
+      cell: ({ row }) => {
+        const contact = row.original;
+        const dpId = String(contact.id || "").trim();
+        const dpDocId = String(contact.docId || "").trim();
+        const partyInvestments = (INVESTMENTS || []).filter(c => {
+          const cPId = String(c.party_id || "").trim();
+          return (cPId && (cPId === dpId || (dpDocId && cPId === dpDocId)));
+        });
+        
+        const dealIds = new Set();
+        partyInvestments.forEach(inv => {
+          if (inv.deal_id) dealIds.add(inv.deal_id);
+          else if (inv.deal) dealIds.add(inv.deal);
+        });
+        
+        return (
+          <div style={{ display: 'flex', alignItems: 'center', height: '100%' }}>
+            <span style={{ 
+              fontSize: '11px', fontWeight: 600, color: t.textSecondary,
+              background: isDark ? "rgba(255,255,255,0.05)" : "#F3F4F6",
+              padding: "2px 8px", borderRadius: 12
+            }}>
+              {dealIds.size} {dealIds.size === 1 ? 'deal' : 'deals'}
+            </span>
+          </div>
+        );
+      }
     },
     {
       header: "Email",

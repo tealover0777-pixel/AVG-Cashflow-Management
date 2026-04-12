@@ -260,8 +260,9 @@ export default function PageContacts({ t, isDark, CONTACTS = [], INVESTMENTS = [
       onInvite: handleInviteContact,
       onNameClick: (party) => setDetailContact(party)
     },
-    invitingId
-  }), [isDark, t, permissions, invitingId]);
+    invitingId,
+    INVESTMENTS
+  }), [isDark, t, permissions, invitingId, INVESTMENTS]);
 
   const columnDefs = useMemo(() => {
     return getContactColumns(permissions, isDark, t, columnContext);
