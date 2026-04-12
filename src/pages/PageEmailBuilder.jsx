@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { ref, uploadBytesResumable, getDownloadURL, listAll } from "firebase/storage";
 import { storage } from "../firebase";
+import { useAuth } from "../AuthContext";
 import { 
   ChevronLeft, Edit2, UploadCloud, Calendar, Mail, Send,
   FileEdit, Settings, Smartphone, Monitor, Paperclip, Save,
@@ -364,11 +365,14 @@ function BodyTab({ t, isDark }) {
 }
 
 function ImagesTab({ t }) {
+  const { profile } = useAuth();
+  const isAdmin = ["super admin", "platform admin"].includes(profile?.role?.toLowerCase());
+
   const [query, setQuery] = useState("");
   const [images, setImages] = useState([]);
   const [loading, setLoading] = useState(false);
   const [apiKey, setApiKey] = useState(localStorage.getItem("UNSPLASH_API_KEY") || "");
-  const [showKeyInput, setShowKeyInput] = useState(!localStorage.getItem("UNSPLASH_API_KEY"));
+  const [showKeyInput, setShowKeyInput] = useState(!localStorage.getItem("UNSPLASH_API_KEY") && isAdmin);
   const [error, setError] = useState(null);
 
   const searchImages = async (e) => {
@@ -431,18 +435,20 @@ function ImagesTab({ t }) {
           <p style={{ fontSize: 10, color: t.textMuted, margin: 0, lineHeight: 1.4 }}>
             Powered by Unsplash.
           </p>
-          <button 
-            onClick={() => setShowKeyInput(!showKeyInput)}
-            style={{ background: "none", border: "none", color: "#3A86FF", fontSize: 10, cursor: "pointer" }}
-          >
-            {showKeyInput ? "Hide API Key" : "Settings"}
-          </button>
+          {isAdmin && (
+            <button 
+              onClick={() => setShowKeyInput(!showKeyInput)}
+              style={{ background: "none", border: "none", color: "#3A86FF", fontSize: 10, cursor: "pointer" }}
+            >
+              {showKeyInput ? "Hide API Key" : "Settings"}
+            </button>
+          )}
         </div>
       </div>
       
       <div style={{ padding: 16, flex: 1, overflowY: "auto", display: "flex", flexDirection: "column", gap: 16 }}>
         
-        {showKeyInput && (
+        {showKeyInput && isAdmin && (
           <div style={{ padding: 16, background: t.surface, borderRadius: 4, border: `1px solid ${t.border}` }}>
             <h4 style={{ margin: "0 0 8px", fontSize: 13, color: t.text }}>Unsplash Setup</h4>
             <p style={{ margin: "0 0 12px", fontSize: 11, color: t.textMuted }}>
@@ -464,7 +470,13 @@ function ImagesTab({ t }) {
           </div>
         )}
 
-        {!showKeyInput && images.length === 0 && !loading && (
+        {!apiKey && !isAdmin && images.length === 0 && (
+          <div style={{ textAlign: "center", padding: "32px 16px", color: t.textMuted, fontSize: 12, background: t.surface, borderRadius: 4, border: `1px dashed ${t.border}` }}>
+            Unsplash integration is not configured. Please contact a Platform Administrator to set it up.
+          </div>
+        )}
+
+        {!showKeyInput && images.length === 0 && !loading && apiKey && (
           <div style={{ gridColumn: "1 / -1", background: "#06D6A0", borderRadius: 4, padding: 16, color: "#fff", display: "flex", flexDirection: "column", alignItems: "flex-start" }}>
              <h4 style={{ margin: "0 0 8px", fontSize: 16, fontWeight: 700 }}>Let <span style={{ color: "#E0F2FE" }}>AI</span> Create Images</h4>
              <p style={{ margin: "0 0 16px", fontSize: 12, opacity: 0.9, lineHeight: 1.4 }}>If you can't find what you need by searching, AI can create it.</p>
