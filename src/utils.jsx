@@ -95,6 +95,14 @@ const NAV_ITEMS = [
     ]
   },
   {
+    label: "CRM",
+    icon: "HeartHandshake",
+    expandable: true,
+    children: [
+      { label: "Contacts", icon: "Users" },
+    ]
+  },
+  {
     label: "Settings",
     icon: "Settings",
     expandable: true,
@@ -109,7 +117,6 @@ const NAV_ITEMS = [
     expandable: true,
     children: [
       { label: "Reports", icon: "BarChart3" },
-      { label: "Contacts", icon: "Users" },
       { label: "Investments", icon: "Coins" },
       { label: "Role Types", icon: "ShieldCheck" },
       { label: "Payment Schedule", icon: "CalendarDays" },
