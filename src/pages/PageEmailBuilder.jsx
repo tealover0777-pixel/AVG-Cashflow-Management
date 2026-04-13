@@ -206,7 +206,7 @@ export default function PageEmailBuilder({ t, isDark, setActivePage }) {
       >
         <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
           <button
-            onClick={() => setActivePage("Marketing emails")}
+            onClick={() => setActivePage("Manage Templates")}
             style={{ display: "flex", alignItems: "center", gap: 4, background: "transparent", border: `1px solid ${t.border}`, borderRadius: 20, padding: "4px 12px", cursor: "pointer", color: isDark ? "#60A5FA" : "#3B82F6", fontSize: 13, fontWeight: 600 }}
           >
             <ChevronLeft size={15} /> Back
@@ -406,7 +406,7 @@ function EmailCanvas({ t, isDark, rows, selectedRowId, onSelectRow, onAddRow, on
       onDragOver={e => { e.preventDefault(); if (rows.length === 0) setDropIdx(-1); }}
       onDragLeave={() => setDropIdx(null)}
     >
-      <div style={{ width: "100%", maxWidth: 600 }}>
+      <div style={{ width: "100%", maxWidth: 780 }}>
         {/* Drop zone before first row */}
         <DropZone active={dropIdx === -1} onDragOver={e => handleDragOver(e, -1)} onDrop={e => handleDrop(e, -1)} />
         {rows.map((row, idx) => (
@@ -723,7 +723,7 @@ function ReviewPanel({ t, isDark, rows, emailSettings, narrow }) {
             ℹ Discover mobile email styling tips. <span style={{ textDecoration: "underline", cursor: "pointer" }}>Learn more</span>
           </div>
         )}
-        <div style={{ width: narrow ? 390 : "100%", maxWidth: narrow ? 390 : 600, boxShadow: "0 4px 16px rgba(0,0,0,0.12)" }}>
+        <div style={{ width: narrow ? 390 : "100%", maxWidth: narrow ? 390 : 780, boxShadow: "0 4px 16px rgba(0,0,0,0.12)" }}>
           {rows.map(row => <RowPreview key={row.id} row={row} narrow={narrow} />)}
           <div style={{ textAlign: "center", padding: 12, fontSize: 11, color: "#6B7280", background: "#EEEEE9" }}>
             Don't want to see this type of email? <a href="#" style={{ color: "#2563EB" }}>Unsubscribe</a>
@@ -1281,7 +1281,7 @@ function BodyTab({ t, isDark }) {
         </PR>
         <PR label="Content Width">
           <div style={{ display: "flex", border: `1px solid ${t.border}`, borderRadius: 4, overflow: "hidden", fontSize: 12 }}>
-            <input type="text" defaultValue="600" style={{ width: 40, padding: "5px", textAlign: "center", border: "none", borderRight: `1px solid ${t.border}`, background: t.surface, color: t.text, fontSize: 12 }} />
+            <input type="text" defaultValue="780" style={{ width: 40, padding: "5px", textAlign: "center", border: "none", borderRight: `1px solid ${t.border}`, background: t.surface, color: t.text, fontSize: 12 }} />
             <div style={{ width: 28, padding: "5px", textAlign: "center", background: isDark ? "#1F2937" : "#F3F4F6", borderRight: `1px solid ${t.border}`, fontSize: 11, color: t.textMuted }}>px</div>
             <button style={{ width: 26, background: t.surface, border: "none", borderRight: `1px solid ${t.border}`, cursor: "pointer", color: t.textMuted }}>-</button>
             <button style={{ width: 26, background: t.surface, border: "none", cursor: "pointer", color: t.textMuted }}>+</button>
