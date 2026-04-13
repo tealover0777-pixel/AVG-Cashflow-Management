@@ -93,7 +93,40 @@ export default function PageEmailBuilder({ t, isDark, setActivePage }) {
   const [editingName, setEditingName] = useState(false);
   const [emailSettings, setEmailSettings] = useState(INITIAL_SETTINGS);
   const [rows, setRows] = useState(INITIAL_ROWS);
-  const [toast, setToast] = useState(null);
+  const [uploads, setUploads] = useState([]);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+
+  useEffect(() => {
+    const fetchUploads = async () => {
+      try {
+        const res = await listAll(ref(storage, "marketing_uploads"));
+        const urls = await Promise.all(res.items.reverse().map(r => getDownloadURL(r)));
+        setUploads(urls);
+      } catch (err) { console.error(err); }
+    };
+    fetchUploads();
+  }, []);
+
+  const handleUploadFile = async (file, onComplete) => {
+    if (!file) return;
+    setIsUploading(true);
+    const storageRef = ref(storage, `marketing_uploads/${Date.now()}_${file.name}`);
+    const task = uploadBytesResumable(storageRef, file);
+    task.on("state_changed",
+      snap => setUploadProgress((snap.bytesTransferred / snap.totalBytes) * 100),
+      err => { console.error(err); setIsUploading(false); },
+      () => {
+        getDownloadURL(task.snapshot.ref).then(url => {
+          setUploads(p => [url, ...p]);
+          setIsUploading(false);
+          setUploadProgress(0);
+          if (onComplete) onComplete(url);
+          showToast("Image uploaded successfully!", "success");
+        });
+      }
+    );
+  };
 
   const showToast = (msg, type = "info") => { setToast({ msg, type }); setTimeout(() => setToast(null), 4000); }; // eslint-disable-line
 
@@ -271,14 +304,27 @@ export default function PageEmailBuilder({ t, isDark, setActivePage }) {
           >
             <div style={{ flex: 1, overflowY: "auto", display: "flex", flexDirection: "column" }}>
               {showBlockProps ? (
-                <BlockPropsPanel t={t} isDark={isDark} blockType={selectedBlockType} rowId={selectedRowId} onUpdate={handleUpdateRow} onClose={handleDeselect} rows={rows} />
+                <BlockPropsPanel
+                  t={t} isDark={isDark} blockType={selectedBlockType} rowId={selectedRowId}
+                  onUpdate={handleUpdateRow} onClose={handleDeselect} rows={rows}
+                  uploads={uploads} isUploading={isUploading} uploadProgress={uploadProgress}
+                  onUpload={handleUploadFile} setActiveRightTab={setActiveRightTab}
+                />
               ) : (
                 <>
                   {activeRightTab === "Content"  && <ContentTab   t={t} isDark={isDark} onAddRow={handleAddRow} />}
                   {activeRightTab === "Blocks"   && <BlocksTab    t={t} isDark={isDark} />}
                   {activeRightTab === "Body"     && <BodyTab      t={t} isDark={isDark} />}
-                  {activeRightTab === "Images"   && <ImagesTab    t={t} isDark={isDark} />}
-                  {activeRightTab === "Uploads"  && <UploadsTab   t={t} isDark={isDark} />}
+                  {activeRightTab === "Images"   && <ImagesTab    t={t} isDark={isDark} setActiveRightTab={setActiveRightTab} />}
+                  {activeRightTab === "Uploads"  && (
+                    <UploadsTab
+                      t={t} isDark={isDark}
+                      uploads={uploads}
+                      isUploading={isUploading}
+                      uploadProgress={uploadProgress}
+                      onUpload={handleUploadFile}
+                    />
+                  )}
                   {activeRightTab === "Audit"    && (
                     <div style={{ padding: 24, textAlign: "center", color: t.textMuted, fontSize: 13, marginTop: 40 }}>
                       <FileText size={32} style={{ margin: "0 auto 14px", display: "block", opacity: 0.4 }} />
@@ -424,8 +470,18 @@ function EmailRow({ row, isSelected, onSelect, onDelete, onDuplicate, onUpdate, 
             )}
           </div>
         );
+        const align = row.content?.align || "center";
+        const autoWidth = row.content?.autoWidth !== false; // default to true? The screenshot shows "Auto On"
+        const width = row.content?.width ?? "100%";
+        const imgStyle = {
+          width: align === "justify" ? "100%" : (autoWidth ? "auto" : width),
+          display: "block",
+          marginLeft: (align === "center" || align === "right" || align === "justify") ? "auto" : "0",
+          marginRight: (align === "center" || align === "left" || align === "justify") ? "auto" : "0",
+          maxWidth: "100%"
+        };
         return row.content?.imageUrl ? (
-          <img src={row.content.imageUrl} alt={row.content.altText || ""} style={{ width: "100%", display: "block" }} />
+          <img src={row.content.imageUrl} alt={row.content.altText || ""} style={imgStyle} />
         ) : (
           <div style={{ background: isDark ? "#222" : "#F3F4F6", minHeight: 120, display: "flex", alignItems: "center", justifyContent: "center", color: t.textMuted }}>
             <ImageIcon size={32} opacity={0.4} />
@@ -574,6 +630,14 @@ function EmailRow({ row, isSelected, onSelect, onDelete, onDuplicate, onUpdate, 
     <div
       style={{ position: "relative", cursor: "pointer", outline: isSelected ? `2px solid #3B82F6` : "none", outlineOffset: -2, transition: "outline 0.1s" }}
       onClick={e => { e.stopPropagation(); onSelect(row.id, blockType); }}
+      onDragOver={e => { if (row.type === "image") { e.preventDefault(); e.dataTransfer.dropEffect = "copy"; } }}
+      onDrop={e => {
+        if (row.type === "image") {
+          e.preventDefault();
+          const url = e.dataTransfer.getData("imageUrl");
+          if (url) onUpdate({ imageUrl: url });
+        }
+      }}
     >
       {renderContent()}
       {isSelected && (
@@ -706,12 +770,14 @@ function RowPreview({ row, narrow }) {
 
 // ── Block Properties Panel ────────────────────────────────────────────────────
 
-function BlockPropsPanel({ t, isDark, blockType, rowId, onUpdate, rows, onClose }) {
+function BlockPropsPanel({ t, isDark, blockType, rowId, onUpdate, rows, onClose, uploads, isUploading, uploadProgress, onUpload, setActiveRightTab }) {
   const row = rows?.find(r => r.id === rowId);
   const content = row?.content || {};
   const upd = patch => onUpdate(rowId, patch);
 
-  const [open, setOpen] = useState({ displayCondition: false, main: true, action: false, general: true, responsive: false, links: false, columnProps: false, header: true, menuItems: true });
+  const fileInputRef = useRef(null);
+
+  const [open, setOpen] = useState({ displayCondition: false, main: true, action: true, general: true, responsive: true, links: false, columnProps: false, header: true, menuItems: true });
   const tog = id => setOpen(p => ({ ...p, [id]: !p[id] }));
 
   const Sec = ({ id, label, children }) => (
@@ -844,20 +910,125 @@ function BlockPropsPanel({ t, isDark, blockType, rowId, onUpdate, rows, onClose 
 
       case "IMAGE": return (
         <>
-          <DispCond />
           <Sec id="main" label="Image">
-            <div>
-              <div style={{ fontSize: 11, color: t.textMuted, marginBottom: 4 }}>Image URL</div>
-              <input value={content.imageUrl ?? ""} onChange={e => upd({ imageUrl: e.target.value })} style={inpStyle(t)} placeholder="https://..." />
+            <div style={{ display: "flex", gap: 10, marginBottom: 8 }}>
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isUploading}
+                style={{ flex: 1, background: isDark ? "#333" : "#222", color: "#fff", border: "none", padding: "8px", borderRadius: 4, fontWeight: 700, fontSize: 13, cursor: isUploading ? "not-allowed" : "pointer", opacity: isUploading ? 0.7 : 1 }}
+              >
+                {isUploading ? `Uploading...` : "Upload Image"}
+              </button>
+              <div style={{ position: "relative" }}>
+                <button
+                  onClick={() => setActiveRightTab("Images")}
+                  style={{ display: "flex", alignItems: "center", gap: 8, background: t.surface, color: t.text, border: `1px solid ${t.border}`, padding: "8px 12px", borderRadius: 4, fontSize: 13, fontWeight: 500, cursor: "pointer" }}
+                >
+                  More Images <CDown />
+                </button>
+              </div>
             </div>
-            <div>
-              <div style={{ fontSize: 11, color: t.textMuted, marginBottom: 4 }}>Alt Text</div>
-              <input value={content.altText ?? ""} onChange={e => upd({ altText: e.target.value })} style={inpStyle(t)} />
+
+            <input type="file" ref={fileInputRef} style={{ display: "none" }} accept="image/*" onChange={e => e.target.files[0] && onUpload(e.target.files[0], url => upd({ imageUrl: url }))} />
+
+            <div
+              onClick={() => fileInputRef.current?.click()}
+              onDrop={e => { e.preventDefault(); e.dataTransfer.files[0] && onUpload(e.dataTransfer.files[0], url => upd({ imageUrl: url })); }}
+              onDragOver={e => e.preventDefault()}
+              style={{ border: `1px dashed ${t.border}`, borderRadius: 4, padding: "20px 12px", textAlign: "center", background: isDark ? "rgba(255,255,255,0.03)" : "#FAFAFA", cursor: "pointer", marginBottom: 14 }}
+            >
+              <ImageIcon size={20} color={t.textMuted} style={{ margin: "0 auto 6px", display: "block", opacity: 0.5 }} />
+              <p style={{ margin: 0, fontSize: 11, color: t.textMuted, lineHeight: 1.4 }}>
+                {isUploading ? `Uploading ${Math.round(uploadProgress)}%` : "Drop a new image here, or click to select files to upload."}
+              </p>
             </div>
-            <PR label="Link URL">
-              <input value={content.linkUrl ?? ""} onChange={e => upd({ linkUrl: e.target.value })} style={{ ...inpStyle(t), width: 160 }} placeholder="https://" />
-            </PR>
+
+            <div style={{ marginBottom: 14 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: t.text }}>Image URL</div>
+                <div style={{ fontSize: 10, color: t.textMuted }}>1600 × 400</div>
+              </div>
+              <input value={content.imageUrl ?? ""} onChange={e => upd({ imageUrl: e.target.value })} style={inpStyle(t)} placeholder="https://cdn.tools.unlayer.com/image/placeholder.p" />
+            </div>
+
+            <div style={{ marginBottom: 14 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                <span style={{ fontSize: 11, fontWeight: 700, color: t.text }}>Width</span>
+                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <span style={{ fontSize: 11, color: t.textMuted }}>Auto On</span>
+                  <div onClick={() => upd({ autoWidth: !content.autoWidth })} style={{ width: 34, height: 18, background: content.autoWidth !== false ? "#3B82F6" : "#D1D5DB", borderRadius: 9, display: "flex", alignItems: "center", padding: "0 2px", cursor: "pointer", transition: "background 0.2s" }}>
+                    <div style={{ width: 14, height: 14, background: "#fff", borderRadius: "50%", marginLeft: content.autoWidth !== false ? "16px" : "0", transition: "margin-left 0.2s" }} />
+                  </div>
+                </div>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <input
+                  type="range" min="10" max="100" value={parseInt(content.width || "100")}
+                  onChange={e => upd({ width: e.target.value + "%", autoWidth: false })}
+                  style={{ flex: 1, height: 4, accentColor: "#3B82F6" }}
+                />
+                <span style={{ fontSize: 11, color: t.textMuted, width: 30 }}>{content.width || "100%"}</span>
+              </div>
+            </div>
+
+            <div style={{ marginBottom: 14 }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: t.text, marginBottom: 8 }}>Align</div>
+              <div style={{ display: "flex", border: `1px solid ${t.border}`, borderRadius: 4, overflow: "hidden", width: "fit-content" }}>
+                {[
+                  { id: "left", icon: <AlignLeft size={14} /> },
+                  { id: "center", icon: <AlignCenter size={14} /> },
+                  { id: "right", icon: <AlignRight size={14} /> },
+                  { id: "justify", icon: <AlignJustify size={14} /> }
+                ].map((a) => (
+                  <button
+                    key={a.id}
+                    onClick={() => upd({ align: a.id })}
+                    style={{
+                      padding: "8px 14px",
+                      background: (content.align || "center") === a.id ? (isDark ? "#333" : "#222") : t.surface,
+                      border: "none",
+                      borderRight: a.id !== "justify" ? `1px solid ${t.border}` : "none",
+                      cursor: "pointer",
+                      color: (content.align || "center") === a.id ? "#fff" : t.textMuted,
+                      display: "flex", alignItems: "center", justifyContent: "center"
+                    }}
+                  >
+                    {a.icon}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: t.text, marginBottom: 6 }}>Alternate Text</div>
+              <input value={content.altText ?? ""} onChange={e => upd({ altText: e.target.value })} style={inpStyle(t)} placeholder="" />
+            </div>
           </Sec>
+
+          <Sec id="action" label="Action">
+            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              <PR label="Image Link">
+                <div style={{ width: 140 }}>
+                  <DD value="Open Website" />
+                </div>
+              </PR>
+              <div style={{ display: "flex", border: `1px solid ${t.border}`, borderRadius: 4, overflow: "hidden" }}>
+                <div style={{ padding: "6px 10px", background: isDark ? "#222" : "#F3F4F6", fontSize: 11, color: t.textMuted, borderRight: `1px solid ${t.border}`, fontWeight: 700 }}>URL</div>
+                <input
+                  value={content.linkUrl ?? ""}
+                  onChange={e => upd({ linkUrl: e.target.value })}
+                  style={{ ...inpStyle(t), border: "none", borderRadius: 0 }}
+                  placeholder="https://"
+                />
+              </div>
+              <PR label="Target">
+                <div style={{ width: 140 }}>
+                  <DD value="New Tab" />
+                </div>
+              </PR>
+            </div>
+          </Sec>
+
           <General /><Responsive />
         </>
       );
@@ -1223,7 +1394,13 @@ function ImagesTab({ t }) {
         {!loading && images.length > 0 && (
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 7 }}>
             {images.map(img => (
-              <div key={img.id} style={{ height: 110, borderRadius: 4, backgroundImage: `url(${img.urls.small})`, backgroundSize: "cover", backgroundPosition: "center", cursor: "pointer", border: `1px solid ${t.border}` }} title={img.alt_description} />
+              <div
+                key={img.id}
+                draggable
+                onDragStart={e => e.dataTransfer.setData("imageUrl", img.urls.regular)}
+                style={{ height: 110, borderRadius: 4, backgroundImage: `url(${img.urls.small})`, backgroundSize: "cover", backgroundPosition: "center", cursor: "grab", border: `1px solid ${t.border}` }}
+                title={img.alt_description}
+              />
             ))}
           </div>
         )}
@@ -1234,43 +1411,18 @@ function ImagesTab({ t }) {
 
 // ── Uploads Tab ───────────────────────────────────────────────────────────────
 
-function UploadsTab({ t, isDark }) {
-  const [uploads, setUploads] = useState([]);
-  const [isUploading, setIsUploading] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState(0);
+function UploadsTab({ t, isDark, uploads, isUploading, uploadProgress, onUpload }) {
   const fileInputRef = useRef(null);
-
-  useEffect(() => { fetchUploads(); }, []);
-
-  const fetchUploads = async () => {
-    try {
-      const res = await listAll(ref(storage, "marketing_uploads"));
-      const urls = await Promise.all(res.items.reverse().map(r => getDownloadURL(r)));
-      setUploads(urls);
-    } catch (err) { console.error(err); }
-  };
-
-  const uploadFile = async (file) => {
-    if (!file) return;
-    setIsUploading(true);
-    const storageRef = ref(storage, `marketing_uploads/${Date.now()}_${file.name}`);
-    const task = uploadBytesResumable(storageRef, file);
-    task.on("state_changed",
-      snap => setUploadProgress((snap.bytesTransferred / snap.totalBytes) * 100),
-      err => { console.error(err); setIsUploading(false); },
-      () => { getDownloadURL(task.snapshot.ref).then(url => { setUploads(p => [url, ...p]); setIsUploading(false); setUploadProgress(0); }); }
-    );
-  };
 
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
       <div style={{ padding: "14px", borderBottom: `1px solid ${t.border}` }}>
         <h3 style={{ fontSize: 15, fontWeight: 700, margin: "0 0 14px 0", color: t.text }}>Uploads</h3>
-        <input type="file" ref={fileInputRef} style={{ display: "none" }} accept="image/*" onChange={e => e.target.files[0] && uploadFile(e.target.files[0])} />
+        <input type="file" ref={fileInputRef} style={{ display: "none" }} accept="image/*" onChange={e => e.target.files[0] && onUpload(e.target.files[0])} />
         <button onClick={() => fileInputRef.current?.click()} disabled={isUploading} style={{ width: "100%", background: isDark ? "#333" : "#222", color: "#fff", border: "none", padding: "10px", borderRadius: 4, fontWeight: 600, fontSize: 13, marginBottom: 12, cursor: isUploading ? "not-allowed" : "pointer", opacity: isUploading ? 0.7 : 1 }}>
           {isUploading ? `Uploading... ${Math.round(uploadProgress)}%` : "Upload Image"}
         </button>
-        <div onClick={() => fileInputRef.current?.click()} onDrop={e => { e.preventDefault(); e.dataTransfer.files[0] && uploadFile(e.dataTransfer.files[0]); }} onDragOver={e => e.preventDefault()} style={{ border: `1px dashed ${t.border}`, borderRadius: 4, padding: "24px 12px", textAlign: "center", background: t.surface, cursor: "pointer" }}>
+        <div onClick={() => fileInputRef.current?.click()} onDrop={e => { e.preventDefault(); e.dataTransfer.files[0] && onUpload(e.dataTransfer.files[0]); }} onDragOver={e => e.preventDefault()} style={{ border: `1px dashed ${t.border}`, borderRadius: 4, padding: "24px 12px", textAlign: "center", background: t.surface, cursor: "pointer" }}>
           <UploadCloud size={22} color={t.textMuted} style={{ margin: "0 auto 6px", display: "block" }} />
           <p style={{ margin: 0, fontSize: 12, color: t.textMuted }}>Drop a new image here, or click to select files to upload.</p>
         </div>
@@ -1279,7 +1431,12 @@ function UploadsTab({ t, isDark }) {
         {uploads.length === 0
           ? <div style={{ gridColumn: "1/-1", textAlign: "center", fontSize: 12, color: t.textMuted, padding: "28px 0" }}>{isUploading ? "Processing..." : "No uploads yet"}</div>
           : uploads.map((url, i) => (
-            <div key={i} style={{ height: 90, borderRadius: 4, backgroundImage: `url(${url})`, backgroundSize: "cover", backgroundPosition: "center", cursor: "pointer", border: `1px solid ${t.border}` }} />
+            <div
+              key={i}
+              draggable
+              onDragStart={e => e.dataTransfer.setData("imageUrl", url)}
+              style={{ height: 90, borderRadius: 4, backgroundImage: `url(${url})`, backgroundSize: "cover", backgroundPosition: "center", cursor: "grab", border: `1px solid ${t.border}` }}
+            />
           ))
         }
       </div>
