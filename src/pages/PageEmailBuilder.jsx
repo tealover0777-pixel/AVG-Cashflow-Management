@@ -355,7 +355,6 @@ function EmailCanvas({ t, isDark, rows, selectedRowId, onSelectRow, onAddRow, on
     <div
       style={{ flex: 1, background: isDark ? "#1a1a1a" : "#EEEEE9", display: "flex", flexDirection: "column", alignItems: "center", padding: "40px 20px", overflowY: "auto" }}
       onDragOver={e => { e.preventDefault(); if (rows.length === 0) setDropIdx(-1); }}
-      onDrop={e => handleDrop(e, rows.length - 1)}
       onDragLeave={() => setDropIdx(null)}
     >
       <div style={{ width: "100%", maxWidth: 600 }}>
@@ -389,7 +388,7 @@ function DropZone({ active, onDragOver, onDrop }) {
   return (
     <div
       onDragOver={onDragOver}
-      onDrop={onDrop}
+      onDrop={e => { e.stopPropagation(); onDrop(e); }}
       style={{
         height: active ? 40 : 8, transition: "height 0.15s",
         display: "flex", alignItems: "center", justifyContent: "center",
