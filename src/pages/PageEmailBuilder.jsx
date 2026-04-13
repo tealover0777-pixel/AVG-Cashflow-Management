@@ -86,35 +86,52 @@ const INITIAL_ROWS = [
 
 // ── Main Component ────────────────────────────────────────────────────────────
 
-export default function PageEmailBuilder({ t, isDark, setActivePage }) {
+export default function PageEmailBuilder({ t, isDark, setActivePage, activeEmailTemplate }) {
   const [activeMainTab, setActiveMainTab] = useState("Edit");
   const [activeRightTab, setActiveRightTab] = useState("Content");
   const [selectedRowId, setSelectedRowId] = useState(null);
   const [selectedBlockType, setSelectedBlockType] = useState(null);
-  const [emailName, setEmailName] = useState("Investment reports - March 2026");
+  const [emailName, setEmailName] = useState(activeEmailTemplate?.name || "Investment reports - March 2026");
   const [editingName, setEditingName] = useState(false);
-  const [emailSettings, setEmailSettings] = useState(INITIAL_SETTINGS);
-  const [rows, setRows] = useState(INITIAL_ROWS);
+  const [emailSettings, setEmailSettings] = useState(activeEmailTemplate?.settings || INITIAL_SETTINGS);
+  const [rows, setRows] = useState(activeEmailTemplate?.rows || INITIAL_ROWS);
   const [uploads, setUploads] = useState([]);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [toast, setToast] = useState(null);
+  const [isSaving, setIsSaving] = useState(false);
+
+  const { profile, tenantId, isSuperAdmin, isGlobalRole } = useAuth();
+  const isAdmin = isSuperAdmin || isGlobalRole;
+
+  useEffect(() => {
+    if (activeEmailTemplate) {
+      if (activeEmailTemplate.rows) setRows(activeEmailTemplate.rows);
+      if (activeEmailTemplate.settings) setEmailSettings(activeEmailTemplate.settings);
+      if (activeEmailTemplate.name) setEmailName(activeEmailTemplate.name);
+    }
+  }, [activeEmailTemplate]);
 
   useEffect(() => {
     const fetchUploads = async () => {
+      if (!tenantId) return;
       try {
-        const res = await listAll(ref(storage, "marketing_uploads"));
+        const res = await listAll(ref(storage, `tenants/${tenantId}/marketing_uploads`));
         const urls = await Promise.all(res.items.reverse().map(r => getDownloadURL(r)));
         setUploads(urls);
       } catch (err) { console.error(err); }
     };
     fetchUploads();
-  }, []);
+  }, [tenantId]);
 
   const handleUploadFile = async (file, onComplete) => {
     if (!file) return;
+    if (!tenantId) {
+      showToast("No tenant ID found. Cannot upload.", "error");
+      return;
+    }
     setIsUploading(true);
-    const storageRef = ref(storage, `marketing_uploads/${Date.now()}_${file.name}`);
+    const storageRef = ref(storage, `tenants/${tenantId}/marketing_uploads/${Date.now()}_${file.name}`);
     const task = uploadBytesResumable(storageRef, file);
     task.on("state_changed",
       snap => setUploadProgress((snap.bytesTransferred / snap.totalBytes) * 100),
@@ -129,6 +146,48 @@ export default function PageEmailBuilder({ t, isDark, setActivePage }) {
         });
       }
     );
+  };
+
+  const handleSave = async () => {
+    if (!tenantId && !isAdmin) {
+      showToast("No tenant ID found. Cannot save.", "error");
+      return;
+    }
+    setIsSaving(true);
+    try {
+      const sanitizedName = emailName.replace(/[/\s]+/g, "_").trim();
+      const isSavingAsGlobal = isAdmin && activeEmailTemplate?.isGlobal;
+      
+      const templateData = {
+        name: emailName,
+        settings: emailSettings,
+        rows: rows,
+        updatedAt: new Date().toISOString(),
+        updatedBy: profile?.email || "unknown",
+        category: (isSavingAsGlobal || !activeEmailTemplate) ? "Global" : (activeEmailTemplate.category || "Your templates"),
+        tag: activeEmailTemplate?.tag || "Custom",
+        isGlobal: !!isSavingAsGlobal
+      };
+
+      // Path: tenants/{id}/templates/{name}.json
+      // If admin saving a global template, we overwrite global_templates/
+      let path = `tenants/${tenantId}/templates/${sanitizedName}.json`;
+      
+      if (isSavingAsGlobal) {
+        path = `global_templates/${sanitizedName}.json`;
+      }
+
+      const blob = new Blob([JSON.stringify(templateData, null, 2)], { type: "application/json" });
+      const storageRef = ref(storage, path);
+      await uploadBytesResumable(storageRef, blob);
+      
+      showToast(isSavingAsGlobal ? "Global template saved!" : "Template saved to your library!", "success");
+    } catch (err) {
+      console.error(err);
+      showToast("Error saving template", "error");
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const showToast = (msg, type = "info") => { setToast({ msg, type }); setTimeout(() => setToast(null), 4000); }; // eslint-disable-line
@@ -233,8 +292,12 @@ export default function PageEmailBuilder({ t, isDark, setActivePage }) {
           <button style={{ background: "transparent", border: "none", color: isDark ? "#60A5FA" : "#3B82F6", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
             Schedule a demo
           </button>
-          <button style={{ background: isDark ? "#1E3A8A" : "#EFF6FF", color: isDark ? "#93C5FD" : "#1D4ED8", border: `1px solid ${isDark ? "#2563EB" : "#BFDBFE"}`, borderRadius: 6, padding: "7px 14px", fontSize: 13, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
-            Send test email <CDown />
+          <button 
+            onClick={handleSave}
+            disabled={isSaving}
+            style={{ background: isDark ? "#1E3A8A" : "#EFF6FF", color: isDark ? "#93C5FD" : "#1D4ED8", border: `1px solid ${isDark ? "#2563EB" : "#BFDBFE"}`, borderRadius: 6, padding: "7px 14px", fontSize: 13, fontWeight: 600, cursor: isSaving ? "not-allowed" : "pointer", display: "flex", alignItems: "center", gap: 6, opacity: isSaving ? 0.7 : 1 }}
+          >
+            <Save size={13} /> {isSaving ? "Saving..." : "Save"}
           </button>
           <button style={{ background: isDark ? "#1E3A8A" : "#1D4ED8", color: "#fff", border: "none", borderRadius: 6, padding: "7px 14px", fontSize: 13, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
             Send <CDown />
