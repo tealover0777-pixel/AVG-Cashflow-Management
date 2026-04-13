@@ -138,13 +138,17 @@ export default function PageEmailBuilder({ t, isDark, setActivePage }) {
   const handleDuplicateRow = (rowId) => {
     const row = rows.find(r => r.id === rowId);
     if (!row) return;
-    const newRow = { ...row, id: `r_${Date.now()}` };
+    const newRow = { ...row, content: { ...row.content }, id: `r_${Date.now()}` };
     setRows(prev => {
       const idx = prev.findIndex(r => r.id === rowId);
       const next = [...prev];
       next.splice(idx + 1, 0, newRow);
       return next;
     });
+  };
+
+  const handleUpdateRow = (rowId, contentPatch) => {
+    setRows(prev => prev.map(r => r.id === rowId ? { ...r, content: { ...r.content, ...contentPatch } } : r));
   };
 
   const MAIN_TABS = [
@@ -255,6 +259,7 @@ export default function PageEmailBuilder({ t, isDark, setActivePage }) {
             onAddRow={handleAddRow}
             onDeleteRow={handleDeleteRow}
             onDuplicateRow={handleDuplicateRow}
+            onUpdateRow={handleUpdateRow}
           />
         )}
 
@@ -266,7 +271,7 @@ export default function PageEmailBuilder({ t, isDark, setActivePage }) {
           >
             <div style={{ flex: 1, overflowY: "auto", display: "flex", flexDirection: "column" }}>
               {showBlockProps ? (
-                <BlockPropsPanel t={t} isDark={isDark} blockType={selectedBlockType} onClose={handleDeselect} />
+                <BlockPropsPanel t={t} isDark={isDark} blockType={selectedBlockType} rowId={selectedRowId} onUpdate={handleUpdateRow} onClose={handleDeselect} rows={rows} />
               ) : (
                 <>
                   {activeRightTab === "Content"  && <ContentTab   t={t} isDark={isDark} onAddRow={handleAddRow} />}
@@ -328,26 +333,48 @@ export default function PageEmailBuilder({ t, isDark, setActivePage }) {
 
 // ── Email Canvas ─────────────────────────────────────────────────────────────
 
-function EmailCanvas({ t, isDark, rows, selectedRowId, onSelectRow, onAddRow, onDeleteRow, onDuplicateRow }) {
+function EmailCanvas({ t, isDark, rows, selectedRowId, onSelectRow, onAddRow, onDeleteRow, onDuplicateRow, onUpdateRow }) {
+  const [dropIdx, setDropIdx] = useState(null);
+
+  const handleDragOver = (e, idx) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "copy";
+    setDropIdx(idx);
+  };
+
+  const handleDrop = (e, afterIdx) => {
+    e.preventDefault();
+    setDropIdx(null);
+    const label = e.dataTransfer.getData("blockLabel");
+    if (!label) return;
+    const afterId = afterIdx >= 0 ? rows[afterIdx]?.id : null;
+    onAddRow(afterId, label);
+  };
+
   return (
     <div
       style={{ flex: 1, background: isDark ? "#1a1a1a" : "#EEEEE9", display: "flex", flexDirection: "column", alignItems: "center", padding: "40px 20px", overflowY: "auto" }}
+      onDragOver={e => { e.preventDefault(); if (rows.length === 0) setDropIdx(-1); }}
+      onDrop={e => handleDrop(e, rows.length - 1)}
+      onDragLeave={() => setDropIdx(null)}
     >
       <div style={{ width: "100%", maxWidth: 600 }}>
+        {/* Drop zone before first row */}
+        <DropZone active={dropIdx === -1} onDragOver={e => handleDragOver(e, -1)} onDrop={e => handleDrop(e, -1)} />
         {rows.map((row, idx) => (
           <React.Fragment key={row.id}>
-            <AddRowBtn onAdd={() => onAddRow(idx === 0 ? null : rows[idx - 1]?.id)} />
             <EmailRow
               row={row}
               isSelected={selectedRowId === row.id}
               onSelect={onSelectRow}
               onDelete={() => onDeleteRow(row.id)}
               onDuplicate={() => onDuplicateRow(row.id)}
+              onUpdate={patch => onUpdateRow(row.id, patch)}
               t={t} isDark={isDark}
             />
+            <DropZone active={dropIdx === idx} onDragOver={e => handleDragOver(e, idx)} onDrop={e => handleDrop(e, idx)} />
           </React.Fragment>
         ))}
-        <AddRowBtn onAdd={() => onAddRow(rows[rows.length - 1]?.id)} />
 
         <div style={{ textAlign: "center", marginTop: 16, fontSize: 12, color: isDark ? "rgba(255,255,255,0.35)" : "#9CA3AF" }}>
           Don't want to receive this type of email?{" "}
@@ -358,18 +385,20 @@ function EmailCanvas({ t, isDark, rows, selectedRowId, onSelectRow, onAddRow, on
   );
 }
 
-function AddRowBtn({ onAdd }) {
-  const [hov, setHov] = useState(false);
+function DropZone({ active, onDragOver, onDrop }) {
   return (
     <div
-      style={{ height: 22, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", opacity: hov ? 1 : 0, transition: "opacity 0.15s" }}
-      onMouseEnter={() => setHov(true)}
-      onMouseLeave={() => setHov(false)}
-      onClick={e => { e.stopPropagation(); onAdd(); }}
+      onDragOver={onDragOver}
+      onDrop={onDrop}
+      style={{
+        height: active ? 40 : 8, transition: "height 0.15s",
+        display: "flex", alignItems: "center", justifyContent: "center",
+        background: active ? "rgba(59,130,246,0.12)" : "transparent",
+        border: active ? "2px dashed #3B82F6" : "2px solid transparent",
+        borderRadius: 4,
+      }}
     >
-      <div style={{ display: "flex", alignItems: "center", gap: 4, background: "#3B82F6", color: "#fff", borderRadius: 20, padding: "2px 10px", fontSize: 11, fontWeight: 600 }}>
-        <Plus size={10} /> Add
-      </div>
+      {active && <span style={{ fontSize: 11, color: "#3B82F6", fontWeight: 600 }}>Drop here</span>}
     </div>
   );
 }
@@ -381,7 +410,7 @@ const ROW_BLOCK_TYPE = {
   columns: "COLUMNS", menu: "MENU", kpis: "KPIs", ai_summary: "AI SUMMARY"
 };
 
-function EmailRow({ row, isSelected, onSelect, onDelete, onDuplicate, t, isDark }) {
+function EmailRow({ row, isSelected, onSelect, onDelete, onDuplicate, onUpdate, t, isDark }) {
   const blockType = ROW_BLOCK_TYPE[row.type] || "PARAGRAPH";
 
   const renderContent = () => {
@@ -396,7 +425,9 @@ function EmailRow({ row, isSelected, onSelect, onDelete, onDuplicate, t, isDark 
             )}
           </div>
         );
-        return (
+        return row.content?.imageUrl ? (
+          <img src={row.content.imageUrl} alt={row.content.altText || ""} style={{ width: "100%", display: "block" }} />
+        ) : (
           <div style={{ background: isDark ? "#222" : "#F3F4F6", minHeight: 120, display: "flex", alignItems: "center", justifyContent: "center", color: t.textMuted }}>
             <ImageIcon size={32} opacity={0.4} />
           </div>
@@ -405,7 +436,11 @@ function EmailRow({ row, isSelected, onSelect, onDelete, onDuplicate, t, isDark 
       case "paragraph":
         return (
           <div
-            style={{ padding: "24px 32px", background: "#fff", color: "#1F2937", fontSize: 13, lineHeight: 1.65 }}
+            contentEditable
+            suppressContentEditableWarning
+            onBlur={e => onUpdate({ html: e.currentTarget.innerHTML })}
+            onClick={e => e.stopPropagation()}
+            style={{ padding: "24px 32px", background: "#fff", color: "#1F2937", fontSize: 13, lineHeight: 1.65, outline: "none", minHeight: 40 }}
             dangerouslySetInnerHTML={{ __html: row.content?.html || "<p>New paragraph block. Click to edit.</p>" }}
           />
         );
@@ -428,62 +463,102 @@ function EmailRow({ row, isSelected, onSelect, onDelete, onDuplicate, t, isDark 
       case "button":
         return (
           <div style={{ padding: "16px 32px", background: "#fff", display: "flex", justifyContent: "center" }}>
-            <div style={{ background: "#1D4ED8", color: "#fff", padding: "10px 24px", borderRadius: 4, fontSize: 14, fontWeight: 600, cursor: "pointer" }}>Button Text</div>
+            <div style={{ background: row.content?.bgColor || "#1D4ED8", color: row.content?.textColor || "#fff", padding: "10px 24px", borderRadius: 4, fontSize: 14, fontWeight: 600, cursor: "pointer" }}>
+              {row.content?.buttonText || "Button Text"}
+            </div>
           </div>
         );
 
       case "divider":
         return (
           <div style={{ padding: "16px 32px", background: "#fff" }}>
-            <hr style={{ border: "none", borderTop: "1px solid #E5E7EB", margin: 0 }} />
+            <hr style={{ border: "none", borderTop: `${row.content?.lineWidth || 1}px solid ${row.content?.lineColor || "#E5E7EB"}`, margin: 0 }} />
           </div>
         );
 
       case "heading":
         return (
           <div style={{ padding: "16px 32px", background: "#fff" }}>
-            <h2 style={{ margin: 0, fontSize: 22, fontWeight: 700, color: "#1F2937" }}>Heading</h2>
+            <h2
+              contentEditable
+              suppressContentEditableWarning
+              onBlur={e => onUpdate({ headingText: e.currentTarget.innerText })}
+              onClick={e => e.stopPropagation()}
+              style={{ margin: 0, fontSize: row.content?.fontSize || 22, fontWeight: 700, color: row.content?.color || "#1F2937", outline: "none" }}
+              dangerouslySetInnerHTML={{ __html: row.content?.headingText || "Heading" }}
+            />
           </div>
         );
 
       case "video":
         return (
           <div style={{ padding: "16px 32px", background: "#fff" }}>
-            <div style={{ background: "#F3F4F6", height: 150, display: "flex", alignItems: "center", justifyContent: "center", borderRadius: 4 }}>
-              <Video size={32} color="#9CA3AF" />
-            </div>
+            {row.content?.videoUrl ? (
+              <div style={{ position: "relative", paddingBottom: "56.25%", background: "#000", borderRadius: 4, overflow: "hidden" }}>
+                <iframe src={row.content.videoUrl.replace("watch?v=", "embed/").replace("youtu.be/", "youtube.com/embed/")} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", border: "none" }} allowFullScreen />
+              </div>
+            ) : (
+              <div style={{ background: "#F3F4F6", height: 150, display: "flex", alignItems: "center", justifyContent: "center", borderRadius: 4 }}>
+                <Video size={32} color="#9CA3AF" />
+              </div>
+            )}
           </div>
         );
 
       case "social":
         return (
           <div style={{ padding: "16px 32px", background: "#fff", display: "flex", justifyContent: "center", gap: 8 }}>
-            {["F", "𝕏", "in", "📷"].map((s, i) => (
+            {(row.content?.icons || ["F", "𝕏", "in", "📷"]).map((s, i) => (
               <div key={i} style={{ width: 32, height: 32, borderRadius: "50%", background: "#3B82F6", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 11, fontWeight: 700 }}>{s}</div>
             ))}
           </div>
         );
 
       case "html":
-        return <div style={{ padding: "16px 32px", background: "#fff", fontSize: 13, color: "#1F2937" }}>Hello, world!</div>;
+        return <div style={{ padding: "16px 32px", background: "#fff", fontSize: 13, color: "#1F2937" }} dangerouslySetInnerHTML={{ __html: row.content?.html || "<strong>Hello, world!</strong>" }} />;
 
-      case "table":
+      case "table": {
+        const cols = row.content?.cols || 2;
+        const rowCount = row.content?.rows || 2;
         return (
           <div style={{ padding: "16px 32px", background: "#fff" }}>
             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
-              <thead><tr style={{ background: "#F3F4F6" }}><th style={{ padding: "8px 12px", border: "1px solid #E5E7EB", textAlign: "left" }}>Add header text</th></tr></thead>
-              <tbody><tr><td style={{ padding: "8px 12px", border: "1px solid #E5E7EB" }}>Add text</td></tr></tbody>
+              <thead>
+                <tr style={{ background: "#F3F4F6" }}>
+                  {Array.from({ length: cols }).map((_, i) => (
+                    <th key={i} style={{ padding: "8px 12px", border: "1px solid #E5E7EB", textAlign: "left" }}>Header {i + 1}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {Array.from({ length: rowCount - 1 }).map((_, r) => (
+                  <tr key={r}>
+                    {Array.from({ length: cols }).map((_, c) => (
+                      <td key={c} style={{ padding: "8px 12px", border: "1px solid #E5E7EB", color: "#6B7280" }}>Cell</td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
             </table>
           </div>
         );
+      }
 
       case "menu":
         return (
           <div style={{ padding: "12px 32px", background: "#fff", textAlign: "center" }}>
-            <div style={{ display: "inline-flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
-              <MenuIcon size={16} color="#6B7280" />
-              <span style={{ fontSize: 12, color: "#6B7280" }}>Menu</span>
-            </div>
+            {(row.content?.menuItems?.length) ? (
+              <div style={{ display: "flex", justifyContent: "center", gap: 20 }}>
+                {row.content.menuItems.map((item, i) => (
+                  <span key={i} style={{ fontSize: 13, color: "#3B82F6", cursor: "pointer" }}>{item}</span>
+                ))}
+              </div>
+            ) : (
+              <div style={{ display: "inline-flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
+                <MenuIcon size={16} color="#6B7280" />
+                <span style={{ fontSize: 12, color: "#6B7280" }}>Menu</span>
+              </div>
+            )}
           </div>
         );
 
@@ -632,7 +707,11 @@ function RowPreview({ row, narrow }) {
 
 // ── Block Properties Panel ────────────────────────────────────────────────────
 
-function BlockPropsPanel({ t, isDark, blockType, onClose }) {
+function BlockPropsPanel({ t, isDark, blockType, rowId, onUpdate, rows, onClose }) {
+  const row = rows?.find(r => r.id === rowId);
+  const content = row?.content || {};
+  const upd = patch => onUpdate(rowId, patch);
+
   const [open, setOpen] = useState({ displayCondition: false, main: true, action: false, general: true, responsive: false, links: false, columnProps: false, header: true, menuItems: true });
   const tog = id => setOpen(p => ({ ...p, [id]: !p[id] }));
 
@@ -700,28 +779,21 @@ function BlockPropsPanel({ t, isDark, blockType, onClose }) {
       case "BUTTON": return (
         <>
           <DispCond />
-          <Sec id="smartButtons" label="Smart Buttons">
-            <p style={{ fontSize: 11, color: t.textMuted, margin: 0 }}>Get AI-based suggestions for your buttons in any tone you want. <span style={{ color: "#3B82F6", cursor: "pointer" }}>Learn More.</span></p>
-            <button style={{ background: "#3B82F6", color: "#fff", border: "none", borderRadius: 4, padding: "8px 16px", fontSize: 12, cursor: "pointer" }}>✨ Try It Now!</button>
-          </Sec>
-          <Sec id="action" label="Action">
-            <PR label="Action Type"><DD value="Open Website" /></PR>
-            <div><div style={{ fontSize: 11, color: t.textMuted, marginBottom: 4 }}>URL</div><input style={inpStyle(t)} /></div>
-            <PR label="Target"><DD value="New Tab" /></PR>
-          </Sec>
           <Sec id="main" label="Button Options">
-            <PR label="Background Color"><Swatch color="#1D4ED8" /></PR>
-            <PR label="Text Color"><Swatch color="#ffffff" /></PR>
-            <PR label="Width"><div style={{ display: "flex", alignItems: "center", gap: 8 }}><span style={{ fontSize: 11, color: t.textMuted }}>Auto On</span><Toggle /></div></PR>
-            <PR label="Font Family"><DD value="Body Font" /></PR>
-            <PR label="Font Weight"><DD value="Regular" /></PR>
-            <PR label="Font Size"><NI value={16} /></PR>
-            <PR label="Line Height"><NI value={120} unit="%" /></PR>
-            <PR label="Letter Spacing"><NI value={0} /></PR>
-          </Sec>
-          <Sec id="spacing" label="Spacing">
-            <PR label="Alignment"><AlignBtns n={3} /></PR>
-            <PR label="Padding"><div style={{ display: "flex", alignItems: "center", gap: 6 }}><span style={{ fontSize: 10, color: t.textMuted }}>More Options</span><Toggle /></div></PR>
+            <div>
+              <div style={{ fontSize: 11, color: t.textMuted, marginBottom: 4 }}>Button Text</div>
+              <input value={content.buttonText ?? "Button Text"} onChange={e => upd({ buttonText: e.target.value })} style={inpStyle(t)} />
+            </div>
+            <div>
+              <div style={{ fontSize: 11, color: t.textMuted, marginBottom: 4 }}>Link URL</div>
+              <input value={content.url ?? ""} onChange={e => upd({ url: e.target.value })} style={inpStyle(t)} placeholder="https://" />
+            </div>
+            <PR label="Background Color">
+              <input type="color" value={content.bgColor || "#1D4ED8"} onChange={e => upd({ bgColor: e.target.value })} style={{ width: 32, height: 28, border: `1px solid ${t.border}`, borderRadius: 3, cursor: "pointer", padding: 1 }} />
+            </PR>
+            <PR label="Text Color">
+              <input type="color" value={content.textColor || "#ffffff"} onChange={e => upd({ textColor: e.target.value })} style={{ width: 32, height: 28, border: `1px solid ${t.border}`, borderRadius: 3, cursor: "pointer", padding: 1 }} />
+            </PR>
           </Sec>
           <General /><Responsive />
         </>
@@ -731,10 +803,12 @@ function BlockPropsPanel({ t, isDark, blockType, onClose }) {
         <>
           <DispCond />
           <Sec id="main" label="Line">
-            <PR label="Width"><input type="range" min={0} max={100} defaultValue={100} style={{ width: 100 }} /></PR>
-            <PR label="Line"><DD value="Solid" /></PR>
-            <NI value={1} />
-            <PR label="Align"><AlignBtns n={4} /></PR>
+            <PR label="Thickness (px)">
+              <input type="number" value={content.lineWidth ?? 1} min={1} max={20} onChange={e => upd({ lineWidth: Number(e.target.value) })} style={{ width: 60, padding: "4px 6px", border: `1px solid ${t.border}`, borderRadius: 4, background: t.surface, color: t.text, fontSize: 12 }} />
+            </PR>
+            <PR label="Color">
+              <input type="color" value={content.lineColor || "#E5E7EB"} onChange={e => upd({ lineColor: e.target.value })} style={{ width: 32, height: 28, border: `1px solid ${t.border}`, borderRadius: 3, cursor: "pointer", padding: 1 }} />
+            </PR>
           </Sec>
           <General /><Responsive />
         </>
@@ -744,22 +818,17 @@ function BlockPropsPanel({ t, isDark, blockType, onClose }) {
         <>
           <DispCond />
           <Sec id="main" label="Text">
-            <PR label="Heading Type">
-              <div style={{ display: "flex", border: `1px solid ${t.border}`, borderRadius: 4, overflow: "hidden" }}>
-                {["H1","H2","H3","H4"].map((h, i) => (
-                  <button key={h} style={{ padding: "5px 9px", background: i === 0 ? (isDark ? "#374151" : "#1F2937") : t.surface, border: "none", borderRight: i < 3 ? `1px solid ${t.border}` : "none", cursor: "pointer", color: i === 0 ? "#fff" : t.textMuted, fontSize: 11, fontWeight: 700 }}>{h}</button>
-                ))}
-              </div>
+            <div>
+              <div style={{ fontSize: 11, color: t.textMuted, marginBottom: 4 }}>Heading Text</div>
+              <input value={content.headingText ?? "Heading"} onChange={e => upd({ headingText: e.target.value })} style={inpStyle(t)} />
+            </div>
+            <PR label="Font Size (px)">
+              <input type="number" value={content.fontSize ?? 22} min={8} max={96} onChange={e => upd({ fontSize: Number(e.target.value) })} style={{ width: 60, padding: "4px 6px", border: `1px solid ${t.border}`, borderRadius: 4, background: t.surface, color: t.text, fontSize: 12 }} />
             </PR>
-            <PR label="Font Family"><DD value="Body Font" /></PR>
-            <PR label="Font Weight"><DD value="Regular" /></PR>
-            <PR label="Font Size"><NI value={22} /></PR>
-            <PR label="Color"><Swatch color="#1F2937" /></PR>
-            <PR label="Text Align"><AlignBtns n={4} /></PR>
-            <PR label="Line Height"><NI value={120} unit="%" /></PR>
-            <PR label="Letter Spacing"><NI value={0} /></PR>
+            <PR label="Color">
+              <input type="color" value={content.color || "#1F2937"} onChange={e => upd({ color: e.target.value })} style={{ width: 32, height: 28, border: `1px solid ${t.border}`, borderRadius: 3, cursor: "pointer", padding: 1 }} />
+            </PR>
           </Sec>
-          <Sec id="links" label="Links"><PR label="Inherit Body Styles"><Toggle /></PR></Sec>
           <General /><Responsive />
         </>
       );
@@ -768,15 +837,8 @@ function BlockPropsPanel({ t, isDark, blockType, onClose }) {
         <>
           <DispCond />
           <Sec id="main" label="Text">
-            <PR label="Font Family"><DD value="Body Font" /></PR>
-            <PR label="Font Weight"><DD value="Regular" /></PR>
-            <PR label="Font Size"><NI value={14} /></PR>
-            <PR label="Color"><Swatch color="#1F2937" /></PR>
-            <PR label="Text Align"><AlignBtns n={4} /></PR>
-            <PR label="Line Height"><NI value={140} unit="%" /></PR>
-            <PR label="Letter Spacing"><NI value={0} /></PR>
+            <p style={{ margin: 0, fontSize: 11, color: t.textMuted }}>Click the paragraph block on the canvas to edit text inline.</p>
           </Sec>
-          <Sec id="links" label="Links"><PR label="Inherit Body Styles"><Toggle /></PR></Sec>
           <General /><Responsive />
         </>
       );
@@ -785,22 +847,17 @@ function BlockPropsPanel({ t, isDark, blockType, onClose }) {
         <>
           <DispCond />
           <Sec id="main" label="Image">
-            <div style={{ border: `2px dashed ${t.border}`, borderRadius: 4, padding: "18px 12px", textAlign: "center", color: t.textMuted, fontSize: 12 }}>
-              <div style={{ marginBottom: 8 }}>Drop a new image here, or click to select files to upload.</div>
-              <button style={{ background: "#1D4ED8", color: "#fff", border: "none", borderRadius: 4, padding: "7px 14px", fontSize: 12, cursor: "pointer" }}>Upload Image</button>
+            <div>
+              <div style={{ fontSize: 11, color: t.textMuted, marginBottom: 4 }}>Image URL</div>
+              <input value={content.imageUrl ?? ""} onChange={e => upd({ imageUrl: e.target.value })} style={inpStyle(t)} placeholder="https://..." />
             </div>
             <div>
-              <div style={{ fontSize: 11, color: t.textMuted, marginBottom: 4 }}>Image URL <span style={{ fontSize: 9, float: "right" }}>600 × 400</span></div>
-              <input style={inpStyle(t)} placeholder="https://cdn..." />
+              <div style={{ fontSize: 11, color: t.textMuted, marginBottom: 4 }}>Alt Text</div>
+              <input value={content.altText ?? ""} onChange={e => upd({ altText: e.target.value })} style={inpStyle(t)} />
             </div>
-            <PR label="Width"><div style={{ display: "flex", alignItems: "center", gap: 6 }}><span style={{ fontSize: 11, color: t.textMuted }}>Auto On</span><Toggle /></div></PR>
-            <PR label="Align"><AlignBtns n={3} /></PR>
-            <div><div style={{ fontSize: 11, color: t.textMuted, marginBottom: 4 }}>Alternate Text</div><input style={inpStyle(t)} /></div>
-          </Sec>
-          <Sec id="action" label="Action">
-            <PR label="Image Link"><DD value="Open Website" /></PR>
-            <div><div style={{ fontSize: 11, color: t.textMuted, marginBottom: 4 }}>URL</div><input style={inpStyle(t)} /></div>
-            <PR label="Target"><DD value="New Tab" /></PR>
+            <PR label="Link URL">
+              <input value={content.linkUrl ?? ""} onChange={e => upd({ linkUrl: e.target.value })} style={{ ...inpStyle(t), width: 160 }} placeholder="https://" />
+            </PR>
           </Sec>
           <General /><Responsive />
         </>
@@ -812,14 +869,9 @@ function BlockPropsPanel({ t, isDark, blockType, onClose }) {
           <Sec id="link" label="Link">
             <div>
               <div style={{ fontSize: 11, color: t.textMuted, marginBottom: 4 }}>Video URL</div>
-              <input style={inpStyle(t)} placeholder="YouTube or Vimeo URL" />
-              <p style={{ fontSize: 10, color: t.textMuted, margin: "6px 0 0 0" }}>Add a YouTube or Vimeo URL to automatically generate a preview image.</p>
+              <input value={content.videoUrl ?? ""} onChange={e => upd({ videoUrl: e.target.value })} style={inpStyle(t)} placeholder="YouTube or Vimeo URL" />
+              <p style={{ fontSize: 10, color: t.textMuted, margin: "6px 0 0 0" }}>Paste a YouTube or Vimeo URL to embed the video.</p>
             </div>
-          </Sec>
-          <Sec id="action" label="Action">
-            <PR label="Action Type"><DD value="Open Website" /></PR>
-            <div><div style={{ fontSize: 11, color: t.textMuted, marginBottom: 4 }}>URL</div><input style={inpStyle(t)} /></div>
-            <PR label="Target"><DD value="New Tab" /></PR>
           </Sec>
           <General /><Responsive />
         </>
@@ -829,18 +881,18 @@ function BlockPropsPanel({ t, isDark, blockType, onClose }) {
         <>
           <DispCond />
           <Sec id="main" label="Icons">
-            <PR label="Icon Type"><DD value="Circle" /></PR>
-            <div>
-              <div style={{ fontSize: 11, color: t.textMuted, marginBottom: 8 }}>Click the icon to add</div>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
-                {["F","T","𝕏","📷","in","▶","P","★","G","R","📧","YT"].map((s, i) => (
-                  <div key={i} style={{ width: 26, height: 26, borderRadius: "50%", background: i < 4 ? "#3B82F6" : (isDark ? "#374151" : "#E5E7EB"), display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", fontSize: 10, color: i < 4 ? "#fff" : t.textMuted, fontWeight: 700 }}>{s}</div>
-                ))}
-              </div>
+            <p style={{ margin: 0, fontSize: 11, color: t.textMuted }}>Click an icon to toggle it on/off:</p>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
+              {["F","𝕏","in","📷","▶","G"].map(s => {
+                const active = (content.icons || ["F","𝕏","in","📷"]).includes(s);
+                return (
+                  <div key={s} onClick={() => {
+                    const cur = content.icons || ["F","𝕏","in","📷"];
+                    upd({ icons: active ? cur.filter(x => x !== s) : [...cur, s] });
+                  }} style={{ width: 30, height: 30, borderRadius: "50%", background: active ? "#3B82F6" : (isDark ? "#374151" : "#E5E7EB"), display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", fontSize: 11, color: active ? "#fff" : t.textMuted, fontWeight: 700 }}>{s}</div>
+                );
+              })}
             </div>
-            <PR label="Align"><AlignBtns n={3} /></PR>
-            <PR label="Icon Size"><NI value={32} /></PR>
-            <PR label="Icon Spacing"><NI value={5} /></PR>
           </Sec>
           <General /><Responsive />
         </>
@@ -850,17 +902,13 @@ function BlockPropsPanel({ t, isDark, blockType, onClose }) {
         <>
           <DispCond />
           <Sec id="menuItems" label="Menu Items">
-            <button style={{ width: "100%", padding: "7px", border: `1px dashed ${t.border}`, borderRadius: 4, background: "transparent", color: t.textMuted, fontSize: 12, cursor: "pointer" }}>+ Add New Item</button>
-          </Sec>
-          <Sec id="main" label="Styles">
-            <PR label="Font Family"><DD value="Body Font" /></PR>
-            <PR label="Font Weight"><DD value="Regular" /></PR>
-            <PR label="Font Size"><NI value={14} /></PR>
-            <PR label="Letter Spacing"><NI value={0} /></PR>
-            <PR label="Text Color"><Swatch color="#1F2937" /></PR>
-            <PR label="Link Color"><Swatch color="#3B82F6" /></PR>
-            <PR label="Align"><AlignBtns n={3} /></PR>
-            <PR label="Layout"><DD value="Horizontal" /></PR>
+            {(content.menuItems || []).map((item, i) => (
+              <div key={i} style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                <input value={item} onChange={e => { const items = [...(content.menuItems || [])]; items[i] = e.target.value; upd({ menuItems: items }); }} style={{ ...inpStyle(t), flex: 1 }} />
+                <button onClick={() => upd({ menuItems: (content.menuItems || []).filter((_, j) => j !== i) })} style={{ background: "none", border: "none", color: "#EF4444", cursor: "pointer", fontSize: 16 }}>×</button>
+              </div>
+            ))}
+            <button onClick={() => upd({ menuItems: [...(content.menuItems || []), "New Item"] })} style={{ width: "100%", padding: "7px", border: `1px dashed ${t.border}`, borderRadius: 4, background: "transparent", color: t.textMuted, fontSize: 12, cursor: "pointer" }}>+ Add New Item</button>
           </Sec>
           <General /><Responsive />
         </>
@@ -870,7 +918,7 @@ function BlockPropsPanel({ t, isDark, blockType, onClose }) {
         <>
           <DispCond />
           <Sec id="main" label="HTML">
-            <textarea defaultValue="<strong>Hello, world!</strong>" style={{ width: "100%", height: 90, padding: "8px", border: `1px solid ${t.border}`, borderRadius: 4, background: t.surface, color: t.text, fontSize: 11, fontFamily: "monospace", resize: "vertical", boxSizing: "border-box" }} />
+            <textarea value={content.html ?? "<strong>Hello, world!</strong>"} onChange={e => upd({ html: e.target.value })} style={{ width: "100%", height: 120, padding: "8px", border: `1px solid ${t.border}`, borderRadius: 4, background: t.surface, color: t.text, fontSize: 11, fontFamily: "monospace", resize: "vertical", boxSizing: "border-box", outline: "none" }} />
           </Sec>
           <General /><Responsive />
         </>
@@ -879,21 +927,13 @@ function BlockPropsPanel({ t, isDark, blockType, onClose }) {
       case "TABLE": return (
         <>
           <DispCond />
-          <Sec id="activeCell" label="Active Cell">
-            <p style={{ fontSize: 11, color: t.textMuted, margin: 0 }}>Select a table cell to edit its properties</p>
-          </Sec>
           <Sec id="main" label="Layout">
-            <PR label="Columns"><NI value={2} /></PR>
-            <PR label="Rows"><NI value={2} /></PR>
-            <PR label="Border"><div style={{ display: "flex", alignItems: "center", gap: 6 }}><span style={{ fontSize: 10, color: t.textMuted }}>More Options</span><Toggle /></div></PR>
-            <PR label="Striped Rows"><Toggle /></PR>
-          </Sec>
-          <Sec id="header" label="Header">
-            <PR label="Enable Header"><Toggle /></PR>
-            <PR label="Font Family"><DD value="Body Font" /></PR>
-            <PR label="Background Color"><Swatch color="#F3F4F6" /></PR>
-            <PR label="Font Weight"><DD value="Bold" /></PR>
-            <PR label="Font Size"><NI value={14} /></PR>
+            <PR label="Columns">
+              <input type="number" value={content.cols ?? 2} min={1} max={6} onChange={e => upd({ cols: Number(e.target.value) })} style={{ width: 60, padding: "4px 6px", border: `1px solid ${t.border}`, borderRadius: 4, background: t.surface, color: t.text, fontSize: 12 }} />
+            </PR>
+            <PR label="Rows">
+              <input type="number" value={content.rows ?? 2} min={1} max={20} onChange={e => upd({ rows: Number(e.target.value) })} style={{ width: 60, padding: "4px 6px", border: `1px solid ${t.border}`, borderRadius: 4, background: t.surface, color: t.text, fontSize: 12 }} />
+            </PR>
           </Sec>
           <General /><Responsive />
         </>
@@ -905,26 +945,23 @@ function BlockPropsPanel({ t, isDark, blockType, onClose }) {
           <DispCond />
           <Sec id="main" label="Columns">
             <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
-              {[[[100]],[[50,50]],[[67,33]],[[33,67]],[[33,33,33]],[[50,25,25]],[[25,25,25,25]]].map((layout, i) => (
-                <div key={i} style={{ display: "flex", gap: 2, height: 26, cursor: "pointer", opacity: i === 0 ? 1 : 0.5 }}>
-                  {layout[0].map((col, j) => (
-                    <div key={j} style={{ flex: col, background: i === 0 ? "#3B82F6" : (isDark ? "#374151" : "#D1D5DB"), borderRadius: 2 }} />
-                  ))}
-                </div>
-              ))}
+              {[[[100]],[[50,50]],[[67,33]],[[33,67]],[[33,33,33]],[[50,25,25]],[[25,25,25,25]]].map((layout, i) => {
+                const key = layout[0].join("-");
+                const active = (content.layout || "100") === key;
+                return (
+                  <div key={key} onClick={() => upd({ layout: key })} style={{ display: "flex", gap: 2, height: 26, cursor: "pointer", opacity: active ? 1 : 0.45 }}>
+                    {layout[0].map((col, j) => (
+                      <div key={j} style={{ flex: col, background: active ? "#3B82F6" : (isDark ? "#374151" : "#D1D5DB"), borderRadius: 2 }} />
+                    ))}
+                  </div>
+                );
+              })}
             </div>
           </Sec>
-          <Sec id="columnProps" label="Column Properties">
-            <div style={{ fontSize: 11.5, fontWeight: 600, color: t.text }}>Column 1</div>
-            <PR label="Background Color"><Swatch /></PR>
-            <PR label="Padding"><div style={{ display: "flex", alignItems: "center", gap: 6 }}><span style={{ fontSize: 10, color: t.textMuted }}>More Options</span><Toggle /></div></PR>
-            <NI value={0} />
-            <PR label="Border"><div style={{ display: "flex", alignItems: "center", gap: 6 }}><span style={{ fontSize: 10, color: t.textMuted }}>More Options</span><Toggle /></div></PR>
-            <DD value="Solid" /><NI value={0} />
-          </Sec>
           <Sec id="general" label="Row Properties">
-            <PR label="Background Color"><Swatch /></PR>
-            <PR label="Content Background Color"><Swatch /></PR>
+            <PR label="Background Color">
+              <input type="color" value={content.rowBg || "#ffffff"} onChange={e => upd({ rowBg: e.target.value })} style={{ width: 32, height: 28, border: `1px solid ${t.border}`, borderRadius: 3, cursor: "pointer", padding: 1 }} />
+            </PR>
           </Sec>
         </>
       );
@@ -962,24 +999,30 @@ function ContentTab({ t, isDark, onAddRow }) {
   return (
     <div style={{ padding: 14 }}>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10 }}>
-        {CONTENT_BLOCKS.map(block => (
-          <div
-            key={block.label}
-            draggable
-            style={{
-              display: "flex", flexDirection: "column", alignItems: "center", gap: 6,
-              background: isDark ? "#1F2937" : "#fff", border: `1px solid ${t.border}`, borderRadius: 4,
-              padding: "13px 6px", cursor: "grab", color: t.text,
-              boxShadow: "0 1px 2px rgba(0,0,0,0.05)", transition: "border-color 0.15s, transform 0.1s"
-            }}
-            onMouseEnter={e => { e.currentTarget.style.borderColor = isDark ? "#60A5FA" : "#3B82F6"; e.currentTarget.style.transform = "scale(1.04)"; }}
-            onMouseLeave={e => { e.currentTarget.style.borderColor = t.border; e.currentTarget.style.transform = "scale(1)"; }}
-            onClick={() => onAddRow(null, block.label)}
-          >
-            <block.icon size={20} strokeWidth={1.5} color={t.textMuted} />
-            <span style={{ fontSize: 9, fontWeight: 600, letterSpacing: 0.5, textAlign: "center" }}>{block.label}</span>
-          </div>
-        ))}
+        {CONTENT_BLOCKS.map(block => {
+          const disabled = block.label === "KPIs";
+          return (
+            <div
+              key={block.label}
+              draggable={!disabled}
+              title={disabled ? "Coming soon" : undefined}
+              style={{
+                display: "flex", flexDirection: "column", alignItems: "center", gap: 6,
+                background: isDark ? "#1F2937" : "#fff", border: `1px solid ${t.border}`, borderRadius: 4,
+                padding: "13px 6px", cursor: disabled ? "not-allowed" : "grab", color: t.text,
+                boxShadow: "0 1px 2px rgba(0,0,0,0.05)", transition: "border-color 0.15s, transform 0.1s",
+                opacity: disabled ? 0.4 : 1, position: "relative"
+              }}
+              onMouseEnter={e => { if (!disabled) { e.currentTarget.style.borderColor = isDark ? "#60A5FA" : "#3B82F6"; e.currentTarget.style.transform = "scale(1.04)"; }}}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = t.border; e.currentTarget.style.transform = "scale(1)"; }}
+              onDragStart={e => { if (disabled) { e.preventDefault(); return; } e.dataTransfer.setData("blockLabel", block.label); }}
+              onClick={() => { if (!disabled) onAddRow(null, block.label); }}
+            >
+              <block.icon size={20} strokeWidth={1.5} color={t.textMuted} />
+              <span style={{ fontSize: 9, fontWeight: 600, letterSpacing: 0.5, textAlign: "center" }}>{block.label}</span>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
