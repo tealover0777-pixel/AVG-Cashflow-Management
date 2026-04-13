@@ -4,13 +4,15 @@ import { ref, uploadBytesResumable, getDownloadURL, listAll } from "firebase/sto
 import { db, storage } from "../firebase";
 import { useAuth } from "../AuthContext";
 import {
-  ChevronLeft, Edit2, UploadCloud, FileEdit, Smartphone, Monitor, Save,
+  ChevronLeft, ChevronDown, Edit2, UploadCloud, FileEdit, Smartphone, Monitor, Save,
   Columns as ColumnsIcon, TrendingUp, Square, Minus, Type, AlignLeft,
   Image as ImageIcon, FileText, Video, Users, Menu as MenuIcon, Code,
   Table as TableIcon, Search, ChevronRight, ChevronUp, X as XIcon,
   Plus, Trash2, Copy, Settings as SettingsIcon, Paperclip,
   AlignCenter, AlignRight, AlignJustify
 } from "lucide-react";
+
+const CDown = () => <ChevronDown size={12} strokeWidth={2.5} style={{ opacity: 0.7 }} />;
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
@@ -96,6 +98,7 @@ export default function PageEmailBuilder({ t, isDark, setActivePage }) {
   const [uploads, setUploads] = useState([]);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [toast, setToast] = useState(null);
 
   useEffect(() => {
     const fetchUploads = async () => {
@@ -1313,7 +1316,7 @@ function BodyTab({ t, isDark }) {
 
 // ── Images Tab (Unsplash) ─────────────────────────────────────────────────────
 
-function ImagesTab({ t }) {
+function ImagesTab({ t, isDark, setActiveRightTab }) {
   const { user, profile, isSuperAdmin, isGlobalRole, isR10010 } = useAuth();
   const rawRole = (profile?.role || "").toLowerCase();
   const isAdmin = isSuperAdmin || isGlobalRole || isR10010 ||
@@ -1444,12 +1447,4 @@ function UploadsTab({ t, isDark, uploads, isUploading, uploadProgress, onUpload 
   );
 }
 
-// ── Tiny helpers ──────────────────────────────────────────────────────────────
 
-function CDown() {
-  return (
-    <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M6 9l6 6 6-6" />
-    </svg>
-  );
-}
