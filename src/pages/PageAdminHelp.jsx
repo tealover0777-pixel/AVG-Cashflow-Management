@@ -348,7 +348,7 @@ export default function PageAdminHelp({ t, isDark }) {
                 placeholder="Write the correct answer here..."
                 value={newRule}
                 onChange={e => setNewRule(e.target.value)}
-                style={{ width: "100%", height: 100, padding: 12, borderRadius: 8, border: `1px solid ${t.surfaceBorder}`, background: isDark ? "rgba(0,0,0,0.2)" : "#fff", color: t.text, fontSize: 14, resize: "none", outline: "none" }}
+                style={{ width: "100%", height: 300, padding: 16, borderRadius: 10, border: `1px solid ${t.surfaceBorder}`, background: isDark ? "rgba(0,0,0,0.2)" : "#fff", color: t.text, fontSize: 14, resize: "vertical", outline: "none", lineHeight: 1.6 }}
               />
               <div style={{ display: "flex", gap: 10, marginTop: 12 }}>
                 <button onClick={handleMarkResolved} disabled={loading} style={{ flex: 1, padding: "10px 0", borderRadius: 8, border: `1px solid ${t.surfaceBorder}`, background: t.chipBg, color: t.text, fontSize: 13, fontWeight: 600 }}>Mark as Resolved</button>
