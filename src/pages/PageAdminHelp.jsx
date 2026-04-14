@@ -85,12 +85,35 @@ export default function PageAdminHelp({ t, isDark }) {
 
   useEffect(() => { loadData(); }, []);
 
-  // ── Resolve selection keys to full objects ──────────────────────────────────
-  const selectedRows = useMemo(() => {
-    return conversations.filter(c => rowSelection[c.id]);
-  }, [conversations, rowSelection]);
-
-  const selectedCount = Object.keys(rowSelection).filter(k => rowSelection[k]).length;
+  // ── KB Sync Helper ──────────────────────────────────────────────────────────
+  const syncKbEntry = async (oldQ, newQ, newRuleText, isDelete = false) => {
+    if (!oldQ) return;
+    try {
+      const currentKb = await readKnowledgeBase();
+      const escapedQ = oldQ.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      // Look for Q: [oldQ] followed by A: line
+      const regex = new RegExp(`\\n\\nQ:\\s*${escapedQ}[\\s\\S]*?(?=\\n\\nQ:|$)`, 'g');
+      
+      let updatedKb = currentKb || "";
+      if (isDelete) {
+        updatedKb = updatedKb.replace(regex, "").trim();
+      } else {
+        const newBlock = `\n\nQ: ${newQ.trim()}\nA: ${newRuleText.trim()}`;
+        if (regex.test(updatedKb)) {
+          updatedKb = updatedKb.replace(regex, newBlock);
+        } else {
+          // If not found and it's an update, we just append to be safe or do nothing
+          updatedKb = updatedKb.trim() + newBlock;
+        }
+      }
+      
+      await writeKnowledgeBase(updatedKb);
+      setKbContent(updatedKb);
+    } catch (err) {
+      console.error("Failed to sync Knowledge Base:", err);
+      showToast("Database updated, but Knowledge Base sync failed.", "warning");
+    }
+  };
 
   // ── Bulk Delete ──────────────────────────────────────────────────────────────
   const handleBulkDelete = () => {
@@ -102,9 +125,17 @@ export default function PageAdminHelp({ t, isDark }) {
     setIsBulkDeleting(true);
     try {
       const idsToDelete = Object.keys(rowSelection).filter(k => rowSelection[k]);
+      // For each resolved one, try to remove from KB
+      for (const id of idsToDelete) {
+        const conv = conversations.find(c => c.id === id);
+        if (conv?.status === "resolved") {
+          await syncKbEntry(conv.question, null, null, true);
+        }
+      }
       await Promise.all(idsToDelete.map(id => deleteConversation(id)));
       setConversations(prev => prev.filter(c => !rowSelection[c.id]));
       setRowSelection({});
+      showToast(`${idsToDelete.length} record(s) deleted and removed from Knowledge Base.`, "success");
     } catch (err) {
       showToast("Failed to delete some records.", "error");
       console.error(err);
@@ -115,18 +146,23 @@ export default function PageAdminHelp({ t, isDark }) {
 
   // ── Single Delete ────────────────────────────────────────────────────────────
   const handleDeleteConv = (conv) => {
-    setDeleteTarget({ id: conv.id, name: conv.question || "this conversation" });
+    setDeleteTarget(conv);
   };
 
   const handleConfirmDelete = async () => {
     if (!deleteTarget) return;
     try {
       setLoading(true);
+      // Remove from KB if resolved
+      if (deleteTarget.status === "resolved") {
+        await syncKbEntry(deleteTarget.question, null, null, true);
+      }
       await deleteConversation(deleteTarget.id);
       setConversations(prev => prev.filter(c => c.id !== deleteTarget.id));
       setRowSelection(prev => { const next = { ...prev }; delete next[deleteTarget.id]; return next; });
       if (selectedConv?.id === deleteTarget.id) { setSelectedConv(null); setNewRule(""); setEditedQuestion(""); setEditedAnswer(""); }
       setDeleteTarget(null);
+      showToast("Record deleted and removed from Knowledge Base.", "success");
     } catch (err) {
       showToast("Failed to delete.", "error");
       console.error(err);
@@ -167,7 +203,7 @@ export default function PageAdminHelp({ t, isDark }) {
     try {
       setKbLoading(true);
       await writeKnowledgeBase(kbContent);
-      showToast("Knowledge base updated successfully! AI will use this on next load.", "success");
+      showToast("Knowledge base updated successfully!", "success");
     } catch (err) {
       showToast("Failed to update knowledge base.", "error");
       console.error(err);
@@ -182,20 +218,23 @@ export default function PageAdminHelp({ t, isDark }) {
       setLoading(true);
       const qText = (editedQuestion || "").trim();
       const aText = (editedAnswer || "").trim();
-      const updatedKb = `${kbContent}\n\nQ: ${qText}\nA: ${newRule}`;
+      
+      // Update Database
+      const updateData = { status: "resolved", answer: newRule.trim() };
+      if (qText !== selectedConv.question) updateData.question = qText;
+      await updateConversation(selectedConv.id, updateData);
+      
+      // Update Knowledge Base
+      const updatedKb = `${kbContent.trim()}\n\nQ: ${qText}\nA: ${newRule.trim()}`;
       await writeKnowledgeBase(updatedKb);
       setKbContent(updatedKb);
       
-      const updateData = { status: "resolved" };
-      if (qText !== selectedConv.question) updateData.question = qText;
-      if (aText !== selectedConv.answer) updateData.answer = aText;
-      
-      await updateConversation(selectedConv.id, updateData);
       setConversations(prev => prev.map(c => c.id === selectedConv.id ? { ...c, ...updateData } : c));
       setSelectedConv(null);
       setNewRule("");
       setEditedQuestion("");
       setEditedAnswer("");
+      showToast("Issue resolved and added to Knowledge Base.", "success");
     } catch (err) {
       showToast("Failed to update system.", "error");
       console.error(err);
@@ -220,6 +259,7 @@ export default function PageAdminHelp({ t, isDark }) {
       setNewRule("");
       setEditedQuestion("");
       setEditedAnswer("");
+      showToast("Marked as resolved (No KB entry added).", "success");
     } catch (err) {
       showToast("Failed to mark as resolved.", "error");
       console.error(err);
@@ -234,6 +274,12 @@ export default function PageAdminHelp({ t, isDark }) {
       setLoading(true);
       const qText = (editedQuestion || "").trim();
       const aText = (editedAnswer || "").trim();
+      
+      // Sync Knowledge Base first if it was already resolved
+      if (selectedConv.status === "resolved") {
+        await syncKbEntry(selectedConv.question, qText, aText);
+      }
+      
       const updateData = {};
       if (qText !== selectedConv.question) updateData.question = qText;
       if (aText !== selectedConv.answer) updateData.answer = aText;
@@ -242,11 +288,12 @@ export default function PageAdminHelp({ t, isDark }) {
         await updateConversation(selectedConv.id, updateData);
         setConversations(prev => prev.map(c => c.id === selectedConv.id ? { ...c, ...updateData } : c));
       }
+      
       setSelectedConv(null);
       setNewRule("");
       setEditedQuestion("");
       setEditedAnswer("");
-      showToast("Record updated successfully.", "success");
+      showToast("Record updated and Knowledge Base synced.", "success");
     } catch (err) {
       showToast("Failed to update record.", "error");
       console.error(err);
@@ -258,6 +305,8 @@ export default function PageAdminHelp({ t, isDark }) {
   const columnDefs = useMemo(() => {
     return getAdminHelpColumns({}, isDark, t, setSelectedConv, handleDeleteConv);
   }, [isDark, t]);
+
+  const selectedCount = Object.keys(rowSelection).filter(k => rowSelection[k]).length;
 
   if (!isGlobalRole && !isCompanySuperAdmin) {
     return <div style={{ padding: 40, textAlign: "center", color: t.text }}>Access Denied. You must be an Admin to view this page.</div>;
