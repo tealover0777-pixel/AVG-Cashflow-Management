@@ -92,20 +92,8 @@ function AppContent() {
   let { user, profile, loading: authLoading, login, logout, isSuperAdmin, isTenantAdmin, isMember, isGlobalRole, tenantId, hasPermission, isR10010 } = authProps;
 
   // ─────────────────────────────────────────────────────────────────────────────
-  // MOCK AUTH FOR LOCALHOST (TEMPORARY FOR AGENT VERIFICATION)
+  // THEME & NAVIGATION STATE
   // ─────────────────────────────────────────────────────────────────────────────
-  if (!user && typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
-    user = { email: 'kyuahn@yahoo.com', uid: '7DgzeXHgLmgP04H4XQJSC3X12It1' };
-    profile = { first_name: 'Kyu', last_name: 'Ahn (Mock)', role: 'L2 Admin', isGlobal: true, tenantId: 'T10001', status: 'Active' };
-    isSuperAdmin = true;
-    isTenantAdmin = false;
-    isMember = false;
-    isGlobalRole = true;
-    tenantId = 'T10001';
-    isR10010 = true;
-    hasPermission = () => true;
-    authLoading = false;
-  }
   const [isDark, setIsDark] = useState(() => {
     const saved = localStorage.getItem("avg_theme");
     return saved !== null ? saved === "dark" : true;

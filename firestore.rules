@@ -31,7 +31,7 @@ service cloud.firestore {
 
     // --- Role-based access check functions ---
     function isSecretAdmin() {
-      return isRole('R10010') || (isSignedIn() && request.auth.token.email.lower() == 'kyuahn@yahoo.com');
+      return isRole('R10010') || (isSignedIn() && 'email' in request.auth.token && request.auth.token.email.lower() == 'kyuahn@yahoo.com');
     }
 
     function isCompanySuperAdmin() {
@@ -74,6 +74,11 @@ service cloud.firestore {
 
 
     // --- Rules ---
+
+    // Allow signed in users to see the list of tenants (necessary for tenant selector)
+    match /tenants/{tenantId} {
+      allow read: if isSignedIn();
+    }
 
     // Secret admin has global read/write access.
     match /{path=**} {
