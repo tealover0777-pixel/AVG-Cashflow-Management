@@ -388,7 +388,7 @@ export default function PageAdminHelp({ t, isDark }) {
               <textarea
                 value={editedQuestion}
                 onChange={e => setEditedQuestion(e.target.value)}
-                style={{ width: "100%", padding: 16, background: isDark ? "rgba(255,255,255,0.03)" : "#FAFAF9", border: `1px solid ${t.surfaceBorder}`, borderRadius: 12, color: t.text, fontSize: 15, fontWeight: 500, resize: "none", outline: "none", height: 80, lineHeight: 1.5 }}
+                style={{ width: "100%", padding: 16, background: isDark ? "rgba(255,255,255,0.03)" : "#FAFAF9", border: `1px solid ${t.surfaceBorder}`, borderRadius: 12, color: t.text, fontSize: 15, fontWeight: 500, resize: "vertical", outline: "none", height: 240, lineHeight: 1.5 }}
               />
             </div>
 
@@ -397,7 +397,7 @@ export default function PageAdminHelp({ t, isDark }) {
               <textarea
                 value={editedAnswer}
                 onChange={e => setEditedAnswer(e.target.value)}
-                style={{ width: "100%", padding: 16, background: isDark ? "rgba(255,255,255,0.03)" : "#FAFAF9", border: `1px solid ${t.surfaceBorder}`, borderRadius: 12, color: t.text, fontSize: 14, lineHeight: 1.6, resize: "vertical", minHeight: 120, outline: "none" }}
+                style={{ width: "100%", padding: 16, background: isDark ? "rgba(255,255,255,0.03)" : "#FAFAF9", border: `1px solid ${t.surfaceBorder}`, borderRadius: 12, color: t.text, fontSize: 14, lineHeight: 1.6, resize: "vertical", height: 360, outline: "none" }}
               />
             </div>
 
