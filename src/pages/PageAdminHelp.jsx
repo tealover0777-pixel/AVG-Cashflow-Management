@@ -37,11 +37,13 @@ export default function PageAdminHelp({ t, isDark }) {
   // Modal State
   const [selectedConv, setSelectedConv] = useState(null);
   const [editedQuestion, setEditedQuestion] = useState("");
+  const [editedAnswer, setEditedAnswer] = useState("");
   const [newRule, setNewRule] = useState("");
 
   useEffect(() => {
     if (selectedConv) {
       setEditedQuestion(selectedConv.question || "");
+      setEditedAnswer(selectedConv.answer || "");
     }
   }, [selectedConv]);
 
@@ -123,7 +125,7 @@ export default function PageAdminHelp({ t, isDark }) {
       await deleteConversation(deleteTarget.id);
       setConversations(prev => prev.filter(c => c.id !== deleteTarget.id));
       setRowSelection(prev => { const next = { ...prev }; delete next[deleteTarget.id]; return next; });
-      if (selectedConv?.id === deleteTarget.id) { setSelectedConv(null); setNewRule(""); setEditedQuestion(""); }
+      if (selectedConv?.id === deleteTarget.id) { setSelectedConv(null); setNewRule(""); setEditedQuestion(""); setEditedAnswer(""); }
       setDeleteTarget(null);
     } catch (err) {
       showToast("Failed to delete.", "error");
@@ -179,20 +181,21 @@ export default function PageAdminHelp({ t, isDark }) {
     try {
       setLoading(true);
       const qText = (editedQuestion || "").trim();
+      const aText = (editedAnswer || "").trim();
       const updatedKb = `${kbContent}\n\nQ: ${qText}\nA: ${newRule}`;
       await writeKnowledgeBase(updatedKb);
       setKbContent(updatedKb);
       
       const updateData = { status: "resolved" };
-      if (qText !== selectedConv.question) {
-        updateData.question = qText;
-      }
+      if (qText !== selectedConv.question) updateData.question = qText;
+      if (aText !== selectedConv.answer) updateData.answer = aText;
       
       await updateConversation(selectedConv.id, updateData);
       setConversations(prev => prev.map(c => c.id === selectedConv.id ? { ...c, ...updateData } : c));
       setSelectedConv(null);
       setNewRule("");
       setEditedQuestion("");
+      setEditedAnswer("");
     } catch (err) {
       showToast("Failed to update system.", "error");
       console.error(err);
@@ -206,17 +209,46 @@ export default function PageAdminHelp({ t, isDark }) {
     try {
       setLoading(true);
       const qText = (editedQuestion || "").trim();
+      const aText = (editedAnswer || "").trim();
       const updateData = { status: "resolved" };
-      if (qText !== selectedConv.question) {
-        updateData.question = qText;
-      }
+      if (qText !== selectedConv.question) updateData.question = qText;
+      if (aText !== selectedConv.answer) updateData.answer = aText;
+      
       await updateConversation(selectedConv.id, updateData);
       setConversations(prev => prev.map(c => c.id === selectedConv.id ? { ...c, ...updateData } : c));
       setSelectedConv(null);
       setNewRule("");
       setEditedQuestion("");
+      setEditedAnswer("");
     } catch (err) {
       showToast("Failed to mark as resolved.", "error");
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleUpdateRecord = async () => {
+    if (!selectedConv) return;
+    try {
+      setLoading(true);
+      const qText = (editedQuestion || "").trim();
+      const aText = (editedAnswer || "").trim();
+      const updateData = {};
+      if (qText !== selectedConv.question) updateData.question = qText;
+      if (aText !== selectedConv.answer) updateData.answer = aText;
+      
+      if (Object.keys(updateData).length > 0) {
+        await updateConversation(selectedConv.id, updateData);
+        setConversations(prev => prev.map(c => c.id === selectedConv.id ? { ...c, ...updateData } : c));
+      }
+      setSelectedConv(null);
+      setNewRule("");
+      setEditedQuestion("");
+      setEditedAnswer("");
+      showToast("Record updated successfully.", "success");
+    } catch (err) {
+      showToast("Failed to update record.", "error");
       console.error(err);
     } finally {
       setLoading(false);
@@ -348,7 +380,7 @@ export default function PageAdminHelp({ t, isDark }) {
       )}
 
       {/* ── Review Dialog ────────────────────────────────────────────────────── */}
-      <Modal open={!!selectedConv} onClose={() => { setSelectedConv(null); setNewRule(""); setEditedQuestion(""); }} title="Review Interaction" t={t} isDark={isDark} width={700}>
+      <Modal open={!!selectedConv} onClose={() => { setSelectedConv(null); setNewRule(""); setEditedQuestion(""); setEditedAnswer(""); }} title="Review Interaction" t={t} isDark={isDark} width={700}>
         {selectedConv && (
           <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
             <div>
@@ -362,24 +394,34 @@ export default function PageAdminHelp({ t, isDark }) {
 
             <div>
               <div style={{ fontSize: 11, fontWeight: 700, color: t.textSubtle, textTransform: "uppercase", marginBottom: 6 }}>AI Responded</div>
-              <div style={{ padding: 16, background: isDark ? "rgba(255,255,255,0.03)" : "#FAFAF9", border: `1px solid ${t.surfaceBorder}`, borderRadius: 12, color: t.text, fontSize: 14, lineHeight: 1.6, whiteSpace: "pre-wrap" }}>
-                {selectedConv.answer}
-              </div>
+              <textarea
+                value={editedAnswer}
+                onChange={e => setEditedAnswer(e.target.value)}
+                style={{ width: "100%", padding: 16, background: isDark ? "rgba(255,255,255,0.03)" : "#FAFAF9", border: `1px solid ${t.surfaceBorder}`, borderRadius: 12, color: t.text, fontSize: 14, lineHeight: 1.6, resize: "vertical", minHeight: 120, outline: "none" }}
+              />
             </div>
 
-            <div style={{ background: t.sidebar, padding: 20, borderRadius: 12, border: `1px dashed ${t.surfaceBorder}` }}>
-              <div style={{ fontSize: 14, fontWeight: 600, color: t.text, marginBottom: 8 }}>Knowledge Base Update</div>
-              <textarea
-                placeholder="Write the correct answer here..."
-                value={newRule}
-                onChange={e => setNewRule(e.target.value)}
-                style={{ width: "100%", height: 300, padding: 16, borderRadius: 10, border: `1px solid ${t.surfaceBorder}`, background: isDark ? "rgba(0,0,0,0.2)" : "#fff", color: t.text, fontSize: 14, resize: "vertical", outline: "none", lineHeight: 1.6 }}
-              />
-              <div style={{ display: "flex", gap: 10, marginTop: 12 }}>
-                <button onClick={handleMarkResolved} disabled={loading} style={{ flex: 1, padding: "10px 0", borderRadius: 8, border: `1px solid ${t.surfaceBorder}`, background: t.chipBg, color: t.text, fontSize: 13, fontWeight: 600 }}>Mark as Resolved</button>
-                <button onClick={handleResolveIssue} disabled={loading || !newRule.trim()} style={{ flex: 1, padding: "10px 0", borderRadius: 8, border: "none", background: newRule.trim() ? t.accentGrad : (isDark ? "rgba(255,255,255,0.05)" : "#e5e7eb"), color: newRule.trim() ? "#fff" : t.textMuted, fontSize: 13, fontWeight: 600 }}>Add Rule &amp; Resolve</button>
+            {selectedConv.status === "resolved" ? (
+              <div style={{ display: "flex", justifyContent: "flex-end", gap: 10 }}>
+                <button onClick={handleUpdateRecord} disabled={loading} style={{ padding: "10px 24px", borderRadius: 8, border: "none", background: t.accentGrad, color: "#fff", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
+                  {loading ? "Updating..." : "Update Record"}
+                </button>
               </div>
-            </div>
+            ) : (
+              <div style={{ background: t.sidebar, padding: 20, borderRadius: 12, border: `1px dashed ${t.surfaceBorder}` }}>
+                <div style={{ fontSize: 14, fontWeight: 600, color: t.text, marginBottom: 8 }}>Knowledge Base Update</div>
+                <textarea
+                  placeholder="Write the correct answer here..."
+                  value={newRule}
+                  onChange={e => setNewRule(e.target.value)}
+                  style={{ width: "100%", height: 300, padding: 16, borderRadius: 10, border: `1px solid ${t.surfaceBorder}`, background: isDark ? "rgba(0,0,0,0.2)" : "#fff", color: t.text, fontSize: 14, resize: "vertical", outline: "none", lineHeight: 1.6 }}
+                />
+                <div style={{ display: "flex", gap: 10, marginTop: 12 }}>
+                  <button onClick={handleMarkResolved} disabled={loading} style={{ flex: 1, padding: "10px 0", borderRadius: 8, border: `1px solid ${t.surfaceBorder}`, background: t.chipBg, color: t.text, fontSize: 13, fontWeight: 600 }}>Mark as Resolved</button>
+                  <button onClick={handleResolveIssue} disabled={loading || !newRule.trim()} style={{ flex: 1, padding: "10px 0", borderRadius: 8, border: "none", background: newRule.trim() ? t.accentGrad : (isDark ? "rgba(255,255,255,0.05)" : "#e5e7eb"), color: newRule.trim() ? "#fff" : t.textMuted, fontSize: 13, fontWeight: 600 }}>Add Rule &amp; Resolve</button>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </Modal>
