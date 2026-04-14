@@ -36,7 +36,14 @@ export default function PageAdminHelp({ t, isDark }) {
 
   // Modal State
   const [selectedConv, setSelectedConv] = useState(null);
+  const [editedQuestion, setEditedQuestion] = useState("");
   const [newRule, setNewRule] = useState("");
+
+  useEffect(() => {
+    if (selectedConv) {
+      setEditedQuestion(selectedConv.question || "");
+    }
+  }, [selectedConv]);
 
   // External Selection State for TanStack
   const [rowSelection, setRowSelection] = useState({});
@@ -116,7 +123,7 @@ export default function PageAdminHelp({ t, isDark }) {
       await deleteConversation(deleteTarget.id);
       setConversations(prev => prev.filter(c => c.id !== deleteTarget.id));
       setRowSelection(prev => { const next = { ...prev }; delete next[deleteTarget.id]; return next; });
-      if (selectedConv?.id === deleteTarget.id) { setSelectedConv(null); setNewRule(""); }
+      if (selectedConv?.id === deleteTarget.id) { setSelectedConv(null); setNewRule(""); setEditedQuestion(""); }
       setDeleteTarget(null);
     } catch (err) {
       showToast("Failed to delete.", "error");
@@ -171,13 +178,21 @@ export default function PageAdminHelp({ t, isDark }) {
     if (!selectedConv || !newRule.trim()) return;
     try {
       setLoading(true);
-      const updatedKb = `${kbContent}\n\nQ: ${selectedConv.question}\nA: ${newRule}`;
+      const qText = (editedQuestion || "").trim();
+      const updatedKb = `${kbContent}\n\nQ: ${qText}\nA: ${newRule}`;
       await writeKnowledgeBase(updatedKb);
       setKbContent(updatedKb);
-      await updateConversation(selectedConv.id, { status: "resolved" });
-      setConversations(prev => prev.map(c => c.id === selectedConv.id ? { ...c, status: "resolved" } : c));
+      
+      const updateData = { status: "resolved" };
+      if (qText !== selectedConv.question) {
+        updateData.question = qText;
+      }
+      
+      await updateConversation(selectedConv.id, updateData);
+      setConversations(prev => prev.map(c => c.id === selectedConv.id ? { ...c, ...updateData } : c));
       setSelectedConv(null);
       setNewRule("");
+      setEditedQuestion("");
     } catch (err) {
       showToast("Failed to update system.", "error");
       console.error(err);
@@ -190,10 +205,16 @@ export default function PageAdminHelp({ t, isDark }) {
     if (!selectedConv) return;
     try {
       setLoading(true);
-      await updateConversation(selectedConv.id, { status: "resolved" });
-      setConversations(prev => prev.map(c => c.id === selectedConv.id ? { ...c, status: "resolved" } : c));
+      const qText = (editedQuestion || "").trim();
+      const updateData = { status: "resolved" };
+      if (qText !== selectedConv.question) {
+        updateData.question = qText;
+      }
+      await updateConversation(selectedConv.id, updateData);
+      setConversations(prev => prev.map(c => c.id === selectedConv.id ? { ...c, ...updateData } : c));
       setSelectedConv(null);
       setNewRule("");
+      setEditedQuestion("");
     } catch (err) {
       showToast("Failed to mark as resolved.", "error");
       console.error(err);
@@ -327,12 +348,16 @@ export default function PageAdminHelp({ t, isDark }) {
       )}
 
       {/* ── Review Dialog ────────────────────────────────────────────────────── */}
-      <Modal open={!!selectedConv} onClose={() => { setSelectedConv(null); setNewRule(""); }} title="Review Interaction" t={t} isDark={isDark} width={700}>
+      <Modal open={!!selectedConv} onClose={() => { setSelectedConv(null); setNewRule(""); setEditedQuestion(""); }} title="Review Interaction" t={t} isDark={isDark} width={700}>
         {selectedConv && (
           <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
             <div>
               <div style={{ fontSize: 11, fontWeight: 700, color: t.textSubtle, textTransform: "uppercase", marginBottom: 6 }}>User Asked</div>
-              <div style={{ padding: 16, background: isDark ? "rgba(255,255,255,0.03)" : "#FAFAF9", border: `1px solid ${t.surfaceBorder}`, borderRadius: 12, color: t.text, fontSize: 15, fontWeight: 500 }}>&quot;{selectedConv.question}&quot;</div>
+              <textarea
+                value={editedQuestion}
+                onChange={e => setEditedQuestion(e.target.value)}
+                style={{ width: "100%", padding: 16, background: isDark ? "rgba(255,255,255,0.03)" : "#FAFAF9", border: `1px solid ${t.surfaceBorder}`, borderRadius: 12, color: t.text, fontSize: 15, fontWeight: 500, resize: "none", outline: "none", height: 80, lineHeight: 1.5 }}
+              />
             </div>
 
             <div>
