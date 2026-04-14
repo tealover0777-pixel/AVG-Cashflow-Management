@@ -21,8 +21,8 @@ export default function PageManageTemplates({ t, isDark, setActivePage, setActiv
   };
 
   const TemplateCard = ({ template }) => (
-    <div 
-      onClick={() => setActiveEmailTemplate(template)}
+    <div
+      onClick={() => { setActiveEmailTemplate(template); setActivePage("Email Builder"); }}
       style={{
         border: `1px solid ${t.border}`,
         borderRadius: 12,
@@ -152,13 +152,9 @@ export default function PageManageTemplates({ t, isDark, setActivePage, setActiv
 
       const combined = [...globalFiles, ...tenantFiles];
       setAllTemplates(combined);
-
-      // If no templates found, we can trigger migration for initial ones
-      if (combined.length === 0 && isAdmin) {
-        // handleMigration(); // Triggered manually or automatically?
-      }
     } catch (err) {
       console.error("Error fetching templates:", err);
+      showToast("Could not load templates from storage.", "error");
     } finally {
       setLoading(false);
     }
@@ -334,9 +330,29 @@ export default function PageManageTemplates({ t, isDark, setActivePage, setActiv
 
             {allTemplates.length === 0 && !loading && (
               <div style={{ textAlign: "center", padding: "80px 0", color: t.textMuted }}>
-                <FileText size={48} style={{ margin: "0 auto 16px", opacity: 0.3 }} />
-                <h3 style={{ margin: "0 0 8px 0", color: t.text }}>No templates found</h3>
-                <p style={{ margin: 0, fontSize: 14 }}>Get started by creating your first template.</p>
+                <FileText size={48} style={{ margin: "0 auto 16px", display: "block", opacity: 0.3 }} />
+                <h3 style={{ margin: "0 0 8px 0", color: t.text }}>No templates yet</h3>
+                <p style={{ margin: "0 0 24px 0", fontSize: 14 }}>
+                  {isAdmin
+                    ? "Seed the default global templates to get started."
+                    : "No templates have been set up yet. Contact your administrator."}
+                </p>
+                {isAdmin && (
+                  <button
+                    onClick={handleMigration}
+                    disabled={isMigrating}
+                    style={{
+                      padding: "10px 24px", borderRadius: 8, background: t.accentGrad || t.accent,
+                      color: "#fff", border: "none", fontSize: 14, fontWeight: 600,
+                      cursor: isMigrating ? "not-allowed" : "pointer",
+                      display: "inline-flex", alignItems: "center", gap: 8,
+                      boxShadow: "0 4px 12px rgba(59,130,246,0.25)"
+                    }}
+                  >
+                    {isMigrating ? <Loader2 size={16} className="animate-spin" /> : null}
+                    {isMigrating ? "Seeding..." : "Seed Default Templates"}
+                  </button>
+                )}
               </div>
             )}
           </div>
