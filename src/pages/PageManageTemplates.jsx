@@ -318,7 +318,7 @@ export default function PageManageTemplates({ t, isDark, setActivePage, setActiv
           </div>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 48 }}>
-            {sections.map((section, idx) => section.templates.length > 0 && (
+            {sections.map((section, idx) => (
               <div key={idx}>
                 <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}>
                   <h2 style={{ fontSize: 16, fontWeight: 700, margin: 0, color: t.text }}>{section.title}</h2>
@@ -327,46 +327,26 @@ export default function PageManageTemplates({ t, isDark, setActivePage, setActiv
                     {section.templates.length}
                   </span>
                 </div>
-                
-                <div style={{ 
-                  display: "grid", 
-                  gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", 
-                  gap: 24 
-                }}>
-                  {section.templates.map(template => (
-                    <TemplateCard key={template.id} template={template} />
-                  ))}
-                </div>
+
+                {section.templates.length > 0 ? (
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 24 }}>
+                    {section.templates.map(template => (
+                      <TemplateCard key={template.id} template={template} />
+                    ))}
+                  </div>
+                ) : (
+                  <div style={{
+                    padding: "32px 24px", borderRadius: 12, border: `1px dashed ${t.border}`,
+                    textAlign: "center", color: t.textMuted, fontSize: 13
+                  }}>
+                    {section.title === "Your templates"
+                      ? "No custom templates yet. Save a draft from the Email Builder to create one."
+                      : "No global templates. Click \"Reset Globals\" to seed the defaults."}
+                  </div>
+                )}
               </div>
             ))}
 
-            {allTemplates.length === 0 && !loading && (
-              <div style={{ textAlign: "center", padding: "80px 0", color: t.textMuted }}>
-                <FileText size={48} style={{ margin: "0 auto 16px", display: "block", opacity: 0.3 }} />
-                <h3 style={{ margin: "0 0 8px 0", color: t.text }}>No templates yet</h3>
-                <p style={{ margin: "0 0 24px 0", fontSize: 14 }}>
-                  {isAdmin
-                    ? "Seed the default global templates to get started."
-                    : "No templates have been set up yet. Contact your administrator."}
-                </p>
-                {isAdmin && (
-                  <button
-                    onClick={handleMigration}
-                    disabled={isMigrating}
-                    style={{
-                      padding: "10px 24px", borderRadius: 8, background: t.accentGrad || t.accent,
-                      color: "#fff", border: "none", fontSize: 14, fontWeight: 600,
-                      cursor: isMigrating ? "not-allowed" : "pointer",
-                      display: "inline-flex", alignItems: "center", gap: 8,
-                      boxShadow: "0 4px 12px rgba(59,130,246,0.25)"
-                    }}
-                  >
-                    {isMigrating ? <Loader2 size={16} className="animate-spin" /> : null}
-                    {isMigrating ? "Seeding..." : "Seed Default Templates"}
-                  </button>
-                )}
-              </div>
-            )}
           </div>
         )}
       </div>
