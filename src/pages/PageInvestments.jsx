@@ -695,7 +695,6 @@ export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [
           </FF>
         </div>
       )}
-      <FF label="Investment Name" t={t}><FIn value={modal.data.investment_name || ""} onChange={e => setF("investment_name", e.target.value)} placeholder="e.g. Q1 2024 Investment" t={t} /></FF>
       <FF label="Deal name" t={t}><FSel value={modal.data.deal} onChange={e => setF("deal", e.target.value)} options={DEALS.map(p => p.name)} t={t} /></FF>
       <FF label="Contact" t={t}><FSel value={modal.data.party} onChange={e => setF("party", e.target.value)} options={CONTACTS.map(p => p.name)} t={t} /></FF>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14 }}>
