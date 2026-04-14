@@ -211,39 +211,135 @@ export default function PageEmailBuilder({ t, isDark, setActivePage, activeEmail
 
   const handleDeselect = () => { setSelectedRowId(null); setSelectedBlockType(null); };
 
-  const handleAddRow = (afterId, label = "PARAGRAPH") => {
+  const handleAddRow = (relativeId, label = "PARAGRAPH", position = "after") => {
     const type = LABEL_TO_TYPE[label] || "paragraph";
     const newRow = { id: `r_${Date.now()}`, type, content: {} };
+    
+    if (type === "columns") {
+      newRow.content = {
+        layout: "50-50",
+        columns: [
+          { id: `c_${Date.now()}_0`, blocks: [], settings: { padding: "10px" } },
+          { id: `c_${Date.now()}_1`, blocks: [], settings: { padding: "10px" } }
+        ]
+      };
+    }
+
     setRows(prev => {
-      if (!afterId) return [...prev, newRow];
-      const idx = prev.findIndex(r => r.id === afterId);
+      if (!relativeId) return [...prev, newRow];
+      const idx = prev.findIndex(r => r.id === relativeId);
+      if (idx === -1) return [...prev, newRow]; // Should not happen for top level rows if relativeId is correct
+
       const next = [...prev];
-      next.splice(idx + 1, 0, newRow);
+      const insertIdx = position === "before" ? idx : idx + 1;
+      next.splice(insertIdx, 0, newRow);
       return next;
     });
     setSelectedRowId(newRow.id);
     setSelectedBlockType(label);
   };
 
+  const handleAddBlockToColumn = (rowId, colIdx, label) => {
+    const type = LABEL_TO_TYPE[label] || "paragraph";
+    const newBlock = { id: `b_${Date.now()}`, type, content: {} };
+    
+    setRows(prev => prev.map(r => {
+      if (r.id !== rowId) return r;
+      const newCols = [...(r.content.columns || [])];
+      if (!newCols[colIdx]) return r;
+      newCols[colIdx] = { 
+        ...newCols[colIdx], 
+        blocks: [...(newCols[colIdx].blocks || []), newBlock] 
+      };
+      return { ...r, content: { ...r.content, columns: newCols } };
+    }));
+    setSelectedRowId(newBlock.id);
+    setSelectedBlockType(label);
+  };
+
   const handleDeleteRow = (rowId) => {
-    setRows(prev => prev.filter(r => r.id !== rowId));
+    setRows(prev => {
+      // Top level delete
+      let next = prev.filter(r => r.id !== rowId);
+      // Nested level delete
+      next = next.map(r => {
+        if (r.type !== "columns") return r;
+        const newCols = r.content.columns?.map(col => ({
+          ...col,
+          blocks: col.blocks.filter(b => b.id !== rowId)
+        }));
+        return { ...r, content: { ...r.content, columns: newCols } };
+      });
+      return next;
+    });
     if (selectedRowId === rowId) handleDeselect();
   };
 
   const handleDuplicateRow = (rowId) => {
-    const row = rows.find(r => r.id === rowId);
-    if (!row) return;
-    const newRow = { ...row, content: { ...row.content }, id: `r_${Date.now()}` };
     setRows(prev => {
       const idx = prev.findIndex(r => r.id === rowId);
-      const next = [...prev];
-      next.splice(idx + 1, 0, newRow);
-      return next;
+      if (idx !== -1) {
+        // Top level duplicate
+        const row = prev[idx];
+        const newRow = JSON.parse(JSON.stringify(row));
+        newRow.id = `r_${Date.now()}`;
+        const next = [...prev];
+        next.splice(idx + 1, 0, newRow);
+        return next;
+      }
+      // Nested level duplicate
+      return prev.map(r => {
+        if (r.type !== "columns") return r;
+        const newCols = r.content.columns?.map(col => {
+          const bIdx = col.blocks.findIndex(b => b.id === rowId);
+          if (bIdx === -1) return col;
+          const newBlock = JSON.parse(JSON.stringify(col.blocks[bIdx]));
+          newBlock.id = `b_${Date.now()}`;
+          const newBlocks = [...col.blocks];
+          newBlocks.splice(bIdx + 1, 0, newBlock);
+          return { ...col, blocks: newBlocks };
+        });
+        return { ...r, content: { ...r.content, columns: newCols } };
+      });
     });
   };
 
-  const handleUpdateRow = (rowId, contentPatch) => {
-    setRows(prev => prev.map(r => r.id === rowId ? { ...r, content: { ...r.content, ...contentPatch } } : r));
+  const handleUpdateRow = (rowId, patch) => {
+    setRows(prev => {
+      const updateObj = (r) => {
+        if (r.id !== rowId) return r;
+        let newContent = { ...r.content, ...patch };
+        
+        // Auto-manage columns array if layout changed
+        if (patch.layout && r.type === "columns") {
+           const count = patch.layout.split("-").length;
+           let newCols = [...(newContent.columns || [])];
+           if (newCols.length < count) {
+             for (let i = newCols.length; i < count; i++) {
+               newCols.push({ id: `c_${Date.now()}_${i}`, blocks: [], settings: { padding: "10px" } });
+             }
+           } else if (newCols.length > count) {
+             newCols = newCols.slice(0, count);
+           }
+           newContent.columns = newCols;
+        }
+        return { ...r, content: newContent };
+      };
+
+      // Top level
+      let next = prev.map(updateObj);
+      
+      // Nested
+      next = next.map(r => {
+        if (r.type !== "columns") return r;
+        const newCols = r.content.columns?.map(col => ({
+          ...col,
+          blocks: col.blocks.map(updateObj)
+        }));
+        return { ...r, content: { ...r.content, columns: newCols } };
+      });
+      return next;
+    });
   };
 
   const MAIN_TABS = [
@@ -445,7 +541,9 @@ export default function PageEmailBuilder({ t, isDark, setActivePage, activeEmail
 
 // ── Email Canvas ─────────────────────────────────────────────────────────────
 
-function EmailCanvas({ t, isDark, rows, selectedRowId, onSelectRow, onAddRow, onDeleteRow, onDuplicateRow, onUpdateRow }) {
+// ── Email Canvas ─────────────────────────────────────────────────────────────
+
+function EmailCanvas({ t, isDark, rows, selectedRowId, onSelectRow, onAddRow, onDeleteRow, onDuplicateRow, onUpdateRow, onAddBlockToColumn, setActiveRightTab }) {
   const [dropIdx, setDropIdx] = useState(null);
 
   const handleDragOver = (e, idx) => {
@@ -481,7 +579,11 @@ function EmailCanvas({ t, isDark, rows, selectedRowId, onSelectRow, onAddRow, on
               onDelete={() => onDeleteRow(row.id)}
               onDuplicate={() => onDuplicateRow(row.id)}
               onUpdate={patch => onUpdateRow(row.id, patch)}
+              onAddRow={onAddRow}
+              onAddBlockToColumn={onAddBlockToColumn}
+              setActiveRightTab={setActiveRightTab}
               t={t} isDark={isDark}
+              selectedRowId={selectedRowId}
             />
             <DropZone active={dropIdx === idx} onDragOver={e => handleDragOver(e, idx)} onDrop={e => handleDrop(e, idx)} />
           </React.Fragment>
@@ -521,24 +623,107 @@ const ROW_BLOCK_TYPE = {
   columns: "COLUMNS", menu: "MENU", kpis: "KPIs", ai_summary: "AI SUMMARY"
 };
 
-function EmailRow({ row, isSelected, onSelect, onDelete, onDuplicate, onUpdate, t, isDark }) {
+function AddRowBtn({ onClick, position, isDark }) {
+  return (
+    <div
+      onClick={e => { e.stopPropagation(); onClick(); }}
+      style={{
+        position: "absolute", left: "50%", transform: "translateX(-50%)",
+        top: position === "top" ? -12 : "auto",
+        bottom: position === "bottom" ? -12 : "auto",
+        zIndex: 10, cursor: "pointer",
+        background: "#3B82F6", color: "#fff",
+        borderRadius: 4, width: 24, height: 24,
+        display: "flex", alignItems: "center", justifyContent: "center",
+        boxShadow: "0 2px 4px rgba(0,0,0,0.2)"
+      }}
+    >
+      <Plus size={16} strokeWidth={3} />
+    </div>
+  );
+}
+
+function EmailRow({ row, isSelected, onSelect, onDelete, onDuplicate, onUpdate, onAddRow, onAddBlockToColumn, setActiveRightTab, t, isDark, selectedRowId }) {
   const blockType = ROW_BLOCK_TYPE[row.type] || "PARAGRAPH";
 
-  const renderContent = () => {
-    switch (row.type) {
+  const renderContent = (item, isNested) => {
+    switch (item.type) {
+      case "columns": {
+        const layout = item.content?.layout || "50-50";
+        const ratios = layout.split("-").map(Number);
+        const columnData = item.content?.columns || [];
+
+        return (
+          <div style={{ display: "flex", width: "100%", background: item.content?.rowBg || "transparent", minHeight: 60 }}>
+            {ratios.map((flex, i) => {
+              const col = columnData[i] || { blocks: [], settings: {} };
+              return (
+                <div
+                  key={i}
+                  onDragOverCapture={e => { e.preventDefault(); e.stopPropagation(); e.dataTransfer.dropEffect = "copy"; }}
+                  onDropCapture={e => {
+                    e.preventDefault(); e.stopPropagation();
+                    const label = e.dataTransfer.getData("blockLabel");
+                    if (label) onAddBlockToColumn(item.id, i, label);
+                  }}
+                  style={{
+                    flex: `${flex} 1 0%`,
+                    padding: col.settings?.padding || "10px",
+                    background: col.settings?.bgColor || "transparent",
+                    border: `1px dashed ${isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.05)"}`,
+                    display: "flex", flexDirection: "column", gap: 8
+                  }}
+                >
+                  {col.blocks?.length > 0 ? (
+                    col.blocks.map(b => (
+                      <EmailRow
+                        key={b.id}
+                        row={b}
+                        isSelected={selectedRowId === b.id}
+                        onSelect={onSelect}
+                        onDelete={onDelete}
+                        onDuplicate={onDuplicate}
+                        onUpdate={onUpdate}
+                        t={t} isDark={isDark}
+                        isNested
+                      />
+                    ))
+                  ) : (
+                    <div
+                      onClick={e => { e.stopPropagation(); onSelect(item.id, "COLUMNS"); setActiveRightTab("Content"); }}
+                      style={{
+                        padding: "20px 10px", textAlign: "center",
+                        color: t.textMuted, fontSize: 11,
+                        background: isDark ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.02)",
+                        borderRadius: 4, cursor: "pointer", border: `1px dashed ${t.border}`
+                      }}
+                    >
+                      <Plus size={14} style={{ display: "block", margin: "0 auto 6px", opacity: 0.5 }} />
+                      No content here. Drag content from right.
+                      <button style={{ display: "block", margin: "8px auto 0", background: "#3B82F6", color: "#fff", border: "none", borderRadius: 4, padding: "4px 10px", fontSize: 10, fontWeight: 700, cursor: "pointer" }}>
+                        Add Content
+                      </button>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        );
+      }
       case "image":
-        if (row.content?.banner) return (
-          <div style={{ background: row.content.bg, minHeight: 120, display: "flex", alignItems: "flex-end", justifyContent: "flex-end" }}>
-            {row.content.bannerText && (
+        if (item.content?.banner) return (
+          <div style={{ background: item.content.bg, minHeight: 120, display: "flex", alignItems: "flex-end", justifyContent: "flex-end" }}>
+            {item.content.bannerText && (
               <div style={{ background: "#D97706", color: "#fff", padding: "7px 20px", fontWeight: 700, fontSize: 13, letterSpacing: 1 }}>
-                {row.content.bannerText}
+                {item.content.bannerText}
               </div>
             )}
           </div>
         );
-        const align = row.content?.align || "center";
-        const autoWidth = row.content?.autoWidth !== false; // default to true? The screenshot shows "Auto On"
-        const width = row.content?.width ?? "100%";
+        const align = item.content?.align || "center";
+        const autoWidth = item.content?.autoWidth !== false;
+        const width = item.content?.width ?? "100%";
         const imgStyle = {
           width: align === "justify" ? "100%" : (autoWidth ? "auto" : width),
           display: "block",
@@ -546,8 +731,8 @@ function EmailRow({ row, isSelected, onSelect, onDelete, onDuplicate, onUpdate, 
           marginRight: (align === "center" || align === "left" || align === "justify") ? "auto" : "0",
           maxWidth: "100%"
         };
-        return row.content?.imageUrl ? (
-          <img src={row.content.imageUrl} alt={row.content.altText || ""} style={imgStyle} />
+        return item.content?.imageUrl ? (
+          <img src={item.content.imageUrl} alt={item.content.altText || ""} style={imgStyle} />
         ) : (
           <div style={{ background: isDark ? "#222" : "#F3F4F6", minHeight: 120, display: "flex", alignItems: "center", justifyContent: "center", color: t.textMuted }}>
             <ImageIcon size={32} opacity={0.4} />
@@ -559,22 +744,22 @@ function EmailRow({ row, isSelected, onSelect, onDelete, onDuplicate, onUpdate, 
           <div
             contentEditable
             suppressContentEditableWarning
-            onBlur={e => onUpdate({ html: e.currentTarget.innerHTML })}
+            onBlur={e => onUpdate(item.id, { html: e.currentTarget.innerHTML })}
             onClick={e => e.stopPropagation()}
-            style={{ padding: "24px 32px", background: "#fff", color: "#1F2937", fontSize: 13, lineHeight: 1.65, outline: "none", minHeight: 40 }}
-            dangerouslySetInnerHTML={{ __html: row.content?.html || "<p>New paragraph block. Click to edit.</p>" }}
+            style={{ padding: isNested ? "12px 16px" : "24px 32px", background: "#fff", color: "#1F2937", fontSize: 13, lineHeight: 1.65, outline: "none", minHeight: 40 }}
+            dangerouslySetInnerHTML={{ __html: item.content?.html || "<p>New paragraph block. Click to edit.</p>" }}
           />
         );
 
       case "footer":
         return (
-          <div style={{ background: row.content?.bg || "#1c170f", padding: "24px 32px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-            <div style={{ color: "#fff", fontSize: 14, fontWeight: 300, whiteSpace: "pre-line" }}>{row.content?.leftText || "COMPANY"}</div>
+          <div style={{ background: item.content?.bg || "#1c170f", padding: "24px 32px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <div style={{ color: "#fff", fontSize: 14, fontWeight: 300, whiteSpace: "pre-line" }}>{item.content?.leftText || "COMPANY"}</div>
             <div style={{ color: "#fff", fontSize: 12, textAlign: "right" }}>
-              <div style={{ whiteSpace: "pre-line", fontWeight: 500 }}>{row.content?.rightText}</div>
-              {row.content?.buttonText && (
+              <div style={{ whiteSpace: "pre-line", fontWeight: 500 }}>{item.content?.rightText}</div>
+              {item.content?.buttonText && (
                 <div style={{ marginTop: 8, border: "1px solid rgba(255,255,255,0.5)", borderRadius: 2, padding: "4px 12px", fontSize: 10, letterSpacing: 1, display: "inline-block", cursor: "pointer" }}>
-                  {row.content.buttonText}
+                  {item.content.buttonText}
                 </div>
               )}
             </div>
@@ -584,8 +769,8 @@ function EmailRow({ row, isSelected, onSelect, onDelete, onDuplicate, onUpdate, 
       case "button":
         return (
           <div style={{ padding: "16px 32px", background: "#fff", display: "flex", justifyContent: "center" }}>
-            <div style={{ background: row.content?.bgColor || "#1D4ED8", color: row.content?.textColor || "#fff", padding: "10px 24px", borderRadius: 4, fontSize: 14, fontWeight: 600, cursor: "pointer" }}>
-              {row.content?.buttonText || "Button Text"}
+            <div style={{ background: item.content?.bgColor || "#1D4ED8", color: item.content?.textColor || "#fff", padding: "10px 24px", borderRadius: 4, fontSize: 14, fontWeight: 600, cursor: "pointer" }}>
+              {item.content?.buttonText || "Button Text"}
             </div>
           </div>
         );
@@ -593,7 +778,7 @@ function EmailRow({ row, isSelected, onSelect, onDelete, onDuplicate, onUpdate, 
       case "divider":
         return (
           <div style={{ padding: "16px 32px", background: "#fff" }}>
-            <hr style={{ border: "none", borderTop: `${row.content?.lineWidth || 1}px solid ${row.content?.lineColor || "#E5E7EB"}`, margin: 0 }} />
+            <hr style={{ border: "none", borderTop: `${item.content?.lineWidth || 1}px solid ${item.content?.lineColor || "#E5E7EB"}`, margin: 0 }} />
           </div>
         );
 
@@ -603,10 +788,10 @@ function EmailRow({ row, isSelected, onSelect, onDelete, onDuplicate, onUpdate, 
             <h2
               contentEditable
               suppressContentEditableWarning
-              onBlur={e => onUpdate({ headingText: e.currentTarget.innerText })}
+              onBlur={e => onUpdate(item.id, { headingText: e.currentTarget.innerText })}
               onClick={e => e.stopPropagation()}
-              style={{ margin: 0, fontSize: row.content?.fontSize || 22, fontWeight: 700, color: row.content?.color || "#1F2937", outline: "none" }}
-              dangerouslySetInnerHTML={{ __html: row.content?.headingText || "Heading" }}
+              style={{ margin: 0, fontSize: item.content?.fontSize || 22, fontWeight: 700, color: item.content?.color || "#1F2937", outline: "none" }}
+              dangerouslySetInnerHTML={{ __html: item.content?.headingText || "Heading" }}
             />
           </div>
         );
@@ -614,9 +799,9 @@ function EmailRow({ row, isSelected, onSelect, onDelete, onDuplicate, onUpdate, 
       case "video":
         return (
           <div style={{ padding: "16px 32px", background: "#fff" }}>
-            {row.content?.videoUrl ? (
+            {item.content?.videoUrl ? (
               <div style={{ position: "relative", paddingBottom: "56.25%", background: "#000", borderRadius: 4, overflow: "hidden" }}>
-                <iframe src={row.content.videoUrl.replace("watch?v=", "embed/").replace("youtu.be/", "youtube.com/embed/")} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", border: "none" }} allowFullScreen />
+                <iframe src={item.content.videoUrl.replace("watch?v=", "embed/").replace("youtu.be/", "youtube.com/embed/")} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", border: "none" }} allowFullScreen />
               </div>
             ) : (
               <div style={{ background: "#F3F4F6", height: 150, display: "flex", alignItems: "center", justifyContent: "center", borderRadius: 4 }}>
@@ -629,59 +814,14 @@ function EmailRow({ row, isSelected, onSelect, onDelete, onDuplicate, onUpdate, 
       case "social":
         return (
           <div style={{ padding: "16px 32px", background: "#fff", display: "flex", justifyContent: "center", gap: 8 }}>
-            {(row.content?.icons || ["F", "𝕏", "in", "📷"]).map((s, i) => (
+            {(item.content?.icons || ["F", "𝕏", "in", "📷"]).map((s, i) => (
               <div key={i} style={{ width: 32, height: 32, borderRadius: "50%", background: "#3B82F6", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 11, fontWeight: 700 }}>{s}</div>
             ))}
           </div>
         );
 
       case "html":
-        return <div style={{ padding: "16px 32px", background: "#fff", fontSize: 13, color: "#1F2937" }} dangerouslySetInnerHTML={{ __html: row.content?.html || "<strong>Hello, world!</strong>" }} />;
-
-      case "table": {
-        const cols = row.content?.cols || 2;
-        const rowCount = row.content?.rows || 2;
-        return (
-          <div style={{ padding: "16px 32px", background: "#fff" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
-              <thead>
-                <tr style={{ background: "#F3F4F6" }}>
-                  {Array.from({ length: cols }).map((_, i) => (
-                    <th key={i} style={{ padding: "8px 12px", border: "1px solid #E5E7EB", textAlign: "left" }}>Header {i + 1}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {Array.from({ length: rowCount - 1 }).map((_, r) => (
-                  <tr key={r}>
-                    {Array.from({ length: cols }).map((_, c) => (
-                      <td key={c} style={{ padding: "8px 12px", border: "1px solid #E5E7EB", color: "#6B7280" }}>Cell</td>
-                    ))}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        );
-      }
-
-      case "menu":
-        return (
-          <div style={{ padding: "12px 32px", background: "#fff", textAlign: "center" }}>
-            {(row.content?.menuItems?.length) ? (
-              <div style={{ display: "flex", justifyContent: "center", gap: 20 }}>
-                {row.content.menuItems.map((item, i) => (
-                  <span key={i} style={{ fontSize: 13, color: "#3B82F6", cursor: "pointer" }}>{item}</span>
-                ))}
-              </div>
-            ) : (
-              <div style={{ display: "inline-flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
-                <MenuIcon size={16} color="#6B7280" />
-                <span style={{ fontSize: 12, color: "#6B7280" }}>Menu</span>
-              </div>
-            )}
-          </div>
-        );
+        return <div style={{ padding: "16px 32px", background: "#fff", fontSize: 13, color: "#1F2937" }} dangerouslySetInnerHTML={{ __html: item.content?.html || "<strong>Hello, world!</strong>" }} />;
 
       default:
         return (
@@ -694,26 +834,36 @@ function EmailRow({ row, isSelected, onSelect, onDelete, onDuplicate, onUpdate, 
 
   return (
     <div
-      style={{ position: "relative", cursor: "pointer", outline: isSelected ? `2px solid #3B82F6` : "none", outlineOffset: -2, transition: "outline 0.1s" }}
+      style={{
+        position: "relative", cursor: "pointer",
+        outline: isSelected ? `2px solid #3B82F6` : "none",
+        outlineOffset: isSelected ? -2 : 0, transition: "outline 0.1s",
+        marginBottom: isSelected ? 8 : 0, marginTop: isSelected ? 8 : 0
+      }}
       onClick={e => { e.stopPropagation(); onSelect(row.id, blockType); }}
       onDragOver={e => { if (row.type === "image") { e.preventDefault(); e.dataTransfer.dropEffect = "copy"; } }}
       onDrop={e => {
         if (row.type === "image") {
           e.preventDefault();
           const url = e.dataTransfer.getData("imageUrl");
-          if (url) onUpdate({ imageUrl: url });
+          if (url) onUpdate(row.id, { imageUrl: url });
         }
       }}
     >
-      {renderContent()}
+      {isSelected && onAddRow && <AddRowBtn isDark={isDark} position="top" onClick={() => onAddRow(row.id, "COLUMNS", "before")} />}
+      
+      {renderContent(row, arguments[0].isNested)}
+
+      {isSelected && onAddRow && <AddRowBtn isDark={isDark} position="bottom" onClick={() => onAddRow(row.id, "COLUMNS", "after")} />}
+
       {isSelected && (
         <>
-          <div style={{ position: "absolute", top: 4, left: 4, background: "#3B82F6", color: "#fff", fontSize: 10, padding: "2px 7px", borderRadius: 3, fontWeight: 700, letterSpacing: 0.5 }}>
+          <div style={{ position: "absolute", top: 4, left: 4, background: "#3B82F6", color: "#fff", fontSize: 10, padding: "2px 7px", borderRadius: 3, fontWeight: 700, letterSpacing: 0.5, zIndex: 5 }}>
             {row.type?.toUpperCase()}
           </div>
-          <div style={{ position: "absolute", top: 4, right: 4, display: "flex", gap: 4 }}>
-            <button onClick={e => { e.stopPropagation(); onDuplicate(); }} style={ctrlBtn}><Copy size={11} /></button>
-            <button onClick={e => { e.stopPropagation(); onDelete(); }} style={{ ...ctrlBtn, background: "#EF4444" }}><Trash2 size={11} /></button>
+          <div style={{ position: "absolute", top: 4, right: 4, display: "flex", gap: 4, zIndex: 5 }}>
+            <button onClick={e => { e.stopPropagation(); onDuplicate(row.id); }} style={ctrlBtn}><Copy size={11} /></button>
+            <button onClick={e => { e.stopPropagation(); onDelete(row.id); }} style={{ ...ctrlBtn, background: "#EF4444" }}><Trash2 size={11} /></button>
           </div>
         </>
       )}
@@ -1176,31 +1326,51 @@ function BlockPropsPanel({ t, isDark, blockType, rowId, onUpdate, rows, onClose,
       );
 
       case "COLUMNS":
-      default: return (
-        <>
-          <DispCond />
-          <Sec id="main" label="Columns">
-            <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
-              {[[[100]],[[50,50]],[[67,33]],[[33,67]],[[33,33,33]],[[50,25,25]],[[25,25,25,25]]].map((layout, i) => {
-                const key = layout[0].join("-");
-                const active = (content.layout || "100") === key;
-                return (
-                  <div key={key} onClick={() => upd({ layout: key })} style={{ display: "flex", gap: 2, height: 26, cursor: "pointer", opacity: active ? 1 : 0.45 }}>
-                    {layout[0].map((col, j) => (
-                      <div key={j} style={{ flex: col, background: active ? "#3B82F6" : (isDark ? "#374151" : "#D1D5DB"), borderRadius: 2 }} />
-                    ))}
-                  </div>
-                );
-              })}
-            </div>
-          </Sec>
-          <Sec id="general" label="Row Properties">
-            <PR label="Background Color">
-              <input type="color" value={content.rowBg || "#ffffff"} onChange={e => upd({ rowBg: e.target.value })} style={{ width: 32, height: 28, border: `1px solid ${t.border}`, borderRadius: 3, cursor: "pointer", padding: 1 }} />
-            </PR>
-          </Sec>
-        </>
-      );
+        return (
+          <>
+            <DispCond />
+            <Sec id="main" label="Columns">
+              <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
+                {[[[100]],[[50,50]],[[67,33]],[[33,67]],[[33,33,33]],[[50,25,25]],[[25,25,25,25]]].map((layout, i) => {
+                  const key = layout[0].join("-");
+                  const active = (content.layout || "100") === key;
+                  return (
+                    <div key={key} onClick={() => upd({ layout: key })} style={{ display: "flex", gap: 2, height: 26, cursor: "pointer", opacity: active ? 1 : 0.45, border: active ? "1px solid #3B82F6" : "1px solid transparent", borderRadius: 3, padding: 1 }}>
+                      {layout[0].map((col, j) => (
+                        <div key={j} style={{ flex: col, background: active ? "#3B82F6" : (isDark ? "#374151" : "#D1D5DB"), borderRadius: 1 }} />
+                      ))}
+                    </div>
+                  );
+                })}
+              </div>
+            </Sec>
+            
+            <Sec id="row-params" label="Row Properties">
+              <PR label="Background Color">
+                <input type="color" value={content.rowBg || "#ffffff"} onChange={e => upd({ rowBg: e.target.value })} style={{ width: 32, height: 28, border: `1px solid ${t.border}`, borderRadius: 3, cursor: "pointer", padding: 1 }} />
+              </PR>
+            </Sec>
+            
+            {(content.columns || []).map((col, idx) => (
+              <Sec key={idx} id={`col-${idx}`} label={`Column ${idx + 1}`}>
+                <PR label="Background">
+                   <input type="color" value={col.settings?.bgColor || "transparent"} onChange={e => {
+                     const newCols = [...content.columns];
+                     newCols[idx] = { ...newCols[idx], settings: { ...newCols[idx].settings, bgColor: e.target.value } };
+                     upd({ columns: newCols });
+                   }} style={{ width: 32, height: 28, border: `1px solid ${t.border}`, borderRadius: 3, cursor: "pointer", padding: 1 }} />
+                </PR>
+                <PR label="Padding">
+                   <input value={col.settings?.padding || "10px"} onChange={e => {
+                     const newCols = [...content.columns];
+                     newCols[idx] = { ...newCols[idx], settings: { ...newCols[idx].settings, padding: e.target.value } };
+                     upd({ columns: newCols });
+                   }} style={{ ...inpStyle(t), width: 80 }} />
+                </PR>
+              </Sec>
+            ))}
+          </>
+        );
     }
   };
 
