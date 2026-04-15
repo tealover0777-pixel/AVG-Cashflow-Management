@@ -94,7 +94,7 @@ export const getInvestmentColumns = (permissions, isDark, t, context) => {
     },
     {
       header: "Contact",
-      accessorKey: "party",
+      accessorKey: "contact",
       size: 180,
       cell: ({ getValue }) => (
         <span style={{ fontSize: '11.5px', fontWeight: 500, color: isDark ? 'rgba(255,255,255,0.85)' : '#1C1917' }}>

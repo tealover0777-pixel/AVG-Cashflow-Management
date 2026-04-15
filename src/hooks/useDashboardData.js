@@ -9,12 +9,12 @@ export function useDashboardData({ DEALS = [], INVESTMENTS = [], CONTACTS = [], 
 
         // Find the Contact record for the member to filter their data
         const myContact = isMember
-            ? (CONTACTS.find(p => p.id === profile?.party_id || p.email === profile?.email || p.id === (profile?.notes || '').split(' — ')[1]) || { id: profile?.party_id })
+            ? (CONTACTS.find(p => p.id === (profile?.contact_id || profile?.party_id) || p.email === profile?.email || p.id === (profile?.notes || '').split(' — ')[1]) || { id: profile?.contact_id || profile?.party_id })
             : null;
 
         const filteredInvestments = isMember
             ? INVESTMENTS.filter(c => {
-                const pId = String(c.party_id || "").trim();
+                const pId = String(c.contact_id || "").trim();
                 const targetId = String(myContact?.id || "").trim();
                 const targetDocId = String(myContact?.docId || "").trim();
                 return pId === targetId || (targetDocId && pId === targetDocId);
@@ -27,7 +27,7 @@ export function useDashboardData({ DEALS = [], INVESTMENTS = [], CONTACTS = [], 
 
         const allSchedules = isMember
             ? SCHEDULES.filter(s => {
-                const pId = String(s.party_id || "").trim();
+                const pId = String(s.contact_id || "").trim();
                 const targetId = String(myContact?.id || "").trim();
                 const targetDocId = String(myContact?.docId || "").trim();
                 const isDirectMatch = pId === targetId || (targetDocId && pId === targetDocId);

@@ -49,7 +49,7 @@ export const InvestorSummaryModal = ({
         ...contact,
         first_name: contact.first_name || "",
         last_name: contact.last_name || "",
-        party_type: contact.party_type || contact.type || "Individual",
+        contact_type: contact.contact_type || contact.type || "Individual",
         role_type: contact.role_type || contact.role || "Investor",
         email: contact.email || "",
         phone: contact.phone || "",
@@ -69,7 +69,7 @@ export const InvestorSummaryModal = ({
   const dpDocId = contact ? String(contact.docId || "").trim() : "";
 
   const partyInvestments = contact ? INVESTMENTS.filter(c => {
-    const cPId = String(c.party_id || "").trim();
+    const cPId = String(c.contact_id || "").trim();
     return (cPId === dpId || (dpDocId && cPId === dpDocId));
   }) : [];
 
@@ -109,7 +109,7 @@ export const InvestorSummaryModal = ({
   const showData = isEditing ? editData : contact;
 
   const roleOpts = (DIMENSIONS.find(d => d.name === "ContactRole" || d.name === "Contact Role") || {}).items || ["Investor", "Borrower"];
-  const partyTypeOpts = (DIMENSIONS.find(d => d.name === "ContactType" || d.name === "Contact Type") || {}).items || ["Individual", "Company", "Trust", "Partnership"];
+  const contactTypeOpts = (DIMENSIONS.find(d => d.name === "ContactType" || d.name === "Contact Type") || {}).items || ["Individual", "Company", "Trust", "Partnership"];
   const paymentMethods = (DIMENSIONS.find(d => d.name === "Payment Method" || d.name === "PaymentMethod") || {}).items || [];
 
   const handleSave = async () => {
@@ -128,13 +128,13 @@ export const InvestorSummaryModal = ({
   const setED = (newVal) => {
     const next = { ...editData, ...newVal };
     if (newVal.hasOwnProperty('first_name') || newVal.hasOwnProperty('last_name')) {
-      next.party_name = `${next.first_name || ""} ${next.last_name || ""}`.trim() || next.name || "";
+      next.contact_name = `${next.first_name || ""} ${next.last_name || ""}`.trim() || next.name || "";
     }
     setEditData(next);
   };
 
   const partySchedules = SCHEDULES.filter(s => {
-    const sPId = String(s.party_id || "").trim();
+    const sPId = String(s.contact_id || "").trim();
     const isMatched = sPId === dpId || (dpDocId && sPId === dpDocId);
     return isMatched || partyInvestments.some(c => c.id === s.investment);
   }).sort((a, b) => {
@@ -232,7 +232,7 @@ export const InvestorSummaryModal = ({
         <div style={{ display: "flex", flexDirection: "column", gap: 24, maxWidth: 800 }}>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
             <FF label="First Name" t={t}>
-              {isEditing ? <FIn value={editData.first_name} onChange={e => setED({ first_name: e.target.value })} t={t} /> : <div style={{ padding: "12px 16px", background: isDark ? "rgba(255,255,255,0.03)" : "#fff", border: `1px solid ${t.surfaceBorder}`, borderRadius: 8, color: t.text, fontWeight: 500 }}>{showData.first_name || showData.party_name || "—"}</div>}
+              {isEditing ? <FIn value={editData.first_name} onChange={e => setED({ first_name: e.target.value })} t={t} /> : <div style={{ padding: "12px 16px", background: isDark ? "rgba(255,255,255,0.03)" : "#fff", border: `1px solid ${t.surfaceBorder}`, borderRadius: 8, color: t.text, fontWeight: 500 }}>{showData.first_name || showData.contact_name || showData.name || "—"}</div>}
             </FF>
             <FF label="Last Name" t={t}>
               {isEditing ? <FIn value={editData.last_name} onChange={e => setED({ last_name: e.target.value })} t={t} /> : <div style={{ padding: "12px 16px", background: isDark ? "rgba(255,255,255,0.03)" : "#fff", border: `1px solid ${t.surfaceBorder}`, borderRadius: 8, color: t.text, fontWeight: 500 }}>{showData.last_name || "—"}</div>}
@@ -240,7 +240,7 @@ export const InvestorSummaryModal = ({
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
             <FF label="Contact Type" t={t}>
-              {isEditing ? <FSel value={editData.party_type} options={partyTypeOpts} onChange={e => setED({ party_type: e.target.value })} t={t} /> : <div style={{ padding: "12px 16px", background: isDark ? "rgba(255,255,255,0.03)" : "#fff", border: `1px solid ${t.surfaceBorder}`, borderRadius: 8, color: t.text, fontWeight: 500 }}>{showData.party_type || showData.type || "—"}</div>}
+              {isEditing ? <FSel value={editData.contact_type} options={contactTypeOpts} onChange={e => setED({ contact_type: e.target.value })} t={t} /> : <div style={{ padding: "12px 16px", background: isDark ? "rgba(255,255,255,0.03)" : "#fff", border: `1px solid ${t.surfaceBorder}`, borderRadius: 8, color: t.text, fontWeight: 500 }}>{showData.contact_type || showData.type || "—"}</div>}
             </FF>
             <FF label="Role" t={t}>
               {isEditing ? <FSel value={editData.role_type} options={roleOpts} onChange={e => setED({ role_type: e.target.value })} t={t} /> : <div style={{ padding: "12px 16px", background: isDark ? "rgba(255,255,255,0.03)" : "#fff", border: `1px solid ${t.surfaceBorder}`, borderRadius: 8, color: t.text, fontWeight: 500 }}>{showData.role_type || showData.role || "—"}</div>}
@@ -525,7 +525,7 @@ export const InvestorSummaryModal = ({
             t={t}
             isDark={isDark}
             tenantId={tenantId}
-            party={contact}
+            contact={contact}
             DEALS={DEALS}
             INVESTMENTS={INVESTMENTS}
           />
@@ -573,7 +573,7 @@ export const InvestorSummaryModal = ({
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 24 }}>
             <div>
               <div style={{ fontSize: 24, fontWeight: 700, color: isDark ? "#fff" : "#111827", marginBottom: 4 }}>
-                {showData.party_name || showData.name || "—"}
+                {showData.contact_name || showData.name || "—"}
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 6 }}>

@@ -137,7 +137,7 @@ export const getContactColumns = (permissions, isDark, t, context) => {
         const dpId = String(contact.id || "").trim();
         const dpDocId = String(contact.docId || "").trim();
         const partyInvestments = (INVESTMENTS || []).filter(c => {
-          const cPId = String(c.party_id || "").trim();
+          const cPId = String(c.contact_id || "").trim();
           return (cPId && (cPId === dpId || (dpDocId && cPId === dpDocId)));
         });
         
@@ -169,7 +169,7 @@ export const getContactColumns = (permissions, isDark, t, context) => {
         const dpId = String(contact.id || "").trim();
         const dpDocId = String(contact.docId || "").trim();
         const partyInvestments = (INVESTMENTS || []).filter(c => {
-          const cPId = String(c.party_id || "").trim();
+          const cPId = String(c.contact_id || "").trim();
           return (cPId && (cPId === dpId || (dpDocId && cPId === dpDocId)));
         });
         

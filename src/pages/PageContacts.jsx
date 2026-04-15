@@ -16,7 +16,7 @@ export default function PageContacts({ t, isDark, CONTACTS = [], INVESTMENTS = [
   const canDelete = hasPermission("CONTACT_DELETE");
   const canInvite = isSuperAdmin || hasPermission("CONTACT_INVITE");
   const roleOpts = (DIMENSIONS.find(d => d.name === "ContactRole") || {}).items || ["Investor", "Borrower"];
-  const partyTypeOpts = (DIMENSIONS.find(d => d.name === "ContactType") || {}).items || ["Individual", "Company", "Trust", "Partnership"];
+  const contactTypeOpts = (DIMENSIONS.find(d => d.name === "ContactType") || {}).items || ["Individual", "Company", "Trust", "Partnership"];
   const investorTypeOpts = (DIMENSIONS.find(d => d.name === "InvestorType") || {}).items || ["Fixed", "Equity", "Both"];
   const paymentMethods = (DIMENSIONS.find(d => d.name === "Payment Method" || d.name === "PaymentMethod") || {}).items || [];
   const [chip, setChip] = useState("All");
@@ -83,10 +83,10 @@ export default function PageContacts({ t, isDark, CONTACTS = [], INVESTMENTS = [
   const handleSaveContact = async () => {
     const d = modal.data;
     const payload = {
-      party_name: `${d.first_name || ""} ${d.last_name || ""}`.trim() || d.name || "",
+      contact_name: `${d.first_name || ""} ${d.last_name || ""}`.trim() || d.name || "",
       first_name: d.first_name || "",
       last_name: d.last_name || "",
-      party_type: d.type || "",
+      contact_type: d.type || "",
       role_type: d.role || "",
       investor_type: d.investor_type || "",
       email: d.email || "",
@@ -131,10 +131,10 @@ export default function PageContacts({ t, isDark, CONTACTS = [], INVESTMENTS = [
   const handleUpdateContact = async (updatedData) => {
     const d = updatedData;
     const payload = {
-      party_name: `${d.first_name || ""} ${d.last_name || ""}`.trim() || d.name || "",
+      contact_name: `${d.first_name || ""} ${d.last_name || ""}`.trim() || d.name || "",
       first_name: d.first_name || "",
       last_name: d.last_name || "",
-      party_type: d.party_type || d.type || "",
+      contact_type: d.contact_type || d.type || "",
       role_type: d.role_type || d.role || "",
       investor_type: d.investor_type || "",
       email: d.email || "",
@@ -204,7 +204,7 @@ export default function PageContacts({ t, isDark, CONTACTS = [], INVESTMENTS = [
         first_name: firstName,
         last_name: lastName,
         phone: party.phone || "",
-        partyId: party.id || "",
+        contactId: party.id || "",
         notes: `Invited from Contacts page — ${party.id}`,
       });
       setInviteResult({ email: party.email, user_id: result.data.user_id, link: result.data.link });
@@ -306,7 +306,7 @@ export default function PageContacts({ t, isDark, CONTACTS = [], INVESTMENTS = [
         <FF label="Last Name" t={t}><FIn value={modal.data.last_name || ""} onChange={e => setF("last_name", e.target.value)} placeholder="e.g. Chen" t={t} /></FF>
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
-        <FF label="Contact Type" t={t}><FSel value={modal.data.type || "Individual"} onChange={e => setF("type", e.target.value)} options={partyTypeOpts} t={t} /></FF>
+        <FF label="Contact Type" t={t}><FSel value={modal.data.type || "Individual"} onChange={e => setF("type", e.target.value)} options={contactTypeOpts} t={t} /></FF>
         <FF label="Role" t={t}><FSel value={modal.data.role || "Investor"} onChange={e => setF("role", e.target.value)} options={roleOpts} t={t} /></FF>
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>

@@ -58,7 +58,7 @@ export const getDealInvestmentColumns = (permissions, isDark, t, context) => {
     },
     {
       header: "Investor Name",
-      accessorKey: "party",
+      accessorKey: "contact",
       size: 150,
       cell: ({ row, getValue }) => (
         <span 
@@ -74,7 +74,7 @@ export const getDealInvestmentColumns = (permissions, isDark, t, context) => {
       id: "email",
       size: 180,
       cell: ({ row }) => {
-        const p = CONTACTS.find(x => x.name === row.original.party || x.id === row.original.party_id);
+        const p = CONTACTS.find(x => x.name === row.original.contact || x.id === row.original.contact_id);
         return <span style={{ fontSize: '11.5px', color: t.textSecondary }}>{p?.email || "—"}</span>;
       }
     },
@@ -84,7 +84,7 @@ export const getDealInvestmentColumns = (permissions, isDark, t, context) => {
       size: 140,
       cell: ({ row }) => {
         const d = row.original;
-        const p = CONTACTS.find(x => x.name === d.party || x.id === d.party_id);
+        const p = CONTACTS.find(x => x.name === d.contact || x.id === d.contact_id);
         const method = d.payment_method || p?.payment_method || "—";
         return <span style={{ fontSize: '11.5px', color: t.textSecondary }}>{method}</span>;
       }

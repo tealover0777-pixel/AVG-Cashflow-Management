@@ -5,7 +5,7 @@ import { uploadFile, deleteFile } from "../utils/storageUtils";
 import { FileText, File, Trash2, Download, Plus, Loader2, X, HelpCircle, Eye } from "lucide-react";
 import { Modal, FF, FIn, FSel, Tooltip, DelModal } from "../components";
 
-export default function InvestmentDocumentsTab({ t, isDark, tenantId, party, DEALS, INVESTMENTS }) {
+export default function InvestmentDocumentsTab({ t, isDark, tenantId, contact, party, DEALS, INVESTMENTS }) {
     const [docs, setDocs] = useState([]);
     const [loading, setLoading] = useState(true);
     const [uploading, setUploading] = useState(false);
@@ -23,7 +23,8 @@ export default function InvestmentDocumentsTab({ t, isDark, tenantId, party, DEA
     const showToast = (msg, type = "info") => { setToast({ msg, type }); setTimeout(() => setToast(null), 4000); };
     const [confirmDelDoc, setConfirmDelDoc] = useState(null);
 
-    const partyId = String(party.id || party.docId || "").trim();
+    const src = contact || party; // accept either prop name
+    const partyId = String(src.id || src.docId || "").trim();
 
     useEffect(() => {
         if (!tenantId || !partyId) return;
@@ -95,10 +96,10 @@ export default function InvestmentDocumentsTab({ t, isDark, tenantId, party, DEA
     const agreements = docs.filter(d => d.category === "Agreement");
     const taxDocs = docs.filter(d => d.category === "Tax");
 
-    // Filter deals the party is involved in
+    // Filter deals the contact is involved in
     const partyDeals = Array.from(new Set(INVESTMENTS.filter(inv => {
-        const invPId = String(inv.party_id || "").trim();
-        return invPId === partyId || invPId === party.id;
+        const invPId = String(inv.contact_id || "").trim();
+        return invPId === partyId || invPId === src.id;
     }).map(inv => inv.deal_id))).map(id => DEALS.find(d => d.id === id)).filter(Boolean);
 
     if (loading) return <div style={{ padding: 40, textAlign: "center", color: t.textMuted }}>Loading documents...</div>;

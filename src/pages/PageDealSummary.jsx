@@ -54,7 +54,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
   const showToast = (msg, type = "info") => { setToast({ msg, type }); setTimeout(() => setToast(null), 4000); };
 
   const roleOpts = (DIMENSIONS.find(d => d.name === "ContactRole") || {}).items || ["Investor", "Borrower"];
-  const partyTypeOpts = (DIMENSIONS.find(d => d.name === "ContactType") || {}).items || ["Individual", "Company", "Trust", "Partnership"];
+  const contactTypeOpts = (DIMENSIONS.find(d => d.name === "ContactType") || {}).items || ["Individual", "Company", "Trust", "Partnership"];
   const investorTypeOpts = (DIMENSIONS.find(d => d.name === "InvestorType") || {}).items || ["Fixed", "Equity", "Both"];
 
   const pivotColWidths = [180, 150, 100, 100, 80, 70, 110]; // Name, Type, Start, End, Freq, Rate, Method
@@ -122,8 +122,8 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
   // Fund balance calculation moved to dealSchedules useMemo
 
   const dealContacts = useMemo(() => {
-    const partyIds = new Set(dealInvestments.map(inv => inv.party_id));
-    return CONTACTS.filter(c => partyIds.has(c.id) || partyIds.has(c.docId));
+    const contactIds = new Set(dealInvestments.map(inv => inv.contact_id));
+    return CONTACTS.filter(c => contactIds.has(c.id) || contactIds.has(c.docId));
   }, [dealInvestments, CONTACTS]);
 
   const dealSchedules = useMemo(() =>
@@ -178,8 +178,8 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
       // Only include active version (latest version) of each schedule in pivot view
       if (schedule.active_version !== true) return;
 
-      const investor = CONTACTS.find(c => c.id === schedule.party_id);
-      const investorName = investor ? investor.name : schedule.party_id || "Unknown";
+      const investor = CONTACTS.find(c => c.id === schedule.contact_id);
+      const investorName = investor ? investor.name : schedule.contact_id || "Unknown";
 
       const inv = INVESTMENTS.find(iv => iv.id === (schedule.investment_id || schedule.investment));
       const invStart = inv?.start_date || "";
@@ -396,7 +396,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
         id: `I${maxIdNum + 1}`,
         deal: deal.name || "",
         deal_id: deal.id || "",
-        party: "",
+        contact: "",
         type: "Individual",
         amount: "",
         rate: "",
@@ -423,8 +423,8 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
 
   const handleSaveContactToDeal = async () => {
     try {
-      let partyId = "";
-      let partyName = "";
+      let contactId = "";
+      let contactName = "";
       const isNew = contactModal.mode === "new";
 
       if (isNew) {
@@ -432,26 +432,26 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
           showToast("Please fill in first name, last name, and email.", "error");
           return;
         }
-        partyId = `P${Date.now()}R${Math.floor(Math.random() * 1000)}`;
-        partyName = (contactModal.data.type === "Company" && contactModal.data.company_name)
+        contactId = `P${Date.now()}R${Math.floor(Math.random() * 1000)}`;
+        contactName = (contactModal.data.type === "Company" && contactModal.data.company_name)
           ? contactModal.data.company_name
           : `${contactModal.data.first_name} ${contactModal.data.last_name}`.trim();
 
-        const partyPathPrefix = investmentCollection.includes("/")
+        const contactPathPrefix = investmentCollection.includes("/")
           ? investmentCollection.substring(0, investmentCollection.lastIndexOf("/")) + "/contacts"
           : "contacts";
 
-        const docRef = doc(db, partyPathPrefix, partyId);
+        const docRef = doc(db, contactPathPrefix, contactId);
         await setDoc(docRef, {
-          id: partyId,
-          party_id: partyId,
-          doc_id: partyId,
-          party_name: partyName,
+          id: contactId,
+          contact_id: contactId,
+          doc_id: contactId,
+          contact_name: contactName,
           first_name: contactModal.data.first_name || "",
           last_name: contactModal.data.last_name || "",
           email: contactModal.data.email || "",
           phone: contactModal.data.phone || "",
-          party_type: contactModal.data.type || "Individual",
+          contact_type: contactModal.data.type || "Individual",
           role_type: contactModal.data.role || "Investor",
           investor_type: contactModal.data.investor_type || "Fixed",
           address: contactModal.data.address || "",
@@ -465,13 +465,13 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
           updated_at: serverTimestamp(),
         });
       } else {
-        if (!contactModal.data.selectedPartyId) {
+        if (!contactModal.data.selectedContactId) {
           showToast("Please select a contact.", "error");
           return;
         }
-        partyId = contactModal.data.selectedPartyId;
-        const party = CONTACTS.find(p => p.id === partyId || p.docId === partyId);
-        partyName = party ? party.name : partyId;
+        contactId = contactModal.data.selectedContactId;
+        const contact = CONTACTS.find(p => p.id === contactId || p.docId === contactId);
+        contactName = contact ? contact.name : contactId;
       }
 
       // Create $0 investment record
@@ -484,8 +484,8 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
         amount: 0,
         deal_id: deal.id,
         deal_name: deal.name,
-        party_id: partyId,
-        party_name: partyName,
+        contact_id: contactId,
+        contact_name: contactName,
         investment_type: "Investor",
         status: "Active",
         start_date: deal.startDate || "",
@@ -505,12 +505,12 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
   const handleSaveInvestment = async () => {
     const d = modal.data;
     const dealObj = DEALS.find(p => p.name === d.deal);
-    const parObj = CONTACTS.find(p => p.name === d.party);
+    const contactObj = CONTACTS.find(p => p.name === d.contact);
     const payload = {
       deal_name: d.deal || "",
       deal_id: dealObj ? dealObj.id : (d.deal_id || ""),
-      party_name: d.party || "",
-      party_id: parObj ? parObj.id : (d.party_id || ""),
+      contact_name: d.contact || "",
+      contact_id: contactObj ? contactObj.id : (d.contact_id || ""),
       investment_type: d.type || "",
       amount: d.amount ? Number(String(d.amount).replace(/[^0-9.-]/g, "")) || null : null,
       interest_rate: d.rate ? Number(String(d.rate).replace(/[^0-9.-]/g, "")) || null : null,
@@ -619,7 +619,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
       term_months: "Term (months)", start_date: "Start Date", maturity_date: "Maturity Date",
       payment_method: "Payment Method", rollover: "Rollover", deal: "Deal", fees: "Fees",
     };
-    const SKIP = new Set(["docId", "_path", "id", "docId", "deal_id", "party_id", "party",
+    const SKIP = new Set(["docId", "_path", "id", "docId", "deal_id", "contact_id", "contact",
       "investment_id", "interest_rate", "payment_frequency", "feeIds", "created_at", "updated_at"]);
 
     const original = INVESTMENTS.find(i => i.id === id) || {};
@@ -794,7 +794,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
           version_id: `${sId1}-V1`,
           payment_id: sId1,
           active_version: true,
-          investment_id: c.id, deal_id: dealId, party_id: c.party_id || "",
+          investment_id: c.id, deal_id: dealId, contact_id: c.contact_id || "",
           due_date: startDate.toISOString().slice(0, 10), payment_type: initialPaymentType, fee_id: "",
           period_number: 1, principal_amount: principal, payment_amount: principal,
           signed_payment_amount: ds1.signed, direction_from_company: ds1.direction,
@@ -839,7 +839,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
             const sIdFee = mkId("S");
             entries.push({
               schedule_id: sIdFee, version_num: 1, version_id: `${sIdFee}-V1`, payment_id: sIdFee, active_version: true,
-              investment_id: c.id, deal_id: dealId, party_id: c.party_id || "",
+              investment_id: c.id, deal_id: dealId, contact_id: c.contact_id || "",
               due_date: dDate.toISOString().slice(0, 10), payment_type: PT_FEE, fee_id: fid,
               period_number: 1, principal_amount: principal, payment_amount: feeAmt,
               signed_payment_amount: signedFeeAmt, direction_from_company: feeDir,
@@ -896,7 +896,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
             const sIdInt = mkId("S");
             entries.push({
               schedule_id: sIdInt, version_num: 1, version_id: `${sIdInt}-V1`, payment_id: sIdInt, active_version: true,
-              investment_id: c.id, deal_id: dealId, party_id: c.party_id || "",
+              investment_id: c.id, deal_id: dealId, contact_id: c.contact_id || "",
               due_date: pEnd.toISOString().slice(0, 10), payment_type: interestPT, fee_id: "",
               period_number: periodNum, principal_amount: principal, payment_amount: roundedInterest,
               signed_payment_amount: ds2.signed, direction_from_company: ds2.direction,
@@ -933,7 +933,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
                   const sIdRecFee = mkId("S");
                   entries.push({
                     schedule_id: sIdRecFee, version_num: 1, version_id: `${sIdRecFee}-V1`, payment_id: sIdRecFee, active_version: true,
-                    investment_id: c.id, deal_id: dealId, party_id: c.party_id || "",
+                    investment_id: c.id, deal_id: dealId, contact_id: c.contact_id || "",
                     due_date: feeDueDate.toISOString().slice(0, 10), payment_type: PT_FEE, fee_id: fid,
                     period_number: periodNum, principal_amount: principal, payment_amount: roundedFeeAmt,
                     signed_payment_amount: signedFeeAmt, direction_from_company: feeDir,
@@ -956,7 +956,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
         const sIdRepay = mkId("S");
         entries.push({
           schedule_id: sIdRepay, version_num: 1, version_id: `${sIdRepay}-V1`, payment_id: sIdRepay, active_version: true,
-          investment_id: c.id, deal_id: dealId, party_id: c.party_id || "",
+          investment_id: c.id, deal_id: dealId, contact_id: c.contact_id || "",
           due_date: matDate.toISOString().slice(0, 10), payment_type: repaymentPT, fee_id: "",
           period_number: periodNum, principal_amount: principal, payment_amount: principal,
           signed_payment_amount: ds3.signed, direction_from_company: ds3.direction,
@@ -1274,7 +1274,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
     onEdit: openEdit,
     onDelete: setDelT,
     onContactClick: (r) => {
-      const cp = CONTACTS.find(x => x.name === r.party || x.id === r.party_id || x.docId === r.party_id);
+      const cp = CONTACTS.find(x => x.name === r.contact || x.id === r.contact_id || x.docId === r.contact_id);
       if (cp) setDetailContact({ data: cp, view: "simple" });
     }
   };
@@ -2369,7 +2369,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
           </div>
         )}
         <FF label="Deal name" t={t}><FSel value={modal.data.deal} onChange={e => setF("deal", e.target.value)} options={DEALS.map(p => p.name)} t={t} /></FF>
-        <FF label="Contact" t={t}><FSel value={modal.data.party} onChange={e => setF("party", e.target.value)} options={CONTACTS.map(p => p.name)} t={t} /></FF>
+        <FF label="Contact" t={t}><FSel value={modal.data.contact} onChange={e => setF("contact", e.target.value)} options={CONTACTS.map(p => p.name)} t={t} /></FF>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14 }}>
           <FF label="Type" t={t}><FSel value={modal.data.type} onChange={e => setF("type", e.target.value)} options={getTypeOpts()} t={t} /></FF>
           <FF label="Amount" t={t}><FIn value={modal.data.amount} onChange={e => setF("amount", e.target.value)} placeholder="$0" t={t} /></FF>
@@ -2444,9 +2444,9 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
         {contactModal.mode === "existing" ? (
           <FF label="Select Contact" t={t}>
             <select
-              value={contactModal.data.selectedPartyId || ""}
-              onChange={e => setContactModal(prev => ({ ...prev, data: { ...prev.data, selectedPartyId: e.target.value } }))}
-              style={{ width: "100%", background: t.searchBg, border: `1px solid ${t.searchBorder}`, borderRadius: 9, padding: "10px 13px", color: contactModal.data.selectedPartyId ? t.searchText : (t.textMuted), fontSize: 13.5, fontFamily: "inherit", outline: "none", cursor: "pointer" }}
+              value={contactModal.data.selectedContactId || ""}
+              onChange={e => setContactModal(prev => ({ ...prev, data: { ...prev.data, selectedContactId: e.target.value } }))}
+              style={{ width: "100%", background: t.searchBg, border: `1px solid ${t.searchBorder}`, borderRadius: 9, padding: "10px 13px", color: contactModal.data.selectedContactId ? t.searchText : (t.textMuted), fontSize: 13.5, fontFamily: "inherit", outline: "none", cursor: "pointer" }}
             >
               <option value="">Select an existing contact...</option>
               {CONTACTS.map(c => (
@@ -2464,7 +2464,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
               <FF label="Company Name" t={t}><FIn value={contactModal.data.company_name || ""} onChange={e => setContactModal(prev => ({ ...prev, data: { ...prev.data, company_name: e.target.value } }))} placeholder="e.g. Acme Corp" t={t} /></FF>
             )}
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
-              <FF label="Contact Type" t={t}><FSel value={contactModal.data.type || "Individual"} onChange={e => setContactModal(prev => ({ ...prev, data: { ...prev.data, type: e.target.value } }))} options={partyTypeOpts} t={t} /></FF>
+              <FF label="Contact Type" t={t}><FSel value={contactModal.data.type || "Individual"} onChange={e => setContactModal(prev => ({ ...prev, data: { ...prev.data, type: e.target.value } }))} options={contactTypeOpts} t={t} /></FF>
               <FF label="Role" t={t}><FSel value={contactModal.data.role || "Investor"} onChange={e => setContactModal(prev => ({ ...prev, data: { ...prev.data, role: e.target.value } }))} options={roleOpts} t={t} /></FF>
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
@@ -3015,10 +3015,10 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
         onUpdate={async (updatedData) => {
           const d = updatedData;
           const payload = {
-            party_name: `${d.first_name || ""} ${d.last_name || ""}`.trim() || d.name || "",
+            contact_name: `${d.first_name || ""} ${d.last_name || ""}`.trim() || d.name || "",
             first_name: d.first_name || "",
             last_name: d.last_name || "",
-            party_type: d.party_type || d.type || "Individual",
+            contact_type: d.contact_type || d.type || "Individual",
             role_type: d.role_type || d.role || "Investor",
             email: d.email || "",
             phone: d.phone || "",

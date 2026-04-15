@@ -37,15 +37,15 @@ export const getDistributionColumns = (isDark, t, CONTACTS, DEALS, INVESTMENTS =
     id: 'party',
     header: 'Investor Name',
     accessorFn: (row) => {
-      const c = (CONTACTS || []).find(x => x.id === row.party_id);
+      const c = (CONTACTS || []).find(x => x.id === row.contact_id);
       return c ? c.name : row.party_id;
     },
     size: 180,
     cell: ({ getValue, row }) => {
-      const name = getValue() || "Unknown Party";
+      const name = getValue() || "Unknown Contact";
       return (
         <div 
-          onClick={() => callbacks.onContactClick?.(row.original.party_id)}
+          onClick={() => callbacks.onContactClick?.(row.original.contact_id)}
           style={{ display: 'flex', alignItems: 'center', height: '100%', fontWeight: 600, color: isDark ? "#60A5FA" : "#4F46E5", cursor: 'pointer' }}
         >
           {name}

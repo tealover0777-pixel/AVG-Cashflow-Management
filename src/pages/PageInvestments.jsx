@@ -25,8 +25,8 @@ export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [
   const [drillInvestment, setDrillInvestment] = useState(null);
   const drillContact = useMemo(() => {
     if (!drillInvestment) return null;
-    const pId = drillInvestment.party_id || "";
-    return CONTACTS.find(c => c.id === pId || c.docId === pId) || { name: drillInvestment.party || drillInvestment.party_name, id: pId };
+    const pId = drillInvestment.contact_id || "";
+    return CONTACTS.find(c => c.id === pId || c.docId === pId) || { name: drillInvestment.contact, id: pId };
   }, [drillInvestment, CONTACTS]);
 
   const handleUpdateInvestmentModal = async (updatedData) => {
@@ -79,7 +79,7 @@ export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [
         id: nextId,
         deal: firstDeal ? firstDeal.name : "",
         deal_id: firstDeal ? (firstDeal.deal_id || firstDeal.id) : "",
-        party: "",
+        contact: "",
         type: "",
         amount: "",
         rate: "",
@@ -99,12 +99,12 @@ export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [
   const handleSaveInvestment = async () => {
     const d = modal.data;
     const dealObj = DEALS.find(p => p.name === d.deal);
-    const parObj = CONTACTS.find(p => p.name === d.party);
+    const contactObj = CONTACTS.find(p => p.name === d.contact);
     const payload = {
       deal_name: d.deal || "",
       deal_id: dealObj ? dealObj.id : (d.deal_id || ""),
-      party_name: d.party || "",
-      party_id: parObj ? parObj.id : (d.party_id || ""),
+      contact_name: d.contact || "",
+      contact_id: contactObj ? contactObj.id : (d.contact_id || ""),
       investment_type: d.type || "",
       amount: d.amount ? Number(String(d.amount).replace(/[^0-9.-]/g, "")) || null : null,
       interest_rate: d.rate ? Number(String(d.rate).replace(/[^0-9.-]/g, "")) || null : null,
@@ -280,7 +280,7 @@ export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [
           version_id: `${sId1}-V1`,
           payment_id: sId1,
           active_version: true,
-          investment_id: c.id, deal_id: c.deal_id || "", party_id: c.party_id || "",
+          investment_id: c.id, deal_id: c.deal_id || "", contact_id: c.contact_id || "",
           due_date: startDate.toISOString().slice(0, 10), payment_type: initialPaymentType, fee_id: "",
           period_number: 1, principal_amount: principal, payment_amount: principal,
           signed_payment_amount: ds1.signed, direction_from_company: ds1.direction,
@@ -326,7 +326,7 @@ export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [
             const sIdFee = mkId("S");
             entries.push({
               schedule_id: sIdFee, version_num: 1, version_id: `${sIdFee}-V1`, payment_id: sIdFee, active_version: true,
-              investment_id: c.id, deal_id: c.deal_id || "", party_id: c.party_id || "",
+              investment_id: c.id, deal_id: c.deal_id || "", contact_id: c.contact_id || "",
               due_date: dDate.toISOString().slice(0, 10), payment_type: PT_FEE, fee_id: fid,
               period_number: 1, principal_amount: principal, payment_amount: feeAmt,
               signed_payment_amount: signedFeeAmt, direction_from_company: feeDir,
@@ -384,7 +384,7 @@ export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [
             const sIdInt = mkId("S");
             entries.push({
               schedule_id: sIdInt, version_num: 1, version_id: `${sIdInt}-V1`, payment_id: sIdInt, active_version: true,
-              investment_id: c.id, deal_id: c.deal_id || "", party_id: c.party_id || "",
+              investment_id: c.id, deal_id: c.deal_id || "", contact_id: c.contact_id || "",
               due_date: pEnd.toISOString().slice(0, 10), payment_type: interestPT, fee_id: "",
               period_number: periodNum, principal_amount: principal, payment_amount: roundedInterest,
               signed_payment_amount: ds2.signed, direction_from_company: ds2.direction,
@@ -422,7 +422,7 @@ export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [
                   const sIdRecFee = mkId("S");
                   entries.push({
                     schedule_id: sIdRecFee, version_num: 1, version_id: `${sIdRecFee}-V1`, payment_id: sIdRecFee, active_version: true,
-                    investment_id: c.id, deal_id: c.deal_id || "", party_id: c.party_id || "",
+                    investment_id: c.id, deal_id: c.deal_id || "", contact_id: c.contact_id || "",
                     due_date: feeDueDate.toISOString().slice(0, 10), payment_type: PT_FEE, fee_id: fid,
                     period_number: periodNum, principal_amount: principal, payment_amount: roundedFeeAmt,
                     signed_payment_amount: signedFeeAmt, direction_from_company: feeDir,
@@ -445,7 +445,7 @@ export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [
         const sIdRepay = mkId("S");
         entries.push({
           schedule_id: sIdRepay, version_num: 1, version_id: `${sIdRepay}-V1`, payment_id: sIdRepay, active_version: true,
-          investment_id: c.id, deal_id: c.deal_id || "", party_id: c.party_id || "",
+          investment_id: c.id, deal_id: c.deal_id || "", contact_id: c.contact_id || "",
           due_date: matDate.toISOString().slice(0, 10), payment_type: repaymentPT, fee_id: "",
           period_number: periodNum, principal_amount: principal, payment_amount: principal,
           signed_payment_amount: ds3.signed, direction_from_company: ds3.direction,
@@ -575,7 +575,7 @@ export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [
   const investorNewTypeOpts = (DIMENSIONS.find(d => d.name === "InvestorInvestmentNewType") || {}).items || [];
   const borrowerNewTypeOpts = (DIMENSIONS.find(d => d.name === "BorrowerInvestmentNewType") || {}).items || [];
   const scheduleFrequencyOpts = (DIMENSIONS.find(d => d.name === "ScheduleFrequency" || d.name === "Schedule Frequency") || {}).items || ["Monthly", "Quarterly", "Semi-Annual", "Annual", "At Maturity"];
-  const selectedContact = CONTACTS.find(p => p.name === modal.data.party);
+  const selectedContact = CONTACTS.find(p => p.name === modal.data.contact);
   const contactRole = selectedContact ? selectedContact.role : "";
   const getTypeOpts = () => {
     const isNew = modal.mode === "add";
@@ -696,7 +696,7 @@ export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [
         </div>
       )}
       <FF label="Deal name" t={t}><FSel value={modal.data.deal} onChange={e => setF("deal", e.target.value)} options={DEALS.map(p => p.name)} t={t} /></FF>
-      <FF label="Contact" t={t}><FSel value={modal.data.party} onChange={e => setF("party", e.target.value)} options={CONTACTS.map(p => p.name)} t={t} /></FF>
+      <FF label="Contact" t={t}><FSel value={modal.data.contact} onChange={e => setF("contact", e.target.value)} options={CONTACTS.map(p => p.name)} t={t} /></FF>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14 }}>
         <FF label="Type" t={t}><FSel value={modal.data.type} onChange={e => setF("type", e.target.value)} options={getTypeOpts()} t={t} /></FF>
         <FF label="Amount" t={t}><FIn value={modal.data.amount} onChange={e => setF("amount", e.target.value)} placeholder="$0" t={t} /></FF>

@@ -48,11 +48,11 @@ export default function PagePayments({ t, isDark, PAYMENTS = [], INVESTMENTS = [
   const close = () => setModal(m => ({ ...m, open: false }));
   const setF = (k, v) => setModal(m => ({ ...m, data: { ...m.data, [k]: v } }));
 
-  const openAddPayment = () => setModal({ open: true, mode: "add", type: "payment", data: { investment_id: "", party_name: "", payment_type: "Principal", amount: "", payment_date: "", payment_method: "Wire", direction: "Received", status: "Pending", notes: "" } });
+  const openAddPayment = () => setModal({ open: true, mode: "add", type: "payment", data: { investment_id: "", contact_name: "", payment_type: "Principal", amount: "", payment_date: "", payment_method: "Wire", direction: "Received", status: "Pending", notes: "" } });
   const openEditPayment = r => setModal({ open: true, mode: "edit", type: "payment", data: {
     ...r,
     investment_id: r.investment_id || r.investment || "",
-    party_name: r.party_name || r.party || "",
+    contact_name: r.contact_name || r.contact || r.party_name || r.party || "",
     payment_type: r.payment_type || r.type || "",
     payment_date: r.payment_date || r.date || "",
     payment_method: r.payment_method || r.method || "",
@@ -70,7 +70,7 @@ export default function PagePayments({ t, isDark, PAYMENTS = [], INVESTMENTS = [
     if (type === "payment") {
       payload = {
         investment_id: d.investment_id || "",
-        party_name: d.party_name || "",
+        contact_name: d.contact_name || "",
         payment_type: d.payment_type || "",
         amount: d.amount ? Number(String(d.amount).replace(/[^0-9.-]/g, "")) || null : null,
         payment_date: d.payment_date || null,
@@ -261,7 +261,7 @@ export default function PagePayments({ t, isDark, PAYMENTS = [], INVESTMENTS = [
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
             <FF label="Investment ID" t={t}><FSel value={modal.data.investment_id} onChange={e => setF("investment_id", e.target.value)} options={INVESTMENTS.map(i => i.id)} t={t} /></FF>
-            <FF label="Contact" t={t}><FSel value={modal.data.party_name} onChange={e => setF("party_name", e.target.value)} options={CONTACTS.map(c => c.name)} t={t} /></FF>
+            <FF label="Contact" t={t}><FSel value={modal.data.contact_name} onChange={e => setF("contact_name", e.target.value)} options={CONTACTS.map(c => c.name)} t={t} /></FF>
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
             <FF label="Amount" t={t}><FIn value={modal.data.amount} onChange={e => setF("amount", e.target.value)} placeholder="0.00" t={t} /></FF>
@@ -308,7 +308,7 @@ export default function PagePayments({ t, isDark, PAYMENTS = [], INVESTMENTS = [
           <thead>
             <tr style={{ borderBottom: `1px solid ${t.surfaceBorder}`, color: t.textSubtle, textAlign: 'left' }}>
               <th style={{ padding: '12px 8px' }}>Date</th>
-              <th style={{ padding: '12px 8px' }}>Party</th>
+              <th style={{ padding: '12px 8px' }}>Contact</th>
               <th style={{ padding: '12px 8px' }}>Investment</th>
               <th style={{ padding: '12px 8px' }}>Type</th>
               <th style={{ padding: '12px 8px', textAlign: 'right' }}>Amount</th>
@@ -336,7 +336,7 @@ export default function PagePayments({ t, isDark, PAYMENTS = [], INVESTMENTS = [
                   return (
                     <tr key={idx} style={{ borderBottom: idx === allItems.length - 1 ? 'none' : `1px solid ${t.rowDivider}` }}>
                       <td style={{ padding: '12px 8px', fontFamily: t.mono, fontSize: 11 }}>{fmtDate(item.date || item.dueDate)}</td>
-                      <td style={{ padding: '12px 8px', fontWeight: 500 }}>{item.party}</td>
+                      <td style={{ padding: '12px 8px', fontWeight: 500 }}>{item.contact || item.party}</td>
                       <td style={{ padding: '12px 8px', fontFamily: t.mono, fontSize: 11 }}>{item.investment}</td>
                       <td style={{ padding: '12px 8px', fontSize: 12 }}>{item.type}</td>
                       <td style={{ padding: '12px 8px', textAlign: 'right', fontFamily: t.mono, fontWeight: 700, color: amt < 0 ? "#F87171" : "#34D399" }}>{fmtCurr(amt)}</td>

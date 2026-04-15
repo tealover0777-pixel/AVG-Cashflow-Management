@@ -46,8 +46,8 @@ export const getPaymentColumns = (permissions, isDark, t, onEdit, onDel, onBatch
       ),
     },
     {
-      accessorKey: 'party',
-      header: 'Party',
+      accessorKey: 'contact',
+      header: 'Contact',
       size: 180,
       cell: ({ getValue }) => (
         <span style={{ fontSize: '13px', fontWeight: 500, color: isDark ? "rgba(255,255,255,0.85)" : "#1C1917" }}>

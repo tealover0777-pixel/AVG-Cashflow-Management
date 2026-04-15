@@ -136,18 +136,18 @@ export const getScheduleColumns = (permissions, isDark, t, context) => {
     },
     {
       header: "Contact ID",
-      accessorKey: "party_id",
+      accessorKey: "contact_id",
       size: 200,
       cell: ({ getValue, row }) => {
-        const partyId = getValue();
-        const contact = CONTACTS.find(c => c.id === partyId);
+        const contactId = getValue();
+        const contact = CONTACTS.find(c => c.id === contactId);
         const contactName = contact?.name || "";
         return (
           <span
-            onClick={() => callbacks.onContactClick?.(row.original.party_id)}
+            onClick={() => callbacks.onContactClick?.(row.original.contact_id)}
             style={{ fontSize: '11px', color: isDark ? "#60A5FA" : "#4F46E5", fontWeight: 600, cursor: 'pointer' }}
           >
-            <span style={{ fontFamily: t.mono }}>{partyId}</span>
+            <span style={{ fontFamily: t.mono }}>{contactId}</span>
             {contactName && <span style={{ fontFamily: t.font, marginLeft: 6 }}>- {contactName}</span>}
           </span>
         );

@@ -496,7 +496,7 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
       schedule_id: d.schedule_id || docRefId || mkId("S"),
       investment_id: d.investment || "",
       deal_id: d.deal_id || "",
-      party_id: d.party_id || "",
+      contact_id: d.contact_id || "",
       due_date: d.dueDate || null,
       payment_type: d.type || "",
       direction_from_company: d.direction || "",
@@ -577,7 +577,7 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
           term_end: original.term_end || null,
           payment_type: original.type || null,
           deal_id: original.deal_id || null,
-          party_id: original.party_id || null,
+          contact_id: original.contact_id || null,
           investment_id: original.investment || null,
           period_number: original.period_number ? Number(original.period_number) : null,
         };
@@ -1020,8 +1020,8 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
         const investment = INVESTMENTS.find(x => (x.investment_id || x.id) === investmentId);
         if (investment) setDrillInvestment(investment);
       },
-      onContactClick: (partyId) => {
-        const contact = CONTACTS.find(x => x.id === partyId);
+      onContactClick: (contactId) => {
+        const contact = CONTACTS.find(x => x.id === contactId);
         if (contact) setDetailContact(contact);
       },
       onFeeClick: (feeId) => {
@@ -1125,12 +1125,12 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
               let updates = { investment: invId };
               if (inv) {
                 if (inv.deal_id) updates.deal_id = inv.deal_id;
-                if (inv.party_id) updates.party_id = inv.party_id;
+                if (inv.contact_id) updates.contact_id = inv.contact_id;
               }
               setModal(m => ({ ...m, data: { ...m.data, ...updates } }));
             }} options={INVESTMENTS.map(c => c.id)} t={t} disabled={freeze} /></FF>
             <FF label="Deal ID" t={t}><FIn value={modal.data.deal_id || ""} onChange={e => setF("deal_id", e.target.value)} placeholder="P10000" t={t} disabled={freeze} /></FF>
-            <FF label="Contact ID" t={t}><FIn value={modal.data.party_id || ""} onChange={e => setF("party_id", e.target.value)} placeholder="M10000" t={t} disabled={freeze} /></FF>
+            <FF label="Contact ID" t={t}><FIn value={modal.data.contact_id || ""} onChange={e => setF("contact_id", e.target.value)} placeholder="M10000" t={t} disabled={freeze} /></FF>
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14 }}>
             <FF label="Due Date" t={t}><FIn value={modal.data.dueDate || ""} onChange={e => setF("dueDate", e.target.value)} t={t} type="date" disabled={freeze} /></FF>
@@ -1322,7 +1322,7 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
                 <div style={{ fontSize: 17, fontWeight: 700, color: isDark ? "#fff" : "#1C1917", fontFamily: t.titleFont }}>Schedule Chain</div>
                 <div style={{ fontSize: 12, color: t.textMuted, display: "flex", gap: 10, marginTop: 4 }}>
                   <span style={{ fontFamily: t.mono }}>{drillSchedule.investment}</span>
-                  <span style={{ fontFamily: t.mono }}>{drillSchedule.party_id || ""}</span>
+                  <span style={{ fontFamily: t.mono }}>{drillSchedule.contact_id || ""}</span>
                   <span style={{ fontWeight: 600, color: drillSchedule.direction === "IN" ? (isDark ? "#34D399" : "#059669") : (isDark ? "#F87171" : "#DC2626") }}>{drillSchedule.direction}</span>
                 </div>
               </div>
@@ -1468,7 +1468,7 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
             <span style={{ fontSize: 10, fontWeight: 700, color: t.textSecondary, textTransform: "uppercase", letterSpacing: "0.8px", fontFamily: t.mono }}>Contact Name</span>
-            <div style={{ fontSize: 13, fontWeight: 600, color: isDark ? "#fff" : "#1C1917" }}>{drillInvestment.party_name || drillInvestment.party || "—"}</div>
+            <div style={{ fontSize: 13, fontWeight: 600, color: isDark ? "#fff" : "#1C1917" }}>{drillInvestment.contact || "—"}</div>
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
             <span style={{ fontSize: 10, fontWeight: 700, color: t.textSecondary, textTransform: "uppercase", letterSpacing: "0.8px", fontFamily: t.mono }}>Amount</span>
@@ -1590,10 +1590,10 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
       onUpdate={async (updatedData) => {
         const d = updatedData;
         const payload = {
-          party_name: `${d.first_name || ""} ${d.last_name || ""}`.trim() || d.name || "",
+          contact_name: `${d.first_name || ""} ${d.last_name || ""}`.trim() || d.name || "",
           first_name: d.first_name || "",
           last_name: d.last_name || "",
-          party_type: d.party_type || d.type || "Individual",
+          contact_type: d.contact_type || d.type || "Individual",
           role_type: d.role_type || d.role || "Investor",
           email: d.email || "",
           phone: d.phone || "",

@@ -162,7 +162,7 @@ function AppContent() {
     if (!isMember) return null;
 
     // 1. Check explicit profile field
-    if (profile?.party_id) return profile.party_id;
+    if (profile?.contact_id || profile?.party_id) return profile.contact_id || profile.party_id;
     // 2. Check notes field
     const noteId = (profile?.notes || "").split(" — ")[1];
     if (noteId) return noteId;
@@ -187,7 +187,7 @@ function AppContent() {
       if (!forceFilter) return true;
       if (!memberContactId) return false;
       const mId = String(memberContactId).trim();
-      return rawInvestments.some(c => (c.deal_id === d.id || c.deal_name === d.deal_name) && (String(c.party_id || "").trim() === mId || String(c.counterparty_id || "").trim() === mId));
+      return rawInvestments.some(c => (c.deal_id === d.id || c.deal_name === d.deal_name) && (String(c.contact_id || c.party_id || "").trim() === mId || String(c.counterparty_id || "").trim() === mId));
     })
     .map(d => {
       const dealId = d.id;
@@ -241,7 +241,7 @@ function AppContent() {
       return d.id === memberContactId;
     })
     .map(d => ({
-      id: d.id, docId: d.doc_id || d.id, _path: d._path, name: d.party_name || "", type: d.party_type || "", role: d.role_type || "",
+      id: d.id, docId: d.doc_id || d.id, _path: d._path, name: d.contact_name || d.party_name || "", type: d.contact_type || d.party_type || "", role: d.role_type || "",
       first_name: d.first_name || "", last_name: d.last_name || "",
       email: d.email || "", phone: d.phone || "", investor_type: d.investor_type || "",
       address: d.address || "", bank_information: d.bank_information || "",
@@ -255,17 +255,17 @@ function AppContent() {
       if (!forceFilter) return true;
       if (!memberContactId) return false;
       const mId = String(memberContactId).trim();
-      const dPId = String(d.party_id || "").trim();
+      const dPId = String(d.contact_id || d.party_id || "").trim();
       const mContact = rawContacts.find(p => String(p.id || "").trim() === mId);
       const mDocId = mContact ? String(mContact.doc_id || mContact.id || "").trim() : "";
       return (dPId === mId || (mDocId && dPId === mDocId));
     })
     .map(d => {
       const dealId = d.deal_id || "";
-      const partyId = d.party_id || "";
+      const contactId = d.contact_id || d.party_id || "";
       const dealMatch = rawDeals.find(deal => deal.id === dealId || deal.deal_id === dealId);
-      const partyMatch = rawContacts.find(party => party.id === partyId || party.doc_id === partyId || party.party_id === partyId);
-      
+      const contactMatch = rawContacts.find(c => c.id === contactId || c.doc_id === contactId || c.party_id === contactId || c.contact_id === contactId);
+
       return {
         id: d.investment_id || d.id,
         docId: d.doc_id || d.id,
@@ -274,8 +274,8 @@ function AppContent() {
         investment_name: d.investment_name || "",
         deal: dealMatch?.deal_name || d.deal_name || d.deal_id || "",
         deal_id: dealId,
-        party: partyMatch?.party_name || d.party_name || d.party_id || "",
-        party_id: partyId,
+        contact: contactMatch?.contact_name || contactMatch?.party_name || d.contact_name || d.party_name || d.contact_id || d.party_id || "",
+        contact_id: contactId,
         type: d.investment_type || "",
         amount: fmtCurr(d.amount),
         rate: d.interest_rate ? `${d.interest_rate}%` : "",
@@ -298,7 +298,7 @@ function AppContent() {
       if (!forceFilter) return true;
       if (!memberContactId) return false;
       const mId = String(memberContactId).trim();
-      const dPId = String(d.party_id || "").trim();
+      const dPId = String(d.contact_id || d.party_id || "").trim();
       const mContact = rawContacts.find(p => String(p.id || "").trim() === mId);
       const mDocId = mContact ? String(mContact.doc_id || mContact.id || "").trim() : "";
       return (dPId === mId || (mDocId && dPId === mDocId));
@@ -312,24 +312,24 @@ function AppContent() {
         if (signed != null) signed = -signed;
         if (principal != null) principal = -principal;
       }
-      
+
       // Payment types that should fall back to principal_amount if payment_amount is missing
       const principalPTs = ["INVESTOR_PRINCIPAL_PAYMENT", "BORROWER_PRINCIPAL_RECEIVED", "BORROWER_DISBURSEMENT", "INVESTOR_PRINCIPAL_DEPOSIT", "REPAYMENT", "BORROWER_REPAYMENT"];
       const isPrincipal = principalPTs.includes(d.payment_type);
-      
+
       const dealId = d.deal_id || "";
-      const partyId = d.party_id || "";
+      const contactId = d.contact_id || d.party_id || "";
       const dealMatch = rawDeals.find(deal => deal.id === dealId || deal.deal_id === dealId);
-      const partyMatch = rawContacts.find(party => party.id === partyId || party.doc_id === partyId || party.party_id === partyId);
+      const contactMatch = rawContacts.find(c => c.id === contactId || c.doc_id === contactId || c.party_id === contactId || c.contact_id === contactId);
 
       return {
         schedule_id: d.schedule_id || d.id, docId: d.doc_id || d.id, _path: d._path, investment: d.investment_id || "", dueDate: fmtDate(d.due_date),
         batch_id: d.batch_id || "",
-        type: d.payment_type || "", 
+        type: d.payment_type || "",
         payment: d.payment_amount != null ? d.payment_amount : (Math.abs(d.signed_payment_amount || 0) || (isPrincipal ? d.principal_amount : 0)),
         status: d.status || "", direction: dir, fee_id: d.fee_id || "", fee_name: d.fee_name || "",
-        party_id: partyId,
-        party: partyMatch?.party_name || d.party_name || d.party_id || "",
+        contact_id: contactId,
+        contact: contactMatch?.contact_name || contactMatch?.party_name || d.contact_name || d.party_name || d.contact_id || d.party_id || "",
         period_number: d.period_number != null ? String(d.period_number) : "",
         principal_amount: principal,
         deal_id: dealId,
@@ -360,10 +360,10 @@ function AppContent() {
       const mContact = rawContacts.find(p => String(p.id || "").trim() === mId);
       const mDocId = mContact ? String(mContact.doc_id || mContact.id || "").trim() : "";
 
-      const dPId = String(d.party_id || "").trim();
+      const dPId = String(d.contact_id || d.party_id || "").trim();
       if (dPId === mId || (mDocId && dPId === mDocId)) return true;
       if (d.investment_id) {
-        return rawInvestments.some(c => (c.investment_id === d.investment_id || c.id === d.investment_id) && (String(c.party_id || "").trim() === mId || (mDocId && String(c.party_id || "").trim() === mDocId)));
+        return rawInvestments.some(c => (c.investment_id === d.investment_id || c.id === d.investment_id) && (String(c.contact_id || c.party_id || "").trim() === mId || (mDocId && String(c.contact_id || c.party_id || "").trim() === mDocId)));
       }
       return false;
     })
@@ -372,14 +372,14 @@ function AppContent() {
       if (isMember) {
         dir = (dir === "Received") ? "Disbursed" : (dir === "Disbursed" ? "Received" : dir);
       }
-      const partyId = d.party_id || "";
-      const partyMatch = rawContacts.find(party => party.id === partyId || party.doc_id === partyId || party.party_id === partyId);
+      const contactId = d.contact_id || d.party_id || "";
+      const contactMatch = rawContacts.find(c => c.id === contactId || c.doc_id === contactId || c.party_id === contactId || c.contact_id === contactId);
 
       return {
         id: d.id, docId: d.doc_id || d.id, _path: d._path,
         investment: d.investment_id || "",
-        party: partyMatch?.party_name || d.party_name || d.party_id || "",
-        party_id: partyId,
+        contact: contactMatch?.contact_name || contactMatch?.party_name || d.contact_name || d.party_name || d.contact_id || d.party_id || "",
+        contact_id: contactId,
         type: d.payment_type || "",
         amount: d.amount,
         date: fmtDate(d.payment_date),
