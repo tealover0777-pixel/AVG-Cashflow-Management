@@ -405,8 +405,9 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
         start_date: deal.startDate || "",
         maturity_date: deal.endDate || "",
         term_months: "",
-        calculator: "",
+        calculator: "ACT/360+30/360",
         rollover: false,
+        generateSchedule: true,
         feeIds: [],
         investment_name: "",
         payment_method: (CONTACTS.find(p => p.name === "")?.payment_method || (paymentMethods[0] || ""))
@@ -514,6 +515,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
       investment_type: d.type || "",
       amount: d.amount ? Number(String(d.amount).replace(/[^0-9.-]/g, "")) || null : null,
       interest_rate: d.rate ? Number(String(d.rate).replace(/[^0-9.-]/g, "")) || null : null,
+      rate: d.rate ? Number(String(d.rate).replace(/[^0-9.-]/g, "")) || null : null,
       payment_frequency: d.freq || "",
       term_months: d.term_months ? Number(d.term_months) : null,
       calculator: d.calculator || "",
@@ -527,18 +529,34 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
       updated_at: serverTimestamp(),
     };
     try {
+      let investmentIdForGen = "";
       if (modal.mode === "edit" && d.docId) {
         const docRef = d._path ? doc(db, d._path) : doc(db, investmentCollection, d.docId);
         await updateDoc(docRef, payload);
+        investmentIdForGen = d.id;
       } else {
-        await addDoc(collection(db, investmentCollection), { ...payload, investment_id: d.id || "", created_at: serverTimestamp() });
+        const docRef = await addDoc(collection(db, investmentCollection), { ...payload, investment_id: d.id || "", created_at: serverTimestamp() });
+        investmentIdForGen = d.id || "";
       }
       // Also update the contact's default payment method if it changed
-      if (parObj && d.payment_method) {
-        const contactRef = parObj._path ? doc(db, parObj._path) : doc(db, "contacts", parObj.docId || parObj.id);
+      if (contactObj && d.payment_method) {
+        const contactRef = contactObj._path ? doc(db, contactObj._path) : doc(db, "contacts", contactObj.docId || contactObj.id);
         await updateDoc(contactRef, { payment_method: d.payment_method, updated_at: serverTimestamp() }).catch(e => console.error("Sync contact error:", e));
       }
       setModal(m => ({ ...m, open: false }));
+
+      // Run Generate Schedule if requested
+      if (d.generateSchedule && investmentIdForGen) {
+        // We need to pass the actual investment record that matching what executeGenerateSchedules expects
+        const newInvForGen = {
+          ...payload,
+          id: investmentIdForGen,
+          type: payload.investment_type, // Normalize field names as expected by generator
+          freq: payload.payment_frequency, 
+          fees: payload.fees,
+        };
+        executeGenerateSchedules([newInvForGen]);
+      }
     } catch (err) {
       console.error("Save investment error:", err);
       setGenResult({ title: "Error", message: "Failed to save investment. " + err.message });
@@ -708,9 +726,9 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
     setGenConfirm({ count: selected.length });
   };
 
-  const executeGenerateSchedules = async () => {
+  const executeGenerateSchedules = async (targetInvestments = null) => {
     setGenConfirm(null);
-    const selected = INVESTMENTS.filter(c => sel.has(c.id));
+    const selected = targetInvestments || INVESTMENTS.filter(c => sel.has(c.id));
     if (selected.length === 0) return;
 
     // 1. Preparation - Load mapping from DIMENSIONS
@@ -1247,7 +1265,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
         await deleteDoc(doc(db, "deals", deal.id, "asset_images", photo.id));
       }
       if (photo.path) {
-        try { await deleteObject(ref(storage, photo.path)); } catch (_) {}
+        try { await deleteObject(ref(storage, photo.path)); } catch (_) { }
       }
       setAssetImages(prev => prev.filter(p => p.id !== photo.id));
     } catch (err) {
@@ -1260,7 +1278,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
     try {
       await deleteDoc(doc(db, "deals", deal.id, "assets", assetModal.data.docId, "photos", photo.id));
       if (photo.path) {
-        try { await deleteObject(ref(storage, photo.path)); } catch (_) {}
+        try { await deleteObject(ref(storage, photo.path)); } catch (_) { }
       }
       setUploadedPhotos(prev => prev.filter(p => p.id !== photo.id));
     } catch (e) {
@@ -1504,7 +1522,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
             )}
 
 
-            {canCreate && activeTab === "Investments" && <button onClick={openAdd} style={{ background: t.accentGrad || t.accent, color: "#fff", border: "none", padding: "11px 22px", borderRadius: 11, fontSize: 13.5, fontWeight: 600, boxShadow: `0 4px 16px ${t.accentShadow || "none"}`, display: "flex", alignItems: "center", gap: 7 }}><span style={{ fontSize: 18, lineHeight: 1 }}>+</span> Add investment</button>}
+            {canCreate && activeTab === "Investments" && <button onClick={openAdd} style={{ background: t.accentGrad || t.accent, color: "#fff", border: "none", padding: "11px 22px", borderRadius: 11, fontSize: 13.5, fontWeight: 600, boxShadow: `0 4px 16px ${t.accentShadow || "none"}`, display: "flex", alignItems: "center", gap: 7 }}><span style={{ fontSize: 18, lineHeight: 1 }}>+</span> New investment</button>}
             {canCreate && activeTab === "Assets" && <button onClick={openAddAsset} style={{ background: t.accentGrad || t.accent, color: "#fff", border: "none", padding: "11px 20px", borderRadius: 11, fontSize: 13, fontWeight: 600, boxShadow: `0 4px 16px ${t.accentShadow || "none"}`, display: "flex", alignItems: "center", gap: 7 }}><span style={{ fontSize: 18, lineHeight: 1 }}>+</span> Add asset</button>}
             {canCreate && activeTab === "Contacts" && <button onClick={openAddContactModal} style={{ background: t.accentGrad || t.accent, color: "#fff", border: "none", padding: "11px 20px", borderRadius: 11, fontSize: 13, fontWeight: 600, boxShadow: `0 4px 16px ${t.accentShadow || "none"}`, display: "flex", alignItems: "center", gap: 7 }}><span style={{ fontSize: 18, lineHeight: 1 }}>+</span> New/Add Contact</button>}
           </div>
@@ -2246,7 +2264,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
                 <h3 style={{ fontSize: 16, fontWeight: 600, color: t.text, margin: 0 }}>Deal cover photo</h3>
               </div>
               <p style={{ fontSize: 13, color: t.textSecondary, margin: 0, lineHeight: 1.5, flex: 1, maxWidth: 600 }}>
-                Upload your asset cover photo(s) here. For property-specific photos, add them to each asset.<br/>
+                Upload your asset cover photo(s) here. For property-specific photos, add them to each asset.<br />
                 Recommended: 16:9 for single photo or 4:3 for multiple photos. Minimum 1000px width.
               </p>
             </div>
@@ -2385,6 +2403,14 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
               <span style={{ marginLeft: 8, fontSize: 13, color: t.textSecondary }}>Rollover Principal</span>
             </div>
           </FF>
+          {modal.mode === "add" && (
+            <FF label="Generate Schedule" t={t}>
+              <div style={{ display: "flex", alignItems: "center", height: 38 }}>
+                <input type="checkbox" checked={!!modal.data.generateSchedule} onChange={e => setF("generateSchedule", e.target.checked)} style={{ cursor: "pointer", width: 18, height: 18 }} />
+                <span style={{ marginLeft: 8, fontSize: 13, color: t.textSecondary }}>Generate automatically</span>
+              </div>
+            </FF>
+          )}
         </div>
         <FF label="Calculator" t={t}><FSel value={modal.data.calculator || ""} onChange={e => setF("calculator", e.target.value)} options={calculatorOpts} t={t} /></FF>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
