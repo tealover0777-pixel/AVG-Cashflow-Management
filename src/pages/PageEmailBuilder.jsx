@@ -9,7 +9,7 @@ import {
   Image as ImageIcon, FileText, Video, Users, Menu as MenuIcon, Code,
   Table as TableIcon, Search, ChevronRight, ChevronUp, X as XIcon,
   Plus, Trash2, Copy, Settings as SettingsIcon, Paperclip,
-  AlignCenter, AlignRight, AlignJustify
+  AlignCenter, AlignRight, AlignJustify, Move
 } from "lucide-react";
 
 const CDown = () => <ChevronDown size={12} strokeWidth={2.5} style={{ opacity: 0.7 }} />;
@@ -546,6 +546,7 @@ export default function PageEmailBuilder({ t, isDark, setActivePage, activeEmail
 
 function EmailCanvas({ t, isDark, rows, selectedRowId, onSelectRow, onAddRow, onDeleteRow, onDuplicateRow, onUpdateRow, onAddBlockToColumn, setActiveRightTab }) {
   const [dropIdx, setDropIdx] = useState(null);
+  const [hoveredRowId, setHoveredRowId] = useState(null);
 
   const handleDragOver = (e, idx) => {
     e.preventDefault();
@@ -564,7 +565,8 @@ function EmailCanvas({ t, isDark, rows, selectedRowId, onSelectRow, onAddRow, on
 
   return (
     <div
-      style={{ flex: 1, background: isDark ? "#1a1a1a" : "#EEEEE9", display: "flex", flexDirection: "column", alignItems: "center", padding: "40px 20px", overflowY: "auto" }}
+      id="email-canvas-wrapper"
+      style={{ flex: 1, background: isDark ? "#1a1a1a" : "#EEEEE9", display: "flex", flexDirection: "column", alignItems: "center", padding: "40px 20px", overflowY: "auto", overflowX: "hidden" }}
       onDragOver={e => { e.preventDefault(); if (rows.length === 0) setDropIdx(-1); }}
       onDragLeave={() => setDropIdx(null)}
     >
@@ -576,7 +578,9 @@ function EmailCanvas({ t, isDark, rows, selectedRowId, onSelectRow, onAddRow, on
             <EmailRow
               row={row}
               isSelected={selectedRowId === row.id}
+              isHovered={hoveredRowId === row.id}
               onSelect={onSelectRow}
+              onHover={setHoveredRowId}
               onDelete={() => onDeleteRow(row.id)}
               onDuplicate={() => onDuplicateRow(row.id)}
               onUpdate={patch => onUpdateRow(row.id, patch)}
@@ -585,6 +589,7 @@ function EmailCanvas({ t, isDark, rows, selectedRowId, onSelectRow, onAddRow, on
               setActiveRightTab={setActiveRightTab}
               t={t} isDark={isDark}
               selectedRowId={selectedRowId}
+              hoveredRowId={hoveredRowId}
             />
             <DropZone active={dropIdx === idx} onDragOver={e => handleDragOver(e, idx)} onDrop={e => handleDrop(e, idx)} />
           </React.Fragment>
@@ -630,22 +635,38 @@ function AddRowBtn({ onClick, position, isDark }) {
       onClick={e => { e.stopPropagation(); onClick(); }}
       style={{
         position: "absolute", left: "50%", transform: "translateX(-50%)",
-        top: position === "top" ? -12 : "auto",
-        bottom: position === "bottom" ? -12 : "auto",
-        zIndex: 10, cursor: "pointer",
+        top: position === "top" ? -11 : "auto",
+        bottom: position === "bottom" ? -11 : "auto",
+        zIndex: 25, cursor: "pointer",
         background: "#3B82F6", color: "#fff",
-        borderRadius: 4, width: 24, height: 24,
+        borderRadius: "50%", width: 22, height: 22,
         display: "flex", alignItems: "center", justifyContent: "center",
-        boxShadow: "0 2px 4px rgba(0,0,0,0.2)"
+        boxShadow: "0 2px 6px rgba(0,0,0,0.25)",
+        border: "1px solid #fff",
+        transition: "transform 0.15s"
       }}
+      onMouseEnter={e => e.currentTarget.style.transform = "translateX(-50%) scale(1.15)"}
+      onMouseLeave={e => e.currentTarget.style.transform = "translateX(-50%) scale(1)"}
     >
-      <Plus size={16} strokeWidth={3} />
+      <Plus size={14} strokeWidth={4} />
     </div>
   );
 }
 
-function EmailRow({ row, isSelected, onSelect, onDelete, onDuplicate, onUpdate, onAddRow, onAddBlockToColumn, setActiveRightTab, t, isDark, selectedRowId }) {
+function EmailRow({ row, isSelected, isHovered, onSelect, onHover, onDelete, onDuplicate, onUpdate, onAddRow, onAddBlockToColumn, setActiveRightTab, t, isDark, selectedRowId, hoveredRowId, isNested }) {
   const blockType = ROW_BLOCK_TYPE[row.type] || "PARAGRAPH";
+  const showControls = (isSelected || isHovered) && !isNested;
+
+  const MoveHandle = () => (
+    <div style={{
+      position: "absolute", right: -32, top: "50%", transform: "translateY(-50%)",
+      width: 28, height: 28, borderRadius: "50%", background: "#3B82F6",
+      display: "flex", alignItems: "center", justifyContent: "center",
+      cursor: "grab", color: "#fff", zIndex: 20, boxShadow: "0 2px 8px rgba(0,0,0,0.15)"
+    }}>
+      <Move size={14} />
+    </div>
+  );
 
   const renderContent = (item, isNested) => {
     switch (item.type) {
@@ -836,36 +857,57 @@ function EmailRow({ row, isSelected, onSelect, onDelete, onDuplicate, onUpdate, 
   return (
     <div
       style={{
-        position: "relative", cursor: "pointer",
-        outline: isSelected ? `2px solid #3B82F6` : "none",
-        outlineOffset: isSelected ? -2 : 0, transition: "outline 0.1s",
-        marginBottom: isSelected ? 8 : 0, marginTop: isSelected ? 8 : 0
+        position: "relative",
+        cursor: "pointer",
+        outline: (isSelected || isHovered) ? `2px solid #3B82F6` : "none",
+        outlineOffset: (isSelected || isHovered) ? -2 : 0,
+        transition: "outline 0.1s, background 0.2s",
+        background: (isSelected || isHovered) ? "rgba(59,130,246,0.05)" : "transparent",
+        marginBottom: isSelected ? 8 : 0,
+        marginTop: isSelected ? 8 : 0,
+        zIndex: (isSelected || isHovered) ? 10 : 1
       }}
+      onMouseEnter={() => !isNested && onHover(row.id)}
+      onMouseLeave={() => !isNested && onHover(null)}
       onClick={e => { e.stopPropagation(); onSelect(row.id, blockType); }}
-      onDragOver={e => { if (row.type === "image") { e.preventDefault(); e.dataTransfer.dropEffect = "copy"; } }}
-      onDrop={e => {
-        if (row.type === "image") {
-          e.preventDefault();
-          const url = e.dataTransfer.getData("imageUrl");
-          if (url) onUpdate(row.id, { imageUrl: url });
-        }
-      }}
     >
-      {isSelected && onAddRow && <AddRowBtn isDark={isDark} position="top" onClick={() => onAddRow(row.id, "COLUMNS", "before")} />}
+      {/* Full-width highlight strip (optional visual) */}
+      {(isSelected || isHovered) && !isNested && (
+        <div style={{
+          position: "absolute", left: -2000, right: -2000, top: 0, bottom: 0,
+          background: isSelected ? "rgba(59,130,246,0.03)" : "rgba(0,0,0,0.02)",
+          zIndex: -1, pointerEvents: "none"
+        }} />
+      )}
+
+      {showControls && onAddRow && <AddRowBtn isDark={isDark} position="top" onClick={() => onAddRow(row.id, "COLUMNS", "before")} />}
       
-      {renderContent(row, arguments[0].isNested)}
+      {renderContent(row, isNested)}
 
-      {isSelected && onAddRow && <AddRowBtn isDark={isDark} position="bottom" onClick={() => onAddRow(row.id, "COLUMNS", "after")} />}
+      {showControls && onAddRow && <AddRowBtn isDark={isDark} position="bottom" onClick={() => onAddRow(row.id, "COLUMNS", "after")} />}
 
-      {isSelected && (
+      {showControls && (
         <>
-          <div style={{ position: "absolute", top: 4, left: 4, background: "#3B82F6", color: "#fff", fontSize: 10, padding: "2px 7px", borderRadius: 3, fontWeight: 700, letterSpacing: 0.5, zIndex: 5 }}>
-            {row.type?.toUpperCase()}
+          <MoveHandle />
+          <div style={{
+            position: "absolute", top: 0, right: -40, background: "#3B82F6",
+            color: "#fff", fontSize: 10, padding: "2px 8px", borderRadius: "0 4px 4px 0",
+            fontWeight: 800, textTransform: "uppercase", zIndex: 11
+          }}>
+            Row
           </div>
-          <div style={{ position: "absolute", top: 4, right: 4, display: "flex", gap: 4, zIndex: 5 }}>
-            <button onClick={e => { e.stopPropagation(); onDuplicate(row.id); }} style={ctrlBtn}><Copy size={11} /></button>
-            <button onClick={e => { e.stopPropagation(); onDelete(row.id); }} style={{ ...ctrlBtn, background: "#EF4444" }}><Trash2 size={11} /></button>
-          </div>
+          
+          {isSelected && (
+            <div style={{
+              position: "absolute", bottom: -12, right: 0,
+              display: "flex", gap: 6, zIndex: 30,
+              background: t.surface, padding: "6px 10px", borderRadius: 6,
+              boxShadow: "0 4px 12px rgba(0,0,0,0.15)", border: `1px solid ${t.border}`
+            }}>
+              <button onClick={e => { e.stopPropagation(); onDuplicate(row.id); }} style={{ ...ctrlBtn, background: t.surface, color: t.text }} title="Duplicate"><Copy size={12} /></button>
+              <button onClick={e => { e.stopPropagation(); onDelete(row.id); }} style={{ ...ctrlBtn, background: "#EF4444", color: "#fff" }} title="Delete"><Trash2 size={12} /></button>
+            </div>
+          )}
         </>
       )}
     </div>
