@@ -31,7 +31,7 @@ const serviceAccount = JSON.parse(
 initializeApp({ credential: cert(serviceAccount) });
 const db = getFirestore();
 
-const DRY_RUN = true; // ← set to false to apply changes
+const DRY_RUN = false; // ← set to false to apply changes
 
 const FIELD_MAP = {
   party_id: "contact_id",
