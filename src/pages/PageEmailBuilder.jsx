@@ -382,16 +382,50 @@ export default function PageEmailBuilder({ t, isDark, setActivePage, activeEmail
             </div>
           )}
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-          <span style={{ fontSize: 12, color: t.textMuted, display: "flex", alignItems: "center", gap: 4 }}>
-            <UploadCloud size={13} /> Saved
-          </span>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <button 
+            onClick={() => {
+              const newName = prompt("Enter a name for the new template copy:", `${emailName} (Copy)`);
+              if (newName && newName.trim()) {
+                setEmailName(newName.trim());
+                setTimeout(() => handleSave(), 100);
+              }
+            }}
+            style={{ 
+              background: "transparent", 
+              color: "#1D4ED8", 
+              border: `1px solid #1D4ED8`, 
+              borderRadius: 24, 
+              padding: "7px 18px", 
+              fontSize: 13, 
+              fontWeight: 600, 
+              cursor: "pointer", 
+              display: "flex", 
+              alignItems: "center", 
+              gap: 8 
+            }}
+          >
+            <Save size={14} /> Save as new template
+          </button>
           <button 
             onClick={handleSave}
             disabled={isSaving}
-            style={{ background: isDark ? "#1E3A8A" : "#EFF6FF", color: isDark ? "#93C5FD" : "#1D4ED8", border: `1px solid ${isDark ? "#2563EB" : "#BFDBFE"}`, borderRadius: 6, padding: "7px 14px", fontSize: 13, fontWeight: 600, cursor: isSaving ? "not-allowed" : "pointer", display: "flex", alignItems: "center", gap: 6, opacity: isSaving ? 0.7 : 1 }}
+            style={{ 
+              background: "transparent", 
+              color: "#1D4ED8", 
+              border: `1px solid #1D4ED8`, 
+              borderRadius: 24, 
+              padding: "7px 18px", 
+              fontSize: 13, 
+              fontWeight: 600, 
+              cursor: isSaving ? "not-allowed" : "pointer", 
+              display: "flex", 
+              alignItems: "center", 
+              gap: 8, 
+              opacity: isSaving ? 0.7 : 1 
+            }}
           >
-            <Save size={13} /> {isSaving ? "Saving..." : "Save"}
+            <Save size={14} /> {isSaving ? "Saving..." : "Save"}
           </button>
         </div>
       </div>
@@ -421,9 +455,7 @@ export default function PageEmailBuilder({ t, isDark, setActivePage, activeEmail
           ))}
         </div>
         <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 8, paddingRight: 16 }}>
-          <button style={{ display: "flex", alignItems: "center", gap: 5, background: "transparent", border: `1px solid ${isDark ? "#3B82F6" : "#2563EB"}`, color: isDark ? "#60A5FA" : "#2563EB", borderRadius: 4, padding: "5px 10px", fontSize: 11.5, fontWeight: 600, cursor: "pointer" }}>
-            <Save size={11} /> Save as new template
-          </button>
+          {/* Empty space for alignment balance */}
         </div>
       </div>
 
