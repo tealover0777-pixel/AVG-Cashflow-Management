@@ -2,7 +2,7 @@ import React from 'react';
 import { Bdg, ActBtns } from '../components';
 
 export const getDealInvestmentColumns = (permissions, isDark, t, context) => {
-  const { CONTACTS, FEES_DATA, callbacks } = context;
+  const { CONTACTS, FEES_DATA, SCHEDULES, callbacks } = context;
 
   const fmtCurrency = (val) => {
     if (val === null || val === undefined || val === "") return "—";
@@ -55,6 +55,16 @@ export const getDealInvestmentColumns = (permissions, isDark, t, context) => {
       meta: {
         style: { textAlign: 'center', padding: 0 }
       }
+    },
+    {
+      header: "Capital Amount",
+      accessorKey: "amount",
+      size: 130,
+      cell: ({ getValue }) => (
+        <span style={{ fontWeight: 600, fontFamily: t.mono, fontSize: '11.5px', color: isDark ? '#60A5FA' : '#4F46E5' }}>
+          {fmtCurrency(getValue())}
+        </span>
+      )
     },
     {
       header: "Investor Name",
@@ -142,14 +152,16 @@ export const getDealInvestmentColumns = (permissions, isDark, t, context) => {
       cell: ({ getValue }) => <Bdg status={getValue()} isDark={isDark} />
     },
     {
-      header: "Capital Amount",
-      accessorKey: "amount",
-      size: 130,
-      cell: ({ getValue }) => (
-        <span style={{ fontWeight: 600, fontFamily: t.mono, fontSize: '11.5px', color: isDark ? '#60A5FA' : '#4F46E5' }}>
-          {fmtCurrency(getValue())}
-        </span>
-      )
+      id: "scheduleStatus",
+      header: "Schedule",
+      size: 110,
+      cell: ({ row }) => {
+        const d = row.original;
+        const hasSchedule = (SCHEDULES || []).some(s => (s.investment_id || s.investment) === d.id);
+        return hasSchedule
+          ? <span style={{ fontSize: 11, fontWeight: 600, color: "#22c55e", background: "rgba(34,197,94,0.12)", padding: "2px 8px", borderRadius: 6 }}>Generated</span>
+          : <span style={{ fontSize: 11, fontWeight: 600, color: "#f59e0b", background: "rgba(245,158,11,0.12)", padding: "2px 8px", borderRadius: 6 }}>⚠ Pending</span>;
+      }
     },
     {
       header: "Rate",
