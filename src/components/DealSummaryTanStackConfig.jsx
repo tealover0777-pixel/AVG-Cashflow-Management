@@ -83,20 +83,24 @@ export const getDealInvestmentColumns = (permissions, isDark, t, context) => {
       header: "Email address",
       id: "email",
       size: 180,
-      cell: ({ row }) => {
-        const p = CONTACTS.find(x => x.name === row.original.contact || x.id === row.original.contact_id);
-        return <span style={{ fontSize: '11.5px', color: t.textSecondary }}>{p?.email || "—"}</span>;
+      accessorFn: (row) => {
+        const p = CONTACTS.find(x => x.name === row.contact || x.id === row.contact_id);
+        return p?.email || "";
+      },
+      cell: ({ getValue }) => {
+        return <span style={{ fontSize: '11.5px', color: t.textSecondary }}>{getValue() || "—"}</span>;
       }
     },
     {
       header: "Payment Method",
       id: "paymentMethod",
       size: 140,
-      cell: ({ row }) => {
-        const d = row.original;
-        const p = CONTACTS.find(x => x.name === d.contact || x.id === d.contact_id);
-        const method = d.payment_method || p?.payment_method || "—";
-        return <span style={{ fontSize: '11.5px', color: t.textSecondary }}>{method}</span>;
+      accessorFn: (row) => {
+        const p = CONTACTS.find(x => x.name === row.contact || x.id === row.contact_id);
+        return row.payment_method || p?.payment_method || "";
+      },
+      cell: ({ getValue }) => {
+        return <span style={{ fontSize: '11.5px', color: t.textSecondary }}>{getValue() || "—"}</span>;
       }
     },
     {
@@ -155,9 +159,12 @@ export const getDealInvestmentColumns = (permissions, isDark, t, context) => {
       id: "scheduleStatus",
       header: "Schedule",
       size: 110,
-      cell: ({ row }) => {
-        const d = row.original;
-        const hasSchedule = (SCHEDULES || []).some(s => (s.investment_id || s.investment) === d.id);
+      accessorFn: (row) => {
+        const hasSchedule = (SCHEDULES || []).some(s => (s.investment_id || s.investment) === row.id);
+        return hasSchedule ? "Generated" : "Pending";
+      },
+      cell: ({ getValue }) => {
+        const hasSchedule = getValue() === "Generated";
         return hasSchedule
           ? <span style={{ fontSize: 11, fontWeight: 600, color: "#22c55e", background: "rgba(34,197,94,0.12)", padding: "2px 8px", borderRadius: 6 }}>Generated</span>
           : <span style={{ fontSize: 11, fontWeight: 600, color: "#f59e0b", background: "rgba(245,158,11,0.12)", padding: "2px 8px", borderRadius: 6 }}>⚠ Pending</span>;

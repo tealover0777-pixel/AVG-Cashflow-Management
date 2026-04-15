@@ -58,7 +58,6 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
   const investorTypeOpts = (DIMENSIONS.find(d => d.name === "InvestorType") || {}).items || ["Fixed", "Equity", "Both"];
 
   const [pivotColWidths, setPivotColWidths] = useState([180, 150, 100, 100, 80, 70, 110]); // Name, Type, Start, End, Freq, Rate, Method
-  const [invSearch, setInvSearch] = useState({ email: "", paymentMethod: "" });
   const [pivotFilters, setPivotFilters] = useState({
     investor: "",
     type: "",
@@ -145,25 +144,9 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
     }
   }, [deal.id]);
 
-  const dealInvestments = useMemo(() => {
-    let list = INVESTMENTS.filter(c => c.deal_id === dealId || c.deal === deal.name);
-    if (invSearch.email) {
-      const q = invSearch.email.toLowerCase();
-      list = list.filter(c => {
-        const contact = CONTACTS.find(x => x.name === c.contact || x.id === c.contact_id);
-        return (contact?.email || "").toLowerCase().includes(q);
-      });
-    }
-    if (invSearch.paymentMethod) {
-      const q = invSearch.paymentMethod.toLowerCase();
-      list = list.filter(c => {
-        const contact = CONTACTS.find(x => x.name === c.contact || x.id === c.contact_id);
-        const method = c.payment_method || contact?.payment_method || "";
-        return method.toLowerCase().includes(q);
-      });
-    }
-    return list;
-  }, [dealId, deal.name, INVESTMENTS, CONTACTS, invSearch]);
+  const dealInvestments = useMemo(() =>
+    INVESTMENTS.filter(c => c.deal_id === dealId || c.deal === deal.name)
+    , [dealId, deal.name, INVESTMENTS]);
 
   // Fund balance calculation moved to dealSchedules useMemo
 
@@ -1619,20 +1602,6 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
 
       {activeTab === "Investments" ? (
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-          <div style={{ display: "flex", gap: 8 }}>
-            <input
-              placeholder="Search email..."
-              value={invSearch.email}
-              onChange={e => setInvSearch(s => ({ ...s, email: e.target.value }))}
-              style={{ padding: "6px 10px", borderRadius: 8, border: `1px solid ${t.chipBorder}`, background: t.inputBg, color: t.text, fontSize: 13, minWidth: 180 }}
-            />
-            <input
-              placeholder="Search payment method..."
-              value={invSearch.paymentMethod}
-              onChange={e => setInvSearch(s => ({ ...s, paymentMethod: e.target.value }))}
-              style={{ padding: "6px 10px", borderRadius: 8, border: `1px solid ${t.chipBorder}`, background: t.inputBg, color: t.text, fontSize: 13, minWidth: 200 }}
-            />
-          </div>
           <div style={{ height: '1200px', width: "100%", minHeight: '1200px' }}>
             <TanStackTable
               data={dealInvestments}
