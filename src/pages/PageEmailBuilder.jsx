@@ -386,18 +386,12 @@ export default function PageEmailBuilder({ t, isDark, setActivePage, activeEmail
           <span style={{ fontSize: 12, color: t.textMuted, display: "flex", alignItems: "center", gap: 4 }}>
             <UploadCloud size={13} /> Saved
           </span>
-          <button style={{ background: "transparent", border: "none", color: isDark ? "#60A5FA" : "#3B82F6", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
-            Schedule a demo
-          </button>
           <button 
             onClick={handleSave}
             disabled={isSaving}
             style={{ background: isDark ? "#1E3A8A" : "#EFF6FF", color: isDark ? "#93C5FD" : "#1D4ED8", border: `1px solid ${isDark ? "#2563EB" : "#BFDBFE"}`, borderRadius: 6, padding: "7px 14px", fontSize: 13, fontWeight: 600, cursor: isSaving ? "not-allowed" : "pointer", display: "flex", alignItems: "center", gap: 6, opacity: isSaving ? 0.7 : 1 }}
           >
             <Save size={13} /> {isSaving ? "Saving..." : "Save"}
-          </button>
-          <button style={{ background: isDark ? "#1E3A8A" : "#1D4ED8", color: "#fff", border: "none", borderRadius: 6, padding: "7px 14px", fontSize: 13, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
-            Send <CDown />
           </button>
         </div>
       </div>
@@ -427,10 +421,6 @@ export default function PageEmailBuilder({ t, isDark, setActivePage, activeEmail
           ))}
         </div>
         <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 8, paddingRight: 16 }}>
-          <button style={{ display: "flex", alignItems: "center", gap: 5, background: "transparent", border: `1px solid ${isDark ? "#3B82F6" : "#2563EB"}`, color: isDark ? "#60A5FA" : "#2563EB", borderRadius: 4, padding: "5px 10px", fontSize: 11.5, fontWeight: 600, cursor: "pointer" }}>
-            <Paperclip size={11} /> Add attachment
-            <span style={{ background: isDark ? "#3B82F6" : "#2563EB", color: "#fff", borderRadius: "50%", width: 15, height: 15, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 9 }}>0</span>
-          </button>
           <button style={{ display: "flex", alignItems: "center", gap: 5, background: "transparent", border: `1px solid ${isDark ? "#3B82F6" : "#2563EB"}`, color: isDark ? "#60A5FA" : "#2563EB", borderRadius: 4, padding: "5px 10px", fontSize: 11.5, fontWeight: 600, cursor: "pointer" }}>
             <Save size={11} /> Save as new template
           </button>
