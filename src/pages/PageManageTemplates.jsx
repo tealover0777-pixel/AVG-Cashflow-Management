@@ -1,3 +1,4 @@
+import React, { useState, useEffect } from "react";
 import { ArrowLeft, Search, MoreHorizontal, FileText, Image as ImageIcon, Briefcase, Star, Users, X, Trash2, Loader2, AlertCircle } from "lucide-react";
 import { DelModal, Modal } from "../components";
 import { useAuth } from "../AuthContext";
