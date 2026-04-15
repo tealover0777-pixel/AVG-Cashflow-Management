@@ -487,7 +487,7 @@ export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [
         const finalNewEntries = [...nonFeeEntries, ...mergedFees];
 
         // --- 5. SAFE REFRESH LOGIC ---
-        const existingSchedules = SCHEDULE_DATA.filter(s => (s.investment_id||s.investment) === c.id);
+        const existingSchedules = SCHEDULES.filter(s => (s.investment_id||s.investment) === c.id);
         const dueSchedules = existingSchedules.filter(s => s.status === "Due");
         const lockedSchedules = existingSchedules.filter(s => s.status !== "Due");
         const handledIds = new Set();
