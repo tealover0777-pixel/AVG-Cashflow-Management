@@ -149,6 +149,13 @@ service cloud.firestore {
         allow delete: if isTenantMember(tenantId) && hasPermission('DEAL_DELETE');
     }
 
+    match /tenants/{tenantId}/assets/{docId} {
+        allow read: if isTenantMember(tenantId) && hasPermission('DEAL_VIEW');
+        allow create: if isTenantMember(tenantId) && hasPermission('DEAL_CREATE');
+        allow update: if isTenantMember(tenantId) && hasPermission('DEAL_UPDATE');
+        allow delete: if isTenantMember(tenantId) && hasPermission('DEAL_DELETE');
+    }
+
     // Legacy path: assets/cover photos uploaded before tenant-path migration
     match /deals/{dealId}/{subcollection}/{docId} {
         allow read: if isSignedIn();

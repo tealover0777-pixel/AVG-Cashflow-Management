@@ -1388,6 +1388,14 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
     return getDealInvestmentColumns(permissions, isDark, t, context);
   }, [permissions, isDark, t, CONTACTS, FEES_DATA, SCHEDULES]);
 
+  const investmentRowStyle = (row) => {
+    const hasSchedule = (SCHEDULES || []).some(s => (s.investment_id || s.investment) === row.id);
+    if (!hasSchedule) {
+      return { background: isDark ? 'rgba(245, 158, 11, 0.08)' : 'rgba(245, 158, 11, 0.05)' };
+    }
+    return {};
+  };
+
   const scheduleColumnDefs = useMemo(() => {
     return getDistributionColumns(isDark, t, CONTACTS, DEALS, INVESTMENTS, {
       onEdit: (s) => setScheduleModal({ open: true, data: { ...s } }),
@@ -1660,20 +1668,6 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
 
       {activeTab === "Investments" ? (
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-          <div style={{ display: "flex", gap: 8 }}>
-            <input
-              placeholder="Search email..."
-              value={invSearch.email}
-              onChange={e => setInvSearch(s => ({ ...s, email: e.target.value }))}
-              style={{ padding: "6px 10px", borderRadius: 8, border: `1px solid ${t.chipBorder}`, background: isDark ? "#1a1a1a" : "#fff", color: t.text, fontSize: 13 }}
-            />
-            <input
-              placeholder="Search payment method..."
-              value={invSearch.paymentMethod}
-              onChange={e => setInvSearch(s => ({ ...s, paymentMethod: e.target.value }))}
-              style={{ padding: "6px 10px", borderRadius: 8, border: `1px solid ${t.chipBorder}`, background: isDark ? "#1a1a1a" : "#fff", color: t.text, fontSize: 13 }}
-            />
-          </div>
           <div style={{ height: '1200px', width: "100%", minHeight: '1200px' }}>
             <TanStackTable
               data={dealInvestments}
@@ -1681,6 +1675,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
               pageSize={pageSize}
               t={t}
               isDark={isDark}
+              rowStyle={investmentRowStyle}
               onSelectionChange={(selected) => setSel(new Set(selected.map(r => r.id)))}
             />
           </div>
