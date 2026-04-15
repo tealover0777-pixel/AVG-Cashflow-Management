@@ -56,6 +56,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
   const roleOpts = (DIMENSIONS.find(d => d.name === "ContactRole") || {}).items || ["Investor", "Borrower"];
   const contactTypeOpts = (DIMENSIONS.find(d => d.name === "ContactType") || {}).items || ["Individual", "Company", "Trust", "Partnership"];
   const investorTypeOpts = (DIMENSIONS.find(d => d.name === "InvestorType") || {}).items || ["Fixed", "Equity", "Both"];
+  const assetTypeOpts = (DIMENSIONS.find(d => d.name === "AssetType") || {}).items || ["Multi-family", "Retail", "Industrial", "Office", "Mixed-Use", "Other"];
 
   const [pivotColWidths, setPivotColWidths] = useState([180, 150, 100, 100, 80, 70, 110]); // Name, Type, Start, End, Freq, Rate, Method
   const [pivotFilters, setPivotFilters] = useState({
@@ -2667,10 +2668,10 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
               <h3 style={{ fontSize: 14, fontWeight: 600, color: t.text, marginBottom: 12 }}>Additional information</h3>
               <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                 <FF label="Asset type" t={t}>
-                  <FIn
+                  <FSel
                     value={assetModal.data.asset_type || ""}
                     onChange={e => setAssetModal(m => ({ ...m, data: { ...m.data, asset_type: e.target.value } }))}
-                    placeholder="Select asset type"
+                    options={assetTypeOpts}
                     t={t}
                   />
                 </FF>
