@@ -340,5 +340,41 @@ export const DelModal = ({ target, open, onClose, onConfirm, onDel, label, title
     </Modal>
   );
 };
+
+export const PromptModal = ({ open, onClose, onConfirm, title, label, defaultValue, t, isDark, loading }) => {
+  const [value, setValue] = useState(defaultValue || "");
+  
+  useEffect(() => {
+    if (open) setValue(defaultValue || "");
+  }, [open, defaultValue]);
+
+  const handleSave = () => {
+    if (onConfirm) onConfirm(value);
+  };
+
+  return (
+    <Modal 
+      open={open} 
+      onClose={onClose} 
+      title={title || "Input Required"} 
+      onSave={handleSave} 
+      saveLabel="Confirm" 
+      t={t} 
+      isDark={isDark}
+      loading={loading}
+    >
+      <div style={{ padding: "8px 0" }} onKeyDown={e => e.key === "Enter" && handleSave()}>
+        {label && <div style={{ fontSize: 13, color: t.textMuted, marginBottom: 12 }}>{label}</div>}
+        <FIn 
+          value={value} 
+          onChange={e => setValue(e.target.value)} 
+          placeholder="Enter value..." 
+          t={t} 
+        />
+      </div>
+    </Modal>
+  );
+};
+
 // InvestorSummaryModal was moved to src/components/InvestorSummaryModal.jsx
 

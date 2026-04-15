@@ -11,6 +11,7 @@ import {
   Plus, Trash2, Copy, Settings as SettingsIcon, Paperclip,
   AlignCenter, AlignRight, AlignJustify, Move
 } from "lucide-react";
+import { PromptModal } from "../components";
 
 const CDown = () => <ChevronDown size={12} strokeWidth={2.5} style={{ opacity: 0.7 }} />;
 
@@ -100,6 +101,7 @@ export default function PageEmailBuilder({ t, isDark, setActivePage, activeEmail
   const [uploadProgress, setUploadProgress] = useState(0);
   const [toast, setToast] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [showSaveAsNewPrompt, setShowSaveAsNewPrompt] = useState(false);
 
   const { profile, tenantId, isSuperAdmin, isGlobalRole } = useAuth();
   const isAdmin = isSuperAdmin || isGlobalRole;
@@ -148,23 +150,25 @@ export default function PageEmailBuilder({ t, isDark, setActivePage, activeEmail
     );
   };
 
-  const handleSave = async () => {
+  const handleSave = async (asNew = false, asNewName = null) => {
     if (!tenantId && !isAdmin) {
       showToast("No tenant ID found. Cannot save.", "error");
       return;
     }
     setIsSaving(true);
     try {
-      const sanitizedName = emailName.replace(/[/\s]+/g, "_").trim();
-      const isSavingAsGlobal = isAdmin && activeEmailTemplate?.isGlobal;
+      const targetName = asNewName || emailName;
+      const sanitizedName = targetName.replace(/[/\s]+/g, "_").trim();
+      // If asNew is true, force isGlobal to false and category to "Your templates"
+      const isSavingAsGlobal = !asNew && isAdmin && activeEmailTemplate?.isGlobal;
       
       const templateData = {
-        name: emailName,
+        name: targetName,
         settings: emailSettings,
         rows: rows,
         updatedAt: new Date().toISOString(),
         updatedBy: profile?.email || "unknown",
-        category: (isSavingAsGlobal || !activeEmailTemplate) ? "Global" : (activeEmailTemplate.category || "Your templates"),
+        category: asNew ? "Your templates" : (isSavingAsGlobal || !activeEmailTemplate) ? "Global" : (activeEmailTemplate.category || "Your templates"),
         tag: activeEmailTemplate?.tag || "Custom",
         isGlobal: !!isSavingAsGlobal
       };
@@ -182,7 +186,7 @@ export default function PageEmailBuilder({ t, isDark, setActivePage, activeEmail
       await uploadBytesResumable(storageRef, blob);
       
       if (refreshTemplates) await refreshTemplates();
-      showToast(isSavingAsGlobal ? "Global template saved!" : "Template saved to your library!", "success");
+      showToast(asNew ? "New template saved to your library!" : (isSavingAsGlobal ? "Global template saved!" : "Template saved to your library!"), "success");
     } catch (err) {
       console.error(err);
       showToast("Error saving template", "error");
@@ -384,13 +388,7 @@ export default function PageEmailBuilder({ t, isDark, setActivePage, activeEmail
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <button 
-            onClick={() => {
-              const newName = prompt("Enter a name for the new template copy:", `${emailName} (Copy)`);
-              if (newName && newName.trim()) {
-                setEmailName(newName.trim());
-                setTimeout(() => handleSave(), 100);
-              }
-            }}
+            onClick={() => setShowSaveAsNewPrompt(true)}
             style={{ 
               background: "transparent", 
               color: "#1D4ED8", 
@@ -558,6 +556,27 @@ export default function PageEmailBuilder({ t, isDark, setActivePage, activeEmail
           <button onClick={() => setToast(null)} style={{ background: "none", border: "none", color: "inherit", cursor: "pointer", fontSize: 15, marginLeft: 4, opacity: 0.7 }}>✕</button>
         </div>
       )}
+
+      <PromptModal
+        open={showSaveAsNewPrompt}
+        onClose={() => setShowSaveAsNewPrompt(false)}
+        title="Save as new template"
+        label="Enter a name for the new template copy:"
+        defaultValue={`${emailName} (Copy)`}
+        t={t}
+        isDark={isDark}
+        onConfirm={(newName) => {
+          if (newName && newName.trim()) {
+            const trimmed = newName.trim();
+            setEmailName(trimmed);
+            setShowSaveAsNewPrompt(false);
+            // Call handleSave with asNew=true and the specific new name
+            handleSave(true, trimmed);
+          } else {
+            setShowSaveAsNewPrompt(false);
+          }
+        }}
+      />
     </div>
   );
 }

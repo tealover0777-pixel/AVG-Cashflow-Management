@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from "react";
-import { ArrowLeft, Search, MoreHorizontal, FileText, Image as ImageIcon, Briefcase, Star, Users, X, Trash2, Loader2 } from "lucide-react";
+import { ArrowLeft, Search, MoreHorizontal, FileText, Image as ImageIcon, Briefcase, Star, Users, X, Trash2, Loader2, AlertCircle } from "lucide-react";
+import { DelModal, Modal } from "../components";
 import { useAuth } from "../AuthContext";
 import { storage } from "../firebase";
 import { ref, listAll, getDownloadURL, deleteObject } from "firebase/storage";
@@ -9,6 +9,7 @@ export default function PageManageTemplates({ t, isDark, setActivePage, setActiv
   const isAdmin = isSuperAdmin || isGlobalRole;
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedTemplate, setSelectedTemplate] = useState(null);
+  const [templateToDelete, setTemplateToDelete] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [toast, setToast] = useState(null);
 
@@ -44,9 +45,7 @@ export default function PageManageTemplates({ t, isDark, setActivePage, setActiv
         <button 
           onClick={(e) => { 
             e.stopPropagation(); 
-            if (window.confirm("Are you sure you want to delete this template?")) {
-              handleDeleteTemplate(template); 
-            }
+            setTemplateToDelete(template);
           }}
           style={{
             position: "absolute", top: 12, right: 12,
@@ -331,6 +330,19 @@ export default function PageManageTemplates({ t, isDark, setActivePage, setActiv
           {toast.msg}
         </div>
       )}
+
+      {/* Delete Confirmation Modal */}
+      <DelModal 
+        target={templateToDelete} 
+        onClose={() => setTemplateToDelete(null)} 
+        onConfirm={async () => {
+          await handleDeleteTemplate(templateToDelete);
+          setTemplateToDelete(null);
+        }} 
+        label="This template" 
+        t={t} 
+        isDark={isDark} 
+      />
 
       <style>{`
         @keyframes slideIn {
