@@ -265,7 +265,7 @@ export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [
 
       const todayStr = new Date().toLocaleDateString();
 
-      for (const c of selected) {
+      for (const c of selectedList) {
         const principal = parseNum(c.amount);
         const rate = parseNum(c.rate) / 100;
         const startDate = normalizeDateAtNoon(c.start_date);
@@ -534,7 +534,7 @@ export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [
       
       setSel(new Set()); gridRef.current?.resetRowSelection();
       setGenResult({ title: "Generation Complete", lines: [
-        `Successfully processed ${selected.length} investment(s).`,
+        `Successfully processed ${selectedList.length} investment(s).`,
         `- Created: ${totalCreated}`,
         `- Updated: ${totalUpdated}`,
         `- Deleted: ${totalDeleted}`
