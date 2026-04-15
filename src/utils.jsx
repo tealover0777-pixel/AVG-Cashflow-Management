@@ -309,35 +309,59 @@ export const normalizeDateAtNoon = (date) => {
 };
 
 export const hybridDays = (startDate, quarterEnd) => {
-  const start = new Date(startDate);
-  const end = new Date(quarterEnd);
-  if (start.getFullYear() === end.getFullYear() && start.getMonth() === end.getMonth()) {
-    const isMonthEnd = (dt) => {
-      const nextDay = new Date(dt.getFullYear(), dt.getMonth() + 1, 0);
-      return dt.getDate() === nextDay.getDate();
-    };
-    if (start.getDate() === 1 && isMonthEnd(end)) return 30;
-    return Math.floor((end - start) / (1000 * 60 * 60 * 24));
-  }
-  const isMonthEnd = (dt) => {
-    const nextDay = new Date(dt.getFullYear(), dt.getMonth() + 1, 0);
-    return dt.getDate() === nextDay.getDate();
+  if (!startDate || !quarterEnd) return 0;
+  
+  const parse = (val) => {
+    if (!val) return null;
+    let d;
+    if (val.seconds !== undefined) d = new Date(val.seconds * 1000);
+    else if (val.toDate) d = val.toDate();
+    else d = new Date(val);
+    
+    if (isNaN(d.getTime())) return null;
+    // Return year, month, date to avoid timezone issues
+    return { y: d.getFullYear(), m: d.getMonth(), d: d.getDate() };
   };
-  const quarterEndIsMonthEnd = isMonthEnd(end);
-  const firstMonthEnd = new Date(start.getFullYear(), start.getMonth() + 1, 0);
-  const daysFirstPart = Math.floor((firstMonthEnd - start) / (1000 * 60 * 60 * 24));
-  let totalDays = daysFirstPart;
-  let d = new Date(start.getFullYear(), start.getMonth() + 1, 1);
-  while (d <= end) {
-    if (d.getMonth() === end.getMonth() && d.getFullYear() === end.getFullYear()) {
-      if (quarterEndIsMonthEnd) totalDays += 30;
-      else totalDays += Math.floor((end - d) / (1000 * 60 * 60 * 24));
-      break;
-    } else {
-      totalDays += 30;
-    }
-    d.setMonth(d.getMonth() + 1);
+
+  const s = parse(startDate);
+  const e = parse(quarterEnd);
+  if (!s || !e) return 0;
+
+  const getDaysInMonth = (y, m) => new Date(y, m + 1, 0).getDate();
+  const isMonthEnd = (y, m, d) => d === getDaysInMonth(y, m);
+
+  if (s.y === e.y && s.m === e.m) {
+    if (s.d === 1 && isMonthEnd(e.y, e.m, e.d)) return 30;
+    return Math.max(0, e.d - s.d);
   }
+
+  let totalDays = 0;
+  
+  // First month partial
+  if (s.d === 1) {
+    totalDays += 30;
+  } else {
+    // Current logic: actual days for the first partial month
+    // In many finance apps, this is (lastDay - startDay).
+    totalDays += (getDaysInMonth(s.y, s.m) - s.d);
+  }
+
+  // Middle full months
+  let cy = s.y;
+  let cm = s.m + 1;
+  while (cy < e.y || (cy === e.y && cm < e.m)) {
+    totalDays += 30;
+    cm++;
+    if (cm > 11) { cm = 0; cy++; }
+  }
+
+  // Last month
+  if (isMonthEnd(e.y, e.m, e.d)) {
+    totalDays += 30;
+  } else {
+    totalDays += e.d;
+  }
+
   return totalDays;
 };
 

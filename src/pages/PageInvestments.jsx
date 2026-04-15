@@ -88,8 +88,9 @@ export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [
         start_date: sd,
         maturity_date: ed,
         term_months: termM,
-        calculator: "",
+        calculator: "ACT/360+30/360",
         rollover: false,
+        auto_generate: true,
         investment_name: ""
       }
     });
@@ -127,7 +128,12 @@ export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [
         // For new investments, we use the collectionPath
         // If it's a GROUP: path, we might need a fallback, but usually creation happens in a specific tenant.
         const effectivePath = collectionPath.startsWith("GROUP:") ? collectionPath.replace("GROUP:", "") : collectionPath;
-        await addDoc(collection(db, effectivePath), { ...payload, investment_id: d.id || "", created_at: serverTimestamp() });
+        const newDocRef = await addDoc(collection(db, effectivePath), { ...payload, investment_id: d.id || "", created_at: serverTimestamp() });
+        if (d.auto_generate) {
+          // If auto_generate is on, we generate the schedule for this newly created investment.
+          // Note: we use d.id (the custom investment_id) which is already in the d object.
+          setTimeout(() => generateSchedulesForInvestments([d]), 500);
+        }
       }
       close();
     } catch (err) { 
@@ -198,6 +204,10 @@ export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [
     setGenConfirm(null);
     const selected = INVESTMENTS.filter(c => sel.has(c.id));
     if (selected.length === 0) return;
+    await generateSchedulesForInvestments(selected);
+  };
+
+  const generateSchedulesForInvestments = async (selectedList) => {
 
     // 1. Preparation - Load mapping from DIMENSIONS
     const findDim = n => (DIMENSIONS.find(d => d.name === n) || {}).items || [];
@@ -713,7 +723,17 @@ export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [
           </div>
         </FF>
       </div>
-      <FF label="Calculator" t={t}><FSel value={modal.data.calculator || ""} onChange={e => setF("calculator", e.target.value)} options={calculatorOpts} t={t} /></FF>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+        <FF label="Calculator" t={t}><FSel value={modal.data.calculator || ""} onChange={e => setF("calculator", e.target.value)} options={calculatorOpts} t={t} /></FF>
+        {modal.mode === "add" && (
+          <FF label="Schedule Gen" t={t}>
+            <div style={{ display: "flex", alignItems: "center", height: 38 }}>
+              <input type="checkbox" checked={!!modal.data.auto_generate} onChange={e => setF("auto_generate", e.target.checked)} style={{ cursor: "pointer", width: 18, height: 18 }} />
+              <span style={{ marginLeft: 8, fontSize: 13, color: t.textSecondary }}>Auto-generate Schedule</span>
+            </div>
+          </FF>
+        )}
+      </div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
         <FF label="Start Date" t={t}><FIn value={modal.data.start_date || ""} onChange={e => setF("start_date", e.target.value)} t={t} type="date" /></FF>
         <FF label="Maturity Date" t={t}><FIn value={modal.data.maturity_date || ""} onChange={e => setF("maturity_date", e.target.value)} t={t} type="date" /></FF>
