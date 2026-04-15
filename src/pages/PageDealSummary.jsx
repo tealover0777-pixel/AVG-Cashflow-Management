@@ -24,6 +24,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
   const paymentStatusOpts = (DIMENSIONS.find(d => d.name === "PaymentStatus" || d.name === "Payment Status" || d.name === "ScheduleStatus" || d.name === "Schedule Status") || {}).items?.filter(i => i) || ["Due", "Paid", "Partial", "Missed", "Cancelled"];
 
   const deal = useMemo(() => DEALS.find(d => d.id === dealId) || {}, [dealId, DEALS]);
+  const dealPath = useMemo(() => deal._path || `deals/${deal.id}`, [deal._path, deal.id]);
   const [activeTab, setActiveTab] = useState("Investments");
   const [distributionView, setDistributionView] = useState("table"); // "table" or "pivot"
   const [assetImages, setAssetImages] = useState([]);
@@ -134,16 +135,16 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
 
   useEffect(() => {
     if (deal.id) {
-      getDocs(collection(db, "deals", deal.id, "asset_images")).then(snap => {
+      getDocs(collection(db, dealPath, "asset_images")).then(snap => {
         setAssetImages(snap.docs.map(d => ({ id: d.id, ...d.data() })));
       }).catch(console.error);
 
       // Fetch assets
-      getDocs(collection(db, "deals", deal.id, "assets")).then(snap => {
+      getDocs(collection(db, dealPath, "assets")).then(snap => {
         setAssets(snap.docs.map(d => ({ docId: d.id, ...d.data() })));
       }).catch(console.error);
     }
-  }, [deal.id]);
+  }, [deal.id, dealPath]);
 
   const dealInvestments = useMemo(() =>
     INVESTMENTS.filter(c => c.deal_id === dealId || c.deal === deal.name)
@@ -1119,7 +1120,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
   const openEditAsset = async (r) => {
     // Fetch photos for this asset
     try {
-      const photosSnap = await getDocs(collection(db, "deals", deal.id, "assets", r.docId, "photos"));
+      const photosSnap = await getDocs(collection(db, dealPath, "assets", r.docId, "photos"));
       const photos = photosSnap.docs.map(d => ({ id: d.id, ...d.data() }));
       setUploadedPhotos(photos);
     } catch (e) {
@@ -1184,10 +1185,10 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
     try {
       let assetDocRef;
       if (assetModal.mode === "edit" && d.docId) {
-        assetDocRef = doc(db, "deals", deal.id, "assets", d.docId);
+        assetDocRef = doc(db, dealPath, "assets", d.docId);
         await updateDoc(assetDocRef, payload);
       } else {
-        assetDocRef = await addDoc(collection(db, "deals", deal.id, "assets"), {
+        assetDocRef = await addDoc(collection(db, dealPath, "assets"), {
           ...payload,
           created_at: serverTimestamp()
         });
@@ -1202,7 +1203,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
           const uploadResult = await uploadBytes(storageRef, fileObj.file);
           const url = await getDownloadURL(uploadResult.ref);
 
-          await addDoc(collection(db, "deals", deal.id, "assets", assetId, "photos"), {
+          await addDoc(collection(db, dealPath, "assets", assetId, "photos"), {
             url,
             path,
             name: fileObj.file.name,
@@ -1212,7 +1213,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
       }
 
       // Refresh assets
-      const snap = await getDocs(collection(db, "deals", deal.id, "assets"));
+      const snap = await getDocs(collection(db, dealPath, "assets"));
       setAssets(snap.docs.map(doc => ({ docId: doc.id, ...doc.data() })));
 
       closeAssetModal();
@@ -1226,16 +1227,16 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
     if (!assetDelT || !assetDelT.docId) return;
     try {
       // Delete photos subcollection first
-      const photosSnap = await getDocs(collection(db, "deals", deal.id, "assets", assetDelT.docId, "photos"));
+      const photosSnap = await getDocs(collection(db, dealPath, "assets", assetDelT.docId, "photos"));
       for (const photoDoc of photosSnap.docs) {
-        await deleteDoc(doc(db, "deals", deal.id, "assets", assetDelT.docId, "photos", photoDoc.id));
+        await deleteDoc(doc(db, dealPath, "assets", assetDelT.docId, "photos", photoDoc.id));
       }
 
       // Delete asset document
-      await deleteDoc(doc(db, "deals", deal.id, "assets", assetDelT.docId));
+      await deleteDoc(doc(db, dealPath, "assets", assetDelT.docId));
 
       // Refresh assets
-      const snap = await getDocs(collection(db, "deals", deal.id, "assets"));
+      const snap = await getDocs(collection(db, dealPath, "assets"));
       setAssets(snap.docs.map(doc => ({ docId: doc.id, ...doc.data() })));
 
       setAssetDelT(null);
@@ -1272,14 +1273,14 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
         const storageRef = ref(storage, path);
         const uploadResult = await uploadBytes(storageRef, file);
         const url = await getDownloadURL(uploadResult.ref);
-        await addDoc(collection(db, "deals", deal.id, "asset_images"), {
+        await addDoc(collection(db, dealPath, "asset_images"), {
           url,
           path,
           name: file.name,
           created_at: serverTimestamp()
         });
       }
-      const snap = await getDocs(collection(db, "deals", deal.id, "asset_images"));
+      const snap = await getDocs(collection(db, dealPath, "asset_images"));
       setAssetImages(snap.docs.map(d => ({ id: d.id, ...d.data() })));
     } catch (err) {
       console.error(err);
@@ -1292,7 +1293,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
   const removeDealCoverPhoto = async (photo) => {
     try {
       if (photo.id) {
-        await deleteDoc(doc(db, "deals", deal.id, "asset_images", photo.id));
+        await deleteDoc(doc(db, dealPath, "asset_images", photo.id));
       }
       if (photo.path) {
         try { await deleteObject(ref(storage, photo.path)); } catch (_) { }
@@ -1306,7 +1307,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
 
   const removeUploadedPhoto = async (photo) => {
     try {
-      await deleteDoc(doc(db, "deals", deal.id, "assets", assetModal.data.docId, "photos", photo.id));
+      await deleteDoc(doc(db, dealPath, "assets", assetModal.data.docId, "photos", photo.id));
       if (photo.path) {
         try { await deleteObject(ref(storage, photo.path)); } catch (_) { }
       }
@@ -2397,7 +2398,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
         </div>
       ) : activeTab === "Documents" ? (
         <div style={{ minHeight: '500px' }}>
-          <DocumentsTab t={t} isDark={isDark} dealId={dealId} />
+          <DocumentsTab t={t} isDark={isDark} dealId={dealId} dealPath={dealPath} />
         </div>
       ) : (
         <div style={{ padding: 40, textAlign: "center", color: t.textMuted, background: isDark ? "rgba(255,255,255,0.02)" : "#FAFAFA", borderRadius: 12 }}>

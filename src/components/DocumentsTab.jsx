@@ -5,7 +5,8 @@ import { uploadFile, deleteFile } from "../utils/storageUtils";
 import { FileText, File, Trash2, Download, Plus, Loader2, X } from "lucide-react";
 import { fmtCurr } from "../utils";
 
-export default function DocumentsTab({ t, isDark, dealId }) {
+export default function DocumentsTab({ t, isDark, dealId, dealPath }) {
+    const dp = dealPath || `deals/${dealId}`;
     const [docs, setDocs] = useState([]);
     const [loading, setLoading] = useState(true);
     const [uploading, setUploading] = useState(false);
@@ -16,7 +17,7 @@ export default function DocumentsTab({ t, isDark, dealId }) {
 
     useEffect(() => {
         if (!dealId) return;
-        const q = query(collection(db, "deals", dealId, "documents"));
+        const q = query(collection(db, dp, "documents"));
         const unsub = onSnapshot(q, (snap) => {
             setDocs(snap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a,b) => (b.uploadedAt?.seconds || 0) - (a.uploadedAt?.seconds || 0)));
             setLoading(false);
@@ -39,7 +40,7 @@ export default function DocumentsTab({ t, isDark, dealId }) {
             setProgress(90);
 
             const docId = `DOC_${Date.now()}`;
-            await setDoc(doc(db, "deals", dealId, "documents", docId), {
+            await setDoc(doc(db, dp, "documents", docId), {
                 name: file.name,
                 url: url,
                 path: path,
@@ -63,7 +64,7 @@ export default function DocumentsTab({ t, isDark, dealId }) {
 
     const doDelete = async (docObj) => {
         try {
-            await deleteDoc(doc(db, "deals", dealId, "documents", docObj.id));
+            await deleteDoc(doc(db, dp, "documents", docObj.id));
             if (docObj.path) await deleteFile(docObj.path);
         } catch (err) {
             console.error("Delete error:", err);

@@ -34,9 +34,10 @@ export default function PageDeals({ t, isDark, DEALS = [], INVESTMENTS = [], SCH
   const [genResult, setGenResult] = useState(null);
   const [pageSize, setPageSize] = useState(30);
   const gridRef = useRef(null);
-  const fetchImages = async (did) => {
+  const fetchImages = async (did, path) => {
     try {
-      const snap = await getDocs(collection(db, "deals", did, "asset_images"));
+      const p = path || `deals/${did}`;
+      const snap = await getDocs(collection(db, p, "asset_images"));
       setAssetImages(snap.docs.map(d => ({ id: d.id, ...d.data() })));
     } catch (e) { console.error(e); }
   };
@@ -79,7 +80,7 @@ export default function PageDeals({ t, isDark, DEALS = [], INVESTMENTS = [], SCH
   const openEdit = r => {
     setAssetImages([]);
     setNewFiles([]);
-    fetchImages(r.id);
+    fetchImages(r.id, r._path);
     setModal({ open: true, mode: "edit", step: 1, data: { ...r } });
   };
   const close = () => {
@@ -121,12 +122,13 @@ export default function PageDeals({ t, isDark, DEALS = [], INVESTMENTS = [], SCH
 
       // Handle new image uploads
       for (const fObj of newFiles) {
-        const fileRef = ref(storage, `deals/${d.id}/asset_images/${Date.now()}_${fObj.file.name}`);
+        const path = `${dealRef.path}/asset_images/${Date.now()}_${fObj.file.name}`;
+        const fileRef = ref(storage, path);
         const snap = await uploadBytes(fileRef, fObj.file);
         const url = await getDownloadURL(snap.ref);
 
         // Save to subcollection (not synced with BQ)
-        await setDoc(doc(collection(db, "deals", d.id, "asset_images")), {
+        await setDoc(doc(collection(db, dealRef.path, "asset_images")), {
           url,
           name: fObj.file.name,
           created_at: serverTimestamp(),
@@ -164,7 +166,9 @@ export default function PageDeals({ t, isDark, DEALS = [], INVESTMENTS = [], SCH
 
   const doDeleteExistingImage = async (imgId) => {
     try {
-      await deleteDoc(doc(db, "deals", modal.data.id, "asset_images", imgId));
+      const d = modal.data;
+      const p = d._path || `${collectionPath}/${d.id || d.docId}`;
+      await deleteDoc(doc(db, p, "asset_images", imgId));
       setAssetImages(prev => prev.filter(img => img.id !== imgId));
     } catch (e) { console.error(e); }
   };
