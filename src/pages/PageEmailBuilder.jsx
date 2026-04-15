@@ -87,7 +87,7 @@ const INITIAL_ROWS = [
 
 // ── Main Component ────────────────────────────────────────────────────────────
 
-export default function PageEmailBuilder({ t, isDark, setActivePage, activeEmailTemplate, refreshTemplates }) {
+export default function PageEmailBuilder({ t, isDark, setActivePage, activeEmailTemplate, refreshTemplates, activeTenantId: activeTenantIdProp }) {
   const [activeMainTab, setActiveMainTab] = useState("Edit");
   const [activeRightTab, setActiveRightTab] = useState("Content");
   const [selectedRowId, setSelectedRowId] = useState(null);
@@ -175,9 +175,18 @@ export default function PageEmailBuilder({ t, isDark, setActivePage, activeEmail
 
       // Path: tenants/{id}/templates/{name}.json
       // If admin saving a global template, we overwrite global_templates/
-      // Fallback to global_templates if tenantId is empty (e.g. platform-level super admin)
-      let path = tenantId
-        ? `tenants/${tenantId}/templates/${sanitizedName}.json`
+      // Use JWT tenantId first; fall back to activeTenantIdProp if set to a real tenant
+      const effectiveTenantId = tenantId ||
+        (activeTenantIdProp && activeTenantIdProp !== "GLOBAL" ? activeTenantIdProp : "");
+
+      if (!effectiveTenantId && !isSavingAsGlobal) {
+        showToast("Cannot save personal template: no tenant selected. Switch to a specific tenant first.", "error");
+        setIsSaving(false);
+        return;
+      }
+
+      let path = effectiveTenantId
+        ? `tenants/${effectiveTenantId}/templates/${sanitizedName}.json`
         : `global_templates/${sanitizedName}.json`;
 
       if (isSavingAsGlobal) {

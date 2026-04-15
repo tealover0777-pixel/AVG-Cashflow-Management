@@ -759,7 +759,7 @@ function AppContent() {
                   {activePage === "Reports" && <PageReports t={t} isDark={isDark} MONTHLY={MONTHLY} activeTenantId={activeTenantId} />}
                   {activePage === "Marketing emails" && <PageMarketingEmails t={t} isDark={isDark} setActivePage={setActivePage} />}
                   {activePage === "Manage Templates" && <PageManageTemplates t={t} isDark={isDark} setActivePage={setActivePage} setActiveEmailTemplate={setActiveEmailTemplate} allTemplates={allTemplates} loading={loadingTemplates} fetchTemplates={fetchTemplates} />}
-                  {activePage === "Email Builder" && <PageEmailBuilder t={t} isDark={isDark} setActivePage={setActivePage} activeEmailTemplate={activeEmailTemplate} refreshTemplates={() => fetchTemplates(true)} />}
+                  {activePage === "Email Builder" && <PageEmailBuilder t={t} isDark={isDark} setActivePage={setActivePage} activeEmailTemplate={activeEmailTemplate} refreshTemplates={() => fetchTemplates(true)} activeTenantId={activeTenantId} />}
                   {activePage === "AI Admin" && <PageAdminHelp t={t} isDark={isDark} />}
                 </>
               )}
