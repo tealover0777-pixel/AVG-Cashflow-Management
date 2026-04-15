@@ -157,7 +157,7 @@ export const getDealInvestmentColumns = (permissions, isDark, t, context) => {
     },
     {
       id: "scheduleStatus",
-      header: "Schedule",
+      header: "Schedule Generated",
       size: 110,
       accessorFn: (row) => {
         const hasSchedule = (SCHEDULES || []).some(s => (s.investment_id || s.investment) === row.id);
