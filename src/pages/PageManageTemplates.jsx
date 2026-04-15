@@ -4,13 +4,11 @@ import { useAuth } from "../AuthContext";
 import { storage } from "../firebase";
 import { ref, listAll, getDownloadURL, deleteObject, uploadBytesResumable } from "firebase/storage";
 
-export default function PageManageTemplates({ t, isDark, setActivePage, setActiveEmailTemplate }) {
+export default function PageManageTemplates({ t, isDark, setActivePage, setActiveEmailTemplate, allTemplates, loading, fetchTemplates }) {
   const { tenantId, isSuperAdmin, isGlobalRole, profile } = useAuth();
   const isAdmin = isSuperAdmin || isGlobalRole;
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedTemplate, setSelectedTemplate] = useState(null);
-  const [allTemplates, setAllTemplates] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isMigrating, setIsMigrating] = useState(false);
   const [toast, setToast] = useState(null);
@@ -122,62 +120,13 @@ export default function PageManageTemplates({ t, isDark, setActivePage, setActiv
     </div>
   );
 
-  useEffect(() => {
-    fetchTemplates();
-  }, [tenantId]);
-
-  const safeParseTemplate = async (item, isGlobal) => {
-    try {
-      const url = await getDownloadURL(item);
-      const res = await fetch(url);
-      const text = await res.text();
-      // Trim to handle any trailing whitespace/BOM/extra content
-      const trimmed = text.trim();
-      // Extract only the first valid JSON object (guard against concatenated blobs)
-      const firstBrace = trimmed.indexOf("{");
-      const lastBrace = trimmed.lastIndexOf("}");
-      if (firstBrace === -1 || lastBrace === -1) return null;
-      const data = JSON.parse(trimmed.slice(firstBrace, lastBrace + 1));
-      return { ...data, id: item.fullPath, isGlobal };
-    } catch (e) {
-      console.warn(`Skipping malformed template ${item.fullPath}:`, e);
-      return null;
-    }
-  };
-
-  const fetchTemplates = async () => {
-    setLoading(true);
-    try {
-      const globalRef = ref(storage, "global_templates");
-      const globalRes = await listAll(globalRef);
-      const globalFiles = (await Promise.all(
-        globalRes.items.map(item => safeParseTemplate(item, true))
-      )).filter(Boolean);
-
-      let tenantFiles = [];
-      if (tenantId) {
-        const tenantRef = ref(storage, `tenants/${tenantId}/templates`);
-        const tenantRes = await listAll(tenantRef);
-        tenantFiles = (await Promise.all(
-          tenantRes.items.map(item => safeParseTemplate(item, false))
-        )).filter(Boolean);
-      }
-
-      setAllTemplates([...globalFiles, ...tenantFiles]);
-    } catch (err) {
-      console.error("Error fetching templates:", err);
-      showToast("Could not load templates from storage.", "error");
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleDeleteTemplate = async (template) => {
     setIsDeleting(true);
     try {
       const fileRef = ref(storage, template.id);
       await deleteObject(fileRef);
-      setAllTemplates(prev => prev.filter(t => t.id !== template.id));
+      // Refresh global cache
+      await fetchTemplates(true);
       if (selectedTemplate?.id === template.id) setSelectedTemplate(null);
       showToast("Template deleted successfully", "success");
     } catch (err) {
@@ -233,7 +182,7 @@ export default function PageManageTemplates({ t, isDark, setActivePage, setActiv
         }, null, 2)], { type: "application/json" });
         await uploadBytesResumable(ref(storage, path), blob);
       }
-      fetchTemplates();
+      await fetchTemplates(true);
       showToast("Global templates reset successfully!", "success");
     } catch (err) {
       console.error(err);

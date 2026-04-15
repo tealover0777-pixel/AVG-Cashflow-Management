@@ -86,7 +86,7 @@ const INITIAL_ROWS = [
 
 // ── Main Component ────────────────────────────────────────────────────────────
 
-export default function PageEmailBuilder({ t, isDark, setActivePage, activeEmailTemplate }) {
+export default function PageEmailBuilder({ t, isDark, setActivePage, activeEmailTemplate, refreshTemplates }) {
   const [activeMainTab, setActiveMainTab] = useState("Edit");
   const [activeRightTab, setActiveRightTab] = useState("Content");
   const [selectedRowId, setSelectedRowId] = useState(null);
@@ -181,6 +181,7 @@ export default function PageEmailBuilder({ t, isDark, setActivePage, activeEmail
       const storageRef = ref(storage, path);
       await uploadBytesResumable(storageRef, blob);
       
+      if (refreshTemplates) await refreshTemplates();
       showToast(isSavingAsGlobal ? "Global template saved!" : "Template saved to your library!", "success");
     } catch (err) {
       console.error(err);

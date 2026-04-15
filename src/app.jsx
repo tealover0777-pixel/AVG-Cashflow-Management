@@ -5,10 +5,11 @@
 import React, { useState, useMemo, useEffect } from "react";
 import { AuthProvider, useAuth } from "./AuthContext";
 import { createRoot } from "react-dom/client";
-import { db, auth } from "./firebase";
+import { auth, db, storage } from "./firebase";
 import { doc, getDoc } from "firebase/firestore";
+import { ref, listAll, getDownloadURL } from "firebase/storage";
 import { useFirestoreCollection } from "./useFirestoreCollection";
-import { mkTheme, getNav, getCollectionPaths, DIM_STYLES, DEFAULT_DIM_STYLE, MONTHLY, initials, av, fmtCurr, fmtDate } from "./utils";
+import { mkTheme, getNav, getCollectionPaths, DIM_STYLES, DEFAULT_DIM_STYLE, MONTHLY, initials, av, fmtCurr, fmtDate, parseTemplateJson } from "./utils";
 import PageDashboard from "./pages/PageDashboard";
 import PageDeals from "./pages/PageDeals";
 import PageContacts from "./pages/PageContacts";
@@ -100,10 +101,71 @@ function AppContent() {
   });
   const [activePage, setActivePage] = useState("Dashboard");
   const [activeEmailTemplate, setActiveEmailTemplate] = useState(null);
+
   const [selectedDealId, setSelectedDealId] = useState(null);
   const [activeTenantId, setActiveTenantId] = useState("");
   const [helpOpen, setHelpOpen] = useState(false);
   const [expandedMenus, setExpandedMenus] = useState({}); // Track which menus are expanded (all collapsed by default)
+
+  // Email Template Caching
+  const [allTemplates, setAllTemplates] = useState([]);
+  const [loadingTemplates, setLoadingTemplates] = useState(false);
+  const [templatesFetched, setTemplatesFetched] = useState(false);
+
+  const fetchTemplates = async (force = false) => {
+    if (templatesFetched && !force) return;
+    setLoadingTemplates(true);
+    try {
+      const globalRef = ref(storage, "global_templates");
+      const globalRes = await listAll(globalRef);
+      const globalFiles = (await Promise.all(
+        globalRes.items.map(async (item) => {
+          try {
+            const url = await getDownloadURL(item);
+            const res = await fetch(url);
+            const text = await res.text();
+            return parseTemplateJson(text, item.fullPath, true);
+          } catch (e) {
+            console.warn("Failed to catch global template:", item.name, e);
+            return null;
+          }
+        })
+      )).filter(Boolean);
+
+      let tenantFiles = [];
+      if (activeTenantId && activeTenantId !== "GLOBAL") {
+        const tenantRef = ref(storage, `tenants/${activeTenantId}/templates`);
+        const tenantRes = await listAll(tenantRef);
+        tenantFiles = (await Promise.all(
+          tenantRes.items.map(async (item) => {
+            try {
+              const url = await getDownloadURL(item);
+              const res = await fetch(url);
+              const text = await res.text();
+              return parseTemplateJson(text, item.fullPath, false);
+            } catch (e) {
+              console.warn("Failed to catch tenant template:", item.name, e);
+              return null;
+            }
+          })
+        )).filter(Boolean);
+      }
+
+      setAllTemplates([...globalFiles, ...tenantFiles]);
+      setTemplatesFetched(true);
+    } catch (err) {
+      console.error("Error fetching templates:", err);
+    } finally {
+      setLoadingTemplates(false);
+    }
+  };
+
+  // Trigger fetch when entering email-related pages
+  useEffect(() => {
+    if (activePage === "Manage Templates" || activePage === "Email Builder") {
+      fetchTemplates();
+    }
+  }, [activePage, activeTenantId]);
   const t = mkTheme(isDark);
 
   useEffect(() => {
@@ -694,8 +756,8 @@ function AppContent() {
                   {activePage === "Dimensions" && <PageDimensions t={t} isDark={isDark} DIMENSIONS={DIMENSIONS} rawDimensions={rawDimensions} collectionPath={fetchPaths.dimensions} />}
                   {activePage === "Reports" && <PageReports t={t} isDark={isDark} MONTHLY={MONTHLY} activeTenantId={activeTenantId} />}
                   {activePage === "Marketing emails" && <PageMarketingEmails t={t} isDark={isDark} setActivePage={setActivePage} />}
-                  {activePage === "Manage Templates" && <PageManageTemplates t={t} isDark={isDark} setActivePage={setActivePage} setActiveEmailTemplate={setActiveEmailTemplate} />}
-                  {activePage === "Email Builder" && <PageEmailBuilder t={t} isDark={isDark} setActivePage={setActivePage} activeEmailTemplate={activeEmailTemplate} />}
+                  {activePage === "Manage Templates" && <PageManageTemplates t={t} isDark={isDark} setActivePage={setActivePage} setActiveEmailTemplate={setActiveEmailTemplate} allTemplates={allTemplates} loading={loadingTemplates} fetchTemplates={fetchTemplates} />}
+                  {activePage === "Email Builder" && <PageEmailBuilder t={t} isDark={isDark} setActivePage={setActivePage} activeEmailTemplate={activeEmailTemplate} refreshTemplates={() => fetchTemplates(true)} />}
                   {activePage === "AI Admin" && <PageAdminHelp t={t} isDark={isDark} />}
                 </>
               )}

@@ -27,6 +27,20 @@ export const fmtDate = (val) => {
 
 export const mkId = (pre = "S") => `${pre}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
 
+export const parseTemplateJson = (text, id, isGlobal) => {
+  try {
+    const trimmed = text.trim();
+    const firstBrace = trimmed.indexOf("{");
+    const lastBrace = trimmed.lastIndexOf("}");
+    if (firstBrace === -1 || lastBrace === -1) return null;
+    const data = JSON.parse(trimmed.slice(firstBrace, lastBrace + 1));
+    return { ...data, id, isGlobal };
+  } catch (e) {
+    console.warn(`Skipping malformed template ${id}:`, e);
+    return null;
+  }
+};
+
 // THEME TOKENS
 // ─────────────────────────────────────────────────────────────────────────────
 export const mkTheme = (isDark) => isDark ? {
