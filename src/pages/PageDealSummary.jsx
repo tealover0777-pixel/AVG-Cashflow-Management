@@ -757,7 +757,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
 
   const executeGenerateSchedules = async (targetInvestments = null) => {
     setGenConfirm(null);
-    const selected = targetInvestments || INVESTMENTS.filter(c => sel.has(c.id));
+    const selected = (Array.isArray(targetInvestments) ? targetInvestments : null) || INVESTMENTS.filter(c => sel.has(c.id));
     if (selected.length === 0) return;
 
     // 1. Preparation - Load mapping from DIMENSIONS
