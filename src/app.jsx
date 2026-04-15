@@ -133,8 +133,10 @@ function AppContent() {
       )).filter(Boolean);
 
       let tenantFiles = [];
-      if (activeTenantId && activeTenantId !== "GLOBAL") {
-        const tenantRef = ref(storage, `tenants/${activeTenantId}/templates`);
+      // Use actual tenant path: activeTenantId when scoped, or JWT tenantId when in GLOBAL mode
+      const tenantStorageId = (activeTenantId && activeTenantId !== "GLOBAL") ? activeTenantId : tenantId;
+      if (tenantStorageId) {
+        const tenantRef = ref(storage, `tenants/${tenantStorageId}/templates`);
         const tenantRes = await listAll(tenantRef);
         tenantFiles = (await Promise.all(
           tenantRes.items.map(async (item) => {

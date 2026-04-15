@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { doc, getDoc, setDoc } from "firebase/firestore";
-import { ref, uploadBytesResumable, getDownloadURL, listAll } from "firebase/storage";
+import { ref, uploadBytesResumable, uploadBytes, getDownloadURL, listAll } from "firebase/storage";
 import { db, storage } from "../firebase";
 import { useAuth } from "../AuthContext";
 import {
@@ -175,15 +175,18 @@ export default function PageEmailBuilder({ t, isDark, setActivePage, activeEmail
 
       // Path: tenants/{id}/templates/{name}.json
       // If admin saving a global template, we overwrite global_templates/
-      let path = `tenants/${tenantId}/templates/${sanitizedName}.json`;
-      
+      // Fallback to global_templates if tenantId is empty (e.g. platform-level super admin)
+      let path = tenantId
+        ? `tenants/${tenantId}/templates/${sanitizedName}.json`
+        : `global_templates/${sanitizedName}.json`;
+
       if (isSavingAsGlobal) {
         path = `global_templates/${sanitizedName}.json`;
       }
 
       const blob = new Blob([JSON.stringify(templateData, null, 2)], { type: "application/json" });
       const storageRef = ref(storage, path);
-      await uploadBytesResumable(storageRef, blob);
+      await uploadBytes(storageRef, blob);
       
       if (refreshTemplates) await refreshTemplates();
       showToast(asNew ? "New template saved to your library!" : (isSavingAsGlobal ? "Global template saved!" : "Template saved to your library!"), "success");
