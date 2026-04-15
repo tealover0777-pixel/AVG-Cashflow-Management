@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { ArrowLeft, Search, MoreHorizontal, FileText, Image as ImageIcon, Briefcase, Star, Users, X, Trash2, Loader2 } from "lucide-react";
 import { useAuth } from "../AuthContext";
 import { storage } from "../firebase";
-import { ref, listAll, getDownloadURL, deleteObject, uploadBytesResumable } from "firebase/storage";
+import { ref, listAll, getDownloadURL, deleteObject } from "firebase/storage";
 
 export default function PageManageTemplates({ t, isDark, setActivePage, setActiveEmailTemplate, allTemplates, loading, fetchTemplates }) {
   const { tenantId, isSuperAdmin, isGlobalRole, profile } = useAuth();
@@ -10,7 +10,6 @@ export default function PageManageTemplates({ t, isDark, setActivePage, setActiv
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedTemplate, setSelectedTemplate] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [isMigrating, setIsMigrating] = useState(false);
   const [toast, setToast] = useState(null);
 
   const showToast = (msg, type = "info") => {
@@ -147,51 +146,6 @@ export default function PageManageTemplates({ t, isDark, setActivePage, setActiv
     { title: "Global Templates", templates: filteredTemplates.filter(t => t.isGlobal) },
   ];
 
-  const handleMigration = async () => {
-    if (isMigrating) return;
-    setIsMigrating(true);
-    try {
-      const templatesToMigrate = [
-        { name: "Investment Report Template", category: "Global Templates", isGlobal: true },
-        { name: "Quarterly Newsletter", category: "Global Templates", isGlobal: true },
-        { name: "Capital Call Notice", category: "Raising capital", isGlobal: true },
-        { name: "Monthly Performance Update", category: "LP nurturing", isGlobal: true },
-      ];
-
-      for (const tpl of templatesToMigrate) {
-        const path = `global_templates/${tpl.name.replace(/ /g, "_")}.json`;
-        const blob = new Blob([JSON.stringify({
-          name: tpl.name,
-          category: tpl.category,
-          isGlobal: true,
-          tag: "Drag & drop",
-          settings: {
-            subject: "[Template] " + tpl.name,
-            internalName: tpl.name,
-            fromName: "American Vision Group",
-            from: "invest@americanvisioncap.com",
-            replyTo: "invest@americanvisioncap.com",
-          },
-          rows: [
-            { id: "r1", type: "image", content: { banner: true, bannerText: tpl.name.toUpperCase(), bg: "linear-gradient(135deg, #2c2518 0%, #a28131 50%, #201a0f 100%)" } },
-            { id: "r2", type: "paragraph", content: { html: "<p>Dear Investor,</p><p>We are pleased to provide you with an update on your investments with American Vision Group.</p>" } },
-            { id: "r3", type: "footer", content: { leftText: "AMERICAN VISION\nGROUP", bg: "linear-gradient(135deg, #1c170f 0%, #826521 50%, #15110a 100%)" } }
-          ],
-          updatedAt: new Date().toISOString(),
-          updatedBy: "System Migration"
-        }, null, 2)], { type: "application/json" });
-        await uploadBytesResumable(ref(storage, path), blob);
-      }
-      await fetchTemplates(true);
-      showToast("Global templates reset successfully!", "success");
-    } catch (err) {
-      console.error(err);
-      showToast("Migration failed.", "error");
-    } finally {
-      setIsMigrating(false);
-    }
-  };
-
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%", fontFamily: "Inter, sans-serif" }}>
       {/* Header */}
@@ -211,20 +165,7 @@ export default function PageManageTemplates({ t, isDark, setActivePage, setActiv
         </div>
 
         <div style={{ display: "flex", gap: 8 }}>
-          {isAdmin && (
-            <button 
-              onClick={handleMigration}
-              disabled={isMigrating}
-              style={{
-                padding: "8px 16px", borderRadius: 8, background: isDark ? "rgba(52,211,153,0.1)" : "#ECFDF5",
-                color: "#34D399", border: `1px solid ${isDark ? "rgba(52,211,153,0.2)" : "#A7F3D0"}`,
-                fontSize: 13, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 8
-              }}
-            >
-              {isMigrating ? <Loader2 className="animate-spin" size={16} /> : "Reset Globals"}
-            </button>
-          )}
-          <button 
+          <button
             onClick={() => {
               setActiveEmailTemplate({ name: "Untitled Template", rows: [], settings: {} });
               setActivePage("Email Builder");
@@ -290,7 +231,7 @@ export default function PageManageTemplates({ t, isDark, setActivePage, setActiv
                   }}>
                     {section.title === "Your templates"
                       ? "No custom templates yet. Save a draft from the Email Builder to create one."
-                      : "No global templates. Click \"Reset Globals\" to seed the defaults."}
+                      : "No global templates available."}
                   </div>
                 )}
               </div>
