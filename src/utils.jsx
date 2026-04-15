@@ -308,45 +308,48 @@ export const normalizeDateAtNoon = (date) => {
   return d;
 };
 
-export const hybridDays = (startDate, quarterEnd) => {
-  if (!startDate || !quarterEnd) return 0;
-  
+export const hybridDays = (startDate, endDate) => {
+  if (!startDate || !endDate) return 0;
+
   const parse = (val) => {
     if (!val) return null;
     let d;
     if (val.seconds !== undefined) d = new Date(val.seconds * 1000);
     else if (val.toDate) d = val.toDate();
     else d = new Date(val);
-    
+
     if (isNaN(d.getTime())) return null;
     // Return year, month, date to avoid timezone issues
     return { y: d.getFullYear(), m: d.getMonth(), d: d.getDate() };
   };
 
   const s = parse(startDate);
-  const e = parse(quarterEnd);
+  const e = parse(endDate);
   if (!s || !e) return 0;
 
   const getDaysInMonth = (y, m) => new Date(y, m + 1, 0).getDate();
   const isMonthEnd = (y, m, d) => d === getDaysInMonth(y, m);
 
+  // Single-month period
   if (s.y === e.y && s.m === e.m) {
-    if (s.d === 1 && isMonthEnd(e.y, e.m, e.d)) return 30;
+    if (s.d === 1) {
+      // First month rule: start = 1 → 30/360
+      return isMonthEnd(e.y, e.m, e.d) ? 30 : e.d;
+    }
+    // start > 1 → ACT/360
     return Math.max(0, e.d - s.d);
   }
 
   let totalDays = 0;
-  
+
   // First month partial
   if (s.d === 1) {
-    totalDays += 30;
+    totalDays += 30;                              // 30/360: start = 1
   } else {
-    // Current logic: actual days for the first partial month
-    // In many finance apps, this is (lastDay - startDay).
-    totalDays += (getDaysInMonth(s.y, s.m) - s.d);
+    totalDays += (getDaysInMonth(s.y, s.m) - s.d); // ACT/360: start > 1
   }
 
-  // Middle full months
+  // Middle full months — always 30/360
   let cy = s.y;
   let cm = s.m + 1;
   while (cy < e.y || (cy === e.y && cm < e.m)) {
@@ -357,9 +360,9 @@ export const hybridDays = (startDate, quarterEnd) => {
 
   // Last month
   if (isMonthEnd(e.y, e.m, e.d)) {
-    totalDays += 30;
+    totalDays += 30;  // maturity = month-end → 30/360
   } else {
-    totalDays += e.d;
+    totalDays += e.d; // maturity < month-end → ACT/360 (actual day number)
   }
 
   return totalDays;
@@ -379,7 +382,7 @@ export const pmtCalculator_ACT360_30360 = (periodStart, periodEnd, investDate, i
   else if (f.includes("annu")) periodsPerYear = 1;
 
   if (pStart < iDate && pEnd > iDate) {
-    // Initial Proration
+    // Initial Proration (investment starts mid-period)
     return investAmount * (interestRate / 360) * hybridDays(iDate, pEnd);
   } else {
     const expectedDays = 360 / periodsPerYear;
