@@ -62,6 +62,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
   const [contactModal, setContactModal] = useState({ open: false, mode: "existing", data: {} });
   const [confirmAction, setConfirmAction] = useState(null); // { title: string, message: string, onConfirm: () => void }
   const [toast, setToast] = useState(null);
+  const [invSearch, setInvSearch] = useState({ email: "", paymentMethod: "" });
   const showToast = (msg, type = "info") => { setToast({ msg, type }); setTimeout(() => setToast(null), 4000); };
 
   const roleOpts = (DIMENSIONS.find(d => d.name === "ContactRole") || {}).items || ["Investor", "Borrower"];
@@ -146,21 +147,57 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
   };
 
   useEffect(() => {
-    if (deal.id) {
-      getDocs(collection(db, dealPath, "asset_images")).then(snap => {
-        setAssetImages(snap.docs.map(d => ({ id: d.id, ...d.data() })));
-      }).catch(console.error);
+    if (!deal.id) return;
+    const legacyPath = `deals/${deal.id}`;
+    const isNewPath = dealPath !== legacyPath;
 
-      // Fetch assets
-      getDocs(collection(db, dealPath, "assets")).then(snap => {
-        setAssets(snap.docs.map(d => ({ docId: d.id, ...d.data() })));
-      }).catch(console.error);
-    }
+    const loadImages = async () => {
+      const [snap, legacySnap] = await Promise.all([
+        getDocs(collection(db, dealPath, "asset_images")).catch(() => ({ docs: [] })),
+        isNewPath ? getDocs(collection(db, legacyPath, "asset_images")).catch(() => ({ docs: [] })) : Promise.resolve({ docs: [] })
+      ]);
+      const seen = new Set();
+      const combined = [...snap.docs, ...legacySnap.docs]
+        .filter(d => { if (seen.has(d.id)) return false; seen.add(d.id); return true; })
+        .map(d => ({ id: d.id, ...d.data() }));
+      setAssetImages(combined);
+    };
+
+    const loadAssets = async () => {
+      const [snap, legacySnap] = await Promise.all([
+        getDocs(collection(db, dealPath, "assets")).catch(() => ({ docs: [] })),
+        isNewPath ? getDocs(collection(db, legacyPath, "assets")).catch(() => ({ docs: [] })) : Promise.resolve({ docs: [] })
+      ]);
+      const seen = new Set();
+      const combined = [...snap.docs, ...legacySnap.docs]
+        .filter(d => { if (seen.has(d.id)) return false; seen.add(d.id); return true; })
+        .map(d => ({ docId: d.id, ...d.data() }));
+      setAssets(combined);
+    };
+
+    loadImages();
+    loadAssets();
   }, [deal.id, dealPath]);
 
-  const dealInvestments = useMemo(() =>
-    INVESTMENTS.filter(c => c.deal_id === dealId || c.deal === deal.name)
-    , [dealId, deal.name, INVESTMENTS]);
+  const dealInvestments = useMemo(() => {
+    let list = INVESTMENTS.filter(c => c.deal_id === dealId || c.deal === deal.name);
+    if (invSearch.email) {
+      const q = invSearch.email.toLowerCase();
+      list = list.filter(c => {
+        const contact = CONTACTS.find(x => x.name === c.contact || x.id === c.contact_id);
+        return (contact?.email || "").toLowerCase().includes(q);
+      });
+    }
+    if (invSearch.paymentMethod) {
+      const q = invSearch.paymentMethod.toLowerCase();
+      list = list.filter(c => {
+        const contact = CONTACTS.find(x => x.name === c.contact || x.id === c.contact_id);
+        const method = c.payment_method || contact?.payment_method || "";
+        return method.toLowerCase().includes(q);
+      });
+    }
+    return list;
+  }, [dealId, deal.name, INVESTMENTS, CONTACTS, invSearch]);
 
   // Fund balance calculation moved to dealSchedules useMemo
 
@@ -1623,6 +1660,20 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
 
       {activeTab === "Investments" ? (
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+          <div style={{ display: "flex", gap: 8 }}>
+            <input
+              placeholder="Search email..."
+              value={invSearch.email}
+              onChange={e => setInvSearch(s => ({ ...s, email: e.target.value }))}
+              style={{ padding: "6px 10px", borderRadius: 8, border: `1px solid ${t.chipBorder}`, background: isDark ? "#1a1a1a" : "#fff", color: t.text, fontSize: 13 }}
+            />
+            <input
+              placeholder="Search payment method..."
+              value={invSearch.paymentMethod}
+              onChange={e => setInvSearch(s => ({ ...s, paymentMethod: e.target.value }))}
+              style={{ padding: "6px 10px", borderRadius: 8, border: `1px solid ${t.chipBorder}`, background: isDark ? "#1a1a1a" : "#fff", color: t.text, fontSize: 13 }}
+            />
+          </div>
           <div style={{ height: '1200px', width: "100%", minHeight: '1200px' }}>
             <TanStackTable
               data={dealInvestments}
