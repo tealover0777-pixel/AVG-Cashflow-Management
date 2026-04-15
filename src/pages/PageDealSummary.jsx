@@ -616,13 +616,23 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
       updated_at: serverTimestamp(),
     };
     try {
+      let safeInvestmentCollection = investmentCollection;
+      if (safeInvestmentCollection === "investments" && dealPath && dealPath.startsWith("tenants/")) {
+        const tenantPart = dealPath.split("/")[1];
+        safeInvestmentCollection = `tenants/${tenantPart}/investments`;
+      }
+
+      if (!safeInvestmentCollection || safeInvestmentCollection === "investments" || safeInvestmentCollection.startsWith("GROUP:")) {
+        throw new Error(`Execution blocked: Invalid investment path "${safeInvestmentCollection}".`);
+      }
+
       let investmentIdForGen = "";
       if (modal.mode === "edit" && d.docId) {
-        const docRef = d._path ? doc(db, d._path) : doc(db, investmentCollection, d.docId);
+        const docRef = d._path ? doc(db, d._path) : doc(db, safeInvestmentCollection, d.docId);
         await updateDoc(docRef, payload);
         investmentIdForGen = d.id;
       } else {
-        const docRef = await addDoc(collection(db, investmentCollection), { ...payload, investment_id: d.id || "", created_at: serverTimestamp() });
+        const docRef = await addDoc(collection(db, safeInvestmentCollection), { ...payload, investment_id: d.id || "", created_at: serverTimestamp() });
         investmentIdForGen = d.id || "";
       }
       // Also update the contact's default payment method if it changed
@@ -861,9 +871,17 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
     let totalSkipped = 0;
 
     try {
-      const schedulePath = scheduleCollection;
-      if (!schedulePath || schedulePath.startsWith("GROUP:")) {
-        throw new Error(`Invalid schedule path: "${schedulePath}".`);
+      // 2. Logic Safeguard - Ensure tenant-specific path
+      let schedulePath = scheduleCollection;
+      
+      // If we're in GLOBAL/Consolidated mode, derived safe path from dealPath if possible
+      if ((!schedulePath || schedulePath === "paymentSchedules" || schedulePath.startsWith("GROUP:")) && dealPath && dealPath.startsWith("tenants/")) {
+        const tenantPart = dealPath.split("/")[1];
+        schedulePath = `tenants/${tenantPart}/paymentSchedules`;
+      }
+
+      if (!schedulePath || schedulePath === "paymentSchedules" || schedulePath.startsWith("GROUP:")) {
+        throw new Error(`Execution blocked: Invalid schedule path "${schedulePath}". Operations must be scoped to a specific tenant.`);
       }
 
       const mkId = (pre = "S") => `${pre}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
