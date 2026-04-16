@@ -1884,7 +1884,7 @@ function UploadsTab({ t, isDark, uploads, isUploading, uploadProgress, onUpload,
                 style={{ height: 90, borderRadius: 4, backgroundImage: `url(${item.url})`, backgroundSize: "cover", backgroundPosition: "center", cursor: hasImageSelected ? "pointer" : "grab", border: `2px solid ${hasImageSelected && hoveredIndex === i ? "#3B82F6" : t.border}`, transition: "border-color 0.15s" }}
               />
               <p style={{ margin: "4px 0 0", fontSize: 10, color: t.textMuted, textAlign: "center", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", padding: "0 2px" }} title={item.path.split('/').pop()}>
-                {item.path.split('/').pop()}
+                {item.path.split('/').pop().replace(/^\d+_/, '')}
               </p>
               {hoveredIndex === i && hasImageSelected && (
                 <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 90, borderRadius: 4, background: "rgba(59,130,246,0.15)", display: "flex", alignItems: "center", justifyContent: "center", pointerEvents: "none" }}>
