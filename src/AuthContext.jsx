@@ -158,7 +158,7 @@ export function AuthProvider({ children }) {
             const role = (profile?.role || "").toLowerCase();
             const roleName = (profile?.roleName || "").toLowerCase();
             if (role === "r10001" || roleName.includes("member")) return false; // Members are never super admins
-            return ["super admin", "platform admin", "company_super_admin_read_write", "l2 admin"].includes(role) || profile?.isGlobalRole === true || profile?.isGlobal === true;
+            return ["super admin", "platform admin", "company_super_admin_read_write", "l2 admin", "r10010"].includes(role) || profile?.isGlobalRole === true || profile?.isGlobal === true;
         })(),
         isTenantAdmin: (() => {
             const role = (profile?.role || "");

@@ -166,7 +166,7 @@ const NAV_ITEMS = [
   { label: "Profile", icon: "User", hidden: true },
 ];
 
-export const getNav = (isSuper, isAdmin, hasPermission, isR10010) => {
+export const getNav = (isSuper, _isAdmin, hasPermission, isR10010) => {
   // Helper function to check if a single item should be visible
   const isItemVisible = (item) => {
     if (item.hidden) return false;
@@ -177,11 +177,11 @@ export const getNav = (isSuper, isAdmin, hasPermission, isR10010) => {
     // AI Admin restricted to Super Admins (you can change this to global roles if needed)
     if (item.label === "AI Admin") return isSuper;
 
-    // Strict check for Marketing emails regardless of platform user status
-    const isMarketingNav = item.label === "Marketing" || item.label === "Marketing emails";
-    if (isMarketingNav && (!hasPermission || !(hasPermission("MARKETING_VIEW") || hasPermission("MARTETING_VIEW")))) return false;
-
     if (isSuper) return true; // Super Admins always see everything else
+
+    // For non-super users, require MARKETING_VIEW permission to see the Marketing section
+    const isMarketingNav = item.label === "Marketing" || item.label === "Marketing emails";
+    if (isMarketingNav && (!hasPermission || !hasPermission("MARKETING_VIEW"))) return false;
 
     if (!hasPermission) return false;
 
