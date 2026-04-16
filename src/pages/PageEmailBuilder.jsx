@@ -87,7 +87,7 @@ const INITIAL_ROWS = [
 
 // ── Main Component ────────────────────────────────────────────────────────────
 
-export default function PageEmailBuilder({ t, isDark, setActivePage, activeEmailTemplate, refreshTemplates, activeTenantId: activeTenantIdProp }) {
+export default function PageEmailBuilder({ t, isDark, setActivePage, activeEmailTemplate, setActiveEmailTemplate, refreshTemplates, activeTenantId: activeTenantIdProp }) {
   const [activeMainTab, setActiveMainTab] = useState("Edit");
   const [activeRightTab, setActiveRightTab] = useState("Content");
   const [selectedRowId, setSelectedRowId] = useState(null);
