@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { doc, getDoc, setDoc } from "firebase/firestore";
-import { ref, uploadBytesResumable, uploadBytes, getDownloadURL, listAll } from "firebase/storage";
+import { ref, uploadBytesResumable, uploadBytes, getDownloadURL, listAll, deleteObject } from "firebase/storage";
 import { db, storage } from "../firebase";
 import { useAuth } from "../AuthContext";
 import {
@@ -114,33 +114,55 @@ export default function PageEmailBuilder({ t, isDark, setActivePage, activeEmail
     }
   }, [activeEmailTemplate]);
 
+  const effectiveUploadTenantId = tenantId ||
+    (activeTenantIdProp && activeTenantIdProp !== "GLOBAL" ? activeTenantIdProp : "");
+
   useEffect(() => {
     const fetchUploads = async () => {
-      if (!tenantId) return;
+      if (!effectiveUploadTenantId) return;
       try {
-        const res = await listAll(ref(storage, `tenants/${tenantId}/marketing_uploads`));
-        const urls = await Promise.all(res.items.reverse().map(r => getDownloadURL(r)));
-        setUploads(urls);
+        const res = await listAll(ref(storage, `tenants/${effectiveUploadTenantId}/marketing_uploads`));
+        const items = await Promise.all(
+          res.items.slice().reverse().map(async (r) => ({
+            url: await getDownloadURL(r),
+            path: r.fullPath
+          }))
+        );
+        setUploads(items);
       } catch (err) { console.error(err); }
     };
     fetchUploads();
-  }, [tenantId]);
+  }, [effectiveUploadTenantId]);
+
+  const handleDeleteUpload = async (item) => {
+    if (!item.path) return;
+    if (!window.confirm("Are you sure you want to delete this image? It will be permanently removed from storage.")) return;
+    
+    try {
+      await deleteObject(ref(storage, item.path));
+      setUploads(prev => prev.filter(u => u.path !== item.path));
+      showToast("Image deleted successfully!", "success");
+    } catch (err) {
+      console.error(err);
+      showToast("Error deleting image", "error");
+    }
+  };
 
   const handleUploadFile = async (file, onComplete) => {
     if (!file) return;
-    if (!tenantId) {
+    if (!effectiveUploadTenantId) {
       showToast("No tenant ID found. Cannot upload.", "error");
       return;
     }
     setIsUploading(true);
-    const storageRef = ref(storage, `tenants/${tenantId}/marketing_uploads/${Date.now()}_${file.name}`);
+    const storageRef = ref(storage, `tenants/${effectiveUploadTenantId}/marketing_uploads/${Date.now()}_${file.name}`);
     const task = uploadBytesResumable(storageRef, file);
     task.on("state_changed",
       snap => setUploadProgress((snap.bytesTransferred / snap.totalBytes) * 100),
       err => { console.error(err); setIsUploading(false); },
       () => {
         getDownloadURL(task.snapshot.ref).then(url => {
-          setUploads(p => [url, ...p]);
+          setUploads(p => [{ url, path: task.snapshot.ref.fullPath }, ...p]);
           setIsUploading(false);
           setUploadProgress(0);
           if (onComplete) onComplete(url);
@@ -518,6 +540,7 @@ export default function PageEmailBuilder({ t, isDark, setActivePage, activeEmail
                       isUploading={isUploading}
                       uploadProgress={uploadProgress}
                       onUpload={handleUploadFile}
+                      onDeleteUpload={handleDeleteUpload}
                     />
                   )}
                   {activeRightTab === "Audit"    && (
@@ -1743,8 +1766,9 @@ function ImagesTab({ t, isDark, setActiveRightTab }) {
 
 // ── Uploads Tab ───────────────────────────────────────────────────────────────
 
-function UploadsTab({ t, isDark, uploads, isUploading, uploadProgress, onUpload }) {
+function UploadsTab({ t, isDark, uploads, isUploading, uploadProgress, onUpload, onDeleteUpload }) {
   const fileInputRef = useRef(null);
+  const [hoveredIndex, setHoveredIndex] = useState(null);
 
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
@@ -1762,13 +1786,44 @@ function UploadsTab({ t, isDark, uploads, isUploading, uploadProgress, onUpload 
       <div style={{ padding: 14, flex: 1, overflowY: "auto", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 7, alignContent: "flex-start" }}>
         {uploads.length === 0
           ? <div style={{ gridColumn: "1/-1", textAlign: "center", fontSize: 12, color: t.textMuted, padding: "28px 0" }}>{isUploading ? "Processing..." : "No uploads yet"}</div>
-          : uploads.map((url, i) => (
+          : uploads.map((item, i) => (
             <div
               key={i}
-              draggable
-              onDragStart={e => e.dataTransfer.setData("imageUrl", url)}
-              style={{ height: 90, borderRadius: 4, backgroundImage: `url(${url})`, backgroundSize: "cover", backgroundPosition: "center", cursor: "grab", border: `1px solid ${t.border}` }}
-            />
+              onMouseEnter={() => setHoveredIndex(i)}
+              onMouseLeave={() => setHoveredIndex(null)}
+              style={{ position: "relative" }}
+            >
+              <div
+                draggable
+                onDragStart={e => e.dataTransfer.setData("imageUrl", item.url)}
+                style={{ height: 90, borderRadius: 4, backgroundImage: `url(${item.url})`, backgroundSize: "cover", backgroundPosition: "center", cursor: "grab", border: `1px solid ${t.border}` }}
+              />
+              {(hoveredIndex === i) && (
+                <button
+                  onClick={(e) => { e.stopPropagation(); onDeleteUpload(item); }}
+                  style={{
+                    position: "absolute",
+                    top: 5,
+                    right: 5,
+                    width: 26,
+                    height: 26,
+                    borderRadius: 6,
+                    background: "rgba(220, 38, 38, 0.9)", // premium red
+                    color: "#fff",
+                    border: "none",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    cursor: "pointer",
+                    boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
+                    transition: "all 0.2s"
+                  }}
+                  title="Delete image"
+                >
+                  <Trash2 size={14} />
+                </button>
+              )}
+            </div>
           ))
         }
       </div>
