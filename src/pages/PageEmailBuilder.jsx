@@ -11,7 +11,9 @@ import {
   Plus, Trash2, Copy, Settings as SettingsIcon, Paperclip,
   AlignCenter, AlignRight, AlignJustify, Move
 } from "lucide-react";
-import { PromptModal } from "../components";
+import { PromptModal, DelModal } from "../components";
+import { getGenerativeModel } from "@firebase/vertexai";
+import { vertexAI } from "../firebase";
 
 const CDown = () => <ChevronDown size={12} strokeWidth={2.5} style={{ opacity: 0.7 }} />;
 
@@ -102,9 +104,15 @@ export default function PageEmailBuilder({ t, isDark, setActivePage, activeEmail
   const [toast, setToast] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
   const [showSaveAsNewPrompt, setShowSaveAsNewPrompt] = useState(false);
+  const [showAIPrompt, setShowAIPrompt] = useState(false);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiInput, setAiInput] = useState("");
+  const [aiQuery, setAiQuery] = useState("");
 
   const { profile, tenantId, isSuperAdmin, isGlobalRole, isR10010 } = useAuth();
-  const isAdmin = isSuperAdmin || isGlobalRole || isR10010;
+  const rawRole = (profile?.role || "").toLowerCase();
+  const isPlatformAdmin = rawRole === "platform admin" || rawRole === "r10009";
+  const isAdmin = isSuperAdmin || isGlobalRole || isR10010 || isPlatformAdmin;
   const isEditingGlobal = isAdmin && !!activeEmailTemplate?.isGlobal;
 
   useEffect(() => {
@@ -147,6 +155,31 @@ export default function PageEmailBuilder({ t, isDark, setActivePage, activeEmail
     } catch (err) {
       console.error("Delete upload error:", err);
       showToast("Error deleting image: " + (err?.message || "unknown error"), "error");
+    }
+  };
+
+  const handleGenerateAIImage = async () => {
+    if (!aiInput.trim()) return;
+    setAiLoading(true);
+    try {
+      const model = getGenerativeModel(vertexAI, {
+        model: "gemini-2.5-flash",
+        systemInstruction: "You are a professional image prompt generator. Convert the user's idea into a single, high-quality descriptive prompt for an email header image (800x400). Return ONLY the refined prompt text. No conversational filler or quotes."
+      });
+      const result = await model.generateContent(`Context: ${emailSettings.subject}. User Idea: ${aiInput}`);
+      const refinedPrompt = result.response.text().trim();
+      
+      // Trigger the search in the Images tab
+      showToast("AI Refined your idea! Searching for matching images...", "success");
+      setShowAIPrompt(false);
+      setAiInput("");
+      setAiQuery(refinedPrompt);
+      setActiveRightTab("Images");
+    } catch (err) {
+      console.error("AI Image error:", err);
+      showToast("AI Generation failed: " + err.message, "error");
+    } finally {
+      setAiLoading(false);
     }
   };
 
@@ -224,11 +257,13 @@ export default function PageEmailBuilder({ t, isDark, setActivePage, activeEmail
       await uploadBytes(templateRef, blob);
 
       // Update active template state
-      if (setActiveEmailTemplate) {
+      if (typeof setActiveEmailTemplate === 'function') {
         setActiveEmailTemplate({ ...templateData, id: path, isGlobal: !!isSavingAsGlobal });
+      } else {
+        console.warn("setActiveEmailTemplate is not a function", setActiveEmailTemplate);
       }
       
-      if (refreshTemplates) await refreshTemplates();
+      if (typeof refreshTemplates === 'function') await refreshTemplates();
 
       if (isSavingAsGlobal) {
         showToast("Global template updated successfully!", "success");
@@ -558,7 +593,17 @@ export default function PageEmailBuilder({ t, isDark, setActivePage, activeEmail
                   {activeRightTab === "Content"  && <ContentTab   t={t} isDark={isDark} onAddRow={handleAddRow} />}
                   {activeRightTab === "Blocks"   && <BlocksTab    t={t} isDark={isDark} />}
                   {activeRightTab === "Body"     && <BodyTab      t={t} isDark={isDark} />}
-                  {activeRightTab === "Images"   && <ImagesTab    t={t} isDark={isDark} setActiveRightTab={setActiveRightTab} hasImageSelected={selectedBlockType === "IMAGE"} onInsertImage={handleInsertImage} />}
+                  {activeRightTab === "Images"   && (
+                    <ImagesTab 
+                      t={t} isDark={isDark} 
+                      setActiveRightTab={setActiveRightTab} 
+                      hasImageSelected={selectedBlockType === "IMAGE"} 
+                      onInsertImage={handleInsertImage}
+                      setShowAIPrompt={setShowAIPrompt}
+                      aiQuery={aiQuery}
+                      onClearAIQuery={() => setAiQuery("")}
+                    />
+                  )}
                   {activeRightTab === "Uploads"  && (
                     <UploadsTab
                       t={t} isDark={isDark}
@@ -638,6 +683,21 @@ export default function PageEmailBuilder({ t, isDark, setActivePage, activeEmail
           } else {
             setShowSaveAsNewPrompt(false);
           }
+        }}
+      />
+
+      <PromptModal
+        open={showAIPrompt}
+        onClose={() => setShowAIPrompt(false)}
+        title="AI Magic - Image Generation"
+        label="Describe the image you want to create (e.g. 'A professional team working on a deal'):"
+        placeholder="Enter your idea..."
+        confirmLabel={aiLoading ? "Generating..." : "Generate Prompt"}
+        t={t}
+        isDark={isDark}
+        onConfirm={(val) => {
+          setAiInput(val);
+          handleGenerateAIImage();
         }}
       />
     </div>
@@ -1696,7 +1756,7 @@ function BodyTab({ t, isDark }) {
 
 // ── Images Tab (Unsplash) ─────────────────────────────────────────────────────
 
-function ImagesTab({ t, isDark, setActiveRightTab, hasImageSelected, onInsertImage }) {
+function ImagesTab({ t, isDark, setActiveRightTab, hasImageSelected, onInsertImage, setShowAIPrompt, aiQuery, onClearAIQuery }) {
   const { user, profile, isSuperAdmin, isGlobalRole, isR10010 } = useAuth();
   const rawRole = (profile?.role || "").toLowerCase();
   const isAdmin = isSuperAdmin || isGlobalRole || isR10010 ||
@@ -1720,6 +1780,19 @@ function ImagesTab({ t, isDark, setActiveRightTab, hasImageSelected, onInsertIma
     };
     fetchKey();
   }, [isAdmin]);
+
+  useEffect(() => {
+    if (aiQuery && aiQuery.trim()) {
+      setQuery(aiQuery);
+      if (onClearAIQuery) onClearAIQuery();
+    }
+  }, [aiQuery]);
+
+  useEffect(() => {
+    if (query && query.trim() && apiKey && !loading && images.length === 0) {
+      searchImages();
+    }
+  }, [query, apiKey]);
 
   const searchImages = async (e) => {
     if (e) e.preventDefault();
@@ -1750,7 +1823,7 @@ function ImagesTab({ t, isDark, setActiveRightTab, hasImageSelected, onInsertIma
         <h3 style={{ fontSize: 15, fontWeight: 700, margin: "0 0 12px 0", color: t.text }}>Images</h3>
         <form onSubmit={searchImages} style={{ position: "relative", marginBottom: 10 }}>
           <Search size={14} color={t.textMuted} style={{ position: "absolute", left: 10, top: 9 }} />
-          <input value={query} onChange={e => setQuery(e.target.value)} placeholder="Search Unsplash..." style={{ width: "100%", padding: "8px 8px 8px 32px", border: `1px solid ${t.border}`, borderRadius: 4, background: t.surface, color: t.text, outline: "none", boxSizing: "border-box", fontSize: 13 }} />
+          <input id="unsplash-search" value={query} onChange={e => setQuery(e.target.value)} placeholder="Search Unsplash..." style={{ width: "100%", padding: "8px 8px 8px 32px", border: `1px solid ${t.border}`, borderRadius: 4, background: t.surface, color: t.text, outline: "none", boxSizing: "border-box", fontSize: 13 }} />
         </form>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <p style={{ fontSize: 10, color: t.textMuted, margin: 0 }}>Powered by Unsplash.</p>
@@ -1770,7 +1843,12 @@ function ImagesTab({ t, isDark, setActiveRightTab, hasImageSelected, onInsertIma
           <div style={{ background: "#06D6A0", borderRadius: 4, padding: 14, color: "#fff" }}>
             <h4 style={{ margin: "0 0 6px", fontSize: 15, fontWeight: 700 }}>Let AI Create Images</h4>
             <p style={{ margin: "0 0 12px", fontSize: 12, opacity: 0.9 }}>If you can't find what you need, AI can create it.</p>
-            <button style={{ background: "#059669", border: "none", color: "#fff", padding: "7px 14px", borderRadius: 4, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>See the Magic</button>
+            <button 
+              onClick={() => setShowAIPrompt(true)}
+              style={{ background: "#059669", border: "none", color: "#fff", padding: "7px 14px", borderRadius: 4, fontSize: 12, fontWeight: 600, cursor: "pointer" }}
+            >
+              See the Magic
+            </button>
           </div>
         )}
         {loading && <div style={{ textAlign: "center", padding: "28px 0", color: t.textMuted, fontSize: 12 }}>Loading images...</div>}
