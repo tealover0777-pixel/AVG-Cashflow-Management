@@ -856,8 +856,12 @@ function EmailRow({ row, isSelected, isHovered, onSelect, onHover, onDelete, onD
         const align = item.content?.align || "center";
         const autoWidth = item.content?.autoWidth !== false;
         const width = item.content?.width ?? "100%";
+        const autoHeight = item.content?.autoHeight !== false;
+        const height = item.content?.height ?? "auto";
+
         const imgStyle = {
           width: align === "justify" ? "100%" : (autoWidth ? "auto" : width),
+          height: autoHeight ? "auto" : height,
           display: "block",
           marginLeft: (align === "center" || align === "right" || align === "justify") ? "auto" : "0",
           marginRight: (align === "center" || align === "left" || align === "justify") ? "auto" : "0",
@@ -1305,14 +1309,6 @@ function BlockPropsPanel({ t, isDark, blockType, rowId, onUpdate, rows, onClose,
               >
                 {isUploading ? `Uploading...` : "Upload Image"}
               </button>
-              <div style={{ position: "relative" }}>
-                <button
-                  onClick={() => setActiveRightTab("Images")}
-                  style={{ display: "flex", alignItems: "center", gap: 8, background: t.surface, color: t.text, border: `1px solid ${t.border}`, padding: "8px 12px", borderRadius: 4, fontSize: 13, fontWeight: 500, cursor: "pointer" }}
-                >
-                  More Images <CDown />
-                </button>
-              </div>
             </div>
 
             <input type="file" ref={fileInputRef} style={{ display: "none" }} accept="image/*" onChange={e => e.target.files[0] && onUpload(e.target.files[0], url => upd({ imageUrl: url }))} />
@@ -1329,13 +1325,7 @@ function BlockPropsPanel({ t, isDark, blockType, rowId, onUpdate, rows, onClose,
               </p>
             </div>
 
-            <div style={{ marginBottom: 14 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: t.text }}>Image URL</div>
-                <div style={{ fontSize: 10, color: t.textMuted }}>1600 × 400</div>
-              </div>
-              <input value={content.imageUrl ?? ""} onChange={e => upd({ imageUrl: e.target.value })} style={inpStyle(t)} placeholder="https://cdn.tools.unlayer.com/image/placeholder.p" />
-            </div>
+
 
             <div style={{ marginBottom: 14 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
@@ -1354,6 +1344,26 @@ function BlockPropsPanel({ t, isDark, blockType, rowId, onUpdate, rows, onClose,
                   style={{ flex: 1, height: 4, accentColor: "#3B82F6" }}
                 />
                 <span style={{ fontSize: 11, color: t.textMuted, width: 30 }}>{content.width || "100%"}</span>
+              </div>
+            </div>
+
+            <div style={{ marginBottom: 14 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                <span style={{ fontSize: 11, fontWeight: 700, color: t.text }}>Height</span>
+                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <span style={{ fontSize: 11, color: t.textMuted }}>Auto On</span>
+                  <div onClick={() => upd({ autoHeight: content.autoHeight === undefined ? false : !content.autoHeight })} style={{ width: 34, height: 18, background: (content.autoHeight !== false) ? "#3B82F6" : "#D1D5DB", borderRadius: 9, display: "flex", alignItems: "center", padding: "0 2px", cursor: "pointer", transition: "background 0.2s" }}>
+                    <div style={{ width: 14, height: 14, background: "#fff", borderRadius: "50%", marginLeft: (content.autoHeight !== false) ? "16px" : "0", transition: "margin-left 0.2s" }} />
+                  </div>
+                </div>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <input
+                  type="range" min="10" max="1000" value={parseInt(content.height || "300")}
+                  onChange={e => upd({ height: e.target.value + "px", autoHeight: false })}
+                  style={{ flex: 1, height: 4, accentColor: "#3B82F6" }}
+                />
+                <span style={{ fontSize: 11, color: t.textMuted, width: 35 }}>{content.autoHeight !== false ? "auto" : (content.height || "300px")}</span>
               </div>
             </div>
 
@@ -1384,38 +1394,8 @@ function BlockPropsPanel({ t, isDark, blockType, rowId, onUpdate, rows, onClose,
                 ))}
               </div>
             </div>
-
-            <div>
-              <div style={{ fontSize: 11, fontWeight: 700, color: t.text, marginBottom: 6 }}>Alternate Text</div>
-              <input value={content.altText ?? ""} onChange={e => upd({ altText: e.target.value })} style={inpStyle(t)} placeholder="" />
-            </div>
           </Sec>
-
-          <Sec id="action" label="Action">
-            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-              <PR label="Image Link">
-                <div style={{ width: 140 }}>
-                  <DD value="Open Website" />
-                </div>
-              </PR>
-              <div style={{ display: "flex", border: `1px solid ${t.border}`, borderRadius: 4, overflow: "hidden" }}>
-                <div style={{ padding: "6px 10px", background: isDark ? "#222" : "#F3F4F6", fontSize: 11, color: t.textMuted, borderRight: `1px solid ${t.border}`, fontWeight: 700 }}>URL</div>
-                <input
-                  value={content.linkUrl ?? ""}
-                  onChange={e => upd({ linkUrl: e.target.value })}
-                  style={{ ...inpStyle(t), border: "none", borderRadius: 0 }}
-                  placeholder="https://"
-                />
-              </div>
-              <PR label="Target">
-                <div style={{ width: 140 }}>
-                  <DD value="New Tab" />
-                </div>
-              </PR>
-            </div>
-          </Sec>
-
-          <General /><Responsive />
+          <General />
         </>
       );
 
@@ -1557,7 +1537,7 @@ function BlockPropsPanel({ t, isDark, blockType, rowId, onUpdate, rows, onClose,
       </div>
       {/* Desktop/Mobile tabs */}
       <div style={{ display: "flex", borderBottom: `1px solid ${t.border}` }}>
-        {["Desktop", "Mobile"].map((tab, i) => (
+        {["Desktop"].map((tab, i) => (
           <button key={tab} style={{ flex: 1, padding: "7px", fontSize: 11.5, border: "none", background: i === 0 ? t.surface : "transparent", cursor: "pointer", color: i === 0 ? t.text : t.textMuted, fontWeight: i === 0 ? 600 : 400, borderBottom: i === 0 ? `2px solid ${isDark ? "#60A5FA" : "#3B82F6"}` : "2px solid transparent" }}>{tab}</button>
         ))}
         <button onClick={onClose} style={{ padding: "4px 8px", border: "none", background: "transparent", cursor: "pointer", color: t.textMuted }}><XIcon size={13} /></button>
