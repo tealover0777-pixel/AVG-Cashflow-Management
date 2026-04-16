@@ -463,26 +463,28 @@ export default function PageEmailBuilder({ t, isDark, setActivePage, activeEmail
           >
             <Save size={14} /> Save as my copy
           </button>
-          <button
-            onClick={() => handleSave()}
-            disabled={isSaving}
-            style={{
-              background: isEditingGlobal ? "#1D4ED8" : "transparent",
-              color: isEditingGlobal ? "#fff" : "#1D4ED8",
-              border: `1px solid #1D4ED8`,
-              borderRadius: 24,
-              padding: "7px 18px",
-              fontSize: 13,
-              fontWeight: 600,
-              cursor: isSaving ? "not-allowed" : "pointer",
-              display: "flex",
-              alignItems: "center",
-              gap: 8,
-              opacity: isSaving ? 0.7 : 1
-            }}
-          >
-            <Save size={14} /> {isSaving ? "Saving..." : isEditingGlobal ? "Update Global Template" : "Save"}
-          </button>
+          {(!activeEmailTemplate?.isGlobal || isAdmin) && (
+            <button
+              onClick={() => handleSave()}
+              disabled={isSaving}
+              style={{
+                background: isEditingGlobal ? "#1D4ED8" : "transparent",
+                color: isEditingGlobal ? "#fff" : "#1D4ED8",
+                border: `1px solid #1D4ED8`,
+                borderRadius: 24,
+                padding: "7px 18px",
+                fontSize: 13,
+                fontWeight: 600,
+                cursor: isSaving ? "not-allowed" : "pointer",
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                opacity: isSaving ? 0.7 : 1
+              }}
+            >
+              <Save size={14} /> {isSaving ? "Saving..." : isEditingGlobal ? "Update Global Template" : "Save"}
+            </button>
+          )}
         </div>
       </div>
 
