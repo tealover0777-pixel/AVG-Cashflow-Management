@@ -251,6 +251,14 @@ export default function PageEmailBuilder({ t, isDark, setActivePage, activeEmail
 
   const handleDeselect = () => { setSelectedRowId(null); setSelectedBlockType(null); };
 
+  // Called from Images/Uploads tabs to set the URL on the currently-selected IMAGE block
+  const handleInsertImage = (url) => {
+    if (selectedRowId && selectedBlockType === "IMAGE") {
+      handleUpdateRow(selectedRowId, { imageUrl: url });
+      setActiveRightTab("Content");
+    }
+  };
+
   const handleAddRow = (relativeId, label = "PARAGRAPH", position = "after") => {
     const type = LABEL_TO_TYPE[label] || "paragraph";
     const newRow = { id: `r_${Date.now()}`, type, content: {} };
@@ -533,7 +541,7 @@ export default function PageEmailBuilder({ t, isDark, setActivePage, activeEmail
                   {activeRightTab === "Content"  && <ContentTab   t={t} isDark={isDark} onAddRow={handleAddRow} />}
                   {activeRightTab === "Blocks"   && <BlocksTab    t={t} isDark={isDark} />}
                   {activeRightTab === "Body"     && <BodyTab      t={t} isDark={isDark} />}
-                  {activeRightTab === "Images"   && <ImagesTab    t={t} isDark={isDark} setActiveRightTab={setActiveRightTab} />}
+                  {activeRightTab === "Images"   && <ImagesTab    t={t} isDark={isDark} setActiveRightTab={setActiveRightTab} hasImageSelected={selectedBlockType === "IMAGE"} onInsertImage={handleInsertImage} />}
                   {activeRightTab === "Uploads"  && (
                     <UploadsTab
                       t={t} isDark={isDark}
@@ -542,6 +550,8 @@ export default function PageEmailBuilder({ t, isDark, setActivePage, activeEmail
                       uploadProgress={uploadProgress}
                       onUpload={handleUploadFile}
                       onDeleteUpload={handleDeleteUpload}
+                      hasImageSelected={selectedBlockType === "IMAGE"}
+                      onInsertImage={handleInsertImage}
                     />
                   )}
                   {activeRightTab === "Audit"    && (
@@ -1669,7 +1679,7 @@ function BodyTab({ t, isDark }) {
 
 // ── Images Tab (Unsplash) ─────────────────────────────────────────────────────
 
-function ImagesTab({ t, isDark, setActiveRightTab }) {
+function ImagesTab({ t, isDark, setActiveRightTab, hasImageSelected, onInsertImage }) {
   const { user, profile, isSuperAdmin, isGlobalRole, isR10010 } = useAuth();
   const rawRole = (profile?.role || "").toLowerCase();
   const isAdmin = isSuperAdmin || isGlobalRole || isR10010 ||
@@ -1750,13 +1760,20 @@ function ImagesTab({ t, isDark, setActiveRightTab }) {
         {!loading && images.length > 0 && (
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 7 }}>
             {images.map(img => (
-              <div
-                key={img.id}
-                draggable
-                onDragStart={e => e.dataTransfer.setData("imageUrl", img.urls.regular)}
-                style={{ height: 110, borderRadius: 4, backgroundImage: `url(${img.urls.small})`, backgroundSize: "cover", backgroundPosition: "center", cursor: "grab", border: `1px solid ${t.border}` }}
-                title={img.alt_description}
-              />
+              <div key={img.id} style={{ position: "relative" }}>
+                <div
+                  draggable
+                  onDragStart={e => e.dataTransfer.setData("imageUrl", img.urls.regular)}
+                  onClick={() => hasImageSelected && onInsertImage(img.urls.regular)}
+                  style={{ height: 110, borderRadius: 4, backgroundImage: `url(${img.urls.small})`, backgroundSize: "cover", backgroundPosition: "center", cursor: hasImageSelected ? "pointer" : "grab", border: `2px solid ${hasImageSelected ? "#3B82F6" : t.border}`, transition: "border-color 0.15s" }}
+                  title={img.alt_description}
+                />
+                {hasImageSelected && (
+                  <div style={{ position: "absolute", inset: 0, borderRadius: 4, background: "rgba(59,130,246,0.12)", display: "flex", alignItems: "center", justifyContent: "center", pointerEvents: "none" }}>
+                    <span style={{ fontSize: 10, fontWeight: 700, color: "#fff", background: "rgba(59,130,246,0.9)", padding: "2px 8px", borderRadius: 4 }}>USE</span>
+                  </div>
+                )}
+              </div>
             ))}
           </div>
         )}
@@ -1767,7 +1784,7 @@ function ImagesTab({ t, isDark, setActiveRightTab }) {
 
 // ── Uploads Tab ───────────────────────────────────────────────────────────────
 
-function UploadsTab({ t, isDark, uploads, isUploading, uploadProgress, onUpload, onDeleteUpload }) {
+function UploadsTab({ t, isDark, uploads, isUploading, uploadProgress, onUpload, onDeleteUpload, hasImageSelected, onInsertImage }) {
   const fileInputRef = useRef(null);
   const [hoveredIndex, setHoveredIndex] = useState(null);
 
@@ -1797,27 +1814,23 @@ function UploadsTab({ t, isDark, uploads, isUploading, uploadProgress, onUpload,
               <div
                 draggable
                 onDragStart={e => e.dataTransfer.setData("imageUrl", item.url)}
-                style={{ height: 90, borderRadius: 4, backgroundImage: `url(${item.url})`, backgroundSize: "cover", backgroundPosition: "center", cursor: "grab", border: `1px solid ${t.border}` }}
+                onClick={() => hasImageSelected && onInsertImage(item.url)}
+                style={{ height: 90, borderRadius: 4, backgroundImage: `url(${item.url})`, backgroundSize: "cover", backgroundPosition: "center", cursor: hasImageSelected ? "pointer" : "grab", border: `2px solid ${hasImageSelected && hoveredIndex === i ? "#3B82F6" : t.border}`, transition: "border-color 0.15s" }}
               />
-              {(hoveredIndex === i) && (
+              {hoveredIndex === i && hasImageSelected && (
+                <div style={{ position: "absolute", inset: 0, borderRadius: 4, background: "rgba(59,130,246,0.15)", display: "flex", alignItems: "center", justifyContent: "center", pointerEvents: "none" }}>
+                  <span style={{ fontSize: 10, fontWeight: 700, color: "#fff", background: "rgba(59,130,246,0.9)", padding: "2px 8px", borderRadius: 4 }}>USE</span>
+                </div>
+              )}
+              {hoveredIndex === i && !hasImageSelected && (
                 <button
                   onClick={(e) => { e.stopPropagation(); onDeleteUpload(item); }}
                   style={{
-                    position: "absolute",
-                    top: 5,
-                    right: 5,
-                    width: 26,
-                    height: 26,
-                    borderRadius: 6,
-                    background: "rgba(220, 38, 38, 0.9)", // premium red
-                    color: "#fff",
-                    border: "none",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    cursor: "pointer",
-                    boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
-                    transition: "all 0.2s"
+                    position: "absolute", top: 5, right: 5,
+                    width: 26, height: 26, borderRadius: 6,
+                    background: "rgba(220,38,38,0.9)", color: "#fff",
+                    border: "none", display: "flex", alignItems: "center", justifyContent: "center",
+                    cursor: "pointer", boxShadow: "0 2px 4px rgba(0,0,0,0.2)"
                   }}
                   title="Delete image"
                 >
