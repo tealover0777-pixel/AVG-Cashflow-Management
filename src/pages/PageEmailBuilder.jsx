@@ -103,8 +103,8 @@ export default function PageEmailBuilder({ t, isDark, setActivePage, activeEmail
   const [isSaving, setIsSaving] = useState(false);
   const [showSaveAsNewPrompt, setShowSaveAsNewPrompt] = useState(false);
 
-  const { profile, tenantId, isSuperAdmin, isGlobalRole } = useAuth();
-  const isAdmin = isSuperAdmin || isGlobalRole;
+  const { profile, tenantId, isSuperAdmin, isGlobalRole, isR10010 } = useAuth();
+  const isAdmin = isSuperAdmin || isGlobalRole || isR10010;
 
   useEffect(() => {
     if (activeEmailTemplate) {
