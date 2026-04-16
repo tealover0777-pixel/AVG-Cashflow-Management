@@ -135,16 +135,17 @@ export default function PageEmailBuilder({ t, isDark, setActivePage, activeEmail
   }, [effectiveUploadTenantId]);
 
   const handleDeleteUpload = async (item) => {
-    if (!item.path) return;
-    if (!window.confirm("Are you sure you want to delete this image? It will be permanently removed from storage.")) return;
-    
+    if (!item?.path) {
+      showToast("Cannot delete: image path not found.", "error");
+      return;
+    }
     try {
       await deleteObject(ref(storage, item.path));
       setUploads(prev => prev.filter(u => u.path !== item.path));
-      showToast("Image deleted successfully!", "success");
+      showToast("Image deleted.", "success");
     } catch (err) {
-      console.error(err);
-      showToast("Error deleting image", "error");
+      console.error("Delete upload error:", err);
+      showToast("Error deleting image: " + (err?.message || "unknown error"), "error");
     }
   };
 
