@@ -11,34 +11,32 @@ import {
   Plus, Trash2, Copy, Settings as SettingsIcon, Paperclip,
   AlignCenter, AlignRight, AlignJustify, Move
 } from "lucide-react";
-import { PromptModal, DelModal } from "../components";
-import { getGenerativeModel } from "@firebase/vertexai";
-import { vertexAI } from "../firebase";
+import { PromptModal } from "../components";
 
 const CDown = () => <ChevronDown size={12} strokeWidth={2.5} style={{ opacity: 0.7 }} />;
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
 const CONTENT_BLOCKS = [
-  { label: "COLUMNS",   icon: ColumnsIcon },
-  { label: "KPIs",      icon: TrendingUp  },
-  { label: "BUTTON",    icon: Square      },
-  { label: "DIVIDER",   icon: Minus       },
-  { label: "HEADING",   icon: Type        },
-  { label: "PARAGRAPH", icon: AlignLeft   },
-  { label: "IMAGE",     icon: ImageIcon   },
-  { label: "AI SUMMARY",icon: FileText    },
-  { label: "VIDEO",     icon: Video       },
-  { label: "SOCIAL",    icon: Users       },
-  { label: "MENU",      icon: MenuIcon    },
-  { label: "HTML",      icon: Code        },
-  { label: "TABLE",     icon: TableIcon   },
+  { label: "COLUMNS", icon: ColumnsIcon },
+  { label: "KPIs", icon: TrendingUp },
+  { label: "BUTTON", icon: Square },
+  { label: "DIVIDER", icon: Minus },
+  { label: "HEADING", icon: Type },
+  { label: "PARAGRAPH", icon: AlignLeft },
+  { label: "IMAGE", icon: ImageIcon },
+  { label: "AI SUMMARY", icon: FileText },
+  { label: "VIDEO", icon: Video },
+  { label: "SOCIAL", icon: Users },
+  { label: "MENU", icon: MenuIcon },
+  { label: "HTML", icon: Code },
+  { label: "TABLE", icon: TableIcon },
 ];
 
 const LABEL_TO_TYPE = {
-  "COLUMNS":"columns","KPIs":"kpis","BUTTON":"button","DIVIDER":"divider",
-  "HEADING":"heading","PARAGRAPH":"paragraph","IMAGE":"image","AI SUMMARY":"ai_summary",
-  "VIDEO":"video","SOCIAL":"social","MENU":"menu","HTML":"html","TABLE":"table"
+  "COLUMNS": "columns", "KPIs": "kpis", "BUTTON": "button", "DIVIDER": "divider",
+  "HEADING": "heading", "PARAGRAPH": "paragraph", "IMAGE": "image", "AI SUMMARY": "ai_summary",
+  "VIDEO": "video", "SOCIAL": "social", "MENU": "menu", "HTML": "html", "TABLE": "table"
 };
 
 const INITIAL_SETTINGS = {
@@ -104,15 +102,9 @@ export default function PageEmailBuilder({ t, isDark, setActivePage, activeEmail
   const [toast, setToast] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
   const [showSaveAsNewPrompt, setShowSaveAsNewPrompt] = useState(false);
-  const [showAIPrompt, setShowAIPrompt] = useState(false);
-  const [aiLoading, setAiLoading] = useState(false);
-  const [aiInput, setAiInput] = useState("");
-  const [aiQuery, setAiQuery] = useState("");
 
   const { profile, tenantId, isSuperAdmin, isGlobalRole, isR10010 } = useAuth();
-  const rawRole = (profile?.role || "").toLowerCase();
-  const isPlatformAdmin = rawRole === "platform admin" || rawRole === "r10009";
-  const isAdmin = isSuperAdmin || isGlobalRole || isR10010 || isPlatformAdmin;
+  const isAdmin = isSuperAdmin || isGlobalRole || isR10010;
   const isEditingGlobal = isAdmin && !!activeEmailTemplate?.isGlobal;
 
   useEffect(() => {
@@ -158,31 +150,6 @@ export default function PageEmailBuilder({ t, isDark, setActivePage, activeEmail
     }
   };
 
-  const handleGenerateAIImage = async () => {
-    if (!aiInput.trim()) return;
-    setAiLoading(true);
-    try {
-      const model = getGenerativeModel(vertexAI, {
-        model: "gemini-2.5-flash",
-        systemInstruction: "You are a professional image prompt generator. Convert the user's idea into a single, high-quality descriptive prompt for an email header image (800x400). Return ONLY the refined prompt text. No conversational filler or quotes."
-      });
-      const result = await model.generateContent(`Context: ${emailSettings.subject}. User Idea: ${aiInput}`);
-      const refinedPrompt = result.response.text().trim();
-      
-      // Trigger the search in the Images tab
-      showToast("AI Refined your idea! Searching for matching images...", "success");
-      setShowAIPrompt(false);
-      setAiInput("");
-      setAiQuery(refinedPrompt);
-      setActiveRightTab("Images");
-    } catch (err) {
-      console.error("AI Image error:", err);
-      showToast("AI Generation failed: " + err.message, "error");
-    } finally {
-      setAiLoading(false);
-    }
-  };
-
   const handleUploadFile = async (file, onComplete) => {
     if (!file) return;
     if (!effectiveUploadTenantId) {
@@ -219,9 +186,9 @@ export default function PageEmailBuilder({ t, isDark, setActivePage, activeEmail
     try {
       const targetName = asNewName || emailName;
       const sanitizedName = targetName.replace(/[/\s]+/g, "_").trim();
-      
+
       const isSavingAsGlobal = !saveAsNew && isAdmin && activeEmailTemplate?.isGlobal;
-      
+
       const templateData = {
         name: targetName,
         settings: emailSettings,
@@ -257,13 +224,11 @@ export default function PageEmailBuilder({ t, isDark, setActivePage, activeEmail
       await uploadBytes(templateRef, blob);
 
       // Update active template state
-      if (typeof setActiveEmailTemplate === 'function') {
+      if (setActiveEmailTemplate) {
         setActiveEmailTemplate({ ...templateData, id: path, isGlobal: !!isSavingAsGlobal });
-      } else {
-        console.warn("setActiveEmailTemplate is not a function", setActiveEmailTemplate);
       }
-      
-      if (typeof refreshTemplates === 'function') await refreshTemplates();
+
+      if (refreshTemplates) await refreshTemplates();
 
       if (isSavingAsGlobal) {
         showToast("Global template updated successfully!", "success");
@@ -284,11 +249,11 @@ export default function PageEmailBuilder({ t, isDark, setActivePage, activeEmail
 
   const RIGHT_TABS = [
     { id: "Content", icon: Square },
-    { id: "Blocks",  icon: ColumnsIcon },
-    { id: "Body",    icon: AlignLeft },
-    { id: "Images",  icon: ImageIcon },
+    { id: "Blocks", icon: ColumnsIcon },
+    { id: "Body", icon: AlignLeft },
+    { id: "Images", icon: ImageIcon },
     { id: "Uploads", icon: UploadCloud },
-    { id: "Audit",   icon: FileText },
+    { id: "Audit", icon: FileText },
   ];
 
   const showBlockProps = !!(selectedRowId && selectedBlockType && activeRightTab === "Content");
@@ -312,7 +277,7 @@ export default function PageEmailBuilder({ t, isDark, setActivePage, activeEmail
   const handleAddRow = (relativeId, label = "PARAGRAPH", position = "after") => {
     const type = LABEL_TO_TYPE[label] || "paragraph";
     const newRow = { id: `r_${Date.now()}`, type, content: {} };
-    
+
     if (type === "columns") {
       newRow.content = {
         layout: "50-50",
@@ -340,14 +305,14 @@ export default function PageEmailBuilder({ t, isDark, setActivePage, activeEmail
   const handleAddBlockToColumn = (rowId, colIdx, label) => {
     const type = LABEL_TO_TYPE[label] || "paragraph";
     const newBlock = { id: `b_${Date.now()}`, type, content: {} };
-    
+
     setRows(prev => prev.map(r => {
       if (r.id !== rowId) return r;
       const newCols = [...(r.content.columns || [])];
       if (!newCols[colIdx]) return r;
-      newCols[colIdx] = { 
-        ...newCols[colIdx], 
-        blocks: [...(newCols[colIdx].blocks || []), newBlock] 
+      newCols[colIdx] = {
+        ...newCols[colIdx],
+        blocks: [...(newCols[colIdx].blocks || []), newBlock]
       };
       return { ...r, content: { ...r.content, columns: newCols } };
     }));
@@ -407,26 +372,26 @@ export default function PageEmailBuilder({ t, isDark, setActivePage, activeEmail
       const updateObj = (r) => {
         if (r.id !== rowId) return r;
         let newContent = { ...r.content, ...patch };
-        
+
         // Auto-manage columns array if layout changed
         if (patch.layout && r.type === "columns") {
-           const count = patch.layout.split("-").length;
-           let newCols = [...(newContent.columns || [])];
-           if (newCols.length < count) {
-             for (let i = newCols.length; i < count; i++) {
-               newCols.push({ id: `c_${Date.now()}_${i}`, blocks: [], settings: { padding: "10px" } });
-             }
-           } else if (newCols.length > count) {
-             newCols = newCols.slice(0, count);
-           }
-           newContent.columns = newCols;
+          const count = patch.layout.split("-").length;
+          let newCols = [...(newContent.columns || [])];
+          if (newCols.length < count) {
+            for (let i = newCols.length; i < count; i++) {
+              newCols.push({ id: `c_${Date.now()}_${i}`, blocks: [], settings: { padding: "10px" } });
+            }
+          } else if (newCols.length > count) {
+            newCols = newCols.slice(0, count);
+          }
+          newContent.columns = newCols;
         }
         return { ...r, content: newContent };
       };
 
       // Top level
       let next = prev.map(updateObj);
-      
+
       // Nested
       next = next.map(r => {
         if (r.type !== "columns") return r;
@@ -441,9 +406,9 @@ export default function PageEmailBuilder({ t, isDark, setActivePage, activeEmail
   };
 
   const MAIN_TABS = [
-    { id: "Edit",    label: "Edit",           icon: <FileEdit size={13} /> },
-    { id: "Settings",label: "Settings",       icon: <SettingsIcon size={13} /> },
-    { id: "Mobile",  label: "Mobile review",  icon: <Smartphone size={13} /> },
+    { id: "Edit", label: "Edit", icon: <FileEdit size={13} /> },
+    { id: "Settings", label: "Settings", icon: <SettingsIcon size={13} /> },
+    { id: "Mobile", label: "Mobile review", icon: <Smartphone size={13} /> },
     { id: "Desktop", label: "Desktop review", icon: <Monitor size={13} /> },
   ];
 
@@ -590,21 +555,11 @@ export default function PageEmailBuilder({ t, isDark, setActivePage, activeEmail
                 />
               ) : (
                 <>
-                  {activeRightTab === "Content"  && <ContentTab   t={t} isDark={isDark} onAddRow={handleAddRow} />}
-                  {activeRightTab === "Blocks"   && <BlocksTab    t={t} isDark={isDark} />}
-                  {activeRightTab === "Body"     && <BodyTab      t={t} isDark={isDark} />}
-                  {activeRightTab === "Images"   && (
-                    <ImagesTab 
-                      t={t} isDark={isDark} 
-                      setActiveRightTab={setActiveRightTab} 
-                      hasImageSelected={selectedBlockType === "IMAGE"} 
-                      onInsertImage={handleInsertImage}
-                      setShowAIPrompt={setShowAIPrompt}
-                      aiQuery={aiQuery}
-                      onClearAIQuery={() => setAiQuery("")}
-                    />
-                  )}
-                  {activeRightTab === "Uploads"  && (
+                  {activeRightTab === "Content" && <ContentTab t={t} isDark={isDark} onAddRow={handleAddRow} />}
+                  {activeRightTab === "Blocks" && <BlocksTab t={t} isDark={isDark} />}
+                  {activeRightTab === "Body" && <BodyTab t={t} isDark={isDark} />}
+                  {activeRightTab === "Images" && <ImagesTab t={t} isDark={isDark} setActiveRightTab={setActiveRightTab} hasImageSelected={selectedBlockType === "IMAGE"} onInsertImage={handleInsertImage} />}
+                  {activeRightTab === "Uploads" && (
                     <UploadsTab
                       t={t} isDark={isDark}
                       uploads={uploads}
@@ -616,7 +571,7 @@ export default function PageEmailBuilder({ t, isDark, setActivePage, activeEmail
                       onInsertImage={handleInsertImage}
                     />
                   )}
-                  {activeRightTab === "Audit"    && (
+                  {activeRightTab === "Audit" && (
                     <div style={{ padding: 24, textAlign: "center", color: t.textMuted, fontSize: 13, marginTop: 40 }}>
                       <FileText size={32} style={{ margin: "0 auto 14px", display: "block", opacity: 0.4 }} />
                       No audits found. Your email looks great!
@@ -683,21 +638,6 @@ export default function PageEmailBuilder({ t, isDark, setActivePage, activeEmail
           } else {
             setShowSaveAsNewPrompt(false);
           }
-        }}
-      />
-
-      <PromptModal
-        open={showAIPrompt}
-        onClose={() => setShowAIPrompt(false)}
-        title="AI Magic - Image Generation"
-        label="Describe the image you want to create (e.g. 'A professional team working on a deal'):"
-        placeholder="Enter your idea..."
-        confirmLabel={aiLoading ? "Generating..." : "Generate Prompt"}
-        t={t}
-        isDark={isDark}
-        onConfirm={(val) => {
-          setAiInput(val);
-          handleGenerateAIImage();
         }}
       />
     </div>
@@ -1045,7 +985,7 @@ function EmailRow({ row, isSelected, isHovered, onSelect, onHover, onDelete, onD
       )}
 
       {showControls && onAddRow && <AddRowBtn isDark={isDark} position="top" onClick={() => onAddRow(row.id, "COLUMNS", "before")} />}
-      
+
       {renderContent(row, isNested)}
 
       {showControls && onAddRow && <AddRowBtn isDark={isDark} position="bottom" onClick={() => onAddRow(row.id, "COLUMNS", "after")} />}
@@ -1060,7 +1000,7 @@ function EmailRow({ row, isSelected, isHovered, onSelect, onHover, onDelete, onD
           }}>
             Row
           </div>
-          
+
           {isSelected && (
             <div style={{
               position: "absolute", bottom: -12, right: 0,
@@ -1476,11 +1416,11 @@ function BlockPropsPanel({ t, isDark, blockType, rowId, onUpdate, rows, onClose,
           <Sec id="main" label="Icons">
             <p style={{ margin: 0, fontSize: 11, color: t.textMuted }}>Click an icon to toggle it on/off:</p>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
-              {["F","𝕏","in","📷","▶","G"].map(s => {
-                const active = (content.icons || ["F","𝕏","in","📷"]).includes(s);
+              {["F", "𝕏", "in", "📷", "▶", "G"].map(s => {
+                const active = (content.icons || ["F", "𝕏", "in", "📷"]).includes(s);
                 return (
                   <div key={s} onClick={() => {
-                    const cur = content.icons || ["F","𝕏","in","📷"];
+                    const cur = content.icons || ["F", "𝕏", "in", "📷"];
                     upd({ icons: active ? cur.filter(x => x !== s) : [...cur, s] });
                   }} style={{ width: 30, height: 30, borderRadius: "50%", background: active ? "#3B82F6" : (isDark ? "#374151" : "#E5E7EB"), display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", fontSize: 11, color: active ? "#fff" : t.textMuted, fontWeight: 700 }}>{s}</div>
                 );
@@ -1538,7 +1478,7 @@ function BlockPropsPanel({ t, isDark, blockType, rowId, onUpdate, rows, onClose,
             <DispCond />
             <Sec id="main" label="Columns">
               <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
-                {[[[100]],[[50,50]],[[67,33]],[[33,67]],[[33,33,33]],[[50,25,25]],[[25,25,25,25]]].map((layout, i) => {
+                {[[[100]], [[50, 50]], [[67, 33]], [[33, 67]], [[33, 33, 33]], [[50, 25, 25]], [[25, 25, 25, 25]]].map((layout, i) => {
                   const key = layout[0].join("-");
                   const active = (content.layout || "100") === key;
                   return (
@@ -1551,28 +1491,28 @@ function BlockPropsPanel({ t, isDark, blockType, rowId, onUpdate, rows, onClose,
                 })}
               </div>
             </Sec>
-            
+
             <Sec id="row-params" label="Row Properties">
               <PR label="Background Color">
                 <input type="color" value={content.rowBg || "#ffffff"} onChange={e => upd({ rowBg: e.target.value })} style={{ width: 32, height: 28, border: `1px solid ${t.border}`, borderRadius: 3, cursor: "pointer", padding: 1 }} />
               </PR>
             </Sec>
-            
+
             {(content.columns || []).map((col, idx) => (
               <Sec key={idx} id={`col-${idx}`} label={`Column ${idx + 1}`}>
                 <PR label="Background">
-                   <input type="color" value={col.settings?.bgColor || "transparent"} onChange={e => {
-                     const newCols = [...content.columns];
-                     newCols[idx] = { ...newCols[idx], settings: { ...newCols[idx].settings, bgColor: e.target.value } };
-                     upd({ columns: newCols });
-                   }} style={{ width: 32, height: 28, border: `1px solid ${t.border}`, borderRadius: 3, cursor: "pointer", padding: 1 }} />
+                  <input type="color" value={col.settings?.bgColor || "transparent"} onChange={e => {
+                    const newCols = [...content.columns];
+                    newCols[idx] = { ...newCols[idx], settings: { ...newCols[idx].settings, bgColor: e.target.value } };
+                    upd({ columns: newCols });
+                  }} style={{ width: 32, height: 28, border: `1px solid ${t.border}`, borderRadius: 3, cursor: "pointer", padding: 1 }} />
                 </PR>
                 <PR label="Padding">
-                   <input value={col.settings?.padding || "10px"} onChange={e => {
-                     const newCols = [...content.columns];
-                     newCols[idx] = { ...newCols[idx], settings: { ...newCols[idx].settings, padding: e.target.value } };
-                     upd({ columns: newCols });
-                   }} style={{ ...inpStyle(t), width: 80 }} />
+                  <input value={col.settings?.padding || "10px"} onChange={e => {
+                    const newCols = [...content.columns];
+                    newCols[idx] = { ...newCols[idx], settings: { ...newCols[idx].settings, padding: e.target.value } };
+                    upd({ columns: newCols });
+                  }} style={{ ...inpStyle(t), width: 80 }} />
                 </PR>
               </Sec>
             ))}
@@ -1626,7 +1566,7 @@ function ContentTab({ t, isDark, onAddRow }) {
                 boxShadow: "0 1px 2px rgba(0,0,0,0.05)", transition: "border-color 0.15s, transform 0.1s",
                 opacity: disabled ? 0.4 : 1, position: "relative"
               }}
-              onMouseEnter={e => { if (!disabled) { e.currentTarget.style.borderColor = isDark ? "#60A5FA" : "#3B82F6"; e.currentTarget.style.transform = "scale(1.04)"; }}}
+              onMouseEnter={e => { if (!disabled) { e.currentTarget.style.borderColor = isDark ? "#60A5FA" : "#3B82F6"; e.currentTarget.style.transform = "scale(1.04)"; } }}
               onMouseLeave={e => { e.currentTarget.style.borderColor = t.border; e.currentTarget.style.transform = "scale(1)"; }}
               onDragStart={e => { if (disabled) { e.preventDefault(); return; } e.dataTransfer.setData("blockLabel", block.label); }}
               onClick={() => { if (!disabled) onAddRow(null, block.label); }}
@@ -1756,7 +1696,7 @@ function BodyTab({ t, isDark }) {
 
 // ── Images Tab (Unsplash) ─────────────────────────────────────────────────────
 
-function ImagesTab({ t, isDark, setActiveRightTab, hasImageSelected, onInsertImage, setShowAIPrompt, aiQuery, onClearAIQuery }) {
+function ImagesTab({ t, isDark, setActiveRightTab, hasImageSelected, onInsertImage }) {
   const { user, profile, isSuperAdmin, isGlobalRole, isR10010 } = useAuth();
   const rawRole = (profile?.role || "").toLowerCase();
   const isAdmin = isSuperAdmin || isGlobalRole || isR10010 ||
@@ -1769,51 +1709,67 @@ function ImagesTab({ t, isDark, setActiveRightTab, hasImageSelected, onInsertIma
   const [apiKey, setApiKey] = useState("");
   const [showKeyInput, setShowKeyInput] = useState(false);
   const [error, setError] = useState(null);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
 
   useEffect(() => {
     const fetchKey = async () => {
       try {
         const docSnap = await getDoc(doc(db, "system", "integrations"));
-        if (docSnap.exists() && docSnap.data().unsplash_api_key) setApiKey(docSnap.data().unsplash_api_key);
-        else if (isAdmin) setShowKeyInput(true);
+        if (docSnap.exists() && docSnap.data().unsplash_api_key) {
+          const key = docSnap.data().unsplash_api_key;
+          setApiKey(key);
+        } else if (isAdmin) {
+          setShowKeyInput(true);
+        }
       } catch (err) { console.error(err); }
     };
     fetchKey();
   }, [isAdmin]);
 
+  // Preload random images when API key is available
   useEffect(() => {
-    if (aiQuery && aiQuery.trim()) {
-      setQuery(aiQuery);
-      if (onClearAIQuery) onClearAIQuery();
+    if (apiKey && images.length === 0 && !loading) {
+      fetchImages(1);
     }
-  }, [aiQuery]);
+  }, [apiKey]);
 
-  useEffect(() => {
-    if (query && query.trim() && apiKey && !loading && images.length === 0) {
-      searchImages();
-    }
-  }, [query, apiKey]);
-
-  const searchImages = async (e) => {
-    if (e) e.preventDefault();
-    if (!query.trim()) return;
-    if (!apiKey) { if (isAdmin) setShowKeyInput(true); else setError("Unsplash integration not configured."); return; }
+  const fetchImages = async (p = 1) => {
+    if (!apiKey) return;
     setLoading(true); setError(null);
     try {
-      const res = await fetch(`https://api.unsplash.com/search/photos?page=1&per_page=20&query=${encodeURIComponent(query)}`, { headers: { Authorization: `Client-ID ${apiKey}` } });
+      const endpoint = query.trim()
+        ? `https://api.unsplash.com/search/photos?page=${p}&per_page=20&query=${encodeURIComponent(query)}`
+        : `https://api.unsplash.com/photos?page=${p}&per_page=20`;
+
+      const res = await fetch(endpoint, { headers: { Authorization: `Client-ID ${apiKey}` } });
       if (res.status === 401) { setError("Invalid API Key."); if (isAdmin) setShowKeyInput(true); setLoading(false); return; }
       if (!res.ok) throw new Error("Failed to fetch images");
+
       const data = await res.json();
-      setImages(data.results);
+      const results = query.trim() ? data.results : data;
+
+      setImages(prev => p === 1 ? results : [...prev, ...results]);
+      setPage(p);
+      setHasMore(results.length > 0);
     } catch (err) { setError(err.message); }
     finally { setLoading(false); }
+  };
+
+  const onSearch = (e) => {
+    if (e) e.preventDefault();
+    fetchImages(1);
+  };
+
+  const onLoadMore = () => {
+    fetchImages(page + 1);
   };
 
   const saveApiKey = async () => {
     try {
       await setDoc(doc(db, "system", "integrations"), { unsplash_api_key: apiKey }, { merge: true });
       setShowKeyInput(false); setError(null);
-      if (query.trim()) searchImages();
+      fetchImages(1);
     } catch (err) { setError("Failed to save API key."); }
   };
 
@@ -1821,9 +1777,9 @@ function ImagesTab({ t, isDark, setActiveRightTab, hasImageSelected, onInsertIma
     <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
       <div style={{ padding: "14px", borderBottom: `1px solid ${t.border}` }}>
         <h3 style={{ fontSize: 15, fontWeight: 700, margin: "0 0 12px 0", color: t.text }}>Images</h3>
-        <form onSubmit={searchImages} style={{ position: "relative", marginBottom: 10 }}>
+        <form onSubmit={onSearch} style={{ position: "relative", marginBottom: 10 }}>
           <Search size={14} color={t.textMuted} style={{ position: "absolute", left: 10, top: 9 }} />
-          <input id="unsplash-search" value={query} onChange={e => setQuery(e.target.value)} placeholder="Search Unsplash..." style={{ width: "100%", padding: "8px 8px 8px 32px", border: `1px solid ${t.border}`, borderRadius: 4, background: t.surface, color: t.text, outline: "none", boxSizing: "border-box", fontSize: 13 }} />
+          <input value={query} onChange={e => setQuery(e.target.value)} placeholder="Search Unsplash..." style={{ width: "100%", padding: "8px 8px 8px 32px", border: `1px solid ${t.border}`, borderRadius: 4, background: t.surface, color: t.text, outline: "none", boxSizing: "border-box", fontSize: 13 }} />
         </form>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <p style={{ fontSize: 10, color: t.textMuted, margin: 0 }}>Powered by Unsplash.</p>
@@ -1839,38 +1795,50 @@ function ImagesTab({ t, isDark, setActiveRightTab, hasImageSelected, onInsertIma
             <button onClick={saveApiKey} style={{ width: "100%", background: "#3A86FF", color: "#fff", border: "none", padding: "7px", borderRadius: 4, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>Save Key</button>
           </div>
         )}
-        {!showKeyInput && images.length === 0 && !loading && (
-          <div style={{ background: "#06D6A0", borderRadius: 4, padding: 14, color: "#fff" }}>
-            <h4 style={{ margin: "0 0 6px", fontSize: 15, fontWeight: 700 }}>Let AI Create Images</h4>
-            <p style={{ margin: "0 0 12px", fontSize: 12, opacity: 0.9 }}>If you can't find what you need, AI can create it.</p>
-            <button 
-              onClick={() => setShowAIPrompt(true)}
-              style={{ background: "#059669", border: "none", color: "#fff", padding: "7px 14px", borderRadius: 4, fontSize: 12, fontWeight: 600, cursor: "pointer" }}
-            >
-              See the Magic
-            </button>
-          </div>
+
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 7 }}>
+          {images.map((img, idx) => (
+            <div key={`${img.id}-${idx}`} style={{ position: "relative" }}>
+              <div
+                draggable
+                onDragStart={e => e.dataTransfer.setData("imageUrl", img.urls.regular)}
+                onClick={() => hasImageSelected && onInsertImage(img.urls.regular)}
+                style={{ height: 110, borderRadius: 4, backgroundImage: `url(${img.urls.small})`, backgroundSize: "cover", backgroundPosition: "center", cursor: hasImageSelected ? "pointer" : "grab", border: `2px solid ${hasImageSelected ? "#3B82F6" : t.border}`, transition: "border-color 0.15s" }}
+                title={img.alt_description}
+              />
+              {hasImageSelected && (
+                <div style={{ position: "absolute", inset: 0, borderRadius: 4, background: "rgba(59,130,246,0.12)", display: "flex", alignItems: "center", justifyContent: "center", pointerEvents: "none" }}>
+                  <span style={{ fontSize: 10, fontWeight: 700, color: "#fff", background: "rgba(59,130,246,0.9)", padding: "2px 8px", borderRadius: 4 }}>USE</span>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+
+        {loading && <div style={{ textAlign: "center", padding: "14px 0", color: t.textMuted, fontSize: 12 }}>Loading images...</div>}
+
+        {!loading && images.length > 0 && hasMore && (
+          <button
+            onClick={onLoadMore}
+            style={{
+              width: "100%",
+              background: isDark ? "#333" : "#222",
+              color: "#fff",
+              border: "none",
+              padding: "10px",
+              borderRadius: 4,
+              fontWeight: 600,
+              fontSize: 13,
+              cursor: "pointer",
+              marginTop: 7
+            }}
+          >
+            Load More
+          </button>
         )}
-        {loading && <div style={{ textAlign: "center", padding: "28px 0", color: t.textMuted, fontSize: 12 }}>Loading images...</div>}
-        {!loading && images.length > 0 && (
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 7 }}>
-            {images.map(img => (
-              <div key={img.id} style={{ position: "relative" }}>
-                <div
-                  draggable
-                  onDragStart={e => e.dataTransfer.setData("imageUrl", img.urls.regular)}
-                  onClick={() => hasImageSelected && onInsertImage(img.urls.regular)}
-                  style={{ height: 110, borderRadius: 4, backgroundImage: `url(${img.urls.small})`, backgroundSize: "cover", backgroundPosition: "center", cursor: hasImageSelected ? "pointer" : "grab", border: `2px solid ${hasImageSelected ? "#3B82F6" : t.border}`, transition: "border-color 0.15s" }}
-                  title={img.alt_description}
-                />
-                {hasImageSelected && (
-                  <div style={{ position: "absolute", inset: 0, borderRadius: 4, background: "rgba(59,130,246,0.12)", display: "flex", alignItems: "center", justifyContent: "center", pointerEvents: "none" }}>
-                    <span style={{ fontSize: 10, fontWeight: 700, color: "#fff", background: "rgba(59,130,246,0.9)", padding: "2px 8px", borderRadius: 4 }}>USE</span>
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
+
+        {!loading && images.length === 0 && !error && apiKey && (
+          <div style={{ textAlign: "center", padding: "28px 0", color: t.textMuted, fontSize: 12 }}>No images found.</div>
         )}
       </div>
     </div>
