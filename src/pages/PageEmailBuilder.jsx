@@ -87,7 +87,8 @@ const INITIAL_ROWS = [
 
 // ── Main Component ────────────────────────────────────────────────────────────
 
-export default function PageEmailBuilder({ t, isDark, setActivePage, activeEmailTemplate, setActiveEmailTemplate, refreshTemplates, activeTenantId: activeTenantIdProp }) {
+export default function PageEmailBuilder(props) {
+  const { t, isDark, setActivePage, activeEmailTemplate, setActiveEmailTemplate, refreshTemplates, activeTenantId: activeTenantIdProp } = props;
   const [activeMainTab, setActiveMainTab] = useState("Edit");
   const [activeRightTab, setActiveRightTab] = useState("Content");
   const [selectedRowId, setSelectedRowId] = useState(null);
@@ -224,11 +225,13 @@ export default function PageEmailBuilder({ t, isDark, setActivePage, activeEmail
       await uploadBytes(templateRef, blob);
 
       // Update active template state
-      if (setActiveEmailTemplate) {
-        setActiveEmailTemplate({ ...templateData, id: path, isGlobal: !!isSavingAsGlobal });
+      if (typeof props.setActiveEmailTemplate === "function") {
+        props.setActiveEmailTemplate({ ...templateData, id: path, isGlobal: !!isSavingAsGlobal });
       }
 
-      if (refreshTemplates) await refreshTemplates();
+      if (typeof props.refreshTemplates === "function") {
+        await props.refreshTemplates();
+      }
 
       if (isSavingAsGlobal) {
         showToast("Global template updated successfully!", "success");
