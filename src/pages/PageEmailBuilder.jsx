@@ -88,7 +88,7 @@ const INITIAL_ROWS = [
 // ── Main Component ────────────────────────────────────────────────────────────
 
 export default function PageEmailBuilder(props) {
-  const { t, isDark, setActivePage, activeEmailTemplate, setActiveEmailTemplate, refreshTemplates, activeTenantId: activeTenantIdProp } = props;
+  const { t, isDark, setActivePage, activeEmailTemplate, setActiveEmailTemplate, refreshTemplates, activeTenantId: activeTenantIdProp, backTo = "Manage Templates" } = props;
   const [activeMainTab, setActiveMainTab] = useState("Edit");
   const [activeRightTab, setActiveRightTab] = useState("Content");
   const [selectedRowId, setSelectedRowId] = useState(null);
@@ -429,7 +429,7 @@ export default function PageEmailBuilder(props) {
       >
         <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
           <button
-            onClick={() => setActivePage("Manage Templates")}
+            onClick={() => setActivePage(backTo)}
             style={{ display: "flex", alignItems: "center", gap: 4, background: "transparent", border: `1px solid ${t.border}`, borderRadius: 20, padding: "4px 12px", cursor: "pointer", color: isDark ? "#60A5FA" : "#3B82F6", fontSize: 13, fontWeight: 600 }}
           >
             <ChevronLeft size={15} /> Back
