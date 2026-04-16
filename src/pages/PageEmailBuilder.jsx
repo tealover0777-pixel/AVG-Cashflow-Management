@@ -175,6 +175,9 @@ export default function PageEmailBuilder({ t, isDark, setActivePage, activeEmail
   };
 
   const handleSave = async (asNew = false, asNewName = null) => {
+    // If handleSave is called directly by onClick={handleSave}, asNew will be the event object.
+    const saveAsNew = (typeof asNew === "boolean") ? asNew : false;
+
     if (!tenantId && !isAdmin) {
       showToast("No tenant ID found. Cannot save.", "error");
       return;
@@ -183,8 +186,8 @@ export default function PageEmailBuilder({ t, isDark, setActivePage, activeEmail
     try {
       const targetName = asNewName || emailName;
       const sanitizedName = targetName.replace(/[/\s]+/g, "_").trim();
-      // If asNew is true, force isGlobal to false and category to "Your templates"
-      const isSavingAsGlobal = !asNew && isAdmin && activeEmailTemplate?.isGlobal;
+      
+      const isSavingAsGlobal = !saveAsNew && isAdmin && activeEmailTemplate?.isGlobal;
       
       const templateData = {
         name: targetName,
@@ -192,16 +195,12 @@ export default function PageEmailBuilder({ t, isDark, setActivePage, activeEmail
         rows: rows,
         updatedAt: new Date().toISOString(),
         updatedBy: profile?.email || "unknown",
-        category: asNew ? "Your templates" : (isSavingAsGlobal || !activeEmailTemplate) ? "Global" : (activeEmailTemplate.category || "Your templates"),
+        category: saveAsNew ? "Your templates" : (isSavingAsGlobal || !activeEmailTemplate) ? "Global" : (activeEmailTemplate.category || "Your templates"),
         tag: activeEmailTemplate?.tag || "Custom",
         isGlobal: !!isSavingAsGlobal
       };
 
-      // Path: tenants/{id}/templates/{name}.json
-      // If admin saving a global template, we overwrite global_templates/
-      // Use JWT tenantId first; fall back to activeTenantIdProp if set to a real tenant
-      const effectiveTenantId = tenantId ||
-        (activeTenantIdProp && activeTenantIdProp !== "GLOBAL" ? activeTenantIdProp : "");
+      const effectiveTenantId = tenantId || (activeTenantIdProp && activeTenantIdProp !== "GLOBAL" ? activeTenantIdProp : "");
 
       if (!effectiveTenantId && !isSavingAsGlobal) {
         showToast("Cannot save personal template: no tenant selected. Switch to a specific tenant first.", "error");
@@ -209,22 +208,37 @@ export default function PageEmailBuilder({ t, isDark, setActivePage, activeEmail
         return;
       }
 
-      let path = effectiveTenantId
-        ? `tenants/${effectiveTenantId}/templates/${sanitizedName}.json`
-        : `global_templates/${sanitizedName}.json`;
-
-      if (isSavingAsGlobal) {
-        path = `global_templates/${sanitizedName}.json`;
+      let path;
+      if (isSavingAsGlobal && activeEmailTemplate?.id?.startsWith("global_templates/")) {
+        // Use the original path to ensure we overwrite the exact file (handles spaces/special chars)
+        path = activeEmailTemplate.id;
+      } else {
+        // For new templates or category changes, use a sanitized name path
+        path = isSavingAsGlobal
+          ? `global_templates/${sanitizedName}.json`
+          : `tenants/${effectiveTenantId}/templates/${sanitizedName}.json`;
       }
 
+      const templateRef = ref(storage, path);
       const blob = new Blob([JSON.stringify(templateData, null, 2)], { type: "application/json" });
-      const storageRef = ref(storage, path);
-      await uploadBytes(storageRef, blob);
+      await uploadBytes(templateRef, blob);
+
+      // Update active template state
+      if (setActiveEmailTemplate) {
+        setActiveEmailTemplate({ ...templateData, id: path, isGlobal: !!isSavingAsGlobal });
+      }
       
       if (refreshTemplates) await refreshTemplates();
-      showToast(asNew ? "New template saved to your library!" : (isSavingAsGlobal ? "Global template saved!" : "Template saved to your library!"), "success");
-    } catch (err) {
-      console.error(err);
+
+      if (isSavingAsGlobal) {
+        showToast("Global template updated successfully!", "success");
+      } else if (saveAsNew) {
+        showToast("New template saved to your library!", "success");
+      } else {
+        showToast("Template saved successfully!", "success");
+      }
+    } catch (error) {
+      console.error("Save template error:", error);
       showToast("Error saving template", "error");
     } finally {
       setIsSaving(false);
@@ -450,7 +464,7 @@ export default function PageEmailBuilder({ t, isDark, setActivePage, activeEmail
             <Save size={14} /> Save as my copy
           </button>
           <button
-            onClick={handleSave}
+            onClick={() => handleSave()}
             disabled={isSaving}
             style={{
               background: isEditingGlobal ? "#1D4ED8" : "transparent",
