@@ -571,7 +571,7 @@ export default function PageEmailBuilder({ t, isDark, setActivePage, activeEmail
                 return (
                   <div
                     key={rt.id}
-                    onClick={() => { setActiveRightTab(rt.id); handleDeselect(); }}
+                    onClick={() => setActiveRightTab(rt.id)}
                     style={{
                       display: "flex", flexDirection: "column", alignItems: "center", gap: 3,
                       padding: "13px 0", cursor: "pointer",
