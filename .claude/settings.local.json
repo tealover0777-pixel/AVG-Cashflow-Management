@@ -15,7 +15,9 @@
       "Bash(gsutil version:*)",
       "Bash(gcloud version:*)",
       "Bash(firebase deploy:*)",
-      "Bash(npx tsc:*)"
+      "Bash(npx tsc:*)",
+      "Bash(sed -i '' 's/{\\\\/\\\\* Delete Button - Only Admin for Global, or anyone for their own \\(tenant\\) templates reachable by them \\\\*\\\\/}/{\\\\/\\\\* Delete Button - only for non-global \\(personal\\) templates \\\\*\\\\/}/' \"/Users/kyuahn/Documents/AVG/AVG Cashflow Management/src/pages/PageManageTemplates.jsx\")",
+      "Bash(sed -i '' 's/{\\(isAdmin || !template.isGlobal\\) && \\(/{!template.isGlobal \\\\&\\\\& \\(/' \"/Users/kyuahn/Documents/AVG/AVG Cashflow Management/src/pages/PageManageTemplates.jsx\")"
     ]
   }
 }

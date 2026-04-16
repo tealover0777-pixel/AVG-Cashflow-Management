@@ -127,8 +127,8 @@ export default function PageManageTemplates({ t, isDark, setActivePage, setActiv
         e.currentTarget.style.boxShadow = "0 2px 4px rgba(0,0,0,0.05)";
       }}
     >
-      {/* Delete Button - Only Admin for Global, or anyone for their own (tenant) templates reachable by them */}
-      {(isAdmin || !template.isGlobal) && (
+      {/* Delete Button - only for non-global (personal) templates */}
+      {!template.isGlobal && (
         <button 
           onClick={(e) => { 
             e.stopPropagation(); 
