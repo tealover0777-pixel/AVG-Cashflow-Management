@@ -122,7 +122,7 @@ function AppContent() {
         globalRes.items.map(async (item) => {
           try {
             const url = await getDownloadURL(item);
-            const res = await fetch(url);
+            const res = await fetch(url, { cache: "no-store" });
             const text = await res.text();
             return parseTemplateJson(text, item.fullPath, true);
           } catch (e) {
@@ -142,7 +142,7 @@ function AppContent() {
           tenantRes.items.map(async (item) => {
             try {
               const url = await getDownloadURL(item);
-              const res = await fetch(url);
+              const res = await fetch(url, { cache: "no-store" });
               const text = await res.text();
               return parseTemplateJson(text, item.fullPath, false);
             } catch (e) {
