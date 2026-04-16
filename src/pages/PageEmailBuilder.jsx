@@ -11,7 +11,7 @@ import {
   Plus, Trash2, Copy, Settings as SettingsIcon, Paperclip,
   AlignCenter, AlignRight, AlignJustify, Move
 } from "lucide-react";
-import { PromptModal } from "../components";
+import { PromptModal, DelModal } from "../components";
 
 const CDown = () => <ChevronDown size={12} strokeWidth={2.5} style={{ opacity: 0.7 }} />;
 
@@ -292,7 +292,9 @@ export default function PageEmailBuilder(props) {
     }
 
     setRows(prev => {
-      if (!relativeId) return [...prev, newRow];
+      if (!relativeId) {
+        return position === "before" ? [newRow, ...prev] : [...prev, newRow];
+      }
       const idx = prev.findIndex(r => r.id === relativeId);
       if (idx === -1) return [...prev, newRow]; // Should not happen for top level rows if relativeId is correct
 
@@ -666,8 +668,9 @@ function EmailCanvas({ t, isDark, rows, selectedRowId, onSelectRow, onAddRow, on
     setDropIdx(null);
     const label = e.dataTransfer.getData("blockLabel");
     if (!label) return;
-    const afterId = afterIdx >= 0 ? rows[afterIdx]?.id : null;
-    onAddRow(afterId, label);
+    const relativeId = afterIdx === -1 ? (rows[0]?.id || null) : rows[afterIdx]?.id;
+    const position = afterIdx === -1 ? "before" : "after";
+    onAddRow(relativeId, label, position);
   };
 
   return (
@@ -690,7 +693,7 @@ function EmailCanvas({ t, isDark, rows, selectedRowId, onSelectRow, onAddRow, on
               onHover={setHoveredRowId}
               onDelete={() => onDeleteRow(row.id)}
               onDuplicate={() => onDuplicateRow(row.id)}
-              onUpdate={patch => onUpdateRow(row.id, patch)}
+              onUpdate={onUpdateRow}
               onAddRow={onAddRow}
               onAddBlockToColumn={onAddBlockToColumn}
               setActiveRightTab={setActiveRightTab}
@@ -860,11 +863,28 @@ function EmailRow({ row, isSelected, isHovered, onSelect, onHover, onDelete, onD
           marginRight: (align === "center" || align === "left" || align === "justify") ? "auto" : "0",
           maxWidth: "100%"
         };
-        return item.content?.imageUrl ? (
-          <img src={item.content.imageUrl} alt={item.content.altText || ""} style={imgStyle} />
-        ) : (
-          <div style={{ background: isDark ? "#222" : "#F3F4F6", minHeight: 120, display: "flex", alignItems: "center", justifyContent: "center", color: t.textMuted }}>
-            <ImageIcon size={32} opacity={0.4} />
+        return (
+          <div
+            onDragOver={e => {
+              if (e.dataTransfer.types.includes("imageUrl")) {
+                e.preventDefault(); e.stopPropagation(); e.dataTransfer.dropEffect = "copy";
+              }
+            }}
+            onDrop={e => {
+              const url = e.dataTransfer.getData("imageUrl");
+              if (url) {
+                e.preventDefault(); e.stopPropagation();
+                onUpdate(item.id, { imageUrl: url });
+              }
+            }}
+          >
+            {item.content?.imageUrl ? (
+              <img src={item.content.imageUrl} alt={item.content.altText || ""} style={imgStyle} />
+            ) : (
+              <div style={{ background: isDark ? "#222" : "#F3F4F6", minHeight: 120, display: "flex", alignItems: "center", justifyContent: "center", color: t.textMuted }}>
+                <ImageIcon size={32} opacity={0.4} />
+              </div>
+            )}
           </div>
         );
 
@@ -1853,6 +1873,7 @@ function ImagesTab({ t, isDark, setActiveRightTab, hasImageSelected, onInsertIma
 function UploadsTab({ t, isDark, uploads, isUploading, uploadProgress, onUpload, onDeleteUpload, hasImageSelected, onInsertImage }) {
   const fileInputRef = useRef(null);
   const [hoveredIndex, setHoveredIndex] = useState(null);
+  const [itemToDelete, setItemToDelete] = useState(null);
 
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
@@ -1891,15 +1912,16 @@ function UploadsTab({ t, isDark, uploads, isUploading, uploadProgress, onUpload,
                   <span style={{ fontSize: 10, fontWeight: 700, color: "#fff", background: "rgba(59,130,246,0.9)", padding: "2px 8px", borderRadius: 4 }}>USE</span>
                 </div>
               )}
-              {hoveredIndex === i && !hasImageSelected && (
+              {hoveredIndex === i && (
                 <button
-                  onClick={(e) => { e.stopPropagation(); onDeleteUpload(item); }}
+                  onClick={(e) => { e.stopPropagation(); setItemToDelete(item); }}
                   style={{
                     position: "absolute", top: 5, right: 5,
                     width: 26, height: 26, borderRadius: 6,
                     background: "rgba(220,38,38,0.9)", color: "#fff",
                     border: "none", display: "flex", alignItems: "center", justifyContent: "center",
-                    cursor: "pointer", boxShadow: "0 2px 4px rgba(0,0,0,0.2)"
+                    cursor: "pointer", boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
+                    zIndex: 10
                   }}
                   title="Delete image"
                 >
@@ -1910,6 +1932,33 @@ function UploadsTab({ t, isDark, uploads, isUploading, uploadProgress, onUpload,
           ))
         }
       </div>
+      <DelModal
+        open={!!itemToDelete}
+        onClose={() => setItemToDelete(null)}
+        onDel={() => {
+          if (itemToDelete) onDeleteUpload(itemToDelete);
+          setItemToDelete(null);
+        }}
+        t={t}
+        isDark={isDark}
+      >
+        <div style={{ padding: "8px 0" }}>
+          <p style={{ fontSize: 13, color: t.textMuted, margin: "0 0 12px 0" }}>
+            Are you sure you want to delete this image?
+          </p>
+          {itemToDelete && (
+             <div style={{ display: "flex", alignItems: "center", gap: 10, padding: 10, background: t.surface, borderRadius: 8, border: `1px solid ${t.border}` }}>
+               <div style={{ width: 40, height: 40, borderRadius: 4, backgroundImage: `url(${itemToDelete.url})`, backgroundSize: "cover", backgroundPosition: "center" }} />
+               <span style={{ fontSize: 12, fontWeight: 500, color: t.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                 {itemToDelete.path.split('/').pop().replace(/^\d+_/, '')}
+               </span>
+             </div>
+          )}
+          <p style={{ fontSize: 12, color: "#EF4444", fontWeight: 600, marginTop: 12 }}>
+            This action cannot be undone and will remove the file from storage.
+          </p>
+        </div>
+      </DelModal>
     </div>
   );
 }
