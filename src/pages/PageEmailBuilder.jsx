@@ -1377,10 +1377,6 @@ function BlockPropsPanel({ t, isDark, blockType, rowId, onUpdate, rows, onClose,
 
   const fileInputRef = useRef(null);
 
-  // Local state for HTML textarea to avoid cursor-jump on every keystroke
-  const [localHtml, setLocalHtml] = useState(content.html ?? "");
-  useEffect(() => { setLocalHtml(content.html ?? ""); }, [rowId]);
-
   const [open, setOpen] = useState({ displayCondition: false, main: true, action: true, general: true, responsive: true, links: false, columnProps: false, header: true, menuItems: true });
   const tog = id => setOpen(p => ({ ...p, [id]: !p[id] }));
 
@@ -1664,43 +1660,7 @@ function BlockPropsPanel({ t, isDark, blockType, rowId, onUpdate, rows, onClose,
         </>
       );
 
-      case "HTML": return (
-        <>
-          <Sec id="main" label="HTML">
-            <textarea
-              value={localHtml}
-              onChange={e => setLocalHtml(e.target.value)}
-              onBlur={() => upd({ html: localHtml })}
-              style={{ width: "100%", height: 200, padding: "8px", border: `1px solid ${t.border}`, borderRadius: 4, background: t.surface, color: t.text, fontSize: 11, fontFamily: "monospace", resize: "vertical", boxSizing: "border-box", outline: "none", lineHeight: 1.5 }}
-            />
-          </Sec>
-          <Sec id="general" label="General">
-            <div style={{ fontSize: 11, fontWeight: 600, color: t.text, marginBottom: 8 }}>Container Padding</div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-              {[
-                { label: "Top", key: "paddingTop" },
-                { label: "Right", key: "paddingRight" },
-                { label: "Left", key: "paddingLeft" },
-                { label: "Bottom", key: "paddingBottom" },
-              ].map(({ label, key }) => (
-                <div key={key}>
-                  <div style={{ fontSize: 10, color: t.textMuted, marginBottom: 4 }}>{label}</div>
-                  <div style={{ display: "flex", border: `1px solid ${t.border}`, borderRadius: 4, overflow: "hidden" }}>
-                    <input
-                      type="number"
-                      value={content[key] ?? 10}
-                      min={0}
-                      onChange={e => upd({ [key]: Number(e.target.value) })}
-                      style={{ width: 44, padding: "5px 4px", border: "none", background: t.surface, color: t.text, fontSize: 11, textAlign: "center", outline: "none" }}
-                    />
-                    <div style={{ padding: "5px 6px", background: isDark ? "#1F2937" : "#F3F4F6", color: t.textMuted, fontSize: 10, display: "flex", alignItems: "center", borderLeft: `1px solid ${t.border}` }}>px</div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </Sec>
-        </>
-      );
+      case "HTML": return <HtmlBlockPanel rowId={rowId} content={content} upd={upd} t={t} isDark={isDark} />;
 
       case "TABLE": return (
         <>
@@ -1774,7 +1734,7 @@ function BlockPropsPanel({ t, isDark, blockType, rowId, onUpdate, rows, onClose,
         <div style={{ display: "flex", gap: 6 }}>
           <button
             title="Clear content"
-            onClick={() => { if (blockType === "HTML") { setLocalHtml(""); upd({ html: "" }); } else if (onDelete) onDelete(rowId); }}
+            onClick={() => { if (blockType === "HTML") upd({ html: "" }); else if (onDelete) onDelete(rowId); }}
             style={{ background: "none", border: "none", cursor: "pointer", color: t.textMuted }}
           ><Trash2 size={13} /></button>
           <button
@@ -1796,6 +1756,74 @@ function BlockPropsPanel({ t, isDark, blockType, rowId, onUpdate, rows, onClose,
       )}
       <div style={{ flex: 1, overflowY: "auto" }}>{renderProps()}</div>
     </div>
+  );
+}
+
+// ── HTML Block Panel (stable component — defined outside BlockPropsPanel to prevent remount on every render) ──
+
+function PaddingInput({ value, onChange, t, isDark }) {
+  const v = typeof value === "number" ? value : 10;
+  return (
+    <div style={{ display: "flex", border: `1px solid ${t.border}`, borderRadius: 4, overflow: "hidden", fontSize: 11 }}>
+      <input
+        type="number"
+        value={v}
+        min={0}
+        onChange={e => onChange(Number(e.target.value))}
+        style={{ width: 36, padding: "4px", border: "none", borderRight: `1px solid ${t.border}`, background: t.surface, color: t.text, fontSize: 11, textAlign: "center", outline: "none" }}
+      />
+      <div style={{ padding: "4px 6px", background: isDark ? "#1F2937" : "#F3F4F6", borderRight: `1px solid ${t.border}`, color: t.textMuted, fontSize: 10, display: "flex", alignItems: "center" }}>px</div>
+      <button onClick={() => onChange(Math.max(0, v - 1))} style={{ width: 22, background: t.surface, border: "none", borderRight: `1px solid ${t.border}`, cursor: "pointer", color: t.textMuted, fontSize: 14, lineHeight: 1 }}>−</button>
+      <button onClick={() => onChange(v + 1)} style={{ width: 22, background: t.surface, border: "none", cursor: "pointer", color: t.textMuted, fontSize: 14, lineHeight: 1 }}>+</button>
+    </div>
+  );
+}
+
+function HtmlBlockPanel({ rowId, content, upd, t, isDark }) {
+  const [localHtml, setLocalHtml] = useState(content.html ?? "");
+  const [open, setOpen] = useState({ main: true, general: true });
+  const tog = id => setOpen(p => ({ ...p, [id]: !p[id] }));
+
+  // Sync textarea when switching to a different HTML block
+  useEffect(() => { setLocalHtml(content.html ?? ""); }, [rowId]);
+
+  const SH = ({ id, label, children }) => (
+    <div>
+      <div onClick={() => tog(id)} style={{ padding: "10px 16px", display: "flex", justifyContent: "space-between", cursor: "pointer", borderBottom: `1px solid ${t.border}`, background: isDark ? "#161616" : "#F9FAFB" }}>
+        <span style={{ fontSize: 12, fontWeight: 700, color: t.text }}>{label}</span>
+        {open[id] ? <ChevronUp size={13} color={t.textMuted} /> : <ChevronDown size={12} strokeWidth={2.5} style={{ opacity: 0.7 }} />}
+      </div>
+      {open[id] && <div style={{ padding: 14, display: "flex", flexDirection: "column", gap: 12, borderBottom: `1px solid ${t.border}` }}>{children}</div>}
+    </div>
+  );
+
+  return (
+    <>
+      <SH id="main" label="HTML">
+        <textarea
+          value={localHtml}
+          onChange={e => setLocalHtml(e.target.value)}
+          onBlur={() => upd({ html: localHtml })}
+          style={{ width: "100%", height: 200, padding: "8px", border: `1px solid ${t.border}`, borderRadius: 4, background: t.surface, color: t.text, fontSize: 11, fontFamily: "monospace", resize: "vertical", boxSizing: "border-box", outline: "none", lineHeight: 1.5 }}
+        />
+      </SH>
+      <SH id="general" label="General">
+        <div style={{ fontSize: 11, fontWeight: 600, color: t.text, marginBottom: 4 }}>Container Padding</div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+          {[
+            { label: "Top", key: "paddingTop" },
+            { label: "Right", key: "paddingRight" },
+            { label: "Left", key: "paddingLeft" },
+            { label: "Bottom", key: "paddingBottom" },
+          ].map(({ label, key }) => (
+            <div key={key}>
+              <div style={{ fontSize: 10, color: t.textMuted, marginBottom: 4 }}>{label}</div>
+              <PaddingInput value={content[key] ?? 10} onChange={v => upd({ [key]: v })} t={t} isDark={isDark} />
+            </div>
+          ))}
+        </div>
+      </SH>
+    </>
   );
 }
 
