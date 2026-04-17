@@ -1779,13 +1779,15 @@ function PaddingInput({ value, onChange, t, isDark }) {
   );
 }
 
+const HTML_DEFAULT = "<strong>Hello, world!</strong>";
+
 function HtmlBlockPanel({ rowId, content, upd, t, isDark }) {
-  const [localHtml, setLocalHtml] = useState(content.html ?? "");
+  const [localHtml, setLocalHtml] = useState(content.html ?? HTML_DEFAULT);
   const [open, setOpen] = useState({ main: true, general: true });
   const tog = id => setOpen(p => ({ ...p, [id]: !p[id] }));
 
   // Sync textarea when switching to a different HTML block
-  useEffect(() => { setLocalHtml(content.html ?? ""); }, [rowId]);
+  useEffect(() => { setLocalHtml(content.html ?? HTML_DEFAULT); }, [rowId]);
 
   const SH = ({ id, label, children }) => (
     <div>
