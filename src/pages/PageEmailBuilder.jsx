@@ -95,6 +95,9 @@ export default function PageEmailBuilder(props) {
   const [activeRightTab, setActiveRightTab] = useState("Content");
   const [selectedRowId, setSelectedRowId] = useState(null);
   const [selectedBlockType, setSelectedBlockType] = useState(null);
+  // Refs mirror state so handlers always see the latest values regardless of closure age
+  const selectedRowIdRef = useRef(null);
+  const selectedBlockTypeRef = useRef(null);
   const [emailName, setEmailName] = useState(activeEmailTemplate?.name || "Investment reports - March 2026");
   const [editingName, setEditingName] = useState(false);
   const [emailSettings, setEmailSettings] = useState(activeEmailTemplate?.settings || INITIAL_SETTINGS);
@@ -288,17 +291,26 @@ export default function PageEmailBuilder(props) {
   const showBlockProps = !!(selectedRowId && selectedBlockType && activeRightTab === "Content");
 
   const handleSelectRow = (rowId, blockType) => {
+    selectedRowIdRef.current = rowId;
+    selectedBlockTypeRef.current = blockType || null;
     setSelectedRowId(rowId);
     setSelectedBlockType(blockType || null);
     setActiveRightTab("Content");
   };
 
-  const handleDeselect = () => { setSelectedRowId(null); setSelectedBlockType(null); };
+  const handleDeselect = () => {
+    selectedRowIdRef.current = null;
+    selectedBlockTypeRef.current = null;
+    setSelectedRowId(null);
+    setSelectedBlockType(null);
+  };
 
   // Called from Images/Uploads tabs to set the URL on the currently-selected IMAGE block
   const handleInsertImage = (url) => {
-    if (selectedRowId && selectedBlockType === "IMAGE") {
-      handleUpdateRow(selectedRowId, { imageUrl: url });
+    const rowId = selectedRowIdRef.current;
+    const blockType = selectedBlockTypeRef.current;
+    if (rowId && blockType === "IMAGE") {
+      handleUpdateRow(rowId, { imageUrl: url });
       setActiveRightTab("Content");
     }
   };
