@@ -1,9 +1,49 @@
 import React, { useState, useEffect } from "react";
-import { ArrowLeft, Search, MoreHorizontal, FileText, Image as ImageIcon, Briefcase, Star, Users, X, Trash2, Loader2, AlertCircle } from "lucide-react";
+import { ArrowLeft, Search, MoreHorizontal, FileText, Image as ImageIcon, Briefcase, Star, Users, X, Trash2, Loader2, AlertCircle, Edit2, Send } from "lucide-react";
 import { DelModal, Modal } from "../components";
 import { useAuth } from "../AuthContext";
 import { storage } from "../firebase";
 import { ref, listAll, getDownloadURL, deleteObject } from "firebase/storage";
+
+function generateEmailPreviewHtml(rows = []) {
+  const renderRow = (row) => {
+    if (!row) return "";
+    switch (row.type) {
+      case "image":
+        if (row.content?.banner) {
+          return `<div style="background:${row.content.bg || "#1a1a1a"};min-height:100px;display:flex;align-items:flex-end;justify-content:flex-end;padding:16px;margin-bottom:0"><div style="background:#D97706;color:#fff;padding:6px 16px;font-weight:700;font-size:12px;letter-spacing:1px">${row.content.bannerText || "INVESTMENT REPORT"}</div></div>`;
+        }
+        return row.content?.imageUrl
+          ? `<div style="margin-bottom:0"><img src="${row.content.imageUrl}" style="width:100%;display:block" /></div>`
+          : "";
+      case "heading":
+        return `<div style="padding:24px 32px 8px;"><h2 style="margin:0;font-family:Georgia,serif;font-size:22px;color:#111">${row.content?.text || ""}</h2></div>`;
+      case "paragraph":
+        return `<div style="padding:8px 32px;font-size:13px;line-height:1.65;color:#374151">${row.content?.html || ""}</div>`;
+      case "divider":
+        return `<div style="padding:8px 32px"><hr style="border:none;border-top:1px solid #e5e7eb;margin:0"/></div>`;
+      case "button": {
+        const bg = row.content?.bgColor || "#1D4ED8";
+        const txt = row.content?.text || "Click here";
+        const align = row.content?.align || "center";
+        return `<div style="padding:12px 32px;text-align:${align}"><a href="#" style="background:${bg};color:#fff;padding:10px 24px;border-radius:6px;text-decoration:none;font-weight:600;font-size:13px;display:inline-block">${txt}</a></div>`;
+      }
+      case "columns": {
+        const cols = row.content?.columns || [];
+        const colsHtml = cols.map(col => {
+          const blocksHtml = (col.blocks || []).map(b => renderRow(b)).join("");
+          return `<div style="flex:1;padding:${col.settings?.padding || "10px"}">${blocksHtml}</div>`;
+        }).join("");
+        return `<div style="display:flex;background:${row.content?.rowBg || "transparent"}">${colsHtml}</div>`;
+      }
+      default:
+        return "";
+    }
+  };
+
+  const body = (rows || []).map(renderRow).join("");
+  return `<!DOCTYPE html><html><head><meta charset="UTF-8"><style>body{margin:0;font-family:Arial,sans-serif;background:#f3f4f6}*{box-sizing:border-box}</style></head><body><div style="max-width:600px;margin:32px auto;background:#fff;box-shadow:0 2px 12px rgba(0,0,0,0.08)">${body}</div></body></html>`;
+}
 
 const TemplatePlaceholder = ({ isDark }) => (
   <div style={{
@@ -95,6 +135,7 @@ export default function PageManageTemplates({ t, isDark, setActivePage, setActiv
   const { tenantId, isSuperAdmin, isGlobalRole, profile } = useAuth();
   const isAdmin = isSuperAdmin || isGlobalRole;
   const [searchQuery, setSearchQuery] = useState("");
+  const [viewTemplate, setViewTemplate] = useState(null);
   const [selectedTemplate, setSelectedTemplate] = useState(null);
   const [templateToDelete, setTemplateToDelete] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -107,7 +148,7 @@ export default function PageManageTemplates({ t, isDark, setActivePage, setActiv
 
   const TemplateCard = ({ template }) => (
     <div
-      onClick={() => { setActiveEmailTemplate(template); setActivePage("Email Builder"); }}
+      onClick={() => setViewTemplate(template)}
       style={{
         border: `1px solid ${t.border}`,
         borderRadius: 12,
@@ -326,6 +367,67 @@ export default function PageManageTemplates({ t, isDark, setActivePage, setActiv
           </div>
         )}
       </div>
+      {/* View Email Modal */}
+      {viewTemplate && (
+        <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.6)", backdropFilter: "blur(4px)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
+          <div style={{ width: "100%", maxWidth: 460, maxHeight: "90vh", background: "#fff", borderRadius: 12, overflow: "hidden", display: "flex", flexDirection: "column", boxShadow: "0 24px 64px rgba(0,0,0,0.35)" }}>
+            {/* Header */}
+            <div style={{ background: isDark ? "#1e293b" : "#1D4ED8", color: "#fff", padding: "14px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0 }}>
+              <span style={{ fontSize: 15, fontWeight: 600 }}>View email</span>
+              <button onClick={() => setViewTemplate(null)} style={{ background: "transparent", border: "none", color: "rgba(255,255,255,0.8)", cursor: "pointer", display: "flex", padding: 2 }}>
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Preview Body */}
+            <div style={{ flex: 1, overflowY: "auto", background: "#f3f4f6" }}>
+              <iframe
+                srcDoc={generateEmailPreviewHtml(viewTemplate.rows)}
+                title="Email preview"
+                sandbox="allow-same-origin"
+                style={{ width: "100%", border: "none", minHeight: 520, display: "block" }}
+                onLoad={e => {
+                  try {
+                    const h = e.target.contentDocument?.body?.scrollHeight;
+                    if (h) e.target.style.height = Math.min(h + 32, 600) + "px";
+                  } catch (_) {}
+                }}
+              />
+            </div>
+
+            {/* Footer Buttons */}
+            <div style={{ background: "#fff", borderTop: "1px solid #e5e7eb", padding: "14px 20px", display: "flex", gap: 10, justifyContent: "center", flexShrink: 0 }}>
+              <button
+                onClick={() => {
+                  setActiveEmailTemplate({ ...viewTemplate, _useMode: true });
+                  setActivePage("Email Builder");
+                  setViewTemplate(null);
+                }}
+                style={{ padding: "9px 20px", borderRadius: 7, background: "#1D4ED8", color: "#fff", fontWeight: 600, fontSize: 13, border: "none", cursor: "pointer" }}
+              >
+                Use template
+              </button>
+              <button
+                onClick={() => {
+                  setActiveEmailTemplate(viewTemplate);
+                  setActivePage("Email Builder");
+                  setViewTemplate(null);
+                }}
+                style={{ padding: "9px 20px", borderRadius: 7, background: "transparent", color: "#374151", fontWeight: 600, fontSize: 13, border: "1px solid #d1d5db", cursor: "pointer" }}
+              >
+                Edit template
+              </button>
+              <button
+                onClick={() => setViewTemplate(null)}
+                style={{ padding: "9px 20px", borderRadius: 7, background: "transparent", color: "#374151", fontWeight: 600, fontSize: 13, border: "1px solid #d1d5db", cursor: "pointer" }}
+              >
+                Done
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Preview Modal */}
       {selectedTemplate && (
         <div style={{
