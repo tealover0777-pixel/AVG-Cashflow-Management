@@ -1661,11 +1661,12 @@ function BlockPropsPanel({ t, isDark, blockType, rowId, onUpdate, rows, onClose,
 
       case "HTML": return (
         <>
-          <DispCond />
           <Sec id="main" label="HTML">
             <textarea value={content.html ?? "<strong>Hello, world!</strong>"} onChange={e => upd({ html: e.target.value })} style={{ width: "100%", height: 120, padding: "8px", border: `1px solid ${t.border}`, borderRadius: 4, background: t.surface, color: t.text, fontSize: 11, fontFamily: "monospace", resize: "vertical", boxSizing: "border-box", outline: "none" }} />
           </Sec>
-          <General /><Responsive />
+          <Sec id="general" label="General">
+            <PR label="Container Padding"><NI value={10} /></PR>
+          </Sec>
         </>
       );
 
@@ -1744,13 +1745,15 @@ function BlockPropsPanel({ t, isDark, blockType, rowId, onUpdate, rows, onClose,
           <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: t.textMuted }}><XIcon size={13} /></button>
         </div>
       </div>
-      {/* Desktop/Mobile tabs */}
-      <div style={{ display: "flex", borderBottom: `1px solid ${t.border}` }}>
-        {["Desktop"].map((tab, i) => (
-          <button key={tab} style={{ flex: 1, padding: "7px", fontSize: 11.5, border: "none", background: i === 0 ? t.surface : "transparent", cursor: "pointer", color: i === 0 ? t.text : t.textMuted, fontWeight: i === 0 ? 600 : 400, borderBottom: i === 0 ? `2px solid ${isDark ? "#60A5FA" : "#3B82F6"}` : "2px solid transparent" }}>{tab}</button>
-        ))}
-        <button onClick={onClose} style={{ padding: "4px 8px", border: "none", background: "transparent", cursor: "pointer", color: t.textMuted }}><XIcon size={13} /></button>
-      </div>
+      {/* Desktop/Mobile tabs — hidden for HTML block */}
+      {blockType !== "HTML" && (
+        <div style={{ display: "flex", borderBottom: `1px solid ${t.border}` }}>
+          {["Desktop"].map((tab, i) => (
+            <button key={tab} style={{ flex: 1, padding: "7px", fontSize: 11.5, border: "none", background: i === 0 ? t.surface : "transparent", cursor: "pointer", color: i === 0 ? t.text : t.textMuted, fontWeight: i === 0 ? 600 : 400, borderBottom: i === 0 ? `2px solid ${isDark ? "#60A5FA" : "#3B82F6"}` : "2px solid transparent" }}>{tab}</button>
+          ))}
+          <button onClick={onClose} style={{ padding: "4px 8px", border: "none", background: "transparent", cursor: "pointer", color: t.textMuted }}><XIcon size={13} /></button>
+        </div>
+      )}
       <div style={{ flex: 1, overflowY: "auto" }}>{renderProps()}</div>
     </div>
   );
