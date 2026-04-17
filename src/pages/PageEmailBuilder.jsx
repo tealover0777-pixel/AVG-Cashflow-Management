@@ -642,6 +642,7 @@ export default function PageEmailBuilder(props) {
                   onUpdate={handleUpdateRow} onClose={handleDeselect} rows={rows}
                   uploads={uploads} isUploading={isUploading} uploadProgress={uploadProgress}
                   onUpload={handleUploadFile} setActiveRightTab={setActiveRightTab}
+                  onDelete={handleDeleteRow} onDuplicate={handleDuplicateRow}
                 />
               ) : (
                 <>
@@ -1369,12 +1370,16 @@ function RowPreview({ row, narrow }) {
 
 // ── Block Properties Panel ────────────────────────────────────────────────────
 
-function BlockPropsPanel({ t, isDark, blockType, rowId, onUpdate, rows, onClose, uploads, isUploading, uploadProgress, onUpload, setActiveRightTab }) {
+function BlockPropsPanel({ t, isDark, blockType, rowId, onUpdate, rows, onClose, uploads, isUploading, uploadProgress, onUpload, setActiveRightTab, onDelete, onDuplicate }) {
   const row = rows?.find(r => r.id === rowId);
   const content = row?.content || {};
   const upd = patch => onUpdate(rowId, patch);
 
   const fileInputRef = useRef(null);
+
+  // Local state for HTML textarea to avoid cursor-jump on every keystroke
+  const [localHtml, setLocalHtml] = useState(content.html ?? "");
+  useEffect(() => { setLocalHtml(content.html ?? ""); }, [rowId]);
 
   const [open, setOpen] = useState({ displayCondition: false, main: true, action: true, general: true, responsive: true, links: false, columnProps: false, header: true, menuItems: true });
   const tog = id => setOpen(p => ({ ...p, [id]: !p[id] }));
@@ -1662,10 +1667,37 @@ function BlockPropsPanel({ t, isDark, blockType, rowId, onUpdate, rows, onClose,
       case "HTML": return (
         <>
           <Sec id="main" label="HTML">
-            <textarea value={content.html ?? "<strong>Hello, world!</strong>"} onChange={e => upd({ html: e.target.value })} style={{ width: "100%", height: 120, padding: "8px", border: `1px solid ${t.border}`, borderRadius: 4, background: t.surface, color: t.text, fontSize: 11, fontFamily: "monospace", resize: "vertical", boxSizing: "border-box", outline: "none" }} />
+            <textarea
+              value={localHtml}
+              onChange={e => setLocalHtml(e.target.value)}
+              onBlur={() => upd({ html: localHtml })}
+              style={{ width: "100%", height: 200, padding: "8px", border: `1px solid ${t.border}`, borderRadius: 4, background: t.surface, color: t.text, fontSize: 11, fontFamily: "monospace", resize: "vertical", boxSizing: "border-box", outline: "none", lineHeight: 1.5 }}
+            />
           </Sec>
           <Sec id="general" label="General">
-            <PR label="Container Padding"><NI value={10} /></PR>
+            <div style={{ fontSize: 11, fontWeight: 600, color: t.text, marginBottom: 8 }}>Container Padding</div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+              {[
+                { label: "Top", key: "paddingTop" },
+                { label: "Right", key: "paddingRight" },
+                { label: "Left", key: "paddingLeft" },
+                { label: "Bottom", key: "paddingBottom" },
+              ].map(({ label, key }) => (
+                <div key={key}>
+                  <div style={{ fontSize: 10, color: t.textMuted, marginBottom: 4 }}>{label}</div>
+                  <div style={{ display: "flex", border: `1px solid ${t.border}`, borderRadius: 4, overflow: "hidden" }}>
+                    <input
+                      type="number"
+                      value={content[key] ?? 10}
+                      min={0}
+                      onChange={e => upd({ [key]: Number(e.target.value) })}
+                      style={{ width: 44, padding: "5px 4px", border: "none", background: t.surface, color: t.text, fontSize: 11, textAlign: "center", outline: "none" }}
+                    />
+                    <div style={{ padding: "5px 6px", background: isDark ? "#1F2937" : "#F3F4F6", color: t.textMuted, fontSize: 10, display: "flex", alignItems: "center", borderLeft: `1px solid ${t.border}` }}>px</div>
+                  </div>
+                </div>
+              ))}
+            </div>
           </Sec>
         </>
       );
@@ -1740,9 +1772,17 @@ function BlockPropsPanel({ t, isDark, blockType, rowId, onUpdate, rows, onClose,
       <div style={{ padding: "10px 14px", display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: `1px solid ${t.border}`, background: isDark ? "#1a1a1a" : "#F9FAFB" }}>
         <span style={{ fontSize: 12, fontWeight: 700, color: t.text }}>{blockType}</span>
         <div style={{ display: "flex", gap: 6 }}>
-          <button style={{ background: "none", border: "none", cursor: "pointer", color: t.textMuted }}><Trash2 size={13} /></button>
-          <button style={{ background: "none", border: "none", cursor: "pointer", color: t.textMuted }}><Copy size={13} /></button>
-          <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: t.textMuted }}><XIcon size={13} /></button>
+          <button
+            title="Clear content"
+            onClick={() => { if (blockType === "HTML") { setLocalHtml(""); upd({ html: "" }); } else if (onDelete) onDelete(rowId); }}
+            style={{ background: "none", border: "none", cursor: "pointer", color: t.textMuted }}
+          ><Trash2 size={13} /></button>
+          <button
+            title="Duplicate block"
+            onClick={() => onDuplicate && onDuplicate(rowId)}
+            style={{ background: "none", border: "none", cursor: "pointer", color: t.textMuted }}
+          ><Copy size={13} /></button>
+          <button onClick={onClose} title="Close" style={{ background: "none", border: "none", cursor: "pointer", color: t.textMuted }}><XIcon size={13} /></button>
         </div>
       </div>
       {/* Desktop/Mobile tabs — hidden for HTML block */}
