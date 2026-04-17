@@ -1781,50 +1781,59 @@ function PaddingInput({ value, onChange, t, isDark }) {
 
 const HTML_DEFAULT = "<strong>Hello, world!</strong>";
 
+function HtmlSectionHeader({ label, isOpen, onToggle, t, isDark }) {
+  return (
+    <div onClick={onToggle} style={{ padding: "10px 16px", display: "flex", justifyContent: "space-between", cursor: "pointer", borderBottom: `1px solid ${t.border}`, background: isDark ? "#161616" : "#F9FAFB" }}>
+      <span style={{ fontSize: 12, fontWeight: 700, color: t.text }}>{label}</span>
+      {isOpen ? <ChevronUp size={13} color={t.textMuted} /> : <ChevronDown size={12} strokeWidth={2.5} style={{ opacity: 0.7 }} />}
+    </div>
+  );
+}
+
 function HtmlBlockPanel({ rowId, content, upd, t, isDark }) {
   const [localHtml, setLocalHtml] = useState(content.html ?? HTML_DEFAULT);
-  const [open, setOpen] = useState({ main: true, general: true });
-  const tog = id => setOpen(p => ({ ...p, [id]: !p[id] }));
+  const [mainOpen, setMainOpen] = useState(true);
+  const [generalOpen, setGeneralOpen] = useState(true);
 
   // Sync textarea when switching to a different HTML block
   useEffect(() => { setLocalHtml(content.html ?? HTML_DEFAULT); }, [rowId]);
 
-  const SH = ({ id, label, children }) => (
-    <div>
-      <div onClick={() => tog(id)} style={{ padding: "10px 16px", display: "flex", justifyContent: "space-between", cursor: "pointer", borderBottom: `1px solid ${t.border}`, background: isDark ? "#161616" : "#F9FAFB" }}>
-        <span style={{ fontSize: 12, fontWeight: 700, color: t.text }}>{label}</span>
-        {open[id] ? <ChevronUp size={13} color={t.textMuted} /> : <ChevronDown size={12} strokeWidth={2.5} style={{ opacity: 0.7 }} />}
-      </div>
-      {open[id] && <div style={{ padding: 14, display: "flex", flexDirection: "column", gap: 12, borderBottom: `1px solid ${t.border}` }}>{children}</div>}
-    </div>
-  );
-
   return (
     <>
-      <SH id="main" label="HTML">
-        <textarea
-          value={localHtml}
-          onChange={e => setLocalHtml(e.target.value)}
-          onBlur={() => upd({ html: localHtml })}
-          style={{ width: "100%", height: 200, padding: "8px", border: `1px solid ${t.border}`, borderRadius: 4, background: t.surface, color: t.text, fontSize: 11, fontFamily: "monospace", resize: "vertical", boxSizing: "border-box", outline: "none", lineHeight: 1.5 }}
-        />
-      </SH>
-      <SH id="general" label="General">
-        <div style={{ fontSize: 11, fontWeight: 600, color: t.text, marginBottom: 4 }}>Container Padding</div>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-          {[
-            { label: "Top", key: "paddingTop" },
-            { label: "Right", key: "paddingRight" },
-            { label: "Left", key: "paddingLeft" },
-            { label: "Bottom", key: "paddingBottom" },
-          ].map(({ label, key }) => (
-            <div key={key}>
-              <div style={{ fontSize: 10, color: t.textMuted, marginBottom: 4 }}>{label}</div>
-              <PaddingInput value={content[key] ?? 10} onChange={v => upd({ [key]: v })} t={t} isDark={isDark} />
+      <div>
+        <HtmlSectionHeader label="HTML" isOpen={mainOpen} onToggle={() => setMainOpen(p => !p)} t={t} isDark={isDark} />
+        {mainOpen && (
+          <div style={{ padding: 14, borderBottom: `1px solid ${t.border}` }}>
+            <textarea
+              value={localHtml}
+              onChange={e => setLocalHtml(e.target.value)}
+              onBlur={() => upd({ html: localHtml })}
+              style={{ width: "100%", height: 200, padding: "8px", border: `1px solid ${t.border}`, borderRadius: 4, background: t.surface, color: t.text, fontSize: 11, fontFamily: "monospace", resize: "vertical", boxSizing: "border-box", outline: "none", lineHeight: 1.5 }}
+            />
+          </div>
+        )}
+      </div>
+      <div>
+        <HtmlSectionHeader label="General" isOpen={generalOpen} onToggle={() => setGeneralOpen(p => !p)} t={t} isDark={isDark} />
+        {generalOpen && (
+          <div style={{ padding: 14, display: "flex", flexDirection: "column", gap: 12, borderBottom: `1px solid ${t.border}` }}>
+            <div style={{ fontSize: 11, fontWeight: 600, color: t.text, marginBottom: 4 }}>Container Padding</div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+              {[
+                { label: "Top", key: "paddingTop" },
+                { label: "Right", key: "paddingRight" },
+                { label: "Left", key: "paddingLeft" },
+                { label: "Bottom", key: "paddingBottom" },
+              ].map(({ label, key }) => (
+                <div key={key}>
+                  <div style={{ fontSize: 10, color: t.textMuted, marginBottom: 4 }}>{label}</div>
+                  <PaddingInput value={content[key] ?? 10} onChange={v => upd({ [key]: v })} t={t} isDark={isDark} />
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
-      </SH>
+          </div>
+        )}
+      </div>
     </>
   );
 }
