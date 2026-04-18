@@ -1316,13 +1316,13 @@ function SettingsPanel({ t, isDark, settings, onChange }) {
     onChange(prev => ({ ...prev, [key]: localSettings[key] }));
   };
 
-  const inp = { flex: 1, border: "none", borderBottom: `1px solid ${t.border}`, background: "transparent", fontSize: 15, color: t.text, outline: "none", padding: "8px 0", transition: "border-color 0.2s" };
-  const actionBtn = { border: `1px solid ${t.border}`, borderRadius: 20, padding: "8px 20px", background: "transparent", cursor: "pointer", color: t.text, fontSize: 13, fontWeight: 600, transition: "all 0.2s" };
+  const inp = { flex: 1, border: "none", borderBottom: `1px solid ${t.chipBorder}`, background: "transparent", fontSize: 15, color: t.text, outline: "none", padding: "8px 0", transition: "border-color 0.2s" };
+  const actionBtn = { border: `1px solid ${t.chipBorder}`, borderRadius: 20, padding: "8px 20px", background: "transparent", cursor: "pointer", color: t.text, fontSize: 13, fontWeight: 600, transition: "all 0.2s" };
 
   return (
     <div style={{ flex: 1, background: isDark ? "#111" : "#EEEEE9", display: "flex", alignItems: "flex-start", justifyContent: "center", padding: "40px 24px", overflowY: "auto" }}>
-      <div style={{ width: "100%", maxWidth: 1360, background: t.surface, borderRadius: 16, border: `1px solid ${t.border}`, boxShadow: "0 10px 40px rgba(0,0,0,0.1)" }}>
-        <div style={{ padding: "32px 48px", borderBottom: `1px solid ${t.border}` }}>
+      <div style={{ width: "100%", maxWidth: 1360, background: t.surface, borderRadius: 16, border: `1px solid ${t.chipBorder}`, boxShadow: "0 10px 40px rgba(0,0,0,0.1)" }}>
+        <div style={{ padding: "32px 48px", borderBottom: `1px solid ${t.chipBorder}` }}>
           <h3 style={{ margin: 0, fontSize: 22, fontWeight: 700, color: t.text, letterSpacing: "-0.01em" }}>Email settings &amp; recipients</h3>
         </div>
         <div style={{ padding: "40px 48px", display: "flex", flexDirection: "column", gap: 32 }}>
@@ -1336,7 +1336,7 @@ function SettingsPanel({ t, isDark, settings, onChange }) {
           </SettingsRow>
 
           <SettingsRow label="Recipients:" t={t}>
-            <div style={{ flex: 1, fontSize: 15, color: t.textMuted, borderBottom: `1px solid ${t.border}`, padding: "8px 0" }}>Click to select your recipients</div>
+            <div style={{ flex: 1, fontSize: 15, color: t.textMuted, borderBottom: `1px solid ${t.chipBorder}`, padding: "8px 0" }}>Click to select your recipients</div>
             <button style={{ ...actionBtn, marginLeft: 16, display: "flex", alignItems: "center", gap: 8, background: isDark ? "#374151" : "#F3F4F6", border: "none" }}>
               <Eye size={16} /> View recipients
             </button>
@@ -1347,7 +1347,7 @@ function SettingsPanel({ t, isDark, settings, onChange }) {
           </SettingsRow>
 
           <SettingsRow label="Type:" t={t}>
-            <div style={{ position: "relative", flex: 1, borderBottom: `1px solid ${t.border}` }}>
+            <div style={{ position: "relative", flex: 1, borderBottom: `1px solid ${t.chipBorder}` }}>
               <select value={localSettings.type || "Marketing"} onChange={e => { set("type", e.target.value); onChange(prev => ({ ...prev, type: e.target.value })); }} style={{ ...inp, borderBottom: "none", padding: "8px 24px 8px 0", appearance: "none", cursor: "pointer" }}>
                 <option value="Marketing">Marketing</option>
                 <option value="Transactional">Transactional</option>
@@ -1365,7 +1365,7 @@ function SettingsPanel({ t, isDark, settings, onChange }) {
           </SettingsRow>
 
           <SettingsRow label="From:" t={t}>
-            <div style={{ flex: 1, fontSize: 15, color: t.text, borderBottom: `1px solid ${t.border}`, padding: "8px 0" }}>{localSettings.from || "—"}</div>
+            <div style={{ flex: 1, fontSize: 15, color: t.text, borderBottom: `1px solid ${t.chipBorder}`, padding: "8px 0" }}>{localSettings.from || "—"}</div>
             <button style={{ ...actionBtn, marginLeft: 16, marginRight: 16 }}>✏️ Edit</button>
             <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 14, color: t.textMuted, cursor: "pointer", whiteSpace: "nowrap" }}>
               <input type="checkbox" checked={!!localSettings.addSignature} onChange={e => { set("addSignature", e.target.checked); onChange(prev => ({ ...prev, addSignature: e.target.checked })); }} />
@@ -1374,7 +1374,7 @@ function SettingsPanel({ t, isDark, settings, onChange }) {
           </SettingsRow>
 
           <SettingsRow label="Reply-to:" t={t}>
-            <div style={{ position: "relative", flex: 1, borderBottom: `1px solid ${t.border}`, display: "flex", alignItems: "center" }}>
+            <div style={{ position: "relative", flex: 1, borderBottom: `1px solid ${t.chipBorder}`, display: "flex", alignItems: "center" }}>
               <input value={localSettings.replyTo || ""} onChange={e => set("replyTo", e.target.value)} onBlur={() => commit("replyTo")} placeholder="Enter Reply-to" style={{ ...inp, borderBottom: "none" }} />
               <div style={{ paddingLeft: 12 }}>
                 <CDown />
