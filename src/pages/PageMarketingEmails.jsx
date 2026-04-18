@@ -1,6 +1,9 @@
 import React, { useState, useMemo, useRef, useEffect } from "react";
 import { Plus, Search, FileText, Send, Inbox, LayoutTemplate, X, ChevronRight, Trash2, MoreHorizontal } from "lucide-react";
 import TanStackTable from "../components/TanStackTable";
+import { db } from "../firebase";
+import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { getCollectionPaths } from "../utils";
 
 const formatDate = (dateStr) => {
   if (!dateStr) return "";
@@ -30,7 +33,7 @@ const getMarketingEmailColumns = (isDark, t, onOpenEmail) => [
     size: 360,
     cell: ({ getValue }) => (
       <span
-        onClick={onOpenEmail}
+        onClick={() => onOpenEmail(row.original)}
         style={{ fontSize: "12.5px", fontWeight: 600, color: isDark ? "#60A5FA" : "#2563EB", cursor: "pointer", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
         onMouseEnter={e => e.currentTarget.style.textDecoration = "underline"}
         onMouseLeave={e => e.currentTarget.style.textDecoration = "none"}
@@ -96,7 +99,25 @@ const getMarketingEmailColumns = (isDark, t, onOpenEmail) => [
   },
 ];
 
-export default function PageMarketingEmails({ t, isDark, setActivePage, MARKETING_EMAILS = [] }) {
+const DUMMY_DRAFTS = [
+  { id: 1, title: "Quarterly Investor Newsletter Template", recipients: "No recipients", createdAt: "2026-04-16T17:31:00", updatedAt: "2026-04-16T17:34:00", status: "Draft" },
+  { id: 2, title: "New draft", recipients: "No recipients", createdAt: "2026-04-16T17:30:00", updatedAt: "2026-04-16T17:30:00", status: "Draft" },
+  { id: 3, title: "Quarterly Investor Newsletter Template", recipients: "No recipients", createdAt: "2026-04-16T17:30:00", updatedAt: "2026-04-16T17:30:00", status: "Draft" },
+  { id: 4, title: "New draft", recipients: "No recipients", createdAt: "2026-04-12T19:12:00", updatedAt: "2026-04-12T19:14:00", status: "Draft" },
+  { id: 5, title: "New draft", recipients: "No recipients", createdAt: "2026-04-12T19:12:00", updatedAt: "2026-04-12T19:12:00", status: "Draft" },
+  { id: 6, title: "Template of Introducing American Vision Group & Our Investment Solutions", recipients: "No recipients", createdAt: "2026-04-12T17:59:00", updatedAt: "2026-04-16T17:40:00", status: "Draft" },
+  { id: 7, title: "Template of Introducing American Vision Group & Our Investment Solutions", recipients: "No recipients", createdAt: "2026-04-12T17:47:00", updatedAt: "2026-04-12T17:47:00", status: "Draft" },
+  { id: 8, title: "Template of Introducing American Vision Group & Our Investment Solutions", recipients: "No recipients", createdAt: "2026-04-12T17:47:00", updatedAt: "2026-04-12T17:47:00", status: "Draft" },
+  { id: 9, title: "Template of Intro our Fund", recipients: "No recipients", createdAt: "2026-04-12T15:38:00", updatedAt: "2026-04-12T15:38:00", status: "Draft" },
+  { id: 10, title: "10% fixed - first timer", recipients: "No recipients", createdAt: "2026-04-12T15:38:00", updatedAt: "2026-04-12T15:38:00", status: "Draft" },
+  { id: 11, title: "AVG Intro Email", recipients: "No recipients", createdAt: "2026-01-28T23:10:00", updatedAt: "2026-01-28T23:10:00", status: "Draft" },
+  { id: 12, title: "Quarterly Investor Newsletter Template", recipients: "No recipients", createdAt: "2025-10-29T17:35:00", updatedAt: "2025-11-04T15:24:00", status: "Draft" },
+  { id: 13, title: "Investor Newsletter for navigation purpose", recipients: "No recipients", createdAt: "2025-10-13T15:11:00", updatedAt: "2025-10-13T15:11:00", status: "Draft" },
+  { id: 14, title: "Q3 2025 Insights: Investor Newsletter", recipients: "No recipients", createdAt: "2025-10-02T16:37:00", updatedAt: "2025-10-02T16:40:00", status: "Draft" },
+  { id: 15, title: "New draft", recipients: "No recipients", createdAt: "2025-09-22T01:46:00", updatedAt: "2025-09-22T01:46:00", status: "Draft" },
+];
+
+export default function PageMarketingEmails({ t, isDark, setActivePage, MARKETING_EMAILS = [], setActiveEmailTemplate, activeTenantId }) {
   const [activeTab, setActiveTab] = useState("Draft");
   const [showTemplateModal, setShowTemplateModal] = useState(false);
   const [globalFilter, setGlobalFilter] = useState("");
@@ -105,7 +126,8 @@ export default function PageMarketingEmails({ t, isDark, setActivePage, MARKETIN
   const gridRef = useRef(null);
 
   const emails = useMemo(() => {
-    return (MARKETING_EMAILS || []).map(e => ({
+    const source = (MARKETING_EMAILS && MARKETING_EMAILS.length > 0) ? MARKETING_EMAILS : DUMMY_DRAFTS;
+    return source.map(e => ({
       ...e,
       title: e.title || e.name || "Untitled",
       recipients: Array.isArray(e.recipients) ? `${e.recipients.length} recipients` : (e.recipients || "No recipients"),
@@ -133,9 +155,47 @@ export default function PageMarketingEmails({ t, isDark, setActivePage, MARKETIN
   }, [activeTab, drafts, sent, inbox]);
 
   const columnDefs = useMemo(
-    () => getMarketingEmailColumns(isDark, t, () => setActivePage("Email Builder")),
-    [isDark, t, setActivePage]
+    () => getMarketingEmailColumns(isDark, t, (email) => {
+      setActiveEmailTemplate(email);
+      setActivePage("Email Builder");
+    }),
+    [isDark, t, setActivePage, setActiveEmailTemplate]
   );
+
+  const [isImporting, setIsImporting] = useState(false);
+  const handleImportToLive = async () => {
+    if (!activeTenantId || isImporting) return;
+    setIsImporting(true);
+    try {
+      const paths = getCollectionPaths(activeTenantId);
+      const colRef = collection(db, paths.marketingEmails);
+      
+      for (const draft of DUMMY_DRAFTS) {
+        await addDoc(colRef, {
+          title: draft.title,
+          status: "Draft",
+          recipients: [],
+          rows: [], // Default empty body
+          settings: {
+            subject: draft.title,
+            previewText: "",
+            from: "",
+            fromName: "American Vision Group",
+            bgColor: "#F4F4F4"
+          },
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+          isDemo: true
+        });
+      }
+      // Re-fetch should happen automatically via the listener in App.jsx
+    } catch (err) {
+      console.error("Error importing drafts:", err);
+      alert("Failed to import drafts. Check console for details.");
+    } finally {
+      setIsImporting(false);
+    }
+  };
 
   // Auto-calculate page size based on available height
   useEffect(() => {
@@ -177,6 +237,16 @@ export default function PageMarketingEmails({ t, isDark, setActivePage, MARKETIN
           >
             <Plus size={16} /> New Draft
           </button>
+          
+          {MARKETING_EMAILS.length === 0 && (
+            <button
+              onClick={handleImportToLive}
+              disabled={isImporting}
+              style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 18px", borderRadius: 8, background: isDark ? "rgba(34,197,94,0.15)" : "#F0FDF4", color: "#22C55E", fontWeight: 600, fontSize: 13, border: "1px solid #22C55E", cursor: isImporting ? "not-allowed" : "pointer" }}
+            >
+              {isImporting ? "Importing..." : "Save Restored Drafts to Live"}
+            </button>
+          )}
         </div>
       </div>
 

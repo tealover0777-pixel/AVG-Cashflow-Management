@@ -692,6 +692,7 @@ export default function PageEmailBuilder(props) {
             onAddBlockToColumn={handleAddBlockToColumn}
             onReorder={handleReorderRows}
             setActiveRightTab={setActiveRightTab}
+            DIMENSIONS={DIMENSIONS}
           />
         )}
 
@@ -929,7 +930,7 @@ export default function PageEmailBuilder(props) {
 
 // ── Email Canvas ─────────────────────────────────────────────────────────────
 
-function EmailCanvas({ t, isDark, rows, selectedRowId, onSelectRow, onAddRow, onDeleteRow, onDuplicateRow, onUpdateRow, onAddBlockToColumn, onReorder, setActiveRightTab }) {
+function EmailCanvas({ t, isDark, rows, selectedRowId, onSelectRow, onAddRow, onDeleteRow, onDuplicateRow, onUpdateRow, onAddBlockToColumn, onReorder, setActiveRightTab, DIMENSIONS = [] }) {
   const [dropIdx, setDropIdx] = useState(null);
   const [hoveredRowId, setHoveredRowId] = useState(null);
 
