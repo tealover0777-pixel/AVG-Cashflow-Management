@@ -1301,9 +1301,14 @@ function SettingsRow({ label, t, children }) {
 }
 
 function SettingsPanel({ t, isDark, settings, onChange, profile, DIMENSIONS = [], CONTACTS = [] }) {
+  const [localSettings, setLocalSettings] = useState(settings);
   const [showRecipients, setShowRecipients] = useState(false);
   const [selectedInTable, setSelectedInTable] = useState([]);
   const [rowSelection, setRowSelection] = useState({});
+  const [showFromDropdown, setShowFromDropdown] = useState(false);
+  const fromDropRef = useRef(null);
+  const [showTypeDropdown, setShowTypeDropdown] = useState(false);
+  const typeDropRef = useRef(null);
 
   useEffect(() => {
     if (showRecipients) {
@@ -1359,12 +1364,6 @@ function SettingsPanel({ t, isDark, settings, onChange, profile, DIMENSIONS = []
       cell: info => info.getValue() || "—"
     },
   ], [t]);
-
-  const [localSettings, setLocalSettings] = useState(settings);
-  const [showFromDropdown, setShowFromDropdown] = useState(false);
-  const fromDropRef = useRef(null);
-  const [showTypeDropdown, setShowTypeDropdown] = useState(false);
-  const typeDropRef = useRef(null);
 
   const userFullName = (profile?.first_name || profile?.last_name)
     ? `${profile.first_name || ""} ${profile.last_name || ""}`.trim()
