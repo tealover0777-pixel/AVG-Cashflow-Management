@@ -626,7 +626,7 @@ export default function PageEmailBuilder(props) {
 
         {/* Canvas / Settings / Preview */}
         {activeMainTab === "Settings" ? (
-          <SettingsPanel t={t} isDark={isDark} settings={emailSettings} onChange={setEmailSettings} />
+          <SettingsPanel t={t} isDark={isDark} settings={emailSettings} onChange={setEmailSettings} profile={profile} />
         ) : activeMainTab === "Mobile" ? (
           <ReviewPanel t={t} isDark={isDark} rows={rows} emailSettings={emailSettings} narrow />
         ) : activeMainTab === "Desktop" ? (
@@ -1300,8 +1300,22 @@ function SettingsRow({ label, t, children }) {
   );
 }
 
-function SettingsPanel({ t, isDark, settings, onChange }) {
+function SettingsPanel({ t, isDark, settings, onChange, profile }) {
   const [localSettings, setLocalSettings] = useState(settings);
+  const [showFromDropdown, setShowFromDropdown] = useState(false);
+  const fromDropRef = useRef(null);
+
+  const userName = profile?.firstName ? `${profile.firstName} ${profile.lastName}` : (profile?.displayName || "User Name");
+
+  // Close from name dropdown on outside click
+  useEffect(() => {
+    if (!showFromDropdown) return;
+    const handler = (e) => {
+      if (fromDropRef.current && !fromDropRef.current.contains(e.target)) setShowFromDropdown(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [showFromDropdown]);
 
   // Sync local state when external settings change (e.g. from a different template)
   useEffect(() => {
@@ -1360,8 +1374,42 @@ function SettingsPanel({ t, isDark, settings, onChange }) {
           </SettingsRow>
 
           <SettingsRow label="From name:" t={t}>
-            <input value={localSettings.fromName || ""} onChange={e => set("fromName", e.target.value)} onBlur={() => commit("fromName")} placeholder="Enter From Name" style={{ ...inp, flex: 1 }} />
-            <button style={{ ...actionBtn, marginLeft: 16 }}>Return to dropdown</button>
+            <div ref={fromDropRef} style={{ position: "relative", flex: 1, borderBottom: `1px solid ${t.chipBorder}` }}>
+              <input
+                value={localSettings.fromName || ""}
+                onChange={e => set("fromName", e.target.value)}
+                onBlur={() => commit("fromName")}
+                placeholder="Enter From Name"
+                style={{ ...inp, borderBottom: "none", paddingRight: 32 }}
+              />
+              <div
+                onClick={() => setShowFromDropdown(!showFromDropdown)}
+                style={{ position: "absolute", right: 0, top: "50%", transform: "translateY(-50%)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", width: 32, height: "100%", opacity: 0.6 }}
+              >
+                <CDown />
+              </div>
+              {showFromDropdown && (
+                <div style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0, background: t.surface, border: `1px solid ${t.border}`, borderRadius: 8, boxShadow: "0 10px 25px rgba(0,0,0,0.15)", zIndex: 1000, overflow: "hidden" }}>
+                  {[userName, "Custom sender name"].map(opt => (
+                    <div
+                      key={opt}
+                      onClick={() => {
+                        if (opt !== "Custom sender name") {
+                          set("fromName", opt);
+                          onChange(prev => ({ ...prev, fromName: opt }));
+                        }
+                        setShowFromDropdown(false);
+                      }}
+                      style={{ padding: "12px 16px", cursor: "pointer", fontSize: 14, color: t.text, transition: "background 0.2s" }}
+                      onMouseEnter={e => e.currentTarget.style.background = isDark ? "rgba(255,255,255,0.05)" : "#f3f4f6"}
+                      onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+                    >
+                      {opt}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </SettingsRow>
 
           <SettingsRow label="From:" t={t}>
