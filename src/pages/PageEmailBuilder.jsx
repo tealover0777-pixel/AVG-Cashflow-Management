@@ -431,8 +431,6 @@ export default function PageEmailBuilder(props) {
       const updateObj = (r) => {
         if (r.id !== rowId) return r;
         let newContent = { ...r.content, ...patch };
-
-        // Auto-manage columns array if layout changed
         if (patch.layout && r.type === "columns") {
           const count = patch.layout.split("-").length;
           let newCols = [...(newContent.columns || [])];
@@ -447,11 +445,7 @@ export default function PageEmailBuilder(props) {
         }
         return { ...r, content: newContent };
       };
-
-      // Top level
       let next = prev.map(updateObj);
-
-      // Nested
       next = next.map(r => {
         if (r.type !== "columns") return r;
         const newCols = (r.content.columns || []).map(col => ({
@@ -460,6 +454,46 @@ export default function PageEmailBuilder(props) {
         }));
         return { ...r, content: { ...r.content, columns: newCols } };
       });
+      return next;
+    });
+  };
+
+  const handleReorderRows = (sourceId, targetId) => {
+    if (sourceId === targetId) return;
+    setRows(prev => {
+      const next = JSON.parse(JSON.stringify(prev));
+      let sourceItem = null;
+      const findAndRemove = (list) => {
+        for (let i = 0; i < list.length; i++) {
+          if (list[i].id === sourceId) {
+            sourceItem = list.splice(i, 1)[0];
+            return true;
+          }
+          if (Array.isArray(list[i].content?.columns)) {
+            for (const col of list[i].content.columns) {
+              if (findAndRemove(col.blocks || [])) return true;
+            }
+          }
+        }
+        return false;
+      };
+      findAndRemove(next);
+      if (!sourceItem) return prev;
+      const findAndInsert = (list) => {
+        for (let i = 0; i < list.length; i++) {
+          if (list[i].id === targetId) {
+            list.splice(i, 0, sourceItem);
+            return true;
+          }
+          if (Array.isArray(list[i].content?.columns)) {
+            for (const col of list[i].content.columns) {
+              if (findAndInsert(col.blocks || [])) return true;
+            }
+          }
+        }
+        return false;
+      };
+      if (!findAndInsert(next)) { next.push(sourceItem); }
       return next;
     });
   };
@@ -931,6 +965,7 @@ function EmailCanvas({ t, isDark, rows, selectedRowId, onSelectRow, onAddRow, on
               onUpdate={onUpdateRow}
               onAddRow={onAddRow}
               onAddBlockToColumn={onAddBlockToColumn}
+              onReorder={handleReorderRows}
               setActiveRightTab={setActiveRightTab}
               t={t} isDark={isDark}
               selectedRowId={selectedRowId}
@@ -1062,17 +1097,27 @@ const FloatingTextBar = ({ t, isDark }) => {
   );
 };
 
-function EmailRow({ row, isSelected, isHovered, onSelect, onHover, onDelete, onDuplicate, onUpdate, onAddRow, onAddBlockToColumn, setActiveRightTab, t, isDark, selectedRowId, hoveredRowId, isNested }) {
+function EmailRow({ row, isSelected, isHovered, onSelect, onHover, onDelete, onDuplicate, onUpdate, onAddRow, onAddBlockToColumn, onReorder, setActiveRightTab, t, isDark, selectedRowId, hoveredRowId, isNested }) {
   const blockType = ROW_BLOCK_TYPE[row.type] || "TEXT";
   const showControls = (isSelected || isHovered);
+  const [isDropTarget, setIsDropTarget] = useState(false);
 
   const MoveHandle = () => (
-    <div style={{
-      position: "absolute", right: -32, top: "50%", transform: "translateY(-50%)",
-      width: 28, height: 28, borderRadius: "50%", background: "#3B82F6",
-      display: "flex", alignItems: "center", justifyContent: "center",
-      cursor: "grab", color: "#fff", zIndex: 20, boxShadow: "0 2px 8px rgba(0,0,0,0.15)"
-    }}>
+    <div 
+      draggable
+      onDragStart={e => {
+        e.dataTransfer.setData("moveRowId", row.id);
+        e.dataTransfer.effectAllowed = "move";
+        const target = e.currentTarget.parentElement;
+        if (target) e.dataTransfer.setDragImage(target, target.offsetWidth / 2, target.offsetHeight / 2);
+      }}
+      style={{
+        position: "absolute", right: -32, top: "50%", transform: "translateY(-50%)",
+        width: 28, height: 28, borderRadius: "50%", background: "#3B82F6",
+        display: "flex", alignItems: "center", justifyContent: "center",
+        cursor: "grab", color: "#fff", zIndex: 20, boxShadow: "0 2px 8px rgba(0,0,0,0.15)"
+      }}
+    >
       <Move size={14} />
     </div>
   );
@@ -1115,6 +1160,9 @@ function EmailRow({ row, isSelected, isHovered, onSelect, onHover, onDelete, onD
                         onDelete={onDelete}
                         onDuplicate={onDuplicate}
                         onUpdate={onUpdate}
+                        onAddRow={onAddRow}
+                        onAddBlockToColumn={onAddBlockToColumn}
+                        onReorder={onReorder}
                         t={t} isDark={isDark}
                         isNested
                       />
@@ -1372,20 +1420,35 @@ function EmailRow({ row, isSelected, isHovered, onSelect, onHover, onDelete, onD
 
   return (
     <div
-      style={{
-        position: "relative",
-        cursor: "pointer",
-        outline: (isSelected || isHovered) ? `2px solid #3B82F6` : "none",
-        outlineOffset: (isSelected || isHovered) ? -2 : 0,
-        transition: "outline 0.1s, background 0.2s",
-        background: (isSelected || isHovered) ? "rgba(59,130,246,0.05)" : "transparent",
-        marginBottom: isSelected ? 8 : 0,
-        marginTop: isSelected ? 8 : 0,
-        zIndex: (isSelected || isHovered) ? 10 : 1
-      }}
       onMouseEnter={() => !isNested && onHover(row.id)}
       onMouseLeave={() => !isNested && onHover(null)}
       onClick={e => { e.stopPropagation(); onSelect(row.id, blockType); }}
+      onDragOver={e => {
+        if (e.dataTransfer.types.includes("moveRowId")) {
+          e.preventDefault();
+          setIsDropTarget(true);
+        }
+      }}
+      onDragLeave={() => setIsDropTarget(false)}
+      onDrop={e => {
+        setIsDropTarget(false);
+        const sourceId = e.dataTransfer.getData("moveRowId");
+        if (sourceId && sourceId !== row.id) {
+          onReorder(sourceId, row.id);
+        }
+      }}
+      style={{
+        position: "relative",
+        cursor: "pointer",
+        outline: isDropTarget ? "2px solid #3B82F6" : ((isSelected || isHovered) ? `2px solid #3B82F6` : "none"),
+        outlineOffset: (isSelected || isHovered || isDropTarget) ? -2 : 0,
+        boxShadow: isDropTarget ? "0 4px 12px rgba(59,130,246,0.3)" : "none",
+        transition: "outline 0.1s, background 0.2s, box-shadow 0.2s",
+        background: (isSelected || isHovered || isDropTarget) ? "rgba(59,130,246,0.05)" : "transparent",
+        marginBottom: isSelected ? 8 : 0,
+        marginTop: isSelected ? 8 : 0,
+        zIndex: (isSelected || isHovered || isDropTarget) ? 10 : 1
+      }}
     >
       {/* Full-width highlight strip (optional visual) */}
       {(isSelected || isHovered) && !isNested && (
