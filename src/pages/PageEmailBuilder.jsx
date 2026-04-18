@@ -1303,6 +1303,24 @@ function SettingsRow({ label, t, children }) {
 function SettingsPanel({ t, isDark, settings, onChange, profile, DIMENSIONS = [], CONTACTS = [] }) {
   const [showRecipients, setShowRecipients] = useState(false);
   const [selectedInTable, setSelectedInTable] = useState([]);
+  const [rowSelection, setRowSelection] = useState({});
+
+  useEffect(() => {
+    if (showRecipients) {
+      const currentEmails = (localSettings.recipients || "").split(";").map(s => s.trim().toLowerCase()).filter(Boolean);
+      const newSelObject = {};
+      CONTACTS.forEach((c, i) => {
+        const id = c.docId || c._docId || c.id || c.schedule_id || `idx-${i}`;
+        if (c.email && currentEmails.includes(c.email.toLowerCase())) {
+          newSelObject[id] = true;
+        }
+      });
+      setRowSelection(newSelObject);
+    } else {
+      setRowSelection({});
+    }
+  }, [showRecipients, CONTACTS, localSettings.recipients]);
+
   const recipientColumns = useMemo(() => [
     {
       id: "select",
@@ -1319,6 +1337,7 @@ function SettingsPanel({ t, isDark, settings, onChange, profile, DIMENSIONS = []
           type="checkbox"
           className="ts-checkbox"
           checked={row.getIsSelected()}
+          disabled={!row.original.email}
           onChange={row.getToggleSelectedHandler()}
         />
       ),
@@ -1548,6 +1567,8 @@ function SettingsPanel({ t, isDark, settings, onChange, profile, DIMENSIONS = []
             isDark={isDark} 
             pageSize={10} 
             onSelectionChange={setSelectedInTable}
+            rowSelection={rowSelection}
+            onRowSelectionChange={setRowSelection}
           />
         </div>
       </Modal>
