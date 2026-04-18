@@ -10,7 +10,7 @@ import {
   Table as TableIcon, Search, ChevronRight, ChevronUp, X as XIcon,
   Plus, Trash2, Copy, Settings as SettingsIcon, Paperclip,
   AlignCenter, AlignRight, AlignJustify, Move, Send, Clock, Check, Eye,
-  Bold, Italic, Underline, List, Link as LinkIcon,
+  Bold, Italic, Underline, List, Link as LinkIcon, Indent, Outdent,
   AlignStartVertical, AlignCenterVertical, AlignEndVertical
 } from "lucide-react";
 import { PromptModal, DelModal, Modal, TanStackTable } from "../components";
@@ -1116,6 +1116,9 @@ const FloatingTextBar = ({ t, isDark, DIMENSIONS = [] }) => {
       <Separator />
       <Btn name="insertUnorderedList" icon={List} title="Bullet List" />
       <Btn name="insertOrderedList" icon={List} title="Numbered List" />
+      <Separator />
+      <Btn name="outdent" icon={Outdent} title="Decrease Indent" />
+      <Btn name="indent" icon={Indent} title="Increase Indent" />
       <Separator />
       <button
         onMouseDown={e => {
