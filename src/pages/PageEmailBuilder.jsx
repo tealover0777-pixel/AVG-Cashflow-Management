@@ -2020,20 +2020,83 @@ const AlignToggle = ({ value, onChange, t, isDark }) => (
   </div>
 );
 
-const SelectDD = ({ value, options, onChange, t }) => (
-  <div style={{ position: "relative", width: 140 }}>
-    <select 
-      value={value} 
-      onChange={e => onChange(e.target.value)} 
-      style={{ width: "100%", padding: "7px 10px", border: `1px solid ${t.border}`, borderRadius: 4, background: t.surface, color: t.text, fontSize: 12, outline: "none", appearance: "none" }}
-    >
-      {options.map(opt => <option key={opt.val} value={opt.val}>{opt.label}</option>)}
-    </select>
-    <div style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", pointerEvents: "none", opacity: 0.5 }}>
-      <CDown />
+const COMMON_COLORS = [
+  "#C6F6D5", "#FEEBC8", "#FED7D7", "#E9D8FD", "#BEE3F8", "#38A169", "#ECC94B",
+  "#E53E3E", "#9F7AEA", "#3182CE", "#319795", "#DD6B20", "#C53030", "#805AD5",
+  "#2C5282", "#FFFFFF", "#E2E8F0", "#A0AEC0", "#718096", "#2D3748", "#000000"
+];
+
+const ColorPicker = ({ value, onChange, t, isDark }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const ref = useRef(null);
+
+  useEffect(() => {
+    const clickAway = (e) => { if (isOpen && ref.current && !ref.current.contains(e.target)) setIsOpen(false); };
+    document.addEventListener("mousedown", clickAway);
+    return () => document.removeEventListener("mousedown", clickAway);
+  }, [isOpen]);
+
+  return (
+    <div style={{ position: "relative" }} ref={ref}>
+      <div 
+        onClick={() => setIsOpen(!isOpen)}
+        style={{ 
+          width: 44, height: 28, borderRadius: 4, background: value || "#1F2937", 
+          border: `1px solid ${t.border}`, cursor: "pointer", display: "flex", 
+          alignItems: "center", justifyContent: "center", boxShadow: "0 1px 2px rgba(0,0,0,0.1)" 
+        }}
+      >
+        {(!value || value.toLowerCase() === "#ffffff") && <div style={{ width: "100%", height: 1, background: "red", transform: "rotate(-45deg)", opacity: 0.3 }} />}
+      </div>
+      
+      {isOpen && (
+        <div style={{ 
+          position: "absolute", right: 0, top: "calc(100% + 8px)", width: 220, 
+          background: t.surface, border: `1px solid ${t.border}`, borderRadius: 8, 
+          boxShadow: "0 10px 25px rgba(0,0,0,0.15)", zIndex: 100, padding: 12
+        }}>
+          <div style={{ marginBottom: 12 }}>
+             <div style={{ fontSize: 10, color: t.textMuted, marginBottom: 4, fontWeight: 600 }}>HEX CODE</div>
+             <div style={{ display: "flex", gap: 6 }}>
+                <input 
+                  type="text" 
+                  value={value?.replace("#", "") || ""} 
+                  onChange={e => {
+                    const v = e.target.value.replace(/[^0-9A-Fa-f]/g, "").slice(0, 6);
+                    onChange("#" + v);
+                  }}
+                  placeholder="FFFFFF"
+                  style={{ flex: 1, padding: "6px", border: `1px solid ${t.border}`, borderRadius: 4, background: t.background, color: t.text, fontSize: 12, outline: "none", textTransform: "uppercase" }}
+                />
+                <div style={{ width: 28, height: 28, borderRadius: 4, background: value || "#000", border: `1px solid ${t.border}` }} />
+             </div>
+          </div>
+
+          <div style={{ borderTop: `1px solid ${t.border}`, paddingTop: 12 }}>
+            <div style={{ fontSize: 10, color: t.textMuted, marginBottom: 8, fontWeight: 600 }}>COMMON COLORS</div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 6 }}>
+              {COMMON_COLORS.map(c => (
+                <div 
+                  key={c}
+                  onClick={() => { onChange(c); setIsOpen(false); }}
+                  style={{ 
+                    width: 22, height: 22, borderRadius: "50%", background: c, 
+                    cursor: "pointer", border: `1px solid ${t.border}`,
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    boxShadow: value === c ? `0 0 0 2px ${isDark ? "#fff" : "#3B82F6"}` : "none",
+                    position: "relative"
+                  }}
+                >
+                  {value === c && <Check size={10} color={c === "#FFFFFF" || c === "#FEEBC8" ? "#000" : "#fff"} />}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
-  </div>
-);
+  );
+};
 
 // ── Block Properties Panel ────────────────────────────────────────────────────
 
@@ -2121,7 +2184,7 @@ function BlockPropsPanel({ t, isDark, blockType, rowId, onUpdate, rows, onClose,
             {PR("Font Family", <SelectDD value={content.fontFamily || "inherit"} options={[{label: "Body Font", val: "inherit"}, {label: "Montserrat", val: "Montserrat"}, {label: "Arial", val: "Arial"}, {label: "Inter", val: "Inter"}]} onChange={v => upd({ fontFamily: v })} t={t} />)}
             {PR("Font Weight", <SelectDD value={content.fontWeight || "normal"} options={[{label: "Regular", val: "normal"}, {label: "Bold", val: "bold"}, {label: "Semi Bold", val: "600"}]} onChange={v => upd({ fontWeight: v })} t={t} />)}
             {PR("Font Size", <NumInput value={content.fontSize || 13} unit="px" onChange={v => upd({ fontSize: Number(v) })} t={t} isDark={isDark} />)}
-            {PR("Color", <input type="color" value={content.color || "#1F2937"} onChange={e => upd({ color: e.target.value })} style={{ width: 44, height: 28, border: `1px solid ${t.border}`, borderRadius: 3, cursor: "pointer", padding: 1 }} />)}
+            {PR("Color", <ColorPicker value={content.color || "#1F2937"} onChange={v => upd({ color: v })} t={t} isDark={isDark} />)}
             {PR("Text Align", <AlignToggle value={content.textAlign || "left"} onChange={v => upd({ textAlign: v })} t={t} isDark={isDark} />)}
             {PR("Line Height", <NumInput value={content.lineHeight || 140} unit="%" onChange={v => upd({ lineHeight: Number(v) })} t={t} isDark={isDark} />)}
             {PR("Letter Spacing", <NumInput value={content.letterSpacing || 0} unit="px" onChange={v => upd({ letterSpacing: Number(v) })} t={t} isDark={isDark} />)}
