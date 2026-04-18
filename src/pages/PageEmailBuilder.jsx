@@ -1305,8 +1305,8 @@ function SettingsPanel({ t, isDark, settings, onChange, profile }) {
   const [showFromDropdown, setShowFromDropdown] = useState(false);
   const fromDropRef = useRef(null);
 
-  const userFullName = (profile?.firstName || profile?.lastName)
-    ? `${profile.firstName || ""} ${profile.lastName || ""}`.trim()
+  const userFullName = (profile?.first_name || profile?.last_name)
+    ? `${profile.first_name || ""} ${profile.last_name || ""}`.trim()
     : profile?.displayName;
 
   const userName = userFullName || profile?.email?.split("@")[0] || "Sender";
