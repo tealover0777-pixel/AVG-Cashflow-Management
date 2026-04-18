@@ -1509,6 +1509,26 @@ function SettingsPanel({ t, isDark, settings, onChange, profile, DIMENSIONS = []
 
   const userName = userFullName || profile?.email?.split("@")[0] || "Sender";
 
+  const getInfoForEmail = (email) => {
+    if (!email) return { name: userName, email: profile?.email || "" };
+    const e = email.toLowerCase().trim();
+    const match = [...USERS, ...CONTACTS].find(u => (u.email || "").toLowerCase().trim() === e);
+    
+    if (match) {
+      const name = (match.first_name || match.last_name) 
+        ? `${match.first_name || ""} ${match.last_name || ""}`.trim() 
+        : (match.name || match.full_name || match.displayName || match.email);
+      return { name, email: match.email };
+    }
+    if (e === "invest@americanvisioncap.com") {
+      return { name: "American Vision Group", email: "invest@americanvisioncap.com" };
+    }
+    return { name: email.split("@")[0], email };
+  };
+
+  const currentFromInfo = useMemo(() => getInfoForEmail(localSettings.from), [localSettings.from, USERS, CONTACTS, profile, userName]);
+  const currentReplyToInfo = useMemo(() => getInfoForEmail(localSettings.replyTo), [localSettings.replyTo, USERS, CONTACTS, profile, userName]);
+
   // Close from name dropdown on outside click
   useEffect(() => {
     if (!showFromDropdown) return;
@@ -1651,25 +1671,27 @@ function SettingsPanel({ t, isDark, settings, onChange, profile, DIMENSIONS = []
               </div>
               {showFromDropdown && (
                 <div style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0, background: t.surface, border: `1px solid ${t.chipBorder}`, borderRadius: 8, boxShadow: "0 10px 25px rgba(0,0,0,0.15)", zIndex: 1000, overflow: "hidden" }}>
-                  {[userName, "Custom sender name"].map(opt => (
+                  {[currentFromInfo, { name: "Custom sender name", email: "" }].map((opt, idx) => (
                     <div
-                      key={opt}
+                      key={idx}
                       onClick={(e) => {
                         e.stopPropagation();
-                        const newVal = opt === "Custom sender name" ? "" : opt;
+                        const isCustom = opt.name === "Custom sender name";
+                        const newVal = isCustom ? "" : opt.name;
                         set("fromName", newVal);
                         onChange(prev => ({ ...prev, fromName: newVal }));
                         setShowFromDropdown(false);
-                        if (opt === "Custom sender name") {
+                        if (isCustom) {
                           const el = fromDropRef.current?.querySelector('input');
                           if (el) el.focus();
                         }
                       }}
-                      style={{ padding: "12px 16px", cursor: "pointer", fontSize: 14, color: t.text, transition: "background 0.2s" }}
+                      style={{ padding: "12px 16px", cursor: "pointer", transition: "background 0.2s" }}
                       onMouseEnter={e => e.currentTarget.style.background = isDark ? "rgba(255,255,255,0.05)" : "#f3f4f6"}
                       onMouseLeave={e => e.currentTarget.style.background = "transparent"}
                     >
-                      {opt}
+                      <div style={{ fontSize: 14, color: t.text }}>{opt.name}</div>
+                      {opt.email && <div style={{ fontSize: 11, color: t.textMuted, marginTop: 2 }}>{opt.email}</div>}
                     </div>
                   ))}
                 </div>
@@ -1700,36 +1722,30 @@ function SettingsPanel({ t, isDark, settings, onChange, profile, DIMENSIONS = []
                 <CDown />
               </div>
               {showReplyToDropdown && (
-                <div style={{ position: "absolute", bottom: "calc(100% + 4px)", left: 0, right: 0, background: t.surface, border: `1px solid ${t.chipBorder}`, borderRadius: 8, boxShadow: "0 10px 25px rgba(0,0,0,0.15)", zIndex: 1000, overflow: "hidden" }}>
-                  <div
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      set("replyTo", userName);
-                      onChange(prev => ({ ...prev, replyTo: userName }));
-                      setShowReplyToDropdown(false);
-                    }}
-                    style={{ padding: "12px 16px", cursor: "pointer", transition: "background 0.2s" }}
-                    onMouseEnter={e => e.currentTarget.style.background = isDark ? "rgba(255,255,255,0.05)" : "#f3f4f6"}
-                    onMouseLeave={e => e.currentTarget.style.background = "transparent"}
-                  >
-                    <div style={{ fontSize: 14, color: t.text }}>{userName}</div>
-                    {profile?.email && <div style={{ fontSize: 12, color: t.textMuted, marginTop: 2 }}>{profile.email}</div>}
-                  </div>
-                  <div
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      set("replyTo", "");
-                      onChange(prev => ({ ...prev, replyTo: "" }));
-                      setShowReplyToDropdown(false);
-                      const el = replyToDropRef.current?.querySelector('input');
-                      if (el) el.focus();
-                    }}
-                    style={{ padding: "12px 16px", cursor: "pointer", fontSize: 14, color: t.text, transition: "background 0.2s" }}
-                    onMouseEnter={e => e.currentTarget.style.background = isDark ? "rgba(255,255,255,0.05)" : "#f3f4f6"}
-                    onMouseLeave={e => e.currentTarget.style.background = "transparent"}
-                  >
-                    Custom sender name
-                  </div>
+                <div style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0, background: t.surface, border: `1px solid ${t.chipBorder}`, borderRadius: 8, boxShadow: "0 10px 25px rgba(0,0,0,0.15)", zIndex: 1000, overflow: "hidden" }}>
+                  {[currentReplyToInfo, { name: "Custom reply-to name", email: "" }].map((opt, idx) => (
+                    <div
+                      key={idx}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        const isCustom = opt.name === "Custom reply-to name";
+                        const newVal = isCustom ? "" : opt.name;
+                        set("replyTo", newVal);
+                        onChange(prev => ({ ...prev, replyTo: newVal }));
+                        setShowReplyToDropdown(false);
+                        if (isCustom) {
+                          const el = replyToDropRef.current?.querySelector('input');
+                          if (el) el.focus();
+                        }
+                      }}
+                      style={{ padding: "12px 16px", cursor: "pointer", transition: "background 0.2s" }}
+                      onMouseEnter={e => e.currentTarget.style.background = isDark ? "rgba(255,255,255,0.05)" : "#f3f4f6"}
+                      onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+                    >
+                      <div style={{ fontSize: 14, color: t.text }}>{opt.name}</div>
+                      {opt.email && <div style={{ fontSize: 11, color: t.textMuted, marginTop: 2 }}>{opt.email}</div>}
+                    </div>
+                  ))}
                 </div>
               )}
             </div>
