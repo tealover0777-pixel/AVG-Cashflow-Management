@@ -1671,25 +1671,30 @@ function SettingsPanel({ t, isDark, settings, onChange, profile, DIMENSIONS = []
               </div>
               {showFromDropdown && (
                 <div style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0, background: t.surface, border: `1px solid ${t.chipBorder}`, borderRadius: 8, boxShadow: "0 10px 25px rgba(0,0,0,0.15)", zIndex: 1000, overflow: "hidden" }}>
-                  {[userName, "Custom sender name"].map(opt => (
+                  {[
+                    { name: userName, email: profile?.email || "" }, 
+                    { name: "Custom sender name", email: "" }
+                  ].map((opt, idx) => (
                     <div
-                      key={opt}
+                      key={idx}
                       onClick={(e) => {
                         e.stopPropagation();
-                        const newVal = opt === "Custom sender name" ? "" : opt;
+                        const isCustom = opt.name === "Custom sender name";
+                        const newVal = isCustom ? "" : opt.name;
                         set("fromName", newVal);
                         onChange(prev => ({ ...prev, fromName: newVal }));
                         setShowFromDropdown(false);
-                        if (opt === "Custom sender name") {
+                        if (isCustom) {
                           const el = fromDropRef.current?.querySelector('input');
                           if (el) el.focus();
                         }
                       }}
-                      style={{ padding: "12px 16px", cursor: "pointer", fontSize: 14, color: t.text, transition: "background 0.2s" }}
+                      style={{ padding: "12px 16px", cursor: "pointer", transition: "background 0.2s" }}
                       onMouseEnter={e => e.currentTarget.style.background = isDark ? "rgba(255,255,255,0.05)" : "#f3f4f6"}
                       onMouseLeave={e => e.currentTarget.style.background = "transparent"}
                     >
-                      {opt}
+                      <div style={{ fontSize: 14, color: t.text }}>{opt.name}</div>
+                      {opt.email && <div style={{ fontSize: 11, color: t.textMuted, marginTop: 2 }}>{opt.email}</div>}
                     </div>
                   ))}
                 </div>
