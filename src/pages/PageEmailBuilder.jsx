@@ -10,7 +10,8 @@ import {
   Table as TableIcon, Search, ChevronRight, ChevronUp, X as XIcon,
   Plus, Trash2, Copy, Settings as SettingsIcon, Paperclip,
   AlignCenter, AlignRight, AlignJustify, Move, Send, Clock, Check, Eye,
-  Bold, Italic, Underline, List, Link as LinkIcon
+  Bold, Italic, Underline, List, Link as LinkIcon,
+  AlignVerticalTop, AlignVerticalCenter, AlignVerticalBottom
 } from "lucide-react";
 import { PromptModal, DelModal, Modal, TanStackTable } from "../components";
 
@@ -1332,11 +1333,16 @@ function EmailRow({ row, isSelected, isHovered, onSelect, onHover, onDelete, onD
                         onFocus={e => e.currentTarget.style.boxShadow = "inset 0 0 0 2px #3B82F6"}
                         onClick={e => e.stopPropagation()}
                         style={{
-                          border: "1px solid #DDDDDD",
-                          padding: "12px",
-                          fontSize: 13,
-                          color: "#1F2937",
-                          fontWeight: tr.isHeader ? 700 : 400,
+                          border: `${item.content?.borderWidth || 1}px ${item.content?.borderStyle || "solid"} ${item.content?.borderColor || "#DDDDDD"}`,
+                          padding: item.content?.cellPadding ?? "12px",
+                          fontSize: (tr.isHeader ? item.content?.headerFontSize : item.content?.fontSize) || 13,
+                          color: (tr.isHeader ? item.content?.headerColor : item.content?.color) || "#1F2937",
+                          fontWeight: tr.isHeader ? (item.content?.headerFontWeight || 700) : (item.content?.fontWeight === 'bold' ? 700 : 400),
+                          textAlign: (tr.isHeader ? item.content?.headerTextAlign : item.content?.textAlign) || "left",
+                          verticalAlign: item.content?.verticalAlign || "middle",
+                          fontFamily: (tr.isHeader ? item.content?.headerFontFamily : item.content?.fontFamily) || "inherit",
+                          lineHeight: item.content?.lineHeight ? `${item.content.lineHeight}%` : "1.4",
+                          letterSpacing: item.content?.letterSpacing ? `${item.content.letterSpacing}px` : "normal",
                           outline: "none",
                           minHeight: 40,
                           minWidth: 100,
@@ -2133,10 +2139,10 @@ const SelectDD = ({ value, options, onChange, t }) => (
 const AlignToggle = ({ value, onChange, t, isDark }) => (
   <div style={{ display: "flex", border: `1px solid ${t.border}`, borderRadius: 4, overflow: "hidden" }}>
     {[
-      { val: "left", icon: AlignLeft },
-      { val: "center", icon: AlignCenter },
-      { val: "right", icon: AlignRight },
-      { val: "justify", icon: AlignJustify },
+      { val: "left", icon: AlignLeft, title: "Left" },
+      { val: "center", icon: AlignCenter, title: "Center" },
+      { val: "right", icon: AlignRight, title: "Right" },
+      { val: "justify", icon: AlignJustify, title: "Justify" },
     ].map((a, i) => (
       <button
         key={a.val}
@@ -2146,6 +2152,31 @@ const AlignToggle = ({ value, onChange, t, isDark }) => (
           background: value === a.val ? (isDark ? "#333" : "#222") : "transparent",
           color: value === a.val ? "#fff" : t.textMuted,
           borderRight: i < 3 ? `1px solid ${t.border}` : "none",
+          transition: "0.2s"
+        }}
+        title={a.title}
+      >
+        <a.icon size={15} />
+      </button>
+    ))}
+  </div>
+);
+
+const VerticalAlignToggle = ({ value, onChange, t, isDark }) => (
+  <div style={{ display: "flex", border: `1px solid ${t.border}`, borderRadius: 4, overflow: "hidden" }}>
+    {[
+      { val: "top", icon: AlignVerticalTop },
+      { val: "middle", icon: AlignVerticalCenter },
+      { val: "bottom", icon: AlignVerticalBottom },
+    ].map((a, i) => (
+      <button
+        key={a.val}
+        onClick={() => onChange(a.val)}
+        style={{ 
+          padding: "8px 12px", border: "none", cursor: "pointer",
+          background: value === a.val ? (isDark ? "#333" : "#222") : "transparent",
+          color: value === a.val ? "#fff" : t.textMuted,
+          borderRight: i < 2 ? `1px solid ${t.border}` : "none",
           transition: "0.2s"
         }}
       >
@@ -2540,12 +2571,82 @@ function BlockPropsPanel({ t, isDark, blockType, rowId, onUpdate, rows, onClose,
 
       case "HTML": return <HtmlBlockPanel rowId={rowId} content={content} upd={upd} t={t} isDark={isDark} />;
 
-      case "TABLE": return (
+      case "TABLE":
+      case "table": return (
         <>
-          {S("main", "Layout", <>
-            {PR("Columns", <input type="number" value={content.cols ?? 2} min={1} max={6} onChange={e => upd({ cols: Number(e.target.value) })} style={{ width: 60, padding: "4px 6px", border: `1px solid ${t.border}`, borderRadius: 4, background: t.surface, color: t.text, fontSize: 12 }} />)}
-            {PR("Rows", <input type="number" value={content.rows ?? 2} min={1} max={20} onChange={e => upd({ rows: Number(e.target.value) })} style={{ width: 60, padding: "4px 6px", border: `1px solid ${t.border}`, borderRadius: 4, background: t.surface, color: t.text, fontSize: 12 }} />)}
+          {S("layout", "Layout", <>
+            {PR("Columns", <NumInput value={content.rows?.[0]?.cells?.length || 0} onChange={v => {
+              const count = Number(v);
+              const newRows = (content.rows || []).map(r => {
+                let newCells = [...(r.cells || [])];
+                if (newCells.length < count) {
+                  for (let i = newCells.length; i < count; i++) newCells.push({ id: `c_${Date.now()}_c${i}`, text: "" });
+                } else if (newCells.length > count) {
+                  newCells = newCells.slice(0, count);
+                }
+                return { ...r, cells: newCells };
+              });
+              upd({ rows: newRows });
+            }} t={t} isDark={isDark} />)}
+            {PR("Rows", <NumInput value={content.rows?.length || 0} onChange={v => {
+              const count = Number(v);
+              let newRows = [...(content.rows || [])];
+              if (newRows.length < count) {
+                const colCount = newRows[0]?.cells?.length || 2;
+                for (let i = newRows.length; i < count; i++) {
+                  const cells = [];
+                  for (let j = 0; j < colCount; j++) cells.push({ id: `c_${Date.now()}_r${i}_c${j}`, text: "" });
+                  newRows.push({ id: `tr_${Date.now()}_r${i}`, cells, isHeader: (i === 0 && content.enableHeader) });
+                }
+              } else if (newRows.length > count) {
+                newRows = newRows.slice(0, count);
+              }
+              upd({ rows: newRows });
+            }} t={t} isDark={isDark} />)}
+            {PR("Border", <div style={{ display: "flex", alignItems: "center", gap: 6 }}><span style={{ fontSize: 10, color: t.textMuted }}>More Options</span><PropToggle value={!!content.moreBorder} onChange={v => upd({ moreBorder: v })} /></div>)}
+            {content.moreBorder && <>
+              {PR("Style", <SelectDD value={content.borderStyle || "solid"} options={[{label:"Solid", val:"solid"}, {label:"Dashed", val:"dashed"}, {label:"Dotted", val:"dotted"}]} onChange={v => upd({ borderStyle: v })} t={t} />)}
+              {PR("Width", <NumInput value={content.borderWidth || 1} unit="px" onChange={v => upd({ borderWidth: Number(v) })} t={t} isDark={isDark} />)}
+              {PR("Color", <ColorPicker value={content.borderColor || "#DDDDDD"} onChange={v => upd({ borderColor: v })} t={t} isDark={isDark} />)}
+            </>}
+            {PR("Striped Rows", <PropToggle value={!!content.striped} onChange={v => upd({ striped: v })} />)}
           </>)}
+
+          {S("header", "Header", <>
+            {PR("Enable Header", <PropToggle value={!!content.enableHeader} onChange={v => {
+              const newRows = (content.rows || []).map((r, i) => i === 0 ? { ...r, isHeader: v } : r);
+              upd({ enableHeader: v, rows: newRows });
+            }} />)}
+            {content.enableHeader && <>
+              {PR("Font Family", <SelectDD value={content.headerFontFamily || "inherit"} options={[{label: "Body Font", val: "inherit"}]} onChange={v => upd({ headerFontFamily: v })} t={t} />)}
+              {PR("Background", <ColorPicker value={content.headerBg || "#EBEBEB"} onChange={v => upd({ headerBg: v })} t={t} isDark={isDark} />)}
+              {PR("Font Weight", <SelectDD value={content.headerFontWeight || "bold"} options={[{label: "Bold", val: "bold"}, {label: "Regular", val: "normal"}]} onChange={v => upd({ headerFontWeight: v })} t={t} />)}
+              {PR("Font Size", <NumInput value={content.headerFontSize || 14} unit="px" onChange={v => upd({ headerFontSize: Number(v) })} t={t} isDark={isDark} />)}
+              {PR("Color", <ColorPicker value={content.headerColor || "#1F2937"} onChange={v => upd({ headerColor: v })} t={t} isDark={isDark} />)}
+              {PR("Text Align", <AlignToggle value={content.headerTextAlign || "left"} onChange={v => upd({ headerTextAlign: v })} t={t} isDark={isDark} />)}
+            </>}
+          </>)}
+
+          {S("content", "Content", <>
+            {PR("Font Family", <SelectDD value={content.fontFamily || "inherit"} options={[{label: "Body Font", val: "inherit"}]} onChange={v => upd({ fontFamily: v })} t={t} />)}
+            {PR("Background", <ColorPicker value={content.bg || "#ffffff"} onChange={v => upd({ bg: v })} t={t} isDark={isDark} />)}
+            {PR("Font Weight", <SelectDD value={content.fontWeight || "normal"} options={[{label: "Regular", val: "normal"}, {label: "Bold", val: "bold"}]} onChange={v => upd({ fontWeight: v })} t={t} />)}
+            {PR("Font Size", <NumInput value={content.fontSize || 14} unit="px" onChange={v => upd({ fontSize: Number(v) })} t={t} isDark={isDark} />)}
+            {PR("Text Color", <ColorPicker value={content.color || "#1F2937"} onChange={v => upd({ color: v })} t={t} isDark={isDark} />)}
+            {PR("Text Align", <AlignToggle value={content.textAlign || "left"} onChange={v => upd({ textAlign: v })} t={t} isDark={isDark} />)}
+            {PR("Vertical Align", <VerticalAlignToggle value={content.verticalAlign || "middle"} onChange={v => upd({ verticalAlign: v })} t={t} isDark={isDark} />)}
+            {PR("Line Height", <NumInput value={content.lineHeight || 140} unit="%" onChange={v => upd({ lineHeight: Number(v) })} t={t} isDark={isDark} />)}
+            {PR("Letter Spacing", <NumInput value={content.letterSpacing || 0} unit="px" onChange={v => upd({ letterSpacing: Number(v) })} t={t} isDark={isDark} />)}
+            {PR("Padding", <div style={{ display: "flex", alignItems: "center", gap: 6 }}><span style={{ fontSize: 10, color: t.textMuted }}>More Options</span><PropToggle value={!!content.morePadding} onChange={v => upd({ morePadding: v })} /></div>)}
+            {content.morePadding && (
+              <NumInput value={content.cellPadding || 12} unit="px" onChange={v => upd({ cellPadding: Number(v) })} t={t} isDark={isDark} />
+            )}
+          </>)}
+
+          {S("footer", "Footer", <>
+            {PR("Enable Footer", <PropToggle value={!!content.enableFooter} onChange={v => upd({ enableFooter: v })} />)}
+          </>)}
+
           <General />
         </>
       );
