@@ -9,30 +9,58 @@ function generateEmailPreviewHtml(rows = []) {
   const renderRow = (row) => {
     if (!row) return "";
     switch (row.type) {
-      case "image":
+      case "image": {
+        const url = row.content?.imageUrl;
+        const isValid = url && url !== "undefined" && url !== "null" && url !== "";
         if (row.content?.banner) {
           return `<div style="background:${row.content.bg || "#1a1a1a"};min-height:100px;display:flex;align-items:flex-end;justify-content:flex-end;padding:16px;margin-bottom:0"><div style="background:#D97706;color:#fff;padding:6px 16px;font-weight:700;font-size:12px;letter-spacing:1px">${row.content.bannerText || "INVESTMENT REPORT"}</div></div>`;
         }
-        return row.content?.imageUrl
-          ? `<div style="margin-bottom:0"><img src="${row.content.imageUrl}" style="width:100%;display:block" /></div>`
+        return isValid
+          ? `<div style="margin-bottom:0;text-align:${row.content?.align || "center"}"><img src="${url}" style="width:${row.content?.autoWidth !== false ? "auto" : (row.content?.width || "100%")};max-width:100%;height:${row.content?.autoHeight !== false ? "auto" : (row.content?.height || "auto")};display:block;margin:${row.content?.align === "center" ? "0 auto" : row.content?.align === "right" ? "0 0 0 auto" : "0 auto 0 0"}" /></div>`
           : "";
+      }
       case "heading":
-        return `<div style="padding:24px 32px 8px;"><h2 style="margin:0;font-family:Georgia,serif;font-size:22px;color:#111">${row.content?.text || ""}</h2></div>`;
+        return `<div style="padding:24px 32px 8px;"><h2 style="margin:0;font-family:Georgia,serif;font-size:${row.content?.fontSize || 22}px;color:${row.content?.color || "#111"}">${row.content?.headingText || row.content?.text || ""}</h2></div>`;
       case "paragraph":
-        return `<div style="padding:8px 32px;font-size:13px;line-height:1.65;color:#374151">${row.content?.html || ""}</div>`;
+        return `<div style="padding:16px 32px;font-size:13px;line-height:1.65;color:#374151">${row.content?.html || row.content?.text || ""}</div>`;
       case "divider":
-        return `<div style="padding:8px 32px"><hr style="border:none;border-top:1px solid #e5e7eb;margin:0"/></div>`;
+        return `<div style="padding:16px 32px"><hr style="border:none;border-top:${row.content?.lineWidth || 1}px solid ${row.content?.lineColor || "#e5e7eb"};margin:0"/></div>`;
       case "button": {
         const bg = row.content?.bgColor || "#1D4ED8";
-        const txt = row.content?.text || "Click here";
+        const txt = row.content?.buttonText || row.content?.text || "Click here";
         const align = row.content?.align || "center";
-        return `<div style="padding:12px 32px;text-align:${align}"><a href="#" style="background:${bg};color:#fff;padding:10px 24px;border-radius:6px;text-decoration:none;font-weight:600;font-size:13px;display:inline-block">${txt}</a></div>`;
+        return `<div style="padding:24px 32px;text-align:${align}"><a href="#" style="background:${bg};color:#fff;padding:10px 24px;border-radius:6px;text-decoration:none;font-weight:600;font-size:13px;display:inline-block">${txt}</a></div>`;
       }
+      case "footer":
+        return `<div style="background:${row.content?.bg || "#1c170f"};padding:32px;display:flex;align-items:center;justify-content:space-between">
+          <div style="color:#fff;font-size:13px;font-weight:300;white-space:pre-line">${row.content?.leftText || ""}</div>
+          <div style="color:#fff;font-size:12px;text-align:right">
+            <div style="white-space:pre-line;font-weight:500">${row.content?.rightText || ""}</div>
+            ${row.content?.buttonText ? `<div style="margin-top:12px;border:1px solid rgba(255,255,255,0.4);border-radius:4px;padding:6px 12px;font-size:10px;letter-spacing:1px;display:inline-block;color:#fff">${row.content.buttonText}</div>` : ""}
+          </div>
+        </div>`;
+      case "kpis":
+        return `<div style="padding:32px;display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));gap:20px;background:#f9fafb">
+          ${(row.content?.items || [{ label: "KPI", value: "0" }]).map(i => `<div style="text-align:center"><div style="font-size:12px;color:#6b7280;margin-bottom:4px">${i.label}</div><div style="font-size:20px;font-weight:700;color:#111">${i.value}</div></div>`).join("")}
+        </div>`;
+      case "social":
+        return `<div style="padding:24px 32px;text-align:center;display:flex;justify-content:center;gap:12px">
+          ${(row.content?.icons || ["F", "X", "in", "IG"]).map(icon => `<div style="width:32px;height:32px;border-radius:50%;background:#3B82F6;color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700">${icon}</div>`).join("")}
+        </div>`;
+      case "video":
+        return `<div style="padding:24px 32px"><div style="background:#000;border-radius:8px;height:180px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:14px">YouTube / Video Placeholder</div></div>`;
+      case "html":
+        return `<div style="padding:16px 32px;font-size:13px">${row.content?.html || ""}</div>`;
+      case "table":
+        return `<div style="padding:16px 32px"><table style="width:100%;border-collapse:collapse;font-size:12px">${(row.content?.rows || []).map(r => `<tr>${(r || []).map(c => `<td style="border:1px solid #e5e7eb;padding:8px">${c || ""}</td>`).join("")}</tr>`).join("")}</table></div>`;
       case "columns": {
+        const type = row.content?.type;
+        const ratios = type === "1/2" ? [1, 1] : type === "1/3" ? [1, 1, 1] : type === "1/4" ? [1, 1, 1, 1] : [1];
         const cols = row.content?.columns || [];
-        const colsHtml = cols.map(col => {
+        const colsHtml = ratios.map((flex, i) => {
+          const col = cols[i] || { blocks: [], settings: {} };
           const blocksHtml = (col.blocks || []).map(b => renderRow(b)).join("");
-          return `<div style="flex:1;padding:${col.settings?.padding || "10px"}">${blocksHtml}</div>`;
+          return `<div style="flex:${flex};padding:${col.settings?.padding || "10px"}">${blocksHtml}</div>`;
         }).join("");
         return `<div style="display:flex;background:${row.content?.rowBg || "transparent"}">${colsHtml}</div>`;
       }
@@ -370,7 +398,20 @@ export default function PageManageTemplates({ t, isDark, setActivePage, setActiv
       {/* View Email Modal */}
       {viewTemplate && (
         <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.6)", backdropFilter: "blur(4px)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
-          <div style={{ width: "100%", maxWidth: "80vw", maxHeight: "90vh", background: "#fff", borderRadius: 12, overflow: "hidden", display: "flex", flexDirection: "column", boxShadow: "0 24px 64px rgba(0,0,0,0.35)" }}>
+          <div style={{
+            width: "80vw",
+            height: "85vh",
+            minWidth: 400,
+            minHeight: 300,
+            background: "#fff",
+            borderRadius: 12,
+            overflow: "hidden",
+            display: "flex",
+            flexDirection: "column",
+            boxShadow: "0 24px 64px rgba(0,0,0,0.35)",
+            resize: "both",
+            position: "relative"
+          }}>
             {/* Header */}
             <div style={{ background: isDark ? "#1e293b" : "#1D4ED8", color: "#fff", padding: "14px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0 }}>
               <span style={{ fontSize: 15, fontWeight: 600 }}>View email</span>
@@ -380,19 +421,20 @@ export default function PageManageTemplates({ t, isDark, setActivePage, setActiv
             </div>
 
             {/* Preview Body */}
-            <div style={{ flex: 1, overflowY: "auto", background: "#f3f4f6" }}>
+            <div style={{ flex: 1, position: "relative", background: "#f3f4f6" }}>
               <iframe
                 srcDoc={generateEmailPreviewHtml(viewTemplate.rows)}
                 title="Email preview"
                 sandbox="allow-same-origin"
-                style={{ width: "100%", border: "none", minHeight: 900, display: "block" }}
-                onLoad={e => {
-                  try {
-                    const h = e.target.contentDocument?.body?.scrollHeight;
-                    if (h) e.target.style.height = Math.min(h + 32, 900) + "px";
-                  } catch (_) { }
-                }}
+                style={{ width: "100%", height: "100%", border: "none", display: "block" }}
               />
+              
+              {/* Resize Handle Visual Hint */}
+              <div style={{
+                position: "absolute", bottom: 4, right: 4, width: 12, height: 12,
+                borderRight: "2px solid #cbd5e1", borderBottom: "2px solid #cbd5e1",
+                pointerEvents: "none", opacity: 0.6, zIndex: 10
+              }} />
             </div>
 
             {/* Footer Buttons */}
