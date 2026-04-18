@@ -370,7 +370,7 @@ export default function PageManageTemplates({ t, isDark, setActivePage, setActiv
       {/* View Email Modal */}
       {viewTemplate && (
         <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.6)", backdropFilter: "blur(4px)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
-          <div style={{ width: "100%", maxWidth: "460", maxHeight: "90vh", background: "#fff", borderRadius: 12, overflow: "hidden", display: "flex", flexDirection: "column", boxShadow: "0 24px 64px rgba(0,0,0,0.35)" }}>
+          <div style={{ width: "100%", maxWidth: "80vw", maxHeight: "90vh", background: "#fff", borderRadius: 12, overflow: "hidden", display: "flex", flexDirection: "column", boxShadow: "0 24px 64px rgba(0,0,0,0.35)" }}>
             {/* Header */}
             <div style={{ background: isDark ? "#1e293b" : "#1D4ED8", color: "#fff", padding: "14px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0 }}>
               <span style={{ fontSize: 15, fontWeight: 600 }}>View email</span>
@@ -385,11 +385,11 @@ export default function PageManageTemplates({ t, isDark, setActivePage, setActiv
                 srcDoc={generateEmailPreviewHtml(viewTemplate.rows)}
                 title="Email preview"
                 sandbox="allow-same-origin"
-                style={{ width: "100%", border: "none", minHeight: 720, display: "block" }}
+                style={{ width: "100%", border: "none", minHeight: 900, display: "block" }}
                 onLoad={e => {
                   try {
                     const h = e.target.contentDocument?.body?.scrollHeight;
-                    if (h) e.target.style.height = Math.min(h + 32, 720) + "px";
+                    if (h) e.target.style.height = Math.min(h + 32, 900) + "px";
                   } catch (_) { }
                 }}
               />
