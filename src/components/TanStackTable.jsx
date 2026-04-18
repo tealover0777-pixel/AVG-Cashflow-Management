@@ -129,11 +129,11 @@ const TanStackTable = React.forwardRef(({
                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                             {flexRender(header.column.columnDef.header, header.getContext())}
                          </div>
-                         {header.column.getIsSorted() && (
-                            <span style={{ color: t.accent }}>
+                         {(header.column.getIsSorted() || (header.column.id === 'select' && header.column.getCanSort())) ? (
+                            <span style={{ color: header.column.getIsSorted() ? t.accent : t.textMuted, opacity: header.column.getIsSorted() ? 1 : 0.4 }}>
                               {header.column.getIsSorted() === 'asc' ? <ArrowUp size={12} /> : <ArrowDown size={12} />}
                             </span>
-                         )}
+                         ) : null}
                       </div>
                       {header.column.getCanFilter() && (
                         <input 
