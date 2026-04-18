@@ -1329,6 +1329,10 @@ function SettingsPanel({ t, isDark, settings, onChange, profile, DIMENSIONS = []
   const recipientColumns = useMemo(() => [
     {
       id: "select",
+      accessorFn: (row) => {
+        const id = row.docId || row._docId || row.id || row.schedule_id || `idx-${CONTACTS.indexOf(row)}`;
+        return rowSelection[id] ? 1 : 0;
+      },
       header: ({ table }) => (
         <input
           type="checkbox"
@@ -1347,6 +1351,7 @@ function SettingsPanel({ t, isDark, settings, onChange, profile, DIMENSIONS = []
         />
       ),
       size: 50,
+      enableSorting: true,
     },
     {
       accessorKey: "first_name",
@@ -1363,7 +1368,7 @@ function SettingsPanel({ t, isDark, settings, onChange, profile, DIMENSIONS = []
       header: (t.isFrench ? "E-mail" : "Email Address"),
       cell: info => info.getValue() || "—"
     },
-  ], [t]);
+  ], [t, rowSelection, CONTACTS]);
 
   const userFullName = (profile?.first_name || profile?.last_name)
     ? `${profile.first_name || ""} ${profile.last_name || ""}`.trim()
