@@ -386,9 +386,9 @@ export default function PageEmailBuilder(props) {
       // Nested level delete
       next = next.map(r => {
         if (r.type !== "columns") return r;
-        const newCols = r.content.columns?.map(col => ({
+        const newCols = (r.content.columns || []).map(col => ({
           ...col,
-          blocks: col.blocks.filter(b => b.id !== rowId)
+          blocks: (col.blocks || []).filter(b => b.id !== rowId)
         }));
         return { ...r, content: { ...r.content, columns: newCols } };
       });
@@ -412,8 +412,8 @@ export default function PageEmailBuilder(props) {
       // Nested level duplicate
       return prev.map(r => {
         if (r.type !== "columns") return r;
-        const newCols = r.content.columns?.map(col => {
-          const bIdx = col.blocks.findIndex(b => b.id === rowId);
+        const newCols = (r.content.columns || []).map(col => {
+          const bIdx = (col.blocks || []).findIndex(b => b.id === rowId);
           if (bIdx === -1) return col;
           const newBlock = JSON.parse(JSON.stringify(col.blocks[bIdx]));
           newBlock.id = `b_${Date.now()}`;
@@ -454,9 +454,9 @@ export default function PageEmailBuilder(props) {
       // Nested
       next = next.map(r => {
         if (r.type !== "columns") return r;
-        const newCols = r.content.columns?.map(col => ({
+        const newCols = (r.content.columns || []).map(col => ({
           ...col,
-          blocks: col.blocks.map(updateObj)
+          blocks: (col.blocks || []).map(updateObj)
         }));
         return { ...r, content: { ...r.content, columns: newCols } };
       });
@@ -1302,7 +1302,7 @@ function EmailRow({ row, isSelected, isHovered, onSelect, onHover, onDelete, onD
       case "social":
         return (
           <div style={{ padding: "16px 32px", background: "#fff", display: "flex", justifyContent: "center", gap: 8 }}>
-            {(item.content?.icons || ["F", "𝕏", "in", "📷"]).map((s, i) => (
+            {(Array.isArray(item.content?.icons) ? item.content.icons : ["F", "𝕏", "in", "📷"]).map((s, i) => (
               <div key={i} style={{ width: 32, height: 32, borderRadius: "50%", background: "#3B82F6", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 11, fontWeight: 700 }}>{s}</div>
             ))}
           </div>
@@ -1312,50 +1312,53 @@ function EmailRow({ row, isSelected, isHovered, onSelect, onHover, onDelete, onD
         return <div style={{ padding: "16px 32px", background: "#fff", fontSize: 13, color: "#1F2937" }} dangerouslySetInnerHTML={{ __html: item.content?.html || "<strong>Hello, world!</strong>" }} />;
 
       case "table":
-        const tableRows = item.content?.rows || [];
+        const tableRows = Array.isArray(item.content?.rows) ? item.content.rows : [];
         return (
-          <div style={{ padding: "16px 32px", background: "#fff" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse", border: "1px solid #DDDDDD" }}>
-              <tbody>
-                {tableRows.map((tr, rIdx) => (
-                  <tr key={tr.id} style={{ background: tr.isHeader ? "#EBEBEB" : "transparent" }}>
-                    {tr.cells.map((cell, cIdx) => (
-                      <td
-                        key={cell.id}
-                        contentEditable
-                        suppressContentEditableWarning
-                        onBlur={e => {
-                          e.currentTarget.style.boxShadow = "none";
-                          const newRows = [...tableRows];
-                          newRows[rIdx].cells[cIdx].text = e.currentTarget.innerHTML;
-                          onUpdate(item.id, { rows: newRows });
-                        }}
-                        onFocus={e => e.currentTarget.style.boxShadow = "inset 0 0 0 2px #3B82F6"}
-                        onClick={e => e.stopPropagation()}
-                        style={{
-                          border: `${item.content?.borderWidth || 1}px ${item.content?.borderStyle || "solid"} ${item.content?.borderColor || "#DDDDDD"}`,
-                          padding: item.content?.cellPadding ?? "12px",
-                          fontSize: (tr.isHeader ? item.content?.headerFontSize : item.content?.fontSize) || 13,
-                          color: (tr.isHeader ? item.content?.headerColor : item.content?.color) || "#1F2937",
-                          fontWeight: tr.isHeader ? (item.content?.headerFontWeight || 700) : (item.content?.fontWeight === 'bold' ? 700 : 400),
-                          textAlign: (tr.isHeader ? item.content?.headerTextAlign : item.content?.textAlign) || "left",
-                          verticalAlign: item.content?.verticalAlign || "middle",
-                          fontFamily: (tr.isHeader ? item.content?.headerFontFamily : item.content?.fontFamily) || "inherit",
-                          lineHeight: item.content?.lineHeight ? `${item.content.lineHeight}%` : "1.4",
-                          letterSpacing: item.content?.letterSpacing ? `${item.content.letterSpacing}px` : "normal",
-                          outline: "none",
-                          minHeight: 40,
-                          minWidth: 100,
-                          transition: "0.2s"
-                        }}
-                        dangerouslySetInnerHTML={{ __html: cell.text }}
-                      />
-                    ))}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <>
+            <div style={{ padding: "16px 32px", background: "#fff" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse", border: "1px solid #DDDDDD" }}>
+                <tbody>
+                  {tableRows.map((tr, rIdx) => (
+                    <tr key={tr.id} style={{ background: tr.isHeader ? (item.content?.headerBg || "#EBEBEB") : (item.content?.striped && rIdx % 2 === 1 ? "#F9F9F9" : (item.content?.bg || "transparent")) }}>
+                      {(Array.isArray(tr.cells) ? tr.cells : []).map((cell, cIdx) => (
+                        <td
+                          key={cell.id}
+                          contentEditable
+                          suppressContentEditableWarning
+                          onBlur={e => {
+                            e.currentTarget.style.boxShadow = "none";
+                            const newRows = [...tableRows];
+                            newRows[rIdx].cells[cIdx].text = e.currentTarget.innerHTML;
+                            onUpdate(item.id, { rows: newRows });
+                          }}
+                          onFocus={e => e.currentTarget.style.boxShadow = "inset 0 0 0 2px #3B82F6"}
+                          onClick={e => e.stopPropagation()}
+                          style={{
+                            border: `${item.content?.borderWidth || 1}px ${item.content?.borderStyle || "solid"} ${item.content?.borderColor || "#DDDDDD"}`,
+                            padding: item.content?.cellPadding ?? "12px",
+                            fontSize: (tr.isHeader ? item.content?.headerFontSize : item.content?.fontSize) || 13,
+                            color: (tr.isHeader ? item.content?.headerColor : item.content?.color) || "#1F2937",
+                            fontWeight: tr.isHeader ? (item.content?.headerFontWeight || 700) : (item.content?.fontWeight === 'bold' ? 700 : 400),
+                            textAlign: (tr.isHeader ? item.content?.headerTextAlign : item.content?.textAlign) || "left",
+                            verticalAlign: item.content?.verticalAlign || "middle",
+                            fontFamily: (tr.isHeader ? item.content?.headerFontFamily : item.content?.fontFamily) || "inherit",
+                            lineHeight: item.content?.lineHeight ? `${item.content.lineHeight}%` : "1.4",
+                            letterSpacing: item.content?.letterSpacing ? `${item.content.letterSpacing}px` : "normal",
+                            outline: "none",
+                            minHeight: 40,
+                            minWidth: 100,
+                            transition: "0.2s"
+                          }}
+                          dangerouslySetInnerHTML={{ __html: cell.text }}
+                        />
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            {isSelected && <FloatingTextBar t={t} isDark={isDark} />}
+          </>
         );
 
       default:
@@ -2332,7 +2335,11 @@ function BlockPropsPanel({ t, isDark, blockType, rowId, onUpdate, rows, onClose,
 
   const fileInputRef = useRef(null);
 
-  const [open, setOpen] = useState({ displayCondition: false, main: true, action: true, general: true, links: false, columnProps: false, header: true, menuItems: true });
+  const [open, setOpen] = useState({ 
+    displayCondition: false, main: true, action: true, general: true, 
+    links: false, columnProps: false, header: true, menuItems: true,
+    layout: true, content: true, footer: true
+  });
   const tog = id => setOpen(p => ({ ...p, [id]: !p[id] }));
 
   // Thin wrappers that bind open/tog/t/isDark — these are plain functions NOT components,
@@ -2530,7 +2537,7 @@ function BlockPropsPanel({ t, isDark, blockType, rowId, onUpdate, rows, onClose,
         <>
           <DispCond />
           {S("menuItems", "Menu Items", <>
-            {(content.menuItems || []).map((item, i) => (
+            {(Array.isArray(content.menuItems) ? content.menuItems : []).map((item, i) => (
               <div key={i} style={{ display: "flex", gap: 6, alignItems: "center" }}>
                 <input value={item} onChange={e => { const items = [...(content.menuItems || [])]; items[i] = e.target.value; upd({ menuItems: items }); }} style={{ ...inpStyle(t), flex: 1 }} />
                 <button onClick={() => upd({ menuItems: (content.menuItems || []).filter((_, j) => j !== i) })} style={{ background: "none", border: "none", color: "#EF4444", cursor: "pointer", fontSize: 16 }}>×</button>
