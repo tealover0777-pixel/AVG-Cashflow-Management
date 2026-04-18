@@ -104,7 +104,7 @@ export default function PageEmailBuilder(props) {
   const [emailName, setEmailName] = useState(activeEmailTemplate?.name || "Investment reports - March 2026");
   const [editingName, setEditingName] = useState(false);
   const [emailSettings, setEmailSettings] = useState(activeEmailTemplate?.settings || INITIAL_SETTINGS);
-  const [rows, setRows] = useState(activeEmailTemplate?.rows || INITIAL_ROWS);
+  const [rows, setRows] = useState((activeEmailTemplate?.rows && activeEmailTemplate.rows.length > 0) ? activeEmailTemplate.rows : INITIAL_ROWS);
   const [uploads, setUploads] = useState([]);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -134,7 +134,7 @@ export default function PageEmailBuilder(props) {
     if (activeEmailTemplate) {
       if (activeEmailTemplate.id !== lastIdRef.current) {
         lastIdRef.current = activeEmailTemplate.id;
-        if (activeEmailTemplate.rows) setRows(activeEmailTemplate.rows);
+        if (activeEmailTemplate.rows) setRows(activeEmailTemplate.rows.length > 0 ? activeEmailTemplate.rows : INITIAL_ROWS);
         if (activeEmailTemplate.settings) setEmailSettings(activeEmailTemplate.settings);
         if (activeEmailTemplate.name) setEmailName(activeEmailTemplate.name);
       }
