@@ -1394,11 +1394,15 @@ function SettingsPanel({ t, isDark, settings, onChange, profile }) {
                     <div
                       key={opt}
                       onClick={() => {
-                        if (opt !== "Custom sender name") {
-                          set("fromName", opt);
-                          onChange(prev => ({ ...prev, fromName: opt }));
-                        }
+                        const newVal = opt === "Custom sender name" ? "" : opt;
+                        set("fromName", newVal);
+                        onChange(prev => ({ ...prev, fromName: newVal }));
                         setShowFromDropdown(false);
+                        // Optional: focus the input if custom is chosen
+                        if (opt === "Custom sender name") {
+                          const el = fromDropRef.current?.querySelector('input');
+                          if (el) el.focus();
+                        }
                       }}
                       style={{ padding: "12px 16px", cursor: "pointer", fontSize: 14, color: t.text, transition: "background 0.2s" }}
                       onMouseEnter={e => e.currentTarget.style.background = isDark ? "rgba(255,255,255,0.05)" : "#f3f4f6"}
