@@ -289,11 +289,6 @@ export default function PageEmailBuilder(props) {
       setIsSaving(false);
     }
   };
-      showToast("Error saving template", "error");
-    } finally {
-      setIsSaving(false);
-    }
-  };
 
   const showToast = (msg, type = "info") => { setToast({ msg, type }); setTimeout(() => setToast(null), 4000); }; // eslint-disable-line
 
