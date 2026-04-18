@@ -1612,7 +1612,7 @@ function SettingsPanel({ t, isDark, settings, onChange, profile, DIMENSIONS = []
                 <CDown />
               </div>
               {showTypeDropdown && (
-                <div style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0, background: t.surface, border: `1px solid ${t.border}`, borderRadius: 8, boxShadow: "0 10px 25px rgba(0,0,0,0.15)", zIndex: 1000, overflow: "hidden" }}>
+                <div style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0, background: t.surface, border: `1px solid ${t.chipBorder}`, borderRadius: 8, boxShadow: "0 10px 25px rgba(0,0,0,0.15)", zIndex: 1000, overflow: "hidden" }}>
                   {(DIMENSIONS.find(d => d.name === "EmailType")?.items || ["Marketing", "Transactional", "Operational"]).map(opt => (
                     <div
                       key={opt}
@@ -1650,7 +1650,7 @@ function SettingsPanel({ t, isDark, settings, onChange, profile, DIMENSIONS = []
                 <CDown />
               </div>
               {showFromDropdown && (
-                <div style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0, background: t.surface, border: `1px solid ${t.border}`, borderRadius: 8, boxShadow: "0 10px 25px rgba(0,0,0,0.15)", zIndex: 1000, overflow: "hidden" }}>
+                <div style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0, background: t.surface, border: `1px solid ${t.chipBorder}`, borderRadius: 8, boxShadow: "0 10px 25px rgba(0,0,0,0.15)", zIndex: 1000, overflow: "hidden" }}>
                   {[userName, "Custom sender name"].map(opt => (
                     <div
                       key={opt}
@@ -1700,7 +1700,7 @@ function SettingsPanel({ t, isDark, settings, onChange, profile, DIMENSIONS = []
                 <CDown />
               </div>
               {showReplyToDropdown && (
-                <div style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0, background: t.surface, border: `1px solid ${t.border}`, borderRadius: 8, boxShadow: "0 10px 25px rgba(0,0,0,0.15)", zIndex: 1000, overflow: "hidden" }}>
+                <div style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0, background: t.surface, border: `1px solid ${t.chipBorder}`, borderRadius: 8, boxShadow: "0 10px 25px rgba(0,0,0,0.15)", zIndex: 1000, overflow: "hidden" }}>
                   {[userName, "Custom sender name"].map(opt => (
                     <div
                       key={opt}
