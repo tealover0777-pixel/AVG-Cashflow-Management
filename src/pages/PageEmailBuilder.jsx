@@ -1304,6 +1304,8 @@ function SettingsPanel({ t, isDark, settings, onChange, profile, DIMENSIONS = []
   const [localSettings, setLocalSettings] = useState(settings);
   const [showFromDropdown, setShowFromDropdown] = useState(false);
   const fromDropRef = useRef(null);
+  const [showTypeDropdown, setShowTypeDropdown] = useState(false);
+  const typeDropRef = useRef(null);
 
   const userFullName = (profile?.first_name || profile?.last_name)
     ? `${profile.first_name || ""} ${profile.last_name || ""}`.trim()
@@ -1320,6 +1322,16 @@ function SettingsPanel({ t, isDark, settings, onChange, profile, DIMENSIONS = []
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, [showFromDropdown]);
+
+  // Close type dropdown on outside click
+  useEffect(() => {
+    if (!showTypeDropdown) return;
+    const handler = (e) => {
+      if (typeDropRef.current && !typeDropRef.current.contains(e.target)) setShowTypeDropdown(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [showTypeDropdown]);
 
   // Sync local state when external settings change (e.g. from a different template)
   useEffect(() => {
@@ -1365,20 +1377,33 @@ function SettingsPanel({ t, isDark, settings, onChange, profile, DIMENSIONS = []
           </SettingsRow>
 
           <SettingsRow label="Type:" t={t}>
-            <div style={{ position: "relative", flex: 1, borderBottom: `1px solid ${t.chipBorder}` }}>
-              <select 
-                value={localSettings.type || ""} 
-                onChange={e => { set("type", e.target.value); onChange(prev => ({ ...prev, type: e.target.value })); }} 
-                style={{ ...inp, borderBottom: "none", padding: "8px 24px 8px 0", appearance: "none", cursor: "pointer", color: localSettings.type ? t.text : t.textMuted }}
-              >
-                <option value="" disabled>{t.isFrench ? "Choisir Type..." : "Select Type..."}</option>
-                {(DIMENSIONS.find(d => d.name === "EmailType")?.items || ["Marketing", "Transactional", "Operational"]).map(opt => (
-                  <option key={opt} value={opt} style={{ color: "#000" }}>{opt}</option>
-                ))}
-              </select>
-              <div style={{ position: "absolute", right: 0, top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }}>
+            <div ref={typeDropRef} style={{ position: "relative", flex: 1, borderBottom: `1px solid ${t.chipBorder}`, cursor: "pointer" }} onClick={() => setShowTypeDropdown(!showTypeDropdown)}>
+              <div style={{ ...inp, borderBottom: "none", color: localSettings.type ? t.text : t.textMuted, display: "flex", alignItems: "center" }}>
+                {localSettings.type || (t.isFrench ? "Choisir Type..." : "Select Type...")}
+              </div>
+              <div style={{ position: "absolute", right: 0, top: "50%", transform: "translateY(-50%)", pointerEvents: "none", opacity: 0.6 }}>
                 <CDown />
               </div>
+              {showTypeDropdown && (
+                <div style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0, background: t.surface, border: `1px solid ${t.border}`, borderRadius: 8, boxShadow: "0 10px 25px rgba(0,0,0,0.15)", zIndex: 1000, overflow: "hidden" }}>
+                  {(DIMENSIONS.find(d => d.name === "EmailType")?.items || ["Marketing", "Transactional", "Operational"]).map(opt => (
+                    <div
+                      key={opt}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        set("type", opt);
+                        onChange(prev => ({ ...prev, type: opt }));
+                        setShowTypeDropdown(false);
+                      }}
+                      style={{ padding: "12px 16px", cursor: "pointer", fontSize: 14, color: t.text, transition: "background 0.2s" }}
+                      onMouseEnter={e => e.currentTarget.style.background = isDark ? "rgba(255,255,255,0.05)" : "#f3f4f6"}
+                      onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+                    >
+                      {opt}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </SettingsRow>
 
