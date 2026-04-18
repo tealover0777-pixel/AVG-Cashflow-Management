@@ -11,7 +11,7 @@ import {
   Plus, Trash2, Copy, Settings as SettingsIcon, Paperclip,
   AlignCenter, AlignRight, AlignJustify, Move, Send, Clock, Check, Eye,
   Bold, Italic, Underline, List, Link as LinkIcon,
-  AlignVerticalTop, AlignVerticalCenter, AlignVerticalBottom
+  AlignStartVertical, AlignCenterVertical, AlignEndVertical
 } from "lucide-react";
 import { PromptModal, DelModal, Modal, TanStackTable } from "../components";
 
@@ -2165,9 +2165,9 @@ const AlignToggle = ({ value, onChange, t, isDark }) => (
 const VerticalAlignToggle = ({ value, onChange, t, isDark }) => (
   <div style={{ display: "flex", border: `1px solid ${t.border}`, borderRadius: 4, overflow: "hidden" }}>
     {[
-      { val: "top", icon: AlignVerticalTop },
-      { val: "middle", icon: AlignVerticalCenter },
-      { val: "bottom", icon: AlignVerticalBottom },
+      { val: "top", icon: AlignStartVertical },
+      { val: "middle", icon: AlignCenterVertical },
+      { val: "bottom", icon: AlignEndVertical },
     ].map((a, i) => (
       <button
         key={a.val}
