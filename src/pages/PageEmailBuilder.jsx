@@ -369,7 +369,7 @@ export default function PageEmailBuilder(props) {
     const type = LABEL_TO_TYPE[label] || "paragraph";
     const newBlock = { id: `b_${Date.now()}`, type, content: {} };
 
-    setRows(prev => prev.map(r => {
+    setRows(prev => (Array.isArray(prev) ? prev : []).map(r => {
       if (r.id !== rowId) return r;
       const newCols = [...(r.content.columns || [])];
       if (!newCols[colIdx]) return r;
@@ -388,7 +388,7 @@ export default function PageEmailBuilder(props) {
       // Top level delete
       let next = prev.filter(r => r.id !== rowId);
       // Nested level delete
-      next = next.map(r => {
+      next = (Array.isArray(next) ? next : []).map(r => {
         if (r.type !== "columns") return r;
         const newCols = (r.content.columns || []).map(col => ({
           ...col,
@@ -414,7 +414,7 @@ export default function PageEmailBuilder(props) {
         return next;
       }
       // Nested level duplicate
-      return prev.map(r => {
+      return (Array.isArray(prev) ? prev : []).map(r => {
         if (r.type !== "columns") return r;
         const newCols = (r.content.columns || []).map(col => {
           const bIdx = (col.blocks || []).findIndex(b => b.id === rowId);
@@ -449,8 +449,8 @@ export default function PageEmailBuilder(props) {
         }
         return { ...r, content: newContent };
       };
-      let next = prev.map(updateObj);
-      next = next.map(r => {
+      let next = (Array.isArray(prev) ? prev : []).map(updateObj);
+      next = (Array.isArray(next) ? next : []).map(r => {
         if (r.type !== "columns") return r;
         const newCols = (r.content.columns || []).map(col => ({
           ...col,
@@ -966,7 +966,7 @@ function EmailCanvas({ t, isDark, rows, selectedRowId, onSelectRow, onAddRow, on
       <div style={{ width: "100%", maxWidth: 780 }}>
         {/* Drop zone before first row */}
         <DropZone active={dropIdx === -1} onDragOver={e => handleDragOver(e, -1)} onDrop={e => handleDrop(e, -1)} />
-        {rows.map((row, idx) => (
+        {(Array.isArray(rows) ? rows : []).map((row, idx) => (
           <React.Fragment key={row.id}>
             <EmailRow
               row={row}
@@ -1047,7 +1047,8 @@ const FloatingTextBar = ({ t, isDark, DIMENSIONS = [] }) => {
   const [showTags, setShowTags] = useState(false);
   const tagDropRef = useRef(null);
 
-  const emailTags = DIMENSIONS.find(d => d.name === "EmailTags")?.items || ["First name", "Last name", "Email", "Property Name", "Investment Amount", "Closing Date"];
+  const rawTags = DIMENSIONS.find(d => d.name === "EmailTags")?.items || ["First name", "Last name", "Email", "Property Name", "Investment Amount", "Closing Date"];
+  const emailTags = Array.isArray(rawTags) ? rawTags : ["First name", "Last name", "Email", "Property Name", "Investment Amount", "Closing Date"];
 
   const cmd = (name, val = null) => {
     document.execCommand(name, false, val);
@@ -1144,7 +1145,7 @@ const FloatingTextBar = ({ t, isDark, DIMENSIONS = [] }) => {
             minWidth: 160, boxShadow: "0 8px 30px rgba(0,0,0,0.5)", zIndex: 1100,
             overflowX: "hidden", overflowY: "auto", maxHeight: 250, padding: "4px 0"
           }}>
-            {emailTags.map(tag => (
+            {(Array.isArray(emailTags) ? emailTags : []).map(tag => (
               <div
                 key={tag}
                 onMouseDown={e => { e.preventDefault(); insertTag(tag); }}
@@ -1198,7 +1199,7 @@ function EmailRow({ row, isSelected, isHovered, onSelect, onHover, onDelete, onD
 
         return (
           <div style={{ display: "flex", width: "100%", background: item.content?.rowBg || "transparent", minHeight: 60 }}>
-            {ratios.map((flex, i) => {
+            {(Array.isArray(ratios) ? ratios : []).map((flex, i) => {
               const col = columnData[i] || { blocks: [], settings: {} };
               return (
                 <div
@@ -1217,8 +1218,8 @@ function EmailRow({ row, isSelected, isHovered, onSelect, onHover, onDelete, onD
                     display: "flex", flexDirection: "column", gap: 8
                   }}
                 >
-                  {(Array.isArray(col.blocks) ? col.blocks : []).length > 0 ? (
-                    (col.blocks || []).map(b => (
+                  {Array.isArray(col.blocks) && col.blocks.length > 0 ? (
+                    col.blocks.map(b => (
                       <EmailRow
                         key={b.id}
                         row={b}
@@ -2143,7 +2144,7 @@ function ReviewPanel({ t, isDark, rows, emailSettings, narrow }) {
           </div>
         )}
         <div style={{ width: narrow ? 390 : "100%", maxWidth: narrow ? 390 : 1100, boxShadow: "0 10px 40px rgba(0,0,0,0.1)", background: "#fff", borderRadius: 8, overflow: "hidden" }}>
-          {rows.map(row => <RowPreview key={row.id} row={row} narrow={narrow} />)}
+          {(Array.isArray(rows) ? rows : []).map(row => <RowPreview key={row.id} row={row} narrow={narrow} />)}
         </div>
       </div>
 
@@ -2186,7 +2187,7 @@ function RowPreview({ row, narrow }) {
       const ratios = (row.content?.layout || "50-50").split("-").map(Number);
       return (
         <div style={{ display: "flex", width: "100%", background: row.content?.rowBg || "transparent" }}>
-          {ratios.map((flex, i) => (
+          {(Array.isArray(ratios) ? ratios : []).map((flex, i) => (
             <div key={i} style={{ flex: `${flex} 1 0%`, padding: row.content?.columns?.[i]?.settings?.padding || "10px", background: row.content?.columns?.[i]?.settings?.bgColor || "transparent" }}>
               {(Array.isArray(row.content?.columns?.[i]?.blocks) ? row.content.columns[i].blocks : []).map(b => <RowPreview key={b.id} row={b} narrow={narrow} />)}
             </div>
