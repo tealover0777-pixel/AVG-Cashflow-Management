@@ -685,6 +685,9 @@ export default function PageEmailBuilder(props) {
             onDeleteRow={handleDeleteRow}
             onDuplicateRow={handleDuplicateRow}
             onUpdateRow={handleUpdateRow}
+            onAddBlockToColumn={handleAddBlockToColumn}
+            onReorder={handleReorderRows}
+            setActiveRightTab={setActiveRightTab}
           />
         )}
 
@@ -922,7 +925,7 @@ export default function PageEmailBuilder(props) {
 
 // ── Email Canvas ─────────────────────────────────────────────────────────────
 
-function EmailCanvas({ t, isDark, rows, selectedRowId, onSelectRow, onAddRow, onDeleteRow, onDuplicateRow, onUpdateRow, onAddBlockToColumn, setActiveRightTab }) {
+function EmailCanvas({ t, isDark, rows, selectedRowId, onSelectRow, onAddRow, onDeleteRow, onDuplicateRow, onUpdateRow, onAddBlockToColumn, onReorder, setActiveRightTab }) {
   const [dropIdx, setDropIdx] = useState(null);
   const [hoveredRowId, setHoveredRowId] = useState(null);
 
@@ -965,7 +968,7 @@ function EmailCanvas({ t, isDark, rows, selectedRowId, onSelectRow, onAddRow, on
               onUpdate={onUpdateRow}
               onAddRow={onAddRow}
               onAddBlockToColumn={onAddBlockToColumn}
-              onReorder={handleReorderRows}
+              onReorder={onReorder}
               setActiveRightTab={setActiveRightTab}
               t={t} isDark={isDark}
               selectedRowId={selectedRowId}
