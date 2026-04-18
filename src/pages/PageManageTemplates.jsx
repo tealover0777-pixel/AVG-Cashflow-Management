@@ -389,7 +389,7 @@ export default function PageManageTemplates({ t, isDark, setActivePage, setActiv
                 onLoad={e => {
                   try {
                     const h = e.target.contentDocument?.body?.scrollHeight;
-                    if (h) e.target.style.height = Math.min(h + 32, 600) + "px";
+                    if (h) e.target.style.height = Math.min(h + 32, 720) + "px";
                   } catch (_) { }
                 }}
               />
