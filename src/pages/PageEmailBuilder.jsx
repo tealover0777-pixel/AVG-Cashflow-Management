@@ -1345,29 +1345,33 @@ function SettingsPanel({ t, isDark, settings, onChange, profile, DIMENSIONS = []
 
   const tableData = useMemo(() => {
     const recipients = (localSettings.recipients || "").split(";").map(s => s.trim().toLowerCase()).filter(Boolean);
+    const dns = (localSettings.doNotSendTo || "").split(";").map(s => s.trim().toLowerCase()).filter(Boolean);
     return CONTACTS.map((c, i) => {
       const id = c.docId || c._docId || c.id || c.schedule_id || `idx-${i}`;
       return {
         ...c,
         _rowId: id,
         isSelected: !!rowSelection[id],
-        isAlreadyRecipient: c.email && recipients.includes(c.email.toLowerCase())
+        isAlreadyRecipient: c.email && recipients.includes(c.email.toLowerCase()),
+        isAlreadyDoNotSend: c.email && dns.includes(c.email.toLowerCase())
       };
     });
-  }, [CONTACTS, rowSelection, localSettings.recipients]);
+  }, [CONTACTS, rowSelection, localSettings.recipients, localSettings.doNotSendTo]);
 
   const doNotSendTableData = useMemo(() => {
     const recipients = (localSettings.recipients || "").split(";").map(s => s.trim().toLowerCase()).filter(Boolean);
+    const dns = (localSettings.doNotSendTo || "").split(";").map(s => s.trim().toLowerCase()).filter(Boolean);
     return CONTACTS.map((c, i) => {
       const id = c.docId || c._docId || c.id || c.schedule_id || `idx-${i}`;
       return {
         ...c,
         _rowId: id,
         isSelected: !!doNotSendRowSelection[id],
-        isAlreadyRecipient: c.email && recipients.includes(c.email.toLowerCase())
+        isAlreadyRecipient: c.email && recipients.includes(c.email.toLowerCase()),
+        isAlreadyDoNotSend: c.email && dns.includes(c.email.toLowerCase())
       };
     });
-  }, [CONTACTS, doNotSendRowSelection, localSettings.recipients]);
+  }, [CONTACTS, doNotSendRowSelection, localSettings.recipients, localSettings.doNotSendTo]);
 
   const recipientColumns = useMemo(() => [
     {
@@ -1386,7 +1390,7 @@ function SettingsPanel({ t, isDark, settings, onChange, profile, DIMENSIONS = []
           type="checkbox"
           className="ts-checkbox"
           checked={row.getIsSelected()}
-          disabled={!row.original.email}
+          disabled={!row.original.email || row.original.isAlreadyDoNotSend}
           onChange={row.getToggleSelectedHandler()}
         />
       ),
@@ -1406,9 +1410,32 @@ function SettingsPanel({ t, isDark, settings, onChange, profile, DIMENSIONS = []
     {
       accessorKey: "email",
       header: (t.isFrench ? "E-mail" : "Email Address"),
-      cell: info => info.getValue() || "—"
+      cell: info => {
+        const val = info.getValue() || "—";
+        const isExcluded = info.row.original.isAlreadyDoNotSend;
+        if (isExcluded) {
+          return (
+            <div style={{ color: isDark ? "#F87171" : "#DC2626", fontWeight: 600, display: "flex", alignItems: "center", gap: 8 }}>
+              {val}
+              <span style={{ 
+                fontSize: 10, 
+                background: isDark ? "rgba(239, 68, 68, 0.2)" : "#FEE2E2", 
+                color: isDark ? "#F87171" : "#DC2626", 
+                padding: "2px 8px", 
+                borderRadius: 12,
+                fontWeight: 700,
+                letterSpacing: "0.02em",
+                border: `1px solid ${isDark ? "rgba(239, 68, 68, 0.3)" : "#FECACA"}`
+              }}>
+                EXCLUDED
+              </span>
+            </div>
+          );
+        }
+        return val;
+      }
     },
-  ], [t, rowSelection, CONTACTS]);
+  ], [t, isDark, CONTACTS]);
 
   const doNotSendColumns = useMemo(() => [
     {
@@ -1447,9 +1474,32 @@ function SettingsPanel({ t, isDark, settings, onChange, profile, DIMENSIONS = []
     {
       accessorKey: "email",
       header: (t.isFrench ? "E-mail" : "Email Address"),
-      cell: info => info.getValue() || "—"
+      cell: info => {
+        const val = info.getValue() || "—";
+        const isRecipient = info.row.original.isAlreadyRecipient;
+        if (isRecipient) {
+          return (
+            <div style={{ color: isDark ? "#60A5FA" : "#2563EB", fontWeight: 600, display: "flex", alignItems: "center", gap: 8 }}>
+              {val}
+              <span style={{ 
+                fontSize: 10, 
+                background: isDark ? "rgba(59, 130, 246, 0.2)" : "#DBEAFE", 
+                color: isDark ? "#60A5FA" : "#2563EB", 
+                padding: "2px 8px", 
+                borderRadius: 12,
+                fontWeight: 700,
+                letterSpacing: "0.02em",
+                border: `1px solid ${isDark ? "rgba(59, 130, 246, 0.3)" : "#BFDBFE"}`
+              }}>
+                RECIPIENT
+              </span>
+            </div>
+          );
+        }
+        return val;
+      }
     },
-  ], [t, doNotSendRowSelection, CONTACTS]);
+  ], [t, isDark, CONTACTS]);
 
   const userFullName = (profile?.first_name || profile?.last_name)
     ? `${profile.first_name || ""} ${profile.last_name || ""}`.trim()
@@ -1667,6 +1717,12 @@ function SettingsPanel({ t, isDark, settings, onChange, profile, DIMENSIONS = []
             rowSelection={rowSelection}
             onRowSelectionChange={setRowSelection}
             getRowId={(row) => row._rowId}
+            rowStyle={(row) => row.isAlreadyDoNotSend ? { 
+              background: isDark ? "rgba(239, 68, 68, 0.05)" : "#FEF2F2",
+              borderLeft: `4px solid ${isDark ? "#EF4444" : "#DC2626"}`,
+              opacity: 0.9,
+              cursor: "not-allowed"
+            } : {}}
           />
         </div>
       </Modal>
@@ -1699,8 +1755,10 @@ function SettingsPanel({ t, isDark, settings, onChange, profile, DIMENSIONS = []
             onRowSelectionChange={setDoNotSendRowSelection}
             getRowId={(row) => row._rowId}
             rowStyle={(row) => row.isAlreadyRecipient ? { 
-              background: isDark ? "rgba(255,165,0,0.1)" : "#FFFBEB",
-              opacity: 0.8
+              background: isDark ? "rgba(59, 130, 246, 0.05)" : "#F0F9FF",
+              borderLeft: `4px solid ${isDark ? "#3B82F6" : "#2563EB"}`,
+              opacity: 0.9,
+              cursor: "not-allowed"
             } : {}}
           />
         </div>
