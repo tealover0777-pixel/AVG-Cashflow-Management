@@ -462,9 +462,18 @@ export default function PageEmailBuilder(props) {
 
   return (
     <div
+      id="email-builder-wrapper"
       style={{ display: "flex", flexDirection: "column", height: "100%", fontFamily: "Inter, sans-serif", background: t.background }}
       onClick={handleDeselect}
     >
+      <style>{`
+        #email-builder-wrapper ::placeholder {
+          color: ${t.textMuted} !important;
+          opacity: 0.7 !important;
+        }
+        #email-builder-wrapper :-ms-input-placeholder { color: ${t.textMuted} !important; }
+        #email-builder-wrapper ::-ms-input-placeholder { color: ${t.textMuted} !important; }
+      `}</style>
       {/* ── Top Toolbar ── */}
       <div
         style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 20px", borderBottom: `1px solid ${t.border}`, background: t.surface, flexShrink: 0 }}
@@ -1280,11 +1289,11 @@ const ctrlBtn = { background: "rgba(0,0,0,0.6)", color: "#fff", border: "none", 
 // ── Settings Panel ────────────────────────────────────────────────────────────
 
 // Stable module-level row wrapper — must NOT be defined inside SettingsPanel to avoid remount on every render
-function SettingsRow({ label, hint, t, children }) {
+function SettingsRow({ label, t, children }) {
   return (
-    <div style={{ display: "flex", alignItems: "center", paddingBottom: 22, borderBottom: `1px solid ${t.border}` }}>
-      <div style={{ width: 180, fontSize: 14, color: t.textMuted, flexShrink: 0 }}>
-        {label}{hint && <span style={{ fontSize: 11, marginLeft: 4, opacity: 0.6 }}>ℹ</span>}
+    <div style={{ display: "flex", alignItems: "center", paddingBottom: 22 }}>
+      <div style={{ width: 180, fontSize: 14, color: t.textMuted, fontWeight: 500, flexShrink: 0 }}>
+        {label}
       </div>
       {children}
     </div>
@@ -1319,16 +1328,16 @@ function SettingsPanel({ t, isDark, settings, onChange }) {
         <div style={{ padding: "40px 48px", display: "flex", flexDirection: "column", gap: 32 }}>
 
           <SettingsRow label="Subject:" t={t}>
-            <input value={localSettings.subject || ""} onChange={e => set("subject", e.target.value)} onBlur={() => commit("subject")} placeholder="Enter subject" style={inp} />
+            <input value={localSettings.subject || ""} onChange={e => set("subject", e.target.value)} onBlur={() => commit("subject")} placeholder="Enter Subject" style={inp} />
           </SettingsRow>
 
           <SettingsRow label="Internal name:" t={t}>
-            <input value={localSettings.internalName || ""} onChange={e => set("internalName", e.target.value)} onBlur={() => commit("internalName")} style={inp} />
+            <input value={localSettings.internalName || ""} onChange={e => set("internalName", e.target.value)} onBlur={() => commit("internalName")} placeholder="Enter Internal Name" style={inp} />
           </SettingsRow>
 
           <SettingsRow label="Recipients:" t={t}>
-            <div style={{ flex: 1, fontSize: 15, color: t.textMuted }}>Click to select your recipients</div>
-            <button style={{ ...actionBtn, display: "flex", alignItems: "center", gap: 8, background: isDark ? "#374151" : "#F3F4F6", border: "none" }}>
+            <div style={{ flex: 1, fontSize: 15, color: t.textMuted, borderBottom: `1px solid ${t.border}`, padding: "8px 0" }}>Click to select your recipients</div>
+            <button style={{ ...actionBtn, marginLeft: 16, display: "flex", alignItems: "center", gap: 8, background: isDark ? "#374151" : "#F3F4F6", border: "none" }}>
               <Eye size={16} /> View recipients
             </button>
           </SettingsRow>
@@ -1337,9 +1346,9 @@ function SettingsPanel({ t, isDark, settings, onChange }) {
             <input value={localSettings.doNotSendTo || ""} onChange={e => set("doNotSendTo", e.target.value)} onBlur={() => commit("doNotSendTo")} placeholder="(Optional) Click to select recipients to exclude" style={{ ...inp, color: localSettings.doNotSendTo ? t.text : t.textMuted }} />
           </SettingsRow>
 
-          <SettingsRow label="Type:" hint t={t}>
-            <div style={{ position: "relative", flex: 1 }}>
-              <select value={localSettings.type || "Marketing"} onChange={e => { set("type", e.target.value); onChange(prev => ({ ...prev, type: e.target.value })); }} style={{ ...inp, padding: "8px 24px 8px 0", appearance: "none", cursor: "pointer" }}>
+          <SettingsRow label="Type:" t={t}>
+            <div style={{ position: "relative", flex: 1, borderBottom: `1px solid ${t.border}` }}>
+              <select value={localSettings.type || "Marketing"} onChange={e => { set("type", e.target.value); onChange(prev => ({ ...prev, type: e.target.value })); }} style={{ ...inp, borderBottom: "none", padding: "8px 24px 8px 0", appearance: "none", cursor: "pointer" }}>
                 <option value="Marketing">Marketing</option>
                 <option value="Transactional">Transactional</option>
                 <option value="Operational">Operational</option>
@@ -1351,28 +1360,30 @@ function SettingsPanel({ t, isDark, settings, onChange }) {
           </SettingsRow>
 
           <SettingsRow label="From name:" t={t}>
-            <input value={localSettings.fromName || ""} onChange={e => set("fromName", e.target.value)} onBlur={() => commit("fromName")} style={{ ...inp, borderBottom: "none", flex: 1 }} />
-            <button style={actionBtn}>Return to dropdown</button>
+            <input value={localSettings.fromName || ""} onChange={e => set("fromName", e.target.value)} onBlur={() => commit("fromName")} placeholder="Enter From Name" style={{ ...inp, flex: 1 }} />
+            <button style={{ ...actionBtn, marginLeft: 16 }}>Return to dropdown</button>
           </SettingsRow>
 
           <SettingsRow label="From:" t={t}>
-            <div style={{ flex: 1, fontSize: 15, color: t.text }}>{localSettings.from}</div>
-            <button style={{ ...actionBtn, marginRight: 16 }}>✏️ Edit</button>
+            <div style={{ flex: 1, fontSize: 15, color: t.text, borderBottom: `1px solid ${t.border}`, padding: "8px 0" }}>{localSettings.from || "—"}</div>
+            <button style={{ ...actionBtn, marginLeft: 16, marginRight: 16 }}>✏️ Edit</button>
             <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 14, color: t.textMuted, cursor: "pointer", whiteSpace: "nowrap" }}>
               <input type="checkbox" checked={!!localSettings.addSignature} onChange={e => { set("addSignature", e.target.checked); onChange(prev => ({ ...prev, addSignature: e.target.checked })); }} />
-              Add email signature <span style={{ fontSize: 12, opacity: 0.6 }}>ℹ</span>
+              Add email signature
             </label>
           </SettingsRow>
 
           <SettingsRow label="Reply-to:" t={t}>
-            <input value={localSettings.replyTo || ""} onChange={e => set("replyTo", e.target.value)} onBlur={() => commit("replyTo")} style={inp} />
-            <div style={{ paddingLeft: 12 }}>
-              <CDown />
+            <div style={{ position: "relative", flex: 1, borderBottom: `1px solid ${t.border}`, display: "flex", alignItems: "center" }}>
+              <input value={localSettings.replyTo || ""} onChange={e => set("replyTo", e.target.value)} onBlur={() => commit("replyTo")} placeholder="Enter Reply-to" style={{ ...inp, borderBottom: "none" }} />
+              <div style={{ paddingLeft: 12 }}>
+                <CDown />
+              </div>
             </div>
           </SettingsRow>
 
-          <SettingsRow label="Preview text:" t={t} hint>
-            <input value={localSettings.previewText || ""} onChange={e => set("previewText", e.target.value)} onBlur={() => commit("previewText")} placeholder="Enter email preview text" style={inp} />
+          <SettingsRow label="Preview text:" t={t}>
+            <input value={localSettings.previewText || ""} onChange={e => set("previewText", e.target.value)} onBlur={() => commit("previewText")} placeholder="Enter Email Preview Text" style={inp} />
           </SettingsRow>
 
         </div>
@@ -2010,18 +2021,18 @@ function BodyTab({ t, isDark }) {
         <PR label="Font Weight"><DD value="Regular" /></PR>
       </Sec>
       <Sec id="emailSettings" label="Email Settings">
-        <span style={{ fontSize: 12, color: t.text }}>Preheader Text</span>
-        <input type="text" style={{ width: "100%", padding: 8, border: `1px solid ${t.border}`, borderRadius: 4, background: t.surface, color: t.text, outline: "none", boxSizing: "border-box" }} />
-        <p style={{ margin: 0, fontSize: 10, color: t.textMuted }}>A preheader is the short summary text that follows the subject line when viewing an email from the inbox.</p>
+        <span style={{ fontSize: 12, color: t.textMuted, display: "block", marginBottom: 4 }}>Preheader Text</span>
+        <input type="text" placeholder="Enter Preheader Text" style={{ width: "100%", padding: "8px 0", border: "none", borderBottom: `1px solid ${t.border}`, background: "transparent", color: t.text, outline: "none", fontSize: 13 }} />
+        <p style={{ margin: "10px 0 0 0", fontSize: 11, color: t.textMuted, lineHeight: 1.4 }}>A preheader is the short summary text that follows the subject line when viewing an email from the inbox.</p>
       </Sec>
       <Sec id="links" label="Links">
         <PR label="Color"><Swatch color="#0000FF" /></PR>
         <PR label="Underline"><Toggle /></PR>
       </Sec>
       <Sec id="accessibility" label="Accessibility">
-        <span style={{ fontSize: 12, color: t.text }}>HTML Title</span>
-        <input type="text" style={{ width: "100%", padding: 8, border: `1px solid ${t.border}`, borderRadius: 4, background: t.surface, color: t.text, outline: "none", boxSizing: "border-box" }} />
-        <p style={{ margin: 0, fontSize: 10, color: t.textMuted }}>Sets the HTML &lt;title&gt; tag in the exported HTML.</p>
+        <span style={{ fontSize: 12, color: t.textMuted, display: "block", marginBottom: 4 }}>HTML Title</span>
+        <input type="text" placeholder="Enter HTML Title" style={{ width: "100%", padding: "8px 0", border: "none", borderBottom: `1px solid ${t.border}`, background: "transparent", color: t.text, outline: "none", fontSize: 13 }} />
+        <p style={{ margin: "10px 0 0 0", fontSize: 11, color: t.textMuted, lineHeight: 1.4 }}>Sets the HTML &lt;title&gt; tag in the exported HTML.</p>
       </Sec>
     </div>
   );
