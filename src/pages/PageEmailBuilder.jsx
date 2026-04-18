@@ -1308,6 +1308,8 @@ function SettingsPanel({ t, isDark, settings, onChange, profile, DIMENSIONS = []
   const [showDoNotSend, setShowDoNotSend] = useState(false);
   const [doNotSendRowSelection, setDoNotSendRowSelection] = useState({});
   const [selectedDoNotSend, setSelectedDoNotSend] = useState([]);
+  const [showReplyToDropdown, setShowReplyToDropdown] = useState(false);
+  const replyToDropRef = useRef(null);
   const [showFromDropdown, setShowFromDropdown] = useState(false);
   const fromDropRef = useRef(null);
   const [showTypeDropdown, setShowTypeDropdown] = useState(false);
@@ -1527,6 +1529,16 @@ function SettingsPanel({ t, isDark, settings, onChange, profile, DIMENSIONS = []
     return () => document.removeEventListener("mousedown", handler);
   }, [showTypeDropdown]);
 
+  // Close reply-to dropdown on outside click
+  useEffect(() => {
+    if (!showReplyToDropdown) return;
+    const handler = (e) => {
+      if (replyToDropRef.current && !replyToDropRef.current.contains(e.target)) setShowReplyToDropdown(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [showReplyToDropdown]);
+
   // Sync local state when external settings change (e.g. from a different template)
   useEffect(() => {
     setLocalSettings(settings);
@@ -1623,16 +1635,16 @@ function SettingsPanel({ t, isDark, settings, onChange, profile, DIMENSIONS = []
           </SettingsRow>
 
           <SettingsRow label="From name:" t={t}>
-            <div ref={fromDropRef} style={{ position: "relative", flex: 1, borderBottom: `1px solid ${t.chipBorder}` }}>
+            <div ref={fromDropRef} style={{ position: "relative", flex: 1, borderBottom: `1px solid ${t.chipBorder}`, cursor: "pointer" }} onClick={() => setShowFromDropdown(!showFromDropdown)}>
               <input
                 value={localSettings.fromName || ""}
                 onChange={e => set("fromName", e.target.value)}
                 onBlur={() => commit("fromName")}
+                onClick={e => e.stopPropagation()}
                 placeholder="Enter From Name"
                 style={{ ...inp, borderBottom: "none", paddingRight: 32 }}
               />
               <div
-                onClick={() => setShowFromDropdown(!showFromDropdown)}
                 style={{ position: "absolute", right: 0, top: "50%", transform: "translateY(-50%)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", width: 32, height: "100%", opacity: 0.6 }}
               >
                 <CDown />
@@ -1642,12 +1654,12 @@ function SettingsPanel({ t, isDark, settings, onChange, profile, DIMENSIONS = []
                   {[userName, "Custom sender name"].map(opt => (
                     <div
                       key={opt}
-                      onClick={() => {
+                      onClick={(e) => {
+                        e.stopPropagation();
                         const newVal = opt === "Custom sender name" ? "" : opt;
                         set("fromName", newVal);
                         onChange(prev => ({ ...prev, fromName: newVal }));
                         setShowFromDropdown(false);
-                        // Optional: focus the input if custom is chosen
                         if (opt === "Custom sender name") {
                           const el = fromDropRef.current?.querySelector('input');
                           if (el) el.focus();
@@ -1675,11 +1687,45 @@ function SettingsPanel({ t, isDark, settings, onChange, profile, DIMENSIONS = []
           </SettingsRow>
 
           <SettingsRow label="Reply-to:" t={t}>
-            <div style={{ position: "relative", flex: 1, borderBottom: `1px solid ${t.chipBorder}`, display: "flex", alignItems: "center" }}>
-              <input value={localSettings.replyTo || ""} onChange={e => set("replyTo", e.target.value)} onBlur={() => commit("replyTo")} placeholder="Enter Reply-to" style={{ ...inp, borderBottom: "none" }} />
-              <div style={{ paddingLeft: 12 }}>
+            <div ref={replyToDropRef} style={{ position: "relative", flex: 1, borderBottom: `1px solid ${t.chipBorder}`, display: "flex", alignItems: "center", cursor: "pointer" }} onClick={() => setShowReplyToDropdown(!showReplyToDropdown)}>
+              <input
+                value={localSettings.replyTo || ""}
+                onChange={e => set("replyTo", e.target.value)}
+                onBlur={() => commit("replyTo")}
+                onClick={e => e.stopPropagation()}
+                placeholder="Enter Reply-to"
+                style={{ ...inp, borderBottom: "none", paddingRight: 32 }}
+              />
+              <div style={{ position: "absolute", right: 0, top: "50%", transform: "translateY(-50%)", pointerEvents: "none", opacity: 0.6 }}>
                 <CDown />
               </div>
+              {showReplyToDropdown && (
+                <div style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0, background: t.surface, border: `1px solid ${t.border}`, borderRadius: 8, boxShadow: "0 10px 25px rgba(0,0,0,0.15)", zIndex: 1000, overflow: "hidden" }}>
+                  {[profile?.email || "No email setup", "Custom reply-to email"].map(opt => (
+                    <div
+                      key={opt}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        const newVal = opt === "Custom reply-to email" ? "" : opt;
+                        if (opt !== "No email setup") {
+                          set("replyTo", newVal);
+                          onChange(prev => ({ ...prev, replyTo: newVal }));
+                        }
+                        setShowReplyToDropdown(false);
+                        if (opt === "Custom reply-to email") {
+                          const el = replyToDropRef.current?.querySelector('input');
+                          if (el) el.focus();
+                        }
+                      }}
+                      style={{ padding: "12px 16px", cursor: opt === "No email setup" ? "default" : "pointer", fontSize: 14, color: opt === "No email setup" ? t.textMuted : t.text, transition: "background 0.2s" }}
+                      onMouseEnter={e => { if (opt !== "No email setup") e.currentTarget.style.background = isDark ? "rgba(255,255,255,0.05)" : "#f3f4f6"; }}
+                      onMouseLeave={e => { e.currentTarget.style.background = "transparent"; }}
+                    >
+                      {opt}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </SettingsRow>
 
