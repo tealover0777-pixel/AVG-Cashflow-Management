@@ -1701,25 +1701,23 @@ function SettingsPanel({ t, isDark, settings, onChange, profile, DIMENSIONS = []
               </div>
               {showReplyToDropdown && (
                 <div style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0, background: t.surface, border: `1px solid ${t.border}`, borderRadius: 8, boxShadow: "0 10px 25px rgba(0,0,0,0.15)", zIndex: 1000, overflow: "hidden" }}>
-                  {[profile?.email || "No email setup", "Custom reply-to email"].map(opt => (
+                  {[userName, "Custom sender name"].map(opt => (
                     <div
                       key={opt}
                       onClick={(e) => {
                         e.stopPropagation();
-                        const newVal = opt === "Custom reply-to email" ? "" : opt;
-                        if (opt !== "No email setup") {
-                          set("replyTo", newVal);
-                          onChange(prev => ({ ...prev, replyTo: newVal }));
-                        }
+                        const newVal = opt === "Custom sender name" ? "" : opt;
+                        set("replyTo", newVal);
+                        onChange(prev => ({ ...prev, replyTo: newVal }));
                         setShowReplyToDropdown(false);
-                        if (opt === "Custom reply-to email") {
+                        if (opt === "Custom sender name") {
                           const el = replyToDropRef.current?.querySelector('input');
                           if (el) el.focus();
                         }
                       }}
-                      style={{ padding: "12px 16px", cursor: opt === "No email setup" ? "default" : "pointer", fontSize: 14, color: opt === "No email setup" ? t.textMuted : t.text, transition: "background 0.2s" }}
-                      onMouseEnter={e => { if (opt !== "No email setup") e.currentTarget.style.background = isDark ? "rgba(255,255,255,0.05)" : "#f3f4f6"; }}
-                      onMouseLeave={e => { e.currentTarget.style.background = "transparent"; }}
+                      style={{ padding: "12px 16px", cursor: "pointer", fontSize: 14, color: t.text, transition: "background 0.2s" }}
+                      onMouseEnter={e => e.currentTarget.style.background = isDark ? "rgba(255,255,255,0.05)" : "#f3f4f6"}
+                      onMouseLeave={e => e.currentTarget.style.background = "transparent"}
                     >
                       {opt}
                     </div>
