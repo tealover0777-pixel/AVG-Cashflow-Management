@@ -390,9 +390,10 @@ export default function PageEmailBuilder(props) {
       // Nested level delete
       next = (Array.isArray(next) ? next : []).map(r => {
         if (r.type !== "columns") return r;
-        const newCols = (r.content.columns || []).map(col => ({
+        const cols = Array.isArray(r.content?.columns) ? r.content.columns : [];
+        const newCols = cols.map(col => ({
           ...col,
-          blocks: (col.blocks || []).filter(b => b.id !== rowId)
+          blocks: (Array.isArray(col.blocks) ? col.blocks : []).filter(b => b.id !== rowId)
         }));
         return { ...r, content: { ...r.content, columns: newCols } };
       });
@@ -416,12 +417,14 @@ export default function PageEmailBuilder(props) {
       // Nested level duplicate
       return (Array.isArray(prev) ? prev : []).map(r => {
         if (r.type !== "columns") return r;
-        const newCols = (r.content.columns || []).map(col => {
-          const bIdx = (col.blocks || []).findIndex(b => b.id === rowId);
+        const cols = Array.isArray(r.content?.columns) ? r.content.columns : [];
+        const newCols = cols.map(col => {
+          const blocks = Array.isArray(col.blocks) ? col.blocks : [];
+          const bIdx = blocks.findIndex(b => b.id === rowId);
           if (bIdx === -1) return col;
-          const newBlock = JSON.parse(JSON.stringify(col.blocks[bIdx]));
+          const newBlock = JSON.parse(JSON.stringify(blocks[bIdx]));
           newBlock.id = `b_${Date.now()}`;
-          const newBlocks = [...col.blocks];
+          const newBlocks = [...blocks];
           newBlocks.splice(bIdx + 1, 0, newBlock);
           return { ...col, blocks: newBlocks };
         });
@@ -452,9 +455,10 @@ export default function PageEmailBuilder(props) {
       let next = (Array.isArray(prev) ? prev : []).map(updateObj);
       next = (Array.isArray(next) ? next : []).map(r => {
         if (r.type !== "columns") return r;
-        const newCols = (r.content.columns || []).map(col => ({
+        const cols = Array.isArray(r.content?.columns) ? r.content.columns : [];
+        const newCols = cols.map(col => ({
           ...col,
-          blocks: (col.blocks || []).map(updateObj)
+          blocks: (Array.isArray(col.blocks) ? col.blocks : []).map(updateObj)
         }));
         return { ...r, content: { ...r.content, columns: newCols } };
       });
@@ -475,7 +479,7 @@ export default function PageEmailBuilder(props) {
           }
           if (Array.isArray(list[i].content?.columns)) {
             for (const col of list[i].content.columns) {
-              if (findAndRemove(col.blocks || [])) return true;
+              if (findAndRemove(Array.isArray(col.blocks) ? col.blocks : [])) return true;
             }
           }
         }
@@ -491,7 +495,7 @@ export default function PageEmailBuilder(props) {
           }
           if (Array.isArray(list[i].content?.columns)) {
             for (const col of list[i].content.columns) {
-              if (findAndInsert(col.blocks || [])) return true;
+              if (findAndInsert(Array.isArray(col.blocks) ? col.blocks : [])) return true;
             }
           }
         }
@@ -2661,7 +2665,7 @@ function BlockPropsPanel({ t, isDark, blockType, rowId, onUpdate, rows, onClose,
           {S("layout", "Layout", <>
             {PR("Columns", <NumInput value={content.rows?.[0]?.cells?.length || 0} onChange={v => {
               const count = Number(v);
-              const newRows = (content.rows || []).map(r => {
+              const newRows = (Array.isArray(content.rows) ? content.rows : []).map(r => {
                 let newCells = [...(r.cells || [])];
                 if (newCells.length < count) {
                   for (let i = newCells.length; i < count; i++) newCells.push({ id: `c_${Date.now()}_c${i}`, text: "" });
@@ -2698,7 +2702,7 @@ function BlockPropsPanel({ t, isDark, blockType, rowId, onUpdate, rows, onClose,
 
           {S("header", "Header", <>
             {PR("Enable Header", <PropToggle value={!!content.enableHeader} onChange={v => {
-              const newRows = (content.rows || []).map((r, i) => i === 0 ? { ...r, isHeader: v } : r);
+              const newRows = (Array.isArray(content.rows) ? content.rows : []).map((r, i) => i === 0 ? { ...r, isHeader: v } : r);
               upd({ enableHeader: v, rows: newRows });
             }} />)}
             {content.enableHeader && <>
@@ -2756,7 +2760,7 @@ function BlockPropsPanel({ t, isDark, blockType, rowId, onUpdate, rows, onClose,
           {S("row-params", "Row Properties",
             PR("Background Color", <input type="color" value={content.rowBg || "#ffffff"} onChange={e => upd({ rowBg: e.target.value })} style={{ width: 32, height: 28, border: `1px solid ${t.border}`, borderRadius: 3, cursor: "pointer", padding: 1 }} />)
           )}
-          {(content.columns || []).map((col, idx) =>
+          {(Array.isArray(content.columns) ? content.columns : []).map((col, idx) =>
             S(`col-${idx}`, `Column ${idx + 1}`, <>
               {PR("Background", <input type="color" value={col.settings?.bgColor || "transparent"} onChange={e => { const newCols = [...content.columns]; newCols[idx] = { ...newCols[idx], settings: { ...newCols[idx].settings, bgColor: e.target.value } }; upd({ columns: newCols }); }} style={{ width: 32, height: 28, border: `1px solid ${t.border}`, borderRadius: 3, cursor: "pointer", padding: 1 }} />)}
               {PR("Padding", <input value={col.settings?.padding || "10px"} onChange={e => { const newCols = [...content.columns]; newCols[idx] = { ...newCols[idx], settings: { ...newCols[idx].settings, padding: e.target.value } }; upd({ columns: newCols }); }} style={{ ...inpStyle(t), width: 80 }} />)}
