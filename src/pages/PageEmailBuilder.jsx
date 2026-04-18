@@ -6,7 +6,7 @@ import { useAuth } from "../AuthContext";
 import {
   ChevronLeft, ChevronDown, Edit2, UploadCloud, FileEdit, Smartphone, Monitor, Save,
   Columns as ColumnsIcon, TrendingUp, Square, Minus, Type, AlignLeft,
-  Image as ImageIcon, FileText, Video, Users, Menu as MenuIcon, Code,
+  Image as ImageIcon, Code,
   Table as TableIcon, Search, ChevronRight, ChevronUp, X as XIcon,
   Plus, Trash2, Copy, Settings as SettingsIcon, Paperclip,
   AlignCenter, AlignRight, AlignJustify, Move, Send, Clock, Check, Eye,
@@ -26,18 +26,13 @@ const CONTENT_BLOCKS = [
   { label: "DIVIDER", icon: Minus },
   { label: "HEADING", icon: Type },
   { label: "IMAGE", icon: ImageIcon },
-  { label: "AI SUMMARY", icon: FileText },
-  { label: "VIDEO", icon: Video },
-  { label: "SOCIAL", icon: Users },
-  { label: "MENU", icon: MenuIcon },
   { label: "HTML", icon: Code },
   { label: "TABLE", icon: TableIcon },
 ];
 
 const LABEL_TO_TYPE = {
   "COLUMNS": "columns", "TEXT": "paragraph", "BUTTON": "button", "DIVIDER": "divider",
-  "HEADING": "heading", "IMAGE": "image", "AI SUMMARY": "ai_summary",
-  "VIDEO": "video", "SOCIAL": "social", "MENU": "menu", "HTML": "html", "TABLE": "table"
+  "HEADING": "heading", "IMAGE": "image", "HTML": "html", "TABLE": "table"
 };
 
 const INITIAL_SETTINGS = {
@@ -271,11 +266,11 @@ export default function PageEmailBuilder(props) {
         const templateRef = ref(storage, path);
         const blob = new Blob([JSON.stringify(templateData, null, 2)], { type: "application/json" });
         await uploadBytes(templateRef, blob);
-        
+
         if (typeof props.setActiveEmailTemplate === "function") {
           props.setActiveEmailTemplate({ ...templateData, id: path, isGlobal: !!isSavingAsGlobal });
         }
-        
+
         showToast(saveAsNew ? "New template saved to your library!" : (isSavingAsGlobal ? "Global template updated!" : "Template saved!"), "success");
       }
 
@@ -294,7 +289,6 @@ export default function PageEmailBuilder(props) {
 
   const RIGHT_TABS = [
     { id: "Content", icon: Square },
-    { id: "Blocks", icon: ColumnsIcon },
     { id: "Body", icon: AlignLeft },
     { id: "Images", icon: ImageIcon },
     { id: "Uploads", icon: UploadCloud },
@@ -720,7 +714,6 @@ export default function PageEmailBuilder(props) {
               ) : (
                 <>
                   {activeRightTab === "Content" && <ContentTab t={t} isDark={isDark} onAddRow={handleAddRow} />}
-                  {activeRightTab === "Blocks" && <BlocksTab t={t} isDark={isDark} />}
                   {activeRightTab === "Body" && <BodyTab t={t} isDark={isDark} />}
                   {activeRightTab === "Images" && <ImagesTab t={t} isDark={isDark} setActiveRightTab={setActiveRightTab} hasImageSelected={selectedBlockType === "IMAGE"} onInsertImage={handleInsertImage} />}
                   {activeRightTab === "Uploads" && (
@@ -997,10 +990,6 @@ function EmailCanvas({ t, isDark, rows, selectedRowId, onSelectRow, onAddRow, on
           </React.Fragment>
         ))}
 
-        <div style={{ textAlign: "center", marginTop: 16, fontSize: 12, color: isDark ? "rgba(255,255,255,0.35)" : "#9CA3AF" }}>
-          Don't want to receive this type of email?{" "}
-          <a href="#" onClick={e => e.preventDefault()} style={{ color: isDark ? "#60A5FA" : "#2563EB", textDecoration: "none" }}>Unsubscribe</a>
-        </div>
       </div>
     </div>
   );
@@ -1027,8 +1016,7 @@ function DropZone({ active, onDragOver, onDrop }) {
 const ROW_BLOCK_TYPE = {
   image: "IMAGE", paragraph: "TEXT", footer: "IMAGE",
   button: "BUTTON", divider: "DIVIDER", heading: "HEADING",
-  video: "VIDEO", social: "SOCIAL", html: "HTML", table: "TABLE",
-  columns: "COLUMNS", menu: "MENU", kpis: "KPIs", ai_summary: "AI SUMMARY"
+  html: "HTML", table: "TABLE", columns: "COLUMNS", kpis: "KPIs"
 };
 
 function AddRowBtn({ onClick, position, isDark }) {
@@ -1085,9 +1073,9 @@ const FloatingTextBar = ({ t, isDark, DIMENSIONS = [] }) => {
   const Btn = ({ name, icon: Icon, title }) => (
     <button
       onMouseDown={e => { e.preventDefault(); cmd(name); }}
-      style={{ 
-        background: "transparent", border: "none", color: "#fff", 
-        padding: "6px 8px", cursor: "pointer", display: "flex", 
+      style={{
+        background: "transparent", border: "none", color: "#fff",
+        padding: "6px 8px", cursor: "pointer", display: "flex",
         alignItems: "center", justifyContent: "center", borderRadius: 4,
         transition: "background 0.2s"
       }}
@@ -1102,7 +1090,7 @@ const FloatingTextBar = ({ t, isDark, DIMENSIONS = [] }) => {
   const Separator = () => <div style={{ width: 1, height: 20, background: "rgba(255,255,255,0.2)", margin: "0 4px" }} />;
 
   return (
-    <div style={{ 
+    <div style={{
       position: "absolute", bottom: "calc(100% + 12px)", left: "50%", transform: "translateX(-50%)",
       background: "#222", color: "#fff", padding: "4px 8px", borderRadius: 8,
       display: "flex", alignItems: "center", boxShadow: "0 10px 30px rgba(0,0,0,0.3)",
@@ -1134,21 +1122,21 @@ const FloatingTextBar = ({ t, isDark, DIMENSIONS = [] }) => {
         <LinkIcon size={14} strokeWidth={2.5} />
       </button>
       <Separator />
-      
+
       {/* Merge Tags Dropdown */}
       <div style={{ position: "relative" }} ref={tagDropRef}>
-        <div 
+        <div
           onMouseDown={e => { e.preventDefault(); setShowTags(!showTags); }}
-          style={{ 
-            padding: "4px 8px", fontSize: 11, fontWeight: 700, cursor: "pointer", 
-            opacity: showTags ? 1 : 0.8, display: "flex", alignItems: "center", gap: 4 
-          }} 
-          onMouseEnter={e => e.currentTarget.style.opacity = 1} 
-          onMouseLeave={e => { if(!showTags) e.currentTarget.style.opacity = 0.8; }}
+          style={{
+            padding: "4px 8px", fontSize: 11, fontWeight: 700, cursor: "pointer",
+            opacity: showTags ? 1 : 0.8, display: "flex", alignItems: "center", gap: 4
+          }}
+          onMouseEnter={e => e.currentTarget.style.opacity = 1}
+          onMouseLeave={e => { if (!showTags) e.currentTarget.style.opacity = 0.8; }}
         >
           Merge Tags <ChevronDown size={12} strokeWidth={2.5} style={{ transform: showTags ? "rotate(180deg)" : "none", transition: "transform 0.2s", opacity: 0.7 }} />
         </div>
-        
+
         {showTags && (
           <div style={{
             position: "absolute", top: "calc(100% + 10px)", left: "0",
@@ -1157,7 +1145,7 @@ const FloatingTextBar = ({ t, isDark, DIMENSIONS = [] }) => {
             overflowX: "hidden", overflowY: "auto", maxHeight: 250, padding: "4px 0"
           }}>
             {emailTags.map(tag => (
-              <div 
+              <div
                 key={tag}
                 onMouseDown={e => { e.preventDefault(); insertTag(tag); }}
                 style={{
@@ -1346,29 +1334,29 @@ function EmailRow({ row, isSelected, isHovered, onSelect, onHover, onDelete, onD
               contentEditable
               suppressContentEditableWarning
               onBlur={e => onUpdate(item.id, { html: e.currentTarget.innerHTML })}
-            onClick={e => {
-              // Don't stop propagation, let it bubble to EmailRow for selection
-              // but we need to make sure the focus is handled correctly.
-            }}
-            style={{ 
-              paddingTop: item.content?.paddingTop ?? (isNested ? 12 : 24),
-              paddingBottom: item.content?.paddingBottom ?? (isNested ? 12 : 24),
-              paddingLeft: item.content?.paddingLeft ?? (isNested ? 16 : 32),
-              paddingRight: item.content?.paddingRight ?? (isNested ? 16 : 32),
-              background: item.content?.bgColor || "#fff", 
-              color: item.content?.color || "#1F2937", 
-              fontSize: item.content?.fontSize || 13, 
-              lineHeight: item.content?.lineHeight ? (typeof item.content.lineHeight === 'number' ? `${item.content.lineHeight}%` : item.content.lineHeight) : 1.65, 
-              textAlign: item.content?.textAlign || "left",
-              fontFamily: item.content?.fontFamily || "inherit",
-              fontWeight: item.content?.fontWeight || "normal",
-              letterSpacing: item.content?.letterSpacing ? `${item.content.letterSpacing}px` : "normal",
-              outline: "none", 
-              minHeight: 40 
-            }}
-          />
-          {isSelected && <FloatingTextBar t={t} isDark={isDark} DIMENSIONS={DIMENSIONS} />}
-        </>
+              onClick={e => {
+                // Don't stop propagation, let it bubble to EmailRow for selection
+                // but we need to make sure the focus is handled correctly.
+              }}
+              style={{
+                paddingTop: item.content?.paddingTop ?? (isNested ? 12 : 24),
+                paddingBottom: item.content?.paddingBottom ?? (isNested ? 12 : 24),
+                paddingLeft: item.content?.paddingLeft ?? (isNested ? 16 : 32),
+                paddingRight: item.content?.paddingRight ?? (isNested ? 16 : 32),
+                background: item.content?.bgColor || "#fff",
+                color: item.content?.color || "#1F2937",
+                fontSize: item.content?.fontSize || 13,
+                lineHeight: item.content?.lineHeight ? (typeof item.content.lineHeight === 'number' ? `${item.content.lineHeight}%` : item.content.lineHeight) : 1.65,
+                textAlign: item.content?.textAlign || "left",
+                fontFamily: item.content?.fontFamily || "inherit",
+                fontWeight: item.content?.fontWeight || "normal",
+                letterSpacing: item.content?.letterSpacing ? `${item.content.letterSpacing}px` : "normal",
+                outline: "none",
+                minHeight: 40
+              }}
+            />
+            {isSelected && <FloatingTextBar t={t} isDark={isDark} DIMENSIONS={DIMENSIONS} />}
+          </>
         );
 
       case "footer":
@@ -1417,30 +1405,6 @@ function EmailRow({ row, isSelected, isHovered, onSelect, onHover, onDelete, onD
               onClick={e => e.stopPropagation()}
               style={{ margin: 0, fontSize: item.content?.fontSize || 22, fontWeight: 700, color: item.content?.color || "#1F2937", outline: "none" }}
             />
-          </div>
-        );
-
-      case "video":
-        return (
-          <div style={{ padding: "16px 32px", background: "#fff" }}>
-            {item.content?.videoUrl ? (
-              <div style={{ position: "relative", paddingBottom: "56.25%", background: "#000", borderRadius: 4, overflow: "hidden" }}>
-                <iframe src={item.content.videoUrl.replace("watch?v=", "embed/").replace("youtu.be/", "youtube.com/embed/")} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", border: "none" }} allowFullScreen />
-              </div>
-            ) : (
-              <div style={{ background: "#F3F4F6", height: 150, display: "flex", alignItems: "center", justifyContent: "center", borderRadius: 4 }}>
-                <Video size={32} color="#9CA3AF" />
-              </div>
-            )}
-          </div>
-        );
-
-      case "social":
-        return (
-          <div style={{ padding: "16px 32px", background: "#fff", display: "flex", justifyContent: "center", gap: 8 }}>
-            {(Array.isArray(item.content?.icons) ? item.content.icons : ["F", "𝕏", "in", "📷"]).map((s, i) => (
-              <div key={i} style={{ width: 32, height: 32, borderRadius: "50%", background: "#3B82F6", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 11, fontWeight: 700 }}>{s}</div>
-            ))}
           </div>
         );
 
@@ -1558,10 +1522,10 @@ function EmailRow({ row, isSelected, isHovered, onSelect, onHover, onDelete, onD
 
       {isHovered && !isNested && (
         <div style={{
-          position: "absolute", bottom: 0, right: 0, 
-          background: "#3B82F6", color: "#fff", 
-          fontSize: 8, padding: "2px 6px", 
-          fontWeight: 900, textTransform: "uppercase", 
+          position: "absolute", bottom: 0, right: 0,
+          background: "#3B82F6", color: "#fff",
+          fontSize: 8, padding: "2px 6px",
+          fontWeight: 900, textTransform: "uppercase",
           zIndex: 15, borderRadius: "4px 0 0 0",
           pointerEvents: "none", letterSpacing: 0.5
         }}>
@@ -1736,11 +1700,11 @@ function SettingsPanel({ t, isDark, settings, onChange, profile, DIMENSIONS = []
           return (
             <div style={{ color: isDark ? "#F87171" : "#DC2626", fontWeight: 600, display: "flex", alignItems: "center", gap: 8 }}>
               {val}
-              <span style={{ 
-                fontSize: 10, 
-                background: isDark ? "rgba(239, 68, 68, 0.2)" : "#FEE2E2", 
-                color: isDark ? "#F87171" : "#DC2626", 
-                padding: "2px 8px", 
+              <span style={{
+                fontSize: 10,
+                background: isDark ? "rgba(239, 68, 68, 0.2)" : "#FEE2E2",
+                color: isDark ? "#F87171" : "#DC2626",
+                padding: "2px 8px",
                 borderRadius: 12,
                 fontWeight: 700,
                 letterSpacing: "0.02em",
@@ -1800,11 +1764,11 @@ function SettingsPanel({ t, isDark, settings, onChange, profile, DIMENSIONS = []
           return (
             <div style={{ color: isDark ? "#60A5FA" : "#2563EB", fontWeight: 600, display: "flex", alignItems: "center", gap: 8 }}>
               {val}
-              <span style={{ 
-                fontSize: 10, 
-                background: isDark ? "rgba(59, 130, 246, 0.2)" : "#DBEAFE", 
-                color: isDark ? "#60A5FA" : "#2563EB", 
-                padding: "2px 8px", 
+              <span style={{
+                fontSize: 10,
+                background: isDark ? "rgba(59, 130, 246, 0.2)" : "#DBEAFE",
+                color: isDark ? "#60A5FA" : "#2563EB",
+                padding: "2px 8px",
                 borderRadius: 12,
                 fontWeight: 700,
                 letterSpacing: "0.02em",
@@ -1830,10 +1794,10 @@ function SettingsPanel({ t, isDark, settings, onChange, profile, DIMENSIONS = []
     if (!email) return { name: userName, email: profile?.email || "" };
     const e = email.toLowerCase().trim();
     const match = [...USERS, ...CONTACTS].find(u => (u.email || "").toLowerCase().trim() === e);
-    
+
     if (match) {
-      const name = (match.first_name || match.last_name) 
-        ? `${match.first_name || ""} ${match.last_name || ""}`.trim() 
+      const name = (match.first_name || match.last_name)
+        ? `${match.first_name || ""} ${match.last_name || ""}`.trim()
         : (match.name || match.full_name || match.displayName || match.email);
       return { name, email: match.email };
     }
@@ -1909,14 +1873,14 @@ function SettingsPanel({ t, isDark, settings, onChange, profile, DIMENSIONS = []
           </SettingsRow>
 
           <SettingsRow label="Recipients:" t={t}>
-            <input 
-              value={localSettings.recipients || ""} 
-              onChange={e => set("recipients", e.target.value)} 
-              onBlur={() => commit("recipients")} 
-              placeholder="Click button to select recipients..." 
-              style={{ ...inp, color: localSettings.recipients ? t.text : t.textMuted }} 
+            <input
+              value={localSettings.recipients || ""}
+              onChange={e => set("recipients", e.target.value)}
+              onBlur={() => commit("recipients")}
+              placeholder="Click button to select recipients..."
+              style={{ ...inp, color: localSettings.recipients ? t.text : t.textMuted }}
             />
-            <button 
+            <button
               onClick={() => setShowRecipients(true)}
               style={{ ...actionBtn, marginLeft: 16, display: "flex", alignItems: "center", gap: 8, background: isDark ? "#374151" : "#F3F4F6", border: "none" }}
             >
@@ -1925,14 +1889,14 @@ function SettingsPanel({ t, isDark, settings, onChange, profile, DIMENSIONS = []
           </SettingsRow>
 
           <SettingsRow label="Do not send to:" t={t}>
-            <input 
-              value={localSettings.doNotSendTo || ""} 
-              onChange={e => set("doNotSendTo", e.target.value)} 
-              onBlur={() => commit("doNotSendTo")} 
-              placeholder="(Optional) Click to select recipients to exclude" 
-              style={{ ...inp, color: localSettings.doNotSendTo ? t.text : t.textMuted }} 
+            <input
+              value={localSettings.doNotSendTo || ""}
+              onChange={e => set("doNotSendTo", e.target.value)}
+              onBlur={() => commit("doNotSendTo")}
+              placeholder="(Optional) Click to select recipients to exclude"
+              style={{ ...inp, color: localSettings.doNotSendTo ? t.text : t.textMuted }}
             />
-            <button 
+            <button
               onClick={() => setShowDoNotSend(true)}
               style={{ ...actionBtn, marginLeft: 16, display: "flex", alignItems: "center", gap: 8, background: isDark ? "#374151" : "#F3F4F6", border: "none" }}
             >
@@ -1989,7 +1953,7 @@ function SettingsPanel({ t, isDark, settings, onChange, profile, DIMENSIONS = []
               {showFromDropdown && (
                 <div style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0, background: t.surface, border: `1px solid ${t.chipBorder}`, borderRadius: 8, boxShadow: "0 10px 25px rgba(0,0,0,0.15)", zIndex: 1000, overflow: "hidden" }}>
                   {[
-                    { name: userName, email: profile?.email || "" }, 
+                    { name: userName, email: profile?.email || "" },
                     { name: "Custom sender name", email: "" }
                   ].map((opt, idx) => (
                     <div
@@ -2047,7 +2011,7 @@ function SettingsPanel({ t, isDark, settings, onChange, profile, DIMENSIONS = []
                     const isCustom = u.isCustom;
                     const name = isCustom ? u.name : (u.first_name ? `${u.first_name} ${u.last_name || ""}` : (u.name || u.full_name || u.email || "Unknown"));
                     const email = isCustom ? "" : (u.email || "");
-                    
+
                     return (
                       <div
                         key={idx}
@@ -2082,13 +2046,13 @@ function SettingsPanel({ t, isDark, settings, onChange, profile, DIMENSIONS = []
         </div>
       </div>
 
-      <Modal 
-        open={showRecipients} 
-        onClose={() => setShowRecipients(false)} 
-        title="Recipients List" 
-        width={800} 
-        t={t} 
-        isDark={isDark} 
+      <Modal
+        open={showRecipients}
+        onClose={() => setShowRecipients(false)}
+        title="Recipients List"
+        width={800}
+        t={t}
+        isDark={isDark}
         showCancel={true}
         saveLabel="Select Recipients"
         onSave={() => {
@@ -2099,17 +2063,17 @@ function SettingsPanel({ t, isDark, settings, onChange, profile, DIMENSIONS = []
         }}
       >
         <div style={{ height: 500, width: "100%" }}>
-          <TanStackTable 
-            data={tableData} 
-            columns={recipientColumns} 
-            t={t} 
-            isDark={isDark} 
-            pageSize={10} 
+          <TanStackTable
+            data={tableData}
+            columns={recipientColumns}
+            t={t}
+            isDark={isDark}
+            pageSize={10}
             onSelectionChange={setSelectedInTable}
             rowSelection={rowSelection}
             onRowSelectionChange={setRowSelection}
             getRowId={(row) => row._rowId}
-            rowStyle={(row) => row.isAlreadyDoNotSend ? { 
+            rowStyle={(row) => row.isAlreadyDoNotSend ? {
               background: isDark ? "rgba(239, 68, 68, 0.05)" : "#FEF2F2",
               borderLeft: `4px solid ${isDark ? "#EF4444" : "#DC2626"}`,
               opacity: 0.9,
@@ -2119,13 +2083,13 @@ function SettingsPanel({ t, isDark, settings, onChange, profile, DIMENSIONS = []
         </div>
       </Modal>
 
-      <Modal 
-        open={showDoNotSend} 
-        onClose={() => setShowDoNotSend(false)} 
-        title="Do Not Send List" 
-        width={800} 
-        t={t} 
-        isDark={isDark} 
+      <Modal
+        open={showDoNotSend}
+        onClose={() => setShowDoNotSend(false)}
+        title="Do Not Send List"
+        width={800}
+        t={t}
+        isDark={isDark}
         showCancel={true}
         saveLabel="Select Recipients"
         onSave={() => {
@@ -2136,17 +2100,17 @@ function SettingsPanel({ t, isDark, settings, onChange, profile, DIMENSIONS = []
         }}
       >
         <div style={{ height: 500, width: "100%" }}>
-          <TanStackTable 
-            data={doNotSendTableData} 
-            columns={doNotSendColumns} 
-            t={t} 
-            isDark={isDark} 
-            pageSize={10} 
+          <TanStackTable
+            data={doNotSendTableData}
+            columns={doNotSendColumns}
+            t={t}
+            isDark={isDark}
+            pageSize={10}
             onSelectionChange={setSelectedDoNotSend}
             rowSelection={doNotSendRowSelection}
             onRowSelectionChange={setDoNotSendRowSelection}
             getRowId={(row) => row._rowId}
-            rowStyle={(row) => row.isAlreadyRecipient ? { 
+            rowStyle={(row) => row.isAlreadyRecipient ? {
               background: isDark ? "rgba(59, 130, 246, 0.05)" : "#F0F9FF",
               borderLeft: `4px solid ${isDark ? "#3B82F6" : "#2563EB"}`,
               opacity: 0.9,
@@ -2174,9 +2138,6 @@ function ReviewPanel({ t, isDark, rows, emailSettings, narrow }) {
         )}
         <div style={{ width: narrow ? 390 : "100%", maxWidth: narrow ? 390 : 1100, boxShadow: "0 10px 40px rgba(0,0,0,0.1)", background: "#fff", borderRadius: 8, overflow: "hidden" }}>
           {rows.map(row => <RowPreview key={row.id} row={row} narrow={narrow} />)}
-          <div style={{ textAlign: "center", padding: "32px 12px", fontSize: 12, color: "#6B7280", background: isDark ? "#1F2937" : "#F9FAFB", borderTop: `1px solid ${t.border}` }}>
-            Don't want to see this type of email? <a href="#" style={{ color: "#2563EB", textDecoration: "none" }}>Unsubscribe</a>
-          </div>
         </div>
       </div>
 
@@ -2245,11 +2206,11 @@ function BPPropRow({ label, t, children }) {
 
 const NumInput = ({ value, onChange, unit, t, isDark }) => (
   <div style={{ display: "flex", alignItems: "center", border: `1px solid ${t.border}`, borderRadius: 4, overflow: "hidden", background: t.surface }}>
-    <input 
-      type="text" 
-      value={value} 
-      onChange={e => onChange(e.target.value)} 
-      style={{ width: 45, padding: "7px 6px", textAlign: "center", border: "none", background: "transparent", color: t.text, fontSize: 12, outline: "none" }} 
+    <input
+      type="text"
+      value={value}
+      onChange={e => onChange(e.target.value)}
+      style={{ width: 45, padding: "7px 6px", textAlign: "center", border: "none", background: "transparent", color: t.text, fontSize: 12, outline: "none" }}
     />
     <div style={{ padding: "7px 10px", background: isDark ? "#222" : "#F3F4FB", fontSize: 11, color: t.textMuted, borderLeft: `1px solid ${t.border}`, minWidth: 24, textAlign: "center" }}>
       {unit}
@@ -2262,16 +2223,16 @@ const NumInput = ({ value, onChange, unit, t, isDark }) => (
 );
 
 const PropToggle = ({ value, onChange }) => (
-  <div 
+  <div
     onClick={() => onChange(!value)}
-    style={{ 
-      width: 44, height: 22, background: value ? "#222" : "#D1D5DB", 
-      borderRadius: 11, position: "relative", cursor: "pointer", transition: "0.2s" 
+    style={{
+      width: 44, height: 22, background: value ? "#222" : "#D1D5DB",
+      borderRadius: 11, position: "relative", cursor: "pointer", transition: "0.2s"
     }}
   >
-    <div style={{ 
-      position: "absolute", top: 2, left: value ? 24 : 2, 
-      width: 18, height: 18, background: "#fff", borderRadius: "50%", 
+    <div style={{
+      position: "absolute", top: 2, left: value ? 24 : 2,
+      width: 18, height: 18, background: "#fff", borderRadius: "50%",
       transition: "0.2s", display: "flex", alignItems: "center", justifyContent: "center",
       boxShadow: "0 1px 2px rgba(0,0,0,0.1)"
     }}>
@@ -2282,9 +2243,9 @@ const PropToggle = ({ value, onChange }) => (
 
 const SelectDD = ({ value, options, onChange, t }) => (
   <div style={{ position: "relative", width: 140 }}>
-    <select 
-      value={value} 
-      onChange={e => onChange(e.target.value)} 
+    <select
+      value={value}
+      onChange={e => onChange(e.target.value)}
       style={{ width: "100%", padding: "7px 10px", border: `1px solid ${t.border}`, borderRadius: 4, background: t.surface, color: t.text, fontSize: 12, outline: "none", appearance: "none" }}
     >
       {options.map(opt => <option key={opt.val} value={opt.val}>{opt.label}</option>)}
@@ -2306,7 +2267,7 @@ const AlignToggle = ({ value, onChange, t, isDark }) => (
       <button
         key={a.val}
         onClick={() => onChange(a.val)}
-        style={{ 
+        style={{
           padding: "8px 12px", border: "none", cursor: "pointer",
           background: value === a.val ? (isDark ? "#333" : "#222") : "transparent",
           color: value === a.val ? "#fff" : t.textMuted,
@@ -2331,7 +2292,7 @@ const VerticalAlignToggle = ({ value, onChange, t, isDark }) => (
       <button
         key={a.val}
         onClick={() => onChange(a.val)}
-        style={{ 
+        style={{
           padding: "8px 12px", border: "none", cursor: "pointer",
           background: value === a.val ? (isDark ? "#333" : "#222") : "transparent",
           color: value === a.val ? "#fff" : t.textMuted,
@@ -2443,10 +2404,10 @@ const ColorPicker = ({ value, onChange, t, isDark }) => {
       <div onClick={() => setIsOpen(!isOpen)} style={{ width: 44, height: 28, borderRadius: 4, background: value || "#1F2937", border: `1px solid ${t.border}`, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 1px 2px rgba(0,0,0,0.1)" }}>
         {(!value || value.toLowerCase() === "#ffffff") && <div style={{ width: "100%", height: 1, background: "red", transform: "rotate(-45deg)", opacity: 0.3 }} />}
       </div>
-      
+
       {isOpen && (
         <div style={{ position: "absolute", right: 0, top: "calc(100% + 8px)", width: 230, background: t.surface, border: `1px solid ${t.border}`, borderRadius: 8, boxShadow: "0 10px 25px rgba(0,0,0,0.15)", zIndex: 100, overflow: "hidden" }}>
-          
+
           <div ref={satRef} onMouseDown={handleSatDown} style={{ height: 130, position: "relative", cursor: "crosshair", background: `hsl(${h}, 100%, 50%)` }}>
             <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to right, #fff, transparent)" }} />
             <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, #000, transparent)" }} />
@@ -2455,7 +2416,7 @@ const ColorPicker = ({ value, onChange, t, isDark }) => {
 
           <div style={{ padding: 12 }}>
             <div ref={hueRef} onMouseDown={handleHueDown} style={{ height: 12, borderRadius: 6, marginBottom: 14, cursor: "pointer", position: "relative", background: "linear-gradient(to right, #f00 0%, #ff0 17%, #0f0 33%, #0ff 50%, #00f 67%, #f0f 83%, #f00 100%)" }}>
-              <div style={{ position: "absolute", left: `${(h/360)*100}%`, top: -2, bottom: -2, width: 6, margin: "0 -3px", background: "#fff", border: "1px solid #999", borderRadius: 3, boxShadow: "0 1px 3px rgba(0,0,0,0.3)", pointerEvents: "none" }} />
+              <div style={{ position: "absolute", left: `${(h / 360) * 100}%`, top: -2, bottom: -2, width: 6, margin: "0 -3px", background: "#fff", border: "1px solid #999", borderRadius: 3, boxShadow: "0 1px 3px rgba(0,0,0,0.3)", pointerEvents: "none" }} />
             </div>
 
             <div style={{ display: "grid", gridTemplateColumns: "1.8fr 1fr 1fr 1fr", gap: 5, marginBottom: 14 }}>
@@ -2491,9 +2452,9 @@ function BlockPropsPanel({ t, isDark, blockType, rowId, onUpdate, rows, onClose,
 
   const fileInputRef = useRef(null);
 
-  const [open, setOpen] = useState({ 
-    displayCondition: false, main: true, action: true, general: true, 
-    links: false, columnProps: false, header: true, menuItems: true,
+  const [open, setOpen] = useState({
+    displayCondition: false, main: true, action: true, general: true,
+    links: false, columnProps: false, header: true,
     layout: true, content: true, footer: true
   });
   const tog = id => setOpen(p => ({ ...p, [id]: !p[id] }));
@@ -2573,8 +2534,8 @@ function BlockPropsPanel({ t, isDark, blockType, rowId, onUpdate, rows, onClose,
       case "TEXT": return (
         <>
           {S("main", "Text", <>
-            {PR("Font Family", <SelectDD value={content.fontFamily || "inherit"} options={[{label: "Body Font", val: "inherit"}, {label: "Montserrat", val: "Montserrat"}, {label: "Arial", val: "Arial"}, {label: "Inter", val: "Inter"}]} onChange={v => upd({ fontFamily: v })} t={t} />)}
-            {PR("Font Weight", <SelectDD value={content.fontWeight || "normal"} options={[{label: "Regular", val: "normal"}, {label: "Bold", val: "bold"}, {label: "Semi Bold", val: "600"}]} onChange={v => upd({ fontWeight: v })} t={t} />)}
+            {PR("Font Family", <SelectDD value={content.fontFamily || "inherit"} options={[{ label: "Body Font", val: "inherit" }, { label: "Montserrat", val: "Montserrat" }, { label: "Arial", val: "Arial" }, { label: "Inter", val: "Inter" }]} onChange={v => upd({ fontFamily: v })} t={t} />)}
+            {PR("Font Weight", <SelectDD value={content.fontWeight || "normal"} options={[{ label: "Regular", val: "normal" }, { label: "Bold", val: "bold" }, { label: "Semi Bold", val: "600" }]} onChange={v => upd({ fontWeight: v })} t={t} />)}
             {PR("Font Size", <NumInput value={content.fontSize || 13} unit="px" onChange={v => upd({ fontSize: Number(v) })} t={t} isDark={isDark} />)}
             {PR("Color", <ColorPicker value={content.color || "#1F2937"} onChange={v => upd({ color: v })} t={t} isDark={isDark} />)}
             {PR("Text Align", <AlignToggle value={content.textAlign || "left"} onChange={v => upd({ textAlign: v })} t={t} isDark={isDark} />)}
@@ -2657,54 +2618,6 @@ function BlockPropsPanel({ t, isDark, blockType, rowId, onUpdate, rows, onClose,
         </>
       );
 
-      case "VIDEO": return (
-        <>
-          <DispCond />
-          {S("link", "Link", <>
-            <div>
-              <div style={{ fontSize: 11, color: t.textMuted, marginBottom: 4 }}>Video URL</div>
-              <input value={content.videoUrl ?? ""} onChange={e => upd({ videoUrl: e.target.value })} style={inpStyle(t)} placeholder="YouTube or Vimeo URL" />
-              <p style={{ fontSize: 10, color: t.textMuted, margin: "6px 0 0 0" }}>Paste a YouTube or Vimeo URL to embed the video.</p>
-            </div>
-          </>)}
-          <General />
-        </>
-      );
-
-      case "SOCIAL": return (
-        <>
-          <DispCond />
-          {S("main", "Icons", <>
-            <p style={{ margin: 0, fontSize: 11, color: t.textMuted }}>Click an icon to toggle it on/off:</p>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
-              {["F", "𝕏", "in", "📷", "▶", "G"].map(s => {
-                const active = (content.icons || ["F", "𝕏", "in", "📷"]).includes(s);
-                return (
-                  <div key={s} onClick={() => { const cur = content.icons || ["F", "𝕏", "in", "📷"]; upd({ icons: active ? cur.filter(x => x !== s) : [...cur, s] }); }} style={{ width: 30, height: 30, borderRadius: "50%", background: active ? "#3B82F6" : (isDark ? "#374151" : "#E5E7EB"), display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", fontSize: 11, color: active ? "#fff" : t.textMuted, fontWeight: 700 }}>{s}</div>
-                );
-              })}
-            </div>
-          </>)}
-          <General />
-        </>
-      );
-
-      case "MENU": return (
-        <>
-          <DispCond />
-          {S("menuItems", "Menu Items", <>
-            {(Array.isArray(content.menuItems) ? content.menuItems : []).map((item, i) => (
-              <div key={i} style={{ display: "flex", gap: 6, alignItems: "center" }}>
-                <input value={item} onChange={e => { const items = [...(content.menuItems || [])]; items[i] = e.target.value; upd({ menuItems: items }); }} style={{ ...inpStyle(t), flex: 1 }} />
-                <button onClick={() => upd({ menuItems: (content.menuItems || []).filter((_, j) => j !== i) })} style={{ background: "none", border: "none", color: "#EF4444", cursor: "pointer", fontSize: 16 }}>×</button>
-              </div>
-            ))}
-            <button onClick={() => upd({ menuItems: [...(content.menuItems || []), "New Item"] })} style={{ width: "100%", padding: "7px", border: `1px dashed ${t.border}`, borderRadius: 4, background: "transparent", color: t.textMuted, fontSize: 12, cursor: "pointer" }}>+ Add New Item</button>
-          </>)}
-          <General />
-        </>
-      );
-
       case "HTML": return <HtmlBlockPanel rowId={rowId} content={content} upd={upd} t={t} isDark={isDark} />;
 
       case "TABLE":
@@ -2741,7 +2654,7 @@ function BlockPropsPanel({ t, isDark, blockType, rowId, onUpdate, rows, onClose,
             }} t={t} isDark={isDark} />)}
             {PR("Border", <div style={{ display: "flex", alignItems: "center", gap: 6 }}><span style={{ fontSize: 10, color: t.textMuted }}>More Options</span><PropToggle value={!!content.moreBorder} onChange={v => upd({ moreBorder: v })} /></div>)}
             {content.moreBorder && <>
-              {PR("Style", <SelectDD value={content.borderStyle || "solid"} options={[{label:"Solid", val:"solid"}, {label:"Dashed", val:"dashed"}, {label:"Dotted", val:"dotted"}]} onChange={v => upd({ borderStyle: v })} t={t} />)}
+              {PR("Style", <SelectDD value={content.borderStyle || "solid"} options={[{ label: "Solid", val: "solid" }, { label: "Dashed", val: "dashed" }, { label: "Dotted", val: "dotted" }]} onChange={v => upd({ borderStyle: v })} t={t} />)}
               {PR("Width", <NumInput value={content.borderWidth || 1} unit="px" onChange={v => upd({ borderWidth: Number(v) })} t={t} isDark={isDark} />)}
               {PR("Color", <ColorPicker value={content.borderColor || "#DDDDDD"} onChange={v => upd({ borderColor: v })} t={t} isDark={isDark} />)}
             </>}
@@ -2754,9 +2667,9 @@ function BlockPropsPanel({ t, isDark, blockType, rowId, onUpdate, rows, onClose,
               upd({ enableHeader: v, rows: newRows });
             }} />)}
             {content.enableHeader && <>
-              {PR("Font Family", <SelectDD value={content.headerFontFamily || "inherit"} options={[{label: "Body Font", val: "inherit"}]} onChange={v => upd({ headerFontFamily: v })} t={t} />)}
+              {PR("Font Family", <SelectDD value={content.headerFontFamily || "inherit"} options={[{ label: "Body Font", val: "inherit" }]} onChange={v => upd({ headerFontFamily: v })} t={t} />)}
               {PR("Background", <ColorPicker value={content.headerBg || "#EBEBEB"} onChange={v => upd({ headerBg: v })} t={t} isDark={isDark} />)}
-              {PR("Font Weight", <SelectDD value={content.headerFontWeight || "bold"} options={[{label: "Bold", val: "bold"}, {label: "Regular", val: "normal"}]} onChange={v => upd({ headerFontWeight: v })} t={t} />)}
+              {PR("Font Weight", <SelectDD value={content.headerFontWeight || "bold"} options={[{ label: "Bold", val: "bold" }, { label: "Regular", val: "normal" }]} onChange={v => upd({ headerFontWeight: v })} t={t} />)}
               {PR("Font Size", <NumInput value={content.headerFontSize || 14} unit="px" onChange={v => upd({ headerFontSize: Number(v) })} t={t} isDark={isDark} />)}
               {PR("Color", <ColorPicker value={content.headerColor || "#1F2937"} onChange={v => upd({ headerColor: v })} t={t} isDark={isDark} />)}
               {PR("Text Align", <AlignToggle value={content.headerTextAlign || "left"} onChange={v => upd({ headerTextAlign: v })} t={t} isDark={isDark} />)}
@@ -2764,9 +2677,9 @@ function BlockPropsPanel({ t, isDark, blockType, rowId, onUpdate, rows, onClose,
           </>)}
 
           {S("content", "Content", <>
-            {PR("Font Family", <SelectDD value={content.fontFamily || "inherit"} options={[{label: "Body Font", val: "inherit"}]} onChange={v => upd({ fontFamily: v })} t={t} />)}
+            {PR("Font Family", <SelectDD value={content.fontFamily || "inherit"} options={[{ label: "Body Font", val: "inherit" }]} onChange={v => upd({ fontFamily: v })} t={t} />)}
             {PR("Background", <ColorPicker value={content.bg || "#ffffff"} onChange={v => upd({ bg: v })} t={t} isDark={isDark} />)}
-            {PR("Font Weight", <SelectDD value={content.fontWeight || "normal"} options={[{label: "Regular", val: "normal"}, {label: "Bold", val: "bold"}]} onChange={v => upd({ fontWeight: v })} t={t} />)}
+            {PR("Font Weight", <SelectDD value={content.fontWeight || "normal"} options={[{ label: "Regular", val: "normal" }, { label: "Bold", val: "bold" }]} onChange={v => upd({ fontWeight: v })} t={t} />)}
             {PR("Font Size", <NumInput value={content.fontSize || 14} unit="px" onChange={v => upd({ fontSize: Number(v) })} t={t} isDark={isDark} />)}
             {PR("Text Color", <ColorPicker value={content.color || "#1F2937"} onChange={v => upd({ color: v })} t={t} isDark={isDark} />)}
             {PR("Text Align", <AlignToggle value={content.textAlign || "left"} onChange={v => upd({ textAlign: v })} t={t} isDark={isDark} />)}
@@ -2908,7 +2821,7 @@ function HtmlBlockPanel({ rowId, content, upd, t, isDark }) {
       </div>
 
       <div>
-        <HtmlSectionHeader label="Canvas" isOpen={true} onToggle={() => {}} t={t} isDark={isDark} />
+        <HtmlSectionHeader label="Canvas" isOpen={true} onToggle={() => { }} t={t} isDark={isDark} />
         <div style={{ padding: 14, borderBottom: `1px solid ${t.border}` }}>
           <div style={{ marginBottom: 14 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
@@ -3007,49 +2920,6 @@ function ContentTab({ t, isDark, onAddRow }) {
             </div>
           );
         })}
-      </div>
-    </div>
-  );
-}
-
-// ── Blocks Tab ────────────────────────────────────────────────────────────────
-
-function BlocksTab({ t, isDark }) {
-  return (
-    <div>
-      <div style={{ padding: "14px", borderBottom: `1px solid ${t.border}` }}>
-        <h3 style={{ fontSize: 15, fontWeight: 700, margin: "0 0 12px 0", color: t.text }}>Blocks</h3>
-        <div style={{ position: "relative" }}>
-          <Search size={14} color={t.textMuted} style={{ position: "absolute", left: 10, top: 9 }} />
-          <input placeholder="Search" style={{ width: "100%", padding: "8px 8px 8px 32px", border: `1px solid ${t.border}`, borderRadius: 4, background: t.surface, color: t.text, fontSize: 13, outline: "none", boxSizing: "border-box" }} />
-        </div>
-      </div>
-      <div style={{ padding: 16 }}>
-        <div style={{ marginBottom: 24 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10, alignItems: "center" }}>
-            <span style={{ fontSize: 13, color: t.text, fontWeight: 500 }}>Blank</span>
-            <span style={{ fontSize: 11, color: t.textMuted, cursor: "pointer", display: "flex", alignItems: "center", gap: 2 }}>All <ChevronRight size={13} /></span>
-          </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-            <div style={{ height: 52, border: `1px solid ${t.border}`, background: isDark ? "#333" : "#F3F4F6", borderRadius: 2 }} />
-            <div style={{ display: "flex", gap: 6, height: 52 }}>
-              {[1, 1].map((_, i) => <div key={i} style={{ flex: 1, border: `1px solid ${t.border}`, background: isDark ? "#333" : "#F3F4F6", borderRadius: 2 }} />)}
-            </div>
-          </div>
-        </div>
-        <div>
-          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10, alignItems: "center" }}>
-            <span style={{ fontSize: 13, color: t.text, fontWeight: 500 }}>AVG Overview</span>
-            <span style={{ fontSize: 11, color: t.textMuted, cursor: "pointer", display: "flex", alignItems: "center", gap: 2 }}>All <ChevronRight size={13} /></span>
-          </div>
-          <div style={{ height: 110, background: "#555", borderRadius: 2, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", width: "100%", textAlign: "center", padding: "0 8px", color: "#fff" }}>
-              {[["10+", "years of consistent outperformance"], ["$250 M+", "Assets Under Managed"], ["300+", "Trusted by investors"], ["100+", "Properties Managed"]].map(([val, lbl]) => (
-                <div key={val}><div style={{ fontSize: 16, fontWeight: 700 }}>{val}</div><div style={{ fontSize: 7, opacity: 0.8, marginTop: 2 }}>{lbl}</div></div>
-              ))}
-            </div>
-          </div>
-        </div>
       </div>
     </div>
   );
@@ -3368,12 +3238,12 @@ function UploadsTab({ t, isDark, uploads, isUploading, uploadProgress, onUpload,
             Are you sure you want to delete this image?
           </p>
           {itemToDelete && (
-             <div style={{ display: "flex", alignItems: "center", gap: 10, padding: 10, background: t.surface, borderRadius: 8, border: `1px solid ${t.border}` }}>
-               <div style={{ width: 40, height: 40, borderRadius: 4, backgroundImage: `url(${itemToDelete.url})`, backgroundSize: "cover", backgroundPosition: "center" }} />
-               <span style={{ fontSize: 12, fontWeight: 500, color: t.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                 {itemToDelete.path.split('/').pop().replace(/^\d+_/, '')}
-               </span>
-             </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, padding: 10, background: t.surface, borderRadius: 8, border: `1px solid ${t.border}` }}>
+              <div style={{ width: 40, height: 40, borderRadius: 4, backgroundImage: `url(${itemToDelete.url})`, backgroundSize: "cover", backgroundPosition: "center" }} />
+              <span style={{ fontSize: 12, fontWeight: 500, color: t.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                {itemToDelete.path.split('/').pop().replace(/^\d+_/, '')}
+              </span>
+            </div>
           )}
           <p style={{ fontSize: 12, color: "#EF4444", fontWeight: 600, marginTop: 12 }}>
             This action cannot be undone and will remove the file from storage.
