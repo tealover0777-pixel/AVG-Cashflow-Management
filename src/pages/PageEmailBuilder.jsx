@@ -2044,9 +2044,11 @@ const COMMON_COLORS = [
 const ColorPicker = ({ value, onChange, t, isDark }) => {
   const [isOpen, setIsOpen] = useState(false);
   const ref = useRef(null);
+  const satRef = useRef(null);
+  const hueRef = useRef(null);
 
   const hexToRgb = (hex) => {
-    let h = hex.replace("#", "");
+    let h = (hex || "#000000").replace("#", "");
     if (h.length === 3) h = h.split("").map(c => c + c).join("");
     const r = parseInt(h.slice(0, 2), 16) || 0;
     const g = parseInt(h.slice(2, 4), 16) || 0;
@@ -2062,7 +2064,35 @@ const ColorPicker = ({ value, onChange, t, isDark }) => {
     return "#" + h(r) + h(g) + h(b);
   };
 
-  const { r, g, b } = hexToRgb(value || "#000000");
+  const rgbToHsv = (r, g, b) => {
+    r /= 255; g /= 255; b /= 255;
+    const max = Math.max(r, g, b), min = Math.min(r, g, b), d = max - min;
+    let h, s, v = max;
+    s = max === 0 ? 0 : d / max;
+    if (max === min) h = 0;
+    else {
+      if (max === r) h = (g - b) / d + (g < b ? 6 : 0);
+      else if (max === g) h = (b - r) / d + 2;
+      else h = (r - g) / d + 4;
+      h /= 6;
+    }
+    return { h: h * 360, s: s * 100, v: v * 100 };
+  };
+
+  const hsvToRgb = (h, s, v) => {
+    h /= 360; s /= 100; v /= 100;
+    const i = Math.floor(h * 6), f = h * 6 - i, p = v * (1 - s), q = v * (1 - f * s), t = v * (1 - (1 - f) * s);
+    let r, g, b;
+    switch (i % 6) {
+      case 0: r = v, g = t, b = p; break; case 1: r = q, g = v, b = p; break;
+      case 2: r = p, g = v, b = t; break; case 3: r = p, g = q, b = v; break;
+      case 4: r = t, g = p, b = v; break; case 5: r = v, g = p, b = q; break;
+    }
+    return { r: Math.round(r * 255), g: Math.round(g * 255), b: Math.round(b * 255) };
+  };
+
+  const { r, g, b } = hexToRgb(value);
+  const { h, s, v } = rgbToHsv(r, g, b);
 
   useEffect(() => {
     const clickAway = (e) => { if (isOpen && ref.current && !ref.current.contains(e.target)) setIsOpen(false); };
@@ -2070,81 +2100,67 @@ const ColorPicker = ({ value, onChange, t, isDark }) => {
     return () => document.removeEventListener("mousedown", clickAway);
   }, [isOpen]);
 
+  const handleSatDown = (e) => {
+    const move = (ee) => {
+      const rect = satRef.current.getBoundingClientRect();
+      const nx = Math.max(0, Math.min(100, ((ee.clientX - rect.left) / rect.width) * 100));
+      const ny = Math.max(0, Math.min(100, (1 - (ee.clientY - rect.top) / rect.height) * 100));
+      const rgb = hsvToRgb(h, nx, ny);
+      onChange(rgbToHex(rgb.r, rgb.g, rgb.b));
+    };
+    const up = () => { document.removeEventListener("mousemove", move); document.removeEventListener("mouseup", up); };
+    document.addEventListener("mousemove", move); document.addEventListener("mouseup", up);
+    move(e);
+  };
+
+  const handleHueDown = (e) => {
+    const move = (ee) => {
+      const rect = hueRef.current.getBoundingClientRect();
+      const nh = Math.max(0, Math.min(360, ((ee.clientX - rect.left) / rect.width) * 360));
+      const rgb = hsvToRgb(nh, s, v);
+      onChange(rgbToHex(rgb.r, rgb.g, rgb.b));
+    };
+    const up = () => { document.removeEventListener("mousemove", move); document.removeEventListener("mouseup", up); };
+    document.addEventListener("mousemove", move); document.addEventListener("mouseup", up);
+    move(e);
+  };
+
   const inpS = { width: "100%", padding: "5px", border: `1px solid ${t.border}`, borderRadius: 4, background: t.background, color: t.text, fontSize: 11, outline: "none", boxSizing: "border-box", textAlign: "center" };
   const lblS = { fontSize: 10, color: t.textMuted, marginTop: 4, textAlign: "center", fontWeight: 600 };
 
   return (
     <div style={{ position: "relative" }} ref={ref}>
-      <div 
-        onClick={() => setIsOpen(!isOpen)}
-        style={{ 
-          width: 44, height: 28, borderRadius: 4, background: value || "#1F2937", 
-          border: `1px solid ${t.border}`, cursor: "pointer", display: "flex", 
-          alignItems: "center", justifyContent: "center", boxShadow: "0 1px 2px rgba(0,0,0,0.1)" 
-        }}
-      >
+      <div onClick={() => setIsOpen(!isOpen)} style={{ width: 44, height: 28, borderRadius: 4, background: value || "#1F2937", border: `1px solid ${t.border}`, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 1px 2px rgba(0,0,0,0.1)" }}>
         {(!value || value.toLowerCase() === "#ffffff") && <div style={{ width: "100%", height: 1, background: "red", transform: "rotate(-45deg)", opacity: 0.3 }} />}
       </div>
       
       {isOpen && (
-        <div style={{ 
-          position: "absolute", right: 0, top: "calc(100% + 8px)", width: 250, 
-          background: t.surface, border: `1px solid ${t.border}`, borderRadius: 8, 
-          boxShadow: "0 10px 25px rgba(0,0,0,0.15)", zIndex: 100, overflow: "hidden"
-        }}>
-          {/* Hue/Sat Area Placeholder (using native for now to guarantee functionality) */}
+        <div style={{ position: "absolute", right: 0, top: "calc(100% + 8px)", width: 230, background: t.surface, border: `1px solid ${t.border}`, borderRadius: 8, boxShadow: "0 10px 25px rgba(0,0,0,0.15)", zIndex: 100, overflow: "hidden" }}>
+          
+          <div ref={satRef} onMouseDown={handleSatDown} style={{ height: 130, position: "relative", cursor: "crosshair", background: `hsl(${h}, 100%, 50%)` }}>
+            <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to right, #fff, transparent)" }} />
+            <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, #000, transparent)" }} />
+            <div style={{ position: "absolute", left: `${s}%`, bottom: `${v}%`, width: 10, height: 10, margin: -5, borderRadius: "50%", border: "2px solid #fff", boxShadow: "0 0 2px rgba(0,0,0,0.5)", pointerEvents: "none" }} />
+          </div>
+
           <div style={{ padding: 12 }}>
-            <div style={{ position: "relative", width: "100%", height: 120, borderRadius: 4, background: value, marginBottom: 12, border: `1px solid ${t.border}` }}>
-               <input 
-                 type="color" 
-                 value={value || "#000000"} 
-                 onChange={e => onChange(e.target.value)}
-                 style={{ position: "absolute", inset: 0, width: "100%", height: "100%", opacity: 0, cursor: "pointer" }}
-               />
-               <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to bottom, transparent, rgba(0,0,0,0.5))", pointerEvents: "none" }} />
-               <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to right, #fff, transparent)", pointerEvents: "none", opacity: 0.5 }} />
-               <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 10, pointerEvents: "none", textShadow: "0 1px 2px rgba(0,0,0,0.5)" }}>Click to open full picker</div>
+            <div ref={hueRef} onMouseDown={handleHueDown} style={{ height: 12, borderRadius: 6, marginBottom: 14, cursor: "pointer", position: "relative", background: "linear-gradient(to right, #f00 0%, #ff0 17%, #0f0 33%, #0ff 50%, #00f 67%, #f0f 83%, #f00 100%)" }}>
+              <div style={{ position: "absolute", left: `${(h/360)*100}%`, top: -2, bottom: -2, width: 6, margin: "0 -3px", background: "#fff", border: "1px solid #999", borderRadius: 3, boxShadow: "0 1px 3px rgba(0,0,0,0.3)", pointerEvents: "none" }} />
             </div>
 
-            {/* Inputs Grid */}
-            <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr 1fr", gap: 8, marginBottom: 16 }}>
-              <div>
-                <input 
-                  value={value?.replace("#", "") || ""} 
-                  onChange={e => onChange("#" + e.target.value.replace(/[^0-9A-Fa-f]/g, "").slice(0, 6))}
-                  style={{ ...inpS, textTransform: "uppercase" }}
-                />
-                <div style={lblS}>Hex</div>
-              </div>
-              <div>
-                <input value={r} onChange={e => onChange(rgbToHex(e.target.value, g, b))} style={inpS} />
-                <div style={lblS}>R</div>
-              </div>
-              <div>
-                <input value={g} onChange={e => onChange(rgbToHex(r, e.target.value, b))} style={inpS} />
-                <div style={lblS}>G</div>
-              </div>
-              <div>
-                <input value={b} onChange={e => onChange(rgbToHex(r, g, e.target.value))} style={inpS} />
-                <div style={lblS}>B</div>
-              </div>
+            <div style={{ display: "grid", gridTemplateColumns: "1.8fr 1fr 1fr 1fr", gap: 5, marginBottom: 14 }}>
+              <div><input value={value?.replace("#", "") || ""} onChange={e => onChange("#" + e.target.value.replace(/[^0-9A-Fa-f]/g, "").slice(0, 6))} style={{ ...inpS, textTransform: "uppercase" }} /><div style={lblS}>Hex</div></div>
+              <div><input value={r} onChange={e => onChange(rgbToHex(e.target.value, g, b))} style={inpS} /><div style={lblS}>R</div></div>
+              <div><input value={g} onChange={e => onChange(rgbToHex(r, e.target.value, b))} style={inpS} /><div style={lblS}>G</div></div>
+              <div><input value={b} onChange={e => onChange(rgbToHex(r, g, e.target.value))} style={inpS} /><div style={lblS}>B</div></div>
             </div>
           </div>
 
           <div style={{ borderTop: `1px solid ${t.border}`, padding: 12 }}>
-            <div style={{ fontSize: 10, color: t.textMuted, marginBottom: 8, fontWeight: 600 }}>COMMON COLORS</div>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 6 }}>
+            <div style={{ fontSize: 9, color: t.textMuted, marginBottom: 8, fontWeight: 700 }}>COMMON COLORS</div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 5 }}>
               {COMMON_COLORS.map(c => (
-                <div 
-                  key={c}
-                  onClick={() => onChange(c)}
-                  style={{ 
-                    width: 22, height: 22, borderRadius: "50%", background: c, 
-                    cursor: "pointer", border: `1px solid ${t.border}`,
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    boxShadow: value?.toLowerCase() === c.toLowerCase() ? `0 0 0 2px ${isDark ? "#fff" : "#3B82F6"}` : "none"
-                  }}
-                >
+                <div key={c} onClick={() => onChange(c)} style={{ width: 22, height: 22, borderRadius: "50%", background: c, cursor: "pointer", border: `1px solid ${t.border}`, display: "flex", alignItems: "center", justifyContent: "center", boxShadow: value?.toLowerCase() === c.toLowerCase() ? `0 0 0 2px ${isDark ? "#fff" : "#3B82F6"}` : "none" }}>
                   {value?.toLowerCase() === c.toLowerCase() && <Check size={10} color={c === "#FFFFFF" || c === "#FEEBC8" ? "#000" : "#fff"} />}
                 </div>
               ))}
