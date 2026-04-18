@@ -129,11 +129,15 @@ export default function PageEmailBuilder(props) {
   const isAdmin = isSuperAdmin || isGlobalRole || isR10010;
   const isEditingGlobal = isAdmin && !!activeEmailTemplate?.isGlobal;
 
+  const lastIdRef = useRef(null);
   useEffect(() => {
     if (activeEmailTemplate) {
-      if (activeEmailTemplate.rows) setRows(activeEmailTemplate.rows);
-      if (activeEmailTemplate.settings) setEmailSettings(activeEmailTemplate.settings);
-      if (activeEmailTemplate.name) setEmailName(activeEmailTemplate.name);
+      if (activeEmailTemplate.id !== lastIdRef.current) {
+        lastIdRef.current = activeEmailTemplate.id;
+        if (activeEmailTemplate.rows) setRows(activeEmailTemplate.rows);
+        if (activeEmailTemplate.settings) setEmailSettings(activeEmailTemplate.settings);
+        if (activeEmailTemplate.name) setEmailName(activeEmailTemplate.name);
+      }
     }
   }, [activeEmailTemplate]);
 
@@ -1112,7 +1116,13 @@ function EmailRow({ row, isSelected, isHovered, onSelect, onHover, onDelete, onD
         e.dataTransfer.setData("moveRowId", row.id);
         e.dataTransfer.effectAllowed = "move";
         const target = e.currentTarget.parentElement;
-        if (target) e.dataTransfer.setDragImage(target, target.offsetWidth / 2, target.offsetHeight / 2);
+        if (target) {
+          const rect = target.getBoundingClientRect();
+          // Offset the ghost so the mouse stays over the handle (right side)
+          const mouseX = e.clientX - rect.left;
+          const mouseY = e.clientY - rect.top;
+          e.dataTransfer.setDragImage(target, mouseX, mouseY);
+        }
       }}
       style={{
         position: "absolute", right: -32, top: "50%", transform: "translateY(-50%)",
