@@ -9,7 +9,7 @@ import {
   Image as ImageIcon, FileText, Video, Users, Menu as MenuIcon, Code,
   Table as TableIcon, Search, ChevronRight, ChevronUp, X as XIcon,
   Plus, Trash2, Copy, Settings as SettingsIcon, Paperclip,
-  AlignCenter, AlignRight, AlignJustify, Move, Send, Clock, Check
+  AlignCenter, AlignRight, AlignJustify, Move, Send, Clock, Check, Eye
 } from "lucide-react";
 import { PromptModal, DelModal } from "../components";
 
