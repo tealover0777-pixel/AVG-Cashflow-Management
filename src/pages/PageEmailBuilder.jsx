@@ -1302,6 +1302,7 @@ function SettingsRow({ label, t, children }) {
 
 function SettingsPanel({ t, isDark, settings, onChange, profile, DIMENSIONS = [], CONTACTS = [] }) {
   const [showRecipients, setShowRecipients] = useState(false);
+  const [selectedInTable, setSelectedInTable] = useState([]);
   const recipientColumns = useMemo(() => [
     {
       id: "select",
@@ -1405,7 +1406,13 @@ function SettingsPanel({ t, isDark, settings, onChange, profile, DIMENSIONS = []
           </SettingsRow>
 
           <SettingsRow label="Recipients:" t={t}>
-            <div style={{ flex: 1, fontSize: 15, color: t.textMuted, borderBottom: `1px solid ${t.chipBorder}`, padding: "8px 0" }}>Click to select your recipients</div>
+            <input 
+              value={localSettings.recipients || ""} 
+              onChange={e => set("recipients", e.target.value)} 
+              onBlur={() => commit("recipients")} 
+              placeholder="Click button to select recipients..." 
+              style={{ ...inp, color: localSettings.recipients ? t.text : t.textMuted }} 
+            />
             <button 
               onClick={() => setShowRecipients(true)}
               style={{ ...actionBtn, marginLeft: 16, display: "flex", alignItems: "center", gap: 8, background: isDark ? "#374151" : "#F3F4F6", border: "none" }}
@@ -1517,7 +1524,22 @@ function SettingsPanel({ t, isDark, settings, onChange, profile, DIMENSIONS = []
         </div>
       </div>
 
-      <Modal open={showRecipients} onClose={() => setShowRecipients(false)} title="Recipients List" width={800} t={t} isDark={isDark} showCancel={false}>
+      <Modal 
+        open={showRecipients} 
+        onClose={() => setShowRecipients(false)} 
+        title="Recipients List" 
+        width={800} 
+        t={t} 
+        isDark={isDark} 
+        showCancel={true}
+        saveLabel="Select Recipients"
+        onSave={() => {
+          const emails = selectedInTable.map(s => s.email).filter(Boolean).join("; ");
+          set("recipients", emails);
+          onChange(prev => ({ ...prev, recipients: emails }));
+          setShowRecipients(false);
+        }}
+      >
         <div style={{ height: 500, width: "100%" }}>
           <TanStackTable 
             data={CONTACTS} 
@@ -1525,6 +1547,7 @@ function SettingsPanel({ t, isDark, settings, onChange, profile, DIMENSIONS = []
             t={t} 
             isDark={isDark} 
             pageSize={10} 
+            onSelectionChange={setSelectedInTable}
           />
         </div>
       </Modal>
