@@ -1995,6 +1995,21 @@ const PropToggle = ({ value, onChange }) => (
   </div>
 );
 
+const SelectDD = ({ value, options, onChange, t }) => (
+  <div style={{ position: "relative", width: 140 }}>
+    <select 
+      value={value} 
+      onChange={e => onChange(e.target.value)} 
+      style={{ width: "100%", padding: "7px 10px", border: `1px solid ${t.border}`, borderRadius: 4, background: t.surface, color: t.text, fontSize: 12, outline: "none", appearance: "none" }}
+    >
+      {options.map(opt => <option key={opt.val} value={opt.val}>{opt.label}</option>)}
+    </select>
+    <div style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", pointerEvents: "none", opacity: 0.5 }}>
+      <CDown />
+    </div>
+  </div>
+);
+
 const AlignToggle = ({ value, onChange, t, isDark }) => (
   <div style={{ display: "flex", border: `1px solid ${t.border}`, borderRadius: 4, overflow: "hidden" }}>
     {[
