@@ -626,7 +626,7 @@ export default function PageEmailBuilder(props) {
 
         {/* Canvas / Settings / Preview */}
         {activeMainTab === "Settings" ? (
-          <SettingsPanel t={t} isDark={isDark} settings={emailSettings} onChange={setEmailSettings} profile={profile} DIMENSIONS={DIMENSIONS} CONTACTS={CONTACTS} />
+          <SettingsPanel t={t} isDark={isDark} settings={emailSettings} onChange={setEmailSettings} profile={profile} DIMENSIONS={DIMENSIONS} CONTACTS={CONTACTS} USERS={USERS} />
         ) : activeMainTab === "Mobile" ? (
           <ReviewPanel t={t} isDark={isDark} rows={rows} emailSettings={emailSettings} narrow />
         ) : activeMainTab === "Desktop" ? (
@@ -1300,7 +1300,7 @@ function SettingsRow({ label, t, children }) {
   );
 }
 
-function SettingsPanel({ t, isDark, settings, onChange, profile, DIMENSIONS = [], CONTACTS = [] }) {
+function SettingsPanel({ t, isDark, settings, onChange, profile, DIMENSIONS = [], CONTACTS = [], USERS = [] }) {
   const [localSettings, setLocalSettings] = useState(settings);
   const [showRecipients, setShowRecipients] = useState(false);
   const [selectedInTable, setSelectedInTable] = useState([]);
