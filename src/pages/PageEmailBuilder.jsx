@@ -6,7 +6,7 @@ import { useAuth } from "../AuthContext";
 import {
   ChevronLeft, ChevronDown, Edit2, UploadCloud, FileEdit, Smartphone, Monitor, Save,
   Columns as ColumnsIcon, TrendingUp, Square, Minus, Type, AlignLeft,
-  Image as ImageIcon, Code,
+  Image as ImageIcon, FileText, Code,
   Table as TableIcon, Search, ChevronRight, ChevronUp, X as XIcon,
   Plus, Trash2, Copy, Settings as SettingsIcon, Paperclip,
   AlignCenter, AlignRight, AlignJustify, Move, Send, Clock, Check, Eye,
