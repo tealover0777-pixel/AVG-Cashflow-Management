@@ -46,6 +46,8 @@ const INITIAL_SETTINGS = {
   from: "invest@americanvisioncap.com",
   replyTo: "invest@americanvisioncap.com",
   previewText: "",
+  doNotSendTo: "",
+  type: "Marketing",
 };
 
 const INITIAL_ROWS = [
@@ -1259,71 +1261,124 @@ const ctrlBtn = { background: "rgba(0,0,0,0.6)", color: "#fff", border: "none", 
 
 // ── Settings Panel ────────────────────────────────────────────────────────────
 
-function SettingsPanel({ t, isDark, settings, onChange }) {
-  const set = (key, val) => onChange(prev => ({ ...prev, [key]: val }));
-  const Row = ({ label, children }) => (
-    <div style={{ display: "flex", alignItems: "center", paddingBottom: 20, borderBottom: `1px solid ${t.border}` }}>
-      <div style={{ width: 140, fontSize: 13, color: t.textMuted, flexShrink: 0 }}>{label}</div>
+// Stable module-level row wrapper — must NOT be defined inside SettingsPanel to avoid remount on every render
+function SettingsRow({ label, hint, t, children }) {
+  return (
+    <div style={{ display: "flex", alignItems: "center", paddingBottom: 22, borderBottom: `1px solid ${t.border}` }}>
+      <div style={{ width: 180, fontSize: 14, color: t.textMuted, flexShrink: 0 }}>
+        {label}{hint && <span style={{ fontSize: 11, marginLeft: 4, opacity: 0.6 }}>ℹ</span>}
+      </div>
       {children}
     </div>
   );
+}
+
+function SettingsPanel({ t, isDark, settings, onChange }) {
+  const [localSettings, setLocalSettings] = useState(settings);
+
+  // Sync local state when external settings change (e.g. from a different template)
+  useEffect(() => {
+    setLocalSettings(settings);
+  }, [settings]);
+
+  const set = (key, val) => {
+    setLocalSettings(prev => ({ ...prev, [key]: val }));
+  };
+
+  const commit = (key) => {
+    onChange(prev => ({ ...prev, [key]: localSettings[key] }));
+  };
+
+  const inp = { flex: 1, border: "none", borderBottom: `1px solid ${t.border}`, background: "transparent", fontSize: 15, color: t.text, outline: "none", padding: "8px 0", transition: "border-color 0.2s" };
+  const actionBtn = { border: `1px solid ${t.border}`, borderRadius: 20, padding: "8px 20px", background: "transparent", cursor: "pointer", color: t.text, fontSize: 13, fontWeight: 600, transition: "all 0.2s" };
+
   return (
     <div style={{ flex: 1, background: isDark ? "#111" : "#EEEEE9", display: "flex", alignItems: "flex-start", justifyContent: "center", padding: "40px 24px", overflowY: "auto" }}>
-      <div style={{ width: "100%", maxWidth: 680, background: t.surface, borderRadius: 12, border: `1px solid ${t.border}` }}>
-        <div style={{ padding: "20px 28px", borderBottom: `1px solid ${t.border}` }}>
-          <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: t.text }}>Email settings &amp; recipients</h3>
+      <div style={{ width: "100%", maxWidth: 1360, background: t.surface, borderRadius: 16, border: `1px solid ${t.border}`, boxShadow: "0 10px 40px rgba(0,0,0,0.1)" }}>
+        <div style={{ padding: "32px 48px", borderBottom: `1px solid ${t.border}` }}>
+          <h3 style={{ margin: 0, fontSize: 22, fontWeight: 700, color: t.text, letterSpacing: "-0.01em" }}>Email settings &amp; recipients</h3>
         </div>
-        <div style={{ padding: "28px 28px", display: "flex", flexDirection: "column", gap: 20 }}>
-          <Row label="Subject">
-            <input value={settings.subject} onChange={e => set("subject", e.target.value)} style={{ flex: 1, border: "none", borderBottom: `1px solid ${t.border}`, background: "transparent", fontSize: 13, color: t.text, outline: "none", padding: "2px 0" }} />
-          </Row>
-          <Row label="Internal name">
-            <input value={settings.internalName} onChange={e => set("internalName", e.target.value)} style={{ flex: 1, border: "none", borderBottom: `1px solid ${t.border}`, background: "transparent", fontSize: 13, color: t.text, outline: "none", padding: "2px 0" }} />
-          </Row>
-          <Row label="Recipients">
-            <div style={{ flex: 1 }} />
-            <button style={{ display: "flex", alignItems: "center", gap: 6, border: `1px solid ${t.border}`, borderRadius: 6, padding: "6px 14px", background: "transparent", cursor: "pointer", color: t.text, fontSize: 12.5, fontWeight: 500 }}>
-              👁 View recipients
+        <div style={{ padding: "40px 48px", display: "flex", flexDirection: "column", gap: 32 }}>
+
+          <SettingsRow label="Subject:" t={t}>
+            <input value={localSettings.subject || ""} onChange={e => set("subject", e.target.value)} onBlur={() => commit("subject")} placeholder="Enter subject" style={inp} />
+          </SettingsRow>
+
+          <SettingsRow label="Internal name:" t={t}>
+            <input value={localSettings.internalName || ""} onChange={e => set("internalName", e.target.value)} onBlur={() => commit("internalName")} style={inp} />
+          </SettingsRow>
+
+          <SettingsRow label="Recipients:" t={t}>
+            <div style={{ flex: 1, fontSize: 15, color: t.textMuted }}>Click to select your recipients</div>
+            <button style={{ ...actionBtn, display: "flex", alignItems: "center", gap: 8, background: isDark ? "#374151" : "#F3F4F6", border: "none" }}>
+              <Eye size={16} /> View recipients
             </button>
-          </Row>
-          <Row label="From name">
-            <input value={settings.fromName} onChange={e => set("fromName", e.target.value)} style={{ flex: 1, border: "none", background: "transparent", fontSize: 13, color: t.text, outline: "none" }} />
-            <button style={{ border: `1px solid ${t.border}`, borderRadius: 6, padding: "5px 12px", background: "transparent", cursor: "pointer", color: t.text, fontSize: 12, flexShrink: 0 }}>Return to dropdown</button>
-          </Row>
-          <Row label="From">
-            <div style={{ flex: 1, fontSize: 13, color: t.text }}>{settings.from}</div>
-            <button style={{ border: `1px solid ${t.border}`, borderRadius: 6, padding: "5px 10px", background: "transparent", cursor: "pointer", color: t.text, fontSize: 12, marginRight: 10 }}>✏️ Edit</button>
-            <span style={{ fontSize: 12, color: t.textMuted, cursor: "pointer", whiteSpace: "nowrap" }}>Add email signature ℹ</span>
-          </Row>
-          <Row label="Reply-to">
-            <input value={settings.replyTo} onChange={e => set("replyTo", e.target.value)} style={{ flex: 1, border: "none", borderBottom: `1px solid ${t.border}`, background: "transparent", fontSize: 13, color: t.text, outline: "none" }} />
-            <CDown />
-          </Row>
-          <div style={{ display: "flex", alignItems: "flex-start" }}>
-            <div style={{ width: 140, fontSize: 13, color: t.textMuted, paddingTop: 3, flexShrink: 0 }}>Preview text <span style={{ fontSize: 10 }}>ℹ</span></div>
-            <input value={settings.previewText} onChange={e => set("previewText", e.target.value)} placeholder="Enter email preview text" style={{ flex: 1, border: "none", background: "transparent", fontSize: 13, color: t.text, outline: "none" }} />
-          </div>
+          </SettingsRow>
+
+          <SettingsRow label="Do not send to:" t={t}>
+            <input value={localSettings.doNotSendTo || ""} onChange={e => set("doNotSendTo", e.target.value)} onBlur={() => commit("doNotSendTo")} placeholder="(Optional) Click to select recipients to exclude" style={{ ...inp, color: localSettings.doNotSendTo ? t.text : t.textMuted }} />
+          </SettingsRow>
+
+          <SettingsRow label="Type:" hint t={t}>
+            <div style={{ position: "relative", flex: 1 }}>
+              <select value={localSettings.type || "Marketing"} onChange={e => { set("type", e.target.value); onChange(prev => ({ ...prev, type: e.target.value })); }} style={{ ...inp, padding: "8px 24px 8px 0", appearance: "none", cursor: "pointer" }}>
+                <option value="Marketing">Marketing</option>
+                <option value="Transactional">Transactional</option>
+                <option value="Operational">Operational</option>
+              </select>
+              <div style={{ position: "absolute", right: 0, top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }}>
+                <CDown />
+              </div>
+            </div>
+          </SettingsRow>
+
+          <SettingsRow label="From name:" t={t}>
+            <input value={localSettings.fromName || ""} onChange={e => set("fromName", e.target.value)} onBlur={() => commit("fromName")} style={{ ...inp, borderBottom: "none", flex: 1 }} />
+            <button style={actionBtn}>Return to dropdown</button>
+          </SettingsRow>
+
+          <SettingsRow label="From:" t={t}>
+            <div style={{ flex: 1, fontSize: 15, color: t.text }}>{localSettings.from}</div>
+            <button style={{ ...actionBtn, marginRight: 16 }}>✏️ Edit</button>
+            <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 14, color: t.textMuted, cursor: "pointer", whiteSpace: "nowrap" }}>
+              <input type="checkbox" checked={!!localSettings.addSignature} onChange={e => { set("addSignature", e.target.checked); onChange(prev => ({ ...prev, addSignature: e.target.checked })); }} />
+              Add email signature <span style={{ fontSize: 12, opacity: 0.6 }}>ℹ</span>
+            </label>
+          </SettingsRow>
+
+          <SettingsRow label="Reply-to:" t={t}>
+            <input value={localSettings.replyTo || ""} onChange={e => set("replyTo", e.target.value)} onBlur={() => commit("replyTo")} style={inp} />
+            <div style={{ paddingLeft: 12 }}>
+              <CDown />
+            </div>
+          </SettingsRow>
+
+          <SettingsRow label="Preview text:" t={t} hint>
+            <input value={localSettings.previewText || ""} onChange={e => set("previewText", e.target.value)} onBlur={() => commit("previewText")} placeholder="Enter email preview text" style={inp} />
+          </SettingsRow>
+
         </div>
       </div>
     </div>
   );
 }
 
+
 // ── Review Panels ─────────────────────────────────────────────────────────────
 
 function ReviewPanel({ t, isDark, rows, emailSettings, narrow }) {
   return (
-    <div style={{ flex: 1, background: isDark ? "#111" : "#EEEEE9", display: "flex", gap: 24, padding: 40, overflowY: "auto" }}>
+    <div style={{ flex: 1, background: isDark ? "#111" : "#EEEEE9", display: "flex", gap: 24, padding: "40px", overflowY: "auto" }}>
       <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 14 }}>
         {narrow && (
           <div style={{ background: "#EFF6FF", border: "1px solid #BFDBFE", borderRadius: 6, padding: "7px 14px", fontSize: 12, color: "#2563EB", display: "flex", alignItems: "center", gap: 6 }}>
             ℹ Discover mobile email styling tips. <span style={{ textDecoration: "underline", cursor: "pointer" }}>Learn more</span>
           </div>
         )}
-        <div style={{ width: narrow ? 390 : "100%", maxWidth: narrow ? 390 : 780, boxShadow: "0 4px 16px rgba(0,0,0,0.12)" }}>
+        <div style={{ width: narrow ? 390 : "100%", maxWidth: narrow ? 390 : 1100, boxShadow: "0 10px 40px rgba(0,0,0,0.1)", background: "#fff", borderRadius: 8, overflow: "hidden" }}>
           {rows.map(row => <RowPreview key={row.id} row={row} narrow={narrow} />)}
-          <div style={{ textAlign: "center", padding: 12, fontSize: 11, color: "#6B7280", background: "#EEEEE9" }}>
-            Don't want to see this type of email? <a href="#" style={{ color: "#2563EB" }}>Unsubscribe</a>
+          <div style={{ textAlign: "center", padding: "32px 12px", fontSize: 12, color: "#6B7280", background: isDark ? "#1F2937" : "#F9FAFB", borderTop: `1px solid ${t.border}` }}>
+            Don't want to see this type of email? <a href="#" style={{ color: "#2563EB", textDecoration: "none" }}>Unsubscribe</a>
           </div>
         </div>
       </div>
@@ -1664,7 +1719,6 @@ function BlockPropsPanel({ t, isDark, blockType, rowId, onUpdate, rows, onClose,
 
       case "TABLE": return (
         <>
-          <DispCond />
           <Sec id="main" label="Layout">
             <PR label="Columns">
               <input type="number" value={content.cols ?? 2} min={1} max={6} onChange={e => upd({ cols: Number(e.target.value) })} style={{ width: 60, padding: "4px 6px", border: `1px solid ${t.border}`, borderRadius: 4, background: t.surface, color: t.text, fontSize: 12 }} />
@@ -1673,9 +1727,10 @@ function BlockPropsPanel({ t, isDark, blockType, rowId, onUpdate, rows, onClose,
               <input type="number" value={content.rows ?? 2} min={1} max={20} onChange={e => upd({ rows: Number(e.target.value) })} style={{ width: 60, padding: "4px 6px", border: `1px solid ${t.border}`, borderRadius: 4, background: t.surface, color: t.text, fontSize: 12 }} />
             </PR>
           </Sec>
-          <General /><Responsive />
+          <General />
         </>
       );
+
 
       case "COLUMNS":
         return (
@@ -1813,6 +1868,52 @@ function HtmlBlockPanel({ rowId, content, upd, t, isDark }) {
           </div>
         )}
       </div>
+
+      <div>
+        <HtmlSectionHeader label="Canvas" isOpen={true} onToggle={() => {}} t={t} isDark={isDark} />
+        <div style={{ padding: 14, borderBottom: `1px solid ${t.border}` }}>
+          <div style={{ marginBottom: 14 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+              <span style={{ fontSize: 11, fontWeight: 700, color: t.text }}>Width</span>
+              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <span style={{ fontSize: 11, color: t.textMuted }}>Auto On</span>
+                <div onClick={() => upd({ autoWidth: !content.autoWidth })} style={{ width: 34, height: 18, background: content.autoWidth !== false ? "#3B82F6" : "#D1D5DB", borderRadius: 9, display: "flex", alignItems: "center", padding: "0 2px", cursor: "pointer", transition: "background 0.2s" }}>
+                  <div style={{ width: 14, height: 14, background: "#fff", borderRadius: "50%", marginLeft: content.autoWidth !== false ? "16px" : "0", transition: "margin-left 0.2s" }} />
+                </div>
+              </div>
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <input
+                type="range" min="10" max="100" value={parseInt(content.width || "100")}
+                onChange={e => upd({ width: e.target.value + "%", autoWidth: false })}
+                style={{ flex: 1, height: 4, accentColor: "#3B82F6" }}
+              />
+              <span style={{ fontSize: 11, color: t.textMuted, width: 30 }}>{content.width || "100%"}</span>
+            </div>
+          </div>
+
+          <div style={{ marginBottom: 14 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+              <span style={{ fontSize: 11, fontWeight: 700, color: t.text }}>Height</span>
+              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <span style={{ fontSize: 11, color: t.textMuted }}>Auto On</span>
+                <div onClick={() => upd({ autoHeight: content.autoHeight === undefined ? false : !content.autoHeight })} style={{ width: 34, height: 18, background: (content.autoHeight !== false) ? "#3B82F6" : "#D1D5DB", borderRadius: 9, display: "flex", alignItems: "center", padding: "0 2px", cursor: "pointer", transition: "background 0.2s" }}>
+                  <div style={{ width: 14, height: 14, background: "#fff", borderRadius: "50%", marginLeft: (content.autoHeight !== false) ? "16px" : "0", transition: "margin-left 0.2s" }} />
+                </div>
+              </div>
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <input
+                type="range" min="10" max="1000" value={parseInt(content.height || "300")}
+                onChange={e => upd({ height: e.target.value + "px", autoHeight: false })}
+                style={{ flex: 1, height: 4, accentColor: "#3B82F6" }}
+              />
+              <span style={{ fontSize: 11, color: t.textMuted, width: 35 }}>{content.autoHeight !== false ? "auto" : (content.height || "300px")}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div>
         <HtmlSectionHeader label="General" isOpen={generalOpen} onToggle={() => setGeneralOpen(p => !p)} t={t} isDark={isDark} />
         {generalOpen && (
@@ -1954,11 +2055,19 @@ function BodyTab({ t, isDark }) {
           </div>
         </PR>
         <PR label="Content Width">
-          <div style={{ display: "flex", border: `1px solid ${t.border}`, borderRadius: 4, overflow: "hidden", fontSize: 12 }}>
-            <input type="text" defaultValue="780" style={{ width: 40, padding: "5px", textAlign: "center", border: "none", borderRight: `1px solid ${t.border}`, background: t.surface, color: t.text, fontSize: 12 }} />
-            <div style={{ width: 28, padding: "5px", textAlign: "center", background: isDark ? "#1F2937" : "#F3F4F6", borderRight: `1px solid ${t.border}`, fontSize: 11, color: t.textMuted }}>px</div>
-            <button style={{ width: 26, background: t.surface, border: "none", borderRight: `1px solid ${t.border}`, cursor: "pointer", color: t.textMuted }}>-</button>
-            <button style={{ width: 26, background: t.surface, border: "none", cursor: "pointer", color: t.textMuted }}>+</button>
+          <div style={{ display: "flex", border: `1px solid ${t.border}`, borderRadius: 4, overflow: "hidden", fontSize: 13 }}>
+            <input type="text" defaultValue="780" style={{ width: 80, padding: "8px", textAlign: "center", border: "none", borderRight: `1px solid ${t.border}`, background: t.surface, color: t.text, fontSize: 13 }} />
+            <div style={{ width: 34, padding: "8px", textAlign: "center", background: isDark ? "#1F2937" : "#F3F4F6", borderRight: `1px solid ${t.border}`, fontSize: 12, color: t.textMuted }}>px</div>
+            <button style={{ width: 32, background: t.surface, border: "none", borderRight: `1px solid ${t.border}`, cursor: "pointer", color: t.textMuted, fontSize: 15 }}>-</button>
+            <button style={{ width: 32, background: t.surface, border: "none", cursor: "pointer", color: t.textMuted, fontSize: 15 }}>+</button>
+          </div>
+        </PR>
+        <PR label="Content Height">
+          <div style={{ display: "flex", border: `1px solid ${t.border}`, borderRadius: 4, overflow: "hidden", fontSize: 13 }}>
+            <input type="text" defaultValue="auto" style={{ width: 80, padding: "8px", textAlign: "center", border: "none", borderRight: `1px solid ${t.border}`, background: t.surface, color: t.text, fontSize: 13 }} />
+            <div style={{ width: 34, padding: "8px", textAlign: "center", background: isDark ? "#1F2937" : "#F3F4F6", borderRight: `1px solid ${t.border}`, fontSize: 12, color: t.textMuted }}>px</div>
+            <button style={{ width: 32, background: t.surface, border: "none", borderRight: `1px solid ${t.border}`, cursor: "pointer", color: t.textMuted, fontSize: 15 }}>-</button>
+            <button style={{ width: 32, background: t.surface, border: "none", cursor: "pointer", color: t.textMuted, fontSize: 15 }}>+</button>
           </div>
         </PR>
         <PR label="Content Alignment">
