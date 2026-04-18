@@ -935,13 +935,20 @@ function EmailCanvas({ t, isDark, rows, selectedRowId, onSelectRow, onAddRow, on
 
   const handleDragOver = (e, idx) => {
     e.preventDefault();
-    e.dataTransfer.dropEffect = "copy";
+    e.dataTransfer.dropEffect = e.dataTransfer.types.includes("moverowid") ? "move" : "copy";
     setDropIdx(idx);
   };
 
   const handleDrop = (e, afterIdx) => {
     e.preventDefault();
     setDropIdx(null);
+    const moveRowId = e.dataTransfer.getData("moverowid");
+    if (moveRowId) {
+      const insertBeforeIdx = afterIdx === -1 ? 0 : afterIdx + 1;
+      const targetId = rows[insertBeforeIdx]?.id || null;
+      if (targetId !== moveRowId) onReorder(moveRowId, targetId);
+      return;
+    }
     const label = e.dataTransfer.getData("blockLabel");
     if (!label) return;
     const relativeId = afterIdx === -1 ? (rows[0]?.id || null) : rows[afterIdx]?.id;
@@ -1110,19 +1117,12 @@ function EmailRow({ row, isSelected, isHovered, onSelect, onHover, onDelete, onD
   const [isDropTarget, setIsDropTarget] = useState(false);
 
   const MoveHandle = () => (
-    <div 
+    <div
       draggable
       onDragStart={e => {
-        e.dataTransfer.setData("moveRowId", row.id);
+        e.dataTransfer.setData("moverowid", row.id);
         e.dataTransfer.effectAllowed = "move";
-        const target = e.currentTarget.parentElement;
-        if (target) {
-          const rect = target.getBoundingClientRect();
-          // Offset the ghost so the mouse stays over the handle (right side)
-          const mouseX = e.clientX - rect.left;
-          const mouseY = e.clientY - rect.top;
-          e.dataTransfer.setDragImage(target, mouseX, mouseY);
-        }
+        e.dataTransfer.setDragImage(e.currentTarget, 14, 14);
       }}
       style={{
         position: "absolute", right: -32, top: "50%", transform: "translateY(-50%)",
@@ -1437,15 +1437,16 @@ function EmailRow({ row, isSelected, isHovered, onSelect, onHover, onDelete, onD
       onMouseLeave={() => !isNested && onHover(null)}
       onClick={e => { e.stopPropagation(); onSelect(row.id, blockType); }}
       onDragOver={e => {
-        if (e.dataTransfer.types.includes("moveRowId")) {
+        if (e.dataTransfer.types.includes("moverowid")) {
           e.preventDefault();
           setIsDropTarget(true);
         }
       }}
       onDragLeave={() => setIsDropTarget(false)}
       onDrop={e => {
+        e.preventDefault();
         setIsDropTarget(false);
-        const sourceId = e.dataTransfer.getData("moveRowId");
+        const sourceId = e.dataTransfer.getData("moverowid");
         if (sourceId && sourceId !== row.id) {
           onReorder(sourceId, row.id);
         }
