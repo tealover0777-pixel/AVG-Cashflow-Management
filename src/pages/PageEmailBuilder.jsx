@@ -1197,8 +1197,9 @@ function EmailRow({ row, isSelected, isHovered, onSelect, onHover, onDelete, onD
 
       case "paragraph":
         return (
-          <div
-            contentEditable
+          <>
+            <div
+              contentEditable
             suppressContentEditableWarning
             onBlur={e => onUpdate(item.id, { html: e.currentTarget.innerHTML })}
             onClick={e => {
