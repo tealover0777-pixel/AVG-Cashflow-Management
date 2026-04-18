@@ -2045,11 +2045,33 @@ const ColorPicker = ({ value, onChange, t, isDark }) => {
   const [isOpen, setIsOpen] = useState(false);
   const ref = useRef(null);
 
+  const hexToRgb = (hex) => {
+    let h = hex.replace("#", "");
+    if (h.length === 3) h = h.split("").map(c => c + c).join("");
+    const r = parseInt(h.slice(0, 2), 16) || 0;
+    const g = parseInt(h.slice(2, 4), 16) || 0;
+    const b = parseInt(h.slice(4, 6), 16) || 0;
+    return { r, g, b };
+  };
+
+  const rgbToHex = (r, g, b) => {
+    const h = (n) => {
+      const s = Math.max(0, Math.min(255, parseInt(n) || 0)).toString(16);
+      return s.length === 1 ? "0" + s : s;
+    };
+    return "#" + h(r) + h(g) + h(b);
+  };
+
+  const { r, g, b } = hexToRgb(value || "#000000");
+
   useEffect(() => {
     const clickAway = (e) => { if (isOpen && ref.current && !ref.current.contains(e.target)) setIsOpen(false); };
     document.addEventListener("mousedown", clickAway);
     return () => document.removeEventListener("mousedown", clickAway);
   }, [isOpen]);
+
+  const inpS = { width: "100%", padding: "5px", border: `1px solid ${t.border}`, borderRadius: 4, background: t.background, color: t.text, fontSize: 11, outline: "none", boxSizing: "border-box", textAlign: "center" };
+  const lblS = { fontSize: 10, color: t.textMuted, marginTop: 4, textAlign: "center", fontWeight: 600 };
 
   return (
     <div style={{ position: "relative" }} ref={ref}>
@@ -2066,43 +2088,64 @@ const ColorPicker = ({ value, onChange, t, isDark }) => {
       
       {isOpen && (
         <div style={{ 
-          position: "absolute", right: 0, top: "calc(100% + 8px)", width: 220, 
+          position: "absolute", right: 0, top: "calc(100% + 8px)", width: 250, 
           background: t.surface, border: `1px solid ${t.border}`, borderRadius: 8, 
-          boxShadow: "0 10px 25px rgba(0,0,0,0.15)", zIndex: 100, padding: 12
+          boxShadow: "0 10px 25px rgba(0,0,0,0.15)", zIndex: 100, overflow: "hidden"
         }}>
-          <div style={{ marginBottom: 12 }}>
-             <div style={{ fontSize: 10, color: t.textMuted, marginBottom: 4, fontWeight: 600 }}>HEX CODE</div>
-             <div style={{ display: "flex", gap: 6 }}>
+          {/* Hue/Sat Area Placeholder (using native for now to guarantee functionality) */}
+          <div style={{ padding: 12 }}>
+            <div style={{ position: "relative", width: "100%", height: 120, borderRadius: 4, background: value, marginBottom: 12, border: `1px solid ${t.border}` }}>
+               <input 
+                 type="color" 
+                 value={value || "#000000"} 
+                 onChange={e => onChange(e.target.value)}
+                 style={{ position: "absolute", inset: 0, width: "100%", height: "100%", opacity: 0, cursor: "pointer" }}
+               />
+               <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to bottom, transparent, rgba(0,0,0,0.5))", pointerEvents: "none" }} />
+               <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to right, #fff, transparent)", pointerEvents: "none", opacity: 0.5 }} />
+               <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 10, pointerEvents: "none", textShadow: "0 1px 2px rgba(0,0,0,0.5)" }}>Click to open full picker</div>
+            </div>
+
+            {/* Inputs Grid */}
+            <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr 1fr", gap: 8, marginBottom: 16 }}>
+              <div>
                 <input 
-                  type="text" 
                   value={value?.replace("#", "") || ""} 
-                  onChange={e => {
-                    const v = e.target.value.replace(/[^0-9A-Fa-f]/g, "").slice(0, 6);
-                    onChange("#" + v);
-                  }}
-                  placeholder="FFFFFF"
-                  style={{ flex: 1, padding: "6px", border: `1px solid ${t.border}`, borderRadius: 4, background: t.background, color: t.text, fontSize: 12, outline: "none", textTransform: "uppercase" }}
+                  onChange={e => onChange("#" + e.target.value.replace(/[^0-9A-Fa-f]/g, "").slice(0, 6))}
+                  style={{ ...inpS, textTransform: "uppercase" }}
                 />
-                <div style={{ width: 28, height: 28, borderRadius: 4, background: value || "#000", border: `1px solid ${t.border}` }} />
-             </div>
+                <div style={lblS}>Hex</div>
+              </div>
+              <div>
+                <input value={r} onChange={e => onChange(rgbToHex(e.target.value, g, b))} style={inpS} />
+                <div style={lblS}>R</div>
+              </div>
+              <div>
+                <input value={g} onChange={e => onChange(rgbToHex(r, e.target.value, b))} style={inpS} />
+                <div style={lblS}>G</div>
+              </div>
+              <div>
+                <input value={b} onChange={e => onChange(rgbToHex(r, g, e.target.value))} style={inpS} />
+                <div style={lblS}>B</div>
+              </div>
+            </div>
           </div>
 
-          <div style={{ borderTop: `1px solid ${t.border}`, paddingTop: 12 }}>
+          <div style={{ borderTop: `1px solid ${t.border}`, padding: 12 }}>
             <div style={{ fontSize: 10, color: t.textMuted, marginBottom: 8, fontWeight: 600 }}>COMMON COLORS</div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 6 }}>
               {COMMON_COLORS.map(c => (
                 <div 
                   key={c}
-                  onClick={() => { onChange(c); setIsOpen(false); }}
+                  onClick={() => onChange(c)}
                   style={{ 
                     width: 22, height: 22, borderRadius: "50%", background: c, 
                     cursor: "pointer", border: `1px solid ${t.border}`,
                     display: "flex", alignItems: "center", justifyContent: "center",
-                    boxShadow: value === c ? `0 0 0 2px ${isDark ? "#fff" : "#3B82F6"}` : "none",
-                    position: "relative"
+                    boxShadow: value?.toLowerCase() === c.toLowerCase() ? `0 0 0 2px ${isDark ? "#fff" : "#3B82F6"}` : "none"
                   }}
                 >
-                  {value === c && <Check size={10} color={c === "#FFFFFF" || c === "#FEEBC8" ? "#000" : "#fff"} />}
+                  {value?.toLowerCase() === c.toLowerCase() && <Check size={10} color={c === "#FFFFFF" || c === "#FEEBC8" ? "#000" : "#fff"} />}
                 </div>
               ))}
             </div>
