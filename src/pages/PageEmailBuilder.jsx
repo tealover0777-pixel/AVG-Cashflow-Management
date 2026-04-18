@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
-import { doc, getDoc, setDoc } from "firebase/firestore";
+import { doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
 import { ref, uploadBytesResumable, uploadBytes, getDownloadURL, listAll, deleteObject } from "firebase/storage";
 import { db, storage } from "../firebase";
 import { useAuth } from "../AuthContext";
@@ -223,8 +223,8 @@ export default function PageEmailBuilder(props) {
     try {
       const targetName = asNewName || emailName;
       const sanitizedName = targetName.replace(/[/\s]+/g, "_").trim();
-
       const isSavingAsGlobal = !saveAsNew && isAdmin && activeEmailTemplate?.isGlobal;
+      const effectiveTenantId = tenantId || (activeTenantIdProp && activeTenantIdProp !== "GLOBAL" ? activeTenantIdProp : "");
 
       const templateData = {
         name: targetName,
@@ -237,47 +237,58 @@ export default function PageEmailBuilder(props) {
         isGlobal: !!isSavingAsGlobal
       };
 
-      const effectiveTenantId = tenantId || (activeTenantIdProp && activeTenantIdProp !== "GLOBAL" ? activeTenantIdProp : "");
+      // Check if we are updating a live Marketing Email from Firestore
+      // Firestore IDs for marketing emails are random strings, storage templates end in .json
+      const isMarketingEmail = activeEmailTemplate?.id && !activeEmailTemplate.id.endsWith(".json") && !activeEmailTemplate.isGlobal;
 
-      if (!effectiveTenantId && !isSavingAsGlobal) {
-        showToast("Cannot save personal template: no tenant selected. Switch to a specific tenant first.", "error");
-        setIsSaving(false);
-        return;
-      }
-
-      let path;
-      if (isSavingAsGlobal && activeEmailTemplate?.id?.startsWith("global_templates/")) {
-        // Use the original path to ensure we overwrite the exact file (handles spaces/special chars)
-        path = activeEmailTemplate.id;
+      if (isMarketingEmail && !saveAsNew) {
+        // UPDATE FIRESTORE DRAFT
+        const docRef = doc(db, "tenants", effectiveTenantId, "marketingEmails", activeEmailTemplate.id);
+        await updateDoc(docRef, {
+          title: targetName,
+          rows: rows,
+          settings: emailSettings,
+          updatedAt: new Date().toISOString()
+        });
+        showToast("Draft updated successfully!", "success");
       } else {
-        // For new templates or category changes, use a sanitized name path
-        path = isSavingAsGlobal
-          ? `global_templates/${sanitizedName}.json`
-          : `tenants/${effectiveTenantId}/templates/${sanitizedName}.json`;
-      }
+        // SAVE TO STORAGE AS TEMPLATE (Original logic)
+        if (!effectiveTenantId && !isSavingAsGlobal) {
+          showToast("Cannot save personal template: no tenant selected. Switch to a specific tenant first.", "error");
+          setIsSaving(false);
+          return;
+        }
 
-      const templateRef = ref(storage, path);
-      const blob = new Blob([JSON.stringify(templateData, null, 2)], { type: "application/json" });
-      await uploadBytes(templateRef, blob);
+        let path;
+        if (isSavingAsGlobal && activeEmailTemplate?.id?.startsWith("global_templates/")) {
+          path = activeEmailTemplate.id;
+        } else {
+          path = isSavingAsGlobal
+            ? `global_templates/${sanitizedName}.json`
+            : `tenants/${effectiveTenantId}/templates/${sanitizedName}.json`;
+        }
 
-      // Update active template state
-      if (typeof props.setActiveEmailTemplate === "function") {
-        props.setActiveEmailTemplate({ ...templateData, id: path, isGlobal: !!isSavingAsGlobal });
+        const templateRef = ref(storage, path);
+        const blob = new Blob([JSON.stringify(templateData, null, 2)], { type: "application/json" });
+        await uploadBytes(templateRef, blob);
+        
+        if (typeof props.setActiveEmailTemplate === "function") {
+          props.setActiveEmailTemplate({ ...templateData, id: path, isGlobal: !!isSavingAsGlobal });
+        }
+        
+        showToast(saveAsNew ? "New template saved to your library!" : (isSavingAsGlobal ? "Global template updated!" : "Template saved!"), "success");
       }
 
       if (typeof props.refreshTemplates === "function") {
         await props.refreshTemplates();
       }
-
-      if (isSavingAsGlobal) {
-        showToast("Global template updated successfully!", "success");
-      } else if (saveAsNew) {
-        showToast("New template saved to your library!", "success");
-      } else {
-        showToast("Template saved successfully!", "success");
-      }
     } catch (error) {
-      console.error("Save template error:", error);
+      console.error("Save error:", error);
+      showToast("Save failed. Check console.", "error");
+    } finally {
+      setIsSaving(false);
+    }
+  };
       showToast("Error saving template", "error");
     } finally {
       setIsSaving(false);
@@ -1145,7 +1156,7 @@ const FloatingTextBar = ({ t, isDark, DIMENSIONS = [] }) => {
         
         {showTags && (
           <div style={{
-            position: "absolute", bottom: "calc(100% + 10px)", left: "0",
+            position: "absolute", top: "calc(100% + 10px)", left: "0",
             background: "#222", border: "1px solid rgba(255,255,255,0.15)", borderRadius: 6,
             minWidth: 160, boxShadow: "0 8px 30px rgba(0,0,0,0.5)", zIndex: 1100,
             overflowX: "hidden", overflowY: "auto", maxHeight: 250, padding: "4px 0"
@@ -1332,9 +1343,13 @@ function EmailRow({ row, isSelected, isHovered, onSelect, onHover, onDelete, onD
         return (
           <>
             <div
+              ref={el => {
+                if (el && (item.content?.html || "") !== el.innerHTML && document.activeElement !== el) {
+                  el.innerHTML = item.content?.html || "";
+                }
+              }}
               contentEditable
               suppressContentEditableWarning
-              onInput={e => onUpdate(item.id, { html: e.currentTarget.innerHTML })}
               onBlur={e => onUpdate(item.id, { html: e.currentTarget.innerHTML })}
             onClick={e => {
               // Don't stop propagation, let it bubble to EmailRow for selection
@@ -1356,7 +1371,6 @@ function EmailRow({ row, isSelected, isHovered, onSelect, onHover, onDelete, onD
               outline: "none", 
               minHeight: 40 
             }}
-            dangerouslySetInnerHTML={{ __html: item.content?.html || "<p>New text block. Click to edit.</p>" }}
           />
           {isSelected && <FloatingTextBar t={t} isDark={isDark} DIMENSIONS={DIMENSIONS} />}
         </>
@@ -1397,13 +1411,16 @@ function EmailRow({ row, isSelected, isHovered, onSelect, onHover, onDelete, onD
         return (
           <div style={{ padding: "16px 32px", background: "#fff" }}>
             <h2
+              ref={el => {
+                if (el && (item.content?.headingText || "") !== el.innerText && document.activeElement !== el) {
+                  el.innerText = item.content?.headingText || "";
+                }
+              }}
               contentEditable
               suppressContentEditableWarning
-              onInput={e => onUpdate(item.id, { headingText: e.currentTarget.innerText })}
               onBlur={e => onUpdate(item.id, { headingText: e.currentTarget.innerText })}
               onClick={e => e.stopPropagation()}
               style={{ margin: 0, fontSize: item.content?.fontSize || 22, fontWeight: 700, color: item.content?.color || "#1F2937", outline: "none" }}
-              dangerouslySetInnerHTML={{ __html: item.content?.headingText || "Heading" }}
             />
           </div>
         );
@@ -1446,14 +1463,14 @@ function EmailRow({ row, isSelected, isHovered, onSelect, onHover, onDelete, onD
                     <tr key={tr.id} style={{ background: tr.isHeader ? (item.content?.headerBg || "#EBEBEB") : (item.content?.striped && rIdx % 2 === 1 ? "#F9F9F9" : (item.content?.bg || "transparent")) }}>
                       {(Array.isArray(tr.cells) ? tr.cells : []).map((cell, cIdx) => (
                         <td
+                          ref={el => {
+                            if (el && (cell.text || "") !== el.innerHTML && document.activeElement !== el) {
+                              el.innerHTML = cell.text || "";
+                            }
+                          }}
                           key={cell.id}
                           contentEditable
                           suppressContentEditableWarning
-                          onInput={e => {
-                            const newRows = [...tableRows];
-                            newRows[rIdx].cells[cIdx].text = e.currentTarget.innerHTML;
-                            onUpdate(item.id, { rows: newRows });
-                          }}
                           onBlur={e => {
                             e.currentTarget.style.boxShadow = "none";
                             const newRows = [...tableRows];
@@ -1478,7 +1495,6 @@ function EmailRow({ row, isSelected, isHovered, onSelect, onHover, onDelete, onD
                             minWidth: 100,
                             transition: "0.2s"
                           }}
-                          dangerouslySetInnerHTML={{ __html: cell.text }}
                         />
                       ))}
                     </tr>
