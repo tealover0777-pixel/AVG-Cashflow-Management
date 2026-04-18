@@ -19,11 +19,10 @@ const CDown = () => <ChevronDown size={12} strokeWidth={2.5} style={{ opacity: 0
 
 const CONTENT_BLOCKS = [
   { label: "COLUMNS", icon: ColumnsIcon },
-  { label: "KPIs", icon: TrendingUp },
+  { label: "TEXT", icon: AlignLeft },
   { label: "BUTTON", icon: Square },
   { label: "DIVIDER", icon: Minus },
   { label: "HEADING", icon: Type },
-  { label: "PARAGRAPH", icon: AlignLeft },
   { label: "IMAGE", icon: ImageIcon },
   { label: "AI SUMMARY", icon: FileText },
   { label: "VIDEO", icon: Video },
@@ -34,8 +33,8 @@ const CONTENT_BLOCKS = [
 ];
 
 const LABEL_TO_TYPE = {
-  "COLUMNS": "columns", "KPIs": "kpis", "BUTTON": "button", "DIVIDER": "divider",
-  "HEADING": "heading", "PARAGRAPH": "paragraph", "IMAGE": "image", "AI SUMMARY": "ai_summary",
+  "COLUMNS": "columns", "TEXT": "paragraph", "BUTTON": "button", "DIVIDER": "divider",
+  "HEADING": "heading", "IMAGE": "image", "AI SUMMARY": "ai_summary",
   "VIDEO": "video", "SOCIAL": "social", "MENU": "menu", "HTML": "html", "TABLE": "table"
 };
 
@@ -2340,23 +2339,21 @@ function ContentTab({ t, isDark, onAddRow }) {
     <div style={{ padding: 14 }}>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10 }}>
         {CONTENT_BLOCKS.map(block => {
-          const disabled = block.label === "KPIs";
           return (
             <div
               key={block.label}
-              draggable={!disabled}
-              title={disabled ? "Coming soon" : undefined}
+              draggable
               style={{
                 display: "flex", flexDirection: "column", alignItems: "center", gap: 6,
                 background: isDark ? "#1F2937" : "#fff", border: `1px solid ${t.border}`, borderRadius: 4,
-                padding: "13px 6px", cursor: disabled ? "not-allowed" : "grab", color: t.text,
+                padding: "13px 6px", cursor: "grab", color: t.text,
                 boxShadow: "0 1px 2px rgba(0,0,0,0.05)", transition: "border-color 0.15s, transform 0.1s",
-                opacity: disabled ? 0.4 : 1, position: "relative"
+                position: "relative"
               }}
-              onMouseEnter={e => { if (!disabled) { e.currentTarget.style.borderColor = isDark ? "#60A5FA" : "#3B82F6"; e.currentTarget.style.transform = "scale(1.04)"; } }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = isDark ? "#60A5FA" : "#3B82F6"; e.currentTarget.style.transform = "scale(1.04)"; }}
               onMouseLeave={e => { e.currentTarget.style.borderColor = t.border; e.currentTarget.style.transform = "scale(1)"; }}
-              onDragStart={e => { if (disabled) { e.preventDefault(); return; } e.dataTransfer.setData("blockLabel", block.label); }}
-              onClick={() => { if (!disabled) onAddRow(null, block.label); }}
+              onDragStart={e => { e.dataTransfer.setData("blockLabel", block.label); }}
+              onClick={() => onAddRow(null, block.label)}
             >
               <block.icon size={20} strokeWidth={1.5} color={t.textMuted} />
               <span style={{ fontSize: 9, fontWeight: 600, letterSpacing: 0.5, textAlign: "center" }}>{block.label}</span>
