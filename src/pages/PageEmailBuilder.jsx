@@ -1441,6 +1441,29 @@ function RowPreview({ row, narrow }) {
   }
 }
 
+// ── Block Properties Panel helpers — module-level so React never remounts them ─
+
+function BPSec({ isOpen, onToggle, label, t, isDark, children }) {
+  return (
+    <div>
+      <div onClick={onToggle} style={{ padding: "10px 16px", display: "flex", justifyContent: "space-between", cursor: "pointer", borderBottom: `1px solid ${t.border}`, background: isDark ? "#161616" : "#F9FAFB" }}>
+        <span style={{ fontSize: 12, fontWeight: 700, color: t.text }}>{label}</span>
+        {isOpen ? <ChevronUp size={13} color={t.textMuted} /> : <CDown />}
+      </div>
+      {isOpen && <div style={{ padding: 14, display: "flex", flexDirection: "column", gap: 12, borderBottom: `1px solid ${t.border}` }}>{children}</div>}
+    </div>
+  );
+}
+
+function BPPropRow({ label, t, children }) {
+  return (
+    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+      <span style={{ fontSize: 11, color: t.textMuted }}>{label}</span>
+      <div>{children}</div>
+    </div>
+  );
+}
+
 // ── Block Properties Panel ────────────────────────────────────────────────────
 
 function BlockPropsPanel({ t, isDark, blockType, rowId, onUpdate, rows, onClose, uploads, isUploading, uploadProgress, onUpload, setActiveRightTab, onDelete, onDuplicate }) {
@@ -1453,63 +1476,25 @@ function BlockPropsPanel({ t, isDark, blockType, rowId, onUpdate, rows, onClose,
   const [open, setOpen] = useState({ displayCondition: false, main: true, action: true, general: true, responsive: true, links: false, columnProps: false, header: true, menuItems: true });
   const tog = id => setOpen(p => ({ ...p, [id]: !p[id] }));
 
-  const Sec = ({ id, label, children }) => (
-    <div>
-      <div onClick={() => tog(id)} style={{ padding: "10px 16px", display: "flex", justifyContent: "space-between", cursor: "pointer", borderBottom: `1px solid ${t.border}`, background: isDark ? "#161616" : "#F9FAFB" }}>
-        <span style={{ fontSize: 12, fontWeight: 700, color: t.text }}>{label}</span>
-        {open[id] ? <ChevronUp size={13} color={t.textMuted} /> : <CDown />}
-      </div>
-      {open[id] && <div style={{ padding: 14, display: "flex", flexDirection: "column", gap: 12, borderBottom: `1px solid ${t.border}` }}>{children}</div>}
-    </div>
+  // Thin wrappers that bind open/tog/t/isDark — these are plain functions NOT components,
+  // so they don't create React component boundaries and cannot cause remount issues.
+  // The actual stable component is BPSec (module-level).
+  const S = (id, label, children) => (
+    <BPSec key={id} isOpen={!!open[id]} onToggle={() => tog(id)} label={label} t={t} isDark={isDark}>
+      {children}
+    </BPSec>
   );
-
-  const PR = ({ label, children }) => (
-    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-      <span style={{ fontSize: 11, color: t.textMuted }}>{label}</span>
-      <div>{children}</div>
-    </div>
+  const PR = (label, children) => (
+    <BPPropRow key={label} label={label} t={t}>{children}</BPPropRow>
   );
-
-  const Swatch = ({ color = "#000" }) => <div style={{ width: 22, height: 22, background: color, border: `1px solid ${t.border}`, borderRadius: 3, cursor: "pointer" }} />;
-  const Toggle = ({ on = true }) => (
-    <div style={{ width: 32, height: 18, background: on ? "#3B82F6" : "#D1D5DB", borderRadius: 9, display: "flex", alignItems: "center", padding: "0 2px", cursor: "pointer" }}>
-      <div style={{ width: 14, height: 14, background: "#fff", borderRadius: "50%", marginLeft: on ? "auto" : 0, transition: "margin 0.2s" }} />
-    </div>
+  const DispCond = () => S("displayCondition", "Display Condition",
+    <button style={{ width: "100%", padding: "7px", border: `1px dashed ${t.border}`, borderRadius: 4, background: "transparent", color: t.textMuted, fontSize: 12, cursor: "pointer" }}>+ Add Display Condition</button>
   );
-  const DD = ({ value }) => (
-    <div style={{ display: "flex", alignItems: "center", gap: 4, border: `1px solid ${t.border}`, borderRadius: 4, padding: "4px 8px", fontSize: 11, color: t.text, cursor: "pointer", background: t.surface }}>
-      {value} <CDown />
-    </div>
+  const General = () => S("general", "General",
+    PR("Container Padding", <div style={{ display: "flex", alignItems: "center", gap: 6 }}><span style={{ fontSize: 10, color: t.textMuted }}>More Options</span></div>)
   );
-  const NI = ({ value = 0, unit = "px" }) => (
-    <div style={{ display: "flex", border: `1px solid ${t.border}`, borderRadius: 4, overflow: "hidden", fontSize: 11 }}>
-      <input type="number" defaultValue={value} style={{ width: 36, padding: "4px", border: "none", borderRight: `1px solid ${t.border}`, background: t.surface, color: t.text, fontSize: 11, textAlign: "center" }} />
-      <div style={{ padding: "4px 6px", background: isDark ? "#1F2937" : "#F3F4F6", borderRight: `1px solid ${t.border}`, color: t.textMuted, fontSize: 10 }}>{unit}</div>
-      <button style={{ width: 22, background: t.surface, border: "none", borderRight: `1px solid ${t.border}`, cursor: "pointer", color: t.textMuted }}>-</button>
-      <button style={{ width: 22, background: t.surface, border: "none", cursor: "pointer", color: t.textMuted }}>+</button>
-    </div>
-  );
-  const AlignBtns = ({ n = 3 }) => (
-    <div style={{ display: "flex", border: `1px solid ${t.border}`, borderRadius: 4, overflow: "hidden" }}>
-      {[<AlignLeft size={12} />, <AlignCenter size={12} />, <AlignRight size={12} />, ...(n > 3 ? [<AlignJustify size={12} />] : [])].slice(0, n).map((icon, i) => (
-        <button key={i} style={{ padding: "5px 10px", background: i === (n > 3 ? 0 : 1) ? (isDark ? "#374151" : "#1F2937") : t.surface, border: "none", borderRight: i < n - 1 ? `1px solid ${t.border}` : "none", cursor: "pointer", color: i === (n > 3 ? 0 : 1) ? "#fff" : t.textMuted }}>{icon}</button>
-      ))}
-    </div>
-  );
-  const DispCond = () => (
-    <Sec id="displayCondition" label="Display Condition">
-      <button style={{ width: "100%", padding: "7px", border: `1px dashed ${t.border}`, borderRadius: 4, background: "transparent", color: t.textMuted, fontSize: 12, cursor: "pointer" }}>+ Add Display Condition</button>
-    </Sec>
-  );
-  const General = () => (
-    <Sec id="general" label="General">
-      <PR label="Container Padding"><div style={{ display: "flex", alignItems: "center", gap: 6 }}><span style={{ fontSize: 10, color: t.textMuted }}>More Options</span><Toggle on={false} /></div></PR>
-    </Sec>
-  );
-  const Responsive = () => (
-    <Sec id="responsive" label="Responsive Design">
-      <PR label="Hide on Desktop"><Toggle on={false} /></PR>
-    </Sec>
+  const Responsive = () => S("responsive", "Responsive Design",
+    PR("Hide on Desktop", <span style={{ fontSize: 10, color: t.textMuted }}>Off</span>)
   );
 
   const renderProps = () => {
@@ -1517,7 +1502,7 @@ function BlockPropsPanel({ t, isDark, blockType, rowId, onUpdate, rows, onClose,
       case "BUTTON": return (
         <>
           <DispCond />
-          <Sec id="main" label="Button Options">
+          {S("main", "Button Options", <>
             <div>
               <div style={{ fontSize: 11, color: t.textMuted, marginBottom: 4 }}>Button Text</div>
               <input value={content.buttonText ?? "Button Text"} onChange={e => upd({ buttonText: e.target.value })} style={inpStyle(t)} />
@@ -1526,13 +1511,9 @@ function BlockPropsPanel({ t, isDark, blockType, rowId, onUpdate, rows, onClose,
               <div style={{ fontSize: 11, color: t.textMuted, marginBottom: 4 }}>Link URL</div>
               <input value={content.url ?? ""} onChange={e => upd({ url: e.target.value })} style={inpStyle(t)} placeholder="https://" />
             </div>
-            <PR label="Background Color">
-              <input type="color" value={content.bgColor || "#1D4ED8"} onChange={e => upd({ bgColor: e.target.value })} style={{ width: 32, height: 28, border: `1px solid ${t.border}`, borderRadius: 3, cursor: "pointer", padding: 1 }} />
-            </PR>
-            <PR label="Text Color">
-              <input type="color" value={content.textColor || "#ffffff"} onChange={e => upd({ textColor: e.target.value })} style={{ width: 32, height: 28, border: `1px solid ${t.border}`, borderRadius: 3, cursor: "pointer", padding: 1 }} />
-            </PR>
-          </Sec>
+            {PR("Background Color", <input type="color" value={content.bgColor || "#1D4ED8"} onChange={e => upd({ bgColor: e.target.value })} style={{ width: 32, height: 28, border: `1px solid ${t.border}`, borderRadius: 3, cursor: "pointer", padding: 1 }} />)}
+            {PR("Text Color", <input type="color" value={content.textColor || "#ffffff"} onChange={e => upd({ textColor: e.target.value })} style={{ width: 32, height: 28, border: `1px solid ${t.border}`, borderRadius: 3, cursor: "pointer", padding: 1 }} />)}
+          </>)}
           <General /><Responsive />
         </>
       );
@@ -1540,14 +1521,10 @@ function BlockPropsPanel({ t, isDark, blockType, rowId, onUpdate, rows, onClose,
       case "DIVIDER": return (
         <>
           <DispCond />
-          <Sec id="main" label="Line">
-            <PR label="Thickness (px)">
-              <input type="number" value={content.lineWidth ?? 1} min={1} max={20} onChange={e => upd({ lineWidth: Number(e.target.value) })} style={{ width: 60, padding: "4px 6px", border: `1px solid ${t.border}`, borderRadius: 4, background: t.surface, color: t.text, fontSize: 12 }} />
-            </PR>
-            <PR label="Color">
-              <input type="color" value={content.lineColor || "#E5E7EB"} onChange={e => upd({ lineColor: e.target.value })} style={{ width: 32, height: 28, border: `1px solid ${t.border}`, borderRadius: 3, cursor: "pointer", padding: 1 }} />
-            </PR>
-          </Sec>
+          {S("main", "Line", <>
+            {PR("Thickness (px)", <input type="number" value={content.lineWidth ?? 1} min={1} max={20} onChange={e => upd({ lineWidth: Number(e.target.value) })} style={{ width: 60, padding: "4px 6px", border: `1px solid ${t.border}`, borderRadius: 4, background: t.surface, color: t.text, fontSize: 12 }} />)}
+            {PR("Color", <input type="color" value={content.lineColor || "#E5E7EB"} onChange={e => upd({ lineColor: e.target.value })} style={{ width: 32, height: 28, border: `1px solid ${t.border}`, borderRadius: 3, cursor: "pointer", padding: 1 }} />)}
+          </>)}
           <General /><Responsive />
         </>
       );
@@ -1555,18 +1532,14 @@ function BlockPropsPanel({ t, isDark, blockType, rowId, onUpdate, rows, onClose,
       case "HEADING": return (
         <>
           <DispCond />
-          <Sec id="main" label="Text">
+          {S("main", "Text", <>
             <div>
               <div style={{ fontSize: 11, color: t.textMuted, marginBottom: 4 }}>Heading Text</div>
               <input value={content.headingText ?? "Heading"} onChange={e => upd({ headingText: e.target.value })} style={inpStyle(t)} />
             </div>
-            <PR label="Font Size (px)">
-              <input type="number" value={content.fontSize ?? 22} min={8} max={96} onChange={e => upd({ fontSize: Number(e.target.value) })} style={{ width: 60, padding: "4px 6px", border: `1px solid ${t.border}`, borderRadius: 4, background: t.surface, color: t.text, fontSize: 12 }} />
-            </PR>
-            <PR label="Color">
-              <input type="color" value={content.color || "#1F2937"} onChange={e => upd({ color: e.target.value })} style={{ width: 32, height: 28, border: `1px solid ${t.border}`, borderRadius: 3, cursor: "pointer", padding: 1 }} />
-            </PR>
-          </Sec>
+            {PR("Font Size (px)", <input type="number" value={content.fontSize ?? 22} min={8} max={96} onChange={e => upd({ fontSize: Number(e.target.value) })} style={{ width: 60, padding: "4px 6px", border: `1px solid ${t.border}`, borderRadius: 4, background: t.surface, color: t.text, fontSize: 12 }} />)}
+            {PR("Color", <input type="color" value={content.color || "#1F2937"} onChange={e => upd({ color: e.target.value })} style={{ width: 32, height: 28, border: `1px solid ${t.border}`, borderRadius: 3, cursor: "pointer", padding: 1 }} />)}
+          </>)}
           <General /><Responsive />
         </>
       );
@@ -1574,16 +1547,14 @@ function BlockPropsPanel({ t, isDark, blockType, rowId, onUpdate, rows, onClose,
       case "PARAGRAPH": return (
         <>
           <DispCond />
-          <Sec id="main" label="Text">
-            <p style={{ margin: 0, fontSize: 11, color: t.textMuted }}>Click the paragraph block on the canvas to edit text inline.</p>
-          </Sec>
+          {S("main", "Text", <p style={{ margin: 0, fontSize: 11, color: t.textMuted }}>Click the paragraph block on the canvas to edit text inline.</p>)}
           <General /><Responsive />
         </>
       );
 
       case "IMAGE": return (
         <>
-          <Sec id="main" label="Image">
+          {S("main", "Image", <>
             <div style={{ display: "flex", gap: 10, marginBottom: 8 }}>
               <button
                 onClick={() => fileInputRef.current?.click()}
@@ -1593,9 +1564,7 @@ function BlockPropsPanel({ t, isDark, blockType, rowId, onUpdate, rows, onClose,
                 {isUploading ? `Uploading...` : "Upload Image"}
               </button>
             </div>
-
             <input type="file" ref={fileInputRef} style={{ display: "none" }} accept="image/*" onChange={e => e.target.files[0] && onUpload(e.target.files[0], url => upd({ imageUrl: url }))} />
-
             <div
               onClick={() => fileInputRef.current?.click()}
               onDrop={e => { e.preventDefault(); e.dataTransfer.files[0] && onUpload(e.dataTransfer.files[0], url => upd({ imageUrl: url })); }}
@@ -1607,9 +1576,6 @@ function BlockPropsPanel({ t, isDark, blockType, rowId, onUpdate, rows, onClose,
                 {isUploading ? `Uploading ${Math.round(uploadProgress)}%` : "Drop a new image here, or click to select files to upload."}
               </p>
             </div>
-
-
-
             <div style={{ marginBottom: 14 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
                 <span style={{ fontSize: 11, fontWeight: 700, color: t.text }}>Width</span>
@@ -1621,15 +1587,10 @@ function BlockPropsPanel({ t, isDark, blockType, rowId, onUpdate, rows, onClose,
                 </div>
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <input
-                  type="range" min="10" max="100" value={parseInt(content.width || "100")}
-                  onChange={e => upd({ width: e.target.value + "%", autoWidth: false })}
-                  style={{ flex: 1, height: 4, accentColor: "#3B82F6" }}
-                />
+                <input type="range" min="10" max="100" value={parseInt(content.width || "100")} onChange={e => upd({ width: e.target.value + "%", autoWidth: false })} style={{ flex: 1, height: 4, accentColor: "#3B82F6" }} />
                 <span style={{ fontSize: 11, color: t.textMuted, width: 30 }}>{content.width || "100%"}</span>
               </div>
             </div>
-
             <div style={{ marginBottom: 14 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
                 <span style={{ fontSize: 11, fontWeight: 700, color: t.text }}>Height</span>
@@ -1641,43 +1602,19 @@ function BlockPropsPanel({ t, isDark, blockType, rowId, onUpdate, rows, onClose,
                 </div>
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <input
-                  type="range" min="10" max="1000" value={parseInt(content.height || "300")}
-                  onChange={e => upd({ height: e.target.value + "px", autoHeight: false })}
-                  style={{ flex: 1, height: 4, accentColor: "#3B82F6" }}
-                />
+                <input type="range" min="10" max="1000" value={parseInt(content.height || "300")} onChange={e => upd({ height: e.target.value + "px", autoHeight: false })} style={{ flex: 1, height: 4, accentColor: "#3B82F6" }} />
                 <span style={{ fontSize: 11, color: t.textMuted, width: 35 }}>{content.autoHeight !== false ? "auto" : (content.height || "300px")}</span>
               </div>
             </div>
-
             <div style={{ marginBottom: 14 }}>
               <div style={{ fontSize: 11, fontWeight: 700, color: t.text, marginBottom: 8 }}>Align</div>
               <div style={{ display: "flex", border: `1px solid ${t.border}`, borderRadius: 4, overflow: "hidden", width: "fit-content" }}>
-                {[
-                  { id: "left", icon: <AlignLeft size={14} /> },
-                  { id: "center", icon: <AlignCenter size={14} /> },
-                  { id: "right", icon: <AlignRight size={14} /> },
-                  { id: "justify", icon: <AlignJustify size={14} /> }
-                ].map((a) => (
-                  <button
-                    key={a.id}
-                    onClick={() => upd({ align: a.id })}
-                    style={{
-                      padding: "8px 14px",
-                      background: (content.align || "center") === a.id ? (isDark ? "#333" : "#222") : t.surface,
-                      border: "none",
-                      borderRight: a.id !== "justify" ? `1px solid ${t.border}` : "none",
-                      cursor: "pointer",
-                      color: (content.align || "center") === a.id ? "#fff" : t.textMuted,
-                      display: "flex", alignItems: "center", justifyContent: "center"
-                    }}
-                  >
-                    {a.icon}
-                  </button>
+                {[{ id: "left", icon: <AlignLeft size={14} /> }, { id: "center", icon: <AlignCenter size={14} /> }, { id: "right", icon: <AlignRight size={14} /> }, { id: "justify", icon: <AlignJustify size={14} /> }].map((a) => (
+                  <button key={a.id} onClick={() => upd({ align: a.id })} style={{ padding: "8px 14px", background: (content.align || "center") === a.id ? (isDark ? "#333" : "#222") : t.surface, border: "none", borderRight: a.id !== "justify" ? `1px solid ${t.border}` : "none", cursor: "pointer", color: (content.align || "center") === a.id ? "#fff" : t.textMuted, display: "flex", alignItems: "center", justifyContent: "center" }}>{a.icon}</button>
                 ))}
               </div>
             </div>
-          </Sec>
+          </>)}
           <General />
         </>
       );
@@ -1685,13 +1622,13 @@ function BlockPropsPanel({ t, isDark, blockType, rowId, onUpdate, rows, onClose,
       case "VIDEO": return (
         <>
           <DispCond />
-          <Sec id="link" label="Link">
+          {S("link", "Link", <>
             <div>
               <div style={{ fontSize: 11, color: t.textMuted, marginBottom: 4 }}>Video URL</div>
               <input value={content.videoUrl ?? ""} onChange={e => upd({ videoUrl: e.target.value })} style={inpStyle(t)} placeholder="YouTube or Vimeo URL" />
               <p style={{ fontSize: 10, color: t.textMuted, margin: "6px 0 0 0" }}>Paste a YouTube or Vimeo URL to embed the video.</p>
             </div>
-          </Sec>
+          </>)}
           <General /><Responsive />
         </>
       );
@@ -1699,20 +1636,17 @@ function BlockPropsPanel({ t, isDark, blockType, rowId, onUpdate, rows, onClose,
       case "SOCIAL": return (
         <>
           <DispCond />
-          <Sec id="main" label="Icons">
+          {S("main", "Icons", <>
             <p style={{ margin: 0, fontSize: 11, color: t.textMuted }}>Click an icon to toggle it on/off:</p>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
               {["F", "𝕏", "in", "📷", "▶", "G"].map(s => {
                 const active = (content.icons || ["F", "𝕏", "in", "📷"]).includes(s);
                 return (
-                  <div key={s} onClick={() => {
-                    const cur = content.icons || ["F", "𝕏", "in", "📷"];
-                    upd({ icons: active ? cur.filter(x => x !== s) : [...cur, s] });
-                  }} style={{ width: 30, height: 30, borderRadius: "50%", background: active ? "#3B82F6" : (isDark ? "#374151" : "#E5E7EB"), display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", fontSize: 11, color: active ? "#fff" : t.textMuted, fontWeight: 700 }}>{s}</div>
+                  <div key={s} onClick={() => { const cur = content.icons || ["F", "𝕏", "in", "📷"]; upd({ icons: active ? cur.filter(x => x !== s) : [...cur, s] }); }} style={{ width: 30, height: 30, borderRadius: "50%", background: active ? "#3B82F6" : (isDark ? "#374151" : "#E5E7EB"), display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", fontSize: 11, color: active ? "#fff" : t.textMuted, fontWeight: 700 }}>{s}</div>
                 );
               })}
             </div>
-          </Sec>
+          </>)}
           <General /><Responsive />
         </>
       );
@@ -1720,7 +1654,7 @@ function BlockPropsPanel({ t, isDark, blockType, rowId, onUpdate, rows, onClose,
       case "MENU": return (
         <>
           <DispCond />
-          <Sec id="menuItems" label="Menu Items">
+          {S("menuItems", "Menu Items", <>
             {(content.menuItems || []).map((item, i) => (
               <div key={i} style={{ display: "flex", gap: 6, alignItems: "center" }}>
                 <input value={item} onChange={e => { const items = [...(content.menuItems || [])]; items[i] = e.target.value; upd({ menuItems: items }); }} style={{ ...inpStyle(t), flex: 1 }} />
@@ -1728,7 +1662,7 @@ function BlockPropsPanel({ t, isDark, blockType, rowId, onUpdate, rows, onClose,
               </div>
             ))}
             <button onClick={() => upd({ menuItems: [...(content.menuItems || []), "New Item"] })} style={{ width: "100%", padding: "7px", border: `1px dashed ${t.border}`, borderRadius: 4, background: "transparent", color: t.textMuted, fontSize: 12, cursor: "pointer" }}>+ Add New Item</button>
-          </Sec>
+          </>)}
           <General /><Responsive />
         </>
       );
@@ -1737,65 +1671,43 @@ function BlockPropsPanel({ t, isDark, blockType, rowId, onUpdate, rows, onClose,
 
       case "TABLE": return (
         <>
-          <Sec id="main" label="Layout">
-            <PR label="Columns">
-              <input type="number" value={content.cols ?? 2} min={1} max={6} onChange={e => upd({ cols: Number(e.target.value) })} style={{ width: 60, padding: "4px 6px", border: `1px solid ${t.border}`, borderRadius: 4, background: t.surface, color: t.text, fontSize: 12 }} />
-            </PR>
-            <PR label="Rows">
-              <input type="number" value={content.rows ?? 2} min={1} max={20} onChange={e => upd({ rows: Number(e.target.value) })} style={{ width: 60, padding: "4px 6px", border: `1px solid ${t.border}`, borderRadius: 4, background: t.surface, color: t.text, fontSize: 12 }} />
-            </PR>
-          </Sec>
+          {S("main", "Layout", <>
+            {PR("Columns", <input type="number" value={content.cols ?? 2} min={1} max={6} onChange={e => upd({ cols: Number(e.target.value) })} style={{ width: 60, padding: "4px 6px", border: `1px solid ${t.border}`, borderRadius: 4, background: t.surface, color: t.text, fontSize: 12 }} />)}
+            {PR("Rows", <input type="number" value={content.rows ?? 2} min={1} max={20} onChange={e => upd({ rows: Number(e.target.value) })} style={{ width: 60, padding: "4px 6px", border: `1px solid ${t.border}`, borderRadius: 4, background: t.surface, color: t.text, fontSize: 12 }} />)}
+          </>)}
           <General />
         </>
       );
 
-
-      case "COLUMNS":
-        return (
-          <>
-            <DispCond />
-            <Sec id="main" label="Columns">
-              <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
-                {[[[100]], [[50, 50]], [[67, 33]], [[33, 67]], [[33, 33, 33]], [[50, 25, 25]], [[25, 25, 25, 25]]].map((layout, i) => {
-                  const key = layout[0].join("-");
-                  const active = (content.layout || "100") === key;
-                  return (
-                    <div key={key} onClick={() => upd({ layout: key })} style={{ display: "flex", gap: 2, height: 26, cursor: "pointer", opacity: active ? 1 : 0.45, border: active ? "1px solid #3B82F6" : "1px solid transparent", borderRadius: 3, padding: 1 }}>
-                      {layout[0].map((col, j) => (
-                        <div key={j} style={{ flex: col, background: active ? "#3B82F6" : (isDark ? "#374151" : "#D1D5DB"), borderRadius: 1 }} />
-                      ))}
-                    </div>
-                  );
-                })}
-              </div>
-            </Sec>
-
-            <Sec id="row-params" label="Row Properties">
-              <PR label="Background Color">
-                <input type="color" value={content.rowBg || "#ffffff"} onChange={e => upd({ rowBg: e.target.value })} style={{ width: 32, height: 28, border: `1px solid ${t.border}`, borderRadius: 3, cursor: "pointer", padding: 1 }} />
-              </PR>
-            </Sec>
-
-            {(content.columns || []).map((col, idx) => (
-              <Sec key={idx} id={`col-${idx}`} label={`Column ${idx + 1}`}>
-                <PR label="Background">
-                  <input type="color" value={col.settings?.bgColor || "transparent"} onChange={e => {
-                    const newCols = [...content.columns];
-                    newCols[idx] = { ...newCols[idx], settings: { ...newCols[idx].settings, bgColor: e.target.value } };
-                    upd({ columns: newCols });
-                  }} style={{ width: 32, height: 28, border: `1px solid ${t.border}`, borderRadius: 3, cursor: "pointer", padding: 1 }} />
-                </PR>
-                <PR label="Padding">
-                  <input value={col.settings?.padding || "10px"} onChange={e => {
-                    const newCols = [...content.columns];
-                    newCols[idx] = { ...newCols[idx], settings: { ...newCols[idx].settings, padding: e.target.value } };
-                    upd({ columns: newCols });
-                  }} style={{ ...inpStyle(t), width: 80 }} />
-                </PR>
-              </Sec>
-            ))}
-          </>
-        );
+      case "COLUMNS": return (
+        <>
+          <DispCond />
+          {S("main", "Columns",
+            <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
+              {[[[100]], [[50, 50]], [[67, 33]], [[33, 67]], [[33, 33, 33]], [[50, 25, 25]], [[25, 25, 25, 25]]].map((layout) => {
+                const key = layout[0].join("-");
+                const active = (content.layout || "100") === key;
+                return (
+                  <div key={key} onClick={() => upd({ layout: key })} style={{ display: "flex", gap: 2, height: 26, cursor: "pointer", opacity: active ? 1 : 0.45, border: active ? "1px solid #3B82F6" : "1px solid transparent", borderRadius: 3, padding: 1 }}>
+                    {layout[0].map((col, j) => (
+                      <div key={j} style={{ flex: col, background: active ? "#3B82F6" : (isDark ? "#374151" : "#D1D5DB"), borderRadius: 1 }} />
+                    ))}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+          {S("row-params", "Row Properties",
+            PR("Background Color", <input type="color" value={content.rowBg || "#ffffff"} onChange={e => upd({ rowBg: e.target.value })} style={{ width: 32, height: 28, border: `1px solid ${t.border}`, borderRadius: 3, cursor: "pointer", padding: 1 }} />)
+          )}
+          {(content.columns || []).map((col, idx) =>
+            S(`col-${idx}`, `Column ${idx + 1}`, <>
+              {PR("Background", <input type="color" value={col.settings?.bgColor || "transparent"} onChange={e => { const newCols = [...content.columns]; newCols[idx] = { ...newCols[idx], settings: { ...newCols[idx].settings, bgColor: e.target.value } }; upd({ columns: newCols }); }} style={{ width: 32, height: 28, border: `1px solid ${t.border}`, borderRadius: 3, cursor: "pointer", padding: 1 }} />)}
+              {PR("Padding", <input value={col.settings?.padding || "10px"} onChange={e => { const newCols = [...content.columns]; newCols[idx] = { ...newCols[idx], settings: { ...newCols[idx].settings, padding: e.target.value } }; upd({ columns: newCols }); }} style={{ ...inpStyle(t), width: 80 }} />)}
+            </>)
+          )}
+        </>
+      );
     }
   };
 
