@@ -1696,11 +1696,11 @@ function SettingsPanel({ t, isDark, settings, onChange, profile, DIMENSIONS = []
                 placeholder="Enter Reply-to"
                 style={{ ...inp, borderBottom: "none", paddingRight: 32 }}
               />
-              <div style={{ position: "absolute", right: 0, top: "50%", transform: "translateY(-50%)", pointerEvents: "none", opacity: 0.6 }}>
+              <div style={{ position: "absolute", right: 0, top: "50%", transform: "translateY(-50%)", cursor: "pointer", opacity: 0.6, width: 32, height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}>
                 <CDown />
               </div>
               {showReplyToDropdown && (
-                <div style={{ position: "absolute", bottom: "calc(100% + 4px)", left: 0, right: 0, background: t.surface, border: `1px solid ${t.chipBorder}`, borderRadius: 8, boxShadow: "0 10px 25px rgba(0,0,0,0.15)", zIndex: 1000, overflow: "hidden" }}>
+                <div style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0, background: t.surface, border: `1px solid ${t.chipBorder}`, borderRadius: 8, boxShadow: "0 10px 25px rgba(0,0,0,0.15)", zIndex: 1000, overflow: "hidden" }}>
                   {[userName, "Custom sender name"].map(opt => (
                     <div
                       key={opt}
