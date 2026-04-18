@@ -31,7 +31,7 @@ const getMarketingEmailColumns = (isDark, t, onOpenEmail) => [
     header: "Title",
     accessorKey: "title",
     size: 360,
-    cell: ({ getValue }) => (
+    cell: ({ getValue, row }) => (
       <span
         onClick={() => onOpenEmail(row.original)}
         style={{ fontSize: "12.5px", fontWeight: 600, color: isDark ? "#60A5FA" : "#2563EB", cursor: "pointer", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
