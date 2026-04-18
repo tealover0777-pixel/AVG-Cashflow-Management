@@ -1761,9 +1761,6 @@ function SettingsPanel({ t, isDark, settings, onChange, profile, DIMENSIONS = []
             </div>
           </SettingsRow>
 
-          <SettingsRow label="Preview text:" t={t}>
-            <input value={localSettings.previewText || ""} onChange={e => set("previewText", e.target.value)} onBlur={() => commit("previewText")} placeholder="Enter Email Preview Text" style={inp} />
-          </SettingsRow>
 
         </div>
       </div>
