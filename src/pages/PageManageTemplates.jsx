@@ -16,13 +16,13 @@ function generateEmailPreviewHtml(rows = []) {
           return `<div style="background:${row.content.bg || "#1a1a1a"};min-height:100px;display:flex;align-items:flex-end;justify-content:flex-end;padding:16px;margin-bottom:0"><div style="background:#D97706;color:#fff;padding:6px 16px;font-weight:700;font-size:12px;letter-spacing:1px">${row.content.bannerText || "INVESTMENT REPORT"}</div></div>`;
         }
         return isValid
-          ? `<div style="margin-bottom:0;text-align:${row.content?.align || "center"}"><img src="${url}" style="width:${row.content?.autoWidth !== false ? "auto" : (row.content?.width || "100%")};max-width:100%;height:${row.content?.autoHeight !== false ? "auto" : (row.content?.height || "auto")};display:block;margin:${row.content?.align === "center" ? "0 auto" : row.content?.align === "right" ? "0 0 0 auto" : "0 auto 0 0"}" /></div>`
+          ? `<div style="margin-bottom:0;text-align:${row.content?.align || "center"}"><img src="${url}" onerror="this.style.display='none'" style="width:${row.content?.autoWidth !== false ? "auto" : (row.content?.width || "100%")};max-width:100%;height:${row.content?.autoHeight !== false ? "auto" : (row.content?.height || "auto")};display:block;margin:${row.content?.align === "center" ? "0 auto" : row.content?.align === "right" ? "0 0 0 auto" : "0 auto 0 0"}" /></div>`
           : "";
       }
       case "heading":
-        return `<div style="padding:24px 32px 8px;"><h2 style="margin:0;font-family:Georgia,serif;font-size:${row.content?.fontSize || 22}px;color:${row.content?.color || "#111"}">${row.content?.headingText || row.content?.text || ""}</h2></div>`;
+        return `<div style="padding:24px 32px 8px;"><h2 style="margin:0;font-family:Arial,sans-serif;font-size:${row.content?.fontSize || 22}px;color:${row.content?.color || "#111"}">${row.content?.headingText || row.content?.text || ""}</h2></div>`;
       case "paragraph":
-        return `<div style="padding:16px 32px;font-size:13px;line-height:1.65;color:#374151">${row.content?.html || row.content?.text || ""}</div>`;
+        return `<div style="padding:12px 32px;font-size:14px;line-height:1.6;color:#374151">${row.content?.html || row.content?.text || ""}</div>`;
       case "divider":
         return `<div style="padding:16px 32px"><hr style="border:none;border-top:${row.content?.lineWidth || 1}px solid ${row.content?.lineColor || "#e5e7eb"};margin:0"/></div>`;
       case "button": {
