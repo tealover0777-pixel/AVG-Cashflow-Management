@@ -1326,13 +1326,21 @@ function SettingsPanel({ t, isDark, settings, onChange, profile, DIMENSIONS = []
     }
   }, [showRecipients, CONTACTS, localSettings.recipients]);
 
+  const tableData = useMemo(() => {
+    return CONTACTS.map((c, i) => {
+      const id = c.docId || c._docId || c.id || c.schedule_id || `idx-${i}`;
+      return {
+        ...c,
+        _rowId: id,
+        isSelected: !!rowSelection[id]
+      };
+    });
+  }, [CONTACTS, rowSelection]);
+
   const recipientColumns = useMemo(() => [
     {
       id: "select",
-      accessorFn: (row) => {
-        const id = row.docId || row._docId || row.id || row.schedule_id || `idx-${CONTACTS.indexOf(row)}`;
-        return rowSelection[id] ? 1 : 0;
-      },
+      accessorKey: "isSelected",
       header: ({ table }) => (
         <input
           type="checkbox"
@@ -1565,7 +1573,7 @@ function SettingsPanel({ t, isDark, settings, onChange, profile, DIMENSIONS = []
       >
         <div style={{ height: 500, width: "100%" }}>
           <TanStackTable 
-            data={CONTACTS} 
+            data={tableData} 
             columns={recipientColumns} 
             t={t} 
             isDark={isDark} 
@@ -1573,6 +1581,7 @@ function SettingsPanel({ t, isDark, settings, onChange, profile, DIMENSIONS = []
             onSelectionChange={setSelectedInTable}
             rowSelection={rowSelection}
             onRowSelectionChange={setRowSelection}
+            getRowId={(row) => row._rowId}
           />
         </div>
       </Modal>
