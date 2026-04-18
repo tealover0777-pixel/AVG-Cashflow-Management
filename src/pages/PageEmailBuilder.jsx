@@ -982,6 +982,7 @@ function EmailCanvas({ t, isDark, rows, selectedRowId, onSelectRow, onAddRow, on
               onReorder={onReorder}
               setActiveRightTab={setActiveRightTab}
               t={t} isDark={isDark}
+              DIMENSIONS={DIMENSIONS}
               selectedRowId={selectedRowId}
               hoveredRowId={hoveredRowId}
             />
@@ -1047,10 +1048,32 @@ function AddRowBtn({ onClick, position, isDark }) {
   );
 }
 
-const FloatingTextBar = ({ t, isDark }) => {
+const FloatingTextBar = ({ t, isDark, DIMENSIONS = [] }) => {
+  const [showTags, setShowTags] = useState(false);
+  const tagDropRef = useRef(null);
+
+  const emailTags = DIMENSIONS.find(d => d.name === "EmailTags")?.items || ["First name", "Last name", "Email", "Property Name", "Investment Amount", "Closing Date"];
+
   const cmd = (name, val = null) => {
     document.execCommand(name, false, val);
   };
+
+  const insertTag = (tag) => {
+    // Insert tag as a non-editable span box
+    const html = `<span style="border:1px dashed #9CA3AF;padding:2px 6px;border-radius:4px;color:#6B7280;font-size:11px;background:#F9FAFB;margin:0 2px;display:inline-block;vertical-align:middle" contenteditable="false">${tag}</span>&nbsp;`;
+    document.execCommand("insertHTML", false, html);
+    setShowTags(false);
+  };
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    if (!showTags) return;
+    const handler = (e) => {
+      if (tagDropRef.current && !tagDropRef.current.contains(e.target)) setShowTags(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [showTags]);
 
   const Btn = ({ name, icon: Icon, title }) => (
     <button
@@ -1104,14 +1127,50 @@ const FloatingTextBar = ({ t, isDark }) => {
         <LinkIcon size={14} strokeWidth={2.5} />
       </button>
       <Separator />
-      <div style={{ padding: "4px 8px", fontSize: 11, fontWeight: 700, cursor: "pointer", opacity: 0.8 }} onMouseEnter={e => e.currentTarget.style.opacity = 1} onMouseLeave={e => e.currentTarget.style.opacity = 0.8}>
-        Merge Tags <CDown />
+      
+      {/* Merge Tags Dropdown */}
+      <div style={{ position: "relative" }} ref={tagDropRef}>
+        <div 
+          onMouseDown={e => { e.preventDefault(); setShowTags(!showTags); }}
+          style={{ 
+            padding: "4px 8px", fontSize: 11, fontWeight: 700, cursor: "pointer", 
+            opacity: showTags ? 1 : 0.8, display: "flex", alignItems: "center", gap: 4 
+          }} 
+          onMouseEnter={e => e.currentTarget.style.opacity = 1} 
+          onMouseLeave={e => { if(!showTags) e.currentTarget.style.opacity = 0.8; }}
+        >
+          Merge Tags <ChevronDown size={12} strokeWidth={2.5} style={{ transform: showTags ? "rotate(180deg)" : "none", transition: "transform 0.2s", opacity: 0.7 }} />
+        </div>
+        
+        {showTags && (
+          <div style={{
+            position: "absolute", bottom: "calc(100% + 10px)", left: "0",
+            background: "#222", border: "1px solid rgba(255,255,255,0.15)", borderRadius: 6,
+            minWidth: 160, boxShadow: "0 8px 30px rgba(0,0,0,0.5)", zIndex: 1100,
+            overflowX: "hidden", overflowY: "auto", maxHeight: 250, padding: "4px 0"
+          }}>
+            {emailTags.map(tag => (
+              <div 
+                key={tag}
+                onMouseDown={e => { e.preventDefault(); insertTag(tag); }}
+                style={{
+                  padding: "8px 12px", fontSize: 11, color: "#fff", cursor: "pointer",
+                  transition: "background 0.1s"
+                }}
+                onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,0.1)"}
+                onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+              >
+                {tag}
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
 };
 
-function EmailRow({ row, isSelected, isHovered, onSelect, onHover, onDelete, onDuplicate, onUpdate, onAddRow, onAddBlockToColumn, onReorder, setActiveRightTab, t, isDark, selectedRowId, hoveredRowId, isNested }) {
+function EmailRow({ row, isSelected, isHovered, onSelect, onHover, onDelete, onDuplicate, onUpdate, onAddRow, onAddBlockToColumn, onReorder, setActiveRightTab, t, isDark, selectedRowId, hoveredRowId, isNested, DIMENSIONS = [] }) {
   const blockType = ROW_BLOCK_TYPE[row.type] || "TEXT";
   const showControls = (isSelected || isHovered);
   const [isDropTarget, setIsDropTarget] = useState(false);
@@ -1177,6 +1236,7 @@ function EmailRow({ row, isSelected, isHovered, onSelect, onHover, onDelete, onD
                         onAddBlockToColumn={onAddBlockToColumn}
                         onReorder={onReorder}
                         t={t} isDark={isDark}
+                        DIMENSIONS={DIMENSIONS}
                         isNested
                       />
                     ))
@@ -1296,7 +1356,7 @@ function EmailRow({ row, isSelected, isHovered, onSelect, onHover, onDelete, onD
             }}
             dangerouslySetInnerHTML={{ __html: item.content?.html || "<p>New text block. Click to edit.</p>" }}
           />
-          {isSelected && <FloatingTextBar t={t} isDark={isDark} />}
+          {isSelected && <FloatingTextBar t={t} isDark={isDark} DIMENSIONS={DIMENSIONS} />}
         </>
         );
 
@@ -1418,7 +1478,7 @@ function EmailRow({ row, isSelected, isHovered, onSelect, onHover, onDelete, onD
                 </tbody>
               </table>
             </div>
-            {isSelected && <FloatingTextBar t={t} isDark={isDark} />}
+            {isSelected && <FloatingTextBar t={t} isDark={isDark} DIMENSIONS={DIMENSIONS} />}
           </>
         );
 

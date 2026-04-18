@@ -256,6 +256,7 @@ export const getCollectionPaths = (tenantId) => {
     achBatches: `${tenantPath}/achBatches`,
     ledger: `${tenantPath}/ledger`,
     distributionBatches: `${tenantPath}/distributionBatches`,
+    marketingEmails: `${tenantPath}/marketingEmails`,
     roles: "role_types",
     tenants: "tenants",
     dimensions: "dimensions",

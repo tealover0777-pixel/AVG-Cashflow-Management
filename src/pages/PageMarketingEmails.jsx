@@ -96,7 +96,7 @@ const getMarketingEmailColumns = (isDark, t, onOpenEmail) => [
   },
 ];
 
-export default function PageMarketingEmails({ t, isDark, setActivePage }) {
+export default function PageMarketingEmails({ t, isDark, setActivePage, MARKETING_EMAILS = [] }) {
   const [activeTab, setActiveTab] = useState("Draft");
   const [showTemplateModal, setShowTemplateModal] = useState(false);
   const [globalFilter, setGlobalFilter] = useState("");
@@ -104,31 +104,33 @@ export default function PageMarketingEmails({ t, isDark, setActivePage }) {
   const [pageSize, setPageSize] = useState(25);
   const gridRef = useRef(null);
 
+  const emails = useMemo(() => {
+    return (MARKETING_EMAILS || []).map(e => ({
+      ...e,
+      title: e.title || e.name || "Untitled",
+      recipients: Array.isArray(e.recipients) ? `${e.recipients.length} recipients` : (e.recipients || "No recipients"),
+      createdAt: e.createdAt || e.created_at || "",
+      updatedAt: e.updatedAt || e.updated_at || "",
+      status: e.status || "Draft"
+    }));
+  }, [MARKETING_EMAILS]);
+
+  const drafts = emails.filter(e => (e.status || "Draft") === "Draft");
+  const sent = emails.filter(e => e.status === "Sent");
+  const inbox = emails.filter(e => e.status === "Inbox");
+
   const tabs = [
-    { label: "Draft", icon: FileText, count: 45 },
-    { label: "Sent", icon: Send, count: 12 },
-    { label: "Inbox", icon: Inbox, count: 5 },
+    { label: "Draft", icon: FileText, count: drafts.length },
+    { label: "Sent", icon: Send, count: sent.length },
+    { label: "Inbox", icon: Inbox, count: inbox.length },
   ];
 
-  const dummyDrafts = [
-    { id: 1, title: "Quarterly Investor Newsletter Template", recipients: "No recipients", createdAt: "2026-04-16T17:31:00", updatedAt: "2026-04-16T17:34:00", status: "Draft" },
-    { id: 2, title: "New draft", recipients: "No recipients", createdAt: "2026-04-16T17:30:00", updatedAt: "2026-04-16T17:30:00", status: "Draft" },
-    { id: 3, title: "Quarterly Investor Newsletter Template", recipients: "No recipients", createdAt: "2026-04-16T17:30:00", updatedAt: "2026-04-16T17:30:00", status: "Draft" },
-    { id: 4, title: "New draft", recipients: "No recipients", createdAt: "2026-04-12T19:12:00", updatedAt: "2026-04-12T19:14:00", status: "Draft" },
-    { id: 5, title: "New draft", recipients: "No recipients", createdAt: "2026-04-12T19:12:00", updatedAt: "2026-04-12T19:12:00", status: "Draft" },
-    { id: 6, title: "Template of Introducing American Vision Group & Our Investment Solutions", recipients: "No recipients", createdAt: "2026-04-12T17:59:00", updatedAt: "2026-04-16T17:40:00", status: "Draft" },
-    { id: 7, title: "Template of Introducing American Vision Group & Our Investment Solutions", recipients: "No recipients", createdAt: "2026-04-12T17:47:00", updatedAt: "2026-04-12T17:47:00", status: "Draft" },
-    { id: 8, title: "Template of Introducing American Vision Group & Our Investment Solutions", recipients: "No recipients", createdAt: "2026-04-12T17:47:00", updatedAt: "2026-04-12T17:47:00", status: "Draft" },
-    { id: 9, title: "Template of Intro our Fund", recipients: "No recipients", createdAt: "2026-04-12T15:38:00", updatedAt: "2026-04-12T15:38:00", status: "Draft" },
-    { id: 10, title: "10% fixed - first timer", recipients: "No recipients", createdAt: "2026-04-12T15:38:00", updatedAt: "2026-04-12T15:38:00", status: "Draft" },
-    { id: 11, title: "AVG Intro Email", recipients: "No recipients", createdAt: "2026-01-28T23:10:00", updatedAt: "2026-01-28T23:10:00", status: "Draft" },
-    { id: 12, title: "Quarterly Investor Newsletter Template", recipients: "No recipients", createdAt: "2025-10-29T17:35:00", updatedAt: "2025-11-04T15:24:00", status: "Draft" },
-    { id: 13, title: "Investor Newsletter for navigation purpose", recipients: "No recipients", createdAt: "2025-10-13T15:11:00", updatedAt: "2025-10-13T15:11:00", status: "Draft" },
-    { id: 14, title: "Q3 2025 Insights: Investor Newsletter", recipients: "No recipients", createdAt: "2025-10-02T16:37:00", updatedAt: "2025-10-02T16:40:00", status: "Draft" },
-    { id: 15, title: "New draft", recipients: "No recipients", createdAt: "2025-09-22T01:46:00", updatedAt: "2025-09-22T01:46:00", status: "Draft" },
-  ];
-
-  const tableData = useMemo(() => activeTab === "Draft" ? dummyDrafts : [], [activeTab]);
+  const tableData = useMemo(() => {
+    if (activeTab === "Draft") return drafts;
+    if (activeTab === "Sent") return sent;
+    if (activeTab === "Inbox") return inbox;
+    return [];
+  }, [activeTab, drafts, sent, inbox]);
 
   const columnDefs = useMemo(
     () => getMarketingEmailColumns(isDark, t, () => setActivePage("Email Builder")),
