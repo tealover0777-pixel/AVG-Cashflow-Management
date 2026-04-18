@@ -2350,7 +2350,14 @@ function BlockPropsPanel({ t, isDark, blockType, rowId, onUpdate, rows, onClose,
     <button style={{ width: "100%", padding: "7px", border: `1px dashed ${t.border}`, borderRadius: 4, background: "transparent", color: t.textMuted, fontSize: 12, cursor: "pointer" }}>+ Add Display Condition</button>
   );
   const General = () => S("general", "General",
-    PR("Container Padding", <div style={{ display: "flex", alignItems: "center", gap: 6 }}><span style={{ fontSize: 10, color: t.textMuted }}>More Options</span></div>)
+    <>
+      <div style={{ fontSize: 11, fontWeight: 700, color: t.text, marginBottom: 12 }}>Container Padding</div>
+      <div style={{ fontSize: 11, color: t.textMuted, marginBottom: 8 }}>All Sides</div>
+      <NumInput value={content.paddingTop ?? 10} unit="px" onChange={v => {
+        const p = Number(v);
+        upd({ paddingTop: p, paddingBottom: p, paddingLeft: p, paddingRight: p, morePadding: false });
+      }} t={t} isDark={isDark} />
+    </>
   );
 
   const renderProps = () => {
@@ -2416,41 +2423,7 @@ function BlockPropsPanel({ t, isDark, blockType, rowId, onUpdate, rows, onClose,
             {PR("Inherit Body Styles", <PropToggle value={!!content.inheritStyles} onChange={v => upd({ inheritStyles: v })} />)}
           </>)}
 
-          {S("general", "General", <>
-             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-                <span style={{ fontSize: 11, color: t.textMuted }}>Container Padding</span>
-                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                  <span style={{ fontSize: 11, color: t.textMuted }}>More Options</span>
-                  <PropToggle value={!!content.morePadding} onChange={v => upd({ morePadding: v })} />
-                </div>
-             </div>
-             
-             {content.morePadding ? (
-               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
-                  <div>
-                    <div style={{ fontSize: 11, color: t.textMuted, marginBottom: 8 }}>Top</div>
-                    <NumInput value={content.paddingTop ?? 10} unit="px" onChange={v => upd({ paddingTop: Number(v) })} t={t} isDark={isDark} />
-                  </div>
-                  <div>
-                    <div style={{ fontSize: 11, color: t.textMuted, marginBottom: 8 }}>Right</div>
-                    <NumInput value={content.paddingRight ?? 10} unit="px" onChange={v => upd({ paddingRight: Number(v) })} t={t} isDark={isDark} />
-                  </div>
-                  <div>
-                    <div style={{ fontSize: 11, color: t.textMuted, marginBottom: 8 }}>Left</div>
-                    <NumInput value={content.paddingLeft ?? 10} unit="px" onChange={v => upd({ paddingLeft: Number(v) })} t={t} isDark={isDark} />
-                  </div>
-                  <div>
-                    <div style={{ fontSize: 11, color: t.textMuted, marginBottom: 8 }}>Bottom</div>
-                    <NumInput value={content.paddingBottom ?? 10} unit="px" onChange={v => upd({ paddingBottom: Number(v) })} t={t} isDark={isDark} />
-                  </div>
-               </div>
-             ) : (
-               PR("Padding", <NumInput value={content.paddingTop ?? 10} unit="px" onChange={v => {
-                 const p = Number(v);
-                 upd({ paddingTop: p, paddingBottom: p, paddingLeft: p, paddingRight: p });
-               }} t={t} isDark={isDark} />)
-             )}
-          </>)}
+          <General />
         </>
       );
 
