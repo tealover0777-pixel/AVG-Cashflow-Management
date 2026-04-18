@@ -1333,8 +1333,9 @@ function EmailRow({ row, isSelected, isHovered, onSelect, onHover, onDelete, onD
           <>
             <div
               contentEditable
-            suppressContentEditableWarning
-            onBlur={e => onUpdate(item.id, { html: e.currentTarget.innerHTML })}
+              suppressContentEditableWarning
+              onInput={e => onUpdate(item.id, { html: e.currentTarget.innerHTML })}
+              onBlur={e => onUpdate(item.id, { html: e.currentTarget.innerHTML })}
             onClick={e => {
               // Don't stop propagation, let it bubble to EmailRow for selection
               // but we need to make sure the focus is handled correctly.
@@ -1398,6 +1399,7 @@ function EmailRow({ row, isSelected, isHovered, onSelect, onHover, onDelete, onD
             <h2
               contentEditable
               suppressContentEditableWarning
+              onInput={e => onUpdate(item.id, { headingText: e.currentTarget.innerText })}
               onBlur={e => onUpdate(item.id, { headingText: e.currentTarget.innerText })}
               onClick={e => e.stopPropagation()}
               style={{ margin: 0, fontSize: item.content?.fontSize || 22, fontWeight: 700, color: item.content?.color || "#1F2937", outline: "none" }}
@@ -1447,6 +1449,11 @@ function EmailRow({ row, isSelected, isHovered, onSelect, onHover, onDelete, onD
                           key={cell.id}
                           contentEditable
                           suppressContentEditableWarning
+                          onInput={e => {
+                            const newRows = [...tableRows];
+                            newRows[rIdx].cells[cIdx].text = e.currentTarget.innerHTML;
+                            onUpdate(item.id, { rows: newRows });
+                          }}
                           onBlur={e => {
                             e.currentTarget.style.boxShadow = "none";
                             const newRows = [...tableRows];
