@@ -1304,6 +1304,26 @@ function SettingsPanel({ t, isDark, settings, onChange, profile, DIMENSIONS = []
   const [showRecipients, setShowRecipients] = useState(false);
   const recipientColumns = useMemo(() => [
     {
+      id: "select",
+      header: ({ table }) => (
+        <input
+          type="checkbox"
+          className="ts-checkbox"
+          checked={table.getIsAllPageRowsSelected()}
+          onChange={table.getToggleAllPageRowsSelectedHandler()}
+        />
+      ),
+      cell: ({ row }) => (
+        <input
+          type="checkbox"
+          className="ts-checkbox"
+          checked={row.getIsSelected()}
+          onChange={row.getToggleSelectedHandler()}
+        />
+      ),
+      size: 50,
+    },
+    {
       accessorKey: "first_name",
       header: (t.isFrench ? "Prénom" : "First Name"),
       cell: info => info.getValue() || "—"
