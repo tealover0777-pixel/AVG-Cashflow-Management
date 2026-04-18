@@ -334,6 +334,16 @@ export default function PageEmailBuilder(props) {
       };
     }
 
+    if (type === "table") {
+      newRow.content = {
+        rows: [
+          { id: `tr_${Date.now()}_1`, isHeader: true, cells: [{ id: `c_${Date.now()}_1`, text: "Add header text" }, { id: `c_${Date.now()}_2`, text: "" }] },
+          { id: `tr_${Date.now()}_2`, cells: [{ id: `c_${Date.now()}_3`, text: "Add text" }, { id: `c_${Date.now()}_4`, text: "" }] },
+          { id: `tr_${Date.now()}_3`, cells: [{ id: `c_${Date.now()}_5`, text: "" }, { id: `c_${Date.now()}_6`, text: "" }] },
+        ]
+      };
+    }
+
     setRows(prev => {
       if (!relativeId) {
         return position === "before" ? [newRow, ...prev] : [...prev, newRow];
@@ -1299,6 +1309,48 @@ function EmailRow({ row, isSelected, isHovered, onSelect, onHover, onDelete, onD
 
       case "html":
         return <div style={{ padding: "16px 32px", background: "#fff", fontSize: 13, color: "#1F2937" }} dangerouslySetInnerHTML={{ __html: item.content?.html || "<strong>Hello, world!</strong>" }} />;
+
+      case "table":
+        const tableRows = item.content?.rows || [];
+        return (
+          <div style={{ padding: "16px 32px", background: "#fff" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", border: "1px solid #DDDDDD" }}>
+              <tbody>
+                {tableRows.map((tr, rIdx) => (
+                  <tr key={tr.id} style={{ background: tr.isHeader ? "#EBEBEB" : "transparent" }}>
+                    {tr.cells.map((cell, cIdx) => (
+                      <td
+                        key={cell.id}
+                        contentEditable
+                        suppressContentEditableWarning
+                        onBlur={e => {
+                          e.currentTarget.style.boxShadow = "none";
+                          const newRows = [...tableRows];
+                          newRows[rIdx].cells[cIdx].text = e.currentTarget.innerHTML;
+                          onUpdate(item.id, { rows: newRows });
+                        }}
+                        onFocus={e => e.currentTarget.style.boxShadow = "inset 0 0 0 2px #3B82F6"}
+                        onClick={e => e.stopPropagation()}
+                        style={{
+                          border: "1px solid #DDDDDD",
+                          padding: "12px",
+                          fontSize: 13,
+                          color: "#1F2937",
+                          fontWeight: tr.isHeader ? 700 : 400,
+                          outline: "none",
+                          minHeight: 40,
+                          minWidth: 100,
+                          transition: "0.2s"
+                        }}
+                        dangerouslySetInnerHTML={{ __html: cell.text }}
+                      />
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        );
 
       default:
         return (
