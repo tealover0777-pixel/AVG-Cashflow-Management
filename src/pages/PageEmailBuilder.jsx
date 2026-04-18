@@ -155,13 +155,14 @@ export default function PageEmailBuilder(props) {
       if (!effectiveUploadTenantId) return;
       try {
         const res = await listAll(ref(storage, `tenants/${effectiveUploadTenantId}/marketing_uploads`));
-        const items = await Promise.all(
-          res.items.slice().reverse().map(async (r) => ({
+        const items = Array.isArray(res.items) ? res.items : [];
+        const list = await Promise.all(
+          items.slice().reverse().map(async (r) => ({
             url: await getDownloadURL(r),
             path: r.fullPath
           }))
         );
-        setUploads(items);
+        setUploads(list);
       } catch (err) { console.error(err); }
     };
     fetchUploads();
@@ -579,7 +580,7 @@ export default function PageEmailBuilder(props) {
                     <input autoFocus value={testSearch} onChange={e => setTestSearch(e.target.value)} placeholder="Search by name or email…" style={{ width: "100%", padding: "7px 8px 7px 28px", borderRadius: 7, border: `1px solid ${t.border}`, background: isDark ? "rgba(255,255,255,0.06)" : "#f9fafb", color: t.text, fontSize: 12, outline: "none", boxSizing: "border-box" }} />
                   </div>
                   <div style={{ maxHeight: 200, overflowY: "auto" }}>
-                    {[...USERS, ...CONTACTS].filter(u => {
+                    {(Array.isArray([...USERS, ...CONTACTS]) ? [...USERS, ...CONTACTS] : []).filter(u => {
                       const name = u.first_name ? `${u.first_name} ${u.last_name || ""}` : (u.name || u.full_name || "");
                       const email = u.email || "";
                       const q = testSearch.toLowerCase();
@@ -619,10 +620,13 @@ export default function PageEmailBuilder(props) {
               </button>
               {showSendDropdown && (
                 <div style={{ position: "absolute", top: "calc(100% + 6px)", right: 0, width: 175, background: isDark ? "#1e293b" : "#fff", border: `1px solid ${t.border}`, borderRadius: 10, boxShadow: "0 8px 24px rgba(0,0,0,0.18)", zIndex: 500, overflow: "hidden" }}>
-                  {[
+                  {(Array.isArray([
                     { label: "Send now", icon: Send, action: () => { showToast("Email sent!", "success"); setShowSendDropdown(false); } },
                     { label: "Schedule", icon: Clock, action: () => { setScheduleData(d => ({ ...d, subject: emailSettings.subject || emailName })); setShowScheduleModal(true); setShowSendDropdown(false); } },
-                  ].map(({ label, icon: Icon, action }) => (
+                  ]) ? [
+                    { label: "Send now", icon: Send, action: () => { showToast("Email sent!", "success"); setShowSendDropdown(false); } },
+                    { label: "Schedule", icon: Clock, action: () => { setScheduleData(d => ({ ...d, subject: emailSettings.subject || emailName })); setShowScheduleModal(true); setShowSendDropdown(false); } },
+                  ] : []).map(({ label, icon: Icon, action }) => (
                     <button key={label} onClick={action}
                       style={{ width: "100%", padding: "11px 16px", background: "transparent", border: "none", borderBottom: label === "Send now" ? `1px solid ${t.border}` : "none", color: t.text, fontSize: 13, fontWeight: 500, cursor: "pointer", textAlign: "left", display: "flex", alignItems: "center", gap: 8 }}
                       onMouseEnter={e => e.currentTarget.style.background = isDark ? "rgba(255,255,255,0.05)" : "#f3f4f6"}
@@ -850,7 +854,7 @@ export default function PageEmailBuilder(props) {
                 {/* Selected badges */}
                 {scheduleData.recipients.length > 0 && (
                   <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 8 }}>
-                    {scheduleData.recipients.map(r => (
+                    {(Array.isArray(scheduleData.recipients) ? scheduleData.recipients : []).map(r => (
                       <span key={r.email} style={{ display: "flex", alignItems: "center", gap: 4, padding: "3px 10px", borderRadius: 20, background: isDark ? "rgba(59,130,246,0.2)" : "#EFF6FF", color: isDark ? "#93c5fd" : "#1D4ED8", fontSize: 12, fontWeight: 500 }}>
                         {r.name || r.email}
                         <button onClick={() => setScheduleData(d => ({ ...d, recipients: d.recipients.filter(x => x.email !== r.email) }))}
@@ -1925,7 +1929,10 @@ function SettingsPanel({ t, isDark, settings, onChange, profile, DIMENSIONS = []
               </div>
               {showTypeDropdown && (
                 <div style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0, background: t.surface, border: `1px solid ${t.chipBorder}`, borderRadius: 8, boxShadow: "0 10px 25px rgba(0,0,0,0.15)", zIndex: 1000, overflow: "hidden" }}>
-                  {(DIMENSIONS.find(d => d.name === "EmailType")?.items || ["Marketing", "Transactional", "Operational"]).map(opt => (
+                  {(() => {
+                    const rawItems = DIMENSIONS.find(d => d.name === "EmailType")?.items || ["Marketing", "Transactional", "Operational"];
+                    const items = Array.isArray(rawItems) ? rawItems : ["Marketing", "Transactional", "Operational"];
+                    return items.map(opt => (
                     <div
                       key={opt}
                       onClick={(e) => {
@@ -2018,7 +2025,10 @@ function SettingsPanel({ t, isDark, settings, onChange, profile, DIMENSIONS = []
               </div>
               {showReplyToDropdown && (
                 <div style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0, background: t.surface, border: `1px solid ${t.chipBorder}`, borderRadius: 8, boxShadow: "0 10px 25px rgba(0,0,0,0.15)", zIndex: 1000, overflow: "hidden" }}>
-                  {[...USERS, { isCustom: true, name: "Custom reply-to name" }].map((u, idx) => {
+                  {(() => {
+                    const base = Array.isArray(USERS) ? USERS : [];
+                    const list = [...base, { isCustom: true, name: "Custom reply-to name" }];
+                    return list.map((u, idx) => {
                     const isCustom = u.isCustom;
                     const name = isCustom ? u.name : (u.first_name ? `${u.first_name} ${u.last_name || ""}` : (u.name || u.full_name || u.email || "Unknown"));
                     const email = isCustom ? "" : (u.email || "");
@@ -2067,7 +2077,7 @@ function SettingsPanel({ t, isDark, settings, onChange, profile, DIMENSIONS = []
         showCancel={true}
         saveLabel="Select Recipients"
         onSave={() => {
-          const emails = selectedInTable.map(s => s.email).filter(Boolean).join("; ");
+          const emails = (Array.isArray(selectedInTable) ? selectedInTable : []).map(s => s.email).filter(Boolean).join("; ");
           set("recipients", emails);
           onChange(prev => ({ ...prev, recipients: emails }));
           setShowRecipients(false);
@@ -2104,7 +2114,7 @@ function SettingsPanel({ t, isDark, settings, onChange, profile, DIMENSIONS = []
         showCancel={true}
         saveLabel="Select Recipients"
         onSave={() => {
-          const emails = selectedDoNotSend.map(s => s.email).filter(Boolean).join("; ");
+          const emails = (Array.isArray(selectedDoNotSend) ? selectedDoNotSend : []).map(s => s.email).filter(Boolean).join("; ");
           set("doNotSendTo", emails);
           onChange(prev => ({ ...prev, doNotSendTo: emails }));
           setShowDoNotSend(false);
@@ -3145,7 +3155,7 @@ function ImagesTab({ t, isDark, setActiveRightTab, hasImageSelected, onInsertIma
         )}
 
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 7 }}>
-          {images.map((img, idx) => (
+          {(Array.isArray(images) ? images : []).map((img, idx) => (
             <div key={`${img.id}-${idx}`} style={{ position: "relative" }}>
               <div
                 draggable
@@ -3216,7 +3226,7 @@ function UploadsTab({ t, isDark, uploads, isUploading, uploadProgress, onUpload,
       <div style={{ padding: 14, flex: 1, overflowY: "auto", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 7, alignContent: "flex-start" }}>
         {uploads.length === 0
           ? <div style={{ gridColumn: "1/-1", textAlign: "center", fontSize: 12, color: t.textMuted, padding: "28px 0" }}>{isUploading ? "Processing..." : "No uploads yet"}</div>
-          : uploads.map((item, i) => (
+          : (Array.isArray(uploads) ? uploads : []).map((item, i) => (
             <div
               key={i}
               onMouseEnter={() => setHoveredIndex(i)}

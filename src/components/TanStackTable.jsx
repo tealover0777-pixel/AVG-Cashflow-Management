@@ -82,7 +82,7 @@ const TanStackTable = React.forwardRef(({
   useEffect(() => {
     if (onSelectionChange) {
       const selectedModel = table.getSelectedRowModel();
-      const selectedData = selectedModel.flatRows.map(row => row.original);
+      const selectedData = (Array.isArray(selectedModel.flatRows) ? selectedModel.flatRows : []).map(row => row.original);
       const selKeys = Object.keys(rowSelection).sort().join(',');
       
       // Only fire if the selection set has actually changed to avoid infinite parent-child trigger loops
@@ -106,9 +106,9 @@ const TanStackTable = React.forwardRef(({
       <div style={{ flex: 1, overflow: 'auto', position: 'relative', pointerEvents: 'auto' }} className="ts-scroller">
         <table style={{ width: table.getCenterTotalSize(), minWidth: '100%', borderCollapse: 'separate', borderSpacing: 0, fontSize: '13px', tableLayout: 'fixed' }}>
           <thead style={{ position: 'sticky', top: 0, zIndex: 10, background: isDark ? '#262626' : '#F9FAF9' }}>
-            {table.getHeaderGroups().map(headerGroup => (
+            {(Array.isArray(table.getHeaderGroups()) ? table.getHeaderGroups() : []).map(headerGroup => (
               <tr key={headerGroup.id}>
-                {headerGroup.headers.map(header => (
+                {(Array.isArray(headerGroup.headers) ? headerGroup.headers : []).map(header => (
                   <th 
                     key={header.id}
                     style={{
@@ -167,7 +167,7 @@ const TanStackTable = React.forwardRef(({
             ))}
           </thead>
           <tbody>
-            {rows.map((row, i) => (
+            {(Array.isArray(rows) ? rows : []).map((row, i) => (
               <tr 
                 key={row.id}
                 onClick={() => onRowClick && onRowClick(row.original)}
@@ -178,7 +178,7 @@ const TanStackTable = React.forwardRef(({
                 }}
                 className="ts-row"
               >
-                {row.getVisibleCells().map(cell => (
+                {(Array.isArray(row.getVisibleCells()) ? row.getVisibleCells() : []).map(cell => (
                   <td 
                     key={cell.id}
                     style={{
