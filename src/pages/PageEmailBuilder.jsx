@@ -1095,7 +1095,22 @@ function EmailRow({ row, isSelected, isHovered, onSelect, onHover, onDelete, onD
             }}
           >
             {item.content?.imageUrl ? (
-              <img src={item.content.imageUrl} alt={item.content.altText || ""} style={imgStyle} />
+              <div style={{ position: "relative" }}>
+                <img
+                  src={item.content.imageUrl}
+                  alt={item.content.altText || ""}
+                  style={imgStyle}
+                  onError={e => {
+                    e.currentTarget.style.display = "none";
+                    const ph = e.currentTarget.parentElement.querySelector("[data-img-placeholder]");
+                    if (ph) ph.style.display = "flex";
+                  }}
+                />
+                <div data-img-placeholder style={{ display: "none", background: isDark ? "#222" : "#F3F4F6", minHeight: 120, alignItems: "center", justifyContent: "center", color: t.textMuted, flexDirection: "column", gap: 6 }}>
+                  <ImageIcon size={32} opacity={0.4} />
+                  <span style={{ fontSize: 11, opacity: 0.5 }}>Broken image — click to replace</span>
+                </div>
+              </div>
             ) : (
               <div style={{ background: isDark ? "#222" : "#F3F4F6", minHeight: 120, display: "flex", alignItems: "center", justifyContent: "center", color: t.textMuted }}>
                 <ImageIcon size={32} opacity={0.4} />
