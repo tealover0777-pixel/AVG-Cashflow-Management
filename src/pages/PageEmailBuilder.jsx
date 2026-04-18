@@ -1305,7 +1305,11 @@ function SettingsPanel({ t, isDark, settings, onChange, profile }) {
   const [showFromDropdown, setShowFromDropdown] = useState(false);
   const fromDropRef = useRef(null);
 
-  const userName = profile?.firstName ? `${profile.firstName} ${profile.lastName}` : (profile?.displayName || "User Name");
+  const userFullName = (profile?.firstName || profile?.lastName)
+    ? `${profile.firstName || ""} ${profile.lastName || ""}`.trim()
+    : profile?.displayName;
+
+  const userName = userFullName || profile?.email?.split("@")[0] || "Sender";
 
   // Close from name dropdown on outside click
   useEffect(() => {
