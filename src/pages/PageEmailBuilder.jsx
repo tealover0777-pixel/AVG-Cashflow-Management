@@ -1137,8 +1137,23 @@ function EmailRow({ row, isSelected, isHovered, onSelect, onHover, onDelete, onD
             suppressContentEditableWarning
             onBlur={e => onUpdate(item.id, { html: e.currentTarget.innerHTML })}
             onClick={e => e.stopPropagation()}
-            style={{ padding: isNested ? "12px 16px" : "24px 32px", background: "#fff", color: "#1F2937", fontSize: 13, lineHeight: 1.65, outline: "none", minHeight: 40 }}
-            dangerouslySetInnerHTML={{ __html: item.content?.html || "<p>New paragraph block. Click to edit.</p>" }}
+            style={{ 
+              paddingTop: item.content?.paddingTop ?? (isNested ? 12 : 24),
+              paddingBottom: item.content?.paddingBottom ?? (isNested ? 12 : 24),
+              paddingLeft: item.content?.paddingLeft ?? (isNested ? 16 : 32),
+              paddingRight: item.content?.paddingRight ?? (isNested ? 16 : 32),
+              background: item.content?.bgColor || "#fff", 
+              color: item.content?.color || "#1F2937", 
+              fontSize: item.content?.fontSize || 13, 
+              lineHeight: item.content?.lineHeight ? (typeof item.content.lineHeight === 'number' ? `${item.content.lineHeight}%` : item.content.lineHeight) : 1.65, 
+              textAlign: item.content?.textAlign || "left",
+              fontFamily: item.content?.fontFamily || "inherit",
+              fontWeight: item.content?.fontWeight || "normal",
+              letterSpacing: item.content?.letterSpacing ? `${item.content.letterSpacing}px` : "normal",
+              outline: "none", 
+              minHeight: 40 
+            }}
+            dangerouslySetInnerHTML={{ __html: item.content?.html || "<p>New text block. Click to edit.</p>" }}
           />
         );
 
@@ -1925,6 +1940,83 @@ function BPPropRow({ label, t, children }) {
   );
 }
 
+const NumInput = ({ value, onChange, unit, t, isDark }) => (
+  <div style={{ display: "flex", alignItems: "center", border: `1px solid ${t.border}`, borderRadius: 4, overflow: "hidden", background: t.surface }}>
+    <input 
+      type="text" 
+      value={value} 
+      onChange={e => onChange(e.target.value)} 
+      style={{ width: 45, padding: "7px 6px", textAlign: "center", border: "none", background: "transparent", color: t.text, fontSize: 12, outline: "none" }} 
+    />
+    <div style={{ padding: "7px 10px", background: isDark ? "#222" : "#F3F4FB", fontSize: 11, color: t.textMuted, borderLeft: `1px solid ${t.border}`, minWidth: 24, textAlign: "center" }}>
+      {unit}
+    </div>
+    <div style={{ display: "flex", flexDirection: "row", borderLeft: `1px solid ${t.border}` }}>
+      <button onClick={() => onChange(parseInt(value || 0) - 1)} style={{ width: 34, height: 34, border: "none", background: "transparent", cursor: "pointer", borderRight: `1px solid ${t.border}`, color: t.textMuted, fontSize: 16 }}>-</button>
+      <button onClick={() => onChange(parseInt(value || 0) + 1)} style={{ width: 34, height: 34, border: "none", background: "transparent", cursor: "pointer", color: t.textMuted, fontSize: 16 }}>+</button>
+    </div>
+  </div>
+);
+
+const PropToggle = ({ value, onChange }) => (
+  <div 
+    onClick={() => onChange(!value)}
+    style={{ 
+      width: 44, height: 22, background: value ? "#222" : "#D1D5DB", 
+      borderRadius: 11, position: "relative", cursor: "pointer", transition: "0.2s" 
+    }}
+  >
+    <div style={{ 
+      position: "absolute", top: 2, left: value ? 24 : 2, 
+      width: 18, height: 18, background: "#fff", borderRadius: "50%", 
+      transition: "0.2s", display: "flex", alignItems: "center", justifyContent: "center",
+      boxShadow: "0 1px 2px rgba(0,0,0,0.1)"
+    }}>
+      {value && <Check size={12} color="#000" />}
+    </div>
+  </div>
+);
+
+const AlignToggle = ({ value, onChange, t, isDark }) => (
+  <div style={{ display: "flex", border: `1px solid ${t.border}`, borderRadius: 4, overflow: "hidden" }}>
+    {[
+      { val: "left", icon: AlignLeft },
+      { val: "center", icon: AlignCenter },
+      { val: "right", icon: AlignRight },
+      { val: "justify", icon: AlignJustify },
+    ].map((a, i) => (
+      <button
+        key={a.val}
+        onClick={() => onChange(a.val)}
+        style={{ 
+          padding: "8px 12px", border: "none", cursor: "pointer",
+          background: value === a.val ? (isDark ? "#333" : "#222") : "transparent",
+          color: value === a.val ? "#fff" : t.textMuted,
+          borderRight: i < 3 ? `1px solid ${t.border}` : "none",
+          transition: "0.2s"
+        }}
+      >
+        <a.icon size={15} />
+      </button>
+    ))}
+  </div>
+);
+
+const SelectDD = ({ value, options, onChange, t }) => (
+  <div style={{ position: "relative", width: 140 }}>
+    <select 
+      value={value} 
+      onChange={e => onChange(e.target.value)} 
+      style={{ width: "100%", padding: "7px 10px", border: `1px solid ${t.border}`, borderRadius: 4, background: t.surface, color: t.text, fontSize: 12, outline: "none", appearance: "none" }}
+    >
+      {options.map(opt => <option key={opt.val} value={opt.val}>{opt.label}</option>)}
+    </select>
+    <div style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", pointerEvents: "none", opacity: 0.5 }}>
+      <CDown />
+    </div>
+  </div>
+);
+
 // ── Block Properties Panel ────────────────────────────────────────────────────
 
 function BlockPropsPanel({ t, isDark, blockType, rowId, onUpdate, rows, onClose, uploads, isUploading, uploadProgress, onUpload, setActiveRightTab, onDelete, onDuplicate }) {
@@ -2005,11 +2097,58 @@ function BlockPropsPanel({ t, isDark, blockType, rowId, onUpdate, rows, onClose,
         </>
       );
 
-      case "PARAGRAPH": return (
+      case "TEXT": return (
         <>
-          <DispCond />
-          {S("main", "Text", <p style={{ margin: 0, fontSize: 11, color: t.textMuted }}>Click the paragraph block on the canvas to edit text inline.</p>)}
-          <General /><Responsive />
+          {S("main", "Text", <>
+            {PR("Font Family", <SelectDD value={content.fontFamily || "inherit"} options={[{label: "Body Font", val: "inherit"}, {label: "Montserrat", val: "Montserrat"}, {label: "Arial", val: "Arial"}, {label: "Inter", val: "Inter"}]} onChange={v => upd({ fontFamily: v })} t={t} />)}
+            {PR("Font Weight", <SelectDD value={content.fontWeight || "normal"} options={[{label: "Regular", val: "normal"}, {label: "Bold", val: "bold"}, {label: "Semi Bold", val: "600"}]} onChange={v => upd({ fontWeight: v })} t={t} />)}
+            {PR("Font Size", <NumInput value={content.fontSize || 13} unit="px" onChange={v => upd({ fontSize: Number(v) })} t={t} isDark={isDark} />)}
+            {PR("Color", <input type="color" value={content.color || "#1F2937"} onChange={e => upd({ color: e.target.value })} style={{ width: 44, height: 28, border: `1px solid ${t.border}`, borderRadius: 3, cursor: "pointer", padding: 1 }} />)}
+            {PR("Text Align", <AlignToggle value={content.textAlign || "left"} onChange={v => upd({ textAlign: v })} t={t} isDark={isDark} />)}
+            {PR("Line Height", <NumInput value={content.lineHeight || 140} unit="%" onChange={v => upd({ lineHeight: Number(v) })} t={t} isDark={isDark} />)}
+            {PR("Letter Spacing", <NumInput value={content.letterSpacing || 0} unit="px" onChange={v => upd({ letterSpacing: Number(v) })} t={t} isDark={isDark} />)}
+          </>)}
+
+          {S("links", "Links", <>
+            {PR("Inherit Body Styles", <PropToggle value={!!content.inheritStyles} onChange={v => upd({ inheritStyles: v })} />)}
+          </>)}
+
+          {S("general", "General", <>
+             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+                <span style={{ fontSize: 11, color: t.textMuted }}>Container Padding</span>
+                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <span style={{ fontSize: 11, color: t.textMuted }}>More Options</span>
+                  <PropToggle value={!!content.morePadding} onChange={v => upd({ morePadding: v })} />
+                </div>
+             </div>
+             
+             {content.morePadding ? (
+               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+                  <div>
+                    <div style={{ fontSize: 11, color: t.textMuted, marginBottom: 8 }}>Top</div>
+                    <NumInput value={content.paddingTop ?? 10} unit="px" onChange={v => upd({ paddingTop: Number(v) })} t={t} isDark={isDark} />
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 11, color: t.textMuted, marginBottom: 8 }}>Right</div>
+                    <NumInput value={content.paddingRight ?? 10} unit="px" onChange={v => upd({ paddingRight: Number(v) })} t={t} isDark={isDark} />
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 11, color: t.textMuted, marginBottom: 8 }}>Left</div>
+                    <NumInput value={content.paddingLeft ?? 10} unit="px" onChange={v => upd({ paddingLeft: Number(v) })} t={t} isDark={isDark} />
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 11, color: t.textMuted, marginBottom: 8 }}>Bottom</div>
+                    <NumInput value={content.paddingBottom ?? 10} unit="px" onChange={v => upd({ paddingBottom: Number(v) })} t={t} isDark={isDark} />
+                  </div>
+               </div>
+             ) : (
+               PR("Padding", <NumInput value={content.paddingTop ?? 10} unit="px" onChange={v => {
+                 const p = Number(v);
+                 upd({ paddingTop: p, paddingBottom: p, paddingLeft: p, paddingRight: p });
+               }} t={t} isDark={isDark} />)
+             )}
+          </>)}
+          <Responsive />
         </>
       );
 
