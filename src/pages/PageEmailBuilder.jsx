@@ -1305,6 +1305,9 @@ function SettingsPanel({ t, isDark, settings, onChange, profile, DIMENSIONS = []
   const [showRecipients, setShowRecipients] = useState(false);
   const [selectedInTable, setSelectedInTable] = useState([]);
   const [rowSelection, setRowSelection] = useState({});
+  const [showDoNotSend, setShowDoNotSend] = useState(false);
+  const [doNotSendRowSelection, setDoNotSendRowSelection] = useState({});
+  const [selectedDoNotSend, setSelectedDoNotSend] = useState([]);
   const [showFromDropdown, setShowFromDropdown] = useState(false);
   const fromDropRef = useRef(null);
   const [showTypeDropdown, setShowTypeDropdown] = useState(false);
@@ -1326,16 +1329,45 @@ function SettingsPanel({ t, isDark, settings, onChange, profile, DIMENSIONS = []
     }
   }, [showRecipients, CONTACTS, localSettings.recipients]);
 
+  useEffect(() => {
+    if (showDoNotSend) {
+      const currentEmails = (localSettings.doNotSendTo || "").split(";").map(s => s.trim().toLowerCase()).filter(Boolean);
+      const newSelObject = {};
+      CONTACTS.forEach((c, i) => {
+        const id = c.docId || c._docId || c.id || c.schedule_id || `idx-${i}`;
+        if (c.email && currentEmails.includes(c.email.toLowerCase())) {
+          newSelObject[id] = true;
+        }
+      });
+      setDoNotSendRowSelection(newSelObject);
+    }
+  }, [showDoNotSend, CONTACTS, localSettings.doNotSendTo]);
+
   const tableData = useMemo(() => {
+    const recipients = (localSettings.recipients || "").split(";").map(s => s.trim().toLowerCase()).filter(Boolean);
     return CONTACTS.map((c, i) => {
       const id = c.docId || c._docId || c.id || c.schedule_id || `idx-${i}`;
       return {
         ...c,
         _rowId: id,
-        isSelected: !!rowSelection[id]
+        isSelected: !!rowSelection[id],
+        isAlreadyRecipient: c.email && recipients.includes(c.email.toLowerCase())
       };
     });
-  }, [CONTACTS, rowSelection]);
+  }, [CONTACTS, rowSelection, localSettings.recipients]);
+
+  const doNotSendTableData = useMemo(() => {
+    const recipients = (localSettings.recipients || "").split(";").map(s => s.trim().toLowerCase()).filter(Boolean);
+    return CONTACTS.map((c, i) => {
+      const id = c.docId || c._docId || c.id || c.schedule_id || `idx-${i}`;
+      return {
+        ...c,
+        _rowId: id,
+        isSelected: !!doNotSendRowSelection[id],
+        isAlreadyRecipient: c.email && recipients.includes(c.email.toLowerCase())
+      };
+    });
+  }, [CONTACTS, doNotSendRowSelection, localSettings.recipients]);
 
   const recipientColumns = useMemo(() => [
     {
@@ -1377,6 +1409,47 @@ function SettingsPanel({ t, isDark, settings, onChange, profile, DIMENSIONS = []
       cell: info => info.getValue() || "—"
     },
   ], [t, rowSelection, CONTACTS]);
+
+  const doNotSendColumns = useMemo(() => [
+    {
+      id: "select",
+      accessorKey: "isSelected",
+      header: ({ table }) => (
+        <input
+          type="checkbox"
+          className="ts-checkbox"
+          checked={table.getIsAllPageRowsSelected()}
+          onChange={table.getToggleAllPageRowsSelectedHandler()}
+        />
+      ),
+      cell: ({ row }) => (
+        <input
+          type="checkbox"
+          className="ts-checkbox"
+          checked={row.getIsSelected()}
+          disabled={!row.original.email || row.original.isAlreadyRecipient}
+          onChange={row.getToggleSelectedHandler()}
+        />
+      ),
+      size: 50,
+      enableSorting: true,
+    },
+    {
+      accessorKey: "first_name",
+      header: (t.isFrench ? "Prénom" : "First Name"),
+      cell: info => info.getValue() || "—"
+    },
+    {
+      accessorKey: "last_name",
+      header: (t.isFrench ? "Nom" : "Last Name"),
+      cell: info => info.getValue() || "—"
+    },
+    {
+      accessorKey: "email",
+      header: (t.isFrench ? "E-mail" : "Email Address"),
+      cell: info => info.getValue() || "—"
+    },
+  ], [t, doNotSendRowSelection, CONTACTS]);
 
   const userFullName = (profile?.first_name || profile?.last_name)
     ? `${profile.first_name || ""} ${profile.last_name || ""}`.trim()
@@ -1453,7 +1526,19 @@ function SettingsPanel({ t, isDark, settings, onChange, profile, DIMENSIONS = []
           </SettingsRow>
 
           <SettingsRow label="Do not send to:" t={t}>
-            <input value={localSettings.doNotSendTo || ""} onChange={e => set("doNotSendTo", e.target.value)} onBlur={() => commit("doNotSendTo")} placeholder="(Optional) Click to select recipients to exclude" style={{ ...inp, color: localSettings.doNotSendTo ? t.text : t.textMuted }} />
+            <input 
+              value={localSettings.doNotSendTo || ""} 
+              onChange={e => set("doNotSendTo", e.target.value)} 
+              onBlur={() => commit("doNotSendTo")} 
+              placeholder="(Optional) Click to select recipients to exclude" 
+              style={{ ...inp, color: localSettings.doNotSendTo ? t.text : t.textMuted }} 
+            />
+            <button 
+              onClick={() => setShowDoNotSend(true)}
+              style={{ ...actionBtn, marginLeft: 16, display: "flex", alignItems: "center", gap: 8, background: isDark ? "#374151" : "#F3F4F6", border: "none" }}
+            >
+              <Eye size={16} /> View Do not send
+            </button>
           </SettingsRow>
 
           <SettingsRow label="Type:" t={t}>
@@ -1582,6 +1667,41 @@ function SettingsPanel({ t, isDark, settings, onChange, profile, DIMENSIONS = []
             rowSelection={rowSelection}
             onRowSelectionChange={setRowSelection}
             getRowId={(row) => row._rowId}
+          />
+        </div>
+      </Modal>
+
+      <Modal 
+        open={showDoNotSend} 
+        onClose={() => setShowDoNotSend(false)} 
+        title="Do Not Send List" 
+        width={800} 
+        t={t} 
+        isDark={isDark} 
+        showCancel={true}
+        saveLabel="Select Recipients"
+        onSave={() => {
+          const emails = selectedDoNotSend.map(s => s.email).filter(Boolean).join("; ");
+          set("doNotSendTo", emails);
+          onChange(prev => ({ ...prev, doNotSendTo: emails }));
+          setShowDoNotSend(false);
+        }}
+      >
+        <div style={{ height: 500, width: "100%" }}>
+          <TanStackTable 
+            data={doNotSendTableData} 
+            columns={doNotSendColumns} 
+            t={t} 
+            isDark={isDark} 
+            pageSize={10} 
+            onSelectionChange={setSelectedDoNotSend}
+            rowSelection={doNotSendRowSelection}
+            onRowSelectionChange={setDoNotSendRowSelection}
+            getRowId={(row) => row._rowId}
+            rowStyle={(row) => row.isAlreadyRecipient ? { 
+              background: isDark ? "rgba(255,165,0,0.1)" : "#FFFBEB",
+              opacity: 0.8
+            } : {}}
           />
         </div>
       </Modal>
