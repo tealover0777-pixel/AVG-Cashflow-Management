@@ -208,17 +208,18 @@ function AppContent() {
 
   const { data: rawRoles, loading: l10, error: e10 } = useFirestoreCollection((activeTenantId && (isSuperAdmin || isTenantAdmin || hasPermission("ROLE_TYPE_*")) && !isGlobalConsolidated) ? fetchPaths.roles : null);
   const { data: rawDimensions, loading: l7, error: e7 } = useFirestoreCollection(user ? fetchPaths.dimensions : null);
+  const { data: rawACHBatches, loading: l11, error: e11 } = useFirestoreCollection(isGlobalConsolidated ? "achBatches" : (activeTenantId ? fetchPaths.achBatches : null), isGlobalConsolidated);
   const { data: rawLedger, loading: l12, error: e12 } = useFirestoreCollection(isGlobalConsolidated ? "ledger" : (activeTenantId ? fetchPaths.ledger : null), isGlobalConsolidated);
   const { data: rawMarketingEmails, loading: l14, error: e14 } = useFirestoreCollection(isGlobalConsolidated ? "marketingEmails" : (activeTenantId ? fetchPaths.marketingEmails : null), isGlobalConsolidated);
 
 
   const shouldFetch = !!activeTenantId || isGlobalRole;
 
-  const loading = authLoading || (shouldFetch && (l1 || l2 || l3 || l4 || l5 || l6 || l14)) || (isSuperAdmin && l8) || (activeTenantId && (isSuperAdmin || isTenantAdmin || hasPermission("USER_PROFILE_*") || hasPermission("ROLE_TYPE_*")) && (l9 || l10)) || (user && l7);
+  const loading = authLoading || (shouldFetch && (l1 || l2 || l3 || l4 || l5 || l6 || l11 || l12 || l14)) || (isSuperAdmin && l8) || (activeTenantId && (isSuperAdmin || isTenantAdmin || hasPermission("USER_PROFILE_*") || hasPermission("ROLE_TYPE_*")) && (l9 || l10)) || (user && l7);
   const dataPresent = rawDeals.length > 0 || rawInvestments.length > 0;
   const showLoading = loading && !dataPresent;
 
-  const firstError = e1 || e2 || e3 || e4 || e5 || e6 || e7 || e8 || e9 || e10 || e11 || e12 || e14;
+  const firstError = e1 || e2 || e3 || e4 || e5 || e6 || e7 || e8 || e9 || e10 || e11 || e12 || e13 || e14;
 
   // Auto-select first tenant for Super Admins if none selected
   useEffect(() => {
