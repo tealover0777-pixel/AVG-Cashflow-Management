@@ -956,7 +956,7 @@ function DropZone({ active, onDragOver, onDrop }) {
 }
 
 const ROW_BLOCK_TYPE = {
-  image: "IMAGE", paragraph: "PARAGRAPH", footer: "IMAGE",
+  image: "IMAGE", paragraph: "TEXT", footer: "IMAGE",
   button: "BUTTON", divider: "DIVIDER", heading: "HEADING",
   video: "VIDEO", social: "SOCIAL", html: "HTML", table: "TABLE",
   columns: "COLUMNS", menu: "MENU", kpis: "KPIs", ai_summary: "AI SUMMARY"
@@ -987,8 +987,8 @@ function AddRowBtn({ onClick, position, isDark }) {
 }
 
 function EmailRow({ row, isSelected, isHovered, onSelect, onHover, onDelete, onDuplicate, onUpdate, onAddRow, onAddBlockToColumn, setActiveRightTab, t, isDark, selectedRowId, hoveredRowId, isNested }) {
-  const blockType = ROW_BLOCK_TYPE[row.type] || "PARAGRAPH";
-  const showControls = (isSelected || isHovered) && !isNested;
+  const blockType = ROW_BLOCK_TYPE[row.type] || "TEXT";
+  const showControls = (isSelected || isHovered);
 
   const MoveHandle = () => (
     <div style={{
@@ -1136,7 +1136,10 @@ function EmailRow({ row, isSelected, isHovered, onSelect, onHover, onDelete, onD
             contentEditable
             suppressContentEditableWarning
             onBlur={e => onUpdate(item.id, { html: e.currentTarget.innerHTML })}
-            onClick={e => e.stopPropagation()}
+            onClick={e => {
+              // Don't stop propagation, let it bubble to EmailRow for selection
+              // but we need to make sure the focus is handled correctly.
+            }}
             style={{ 
               paddingTop: item.content?.paddingTop ?? (isNested ? 12 : 24),
               paddingBottom: item.content?.paddingBottom ?? (isNested ? 12 : 24),
@@ -1268,22 +1271,37 @@ function EmailRow({ row, isSelected, isHovered, onSelect, onHover, onDelete, onD
 
       {renderContent(row, isNested)}
 
+      {isHovered && !isNested && (
+        <div style={{
+          position: "absolute", bottom: 0, right: 0, 
+          background: "#3B82F6", color: "#fff", 
+          fontSize: 8, padding: "2px 6px", 
+          fontWeight: 900, textTransform: "uppercase", 
+          zIndex: 15, borderRadius: "4px 0 0 0",
+          pointerEvents: "none", letterSpacing: 0.5
+        }}>
+          {blockType}
+        </div>
+      )}
+
       {showControls && onAddRow && <AddRowBtn isDark={isDark} position="bottom" onClick={() => onAddRow(row.id, "COLUMNS", "after")} />}
 
       {showControls && (
         <>
-          <MoveHandle />
-          <div style={{
-            position: "absolute", top: 0, right: -40, background: "#3B82F6",
-            color: "#fff", fontSize: 10, padding: "2px 8px", borderRadius: "0 4px 4px 0",
-            fontWeight: 800, textTransform: "uppercase", zIndex: 11
-          }}>
-            Row
-          </div>
+          {!isNested && <MoveHandle />}
+          {!isNested && (
+            <div style={{
+              position: "absolute", top: 0, right: -40, background: "#3B82F6",
+              color: "#fff", fontSize: 10, padding: "2px 8px", borderRadius: "0 4px 4px 0",
+              fontWeight: 800, textTransform: "uppercase", zIndex: 11
+            }}>
+              Row
+            </div>
+          )}
 
           {isSelected && (
             <div style={{
-              position: "absolute", bottom: -12, right: 0,
+              position: "absolute", bottom: isNested ? 0 : -12, right: 0,
               display: "flex", gap: 6, zIndex: 30,
               background: t.surface, padding: "6px 10px", borderRadius: 6,
               boxShadow: "0 4px 12px rgba(0,0,0,0.15)", border: `1px solid ${t.border}`
