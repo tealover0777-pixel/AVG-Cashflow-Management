@@ -9,7 +9,8 @@ import {
   Image as ImageIcon, FileText, Video, Users, Menu as MenuIcon, Code,
   Table as TableIcon, Search, ChevronRight, ChevronUp, X as XIcon,
   Plus, Trash2, Copy, Settings as SettingsIcon, Paperclip,
-  AlignCenter, AlignRight, AlignJustify, Move, Send, Clock, Check, Eye
+  AlignCenter, AlignRight, AlignJustify, Move, Send, Clock, Check, Eye,
+  Bold, Italic, Underline, List, Link as LinkIcon
 } from "lucide-react";
 import { PromptModal, DelModal, Modal, TanStackTable } from "../components";
 
@@ -986,6 +987,70 @@ function AddRowBtn({ onClick, position, isDark }) {
   );
 }
 
+const FloatingTextBar = ({ t, isDark }) => {
+  const cmd = (name, val = null) => {
+    document.execCommand(name, false, val);
+  };
+
+  const Btn = ({ name, icon: Icon, title }) => (
+    <button
+      onMouseDown={e => { e.preventDefault(); cmd(name); }}
+      style={{ 
+        background: "transparent", border: "none", color: "#fff", 
+        padding: "6px 8px", cursor: "pointer", display: "flex", 
+        alignItems: "center", justifyContent: "center", borderRadius: 4,
+        transition: "background 0.2s"
+      }}
+      onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,0.1)"}
+      onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+      title={title}
+    >
+      <Icon size={14} strokeWidth={2.5} />
+    </button>
+  );
+
+  const Separator = () => <div style={{ width: 1, height: 20, background: "rgba(255,255,255,0.2)", margin: "0 4px" }} />;
+
+  return (
+    <div style={{ 
+      position: "absolute", bottom: "calc(100% + 12px)", left: "50%", transform: "translateX(-50%)",
+      background: "#222", color: "#fff", padding: "4px 8px", borderRadius: 8,
+      display: "flex", alignItems: "center", boxShadow: "0 10px 30px rgba(0,0,0,0.3)",
+      zIndex: 1000, whiteSpace: "nowrap"
+    }}>
+      <Btn name="bold" icon={Bold} title="Bold" />
+      <Btn name="italic" icon={Italic} title="Italic" />
+      <Btn name="underline" icon={Underline} title="Underline" />
+      <Btn name="strikethrough" icon={Type} title="Strikethrough" />
+      <Separator />
+      <Btn name="justifyLeft" icon={AlignLeft} title="Align Left" />
+      <Btn name="justifyCenter" icon={AlignCenter} title="Align Center" />
+      <Btn name="justifyRight" icon={AlignRight} title="Align Right" />
+      <Separator />
+      <Btn name="insertUnorderedList" icon={List} title="Bullet List" />
+      <Btn name="insertOrderedList" icon={List} title="Numbered List" />
+      <Separator />
+      <button
+        onMouseDown={e => {
+          e.preventDefault();
+          const url = prompt("Enter URL:", "https://");
+          if (url) cmd("createLink", url);
+        }}
+        style={{ background: "transparent", border: "none", color: "#fff", padding: "6px 8px", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", borderRadius: 4, transition: "background 0.2s" }}
+        onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,0.1)"}
+        onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+        title="Link"
+      >
+        <LinkIcon size={14} strokeWidth={2.5} />
+      </button>
+      <Separator />
+      <div style={{ padding: "4px 8px", fontSize: 11, fontWeight: 700, cursor: "pointer", opacity: 0.8 }} onMouseEnter={e => e.currentTarget.style.opacity = 1} onMouseLeave={e => e.currentTarget.style.opacity = 0.8}>
+        Merge Tags <CDown />
+      </div>
+    </div>
+  );
+};
+
 function EmailRow({ row, isSelected, isHovered, onSelect, onHover, onDelete, onDuplicate, onUpdate, onAddRow, onAddBlockToColumn, setActiveRightTab, t, isDark, selectedRowId, hoveredRowId, isNested }) {
   const blockType = ROW_BLOCK_TYPE[row.type] || "TEXT";
   const showControls = (isSelected || isHovered);
@@ -1158,6 +1223,8 @@ function EmailRow({ row, isSelected, isHovered, onSelect, onHover, onDelete, onD
             }}
             dangerouslySetInnerHTML={{ __html: item.content?.html || "<p>New text block. Click to edit.</p>" }}
           />
+          {isSelected && <FloatingTextBar t={t} isDark={isDark} />}
+        </>
         );
 
       case "footer":
@@ -2181,7 +2248,7 @@ function BlockPropsPanel({ t, isDark, blockType, rowId, onUpdate, rows, onClose,
 
   const fileInputRef = useRef(null);
 
-  const [open, setOpen] = useState({ displayCondition: false, main: true, action: true, general: true, responsive: true, links: false, columnProps: false, header: true, menuItems: true });
+  const [open, setOpen] = useState({ displayCondition: false, main: true, action: true, general: true, links: false, columnProps: false, header: true, menuItems: true });
   const tog = id => setOpen(p => ({ ...p, [id]: !p[id] }));
 
   // Thin wrappers that bind open/tog/t/isDark — these are plain functions NOT components,
@@ -2201,9 +2268,6 @@ function BlockPropsPanel({ t, isDark, blockType, rowId, onUpdate, rows, onClose,
   const General = () => S("general", "General",
     PR("Container Padding", <div style={{ display: "flex", alignItems: "center", gap: 6 }}><span style={{ fontSize: 10, color: t.textMuted }}>More Options</span></div>)
   );
-  const Responsive = () => S("responsive", "Responsive Design",
-    PR("Hide on Desktop", <span style={{ fontSize: 10, color: t.textMuted }}>Off</span>)
-  );
 
   const renderProps = () => {
     switch (blockType) {
@@ -2222,7 +2286,7 @@ function BlockPropsPanel({ t, isDark, blockType, rowId, onUpdate, rows, onClose,
             {PR("Background Color", <input type="color" value={content.bgColor || "#1D4ED8"} onChange={e => upd({ bgColor: e.target.value })} style={{ width: 32, height: 28, border: `1px solid ${t.border}`, borderRadius: 3, cursor: "pointer", padding: 1 }} />)}
             {PR("Text Color", <input type="color" value={content.textColor || "#ffffff"} onChange={e => upd({ textColor: e.target.value })} style={{ width: 32, height: 28, border: `1px solid ${t.border}`, borderRadius: 3, cursor: "pointer", padding: 1 }} />)}
           </>)}
-          <General /><Responsive />
+          <General />
         </>
       );
 
@@ -2233,7 +2297,7 @@ function BlockPropsPanel({ t, isDark, blockType, rowId, onUpdate, rows, onClose,
             {PR("Thickness (px)", <input type="number" value={content.lineWidth ?? 1} min={1} max={20} onChange={e => upd({ lineWidth: Number(e.target.value) })} style={{ width: 60, padding: "4px 6px", border: `1px solid ${t.border}`, borderRadius: 4, background: t.surface, color: t.text, fontSize: 12 }} />)}
             {PR("Color", <input type="color" value={content.lineColor || "#E5E7EB"} onChange={e => upd({ lineColor: e.target.value })} style={{ width: 32, height: 28, border: `1px solid ${t.border}`, borderRadius: 3, cursor: "pointer", padding: 1 }} />)}
           </>)}
-          <General /><Responsive />
+          <General />
         </>
       );
 
@@ -2248,7 +2312,7 @@ function BlockPropsPanel({ t, isDark, blockType, rowId, onUpdate, rows, onClose,
             {PR("Font Size (px)", <input type="number" value={content.fontSize ?? 22} min={8} max={96} onChange={e => upd({ fontSize: Number(e.target.value) })} style={{ width: 60, padding: "4px 6px", border: `1px solid ${t.border}`, borderRadius: 4, background: t.surface, color: t.text, fontSize: 12 }} />)}
             {PR("Color", <input type="color" value={content.color || "#1F2937"} onChange={e => upd({ color: e.target.value })} style={{ width: 32, height: 28, border: `1px solid ${t.border}`, borderRadius: 3, cursor: "pointer", padding: 1 }} />)}
           </>)}
-          <General /><Responsive />
+          <General />
         </>
       );
 
@@ -2303,7 +2367,6 @@ function BlockPropsPanel({ t, isDark, blockType, rowId, onUpdate, rows, onClose,
                }} t={t} isDark={isDark} />)
              )}
           </>)}
-          <Responsive />
         </>
       );
 
@@ -2384,7 +2447,7 @@ function BlockPropsPanel({ t, isDark, blockType, rowId, onUpdate, rows, onClose,
               <p style={{ fontSize: 10, color: t.textMuted, margin: "6px 0 0 0" }}>Paste a YouTube or Vimeo URL to embed the video.</p>
             </div>
           </>)}
-          <General /><Responsive />
+          <General />
         </>
       );
 
@@ -2402,7 +2465,7 @@ function BlockPropsPanel({ t, isDark, blockType, rowId, onUpdate, rows, onClose,
               })}
             </div>
           </>)}
-          <General /><Responsive />
+          <General />
         </>
       );
 
@@ -2418,7 +2481,7 @@ function BlockPropsPanel({ t, isDark, blockType, rowId, onUpdate, rows, onClose,
             ))}
             <button onClick={() => upd({ menuItems: [...(content.menuItems || []), "New Item"] })} style={{ width: "100%", padding: "7px", border: `1px dashed ${t.border}`, borderRadius: 4, background: "transparent", color: t.textMuted, fontSize: 12, cursor: "pointer" }}>+ Add New Item</button>
           </>)}
-          <General /><Responsive />
+          <General />
         </>
       );
 
