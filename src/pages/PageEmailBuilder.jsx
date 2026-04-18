@@ -11,7 +11,7 @@ import {
   Plus, Trash2, Copy, Settings as SettingsIcon, Paperclip,
   AlignCenter, AlignRight, AlignJustify, Move, Send, Clock, Check, Eye
 } from "lucide-react";
-import { PromptModal, DelModal } from "../components";
+import { PromptModal, DelModal, Modal, TanStackTable } from "../components";
 
 const CDown = () => <ChevronDown size={12} strokeWidth={2.5} style={{ opacity: 0.7 }} />;
 
@@ -626,7 +626,7 @@ export default function PageEmailBuilder(props) {
 
         {/* Canvas / Settings / Preview */}
         {activeMainTab === "Settings" ? (
-          <SettingsPanel t={t} isDark={isDark} settings={emailSettings} onChange={setEmailSettings} profile={profile} DIMENSIONS={DIMENSIONS} />
+          <SettingsPanel t={t} isDark={isDark} settings={emailSettings} onChange={setEmailSettings} profile={profile} DIMENSIONS={DIMENSIONS} CONTACTS={CONTACTS} />
         ) : activeMainTab === "Mobile" ? (
           <ReviewPanel t={t} isDark={isDark} rows={rows} emailSettings={emailSettings} narrow />
         ) : activeMainTab === "Desktop" ? (
@@ -1300,7 +1300,26 @@ function SettingsRow({ label, t, children }) {
   );
 }
 
-function SettingsPanel({ t, isDark, settings, onChange, profile, DIMENSIONS = [] }) {
+function SettingsPanel({ t, isDark, settings, onChange, profile, DIMENSIONS = [], CONTACTS = [] }) {
+  const [showRecipients, setShowRecipients] = useState(false);
+  const recipientColumns = useMemo(() => [
+    {
+      accessorKey: "first_name",
+      header: (t.isFrench ? "Prénom" : "First Name"),
+      cell: info => info.getValue() || "—"
+    },
+    {
+      accessorKey: "last_name",
+      header: (t.isFrench ? "Nom" : "Last Name"),
+      cell: info => info.getValue() || "—"
+    },
+    {
+      accessorKey: "email",
+      header: (t.isFrench ? "E-mail" : "Email Address"),
+      cell: info => info.getValue() || "—"
+    },
+  ], [t]);
+
   const [localSettings, setLocalSettings] = useState(settings);
   const [showFromDropdown, setShowFromDropdown] = useState(false);
   const fromDropRef = useRef(null);
@@ -1367,7 +1386,10 @@ function SettingsPanel({ t, isDark, settings, onChange, profile, DIMENSIONS = []
 
           <SettingsRow label="Recipients:" t={t}>
             <div style={{ flex: 1, fontSize: 15, color: t.textMuted, borderBottom: `1px solid ${t.chipBorder}`, padding: "8px 0" }}>Click to select your recipients</div>
-            <button style={{ ...actionBtn, marginLeft: 16, display: "flex", alignItems: "center", gap: 8, background: isDark ? "#374151" : "#F3F4F6", border: "none" }}>
+            <button 
+              onClick={() => setShowRecipients(true)}
+              style={{ ...actionBtn, marginLeft: 16, display: "flex", alignItems: "center", gap: 8, background: isDark ? "#374151" : "#F3F4F6", border: "none" }}
+            >
               <Eye size={16} /> View recipients
             </button>
           </SettingsRow>
@@ -1474,6 +1496,19 @@ function SettingsPanel({ t, isDark, settings, onChange, profile, DIMENSIONS = []
 
         </div>
       </div>
+
+      <Modal open={showRecipients} onClose={() => setShowRecipients(false)} title="Recipients List" width={800} t={t} isDark={isDark} showCancel={false}>
+        <div style={{ height: 500, width: "100%" }}>
+          <TanStackTable 
+            data={CONTACTS} 
+            columns={recipientColumns} 
+            t={t} 
+            isDark={isDark} 
+            pageSize={10} 
+          />
+        </div>
+      </Modal>
+
     </div>
   );
 }
