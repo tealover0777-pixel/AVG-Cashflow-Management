@@ -52,8 +52,8 @@ const TemplatePlaceholder = ({ isDark }) => (
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    background: isDark 
-      ? "radial-gradient(circle at center, #1e293b 0%, #0f172a 100%)" 
+    background: isDark
+      ? "radial-gradient(circle at center, #1e293b 0%, #0f172a 100%)"
       : "radial-gradient(circle at center, #f8fafc 0%, #e2e8f0 100%)",
     overflow: "hidden",
     position: "relative"
@@ -67,7 +67,7 @@ const TemplatePlaceholder = ({ isDark }) => (
       position: "absolute", width: 100, height: 100, borderRadius: "50%",
       background: "rgba(59, 130, 246, 0.05)", bottom: -30, left: -20, filter: "blur(25px)"
     }} />
-    
+
     {/* The floating "Template" Page */}
     <div style={{
       width: 75,
@@ -76,7 +76,7 @@ const TemplatePlaceholder = ({ isDark }) => (
       backdropFilter: "blur(10px)",
       border: `1px solid ${isDark ? "rgba(255, 255, 255, 0.08)" : "rgba(255, 255, 255, 0.5)"}`,
       borderRadius: 8,
-      boxShadow: isDark 
+      boxShadow: isDark
         ? "0 20px 40px -10px rgba(0, 0, 0, 0.5), 0 0 20px rgba(212, 175, 55, 0.05)"
         : "0 20px 40px -12px rgba(0, 0, 0, 0.1)",
       display: "flex",
@@ -91,24 +91,24 @@ const TemplatePlaceholder = ({ isDark }) => (
         <div style={{ width: 10, height: 10, borderRadius: 2, background: "rgba(212, 175, 55, 0.8)" }} />
         <div style={{ width: "50%", height: 3, background: isDark ? "rgba(255,255,255,0.2)" : "rgba(0,0,0,0.1)", borderRadius: 1.5 }} />
       </div>
-      
+
       {/* Abstract Content lines */}
       <div style={{ width: "100%", height: 2, background: isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.05)", borderRadius: 1 }} />
       <div style={{ width: "90%", height: 2, background: isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.05)", borderRadius: 1 }} />
       <div style={{ width: "100%", height: 2, background: isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.05)", borderRadius: 1 }} />
       <div style={{ width: "85%", height: 2, background: isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.05)", borderRadius: 1 }} />
-      
+
       {/* Spacer */}
       <div style={{ flex: 1 }} />
-      
+
       {/* Call to Action "Button" */}
-      <div style={{ 
-        width: "100%", height: 12, 
-        background: "linear-gradient(135deg, #d4af37 0%, #a28131 100%)", 
-        borderRadius: 4, 
-        opacity: 0.9, 
-        display: "flex", 
-        alignItems: "center", 
+      <div style={{
+        width: "100%", height: 12,
+        background: "linear-gradient(135deg, #d4af37 0%, #a28131 100%)",
+        borderRadius: 4,
+        opacity: 0.9,
+        display: "flex",
+        alignItems: "center",
         justifyContent: "center",
         boxShadow: "0 4px 10px rgba(212, 175, 55, 0.2)"
       }}>
@@ -170,15 +170,15 @@ export default function PageManageTemplates({ t, isDark, setActivePage, setActiv
     >
       {/* Delete Button - only for non-global (personal) templates */}
       {!template.isGlobal && (
-        <button 
-          onClick={(e) => { 
-            e.stopPropagation(); 
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
             setTemplateToDelete(template);
           }}
           style={{
             position: "absolute", top: 12, right: 12,
             background: isDark ? "rgba(239,68,68,0.2)" : "rgba(239,68,68,0.1)",
-            border: `1px solid ${isDark ? "rgba(239,68,68,0.3)" : "rgba(239,68,68,0.2)"}`, 
+            border: `1px solid ${isDark ? "rgba(239,68,68,0.3)" : "rgba(239,68,68,0.2)"}`,
             borderRadius: 6,
             width: 28, height: 28, display: "flex", alignItems: "center", justifyContent: "center",
             cursor: "pointer", color: "#EF4444",
@@ -221,7 +221,7 @@ export default function PageManageTemplates({ t, isDark, setActivePage, setActiv
           </div>
         )}
       </div>
-      
+
       <div style={{ padding: "12px 16px" }}>
         <h3 style={{ margin: "0 0 6px 0", fontSize: 13, fontWeight: 600, color: t.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
           {template.name}
@@ -263,7 +263,7 @@ export default function PageManageTemplates({ t, isDark, setActivePage, setActiv
     }
   };
 
-  const filteredTemplates = allTemplates.filter(t => 
+  const filteredTemplates = allTemplates.filter(t =>
     t.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     (t.category && t.category.toLowerCase().includes(searchQuery.toLowerCase()))
   );
@@ -310,12 +310,12 @@ export default function PageManageTemplates({ t, isDark, setActivePage, setActiv
 
       {/* Main Content Area */}
       <div style={{ flex: 1, backgroundColor: t.surface, borderRadius: 16, border: `1px solid ${t.surfaceBorder}`, padding: 32, overflowY: "auto", boxShadow: t.cardShadow }}>
-        
+
         {/* Search */}
         <div style={{ position: "relative", marginBottom: 32, maxWidth: 400 }}>
           <Search size={16} style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", color: t.textMuted }} />
-          <input 
-            type="text" 
+          <input
+            type="text"
             placeholder="Search templates..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
@@ -370,7 +370,7 @@ export default function PageManageTemplates({ t, isDark, setActivePage, setActiv
       {/* View Email Modal */}
       {viewTemplate && (
         <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.6)", backdropFilter: "blur(4px)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
-          <div style={{ width: "100%", maxWidth: 460, maxHeight: "90vh", background: "#fff", borderRadius: 12, overflow: "hidden", display: "flex", flexDirection: "column", boxShadow: "0 24px 64px rgba(0,0,0,0.35)" }}>
+          <div style={{ width: "100%", maxWidth: "460", maxHeight: "90vh", background: "#fff", borderRadius: 12, overflow: "hidden", display: "flex", flexDirection: "column", boxShadow: "0 24px 64px rgba(0,0,0,0.35)" }}>
             {/* Header */}
             <div style={{ background: isDark ? "#1e293b" : "#1D4ED8", color: "#fff", padding: "14px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0 }}>
               <span style={{ fontSize: 15, fontWeight: 600 }}>View email</span>
@@ -385,12 +385,12 @@ export default function PageManageTemplates({ t, isDark, setActivePage, setActiv
                 srcDoc={generateEmailPreviewHtml(viewTemplate.rows)}
                 title="Email preview"
                 sandbox="allow-same-origin"
-                style={{ width: "100%", border: "none", minHeight: 520, display: "block" }}
+                style={{ width: "100%", border: "none", minHeight: 720, display: "block" }}
                 onLoad={e => {
                   try {
                     const h = e.target.contentDocument?.body?.scrollHeight;
                     if (h) e.target.style.height = Math.min(h + 32, 600) + "px";
-                  } catch (_) {}
+                  } catch (_) { }
                 }}
               />
             </div>
@@ -447,7 +447,7 @@ export default function PageManageTemplates({ t, isDark, setActivePage, setActiv
               display: "flex", alignItems: "center", justifyContent: "space-between"
             }}>
               <h2 style={{ margin: 0, fontSize: 16, fontWeight: 600 }}>{selectedTemplate.name}</h2>
-              <button 
+              <button
                 onClick={() => setSelectedTemplate(null)}
                 style={{ background: "transparent", border: "none", color: "#fff", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
               >
@@ -457,8 +457,8 @@ export default function PageManageTemplates({ t, isDark, setActivePage, setActiv
 
             {/* Scrollable Preview Area */}
             <div style={{ flex: 1, overflowY: "auto", padding: "40px", display: "flex", justifyContent: "center" }}>
-              <div style={{ 
-                width: 600, backgroundColor: "#E5E5DF", padding: "40px", 
+              <div style={{
+                width: 600, backgroundColor: "#E5E5DF", padding: "40px",
                 boxShadow: "0 4px 6px rgba(0,0,0,0.1)", minHeight: 800,
                 display: "flex", flexDirection: "column", gap: 0
               }}>
@@ -478,7 +478,7 @@ export default function PageManageTemplates({ t, isDark, setActivePage, setActiv
               backgroundColor: "#fff", padding: "16px 24px", borderTop: "1px solid #E5E7EB",
               display: "flex", justifyContent: "center", gap: 16
             }}>
-              <button 
+              <button
                 onClick={() => {
                   setActiveEmailTemplate(selectedTemplate);
                   setActivePage("Email Builder");
@@ -491,7 +491,7 @@ export default function PageManageTemplates({ t, isDark, setActivePage, setActiv
               >
                 Use template
               </button>
-              <button 
+              <button
                 onClick={() => setSelectedTemplate(null)}
                 style={{
                   padding: "10px 24px", borderRadius: 6, border: "1px solid #E5E7EB",
@@ -521,16 +521,16 @@ export default function PageManageTemplates({ t, isDark, setActivePage, setActiv
       )}
 
       {/* Delete Confirmation Modal */}
-      <DelModal 
-        target={templateToDelete} 
-        onClose={() => setTemplateToDelete(null)} 
+      <DelModal
+        target={templateToDelete}
+        onClose={() => setTemplateToDelete(null)}
         onConfirm={async () => {
           await handleDeleteTemplate(templateToDelete);
           setTemplateToDelete(null);
-        }} 
-        label="This template" 
-        t={t} 
-        isDark={isDark} 
+        }}
+        label="This template"
+        t={t}
+        isDark={isDark}
       />
 
       <style>{`
