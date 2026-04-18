@@ -1933,21 +1933,22 @@ function SettingsPanel({ t, isDark, settings, onChange, profile, DIMENSIONS = []
                     const rawItems = DIMENSIONS.find(d => d.name === "EmailType")?.items || ["Marketing", "Transactional", "Operational"];
                     const items = Array.isArray(rawItems) ? rawItems : ["Marketing", "Transactional", "Operational"];
                     return items.map(opt => (
-                    <div
-                      key={opt}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        set("type", opt);
-                        onChange(prev => ({ ...prev, type: opt }));
-                        setShowTypeDropdown(false);
-                      }}
-                      style={{ padding: "12px 16px", cursor: "pointer", fontSize: 14, color: t.text, transition: "background 0.2s" }}
-                      onMouseEnter={e => e.currentTarget.style.background = isDark ? "rgba(255,255,255,0.05)" : "#f3f4f6"}
-                      onMouseLeave={e => e.currentTarget.style.background = "transparent"}
-                    >
-                      {opt}
-                    </div>
-                  ))}
+                      <div
+                        key={opt}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          set("type", opt);
+                          onChange(prev => ({ ...prev, type: opt }));
+                          setShowTypeDropdown(false);
+                        }}
+                        style={{ padding: "12px 16px", cursor: "pointer", fontSize: 14, color: t.text, transition: "background 0.2s" }}
+                        onMouseEnter={e => e.currentTarget.style.background = isDark ? "rgba(255,255,255,0.05)" : "#f3f4f6"}
+                        onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+                      >
+                        {opt}
+                      </div>
+                    ));
+                  })()}
                 </div>
               )}
             </div>
@@ -2029,35 +2030,35 @@ function SettingsPanel({ t, isDark, settings, onChange, profile, DIMENSIONS = []
                     const base = Array.isArray(USERS) ? USERS : [];
                     const list = [...base, { isCustom: true, name: "Custom reply-to name" }];
                     return list.map((u, idx) => {
-                    const isCustom = u.isCustom;
-                    const name = isCustom ? u.name : (u.first_name ? `${u.first_name} ${u.last_name || ""}` : (u.name || u.full_name || u.email || "Unknown"));
-                    const email = isCustom ? "" : (u.email || "");
-
-                    return (
-                      <div
-                        key={idx}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          if (isCustom) {
-                            set("replyTo", "");
-                            onChange(prev => ({ ...prev, replyTo: "" }));
-                            const el = replyToDropRef.current?.querySelector('input');
-                            if (el) el.focus();
-                          } else {
-                            set("replyTo", email);
-                            onChange(prev => ({ ...prev, replyTo: email }));
-                          }
-                          setShowReplyToDropdown(false);
-                        }}
-                        style={{ padding: "12px 16px", cursor: "pointer", transition: "background 0.2s" }}
-                        onMouseEnter={e => e.currentTarget.style.background = isDark ? "rgba(255,255,255,0.05)" : "#f3f4f6"}
-                        onMouseLeave={e => e.currentTarget.style.background = "transparent"}
-                      >
-                        <div style={{ fontSize: 14, color: t.text }}>{name}</div>
-                        {email && <div style={{ fontSize: 11, color: t.textMuted, marginTop: 2 }}>{email}</div>}
-                      </div>
-                    );
-                  })}
+                      const isCustom = u.isCustom;
+                      const name = isCustom ? u.name : (u.first_name ? `${u.first_name} ${u.last_name || ""}` : (u.name || u.full_name || u.email || "Unknown"));
+                      const email = isCustom ? "" : (u.email || "");
+                      return (
+                        <div
+                          key={idx}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (isCustom) {
+                              set("replyTo", "");
+                              onChange(prev => ({ ...prev, replyTo: "" }));
+                              const el = replyToDropRef.current?.querySelector('input');
+                              if (el) el.focus();
+                            } else {
+                              set("replyTo", email);
+                              onChange(prev => ({ ...prev, replyTo: email }));
+                            }
+                            setShowReplyToDropdown(false);
+                          }}
+                          style={{ padding: "12px 16px", cursor: "pointer", transition: "background 0.2s" }}
+                          onMouseEnter={e => e.currentTarget.style.background = isDark ? "rgba(255,255,255,0.05)" : "#f3f4f6"}
+                          onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+                        >
+                          <div style={{ fontSize: 14, color: t.text }}>{name}</div>
+                          {email && <div style={{ fontSize: 11, color: t.textMuted, marginTop: 2 }}>{email}</div>}
+                        </div>
+                      );
+                    });
+                  })()}
                 </div>
               )}
             </div>
