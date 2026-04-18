@@ -126,8 +126,8 @@ export default function PageMarketingEmails({ t, isDark, setActivePage, MARKETIN
   const gridRef = useRef(null);
 
   const emails = useMemo(() => {
-    const source = (MARKETING_EMAILS && MARKETING_EMAILS.length > 0) ? MARKETING_EMAILS : DUMMY_DRAFTS;
-    return source.map(e => ({
+    const source = (Array.isArray(MARKETING_EMAILS) && MARKETING_EMAILS.length > 0) ? MARKETING_EMAILS : DUMMY_DRAFTS;
+    return (Array.isArray(source) ? source : []).map(e => ({
       ...e,
       title: e.title || e.name || "Untitled",
       recipients: Array.isArray(e.recipients) ? `${e.recipients.length} recipients` : (e.recipients || "No recipients"),

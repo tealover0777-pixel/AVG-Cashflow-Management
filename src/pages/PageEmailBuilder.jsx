@@ -1640,7 +1640,7 @@ function SettingsPanel({ t, isDark, settings, onChange, profile, DIMENSIONS = []
   const tableData = useMemo(() => {
     const recipients = (localSettings.recipients || "").split(";").map(s => s.trim().toLowerCase()).filter(Boolean);
     const dns = (localSettings.doNotSendTo || "").split(";").map(s => s.trim().toLowerCase()).filter(Boolean);
-    return CONTACTS.map((c, i) => {
+    return (Array.isArray(CONTACTS) ? CONTACTS : []).map((c, i) => {
       const id = c.docId || c._docId || c.id || c.schedule_id || `idx-${i}`;
       return {
         ...c,
@@ -1655,7 +1655,7 @@ function SettingsPanel({ t, isDark, settings, onChange, profile, DIMENSIONS = []
   const doNotSendTableData = useMemo(() => {
     const recipients = (localSettings.recipients || "").split(";").map(s => s.trim().toLowerCase()).filter(Boolean);
     const dns = (localSettings.doNotSendTo || "").split(";").map(s => s.trim().toLowerCase()).filter(Boolean);
-    return CONTACTS.map((c, i) => {
+    return (Array.isArray(CONTACTS) ? CONTACTS : []).map((c, i) => {
       const id = c.docId || c._docId || c.id || c.schedule_id || `idx-${i}`;
       return {
         ...c,
@@ -2204,7 +2204,7 @@ function RowPreview({ row, narrow }) {
         <div style={{ padding: p, background: "#fff" }}>
           <table style={{ width: "100%", borderCollapse: "collapse", border: "1px solid #DDDDDD" }}>
             <tbody>
-              {tRows.map((tr, rIdx) => (
+              {(Array.isArray(tRows) ? tRows : []).map((tr, rIdx) => (
                 <tr key={tr.id} style={{ background: tr.isHeader ? (row.content?.headerBg || "#EBEBEB") : (row.content?.striped && rIdx % 2 === 1 ? "#F9F9F9" : (row.content?.bg || "transparent")) }}>
                   {(Array.isArray(tr.cells) ? tr.cells : []).map(cell => (
                     <td key={cell.id} style={{ border: "1px solid #DDDDDD", padding: row.content?.cellPadding || "12px", fontSize: narrow ? 11 : 13 }} dangerouslySetInnerHTML={{ __html: cell.text || "" }} />
@@ -2287,7 +2287,7 @@ const SelectDD = ({ value, options, onChange, t }) => (
       onChange={e => onChange(e.target.value)}
       style={{ width: "100%", padding: "7px 10px", border: `1px solid ${t.border}`, borderRadius: 4, background: t.surface, color: t.text, fontSize: 12, outline: "none", appearance: "none" }}
     >
-      {options.map(opt => <option key={opt.val} value={opt.val}>{opt.label}</option>)}
+      {(Array.isArray(options) ? options : []).map(opt => <option key={opt.val} value={opt.val}>{opt.label}</option>)}
     </select>
     <div style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", pointerEvents: "none", opacity: 0.5 }}>
       <CDown />
@@ -2749,7 +2749,7 @@ function BlockPropsPanel({ t, isDark, blockType, rowId, onUpdate, rows, onClose,
                 const active = (content.layout || "100") === key;
                 return (
                   <div key={key} onClick={() => upd({ layout: key })} style={{ display: "flex", gap: 2, height: 26, cursor: "pointer", opacity: active ? 1 : 0.45, border: active ? "1px solid #3B82F6" : "1px solid transparent", borderRadius: 3, padding: 1 }}>
-                    {layout[0].map((col, j) => (
+                    {(Array.isArray(layout[0]) ? layout[0] : []).map((col, j) => (
                       <div key={j} style={{ flex: col, background: active ? "#3B82F6" : (isDark ? "#374151" : "#D1D5DB"), borderRadius: 1 }} />
                     ))}
                   </div>

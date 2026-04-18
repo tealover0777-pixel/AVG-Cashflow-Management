@@ -39,27 +39,33 @@ function generateEmailPreviewHtml(rows = []) {
             ${row.content?.buttonText ? `<div style="margin-top:12px;border:1px solid rgba(255,255,255,0.4);border-radius:4px;padding:6px 12px;font-size:10px;letter-spacing:1px;display:inline-block;color:#fff">${row.content.buttonText}</div>` : ""}
           </div>
         </div>`;
-      case "kpis":
+      case "kpis": {
+        const items = Array.isArray(row.content?.items) ? row.content.items : [{ label: "KPI", value: "0" }];
         return `<div style="padding:32px;display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));gap:20px;background:#f9fafb">
-          ${(row.content?.items || [{ label: "KPI", value: "0" }]).map(i => `<div style="text-align:center"><div style="font-size:12px;color:#6b7280;margin-bottom:4px">${i.label}</div><div style="font-size:20px;font-weight:700;color:#111">${i.value}</div></div>`).join("")}
+          ${items.map(i => `<div style="text-align:center"><div style="font-size:12px;color:#6b7280;margin-bottom:4px">${i.label}</div><div style="font-size:20px;font-weight:700;color:#111">${i.value}</div></div>`).join("")}
         </div>`;
-      case "social":
+      }
+      case "social": {
+        const icons = Array.isArray(row.content?.icons) ? row.content.icons : ["F", "X", "in", "IG"];
         return `<div style="padding:24px 32px;text-align:center;display:flex;justify-content:center;gap:12px">
-          ${(row.content?.icons || ["F", "X", "in", "IG"]).map(icon => `<div style="width:32px;height:32px;border-radius:50%;background:#3B82F6;color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700">${icon}</div>`).join("")}
+          ${icons.map(icon => `<div style="width:32px;height:32px;border-radius:50%;background:#3B82F6;color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700">${icon}</div>`).join("")}
         </div>`;
+      }
       case "video":
         return `<div style="padding:24px 32px"><div style="background:#000;border-radius:8px;height:180px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:14px">YouTube / Video Placeholder</div></div>`;
       case "html":
         return `<div style="padding:16px 32px;font-size:13px">${row.content?.html || ""}</div>`;
-      case "table":
-        return `<div style="padding:16px 32px"><table style="width:100%;border-collapse:collapse;font-size:12px">${(row.content?.rows || []).map(r => `<tr>${(r || []).map(c => `<td style="border:1px solid #e5e7eb;padding:8px">${c || ""}</td>`).join("")}</tr>`).join("")}</table></div>`;
+      case "table": {
+        const tRows = Array.isArray(row.content?.rows) ? row.content.rows : [];
+        return `<div style="padding:16px 32px"><table style="width:100%;border-collapse:collapse;font-size:12px">${tRows.map(r => `<tr>${(Array.isArray(r.cells) ? r.cells : []).map(c => `<td style="border:1px solid #e5e7eb;padding:8px">${c.text || ""}</td>`).join("")}</tr>`).join("")}</table></div>`;
+      }
       case "columns": {
         const type = row.content?.type;
         const ratios = type === "1/2" ? [1, 1] : type === "1/3" ? [1, 1, 1] : type === "1/4" ? [1, 1, 1, 1] : [1];
         const cols = row.content?.columns || [];
-        const colsHtml = ratios.map((flex, i) => {
-          const col = cols[i] || { blocks: [], settings: {} };
-          const blocksHtml = (col.blocks || []).map(b => renderRow(b)).join("");
+        const colsHtml = (Array.isArray(ratios) ? ratios : []).map((flex, i) => {
+          const col = (Array.isArray(cols) ? cols[i] : null) || { blocks: [], settings: {} };
+          const blocksHtml = (Array.isArray(col.blocks) ? col.blocks : []).map(b => renderRow(b)).join("");
           return `<div style="flex:${flex};padding:${col.settings?.padding || "10px"}">${blocksHtml}</div>`;
         }).join("");
         return `<div style="display:flex;background:${row.content?.rowBg || "transparent"}">${colsHtml}</div>`;
@@ -69,7 +75,7 @@ function generateEmailPreviewHtml(rows = []) {
     }
   };
 
-  const body = (rows || []).map(renderRow).join("");
+  const body = (Array.isArray(rows) ? rows : []).map(renderRow).join("");
   return `<!DOCTYPE html><html><head><meta charset="UTF-8"><style>body{margin:0;font-family:Arial,sans-serif;background:#f3f4f6}*{box-sizing:border-box}</style></head><body><div style="max-width:600px;margin:32px auto;background:#fff;box-shadow:0 2px 12px rgba(0,0,0,0.08)">${body}</div></body></html>`;
 }
 
@@ -322,7 +328,9 @@ export default function PageManageTemplates({ t, isDark, setActivePage, setActiv
         <div style={{ display: "flex", gap: 8 }}>
           <button
             onClick={() => {
-              setActiveEmailTemplate({ name: "Untitled Template", rows: [], settings: {} });
+              if (typeof setActiveEmailTemplate === 'function') {
+                setActiveEmailTemplate({ name: "Untitled Template", rows: [], settings: {} });
+              }
               setActivePage("Email Builder");
             }}
             style={{
