@@ -16,7 +16,7 @@ function generateEmailPreviewHtml(rows = []) {
           return `<div style="background:${row.content.bg || "#1a1a1a"};min-height:100px;display:flex;align-items:flex-end;justify-content:flex-end;padding:16px;margin-bottom:0"><div style="background:#D97706;color:#fff;padding:6px 16px;font-weight:700;font-size:12px;letter-spacing:1px">${row.content.bannerText || "INVESTMENT REPORT"}</div></div>`;
         }
         return isValid
-          ? `<div style="margin-bottom:0;text-align:${row.content?.align || "center"}"><img src="${url}" onerror="this.style.display='none'" style="width:${row.content?.autoWidth !== false ? "auto" : (row.content?.width || "100%")};max-width:100%;height:${row.content?.autoHeight !== false ? "auto" : (row.content?.height || "auto")};display:block;margin:${row.content?.align === "center" ? "0 auto" : row.content?.align === "right" ? "0 0 0 auto" : "0 auto 0 0"}" /></div>`
+          ? `<div style="margin-bottom:0;text-align:${row.content?.align || "center"}"><img src="${url}" onerror="this.outerHTML='<div style=\\'width:100%;height:80px;background:#e5e7eb;display:flex;align-items:center;justify-content:center\\'><span style=\\'color:#9ca3af;font-size:12px\\'>Image unavailable</span></div>'" style="width:${row.content?.autoWidth !== false ? "auto" : (row.content?.width || "100%")};max-width:100%;height:${row.content?.autoHeight !== false ? "auto" : (row.content?.height || "auto")};display:block;margin:${row.content?.align === "center" ? "0 auto" : row.content?.align === "right" ? "0 0 0 auto" : "0 auto 0 0"}" /></div>`
           : "";
       }
       case "heading":
@@ -425,7 +425,7 @@ export default function PageManageTemplates({ t, isDark, setActivePage, setActiv
               <iframe
                 srcDoc={generateEmailPreviewHtml(viewTemplate.rows)}
                 title="Email preview"
-                sandbox="allow-same-origin"
+                sandbox="allow-same-origin allow-scripts"
                 style={{ width: "100%", height: "100%", border: "none", display: "block" }}
               />
               
