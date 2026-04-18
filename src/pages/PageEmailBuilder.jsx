@@ -1217,8 +1217,8 @@ function EmailRow({ row, isSelected, isHovered, onSelect, onHover, onDelete, onD
                     display: "flex", flexDirection: "column", gap: 8
                   }}
                 >
-                  {col.blocks?.length > 0 ? (
-                    col.blocks.map(b => (
+                  {(Array.isArray(col.blocks) ? col.blocks : []).length > 0 ? (
+                    (col.blocks || []).map(b => (
                       <EmailRow
                         key={b.id}
                         row={b}
@@ -1436,7 +1436,13 @@ function EmailRow({ row, isSelected, isHovered, onSelect, onHover, onDelete, onD
                             newRows[rIdx].cells[cIdx].text = e.currentTarget.innerHTML;
                             onUpdate(item.id, { rows: newRows });
                           }}
-                          onFocus={e => e.currentTarget.style.boxShadow = "inset 0 0 0 2px #3B82F6"}
+                          onFocus={e => {
+                            e.currentTarget.style.boxShadow = "inset 0 0 0 2px #3B82F6";
+                            const txt = e.currentTarget.innerText.trim();
+                            if (txt === "Add header text" || txt === "Add text") {
+                              e.currentTarget.innerHTML = "";
+                            }
+                          }}
                           onClick={e => e.stopPropagation()}
                           style={{
                             border: `${item.content?.borderWidth || 1}px ${item.content?.borderStyle || "solid"} ${item.content?.borderColor || "#DDDDDD"}`,
@@ -2174,6 +2180,34 @@ function RowPreview({ row, narrow }) {
             <div style={{ whiteSpace: "pre-line" }}>{row.content?.rightText}</div>
             {row.content?.buttonText && <div style={{ marginTop: 6, border: "1px solid rgba(255,255,255,0.5)", borderRadius: 2, padding: "3px 10px", fontSize: 9, display: "inline-block", letterSpacing: 1 }}>{row.content.buttonText}</div>}
           </div>
+        </div>
+      );
+    case "columns":
+      const ratios = (row.content?.layout || "50-50").split("-").map(Number);
+      return (
+        <div style={{ display: "flex", width: "100%", background: row.content?.rowBg || "transparent" }}>
+          {ratios.map((flex, i) => (
+            <div key={i} style={{ flex: `${flex} 1 0%`, padding: row.content?.columns?.[i]?.settings?.padding || "10px", background: row.content?.columns?.[i]?.settings?.bgColor || "transparent" }}>
+              {(Array.isArray(row.content?.columns?.[i]?.blocks) ? row.content.columns[i].blocks : []).map(b => <RowPreview key={b.id} row={b} narrow={narrow} />)}
+            </div>
+          ))}
+        </div>
+      );
+    case "table":
+      const tRows = Array.isArray(row.content?.rows) ? row.content.rows : [];
+      return (
+        <div style={{ padding: p, background: "#fff" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", border: "1px solid #DDDDDD" }}>
+            <tbody>
+              {tRows.map((tr, rIdx) => (
+                <tr key={tr.id} style={{ background: tr.isHeader ? (row.content?.headerBg || "#EBEBEB") : (row.content?.striped && rIdx % 2 === 1 ? "#F9F9F9" : (row.content?.bg || "transparent")) }}>
+                  {(Array.isArray(tr.cells) ? tr.cells : []).map(cell => (
+                    <td key={cell.id} style={{ border: "1px solid #DDDDDD", padding: row.content?.cellPadding || "12px", fontSize: narrow ? 11 : 13 }} dangerouslySetInnerHTML={{ __html: cell.text || "" }} />
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       );
     default:
