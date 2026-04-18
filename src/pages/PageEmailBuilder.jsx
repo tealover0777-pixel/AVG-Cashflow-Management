@@ -90,7 +90,7 @@ const INITIAL_ROWS = [
 // ── Main Component ────────────────────────────────────────────────────────────
 
 export default function PageEmailBuilder(props) {
-  const { t, isDark, setActivePage, activeEmailTemplate, setActiveEmailTemplate, refreshTemplates, activeTenantId: activeTenantIdProp, backTo = "Manage Templates", USERS = [], CONTACTS = [] } = props;
+  const { t, isDark, setActivePage, activeEmailTemplate, setActiveEmailTemplate, refreshTemplates, activeTenantId: activeTenantIdProp, backTo = "Manage Templates", USERS = [], CONTACTS = [], DIMENSIONS = [] } = props;
   const isUseMode = activeEmailTemplate?._useMode === true;
 
   const [activeMainTab, setActiveMainTab] = useState("Edit");
@@ -626,7 +626,7 @@ export default function PageEmailBuilder(props) {
 
         {/* Canvas / Settings / Preview */}
         {activeMainTab === "Settings" ? (
-          <SettingsPanel t={t} isDark={isDark} settings={emailSettings} onChange={setEmailSettings} profile={profile} />
+          <SettingsPanel t={t} isDark={isDark} settings={emailSettings} onChange={setEmailSettings} profile={profile} DIMENSIONS={DIMENSIONS} />
         ) : activeMainTab === "Mobile" ? (
           <ReviewPanel t={t} isDark={isDark} rows={rows} emailSettings={emailSettings} narrow />
         ) : activeMainTab === "Desktop" ? (
@@ -1300,7 +1300,7 @@ function SettingsRow({ label, t, children }) {
   );
 }
 
-function SettingsPanel({ t, isDark, settings, onChange, profile }) {
+function SettingsPanel({ t, isDark, settings, onChange, profile, DIMENSIONS = [] }) {
   const [localSettings, setLocalSettings] = useState(settings);
   const [showFromDropdown, setShowFromDropdown] = useState(false);
   const fromDropRef = useRef(null);
@@ -1366,10 +1366,15 @@ function SettingsPanel({ t, isDark, settings, onChange, profile }) {
 
           <SettingsRow label="Type:" t={t}>
             <div style={{ position: "relative", flex: 1, borderBottom: `1px solid ${t.chipBorder}` }}>
-              <select value={localSettings.type || "Marketing"} onChange={e => { set("type", e.target.value); onChange(prev => ({ ...prev, type: e.target.value })); }} style={{ ...inp, borderBottom: "none", padding: "8px 24px 8px 0", appearance: "none", cursor: "pointer" }}>
-                <option value="Marketing">Marketing</option>
-                <option value="Transactional">Transactional</option>
-                <option value="Operational">Operational</option>
+              <select 
+                value={localSettings.type || ""} 
+                onChange={e => { set("type", e.target.value); onChange(prev => ({ ...prev, type: e.target.value })); }} 
+                style={{ ...inp, borderBottom: "none", padding: "8px 24px 8px 0", appearance: "none", cursor: "pointer", color: localSettings.type ? t.text : t.textMuted }}
+              >
+                <option value="" disabled>{t.isFrench ? "Choisir Type..." : "Select Type..."}</option>
+                {(DIMENSIONS.find(d => d.name === "EmailType")?.items || ["Marketing", "Transactional", "Operational"]).map(opt => (
+                  <option key={opt} value={opt} style={{ color: "#000" }}>{opt}</option>
+                ))}
               </select>
               <div style={{ position: "absolute", right: 0, top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }}>
                 <CDown />
