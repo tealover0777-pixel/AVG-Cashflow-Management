@@ -1,6 +1,6 @@
-
 const functions = require('firebase-functions');
 const admin = require('firebase-admin');
+const nodemailer = require('nodemailer');
 admin.initializeApp();
 
 // Temporary function to generate a password reset link.
@@ -455,5 +455,99 @@ exports.activateUser = functions.https.onCall(async (data, context) => {
   } catch (error) {
     console.error('activateUser error:', error);
     throw new functions.https.HttpsError('internal', error.message);
+  }
+});
+
+/**
+ * Helper to get a nodemailer transporter based on tenant settings.
+ */
+async function getTransporter(tenantId) {
+  const db = admin.firestore();
+  const tenantSnap = await db.collection('tenants').doc(tenantId).get();
+  const setup = tenantSnap.exists ? tenantSnap.data().emailSetup : null;
+
+  if (setup && setup.provider === 'SMTP' && setup.smtp && setup.smtp.host) {
+    return nodemailer.createTransport({
+      host: setup.smtp.host,
+      port: parseInt(setup.smtp.port) || 587,
+      secure: setup.smtp.secure !== false,
+      auth: {
+        user: setup.smtp.user,
+        pass: setup.smtp.pass
+      }
+    });
+  }
+
+  // Fallback to system default
+  const systemSnap = await db.collection('system').doc('integrations').get();
+  const config = systemSnap.exists ? systemSnap.data().default_smtp : null;
+  if (!config) {
+    throw new Error("No email configuration found for this tenant. Please configure SMTP in Company settings.");
+  }
+  return nodemailer.createTransport(config);
+}
+
+/**
+ * Basic HTML renderer for campaign rows.
+ */
+function renderEmailBody(rows) {
+  let html = `<div style="max-width: 600px; margin: 0 auto; font-family: 'Inter', Helvetica, Arial, sans-serif; background: #ffffff; color: #1F2937;">`;
+  (rows || []).forEach(row => {
+    switch(row.type) {
+      case 'paragraph':
+        html += `<div style="padding: 16px 32px; line-height: 1.6; font-size: 14px;">${row.content.html || ''}</div>`;
+        break;
+      case 'image':
+        if (row.content.banner) {
+          html += `<div style="background: ${row.content.bg || '#1c170f'}; padding: 45px 25px; text-align: right; color: #ffffff; font-weight: 800; font-size: 14px; letter-spacing: 1px;">${(row.content.bannerText || '').toUpperCase()}</div>`;
+        } else if (row.content.imageUrl) {
+          html += `<div style="padding: 12px; text-align: ${row.content.align || 'center'};"><img src="${row.content.imageUrl}" style="max-width: 100%; border-radius: 4px; height: auto;" /></div>`;
+        }
+        break;
+      case 'footer':
+        html += `<div style="background: ${row.content.bg || '#1c170f'}; padding: 30px; color: #ffffff; display: table; width: 100%; box-sizing: border-box;">
+          <div style="display: table-cell; vertical-align: middle; font-size: 13px; opacity: 0.9;">${(row.content.leftText || '').replace(/\n/g, '<br/>')}</div>
+          <div style="display: table-cell; vertical-align: middle; text-align: right; font-size: 12px;">${(row.content.rightText || '').replace(/\n/g, '<br/>')}</div>
+        </div>`;
+        break;
+      case 'columns':
+        html += `<table width="100%" cellpadding="0" cellspacing="0"><tr>`;
+        (row.content.columns || []).forEach(col => {
+          html += `<td style="vertical-align: top; padding: 10px;">${renderEmailBody(col.blocks)}</td>`;
+        });
+        html += `</tr></table>`;
+        break;
+    }
+  });
+  html += `</div>`;
+  return html;
+}
+
+/**
+ * cloud function: sendTestEmail
+ * Triggers a real email using the tenant's chosen SMTP or platform ESP.
+ */
+exports.sendTestEmail = functions.https.onCall(async (data, context) => {
+  if (!context.auth) throw new functions.https.HttpsError('unauthenticated', 'Login required.');
+  
+  const { tenantId, recipientEmail, subject, rows, fromName, fromEmail, replyTo } = data;
+  if (!tenantId || !recipientEmail) throw new functions.https.HttpsError('invalid-argument', 'Missing tenantId or recipientEmail.');
+
+  try {
+    const transporter = await getTransporter(tenantId);
+    const htmlBody = renderEmailBody(rows);
+
+    await transporter.sendMail({
+      from: `"${fromName || 'American Vision Group'}" <${fromEmail}>`,
+      to: recipientEmail,
+      replyTo: replyTo || fromEmail,
+      subject: subject || "Test Email",
+      html: htmlBody
+    });
+
+    return { success: true };
+  } catch (err) {
+    console.error("sendTestEmail Error:", err);
+    throw new functions.https.HttpsError('internal', err.message);
   }
 });

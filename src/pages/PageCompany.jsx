@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React from "react";
 import { db } from "../firebase";
 import { doc, getDoc, updateDoc, serverTimestamp } from "firebase/firestore";
 import { useAuth } from "../AuthContext";
@@ -8,17 +8,17 @@ import { uploadFile } from "../utils/storageUtils";
 export default function PageCompany({ t, isDark, activeTenantId = "", USERS = [], CONTACTS = [] }) {
     const { user, profile, tenantId: authTenantId, isSuperAdmin } = useAuth();
     const tenantId = activeTenantId || authTenantId;
-    const [saving, setSaving] = useState(false);
-    const [toast, setToast] = useState(null);
-    const [showOwnerSearch, setShowOwnerSearch] = useState(false);
-    const [ownerSearch, setOwnerSearch] = useState("");
+    const [saving, setSaving] = React.useState(false);
+    const [toast, setToast] = React.useState(null);
+    const [showOwnerSearch, setShowOwnerSearch] = React.useState(false);
+    const [ownerSearch, setOwnerSearch] = React.useState("");
 
     const showToast = (msg, type = "success") => {
         setToast({ msg, type });
         setTimeout(() => setToast(null), 4000);
     };
 
-    const [data, setData] = useState({
+    const [data, setData] = React.useState({
         name: "",
         logo: "",
         email: "",
@@ -32,9 +32,19 @@ export default function PageCompany({ t, isDark, activeTenantId = "", USERS = []
         home_page: "",
         owner: "",
         _origOwner: "",
+        emailSetup: {
+            provider: "ESP",
+            smtp: {
+                host: "",
+                port: "587",
+                user: "",
+                pass: "",
+                secure: true
+            }
+        }
     });
 
-    useEffect(() => {
+    React.useEffect(() => {
         if (tenantId) {
             getDoc(doc(db, "tenants", tenantId)).then(snap => {
                 if (snap.exists()) {
@@ -44,7 +54,6 @@ export default function PageCompany({ t, isDark, activeTenantId = "", USERS = []
                         logo: d.tenant_logo || d.logo || "",
                         email: d.tenant_email || d.email || "",
                         phone: d.tenant_phone || d.phone || "",
-                        address: d.address || d.address1 || "",
                         address1: d.address || d.address1 || "",
                         address2: d.address2 || "",
                         city: d.city || "",
@@ -54,13 +63,23 @@ export default function PageCompany({ t, isDark, activeTenantId = "", USERS = []
                         home_page: d.home_page || "",
                         owner: d.owner || d.owner_id || "",
                         _origOwner: d.owner || d.owner_id || "",
+                        emailSetup: d.emailSetup || {
+                            provider: "ESP",
+                            smtp: {
+                                host: "",
+                                port: "587",
+                                user: "",
+                                pass: "",
+                                secure: true
+                            }
+                        }
                     });
                 }
             }).catch(e => console.error("Error fetching tenant data:", e));
         }
     }, [tenantId]);
 
-    const resolvedOwnerName = useMemo(() => {
+    const resolvedOwnerName = React.useMemo(() => {
         if (!data.owner) return "—";
         const all = [...USERS, ...CONTACTS];
         const found = all.find(u => u.id === data.owner || u.auth_uid === data.owner || u.email === data.owner);
@@ -70,7 +89,7 @@ export default function PageCompany({ t, isDark, activeTenantId = "", USERS = []
         return data.owner;
     }, [data.owner, USERS, CONTACTS]);
 
-    const filteredOwnerResults = useMemo(() => {
+    const filteredOwnerResults = React.useMemo(() => {
         if (!ownerSearch) return [...USERS, ...CONTACTS].slice(0, 50);
         const q = ownerSearch.toLowerCase();
         return [...USERS, ...CONTACTS].filter(u => {
@@ -82,12 +101,10 @@ export default function PageCompany({ t, isDark, activeTenantId = "", USERS = []
     const handlePhotoChange = async (e) => {
         const file = e.target.files[0];
         if (!file) return;
-
         if (file.size > 2 * 1024 * 1024) {
             showToast("File is too large! Please choose an image under 2MB.", "error");
             return;
         }
-
         try {
             const path = `tenants/${tenantId}/branding/logo_${Date.now()}`;
             const url = await uploadFile(file, path);
@@ -103,31 +120,24 @@ export default function PageCompany({ t, isDark, activeTenantId = "", USERS = []
         if (!tenantId) return;
         setSaving(true);
         try {
-            // Check for Ownership transfer
             const isNewOwner = data.owner && data.owner !== data._origOwner;
             if (isNewOwner) {
                 const iAmOwner = profile?.role_id === "R10005" || profile?.role === "R10005";
                 if (!iAmOwner && !isSuperAdmin) {
                     showToast("Only the current Owner or a Super Admin can transfer ownership.", "error");
-                    setSaving(false);
-                    return;
+                    setSaving(false); return;
                 }
-
-                // 1. Demote old owner(s)
                 const existingOwners = USERS.filter(u => u.role_id === "R10005" && u.id !== data.owner);
                 for (const old of existingOwners) {
                     await updateDoc(doc(db, "tenants", tenantId, "users", old.id), { role_id: "R10004", updated_at: serverTimestamp() });
                     await updateDoc(doc(db, "global_users", old.auth_uid || old.id), { role: "R10004", last_updated: serverTimestamp() });
                 }
-
-                // 2. Promote new owner
                 const newOwnerInTenant = USERS.find(u => u.id === data.owner || u.auth_uid === data.owner);
                 if (newOwnerInTenant) {
                     await updateDoc(doc(db, "tenants", tenantId, "users", newOwnerInTenant.id), { role_id: "R10005", updated_at: serverTimestamp() });
                     await updateDoc(doc(db, "global_users", newOwnerInTenant.auth_uid || newOwnerInTenant.id), { role: "R10005", last_updated: serverTimestamp() });
                 }
             }
-
             await updateDoc(doc(db, "tenants", tenantId), {
                 tenant_name: data.name,
                 tenant_logo: data.logo,
@@ -142,9 +152,9 @@ export default function PageCompany({ t, isDark, activeTenantId = "", USERS = []
                 home_page: data.home_page,
                 owner: data.owner,
                 owner_id: data.owner,
+                emailSetup: data.emailSetup,
                 updated_at: serverTimestamp()
             });
-
             setData(s => ({ ...s, _origOwner: data.owner }));
             showToast("Company information updated successfully.");
         } catch (err) {
@@ -185,12 +195,8 @@ export default function PageCompany({ t, isDark, activeTenantId = "", USERS = []
                         <h3 style={{ fontSize: 17, fontWeight: 700, color: isDark ? "#fff" : "#1C1917", marginBottom: 6 }}>Organization Branding</h3>
                         <p style={{ fontSize: 12.5, color: t.textMuted, lineHeight: 1.5 }}>Set your corporate identity across the platform.</p>
                     </div>
-
                     <div style={{ display: "grid", gap: 24 }}>
-                        <FF label="Organization Name" t={t}>
-                            <FIn value={data.name} onChange={e => setData(p => ({ ...p, name: e.target.value }))} placeholder="Organization Name" t={t} />
-                        </FF>
-
+                        <FF label="Organization Name" t={t}><FIn value={data.name} onChange={e => setData(p => ({ ...p, name: e.target.value }))} placeholder="Organization Name" t={t} /></FF>
                         <FF label="Organization Logo" t={t}>
                             <div style={{ background: isDark ? "rgba(255,255,255,0.02)" : "#FAFAF9", border: `1px dashed ${t.border}`, borderRadius: 16, padding: 32, display: "flex", flexDirection: "column", alignItems: "center", gap: 16, textAlign: "center" }}>
                                 {data.logo ? (
@@ -203,9 +209,7 @@ export default function PageCompany({ t, isDark, activeTenantId = "", USERS = []
                                 )}
                                 <div style={{ marginTop: 8 }}>
                                     <input type="file" id="company-logo-upload" accept="image/*" onChange={handlePhotoChange} style={{ display: "none" }} />
-                                    <label htmlFor="company-logo-upload" style={{ background: t.accentGrad, color: "#fff", padding: "10px 22px", borderRadius: 10, fontSize: 13.5, fontWeight: 600, cursor: "pointer", display: "inline-block" }}>
-                                        {data.logo ? "Replace Logo" : "Upload Logo"}
-                                    </label>
+                                    <label htmlFor="company-logo-upload" style={{ background: t.accentGrad, color: "#fff", padding: "10px 22px", borderRadius: 10, fontSize: 13.5, fontWeight: 600, cursor: "pointer", display: "inline-block" }}>{data.logo ? "Replace Logo" : "Upload Logo"}</label>
                                     <p style={{ fontSize: 11, color: t.textMuted, marginTop: 12, fontWeight: 500 }}>High resolution PNG/JPEG (Max 2MB)</p>
                                 </div>
                             </div>
@@ -219,7 +223,6 @@ export default function PageCompany({ t, isDark, activeTenantId = "", USERS = []
                         <h3 style={{ fontSize: 17, fontWeight: 700, color: isDark ? "#fff" : "#1C1917", marginBottom: 6 }}>Company Information</h3>
                         <p style={{ fontSize: 12.5, color: t.textMuted, lineHeight: 1.5 }}>Official contact and location details for your organization.</p>
                     </div>
-
                     <div style={{ display: "grid", gap: 20 }}>
                         <div style={{ display: "grid", gap: 16 }}>
                             <div style={{ fontSize: 13, fontWeight: 700, color: t.text, marginBottom: -4 }}>Contact Details</div>
@@ -227,9 +230,7 @@ export default function PageCompany({ t, isDark, activeTenantId = "", USERS = []
                             <FF label="Public Phone" t={t}><FIn value={data.phone} onChange={e => setData(s => ({ ...s, phone: e.target.value }))} placeholder="e.g. +1 555 000 0000" t={t} /></FF>
                             <FF label="Website / Home Page" t={t}><FIn value={data.home_page} onChange={e => setData(s => ({ ...s, home_page: e.target.value }))} placeholder="https://www.company.com" t={t} /></FF>
                         </div>
-
                         <div style={{ height: 1, background: t.border, opacity: 0.5, margin: "8px 0" }} />
-
                         <div style={{ display: "grid", gap: 16 }}>
                             <div style={{ fontSize: 13, fontWeight: 700, color: t.text, marginBottom: -4 }}>Location</div>
                             <FF label="Street Address" t={t}><FIn value={data.address1} onChange={e => setData(s => ({ ...s, address1: e.target.value }))} placeholder="Address line 1" t={t} /></FF>
@@ -243,47 +244,23 @@ export default function PageCompany({ t, isDark, activeTenantId = "", USERS = []
                                 <FF label="Country" t={t}><FIn value={data.country} onChange={e => setData(s => ({ ...s, country: e.target.value }))} placeholder="Country" t={t} /></FF>
                             </div>
                         </div>
-
                         <div style={{ height: 1, background: t.border, opacity: 0.5, margin: "8px 0" }} />
-
                         <FF label="Owner / Principal" t={t}>
                             <div style={{ position: "relative" }}>
-                                <div 
-                                    onClick={() => setShowOwnerSearch(!showOwnerSearch)}
-                                    style={{ 
-                                        width: "100%", padding: "10px 14px", borderRadius: 9, 
-                                        border: `1px solid ${t.border}`, background: isDark ? "rgba(255,255,255,0.05)" : "#fff", 
-                                        color: t.text, cursor: "pointer", fontSize: 14, display: "flex", alignItems: "center", justifyContent: "space-between" 
-                                    }}
-                                >
-                                    <span>{resolvedOwnerName}</span>
-                                    <span style={{ fontSize: 10, opacity: 0.5 }}>▼</span>
+                                <div onClick={() => setShowOwnerSearch(!showOwnerSearch)} style={{ width: "100%", padding: "10px 14px", borderRadius: 9, border: `1px solid ${t.border}`, background: isDark ? "rgba(255,255,255,0.05)" : "#fff", color: t.text, cursor: "pointer", fontSize: 14, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                                    <span>{resolvedOwnerName}</span><span style={{ fontSize: 10, opacity: 0.5 }}>▼</span>
                                 </div>
                                 {showOwnerSearch && (
                                     <div style={{ position: "absolute", top: "100%", left: 0, right: 0, background: t.surface, border: `1px solid ${t.border}`, borderRadius: 12, marginTop: 6, zIndex: 100, boxShadow: "0 12px 32px rgba(0,0,0,0.25)", overflow: "hidden" }}>
-                                        <input 
-                                            autoFocus
-                                            value={ownerSearch}
-                                            onChange={e => setOwnerSearch(e.target.value)}
-                                            placeholder="Search directory..."
-                                            style={{ width: "100%", padding: "12px 16px", border: "none", borderBottom: `1px solid ${t.border}`, background: "transparent", color: t.text, outline: "none" }}
-                                        />
+                                        <input autoFocus value={ownerSearch} onChange={e => setOwnerSearch(e.target.value)} placeholder="Search directory..." style={{ width: "100%", padding: "12px 16px", border: "none", borderBottom: `1px solid ${t.border}`, background: "transparent", color: t.text, outline: "none" }} />
                                         <div style={{ maxHeight: 240, overflowY: "auto" }}>
                                             {filteredOwnerResults.map(u => {
                                                 const uName = [u.first_name, u.last_name].filter(Boolean).join(" ") || u.name || u.contact_name || u.email || "—";
                                                 const uId = u.id || u.auth_uid;
                                                 return (
-                                                    <div 
-                                                        key={uId}
-                                                        onClick={() => {
-                                                            setData(s => ({ ...s, owner: uId }));
-                                                            setShowOwnerSearch(false);
-                                                            setOwnerSearch("");
-                                                        }}
+                                                    <div key={uId} onClick={() => { setData(s => ({ ...s, owner: uId })); setShowOwnerSearch(false); setOwnerSearch(""); }}
                                                         style={{ padding: "10px 16px", cursor: "pointer", borderBottom: `1px solid ${isDark ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.03)"}`, background: data.owner === uId ? t.navActive : "transparent" }}
-                                                        onMouseEnter={e => e.currentTarget.style.background = t.navHover}
-                                                        onMouseLeave={e => e.currentTarget.style.background = data.owner === uId ? t.navActive : "transparent"}
-                                                    >
+                                                        onMouseEnter={e => e.currentTarget.style.background = t.navHover} onMouseLeave={e => e.currentTarget.style.background = data.owner === uId ? t.navActive : "transparent"}>
                                                         <div style={{ fontSize: 13, fontWeight: 600, color: t.text }}>{uName}</div>
                                                         <div style={{ fontSize: 11, color: t.textMuted }}>{u.email}</div>
                                                     </div>
@@ -294,12 +271,53 @@ export default function PageCompany({ t, isDark, activeTenantId = "", USERS = []
                                 )}
                             </div>
                         </FF>
-
-                        <button onClick={handleSave} disabled={saving} className="primary-btn" style={{ background: t.accentGrad, color: "#fff", border: "none", padding: "12px 24px", borderRadius: 12, fontSize: 14, fontWeight: 600, cursor: saving ? "default" : "pointer", opacity: saving ? 0.6 : 1, marginTop: 12 }}>
-                            {saving ? "Saving..." : "Save Company Information"}
-                        </button>
                     </div>
                 </div>
+            </div>
+
+            <div style={{ background: t.surface, borderRadius: 16, border: `1px solid ${t.surfaceBorder}`, padding: 32, boxShadow: t.tableShadow, marginTop: 32 }}>
+                <div style={{ marginBottom: 24 }}>
+                    <h3 style={{ fontSize: 17, fontWeight: 700, color: isDark ? "#fff" : "#1C1917", marginBottom: 6 }}>Email Setup</h3>
+                    <p style={{ fontSize: 12.5, color: t.textMuted, lineHeight: 1.5 }}>Configure how your marketing and system emails are delivered.</p>
+                </div>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 32 }}>
+                    <div>
+                        <FF label="Delivery Method" t={t}>
+                            <div style={{ display: "flex", gap: 8, background: isDark ? "rgba(255,255,255,0.05)" : "#F3F4F6", padding: 4, borderRadius: 10 }}>
+                                <button onClick={() => setData(s => ({ ...s, emailSetup: { ...s.emailSetup, provider: "ESP" }}))}
+                                    style={{ flex: 1, padding: "8px 0", borderRadius: 8, border: "none", fontSize: 13, fontWeight: 600, cursor: "pointer", background: data.emailSetup.provider === "ESP" ? t.accentGrad : "transparent", color: data.emailSetup.provider === "ESP" ? "#fff" : t.textMuted }}>Email Service Provider</button>
+                                <button onClick={() => setData(s => ({ ...s, emailSetup: { ...s.emailSetup, provider: "SMTP" }}))}
+                                    style={{ flex: 1, padding: "8px 0", borderRadius: 8, border: "none", fontSize: 13, fontWeight: 600, cursor: "pointer", background: data.emailSetup.provider === "SMTP" ? t.accentGrad : "transparent", color: data.emailSetup.provider === "SMTP" ? "#fff" : t.textMuted }}>Custom SMTP</button>
+                            </div>
+                        </FF>
+                        {data.emailSetup.provider === "ESP" && (
+                            <div style={{ marginTop: 16, padding: 16, background: isDark ? "rgba(34,197,94,0.1)" : "#F0FDF4", borderRadius: 12, border: `1px solid ${isDark ? "rgba(34,197,94,0.2)" : "#DCFCE7"}` }}>
+                                <div style={{ fontSize: 13, fontWeight: 700, color: isDark ? "#4ADE80" : "#166534", marginBottom: 4 }}>Native Infrastructure Active</div>
+                                <div style={{ fontSize: 12, color: isDark ? "#86EFAC" : "#15803D", lineHeight: 1.5 }}>Emails will be delivered via the platform's high-reputation delivery nodes. No further configuration required.</div>
+                            </div>
+                        )}
+                    </div>
+                    {data.emailSetup.provider === "SMTP" && (
+                        <div style={{ display: "grid", gap: 16 }}>
+                            <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 12 }}>
+                                <FF label="SMTP Host" t={t}><FIn value={data.emailSetup.smtp.host} onChange={e => setData(s => ({ ...s, emailSetup: { ...s.emailSetup, smtp: { ...s.emailSetup.smtp, host: e.target.value } }}))} placeholder="smtp.provider.com" t={t} /></FF>
+                                <FF label="Port" t={t}><FIn value={data.emailSetup.smtp.port} onChange={e => setData(s => ({ ...s, emailSetup: { ...s.emailSetup, smtp: { ...s.emailSetup.smtp, port: e.target.value } }}))} placeholder="587" t={t} /></FF>
+                            </div>
+                            <FF label="SMTP Username" t={t}><FIn value={data.emailSetup.smtp.user} onChange={e => setData(s => ({ ...s, emailSetup: { ...s.emailSetup, smtp: { ...s.emailSetup.smtp, user: e.target.value } }}))} placeholder="username@provider.com" t={t} /></FF>
+                            <FF label="SMTP Password" t={t}><FIn type="password" value={data.emailSetup.smtp.pass} onChange={e => setData(s => ({ ...s, emailSetup: { ...s.emailSetup, smtp: { ...s.emailSetup.smtp, pass: e.target.value } }}))} placeholder="••••••••" t={t} /></FF>
+                            <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer", marginTop: 4 }}>
+                                <input type="checkbox" checked={data.emailSetup.smtp.secure} onChange={e => setData(s => ({ ...s, emailSetup: { ...s.emailSetup, smtp: { ...s.emailSetup.smtp, secure: e.target.checked } }}))} style={{ width: 16, height: 16, accentColor: t.accent }} />
+                                <span style={{ fontSize: 13, fontWeight: 500, color: t.text }}>Use TLS / SSL for secure connection</span>
+                            </label>
+                        </div>
+                    )}
+                </div>
+            </div>
+
+            <div style={{ marginTop: 32, display: "flex", justifyContent: "flex-end", paddingBottom: 60 }}>
+                <button onClick={handleSave} disabled={saving} className="primary-btn" style={{ background: t.accentGrad, color: "#fff", border: "none", padding: "14px 40px", borderRadius: 12, fontSize: 14, fontWeight: 700, cursor: saving ? "default" : "pointer", boxShadow: `0 8px 20px ${t.accentShadow}` }}>
+                    {saving ? "Saving Changes..." : "Apply Global Settings"}
+                </button>
             </div>
         </div>
     );

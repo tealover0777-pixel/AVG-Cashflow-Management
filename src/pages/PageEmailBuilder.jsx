@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import { doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
 import { ref, uploadBytesResumable, uploadBytes, getDownloadURL, listAll, deleteObject } from "firebase/storage";
-import { db, storage } from "../firebase";
+import { httpsCallable } from "firebase/functions";
+import { db, storage, functions } from "../firebase";
 import { useAuth } from "../AuthContext";
 import {
   ChevronLeft, ChevronDown, Edit2, UploadCloud, FileEdit, Smartphone, Monitor, Save,
@@ -206,6 +207,30 @@ export default function PageEmailBuilder(props) {
         });
       }
     );
+  };
+
+  const handleSendTestEmail = async (recipient) => {
+    if (!recipient) return;
+    try {
+      const sendTest = httpsCallable(functions, "sendTestEmail");
+      const effectiveTenantId = tenantId || (activeTenantIdProp && activeTenantIdProp !== "GLOBAL" ? activeTenantIdProp : "");
+      
+      await sendTest({
+        tenantId: effectiveTenantId,
+        recipientEmail: recipient,
+        subject: emailSettings.subject || emailName,
+        rows: rows,
+        fromName: emailSettings.fromName,
+        fromEmail: emailSettings.from,
+        replyTo: emailSettings.replyTo
+      });
+      
+      setTestSentTo(recipient);
+      showToast(`Test email sent to ${recipient}`, "success");
+    } catch (err) {
+      console.error("Test send error:", err);
+      showToast("Failed to send test email: " + (err.message || "Unknown error"), "error");
+    }
   };
 
   const handleSave = async (asNew = false, asNewName = null, settingsOverride = null) => {
@@ -590,7 +615,7 @@ export default function PageEmailBuilder(props) {
                       const email = u.email || "";
                       const sent = testSentTo === email;
                       return (
-                        <div key={u.id || i} onClick={() => { setTestSentTo(email); showToast(`Test email sent to ${email || name}`, "success"); setShowTestDropdown(false); setTestSearch(""); }}
+                        <div key={u.id || i} onClick={() => { handleSendTestEmail(email); setShowTestDropdown(false); setTestSearch(""); }}
                           style={{ padding: "8px 10px", borderRadius: 7, cursor: "pointer", display: "flex", alignItems: "center", gap: 8, background: sent ? (isDark ? "rgba(34,197,94,0.1)" : "#f0fdf4") : "transparent" }}
                           onMouseEnter={e => { if (!sent) e.currentTarget.style.background = isDark ? "rgba(255,255,255,0.05)" : "#f3f4f6"; }}
                           onMouseLeave={e => { e.currentTarget.style.background = sent ? (isDark ? "rgba(34,197,94,0.1)" : "#f0fdf4") : "transparent"; }}>
