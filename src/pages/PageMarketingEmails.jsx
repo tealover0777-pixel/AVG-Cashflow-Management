@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useRef, useEffect } from "react";
+import ReactDOM from "react-dom";
 import { Plus, Search, FileText, Send, Inbox, LayoutTemplate, X, ChevronRight, Trash2, MoreHorizontal, Clock, Edit2, Copy, Save } from "lucide-react";
 import { TanStackTable, PromptModal, DelModal } from "../components";
 import { db, storage } from "../firebase";
@@ -14,6 +15,7 @@ const formatDate = (dateStr) => {
 
 const ActionCell = ({ row, isDark, t, actions }) => {
   const [showMenu, setShowMenu] = useState(false);
+  const [coords, setCoords] = useState({ top: 0, left: 0 });
   const menuRef = useRef(null);
 
   useEffect(() => {
@@ -24,22 +26,34 @@ const ActionCell = ({ row, isDark, t, actions }) => {
 
   const email = row.original;
 
+  const toggleMenu = (e) => {
+    e.stopPropagation();
+    if (!showMenu) {
+      const rect = e.currentTarget.getBoundingClientRect();
+      setCoords({
+        top: rect.bottom + window.scrollY + 4,
+        left: rect.right + window.scrollX - 190
+      });
+    }
+    setShowMenu(!showMenu);
+  };
+
   return (
     <div style={{ position: "relative" }} ref={menuRef}>
       <button
-        onClick={(e) => { e.stopPropagation(); setShowMenu(!showMenu); }}
+        onClick={toggleMenu}
         style={{ background: "none", border: "none", color: t.textMuted, cursor: "pointer", padding: 4, borderRadius: 4, display: "flex", alignItems: "center" }}
         onMouseEnter={e => e.currentTarget.style.background = isDark ? "#333" : "#F3F4F6"}
         onMouseLeave={e => e.currentTarget.style.background = "none"}
       >
         <MoreHorizontal size={16} />
       </button>
-      {showMenu && (
+      {showMenu && ReactDOM.createPortal(
         <div style={{
-          position: "absolute", top: "calc(100% + 4px)", right: 0, width: 190,
+          position: "absolute", top: coords.top, left: coords.left, width: 190,
           background: isDark ? "#1e293b" : "#fff", border: `1px solid ${t.border}`,
-          borderRadius: 8, boxShadow: "0 10px 25px rgba(0,0,0,0.2)", zIndex: 100,
-          padding: 4, overflow: "hidden"
+          borderRadius: 8, boxShadow: "0 10px 25px rgba(0,0,0,0.2)", zIndex: 99999,
+          padding: 4, overflow: "hidden", pointerEvents: "auto"
         }}>
           {[
             { label: "Edit name", icon: Edit2, action: () => actions.onEditName(email) },
@@ -60,7 +74,8 @@ const ActionCell = ({ row, isDark, t, actions }) => {
               <m.icon size={13} strokeWidth={2} /> {m.label}
             </button>
           ))}
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
