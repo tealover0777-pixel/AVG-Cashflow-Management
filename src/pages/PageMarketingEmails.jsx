@@ -7,10 +7,23 @@ import { collection, addDoc, serverTimestamp, doc, updateDoc, deleteDoc, getDoc 
 import { ref, uploadBytes } from "firebase/storage";
 import { getCollectionPaths } from "../utils";
 
-const formatDate = (dateStr) => {
-  if (!dateStr) return "";
-  const d = new Date(dateStr);
-  return d.toLocaleString("en-US", { month: "numeric", day: "numeric", year: "numeric", hour: "numeric", minute: "numeric", hour12: true });
+const formatDate = (dateVal) => {
+  if (!dateVal) return "";
+  let d = dateVal;
+  // Handle Firestore Timestamp
+  if (dateVal && typeof dateVal.toDate === "function") {
+    d = dateVal.toDate();
+  } else if (typeof dateVal === "string") {
+    d = new Date(dateVal);
+  }
+  
+  const finalDate = new Date(d);
+  if (isNaN(finalDate.getTime())) return "—";
+
+  return finalDate.toLocaleString("en-US", { 
+    month: "numeric", day: "numeric", year: "numeric", 
+    hour: "numeric", minute: "numeric", hour12: true 
+  });
 };
 
 const ActionCell = ({ row, isDark, t, actions }) => {
