@@ -207,7 +207,7 @@ export default function PageEmailBuilder(props) {
     );
   };
 
-  const handleSave = async (asNew = false, asNewName = null) => {
+  const handleSave = async (asNew = false, asNewName = null, settingsOverride = null) => {
     // If handleSave is called directly by onClick={handleSave}, asNew will be the event object.
     const saveAsNew = (typeof asNew === "boolean") ? asNew : false;
 
@@ -224,7 +224,7 @@ export default function PageEmailBuilder(props) {
 
       const templateData = {
         name: targetName,
-        settings: emailSettings,
+        settings: settingsOverride || emailSettings,
         rows: rows,
         updatedAt: new Date().toISOString(),
         updatedBy: profile?.email || "unknown",
@@ -243,7 +243,8 @@ export default function PageEmailBuilder(props) {
         await updateDoc(docRef, {
           title: targetName,
           rows: rows,
-          settings: emailSettings,
+          settings: settingsOverride || emailSettings,
+          status: (settingsOverride || emailSettings).status || "Draft",
           updatedAt: new Date().toISOString()
         });
         showToast("Draft updated successfully!", "success");
@@ -621,10 +622,22 @@ export default function PageEmailBuilder(props) {
               {showSendDropdown && (
                 <div style={{ position: "absolute", top: "calc(100% + 6px)", right: 0, width: 175, background: isDark ? "#1e293b" : "#fff", border: `1px solid ${t.border}`, borderRadius: 10, boxShadow: "0 8px 24px rgba(0,0,0,0.18)", zIndex: 500, overflow: "hidden" }}>
                   {(Array.isArray([
-                    { label: "Send now", icon: Send, action: () => { showToast("Email sent!", "success"); setShowSendDropdown(false); } },
+                    { label: "Send now", icon: Send, action: async () => {
+                      const newSettings = { ...emailSettings, status: "Sent", sentAt: new Date().toISOString() };
+                      setEmailSettings(newSettings);
+                      await handleSave(false, null, newSettings);
+                      showToast("Email sent!", "success");
+                      setShowSendDropdown(false);
+                    } },
                     { label: "Schedule", icon: Clock, action: () => { setScheduleData(d => ({ ...d, subject: emailSettings.subject || emailName })); setShowScheduleModal(true); setShowSendDropdown(false); } },
                   ]) ? [
-                    { label: "Send now", icon: Send, action: () => { showToast("Email sent!", "success"); setShowSendDropdown(false); } },
+                    { label: "Send now", icon: Send, action: async () => {
+                      const newSettings = { ...emailSettings, status: "Sent", sentAt: new Date().toISOString() };
+                      setEmailSettings(newSettings);
+                      await handleSave(false, null, newSettings);
+                      showToast("Email sent!", "success");
+                      setShowSendDropdown(false);
+                    } },
                     { label: "Schedule", icon: Clock, action: () => { setScheduleData(d => ({ ...d, subject: emailSettings.subject || emailName })); setShowScheduleModal(true); setShowSendDropdown(false); } },
                   ] : []).map(({ label, icon: Icon, action }) => (
                     <button key={label} onClick={action}
@@ -917,7 +930,11 @@ export default function PageEmailBuilder(props) {
               </button>
               <button
                 disabled={!scheduleData.date || !scheduleData.time || scheduleData.recipients.length === 0}
-                onClick={() => {
+                onClick={async () => {
+                  const scheduledAt = `${scheduleData.date}T${scheduleData.time}:00`;
+                  const newSettings = { ...emailSettings, status: "Scheduled", scheduledAt };
+                  setEmailSettings(newSettings);
+                  await handleSave(false, null, newSettings);
                   showToast(`Scheduled for ${scheduleData.date} at ${scheduleData.time} ET`, "success");
                   setShowScheduleModal(false);
                 }}
