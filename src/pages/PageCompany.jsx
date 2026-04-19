@@ -261,7 +261,8 @@ export default function PageCompany({ t, isDark, activeTenantId = "", USERS = []
         }));
     };
 
-    const PROVIDERS = ["SendGrid", "Mailgun", "Amazon SES", "Other / Custom API"];
+    const PROVIDERS = ["SendGrid", "Mailgun", "Amazon SES", "Other / Custom API"];    const [activeTab, setActiveTab] = React.useState("General");
+    const TABS = ["General", "Email", "ACH"];
 
     return (
         <div style={{ maxWidth: 1200, margin: "0 auto" }}>
@@ -281,225 +282,258 @@ export default function PageCompany({ t, isDark, activeTenantId = "", USERS = []
                 </div>
             )}
 
-            <div style={{ marginBottom: 28 }}>
+            <div style={{ marginBottom: 20 }}>
                 <h1 style={{ fontFamily: t.titleFont, fontWeight: t.titleWeight, fontSize: t.titleSize, color: isDark ? "#fff" : "#1C1917", letterSpacing: t.titleTracking, lineHeight: 1, marginBottom: 6 }}>Company</h1>
                 <p style={{ fontSize: 13.5, color: t.textMuted }}>Manage organization branding and corporate information</p>
             </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 32, alignItems: "start" }}>
-                {/* Branding Section */}
-                <div style={{ background: t.surface, borderRadius: 16, border: `1px solid ${t.surfaceBorder}`, padding: 32, boxShadow: t.tableShadow }}>
-                    <div style={{ marginBottom: 24 }}>
-                        <h3 style={{ fontSize: 17, fontWeight: 700, color: isDark ? "#fff" : "#1C1917", marginBottom: 6 }}>Organization Branding</h3>
-                        <p style={{ fontSize: 12.5, color: t.textMuted, lineHeight: 1.5 }}>Set your corporate identity across the platform.</p>
-                    </div>
-                    <div style={{ display: "grid", gap: 24 }}>
-                        <FF label="Organization Name" t={t}><FIn value={data.name} onChange={e => setData(p => ({ ...p, name: e.target.value }))} placeholder="Organization Name" t={t} /></FF>
-                        <FF label="Organization Logo" t={t}>
-                            <div style={{ background: isDark ? "rgba(255,255,255,0.02)" : "#FAFAF9", border: `1px dashed ${t.border}`, borderRadius: 16, padding: 32, display: "flex", flexDirection: "column", alignItems: "center", gap: 16, textAlign: "center" }}>
-                                {data.logo ? (
-                                    <div style={{ position: "relative" }}>
-                                        <img src={data.logo} alt="Logo" style={{ maxWidth: "100%", maxHeight: 120, borderRadius: 8, boxShadow: "0 8px 24px rgba(0,0,0,0.12)" }} />
-                                        <button onClick={() => setData(p => ({ ...p, logo: "" }))} style={{ position: "absolute", top: -12, right: -12, background: "#EF4444", color: "#fff", border: "2px solid #fff", borderRadius: "50%", width: 26, height: 26, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15, fontWeight: 800 }}>×</button>
-                                    </div>
-                                ) : (
-                                    <div style={{ width: 90, height: 90, borderRadius: 20, background: isDark ? "rgba(255,255,255,0.05)" : "#F3F4F6", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 40 }}>🏢</div>
-                                )}
-                                <div style={{ marginTop: 8 }}>
-                                    <input type="file" id="company-logo-upload" accept="image/*" onChange={handlePhotoChange} style={{ display: "none" }} />
-                                    <label htmlFor="company-logo-upload" style={{ background: t.accentGrad, color: "#fff", padding: "10px 22px", borderRadius: 10, fontSize: 13.5, fontWeight: 600, cursor: "pointer", display: "inline-block" }}>{data.logo ? "Replace Logo" : "Upload Logo"}</label>
-                                    <p style={{ fontSize: 11, color: t.textMuted, marginTop: 12, fontWeight: 500 }}>High resolution PNG/JPEG (Max 2MB)</p>
-                                </div>
-                            </div>
-                        </FF>
-                    </div>
-                </div>
+            {/* Tab Bar */}
+            <div style={{ display: "flex", gap: 8, marginBottom: 28, borderBottom: `1px solid ${t.border}`, paddingBottom: 0 }}>
+                {TABS.map(tab => {
+                    const isActive = activeTab === tab;
+                    return (
+                        <button
+                            key={tab}
+                            onClick={() => setActiveTab(tab)}
+                            style={{
+                                padding: "10px 24px",
+                                background: "transparent",
+                                border: "none",
+                                borderBottom: `2px solid ${isActive ? t.accent : "transparent"}`,
+                                color: isActive ? t.accent : t.textMuted,
+                                fontSize: 14,
+                                fontWeight: isActive ? 700 : 500,
+                                cursor: "pointer",
+                                transition: "all 0.2s ease",
+                                marginBottom: -1
+                            }}
+                        >
+                            {tab}
+                        </button>
+                    );
+                })}
+            </div>
 
-                {/* Info Section */}
-                <div style={{ background: t.surface, borderRadius: 16, border: `1px solid ${t.surfaceBorder}`, padding: 32, boxShadow: t.tableShadow }}>
-                    <div style={{ marginBottom: 24 }}>
-                        <h3 style={{ fontSize: 17, fontWeight: 700, color: isDark ? "#fff" : "#1C1917", marginBottom: 6 }}>Company Information</h3>
-                        <p style={{ fontSize: 12.5, color: t.textMuted, lineHeight: 1.5 }}>Official contact and location details for your organization.</p>
-                    </div>
-                    <div style={{ display: "grid", gap: 20 }}>
-                        <div style={{ display: "grid", gap: 16 }}>
-                            <div style={{ fontSize: 13, fontWeight: 700, color: t.text, marginBottom: -4 }}>Contact Details</div>
-                            <FF label="Public Email" t={t}><FIn value={data.email} onChange={e => setData(s => ({ ...s, email: e.target.value }))} placeholder="e.g. contact@company.com" t={t} /></FF>
-                            <FF label="Public Phone" t={t}><FIn value={data.phone} onChange={e => setData(s => ({ ...s, phone: e.target.value }))} placeholder="e.g. +1 555 000 0000" t={t} /></FF>
-                            <FF label="Website / Home Page" t={t}><FIn value={data.home_page} onChange={e => setData(s => ({ ...s, home_page: e.target.value }))} placeholder="https://www.company.com" t={t} /></FF>
+            {activeTab === "General" && (
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 32, alignItems: "start" }}>
+                    {/* Branding Section */}
+                    <div style={{ background: t.surface, borderRadius: 16, border: `1px solid ${t.surfaceBorder}`, padding: 32, boxShadow: t.tableShadow }}>
+                        <div style={{ marginBottom: 24 }}>
+                            <h3 style={{ fontSize: 17, fontWeight: 700, color: isDark ? "#fff" : "#1C1917", marginBottom: 6 }}>Organization Branding</h3>
+                            <p style={{ fontSize: 12.5, color: t.textMuted, lineHeight: 1.5 }}>Set your corporate identity across the platform.</p>
                         </div>
-                        <div style={{ height: 1, background: t.border, opacity: 0.5, margin: "8px 0" }} />
-                        <div style={{ display: "grid", gap: 16 }}>
-                            <div style={{ fontSize: 13, fontWeight: 700, color: t.text, marginBottom: -4 }}>Location</div>
-                            <FF label="Street Address" t={t}><FIn value={data.address1} onChange={e => setData(s => ({ ...s, address1: e.target.value }))} placeholder="Address line 1" t={t} /></FF>
-                            <FF label="Address Line 2" t={t}><FIn value={data.address2} onChange={e => setData(s => ({ ...s, address2: e.target.value }))} placeholder="Suite, floor, etc." t={t} /></FF>
-                            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-                                <FF label="City" t={t}><FIn value={data.city} onChange={e => setData(s => ({ ...s, city: e.target.value }))} placeholder="City" t={t} /></FF>
-                                <FF label="State" t={t}><FIn value={data.state} onChange={e => setData(s => ({ ...s, state: e.target.value }))} placeholder="State" t={t} /></FF>
-                            </div>
-                            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-                                <FF label="Zip Code" t={t}><FIn value={data.zip} onChange={e => setData(s => ({ ...s, zip: e.target.value }))} placeholder="Zip code" t={t} /></FF>
-                                <FF label="Country" t={t}><FIn value={data.country} onChange={e => setData(s => ({ ...s, country: e.target.value }))} placeholder="Country" t={t} /></FF>
-                            </div>
-                        </div>
-                        <div style={{ height: 1, background: t.border, opacity: 0.5, margin: "8px 0" }} />
-                        <FF label="Owner / Principal" t={t}>
-                            <div style={{ position: "relative" }}>
-                                <div onClick={() => setShowOwnerSearch(!showOwnerSearch)} style={{ width: "100%", padding: "10px 14px", borderRadius: 9, border: `1px solid ${t.border}`, background: isDark ? "rgba(255,255,255,0.05)" : "#fff", color: t.text, cursor: "pointer", fontSize: 14, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                                    <span>{resolvedOwnerName}</span><span style={{ fontSize: 10, opacity: 0.5 }}>▼</span>
-                                </div>
-                                {showOwnerSearch && (
-                                    <div style={{ position: "absolute", top: "100%", left: 0, right: 0, background: t.surface, border: `1px solid ${t.border}`, borderRadius: 12, marginTop: 6, zIndex: 100, boxShadow: "0 12px 32px rgba(0,0,0,0.25)", overflow: "hidden" }}>
-                                        <input autoFocus value={ownerSearch} onChange={e => setOwnerSearch(e.target.value)} placeholder="Search directory..." style={{ width: "100%", padding: "12px 16px", border: "none", borderBottom: `1px solid ${t.border}`, background: "transparent", color: t.text, outline: "none" }} />
-                                        <div style={{ maxHeight: 240, overflowY: "auto" }}>
-                                            {filteredOwnerResults.map(u => {
-                                                const uName = [u.first_name, u.last_name].filter(Boolean).join(" ") || u.name || u.contact_name || u.email || "—";
-                                                const uId = u.id || u.auth_uid;
-                                                return (
-                                                    <div key={uId} onClick={() => { setData(s => ({ ...s, owner: uId })); setShowOwnerSearch(false); setOwnerSearch(""); }}
-                                                        style={{ padding: "10px 16px", cursor: "pointer", borderBottom: `1px solid ${isDark ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.03)"}`, background: data.owner === uId ? t.navActive : "transparent" }}
-                                                        onMouseEnter={e => e.currentTarget.style.background = t.navHover} onMouseLeave={e => e.currentTarget.style.background = data.owner === uId ? t.navActive : "transparent"}>
-                                                        <div style={{ fontSize: 13, fontWeight: 600, color: t.text }}>{uName}</div>
-                                                        <div style={{ fontSize: 11, color: t.textMuted }}>{u.email}</div>
-                                                    </div>
-                                                );
-                                            })}
+                        <div style={{ display: "grid", gap: 24 }}>
+                            <FF label="Organization Name" t={t}><FIn value={data.name} onChange={e => setData(p => ({ ...p, name: e.target.value }))} placeholder="Organization Name" t={t} /></FF>
+                            <FF label="Organization Logo" t={t}>
+                                <div style={{ background: isDark ? "rgba(255,255,255,0.02)" : "#FAFAF9", border: `1px dashed ${t.border}`, borderRadius: 16, padding: 32, display: "flex", flexDirection: "column", alignItems: "center", gap: 16, textAlign: "center" }}>
+                                    {data.logo ? (
+                                        <div style={{ position: "relative" }}>
+                                            <img src={data.logo} alt="Logo" style={{ maxWidth: "100%", maxHeight: 120, borderRadius: 8, boxShadow: "0 8px 24px rgba(0,0,0,0.12)" }} />
+                                            <button onClick={() => setData(p => ({ ...p, logo: "" }))} style={{ position: "absolute", top: -12, right: -12, background: "#EF4444", color: "#fff", border: "2px solid #fff", borderRadius: "50%", width: 26, height: 26, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15, fontWeight: 800 }}>×</button>
                                         </div>
+                                    ) : (
+                                        <div style={{ width: 90, height: 90, borderRadius: 20, background: isDark ? "rgba(255,255,255,0.05)" : "#F3F4F6", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 40 }}>🏢</div>
+                                    )}
+                                    <div style={{ marginTop: 8 }}>
+                                        <input type="file" id="company-logo-upload" accept="image/*" onChange={handlePhotoChange} style={{ display: "none" }} />
+                                        <label htmlFor="company-logo-upload" style={{ background: t.accentGrad, color: "#fff", padding: "10px 22px", borderRadius: 10, fontSize: 13.5, fontWeight: 600, cursor: "pointer", display: "inline-block" }}>{data.logo ? "Replace Logo" : "Upload Logo"}</label>
+                                        <p style={{ fontSize: 11, color: t.textMuted, marginTop: 12, fontWeight: 500 }}>High resolution PNG/JPEG (Max 2MB)</p>
                                     </div>
-                                )}
-                            </div>
-                        </FF>
-                    </div>
-                </div>
-            </div>
-
-            <div style={{ background: t.surface, borderRadius: 16, border: `1px solid ${t.surfaceBorder}`, padding: 32, boxShadow: t.tableShadow, marginTop: 32 }}>
-                <div style={{ marginBottom: 24 }}>
-                    <h3 style={{ fontSize: 17, fontWeight: 700, color: isDark ? "#fff" : "#1C1917", marginBottom: 6 }}>Email Setup</h3>
-                    <p style={{ fontSize: 12.5, color: t.textMuted, lineHeight: 1.5 }}>Configure how your marketing and system emails are delivered.</p>
-                </div>
-
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 32, marginBottom: 32, paddingBottom: 32, borderBottom: `1px solid ${t.border}` }}>
-                    <div style={{ display: "grid", gap: 16 }}>
-                        <div style={{ fontSize: 13, fontWeight: 700, color: t.text }}>Common Fields (Required)</div>
-                        <FF label="From Email Address" t={t}><FIn value={data.emailSetup.common.fromEmail} onChange={e => updCommon({ fromEmail: e.target.value })} placeholder="no-reply@yourapp.com" t={t} /></FF>
-                        <FF label="From Name" t={t}><FIn value={data.emailSetup.common.fromName} onChange={e => updCommon({ fromName: e.target.value })} placeholder="American Vision Group Notifications" t={t} /></FF>
-                    </div>
-                    <div style={{ display: "grid", gap: 16 }}>
-                        <div style={{ fontSize: 13, fontWeight: 700, color: t.text }}>Optional / Testing</div>
-                        <FF label="Reply-To Email" t={t}><FIn value={data.emailSetup.common.replyTo} onChange={e => updCommon({ replyTo: e.target.value })} placeholder="support@yourapp.com" t={t} /></FF>
-                        <FF label="Test Email Address" t={t}><FIn value={data.emailSetup.common.testEmail} onChange={e => updCommon({ testEmail: e.target.value })} placeholder="Your testing email" t={t} /></FF>
-                    </div>
-                </div>
-
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 32 }}>
-                    <div>
-                        <FF label="Delivery Method" t={t}>
-                            <div style={{ display: "flex", gap: 8, background: isDark ? "rgba(255,255,255,0.05)" : "#F3F4F6", padding: 4, borderRadius: 10 }}>
-                                <button onClick={() => updES({ method: "ESP" })}
-                                    style={{ flex: 1, padding: "8px 0", borderRadius: 8, border: "none", fontSize: 13, fontWeight: 600, cursor: "pointer", background: data.emailSetup.method === "ESP" ? t.accentGrad : "transparent", color: data.emailSetup.method === "ESP" ? "#fff" : t.textMuted }}>Service Provider (API)</button>
-                                <button onClick={() => updES({ method: "SMTP" })}
-                                    style={{ flex: 1, padding: "8px 0", borderRadius: 8, border: "none", fontSize: 13, fontWeight: 600, cursor: "pointer", background: data.emailSetup.method === "SMTP" ? t.accentGrad : "transparent", color: data.emailSetup.method === "SMTP" ? "#fff" : t.textMuted }}>Custom SMTP</button>
-                            </div>
-                        </FF>
-                    </div>
-
-                    <div style={{ display: "grid", gap: 16 }}>
-                        {data.emailSetup.method === "ESP" && (
-                            <>
-                                <div style={{ fontSize: 13, fontWeight: 700, color: t.text }}>Provider Settings</div>
-                                <FF label="Provider" t={t}>
-                                    <div style={{ position: "relative" }}>
-                                        <select 
-                                            value={data.emailSetup.api.provider} 
-                                            onChange={e => updAPI({ provider: e.target.value })}
-                                            style={{ width: "100%", padding: "10px 14px", borderRadius: 9, border: `1px solid ${t.border}`, background: isDark ? "rgba(255,255,255,0.05)" : "#fff", color: t.text, cursor: "pointer", fontSize: 14, outline: "none", appearance: "none" }}
-                                        >
-                                            {PROVIDERS.map(p => <option key={p} value={p}>{p}</option>)}
-                                        </select>
-                                        <ChevronDown size={14} style={{ position: "absolute", right: 14, top: "50%", transform: "translateY(-50%)", pointerEvents: "none", opacity: 0.5 }} />
-                                    </div>
-                                </FF>
-                                <FF label="API Key 🔐" t={t}><FIn type="password" value={data.emailSetup.api.apiKey} onChange={e => updAPI({ apiKey: e.target.value })} placeholder="Your API key" t={t} /></FF>
-                                {data.emailSetup.api.provider === "Mailgun" && (
-                                    <FF label="Domain" t={t}><FIn value={data.emailSetup.api.domain} onChange={e => updAPI({ domain: e.target.value })} placeholder="mg.yourdomain.com" t={t} /></FF>
-                                )}
-                                {data.emailSetup.api.provider === "Amazon SES" && (
-                                    <FF label="Region" t={t}><FIn value={data.emailSetup.api.region} onChange={e => updAPI({ region: e.target.value })} placeholder="us-east-1" t={t} /></FF>
-                                )}
-                                <FF label="API Base URL (Optional)" t={t}><FIn value={data.emailSetup.api.baseUrl} onChange={e => updAPI({ baseUrl: e.target.value })} placeholder="https://api.provider.com" t={t} /></FF>
-                            </>
-                        )}
-
-                        {data.emailSetup.method === "SMTP" && (
-                            <>
-                                <div style={{ fontSize: 13, fontWeight: 700, color: t.text }}>SMTP Relay Configuration</div>
-                                <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 12 }}>
-                                    <FF label="SMTP Host" t={t}><FIn value={data.emailSetup.smtp.host} onChange={e => updSMTP({ host: e.target.value })} placeholder="smtp.provider.com" t={t} /></FF>
-                                    <FF label="Port" t={t}><FIn value={data.emailSetup.smtp.port} onChange={e => updSMTP({ port: e.target.value })} placeholder="587" t={t} /></FF>
                                 </div>
-                                <FF label="SMTP Username" t={t}><FIn value={data.emailSetup.smtp.user} onChange={e => updSMTP({ user: e.target.value })} placeholder="username@provider.com" t={t} /></FF>
-                                <FF label="SMTP Password" t={t}><FIn type="password" value={data.emailSetup.smtp.pass} onChange={e => updSMTP({ pass: e.target.value })} placeholder="••••••••" t={t} /></FF>
-                                <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer", marginTop: 4 }}>
-                                    <input type="checkbox" checked={data.emailSetup.smtp.secure} onChange={e => updSMTP({ secure: e.target.checked })} style={{ width: 16, height: 16, accentColor: t.accent }} />
-                                    <span style={{ fontSize: 13, fontWeight: 500, color: t.text }}>Use TLS / SSL for secure connection</span>
-                                </label>
-                            </>
-                        )}
-                    </div>
-                </div>
-            </div>
-
-            <div style={{ background: t.surface, borderRadius: 16, border: `1px solid ${t.surfaceBorder}`, padding: 32, boxShadow: t.tableShadow, marginTop: 32 }}>
-                <div style={{ marginBottom: 24, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                    <div>
-                        <h3 style={{ fontSize: 17, fontWeight: 700, color: isDark ? "#fff" : "#1C1917", marginBottom: 6 }}>ACH Payment Setup</h3>
-                        <p style={{ fontSize: 12.5, color: t.textMuted, lineHeight: 1.5 }}>Configure banking credentials for NACHA file generation and automated payments.</p>
-                    </div>
-                    <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer", background: isDark ? "rgba(255,255,255,0.05)" : "#F3F4F6", padding: "8px 16px", borderRadius: 10, border: `1px solid ${data.achSetup.enabled ? t.accent : t.border}` }}>
-                        <span style={{ fontSize: 13, fontWeight: 600, color: data.achSetup.enabled ? (isDark ? "#34D399" : "#059669") : t.textMuted }}>{data.achSetup.enabled ? "ACH Generation Enabled" : "ACH Generation Disabled"}</span>
-                        <input type="checkbox" checked={data.achSetup.enabled} onChange={e => updACH({ enabled: e.target.checked })} style={{ width: 18, height: 18, accentColor: t.accent }} />
-                    </label>
-                </div>
-
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 32, opacity: data.achSetup.enabled ? 1 : 0.6, pointerEvents: data.achSetup.enabled ? "auto" : "none", transition: "opacity 0.2s" }}>
-                    <div style={{ display: "grid", gap: 20 }}>
-                        <div style={{ fontSize: 13, fontWeight: 700, color: t.text }}>Originator Information</div>
-                        <FF label="Originator Name" t={t}><FIn value={data.achSetup.originatorName} onChange={e => updACH({ originatorName: e.target.value })} placeholder="Company Name" t={t} /></FF>
-                        <FF label="Originator ID (Company ID)" t={t}><FIn value={data.achSetup.originatorId} onChange={e => updACH({ originatorId: e.target.value })} placeholder="9-digit Tax ID" t={t} /></FF>
-                        
-                        <div style={{ height: 1, background: t.border, opacity: 0.5, margin: "8px 0" }} />
-                        <div style={{ fontSize: 13, fontWeight: 700, color: t.text }}>Banking Institution (ODFI)</div>
-                        <FF label="Bank Name" t={t}><FIn value={data.achSetup.odfiName} onChange={e => updACH({ odfiName: e.target.value })} placeholder="Your Bank Name" t={t} /></FF>
-                        <FF label="ODFI Routing Number" t={t}><FIn value={data.achSetup.odfiRouting} onChange={e => updACH({ odfiRouting: e.target.value })} placeholder="9-digit Routing" t={t} /></FF>
+                            </FF>
+                        </div>
                     </div>
 
-                    <div style={{ display: "grid", gap: 20 }}>
-                        <div style={{ fontSize: 13, fontWeight: 700, color: t.text }}>Account Details</div>
-                        <FF label="Account Number" t={t}><FIn type="password" value={data.achSetup.accountNumber} onChange={e => updACH({ accountNumber: e.target.value })} placeholder="Your Account Number" t={t} /></FF>
-                        <FF label="Account Type" t={t}>
-                            <div style={{ position: "relative" }}>
-                                <select 
-                                    value={data.achSetup.accountType} 
-                                    onChange={e => updACH({ accountType: e.target.value })}
-                                    style={{ width: "100%", padding: "10px 14px", borderRadius: 9, border: `1px solid ${t.border}`, background: isDark ? "rgba(255,255,255,0.05)" : "#fff", color: t.text, cursor: "pointer", fontSize: 14, outline: "none", appearance: "none" }}
-                                >
-                                    <option value="Checking">Checking</option>
-                                    <option value="Savings">Savings</option>
-                                </select>
-                                <ChevronDown size={14} style={{ position: "absolute", right: 14, top: "50%", transform: "translateY(-50%)", pointerEvents: "none", opacity: 0.5 }} />
+                    {/* Info Section */}
+                    <div style={{ background: t.surface, borderRadius: 16, border: `1px solid ${t.surfaceBorder}`, padding: 32, boxShadow: t.tableShadow }}>
+                        <div style={{ marginBottom: 24 }}>
+                            <h3 style={{ fontSize: 17, fontWeight: 700, color: isDark ? "#fff" : "#1C1917", marginBottom: 6 }}>Company Information</h3>
+                            <p style={{ fontSize: 12.5, color: t.textMuted, lineHeight: 1.5 }}>Official contact and location details for your organization.</p>
+                        </div>
+                        <div style={{ display: "grid", gap: 20 }}>
+                            <div style={{ display: "grid", gap: 16 }}>
+                                <div style={{ fontSize: 13, fontWeight: 700, color: t.text, marginBottom: -4 }}>Contact Details</div>
+                                <FF label="Public Email" t={t}><FIn value={data.email} onChange={e => setData(s => ({ ...s, email: e.target.value }))} placeholder="e.g. contact@company.com" t={t} /></FF>
+                                <FF label="Public Phone" t={t}><FIn value={data.phone} onChange={e => setData(s => ({ ...s, phone: e.target.value }))} placeholder="e.g. +1 555 000 0000" t={t} /></FF>
+                                <FF label="Website / Home Page" t={t}><FIn value={data.home_page} onChange={e => setData(s => ({ ...s, home_page: e.target.value }))} placeholder="https://www.company.com" t={t} /></FF>
                             </div>
-                        </FF>
-
-                        <div style={{ height: 1, background: t.border, opacity: 0.5, margin: "8px 0" }} />
-                        <div style={{ fontSize: 13, fontWeight: 700, color: t.text }}>NACHA File Header Metadata</div>
-                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-                            <FF label="Immediate Origin" t={t}><FIn value={data.achSetup.immediateOrigin} onChange={e => updACH({ immediateOrigin: e.target.value })} placeholder="e.g. TTNNNNNNN" t={t} /></FF>
-                            <FF label="Immediate Destination" t={t}><FIn value={data.achSetup.immediateDestination} onChange={e => updACH({ immediateDestination: e.target.value })} placeholder="Bank's Routing" t={t} /></FF>
+                            <div style={{ height: 1, background: t.border, opacity: 0.5, margin: "8px 0" }} />
+                            <div style={{ display: "grid", gap: 16 }}>
+                                <div style={{ fontSize: 13, fontWeight: 700, color: t.text, marginBottom: -4 }}>Location</div>
+                                <FF label="Street Address" t={t}><FIn value={data.address1} onChange={e => setData(s => ({ ...s, address1: e.target.value }))} placeholder="Address line 1" t={t} /></FF>
+                                <FF label="Address Line 2" t={t}><FIn value={data.address2} onChange={e => setData(s => ({ ...s, address2: e.target.value }))} placeholder="Suite, floor, etc." t={t} /></FF>
+                                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+                                    <FF label="City" t={t}><FIn value={data.city} onChange={e => setData(s => ({ ...s, city: e.target.value }))} placeholder="City" t={t} /></FF>
+                                    <FF label="State" t={t}><FIn value={data.state} onChange={e => setData(s => ({ ...s, state: e.target.value }))} placeholder="State" t={t} /></FF>
+                                </div>
+                                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+                                    <FF label="Zip Code" t={t}><FIn value={data.zip} onChange={e => setData(s => ({ ...s, zip: e.target.value }))} placeholder="Zip code" t={t} /></FF>
+                                    <FF label="Country" t={t}><FIn value={data.country} onChange={e => setData(s => ({ ...s, country: e.target.value }))} placeholder="Country" t={t} /></FF>
+                                </div>
+                            </div>
+                            <div style={{ height: 1, background: t.border, opacity: 0.5, margin: "8px 0" }} />
+                            <FF label="Owner / Principal" t={t}>
+                                <div style={{ position: "relative" }}>
+                                    <div onClick={() => setShowOwnerSearch(!showOwnerSearch)} style={{ width: "100%", padding: "10px 14px", borderRadius: 9, border: `1px solid ${t.border}`, background: isDark ? "rgba(255,255,255,0.05)" : "#fff", color: t.text, cursor: "pointer", fontSize: 14, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                                        <span>{resolvedOwnerName}</span><span style={{ fontSize: 10, opacity: 0.5 }}>▼</span>
+                                    </div>
+                                    {showOwnerSearch && (
+                                        <div style={{ position: "absolute", top: "100%", left: 0, right: 0, background: t.surface, border: `1px solid ${t.border}`, borderRadius: 12, marginTop: 6, zIndex: 100, boxShadow: "0 12px 32px rgba(0,0,0,0.25)", overflow: "hidden" }}>
+                                            <input autoFocus value={ownerSearch} onChange={e => setOwnerSearch(e.target.value)} placeholder="Search directory..." style={{ width: "100%", padding: "12px 16px", border: "none", borderBottom: `1px solid ${t.border}`, background: "transparent", color: t.text, outline: "none" }} />
+                                            <div style={{ maxHeight: 240, overflowY: "auto" }}>
+                                                {filteredOwnerResults.map(u => {
+                                                    const uName = [u.first_name, u.last_name].filter(Boolean).join(" ") || u.name || u.contact_name || u.email || "—";
+                                                    const uId = u.id || u.auth_uid;
+                                                    return (
+                                                        <div key={uId} onClick={() => { setData(s => ({ ...s, owner: uId })); setShowOwnerSearch(false); setOwnerSearch(""); }}
+                                                            style={{ padding: "10px 16px", cursor: "pointer", borderBottom: `1px solid ${isDark ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.03)"}`, background: data.owner === uId ? t.navActive : "transparent" }}
+                                                            onMouseEnter={e => e.currentTarget.style.background = t.navHover} onMouseLeave={e => e.currentTarget.style.background = data.owner === uId ? t.navActive : "transparent"}>
+                                                            <div style={{ fontSize: 13, fontWeight: 600, color: t.text }}>{uName}</div>
+                                                            <div style={{ fontSize: 11, color: t.textMuted }}>{u.email}</div>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            </FF>
                         </div>
                     </div>
                 </div>
-            </div>
+            )}
+
+            {activeTab === "Email" && (
+                <div style={{ background: t.surface, borderRadius: 16, border: `1px solid ${t.surfaceBorder}`, padding: 32, boxShadow: t.tableShadow }}>
+                    <div style={{ marginBottom: 24 }}>
+                        <h3 style={{ fontSize: 17, fontWeight: 700, color: isDark ? "#fff" : "#1C1917", marginBottom: 6 }}>Email Setup</h3>
+                        <p style={{ fontSize: 12.5, color: t.textMuted, lineHeight: 1.5 }}>Configure how your marketing and system emails are delivered.</p>
+                    </div>
+
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 32, marginBottom: 32, paddingBottom: 32, borderBottom: `1px solid ${t.border}` }}>
+                        <div style={{ display: "grid", gap: 16 }}>
+                            <div style={{ fontSize: 13, fontWeight: 700, color: t.text }}>Common Fields (Required)</div>
+                            <FF label="From Email Address" t={t}><FIn value={data.emailSetup.common.fromEmail} onChange={e => updCommon({ fromEmail: e.target.value })} placeholder="no-reply@yourapp.com" t={t} /></FF>
+                            <FF label="From Name" t={t}><FIn value={data.emailSetup.common.fromName} onChange={e => updCommon({ fromName: e.target.value })} placeholder="American Vision Group Notifications" t={t} /></FF>
+                        </div>
+                        <div style={{ display: "grid", gap: 16 }}>
+                            <div style={{ fontSize: 13, fontWeight: 700, color: t.text }}>Optional / Testing</div>
+                            <FF label="Reply-To Email" t={t}><FIn value={data.emailSetup.common.replyTo} onChange={e => updCommon({ replyTo: e.target.value })} placeholder="support@yourapp.com" t={t} /></FF>
+                            <FF label="Test Email Address" t={t}><FIn value={data.emailSetup.common.testEmail} onChange={e => updCommon({ testEmail: e.target.value })} placeholder="Your testing email" t={t} /></FF>
+                        </div>
+                    </div>
+
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 32 }}>
+                        <div>
+                            <FF label="Delivery Method" t={t}>
+                                <div style={{ display: "flex", gap: 8, background: isDark ? "rgba(255,255,255,0.05)" : "#F3F4F6", padding: 4, borderRadius: 10 }}>
+                                    <button onClick={() => updES({ method: "ESP" })}
+                                        style={{ flex: 1, padding: "8px 0", borderRadius: 8, border: "none", fontSize: 13, fontWeight: 600, cursor: "pointer", background: data.emailSetup.method === "ESP" ? t.accentGrad : "transparent", color: data.emailSetup.method === "ESP" ? "#fff" : t.textMuted }}>Service Provider (API)</button>
+                                    <button onClick={() => updES({ method: "SMTP" })}
+                                        style={{ flex: 1, padding: "8px 0", borderRadius: 8, border: "none", fontSize: 13, fontWeight: 600, cursor: "pointer", background: data.emailSetup.method === "SMTP" ? t.accentGrad : "transparent", color: data.emailSetup.method === "SMTP" ? "#fff" : t.textMuted }}>Custom SMTP</button>
+                                </div>
+                            </FF>
+                        </div>
+
+                        <div style={{ display: "grid", gap: 16 }}>
+                            {data.emailSetup.method === "ESP" && (
+                                <>
+                                    <div style={{ fontSize: 13, fontWeight: 700, color: t.text }}>Provider Settings</div>
+                                    <FF label="Provider" t={t}>
+                                        <div style={{ position: "relative" }}>
+                                            <select 
+                                                value={data.emailSetup.api.provider} 
+                                                onChange={e => updAPI({ provider: e.target.value })}
+                                                style={{ width: "100%", padding: "10px 14px", borderRadius: 9, border: `1px solid ${t.border}`, background: isDark ? "rgba(255,255,255,0.05)" : "#fff", color: t.text, cursor: "pointer", fontSize: 14, outline: "none", appearance: "none" }}
+                                            >
+                                                {PROVIDERS.map(p => <option key={p} value={p}>{p}</option>)}
+                                            </select>
+                                            <ChevronDown size={14} style={{ position: "absolute", right: 14, top: "50%", transform: "translateY(-50%)", pointerEvents: "none", opacity: 0.5 }} />
+                                        </div>
+                                    </FF>
+                                    <FF label="API Key 🔐" t={t}><FIn type="password" value={data.emailSetup.api.apiKey} onChange={e => updAPI({ apiKey: e.target.value })} placeholder="Your API key" t={t} /></FF>
+                                    {data.emailSetup.api.provider === "Mailgun" && (
+                                        <FF label="Domain" t={t}><FIn value={data.emailSetup.api.domain} onChange={e => updAPI({ domain: e.target.value })} placeholder="mg.yourdomain.com" t={t} /></FF>
+                                    )}
+                                    {data.emailSetup.api.provider === "Amazon SES" && (
+                                        <FF label="Region" t={t}><FIn value={data.emailSetup.api.region} onChange={e => updAPI({ region: e.target.value })} placeholder="us-east-1" t={t} /></FF>
+                                    )}
+                                    <FF label="API Base URL (Optional)" t={t}><FIn value={data.emailSetup.api.baseUrl} onChange={e => updAPI({ baseUrl: e.target.value })} placeholder="https://api.provider.com" t={t} /></FF>
+                                </>
+                            )}
+
+                            {data.emailSetup.method === "SMTP" && (
+                                <>
+                                    <div style={{ fontSize: 13, fontWeight: 700, color: t.text }}>SMTP Relay Configuration</div>
+                                    <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 12 }}>
+                                        <FF label="SMTP Host" t={t}><FIn value={data.emailSetup.smtp.host} onChange={e => updSMTP({ host: e.target.value })} placeholder="smtp.provider.com" t={t} /></FF>
+                                        <FF label="Port" t={t}><FIn value={data.emailSetup.smtp.port} onChange={e => updSMTP({ port: e.target.value })} placeholder="587" t={t} /></FF>
+                                    </div>
+                                    <FF label="SMTP Username" t={t}><FIn value={data.emailSetup.smtp.user} onChange={e => updSMTP({ user: e.target.value })} placeholder="username@provider.com" t={t} /></FF>
+                                    <FF label="SMTP Password" t={t}><FIn type="password" value={data.emailSetup.smtp.pass} onChange={e => updSMTP({ pass: e.target.value })} placeholder="••••••••" t={t} /></FF>
+                                    <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer", marginTop: 4 }}>
+                                        <input type="checkbox" checked={data.emailSetup.smtp.secure} onChange={e => updSMTP({ secure: e.target.checked })} style={{ width: 16, height: 16, accentColor: t.accent }} />
+                                        <span style={{ fontSize: 13, fontWeight: 500, color: t.text }}>Use TLS / SSL for secure connection</span>
+                                    </label>
+                                </>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {activeTab === "ACH" && (
+                <div style={{ background: t.surface, borderRadius: 16, border: `1px solid ${t.surfaceBorder}`, padding: 32, boxShadow: t.tableShadow }}>
+                    <div style={{ marginBottom: 24, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                        <div>
+                            <h3 style={{ fontSize: 17, fontWeight: 700, color: isDark ? "#fff" : "#1C1917", marginBottom: 6 }}>ACH Payment Setup</h3>
+                            <p style={{ fontSize: 12.5, color: t.textMuted, lineHeight: 1.5 }}>Configure banking credentials for NACHA file generation and automated payments.</p>
+                        </div>
+                        <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer", background: isDark ? "rgba(255,255,255,0.05)" : "#F3F4F6", padding: "8px 16px", borderRadius: 10, border: `1px solid ${data.achSetup.enabled ? t.accent : t.border}` }}>
+                            <span style={{ fontSize: 13, fontWeight: 600, color: data.achSetup.enabled ? (isDark ? "#34D399" : "#059669") : t.textMuted }}>{data.achSetup.enabled ? "ACH Generation Enabled" : "ACH Generation Disabled"}</span>
+                            <input type="checkbox" checked={data.achSetup.enabled} onChange={e => updACH({ enabled: e.target.checked })} style={{ width: 18, height: 18, accentColor: t.accent }} />
+                        </label>
+                    </div>
+
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 32, opacity: data.achSetup.enabled ? 1 : 0.6, pointerEvents: data.achSetup.enabled ? "auto" : "none", transition: "opacity 0.2s" }}>
+                        <div style={{ display: "grid", gap: 20 }}>
+                            <div style={{ fontSize: 13, fontWeight: 700, color: t.text }}>Originator Information</div>
+                            <FF label="Originator Name" t={t}><FIn value={data.achSetup.originatorName} onChange={e => updACH({ originatorName: e.target.value })} placeholder="Company Name" t={t} /></FF>
+                            <FF label="Originator ID (Company ID)" t={t}><FIn value={data.achSetup.originatorId} onChange={e => updACH({ originatorId: e.target.value })} placeholder="9-digit Tax ID" t={t} /></FF>
+                            
+                            <div style={{ height: 1, background: t.border, opacity: 0.5, margin: "8px 0" }} />
+                            <div style={{ fontSize: 13, fontWeight: 700, color: t.text }}>Banking Institution (ODFI)</div>
+                            <FF label="Bank Name" t={t}><FIn value={data.achSetup.odfiName} onChange={e => updACH({ odfiName: e.target.value })} placeholder="Your Bank Name" t={t} /></FF>
+                            <FF label="ODFI Routing Number" t={t}><FIn value={data.achSetup.odfiRouting} onChange={e => updACH({ odfiRouting: e.target.value })} placeholder="9-digit Routing" t={t} /></FF>
+                        </div>
+
+                        <div style={{ display: "grid", gap: 20 }}>
+                            <div style={{ fontSize: 13, fontWeight: 700, color: t.text }}>Account Details</div>
+                            <FF label="Account Number" t={t}><FIn type="password" value={data.achSetup.accountNumber} onChange={e => updACH({ accountNumber: e.target.value })} placeholder="Your Account Number" t={t} /></FF>
+                            <FF label="Account Type" t={t}>
+                                <div style={{ position: "relative" }}>
+                                    <select 
+                                        value={data.achSetup.accountType} 
+                                        onChange={e => updACH({ accountType: e.target.value })}
+                                        style={{ width: "100%", padding: "10px 14px", borderRadius: 9, border: `1px solid ${t.border}`, background: isDark ? "rgba(255,255,255,0.05)" : "#fff", color: t.text, cursor: "pointer", fontSize: 14, outline: "none", appearance: "none" }}
+                                    >
+                                        <option value="Checking">Checking</option>
+                                        <option value="Savings">Savings</option>
+                                    </select>
+                                    <ChevronDown size={14} style={{ position: "absolute", right: 14, top: "50%", transform: "translateY(-50%)", pointerEvents: "none", opacity: 0.5 }} />
+                                </div>
+                            </FF>
+
+                            <div style={{ height: 1, background: t.border, opacity: 0.5, margin: "8px 0" }} />
+                            <div style={{ fontSize: 13, fontWeight: 700, color: t.text }}>NACHA File Header Metadata</div>
+                            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+                                <FF label="Immediate Origin" t={t}><FIn value={data.achSetup.immediateOrigin} onChange={e => updACH({ immediateOrigin: e.target.value })} placeholder="e.g. TTNNNNNNN" t={t} /></FF>
+                                <FF label="Immediate Destination" t={t}><FIn value={data.achSetup.immediateDestination} onChange={e => updACH({ immediateDestination: e.target.value })} placeholder="Bank's Routing" t={t} /></FF>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             <div style={{ marginTop: 32, display: "flex", justifyContent: "flex-end", paddingBottom: 60 }}>
                 <button onClick={handleSave} disabled={saving} className="primary-btn" style={{ background: t.accentGrad, color: "#fff", border: "none", padding: "14px 40px", borderRadius: 12, fontSize: 14, fontWeight: 700, cursor: saving ? "default" : "pointer", boxShadow: `0 8px 20px ${t.accentShadow}` }}>
