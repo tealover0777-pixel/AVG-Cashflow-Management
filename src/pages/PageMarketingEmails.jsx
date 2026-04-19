@@ -272,12 +272,24 @@ export default function PageMarketingEmails({ t, isDark, setActivePage, MARKETIN
       onEditName: (email) => setItemToEdit(email),
       onClone: async (email) => {
         if (!activeTenantId) return;
+        
+        let newTitle = email.title || "Untitled";
+        const match = newTitle.match(/(.*)\s\((\d+)\)$/);
+        if (match) {
+          const base = match[1];
+          const num = parseInt(match[2], 10);
+          newTitle = `${base} (${num + 1})`;
+        } else {
+          newTitle = `${newTitle} (2)`;
+        }
+
         const paths = getCollectionPaths(activeTenantId);
         const colRef = collection(db, paths.marketingEmails);
         await addDoc(colRef, {
           ...email,
-          id: undefined, // Let Firestore generate a new ID
-          title: `${email.title} (Copy)`,
+          id: undefined,
+          title: newTitle,
+          status: "Draft", // Clones should start as drafts
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp(),
         });
