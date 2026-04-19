@@ -156,7 +156,7 @@ export default function PageMarketingEmails({ t, isDark, setActivePage, MARKETIN
 
   const columnDefs = useMemo(
     () => getMarketingEmailColumns(isDark, t, (email) => {
-      setActiveEmailTemplate(email);
+      setActiveEmailTemplate({ ...email, _useMode: true });
       setActivePage("Email Builder");
     }),
     [isDark, t, setActivePage, setActiveEmailTemplate]
