@@ -94,7 +94,8 @@ const ActionCell = ({ row, isDark, t, actions }) => {
   );
 };
 
-const getMarketingEmailColumns = (isDark, t, actions) => [
+const getMarketingEmailColumns = (isDark, t, actions, activeTab) => {
+  const allCols = [
   {
     id: "select",
     header: ({ table }) => (
@@ -211,7 +212,13 @@ const getMarketingEmailColumns = (isDark, t, actions) => [
     enableColumnFilter: false,
     cell: ({ row }) => <ActionCell row={row} isDark={isDark} t={t} actions={actions} />,
   },
-];
+  ];
+
+  if (activeTab !== "Scheduled") {
+    return allCols.filter(c => c.accessorKey !== "scheduledAt");
+  }
+  return allCols;
+};
 
 const DUMMY_DRAFTS = [
   { id: 1, title: "Quarterly Investor Newsletter Template", recipients: "No recipients", createdAt: "2026-04-16T17:31:00", updatedAt: "2026-04-16T17:34:00", status: "Draft" },
@@ -325,8 +332,8 @@ export default function PageMarketingEmails({ t, isDark, setActivePage, MARKETIN
         alert("Campaign saved to your template library!");
       },
       onDelete: (email) => setItemToDelete(email),
-    }),
-    [isDark, t, setActivePage, setActiveEmailTemplate, activeTenantId]
+    }, activeTab),
+    [isDark, t, setActivePage, setActiveEmailTemplate, activeTenantId, activeTab]
   );
 
   const [isImporting, setIsImporting] = useState(false);
