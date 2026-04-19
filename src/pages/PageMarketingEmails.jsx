@@ -188,6 +188,30 @@ const getMarketingEmailColumns = (isDark, t, actions, activeTab) => {
       );
     },
   },
+  ...(activeTab === "Scheduled" ? [
+    {
+      header: "Scheduled Date",
+      accessorKey: "scheduledDate",
+      size: 120,
+      cell: ({ row }) => {
+        const val = row.original.scheduledAt;
+        if (!val) return <span style={{ fontSize: "12px", color: t.textMuted }}>—</span>;
+        const d = new Date(val);
+        return <span style={{ fontFamily: t.mono, fontSize: "11.5px", color: "#F59E0B" }}>{d.toLocaleDateString()}</span>;
+      },
+    },
+    {
+      header: "Scheduled Time",
+      accessorKey: "scheduledTime",
+      size: 120,
+      cell: ({ row }) => {
+        const val = row.original.scheduledAt;
+        if (!val) return <span style={{ fontSize: "12px", color: t.textMuted }}>—</span>;
+        const d = new Date(val);
+        return <span style={{ fontFamily: t.mono, fontSize: "11.5px", color: "#F59E0B" }}>{d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>;
+      },
+    }
+  ] : []),
   {
     header: "Actions",
     id: "actions",
