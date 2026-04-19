@@ -122,7 +122,6 @@ const NAV_ITEMS = [
     expandable: true,
     children: [
       { label: "Fees", icon: "CircleDollarSign" },
-      { label: "User Profiles", icon: "UserSquare" },
     ]
   },
   {
@@ -150,6 +149,7 @@ const NAV_ITEMS = [
       { label: "Investments", icon: "Coins" },
       { label: "Role Types", icon: "ShieldCheck" },
       { label: "Payment Schedule", icon: "CalendarDays" },
+      { label: "User Profiles", icon: "UserSquare" },
     ]
   },
   {
