@@ -419,6 +419,7 @@ export default function PageMarketingEmails({ t, isDark, setActivePage, MARKETIN
       <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", marginBottom: 14 }}>
         <div style={{ display: "flex", gap: 8, marginLeft: 12 }}>
           <button
+            onClick={() => setItemToDelete(selectedRows)}
             disabled={selectedRows.length === 0}
             style={{ display: "flex", alignItems: "center", gap: 6, padding: "9px 14px", borderRadius: 8, border: `1px solid ${t.border}`, background: isDark ? "rgba(255,255,255,0.03)" : "#fff", color: selectedRows.length > 0 ? "#EF4444" : t.textMuted, fontSize: 13, fontWeight: 500, cursor: selectedRows.length > 0 ? "pointer" : "not-allowed", opacity: selectedRows.length > 0 ? 1 : 0.6 }}
           >
@@ -443,40 +444,97 @@ export default function PageMarketingEmails({ t, isDark, setActivePage, MARKETIN
         />
       </div>
 
-      <PromptModal
-        open={!!itemToEdit}
-        onClose={() => setItemToEdit(null)}
-        title="Rename Email"
-        label="Enter a new title for this email campaign:"
-        defaultValue={itemToEdit?.title}
-        t={t}
-        isDark={isDark}
-        onConfirm={async (newName) => {
-          if (!activeTenantId || !itemToEdit || !newName) return;
-          const paths = getCollectionPaths(activeTenantId);
-          const docRef = doc(db, paths.marketingEmails, itemToEdit.id);
-          await updateDoc(docRef, { title: newName, updatedAt: new Date().toISOString() });
-          setItemToEdit(null);
-        }}
-      />
+      {/* Rename Modal */}
+      {itemToEdit && (
+        <div style={{ position: "fixed", inset: 0, zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <div onClick={() => setItemToEdit(null)} style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.45)", backdropFilter: "blur(4px)" }} />
+          <div style={{ position: "relative", zIndex: 1, background: "#fff", borderRadius: 24, width: 460, maxWidth: "90vw", padding: "40px 32px", display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", boxShadow: "0 20px 50px rgba(0,0,0,0.15)" }}>
+            <h2 style={{ fontSize: 26, fontWeight: 600, color: "#374151", margin: "0 0 24px 0", lineHeight: 1.3 }}>Enter a new name for this email:</h2>
+            
+            <input 
+              autoFocus
+              defaultValue={itemToEdit.title}
+              id="rename-input"
+              onKeyDown={e => {
+                if (e.key === "Enter") {
+                  const val = e.target.value;
+                  if (val && activeTenantId) {
+                    const paths = getCollectionPaths(activeTenantId);
+                    const docRef = doc(db, paths.marketingEmails, itemToEdit.id);
+                    updateDoc(docRef, { title: val, updatedAt: new Date().toISOString() });
+                    setItemToEdit(null);
+                  }
+                }
+              }}
+              style={{ width: "100%", padding: "12px 16px", borderRadius: 8, border: "1px solid #D1D5DB", fontSize: 16, color: "#374151", marginBottom: 32, outline: "none" }}
+            />
+
+            <div style={{ display: "flex", gap: 16, width: "100%", justifyContent: "center" }}>
+              <button 
+                onClick={async () => {
+                  const val = document.getElementById("rename-input").value;
+                  if (val && activeTenantId) {
+                    const paths = getCollectionPaths(activeTenantId);
+                    const docRef = doc(db, paths.marketingEmails, itemToEdit.id);
+                    await updateDoc(docRef, { title: val, updatedAt: new Date().toISOString() });
+                    setItemToEdit(null);
+                  }
+                }}
+                style={{ padding: "12px 36px", borderRadius: 10, background: "#1D4ED8", color: "#fff", border: "none", fontSize: 15, fontWeight: 600, cursor: "pointer", transition: "all 0.2s" }}
+                onMouseEnter={e => e.currentTarget.style.background = "#1E40AF"}
+                onMouseLeave={e => e.currentTarget.style.background = "#1D4ED8"}
+              >
+                Rename
+              </button>
+              <button 
+                onClick={() => setItemToEdit(null)}
+                style={{ padding: "12px 36px", borderRadius: 10, background: "#fff", color: "#1D4ED8", border: "1px solid #1D4ED8", fontSize: 15, fontWeight: 600, cursor: "pointer", transition: "all 0.2s" }}
+                onMouseEnter={e => e.currentTarget.style.background = "#F9FAFB"}
+                onMouseLeave={e => e.currentTarget.style.background = "#fff"}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <DelModal
         open={!!itemToDelete}
         onClose={() => setItemToDelete(null)}
-        title="Delete Email"
+        title={Array.isArray(itemToDelete) ? "Delete Selected Emails" : "Delete Email"}
         t={t}
         isDark={isDark}
         onDel={async () => {
           if (!activeTenantId || !itemToDelete) return;
           const paths = getCollectionPaths(activeTenantId);
-          const docRef = doc(db, paths.marketingEmails, itemToDelete.id);
-          await deleteDoc(docRef);
+          const items = Array.isArray(itemToDelete) ? itemToDelete : [itemToDelete];
+          
+          for (const item of items) {
+            if (!item.id || typeof item.id === 'number') continue; // Skip dummy data
+            const docRef = doc(db, paths.marketingEmails, item.id);
+            await deleteDoc(docRef);
+          }
+          
+          if (Array.isArray(itemToDelete)) {
+             gridRef.current?.resetRowSelection();
+             setSelectedRows([]);
+          }
           setItemToDelete(null);
         }}
       >
         <div style={{ padding: "8px 0" }}>
-          <p style={{ margin: "0 0 10px 0", fontSize: 13, color: t.text }}>Are you sure you want to delete <strong>{itemToDelete?.title}</strong>?</p>
-          <p style={{ margin: 0, fontSize: 12, color: t.textMuted }}>This draft will be permanently removed from your campaign list.</p>
+          {Array.isArray(itemToDelete) ? (
+            <>
+              <p style={{ margin: "0 0 10px 0", fontSize: 13, color: t.text }}>Are you sure you want to delete <strong>{itemToDelete.length}</strong> selected email(s)?</p>
+              <p style={{ margin: 0, fontSize: 12, color: t.textMuted }}>These campaigns will be permanently removed.</p>
+            </>
+          ) : (
+            <>
+              <p style={{ margin: "0 0 10px 0", fontSize: 13, color: t.text }}>Are you sure you want to delete <strong>{itemToDelete?.title}</strong>?</p>
+              <p style={{ margin: 0, fontSize: 12, color: t.textMuted }}>This draft will be permanently removed from your campaign list.</p>
+            </>
+          )}
         </div>
       </DelModal>
 
