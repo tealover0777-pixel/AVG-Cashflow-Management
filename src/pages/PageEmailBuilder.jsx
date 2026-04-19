@@ -1699,9 +1699,9 @@ function SettingsPanel({ t, isDark, settings, onChange, profile, DIMENSIONS = []
     from: settings.from || profile?.email || "",
     replyTo: settings.replyTo || profile?.email || "",
     type: settings.type || "Marketing",
-    recipients: settings.recipients || "",
-    doNotSendTo: settings.doNotSendTo || "",
-    ...settings
+    ...settings,
+    recipients: Array.isArray(settings.recipients) ? settings.recipients.join("; ") : (settings.recipients || ""),
+    doNotSendTo: Array.isArray(settings.doNotSendTo) ? settings.doNotSendTo.join("; ") : (settings.doNotSendTo || "")
   }));
 
   const [showRecipients, setShowRecipients] = useState(false);
@@ -1739,14 +1739,21 @@ function SettingsPanel({ t, isDark, settings, onChange, profile, DIMENSIONS = []
   }, [emailName]);
 
   useEffect(() => {
-    setLocalSettings(prev => ({ ...prev, ...settings }));
+    setLocalSettings(prev => {
+      const next = { ...prev, ...settings };
+      if (Array.isArray(settings.recipients)) next.recipients = settings.recipients.join("; ");
+      if (Array.isArray(settings.doNotSendTo)) next.doNotSendTo = settings.doNotSendTo.join("; ");
+      return next;
+    });
   }, [settings]);
 
   const set = (key, val) => setLocalSettings(prev => ({ ...prev, [key]: val }));
 
   const tableData = useMemo(() => {
-    const recipients = (localSettings.recipients || "").split(";").map(s => s.trim().toLowerCase()).filter(Boolean);
-    const dns = (localSettings.doNotSendTo || "").split(";").map(s => s.trim().toLowerCase()).filter(Boolean);
+    const rawR = localSettings.recipients;
+    const recipients = (Array.isArray(rawR) ? rawR : (rawR || "").split(";")).map(s => String(s).trim().toLowerCase()).filter(Boolean);
+    const rawD = localSettings.doNotSendTo;
+    const dns = (Array.isArray(rawD) ? rawD : (rawD || "").split(";")).map(s => String(s).trim().toLowerCase()).filter(Boolean);
     return (Array.isArray(CONTACTS) ? CONTACTS : []).map((c, i) => ({
       ...c,
       _rowId: c.docId || c._docId || c.id || c.schedule_id || `idx-${i}`,
