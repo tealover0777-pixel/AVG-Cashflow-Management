@@ -4,6 +4,7 @@ import { doc, getDoc, updateDoc, serverTimestamp } from "firebase/firestore";
 import { useAuth } from "../AuthContext";
 import { FF, FIn } from "../components";
 import { uploadFile } from "../utils/storageUtils";
+import { ChevronDown } from "lucide-react";
 
 export default function PageCompany({ t, isDark, activeTenantId = "", USERS = [], CONTACTS = [] }) {
     const { user, profile, tenantId: authTenantId, isSuperAdmin } = useAuth();
@@ -33,7 +34,20 @@ export default function PageCompany({ t, isDark, activeTenantId = "", USERS = []
         owner: "",
         _origOwner: "",
         emailSetup: {
-            provider: "ESP",
+            method: "ESP",
+            common: {
+                fromEmail: "",
+                fromName: "",
+                replyTo: "",
+                testEmail: ""
+            },
+            api: {
+                provider: "SendGrid",
+                apiKey: "",
+                domain: "",
+                region: "",
+                baseUrl: ""
+            },
             smtp: {
                 host: "",
                 port: "587",
@@ -49,6 +63,8 @@ export default function PageCompany({ t, isDark, activeTenantId = "", USERS = []
             getDoc(doc(db, "tenants", tenantId)).then(snap => {
                 if (snap.exists()) {
                     const d = snap.data();
+                    const e = d.emailSetup || {};
+                    // Migration / Defaulting
                     setData({
                         name: d.tenant_name || d.name || "",
                         logo: d.tenant_logo || d.logo || "",
@@ -63,9 +79,22 @@ export default function PageCompany({ t, isDark, activeTenantId = "", USERS = []
                         home_page: d.home_page || "",
                         owner: d.owner || d.owner_id || "",
                         _origOwner: d.owner || d.owner_id || "",
-                        emailSetup: d.emailSetup || {
-                            provider: "ESP",
-                            smtp: {
+                        emailSetup: {
+                            method: e.method || (e.provider === "SMTP" ? "SMTP" : "ESP"),
+                            common: e.common || {
+                                fromEmail: d.tenant_email || d.email || "",
+                                fromName: d.tenant_name || d.name || "",
+                                replyTo: "",
+                                testEmail: user?.email || ""
+                            },
+                            api: e.api || {
+                                provider: "SendGrid",
+                                apiKey: "",
+                                domain: "",
+                                region: "",
+                                baseUrl: ""
+                            },
+                            smtp: e.smtp || {
                                 host: "",
                                 port: "587",
                                 user: "",
@@ -77,7 +106,7 @@ export default function PageCompany({ t, isDark, activeTenantId = "", USERS = []
                 }
             }).catch(e => console.error("Error fetching tenant data:", e));
         }
-    }, [tenantId]);
+    }, [tenantId, user?.email]);
 
     const resolvedOwnerName = React.useMemo(() => {
         if (!data.owner) return "—";
@@ -164,6 +193,45 @@ export default function PageCompany({ t, isDark, activeTenantId = "", USERS = []
             setSaving(false);
         }
     };
+
+    const updES = (patch) => {
+        setData(s => ({
+            ...s,
+            emailSetup: { ...s.emailSetup, ...patch }
+        }));
+    };
+
+    const updCommon = (patch) => {
+        setData(s => ({
+            ...s,
+            emailSetup: {
+                ...s.emailSetup,
+                common: { ...s.emailSetup.common, ...patch }
+            }
+        }));
+    };
+
+    const updAPI = (patch) => {
+        setData(s => ({
+            ...s,
+            emailSetup: {
+                ...s.emailSetup,
+                api: { ...s.emailSetup.api, ...patch }
+            }
+        }));
+    };
+
+    const updSMTP = (patch) => {
+        setData(s => ({
+            ...s,
+            emailSetup: {
+                ...s.emailSetup,
+                smtp: { ...s.emailSetup.smtp, ...patch }
+            }
+        }));
+    };
+
+    const PROVIDERS = ["SendGrid", "Mailgun", "Amazon SES", "Other / Custom API"];
 
     return (
         <div style={{ maxWidth: 1200, margin: "0 auto" }}>
@@ -280,37 +348,75 @@ export default function PageCompany({ t, isDark, activeTenantId = "", USERS = []
                     <h3 style={{ fontSize: 17, fontWeight: 700, color: isDark ? "#fff" : "#1C1917", marginBottom: 6 }}>Email Setup</h3>
                     <p style={{ fontSize: 12.5, color: t.textMuted, lineHeight: 1.5 }}>Configure how your marketing and system emails are delivered.</p>
                 </div>
+
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 32, marginBottom: 32, paddingBottom: 32, borderBottom: `1px solid ${t.border}` }}>
+                    <div style={{ display: "grid", gap: 16 }}>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: t.text }}>Common Fields (Required)</div>
+                        <FF label="From Email Address" t={t}><FIn value={data.emailSetup.common.fromEmail} onChange={e => updCommon({ fromEmail: e.target.value })} placeholder="no-reply@yourapp.com" t={t} /></FF>
+                        <FF label="From Name" t={t}><FIn value={data.emailSetup.common.fromName} onChange={e => updCommon({ fromName: e.target.value })} placeholder="American Vision Group Notifications" t={t} /></FF>
+                    </div>
+                    <div style={{ display: "grid", gap: 16 }}>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: t.text }}>Optional / Testing</div>
+                        <FF label="Reply-To Email" t={t}><FIn value={data.emailSetup.common.replyTo} onChange={e => updCommon({ replyTo: e.target.value })} placeholder="support@yourapp.com" t={t} /></FF>
+                        <FF label="Test Email Address" t={t}><FIn value={data.emailSetup.common.testEmail} onChange={e => updCommon({ testEmail: e.target.value })} placeholder="Your testing email" t={t} /></FF>
+                    </div>
+                </div>
+
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 32 }}>
                     <div>
                         <FF label="Delivery Method" t={t}>
                             <div style={{ display: "flex", gap: 8, background: isDark ? "rgba(255,255,255,0.05)" : "#F3F4F6", padding: 4, borderRadius: 10 }}>
-                                <button onClick={() => setData(s => ({ ...s, emailSetup: { ...s.emailSetup, provider: "ESP" }}))}
-                                    style={{ flex: 1, padding: "8px 0", borderRadius: 8, border: "none", fontSize: 13, fontWeight: 600, cursor: "pointer", background: data.emailSetup.provider === "ESP" ? t.accentGrad : "transparent", color: data.emailSetup.provider === "ESP" ? "#fff" : t.textMuted }}>Email Service Provider</button>
-                                <button onClick={() => setData(s => ({ ...s, emailSetup: { ...s.emailSetup, provider: "SMTP" }}))}
-                                    style={{ flex: 1, padding: "8px 0", borderRadius: 8, border: "none", fontSize: 13, fontWeight: 600, cursor: "pointer", background: data.emailSetup.provider === "SMTP" ? t.accentGrad : "transparent", color: data.emailSetup.provider === "SMTP" ? "#fff" : t.textMuted }}>Custom SMTP</button>
+                                <button onClick={() => updES({ method: "ESP" })}
+                                    style={{ flex: 1, padding: "8px 0", borderRadius: 8, border: "none", fontSize: 13, fontWeight: 600, cursor: "pointer", background: data.emailSetup.method === "ESP" ? t.accentGrad : "transparent", color: data.emailSetup.method === "ESP" ? "#fff" : t.textMuted }}>Service Provider (API)</button>
+                                <button onClick={() => updES({ method: "SMTP" })}
+                                    style={{ flex: 1, padding: "8px 0", borderRadius: 8, border: "none", fontSize: 13, fontWeight: 600, cursor: "pointer", background: data.emailSetup.method === "SMTP" ? t.accentGrad : "transparent", color: data.emailSetup.method === "SMTP" ? "#fff" : t.textMuted }}>Custom SMTP</button>
                             </div>
                         </FF>
-                        {data.emailSetup.provider === "ESP" && (
-                            <div style={{ marginTop: 16, padding: 16, background: isDark ? "rgba(34,197,94,0.1)" : "#F0FDF4", borderRadius: 12, border: `1px solid ${isDark ? "rgba(34,197,94,0.2)" : "#DCFCE7"}` }}>
-                                <div style={{ fontSize: 13, fontWeight: 700, color: isDark ? "#4ADE80" : "#166534", marginBottom: 4 }}>Native Infrastructure Active</div>
-                                <div style={{ fontSize: 12, color: isDark ? "#86EFAC" : "#15803D", lineHeight: 1.5 }}>Emails will be delivered via the platform's high-reputation delivery nodes. No further configuration required.</div>
-                            </div>
+                    </div>
+
+                    <div style={{ display: "grid", gap: 16 }}>
+                        {data.emailSetup.method === "ESP" && (
+                            <>
+                                <div style={{ fontSize: 13, fontWeight: 700, color: t.text }}>Provider Settings</div>
+                                <FF label="Provider" t={t}>
+                                    <div style={{ position: "relative" }}>
+                                        <select 
+                                            value={data.emailSetup.api.provider} 
+                                            onChange={e => updAPI({ provider: e.target.value })}
+                                            style={{ width: "100%", padding: "10px 14px", borderRadius: 9, border: `1px solid ${t.border}`, background: isDark ? "rgba(255,255,255,0.05)" : "#fff", color: t.text, cursor: "pointer", fontSize: 14, outline: "none", appearance: "none" }}
+                                        >
+                                            {PROVIDERS.map(p => <option key={p} value={p}>{p}</option>)}
+                                        </select>
+                                        <ChevronDown size={14} style={{ position: "absolute", right: 14, top: "50%", transform: "translateY(-50%)", pointerEvents: "none", opacity: 0.5 }} />
+                                    </div>
+                                </FF>
+                                <FF label="API Key 🔐" t={t}><FIn type="password" value={data.emailSetup.api.apiKey} onChange={e => updAPI({ apiKey: e.target.value })} placeholder="Your API key" t={t} /></FF>
+                                {data.emailSetup.api.provider === "Mailgun" && (
+                                    <FF label="Domain" t={t}><FIn value={data.emailSetup.api.domain} onChange={e => updAPI({ domain: e.target.value })} placeholder="mg.yourdomain.com" t={t} /></FF>
+                                )}
+                                {data.emailSetup.api.provider === "Amazon SES" && (
+                                    <FF label="Region" t={t}><FIn value={data.emailSetup.api.region} onChange={e => updAPI({ region: e.target.value })} placeholder="us-east-1" t={t} /></FF>
+                                )}
+                                <FF label="API Base URL (Optional)" t={t}><FIn value={data.emailSetup.api.baseUrl} onChange={e => updAPI({ baseUrl: e.target.value })} placeholder="https://api.provider.com" t={t} /></FF>
+                            </>
+                        )}
+
+                        {data.emailSetup.method === "SMTP" && (
+                            <>
+                                <div style={{ fontSize: 13, fontWeight: 700, color: t.text }}>SMTP Relay Configuration</div>
+                                <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 12 }}>
+                                    <FF label="SMTP Host" t={t}><FIn value={data.emailSetup.smtp.host} onChange={e => updSMTP({ host: e.target.value })} placeholder="smtp.provider.com" t={t} /></FF>
+                                    <FF label="Port" t={t}><FIn value={data.emailSetup.smtp.port} onChange={e => updSMTP({ port: e.target.value })} placeholder="587" t={t} /></FF>
+                                </div>
+                                <FF label="SMTP Username" t={t}><FIn value={data.emailSetup.smtp.user} onChange={e => updSMTP({ user: e.target.value })} placeholder="username@provider.com" t={t} /></FF>
+                                <FF label="SMTP Password" t={t}><FIn type="password" value={data.emailSetup.smtp.pass} onChange={e => updSMTP({ pass: e.target.value })} placeholder="••••••••" t={t} /></FF>
+                                <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer", marginTop: 4 }}>
+                                    <input type="checkbox" checked={data.emailSetup.smtp.secure} onChange={e => updSMTP({ secure: e.target.checked })} style={{ width: 16, height: 16, accentColor: t.accent }} />
+                                    <span style={{ fontSize: 13, fontWeight: 500, color: t.text }}>Use TLS / SSL for secure connection</span>
+                                </label>
+                            </>
                         )}
                     </div>
-                    {data.emailSetup.provider === "SMTP" && (
-                        <div style={{ display: "grid", gap: 16 }}>
-                            <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 12 }}>
-                                <FF label="SMTP Host" t={t}><FIn value={data.emailSetup.smtp.host} onChange={e => setData(s => ({ ...s, emailSetup: { ...s.emailSetup, smtp: { ...s.emailSetup.smtp, host: e.target.value } }}))} placeholder="smtp.provider.com" t={t} /></FF>
-                                <FF label="Port" t={t}><FIn value={data.emailSetup.smtp.port} onChange={e => setData(s => ({ ...s, emailSetup: { ...s.emailSetup, smtp: { ...s.emailSetup.smtp, port: e.target.value } }}))} placeholder="587" t={t} /></FF>
-                            </div>
-                            <FF label="SMTP Username" t={t}><FIn value={data.emailSetup.smtp.user} onChange={e => setData(s => ({ ...s, emailSetup: { ...s.emailSetup, smtp: { ...s.emailSetup.smtp, user: e.target.value } }}))} placeholder="username@provider.com" t={t} /></FF>
-                            <FF label="SMTP Password" t={t}><FIn type="password" value={data.emailSetup.smtp.pass} onChange={e => setData(s => ({ ...s, emailSetup: { ...s.emailSetup, smtp: { ...s.emailSetup.smtp, pass: e.target.value } }}))} placeholder="••••••••" t={t} /></FF>
-                            <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer", marginTop: 4 }}>
-                                <input type="checkbox" checked={data.emailSetup.smtp.secure} onChange={e => setData(s => ({ ...s, emailSetup: { ...s.emailSetup, smtp: { ...s.emailSetup.smtp, secure: e.target.checked } }}))} style={{ width: 16, height: 16, accentColor: t.accent }} />
-                                <span style={{ fontSize: 13, fontWeight: 500, color: t.text }}>Use TLS / SSL for secure connection</span>
-                            </label>
-                        </div>
-                    )}
                 </div>
             </div>
 

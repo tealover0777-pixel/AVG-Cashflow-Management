@@ -460,13 +460,24 @@ exports.activateUser = functions.https.onCall(async (data, context) => {
 
 /**
  * Helper to get a nodemailer transporter based on tenant settings.
+ * Supports specialized translation of Service Provider (API) settings into SMTP transports.
  */
 async function getTransporter(tenantId) {
   const db = admin.firestore();
   const tenantSnap = await db.collection('tenants').doc(tenantId).get();
   const setup = tenantSnap.exists ? tenantSnap.data().emailSetup : null;
 
-  if (setup && setup.provider === 'SMTP' && setup.smtp && setup.smtp.host) {
+  if (!setup) {
+    // Fallback to system default
+    const systemSnap = await db.collection('system').doc('integrations').get();
+    const config = systemSnap.exists ? systemSnap.data().default_smtp : null;
+    if (!config) throw new Error("No email configuration found for this tenant.");
+    return nodemailer.createTransport(config);
+  }
+
+  const method = setup.method || (setup.provider === 'SMTP' ? 'SMTP' : 'ESP');
+
+  if (method === 'SMTP' && setup.smtp && setup.smtp.host) {
     return nodemailer.createTransport({
       host: setup.smtp.host,
       port: parseInt(setup.smtp.port) || 587,
@@ -478,12 +489,42 @@ async function getTransporter(tenantId) {
     });
   }
 
-  // Fallback to system default
+  if (method === 'ESP' && setup.api) {
+    const { provider, apiKey, domain, region } = setup.api;
+    
+    if (provider === 'SendGrid') {
+      return nodemailer.createTransport({
+        host: 'smtp.sendgrid.net',
+        port: 587,
+        auth: { user: 'apikey', pass: apiKey }
+      });
+    }
+
+    if (provider === 'Mailgun') {
+      return nodemailer.createTransport({
+        host: 'smtp.mailgun.org',
+        port: 587,
+        auth: { user: `postmaster@${domain}`, pass: apiKey }
+      });
+    }
+
+    if (provider === 'Amazon SES') {
+      // For SES SMTP, usually requires separate SMTP credentials, 
+      // but if user provides Region, we point to that endpoint.
+      // Note: Full SES API usage would require AWS SDK, but SMTP is a good fallback.
+      return nodemailer.createTransport({
+        host: `email-smtp.${region || 'us-east-1'}.amazonaws.com`,
+        port: 587,
+        secure: false, // SES usually uses STARTTLS
+        auth: { user: setup.api.smtpUser || apiKey, pass: setup.api.smtpPass || apiKey } // Usually requires specific SMTP credentials
+      });
+    }
+  }
+
+  // Final fallback
   const systemSnap = await db.collection('system').doc('integrations').get();
   const config = systemSnap.exists ? systemSnap.data().default_smtp : null;
-  if (!config) {
-    throw new Error("No email configuration found for this tenant. Please configure SMTP in Company settings.");
-  }
+  if (!config) throw new Error("No valid mailer configuration found.");
   return nodemailer.createTransport(config);
 }
 
@@ -525,22 +566,33 @@ function renderEmailBody(rows) {
 
 /**
  * cloud function: sendTestEmail
- * Triggers a real email using the tenant's chosen SMTP or platform ESP.
+ * Triggers a real email using the tenant's chosen API provider or SMTP.
+ * Also respects the 'common' fields (From, From Name, Reply-To).
  */
 exports.sendTestEmail = functions.https.onCall(async (data, context) => {
   if (!context.auth) throw new functions.https.HttpsError('unauthenticated', 'Login required.');
   
-  const { tenantId, recipientEmail, subject, rows, fromName, fromEmail, replyTo } = data;
+  const { tenantId, recipientEmail, subject, rows, fromName: overrideFromName, fromEmail: overrideFromEmail, replyTo: overrideReplyTo } = data;
   if (!tenantId || !recipientEmail) throw new functions.https.HttpsError('invalid-argument', 'Missing tenantId or recipientEmail.');
 
   try {
+    const db = admin.firestore();
+    const tenantSnap = await db.collection('tenants').doc(tenantId).get();
+    const setup = tenantSnap.exists ? tenantSnap.data().emailSetup : null;
+    const common = (setup && setup.common) || {};
+
+    // Determine effective sender details
+    const finalFromEmail = overrideFromEmail || common.fromEmail || "no-reply@americanvisiongroup.com";
+    const finalFromName = overrideFromName || common.fromName || "American Vision Group";
+    const finalReplyTo = overrideReplyTo || common.replyTo || finalFromEmail;
+
     const transporter = await getTransporter(tenantId);
     const htmlBody = renderEmailBody(rows);
 
     await transporter.sendMail({
-      from: `"${fromName || 'American Vision Group'}" <${fromEmail}>`,
+      from: `"${finalFromName}" <${finalFromEmail}>`,
       to: recipientEmail,
-      replyTo: replyTo || fromEmail,
+      replyTo: finalReplyTo,
       subject: subject || "Test Email",
       html: htmlBody
     });

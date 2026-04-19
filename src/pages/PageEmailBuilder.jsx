@@ -141,6 +141,21 @@ export default function PageEmailBuilder(props) {
   const activeId = tenantId || (activeTenantIdProp && activeTenantIdProp !== "GLOBAL" ? activeTenantIdProp : "");
   const effectiveUploadTenantId = activeId;
 
+  const [setupTestEmail, setSetupTestEmail] = useState("");
+
+  useEffect(() => {
+    if (activeId) {
+      getDoc(doc(db, "tenants", activeId)).then(snap => {
+        if (snap.exists()) {
+          const d = snap.data();
+          if (d.emailSetup?.common?.testEmail) {
+            setSetupTestEmail(d.emailSetup.common.testEmail);
+          }
+        }
+      });
+    }
+  }, [activeId]);
+
   // Close dropdowns on outside click
   useEffect(() => {
     if (!showTestDropdown && !showSendDropdown) return;
@@ -605,6 +620,20 @@ export default function PageEmailBuilder(props) {
                     <input autoFocus value={testSearch} onChange={e => setTestSearch(e.target.value)} placeholder="Search by name or email…" style={{ width: "100%", padding: "7px 8px 7px 28px", borderRadius: 7, border: `1px solid ${t.border}`, background: isDark ? "rgba(255,255,255,0.06)" : "#f9fafb", color: t.text, fontSize: 12, outline: "none", boxSizing: "border-box" }} />
                   </div>
                   <div style={{ maxHeight: 200, overflowY: "auto" }}>
+                    {setupTestEmail && !testSearch && (
+                      <div onClick={() => { handleSendTestEmail(setupTestEmail); setShowTestDropdown(false); }}
+                        style={{ padding: "8px 10px", borderRadius: 7, cursor: "pointer", display: "flex", alignItems: "center", gap: 8, background: (isDark ? "rgba(96,165,250,0.1)" : "#eff6ff"), marginBottom: 12, border: `1px solid ${isDark ? "rgba(96,165,250,0.2)" : "#dbeafe"}` }}
+                        onMouseEnter={e => e.currentTarget.style.background = isDark ? "rgba(96,165,250,0.15)" : "#dbeafe"}
+                        onMouseLeave={e => e.currentTarget.style.background = isDark ? "rgba(96,165,250,0.1)" : "#eff6ff"}>
+                        <div style={{ width: 28, height: 28, borderRadius: "50%", background: t.accentGrad, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700, color: "#fff", flexShrink: 0 }}>
+                           ST
+                        </div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontSize: 11, fontWeight: 700, color: isDark ? "#60A5FA" : "#2563EB", textTransform: "uppercase", letterSpacing: "0.03em", marginBottom: 1 }}>Setup Default</div>
+                          <div style={{ fontSize: 12, color: t.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{setupTestEmail}</div>
+                        </div>
+                      </div>
+                    )}
                     {(Array.isArray([...USERS, ...CONTACTS]) ? [...USERS, ...CONTACTS] : []).filter(u => {
                       const name = u.first_name ? `${u.first_name} ${u.last_name || ""}` : (u.name || u.full_name || "");
                       const email = u.email || "";
