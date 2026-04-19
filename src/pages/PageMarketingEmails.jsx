@@ -3,7 +3,7 @@ import ReactDOM from "react-dom";
 import { Plus, Search, FileText, Send, Inbox, LayoutTemplate, X, ChevronRight, Trash2, MoreHorizontal, Clock, Edit2, Copy, Save, Check } from "lucide-react";
 import { TanStackTable, PromptModal, DelModal } from "../components";
 import { db, storage } from "../firebase";
-import { collection, addDoc, serverTimestamp, doc, updateDoc, deleteDoc, getDoc, query, where, getDocs } from "firebase/firestore";
+import { collection, addDoc, serverTimestamp, doc, updateDoc, deleteDoc, getDoc, query, where, getDocs, onSnapshot } from "firebase/firestore";
 import { ref, uploadBytes } from "firebase/storage";
 import { getCollectionPaths } from "../utils";
 
@@ -335,10 +335,21 @@ export default function PageMarketingEmails({ t, isDark, setActivePage, MARKETIN
     if (activeTenantId && activeTab === "Activity") {
       setLoadingLogs(true);
       const q = query(collection(db, `tenants/${activeTenantId}/comms_log`), where("type", "==", "Marketing"));
-      getDocs(q).then(snap => {
+      
+      const unsubscribe = onSnapshot(q, (snap) => {
         const list = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-        setActivityLogs(list.sort((a, b) => b.sentAt?.seconds - a.sentAt?.seconds));
-      }).finally(() => setLoadingLogs(false));
+        setActivityLogs(list.sort((a, b) => {
+          const timeA = a.sentAt?.seconds || 0;
+          const timeB = b.sentAt?.seconds || 0;
+          return timeB - timeA;
+        }));
+        setLoadingLogs(false);
+      }, (err) => {
+        console.error("Error fetching activity logs:", err);
+        setLoadingLogs(false);
+      });
+
+      return () => unsubscribe();
     }
   }, [activeTenantId, activeTab]);
 
