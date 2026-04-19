@@ -12,8 +12,6 @@ const formatDate = (dateStr) => {
   return d.toLocaleString("en-US", { month: "numeric", day: "numeric", year: "numeric", hour: "numeric", minute: "numeric", hour12: true });
 };
 
-};
-
 const ActionCell = ({ row, isDark, t, actions }) => {
   const [showMenu, setShowMenu] = useState(false);
   const menuRef = useRef(null);
