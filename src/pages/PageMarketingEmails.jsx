@@ -283,11 +283,12 @@ export default function PageMarketingEmails({ t, isDark, setActivePage, MARKETIN
           newTitle = `${newTitle} (2)`;
         }
 
+        const { id, ...emailData } = email;
+
         const paths = getCollectionPaths(activeTenantId);
         const colRef = collection(db, paths.marketingEmails);
         await addDoc(colRef, {
-          ...email,
-          id: undefined,
+          ...emailData,
           title: newTitle,
           status: "Draft", // Clones should start as drafts
           createdAt: serverTimestamp(),
