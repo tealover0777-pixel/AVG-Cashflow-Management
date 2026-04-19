@@ -498,13 +498,6 @@ export default function PageManageTemplates({ t, isDark, setActivePage, setActiv
             {/* Footer Buttons */}
             <div style={{ background: "#fff", borderTop: "1px solid #e5e7eb", padding: "14px 20px", display: "flex", gap: 10, justifyContent: "center", flexShrink: 0 }}>
               <button
-                onClick={() => setShowSendPrompt(viewTemplate)}
-                style={{ padding: "9px 20px", borderRadius: 7, background: "#10B981", color: "#fff", fontWeight: 600, fontSize: 13, border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}
-              >
-                <Send size={14} />
-                Send email
-              </button>
-              <button
                 onClick={() => {
                   setActiveEmailTemplate({ ...viewTemplate, _useMode: true });
                   setActivePage("Email Builder");
