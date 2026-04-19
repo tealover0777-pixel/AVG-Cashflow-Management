@@ -192,7 +192,17 @@ const getMarketingEmailColumns = (isDark, t, actions, activeTab) => {
           style={{ display: "flex", alignItems: "center", gap: 6, cursor: isScheduled ? "pointer" : "default" }}
         >
           <div style={{ width: 7, height: 7, borderRadius: "50%", background: dotColor, flexShrink: 0 }} />
-          <span style={{ fontSize: "12px", fontWeight: 500, color: t.text }}>{status}</span>
+          <span 
+            style={{ 
+              fontSize: "12px", 
+              fontWeight: 500, 
+              color: isScheduled ? (isDark ? "#60A5FA" : "#2563EB") : t.text,
+            }}
+            onMouseEnter={e => { if (isScheduled) e.currentTarget.style.textDecoration = "underline"; }}
+            onMouseLeave={e => { if (isScheduled) e.currentTarget.style.textDecoration = "none"; }}
+          >
+            {status}
+          </span>
         </div>
       );
     },
