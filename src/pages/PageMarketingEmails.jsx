@@ -112,7 +112,7 @@ const getMarketingEmailColumns = (isDark, t, actions, activeTab) => {
     enableSorting: false,
   },
   {
-    header: "Title",
+    header: "Name",
     accessorKey: "title",
     size: 360,
     cell: ({ getValue, row }) => (
