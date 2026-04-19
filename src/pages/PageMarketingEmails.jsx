@@ -256,8 +256,10 @@ export default function PageMarketingEmails({ t, isDark, setActivePage, MARKETIN
     const source = (Array.isArray(MARKETING_EMAILS) && MARKETING_EMAILS.length > 0) ? MARKETING_EMAILS : DUMMY_DRAFTS;
     return (Array.isArray(source) ? source : []).map(e => ({
       ...e,
-      title: e.title || e.name || "Untitled",
-      recipients: Array.isArray(e.recipients) ? `${e.recipients.length} recipients` : (e.recipients || "No recipients"),
+      title: e.settings?.subject || e.title || e.name || "Untitled",
+      recipients: (Array.isArray(e.settings?.recipients) && e.settings.recipients.length > 0) 
+        ? `${e.settings.recipients.length} recipients` 
+        : (Array.isArray(e.recipients) ? `${e.recipients.length} recipients` : (e.recipients || "No recipients")),
       createdAt: e.createdAt || e.created_at || "",
       updatedAt: e.updatedAt || e.updated_at || "",
       status: e.status || "Draft",

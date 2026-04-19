@@ -932,9 +932,39 @@ export default function PageEmailBuilder(props) {
                 disabled={!scheduleData.date || !scheduleData.time || scheduleData.recipients.length === 0}
                 onClick={async () => {
                   const scheduledAt = `${scheduleData.date}T${scheduleData.time}:00`;
-                  const newSettings = { ...emailSettings, status: "Scheduled", scheduledAt };
+                  const newSettings = { 
+                    ...emailSettings, 
+                    status: "Scheduled", 
+                    scheduledAt,
+                    subject: scheduleData.subject,
+                    recipients: scheduleData.recipients,
+                    fromName: scheduleData.fromName,
+                    fromEmail: scheduleData.fromEmail
+                  };
                   setEmailSettings(newSettings);
+                  
+                  // 1. Update the campaign itself
                   await handleSave(false, null, newSettings);
+
+                  // 2. Create a separate job record for the sender process
+                  if (activeTenantId) {
+                    const paths = getCollectionPaths(activeTenantId);
+                    const jobsRef = collection(db, paths.scheduledJobs);
+                    await addDoc(jobsRef, {
+                      campaignId: docId,
+                      title: emailName,
+                      scheduledAt,
+                      subject: scheduleData.subject,
+                      recipients: scheduleData.recipients,
+                      fromName: scheduleData.fromName,
+                      fromEmail: scheduleData.fromEmail,
+                      rows: rows, // Snapshot of structure
+                      settings: newSettings, // Snapshot of settings
+                      jobStatus: "Pending",
+                      createdAt: serverTimestamp(),
+                    });
+                  }
+
                   showToast(`Scheduled for ${scheduleData.date} at ${scheduleData.time} ET`, "success");
                   setShowScheduleModal(false);
                 }}
