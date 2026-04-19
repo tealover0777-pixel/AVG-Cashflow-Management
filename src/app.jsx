@@ -27,6 +27,7 @@ import PageDimensions from "./pages/PageDimensions";
 import PageMarketingEmails from "./pages/PageMarketingEmails";
 import PageManageTemplates from "./pages/PageManageTemplates";
 import PageEmailBuilder from "./pages/PageEmailBuilder";
+import PageCompany from "./pages/PageCompany";
 import {
   LayoutDashboard, Briefcase, Users, PieChart, Calendar, 
   CreditCard, BarChart3, Settings, Shield, UserCircle, 
@@ -767,6 +768,7 @@ function AppContent() {
                   {activePage === "Manage Templates" && <PageManageTemplates t={t} isDark={isDark} setActivePage={setActivePage} setActiveEmailTemplate={setActiveEmailTemplate} allTemplates={allTemplates} loading={loadingTemplates} fetchTemplates={fetchTemplates} />}
                   {activePage === "Email Builder" && <PageEmailBuilder t={t} isDark={isDark} setActivePage={setActivePage} activeEmailTemplate={activeEmailTemplate} setActiveEmailTemplate={setActiveEmailTemplate} refreshTemplates={() => fetchTemplates(true)} activeTenantId={activeTenantId} backTo={prevPage} USERS={rawUsers} CONTACTS={CONTACTS} DIMENSIONS={DIMENSIONS} />}
                   {activePage === "AI Admin" && <PageAdminHelp t={t} isDark={isDark} />}
+                  {activePage === "Company" && <PageCompany t={t} isDark={isDark} activeTenantId={activeTenantId} />}
                 </>
               )}
         </div>

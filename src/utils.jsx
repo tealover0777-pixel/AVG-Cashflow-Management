@@ -150,6 +150,7 @@ const NAV_ITEMS = [
       { label: "Role Types", icon: "ShieldCheck" },
       { label: "Payment Schedule", icon: "CalendarDays" },
       { label: "User Profiles", icon: "UserSquare" },
+      { label: "Company", icon: "Building2" },
     ]
   },
   {
