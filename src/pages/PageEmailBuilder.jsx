@@ -137,6 +137,14 @@ export default function PageEmailBuilder(props) {
   }, [activeEmailTemplate]);
 
   // Close dropdowns on outside click
+  const { profile, tenantId, isSuperAdmin, isGlobalRole, isR10010 } = useAuth();
+  const activeId = tenantId || (activeTenantIdProp && activeTenantIdProp !== "GLOBAL" ? activeTenantIdProp : "");
+  const isAdmin = isSuperAdmin || isGlobalRole || isR10010;
+  const isEditingGlobal = isAdmin && !!activeEmailTemplate?.isGlobal;
+
+  const effectiveUploadTenantId = activeId;
+
+  // Close dropdowns on outside click
   useEffect(() => {
     if (!showTestDropdown && !showSendDropdown) return;
     const handler = (e) => {
@@ -146,9 +154,6 @@ export default function PageEmailBuilder(props) {
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, [showTestDropdown, showSendDropdown]);
-
-  const effectiveUploadTenantId = tenantId ||
-    (activeTenantIdProp && activeTenantIdProp !== "GLOBAL" ? activeTenantIdProp : "");
 
   useEffect(() => {
     const fetchUploads = async () => {
@@ -930,7 +935,6 @@ export default function PageEmailBuilder(props) {
               </button>
               <button
                 disabled={!scheduleData.date || !scheduleData.time || scheduleData.recipients.length === 0}
-                onClick={async () => {
                   const scheduledAt = `${scheduleData.date}T${scheduleData.time}:00`;
                   const newSettings = { 
                     ...emailSettings, 
@@ -938,8 +942,8 @@ export default function PageEmailBuilder(props) {
                     scheduledAt,
                     subject: scheduleData.subject,
                     recipients: scheduleData.recipients,
-                    fromName: scheduleData.fromName,
-                    fromEmail: scheduleData.fromEmail
+                    fromName: emailSettings.fromName || "American Vision Group",
+                    fromEmail: emailSettings.from || profile?.email || "tealover0777@gmail.com"
                   };
                   setEmailSettings(newSettings);
                   
@@ -947,17 +951,17 @@ export default function PageEmailBuilder(props) {
                   await handleSave(false, null, newSettings);
 
                   // 2. Create a separate job record for the sender process
-                  if (activeTenantId) {
-                    const paths = getCollectionPaths(activeTenantId);
+                  if (activeId && activeEmailTemplate?.id) {
+                    const paths = getCollectionPaths(activeId);
                     const jobsRef = collection(db, paths.scheduledJobs);
                     await addDoc(jobsRef, {
-                      campaignId: docId,
+                      campaignId: activeEmailTemplate.id,
                       title: emailName,
                       scheduledAt,
                       subject: scheduleData.subject,
                       recipients: scheduleData.recipients,
-                      fromName: scheduleData.fromName,
-                      fromEmail: scheduleData.fromEmail,
+                      fromName: newSettings.fromName,
+                      fromEmail: newSettings.fromEmail,
                       rows: rows, // Snapshot of structure
                       settings: newSettings, // Snapshot of settings
                       jobStatus: "Pending",
