@@ -160,7 +160,6 @@ const NAV_ITEMS = [
     children: [
       { label: "AI Admin", icon: "Bot" },
       { label: "Dimensions", icon: "Box" },
-      { label: "Tenants", icon: "Building2" },
       { label: "User Admin", icon: "UserPlus" },
     ]
   },
