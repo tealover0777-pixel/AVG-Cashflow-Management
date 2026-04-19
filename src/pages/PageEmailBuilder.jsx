@@ -137,11 +137,7 @@ export default function PageEmailBuilder(props) {
   }, [activeEmailTemplate]);
 
   // Close dropdowns on outside click
-  const { profile, tenantId, isSuperAdmin, isGlobalRole, isR10010 } = useAuth();
   const activeId = tenantId || (activeTenantIdProp && activeTenantIdProp !== "GLOBAL" ? activeTenantIdProp : "");
-  const isAdmin = isSuperAdmin || isGlobalRole || isR10010;
-  const isEditingGlobal = isAdmin && !!activeEmailTemplate?.isGlobal;
-
   const effectiveUploadTenantId = activeId;
 
   // Close dropdowns on outside click
@@ -935,6 +931,7 @@ export default function PageEmailBuilder(props) {
               </button>
               <button
                 disabled={!scheduleData.date || !scheduleData.time || scheduleData.recipients.length === 0}
+                onClick={async () => {
                   const scheduledAt = `${scheduleData.date}T${scheduleData.time}:00`;
                   const newSettings = { 
                     ...emailSettings, 
