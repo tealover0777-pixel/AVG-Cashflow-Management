@@ -263,7 +263,8 @@ export default function PageMarketingEmails({ t, isDark, setActivePage, MARKETIN
       createdAt: e.createdAt || e.created_at || "",
       updatedAt: e.updatedAt || e.updated_at || "",
       status: e.status || "Draft",
-      type: e.settings?.type || e.type || "Marketing"
+      type: e.settings?.type || e.type || "Marketing",
+      scheduledAt: e.scheduledAt || e.settings?.scheduledAt || "",
     }));
   }, [MARKETING_EMAILS]);
 
