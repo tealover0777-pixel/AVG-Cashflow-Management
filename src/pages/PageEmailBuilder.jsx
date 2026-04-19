@@ -999,6 +999,15 @@ function EmailCanvas({ t, isDark, rows, selectedRowId, onSelectRow, onAddRow, on
         ))}
 
       </div>
+      <style>{`
+        [contenteditable="true"] blockquote {
+          margin-left: 2rem;
+          margin-top: 0.5rem;
+          margin-bottom: 0.5rem;
+          padding-left: 0.5rem;
+          border-left: 1px dashed rgba(0,0,0,0.1);
+        }
+      `}</style>
     </div>
   );
 }
@@ -1059,7 +1068,12 @@ const FloatingTextBar = ({ t, isDark, DIMENSIONS = [] }) => {
   const emailTags = Array.isArray(rawTags) ? rawTags : ["First name", "Last name", "Email", "Property Name", "Investment Amount", "Closing Date"];
 
   const cmd = (name, val = null) => {
-    document.execCommand(name, false, val);
+    try {
+      document.execCommand('styleWithCSS', false, true);
+      document.execCommand(name, false, val);
+    } catch (e) {
+      console.warn("Command failed", e);
+    }
   };
 
   const insertTag = (tag) => {
@@ -2622,7 +2636,8 @@ function BlockPropsPanel({ t, isDark, blockType, rowId, onUpdate, rows, onClose,
             {PR("Font Family", <SelectDD value={content.fontFamily || "inherit"} options={[{ label: "Body Font", val: "inherit" }, { label: "Montserrat", val: "Montserrat" }, { label: "Arial", val: "Arial" }, { label: "Inter", val: "Inter" }]} onChange={v => upd({ fontFamily: v })} t={t} />)}
             {PR("Font Weight", <SelectDD value={content.fontWeight || "normal"} options={[{ label: "Regular", val: "normal" }, { label: "Bold", val: "bold" }, { label: "Semi Bold", val: "600" }]} onChange={v => upd({ fontWeight: v })} t={t} />)}
             {PR("Font Size", <NumInput value={content.fontSize || 13} unit="px" onChange={v => upd({ fontSize: Number(v) })} t={t} isDark={isDark} />)}
-            {PR("Color", <ColorPicker value={content.color || "#1F2937"} onChange={v => upd({ color: v })} t={t} isDark={isDark} />)}
+            {PR("Font color", <ColorPicker value={content.color || "#1F2937"} onChange={v => upd({ color: v })} t={t} isDark={isDark} />)}
+            {PR("Background color", <ColorPicker value={content.bgColor || "#ffffff"} onChange={v => upd({ bgColor: v })} t={t} isDark={isDark} />)}
             {PR("Text Align", <AlignToggle value={content.textAlign || "left"} onChange={v => upd({ textAlign: v })} t={t} isDark={isDark} />)}
             {PR("Line Height", <NumInput value={content.lineHeight || 140} unit="%" onChange={v => upd({ lineHeight: Number(v) })} t={t} isDark={isDark} />)}
             {PR("Letter Spacing", <NumInput value={content.letterSpacing || 0} unit="px" onChange={v => upd({ letterSpacing: Number(v) })} t={t} isDark={isDark} />)}
