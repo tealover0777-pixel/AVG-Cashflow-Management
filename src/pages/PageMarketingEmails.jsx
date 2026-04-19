@@ -44,20 +44,20 @@ const ActionCell = ({ row, isDark, t, actions }) => {
           {[
             { label: "Edit name", icon: Edit2, action: () => actions.onEditName(email) },
             { label: "Clone", icon: Copy, action: () => actions.onClone(email) },
-            { label: "Save as template", icon: Save, action: () => actions.onSaveAsTemplate(email) },
+            { label: "Save as new template", icon: Save, action: () => actions.onSaveAsTemplate(email) },
             { label: "Delete", icon: Trash2, action: () => actions.onDelete(email), danger: true },
           ].map((m, i) => (
             <button key={i} onClick={(e) => { e.stopPropagation(); setShowMenu(false); m.action(); }}
               style={{
-                width: "100%", padding: "8px 12px", background: "transparent", border: "none",
-                color: m.danger ? "#EF4444" : t.text, fontSize: 13, fontWeight: 500,
+                width: "100%", padding: "7px 12px", background: "transparent", border: "none",
+                color: m.danger ? "#EF4444" : t.text, fontSize: "12.5px", fontWeight: 500,
                 cursor: "pointer", textAlign: "left", display: "flex", alignItems: "center", gap: 10,
                 borderRadius: 4
               }}
-              onMouseEnter={e => e.currentTarget.style.background = isDark ? "rgba(255,255,255,0.05)" : "#f3f4f6"}
+              onMouseEnter={e => e.currentTarget.style.background = isDark ? "rgba(255,255,255,0.06)" : "#f3f4f6"}
               onMouseLeave={e => e.currentTarget.style.background = "transparent"}
             >
-              <m.icon size={14} /> {m.label}
+              <m.icon size={13} strokeWidth={2} /> {m.label}
             </button>
           ))}
         </div>
@@ -387,7 +387,12 @@ export default function PageMarketingEmails({ t, isDark, setActivePage, MARKETIN
               style={{ display: "flex", alignItems: "center", gap: 8, padding: "12px 16px", color: isActive ? t.text : t.textMuted, borderBottom: isActive ? `2px solid ${isDark ? "#60A5FA" : "#3B82F6"}` : "2px solid transparent", fontWeight: isActive ? 600 : 500, fontSize: 14, cursor: "pointer", transition: "all 0.2s" }}
             >
               {tab.label}
-              <span style={{ background: isActive ? (isDark ? "rgba(59,130,246,0.3)" : "#E5E7EB") : (isDark ? "#374151" : "#F3F4F6"), padding: "1px 7px", borderRadius: 10, fontSize: 11, fontWeight: 700, color: isActive ? (isDark ? "#60A5FA" : "#6B7280") : t.textMuted }}>
+              <span style={{ 
+                background: isActive ? (isDark ? "rgba(59,130,246,0.3)" : "#E5E7EB") : (isDark ? "#374151" : "#F3F4F6"), 
+                padding: "2px 8px", borderRadius: 10, fontSize: 11, fontWeight: 700, 
+                color: isActive ? (isDark ? "#60A5FA" : "#6B7280") : t.textMuted,
+                marginLeft: 4
+              }}>
                 {tab.count}
               </span>
             </div>
