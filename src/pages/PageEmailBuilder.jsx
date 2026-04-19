@@ -1827,9 +1827,9 @@ function SettingsPanel({ t, isDark, settings, onChange, profile, DIMENSIONS = []
             <div ref={typeDropRef} style={{ position: "relative", flex: 1, borderBottom: `1px solid ${t.chipBorder}`, cursor: "pointer" }} onClick={() => setShowTypeDropdown(!showTypeDropdown)}>
               <div style={{ ...inp, borderBottom: "none" }}>{localSettings.type}</div>
               {showTypeDropdown && (
-                <div style={{ position: "absolute", top: "100%", left: 0, right: 0, background: t.surface, border: `1px solid ${t.chipBorder}`, zIndex: 1000 }}>
+                <div style={{ position: "absolute", top: "100%", left: 0, right: 0, background: t.surface, border: `1px solid ${t.chipBorder}`, zIndex: 1000, borderRadius: 8, boxShadow: "0 10px 25px rgba(0,0,0,0.15)", overflow: "hidden" }}>
                   {["Marketing", "Transactional", "Operational"].map(opt => (
-                    <div key={opt} onClick={() => set("type", opt)} style={{ padding: 12, cursor: "pointer" }}>{opt}</div>
+                    <div key={opt} onClick={() => set("type", opt)} style={{ padding: "12px 16px", cursor: "pointer", transition: "background 0.2s" }} onMouseEnter={e => e.currentTarget.style.background = isDark ? "rgba(255,255,255,0.05)" : "#f3f4f6"} onMouseLeave={e => e.currentTarget.style.background = "transparent"}>{opt}</div>
                   ))}
                 </div>
               )}
@@ -1837,16 +1837,45 @@ function SettingsPanel({ t, isDark, settings, onChange, profile, DIMENSIONS = []
           </SettingsRow>
           <SettingsRow label="From name:" t={t}>
             <div ref={fromDropRef} style={{ position: "relative", flex: 1, borderBottom: `1px solid ${t.chipBorder}`, cursor: "pointer" }} onClick={() => setShowFromDropdown(!showFromDropdown)}>
-                        </div>
-                      );
-                    });
-                  })()}
+              <input value={localSettings.fromName || ""} onChange={e => set("fromName", e.target.value)} onClick={e => e.stopPropagation()} style={{ ...inp, borderBottom: "none" }} />
+              {showFromDropdown && (
+                <div style={{ position: "absolute", top: "100%", left: 0, right: 0, background: t.surface, border: `1px solid ${t.chipBorder}`, zIndex: 1000, borderRadius: 8, boxShadow: "0 10px 25px rgba(0,0,0,0.15)", overflow: "hidden" }}>
+                  {[
+                    { name: organizationName || "Organization", email: "" },
+                    { name: userName, email: profile?.email || "" }
+                  ].map((opt, idx) => (
+                    <div key={idx} onClick={() => set("fromName", opt.name)} style={{ padding: "12px 16px", cursor: "pointer", transition: "background 0.2s" }} onMouseEnter={e => e.currentTarget.style.background = isDark ? "rgba(255,255,255,0.05)" : "#f3f4f6"} onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+                      <div style={{ fontSize: 13, color: t.text }}>{opt.name}</div>
+                      {opt.email && <div style={{ fontSize: 11, color: t.textMuted, marginTop: 2 }}>{opt.email}</div>}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </SettingsRow>
+          <SettingsRow label="From:" t={t}>
+            <input value={localSettings.from || ""} onChange={e => set("from", e.target.value)} style={inp} />
+          </SettingsRow>
+          <SettingsRow label="Reply-to:" t={t}>
+            <div ref={replyToDropRef} style={{ position: "relative", flex: 1, borderBottom: `1px solid ${t.chipBorder}`, cursor: "pointer" }} onClick={() => setShowReplyToDropdown(!showReplyToDropdown)}>
+              <div style={{ ...inp, borderBottom: "none" }}>{localSettings.replyTo || "Select reply-to..."}</div>
+              {showReplyToDropdown && (
+                <div style={{ position: "absolute", top: "100%", left: 0, right: 0, background: t.surface, border: `1px solid ${t.chipBorder}`, zIndex: 1000, borderRadius: 8, boxShadow: "0 10px 25px rgba(0,0,0,0.15)", overflow: "hidden" }}>
+                  {[{ name: userName, email: profile?.email || "" }].map((opt, idx) => (
+                    <div key={idx} onClick={() => set("replyTo", opt.email)} style={{ padding: "12px 16px", cursor: "pointer", transition: "background 0.2s" }} onMouseEnter={e => e.currentTarget.style.background = isDark ? "rgba(255,255,255,0.05)" : "#f3f4f6"} onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+                      <div style={{ fontSize: 13, color: t.text }}>{opt.email}</div>
+                      <div style={{ fontSize: 11, color: t.textMuted, marginTop: 2 }}>{opt.name}</div>
+                    </div>
+                  ))}
                 </div>
               )}
             </div>
           </SettingsRow>
 
-
+          <div style={{ display: "flex", justifyContent: "flex-end", gap: 12, marginTop: 20 }}>
+            <button onClick={() => setLocalSettings(settings)} style={{ ...actionBtn, background: isDark ? "rgba(255,255,255,0.05)" : "#F3F4F6" }}>Cancel</button>
+            <button onClick={() => onChange(localSettings)} style={{ ...actionBtn, background: "#1D4ED8", color: "#fff", border: "none" }}>Save Campaign Settings</button>
+          </div>
         </div>
       </div>
 
