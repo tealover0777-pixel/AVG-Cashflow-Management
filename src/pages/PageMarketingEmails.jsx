@@ -314,17 +314,7 @@ export default function PageMarketingEmails({ t, isDark, setActivePage, MARKETIN
       </div>
 
       {/* Actions Bar */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
-        <div style={{ position: "relative", flex: 1, maxWidth: 400 }}>
-          <Search size={15} style={{ position: "absolute", left: 11, top: "50%", transform: "translateY(-50%)", color: t.textMuted, pointerEvents: "none" }} />
-          <input
-            type="text"
-            placeholder="Search emails..."
-            value={globalFilter}
-            onChange={(e) => setGlobalFilter(e.target.value)}
-            style={{ width: "100%", padding: "9px 12px 9px 34px", borderRadius: 8, border: `1px solid ${t.border}`, background: isDark ? "rgba(255,255,255,0.05)" : "#fff", color: t.text, fontSize: 13, outline: "none", boxSizing: "border-box" }}
-          />
-        </div>
+      <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", marginBottom: 14 }}>
         <div style={{ display: "flex", gap: 8, marginLeft: 12 }}>
           <button
             disabled={selectedRows.length === 0}
