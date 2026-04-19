@@ -189,22 +189,6 @@ const getMarketingEmailColumns = (isDark, t, actions, activeTab) => {
     },
   },
   {
-    header: "Schedule",
-    accessorKey: "scheduledAt",
-    size: 160,
-    cell: ({ getValue, row }) => {
-      const val = getValue();
-      const status = row.original.status;
-      if (status !== "Scheduled") return <span style={{ fontSize: "12px", color: t.textMuted }}>—</span>;
-      return (
-        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-          <Clock size={12} color="#F59E0B" />
-          <span style={{ fontFamily: t.mono, fontSize: "11.5px", color: "#F59E0B" }}>{formatDate(val)}</span>
-        </div>
-      );
-    },
-  },
-  {
     header: "Actions",
     id: "actions",
     size: 70,
@@ -214,9 +198,6 @@ const getMarketingEmailColumns = (isDark, t, actions, activeTab) => {
   },
   ];
 
-  if (activeTab !== "Scheduled") {
-    return allCols.filter(c => c.accessorKey !== "scheduledAt");
-  }
   return allCols;
 };
 
