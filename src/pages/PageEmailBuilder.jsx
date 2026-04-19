@@ -292,7 +292,6 @@ export default function PageEmailBuilder(props) {
 
   const RIGHT_TABS = [
     { id: "Content", icon: Square },
-    { id: "Body", icon: AlignLeft },
     { id: "Images", icon: ImageIcon },
     { id: "Uploads", icon: UploadCloud },
     { id: "Audit", icon: FileText },
@@ -736,7 +735,6 @@ export default function PageEmailBuilder(props) {
               ) : (
                 <>
                   {activeRightTab === "Content" && <ContentTab t={t} isDark={isDark} onAddRow={handleAddRow} />}
-                  {activeRightTab === "Body" && <BodyTab t={t} isDark={isDark} />}
                   {activeRightTab === "Images" && <ImagesTab t={t} isDark={isDark} setActiveRightTab={setActiveRightTab} hasImageSelected={selectedBlockType === "IMAGE"} onInsertImage={handleInsertImage} />}
                   {activeRightTab === "Uploads" && (
                     <UploadsTab
@@ -3085,83 +3083,7 @@ function ContentTab({ t, isDark, onAddRow }) {
   );
 }
 
-// ── Body Tab ──────────────────────────────────────────────────────────────────
 
-function BodyTab({ t, isDark }) {
-  const [open, setOpen] = useState({ general: true, emailSettings: true, links: true, accessibility: false });
-  const tog = id => setOpen(p => ({ ...p, [id]: !p[id] }));
-  const Sec = ({ id, label, children }) => (
-    <div>
-      <div onClick={() => tog(id)} style={{ padding: "11px 16px", display: "flex", justifyContent: "space-between", cursor: "pointer", background: isDark ? "#1F2937" : "#F9FAFB", borderBottom: `1px solid ${t.border}` }}>
-        <span style={{ fontSize: 12, fontWeight: 700, color: t.text }}>{label}</span>
-        {open[id] ? <ChevronUp size={14} color={t.textMuted} /> : <CDown />}
-      </div>
-      {open[id] && <div style={{ padding: "14px 16px", display: "flex", flexDirection: "column", gap: 16, borderBottom: `1px solid ${t.border}` }}>{children}</div>}
-    </div>
-  );
-  const PR = ({ label, children }) => <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}><span style={{ fontSize: 12, color: t.text }}>{label}</span><div>{children}</div></div>;
-  const Swatch = ({ color = "#000" }) => <div style={{ width: 22, height: 22, background: color, border: `1px solid ${t.border}`, borderRadius: 3, cursor: "pointer" }} />;
-  const Toggle = ({ on = true }) => (
-    <div style={{ width: 32, height: 18, background: on ? "#3B82F6" : "#D1D5DB", borderRadius: 9, display: "flex", alignItems: "center", padding: "0 2px", cursor: "pointer" }}>
-      <div style={{ width: 14, height: 14, background: "#fff", borderRadius: "50%", marginLeft: on ? "auto" : 0 }} />
-    </div>
-  );
-  const DD = ({ value }) => <div style={{ display: "flex", alignItems: "center", gap: 4, border: `1px solid ${t.border}`, borderRadius: 4, padding: "4px 8px", fontSize: 12, color: t.text, cursor: "pointer" }}>{value} <CDown /></div>;
-
-  return (
-    <div>
-      <Sec id="general" label="General">
-        <PR label="Text Color"><Swatch color="#000" /></PR>
-        <PR label="Background Color">
-          <div style={{ position: "relative" }}>
-            <Swatch color="#fff" />
-            <div style={{ position: "absolute", top: -5, right: -5, background: "#666", borderRadius: "50%", width: 13, height: 13, display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <XIcon size={9} color="#fff" />
-            </div>
-          </div>
-        </PR>
-        <PR label="Content Width">
-          <div style={{ display: "flex", border: `1px solid ${t.border}`, borderRadius: 4, overflow: "hidden", fontSize: 13 }}>
-            <input type="text" defaultValue="780" style={{ width: 80, padding: "8px", textAlign: "center", border: "none", borderRight: `1px solid ${t.border}`, background: t.surface, color: t.text, fontSize: 13 }} />
-            <div style={{ width: 34, padding: "8px", textAlign: "center", background: isDark ? "#1F2937" : "#F3F4F6", borderRight: `1px solid ${t.border}`, fontSize: 12, color: t.textMuted }}>px</div>
-            <button style={{ width: 32, background: t.surface, border: "none", borderRight: `1px solid ${t.border}`, cursor: "pointer", color: t.textMuted, fontSize: 15 }}>-</button>
-            <button style={{ width: 32, background: t.surface, border: "none", cursor: "pointer", color: t.textMuted, fontSize: 15 }}>+</button>
-          </div>
-        </PR>
-        <PR label="Content Height">
-          <div style={{ display: "flex", border: `1px solid ${t.border}`, borderRadius: 4, overflow: "hidden", fontSize: 13 }}>
-            <input type="text" defaultValue="auto" style={{ width: 80, padding: "8px", textAlign: "center", border: "none", borderRight: `1px solid ${t.border}`, background: t.surface, color: t.text, fontSize: 13 }} />
-            <div style={{ width: 34, padding: "8px", textAlign: "center", background: isDark ? "#1F2937" : "#F3F4F6", borderRight: `1px solid ${t.border}`, fontSize: 12, color: t.textMuted }}>px</div>
-            <button style={{ width: 32, background: t.surface, border: "none", borderRight: `1px solid ${t.border}`, cursor: "pointer", color: t.textMuted, fontSize: 15 }}>-</button>
-            <button style={{ width: 32, background: t.surface, border: "none", cursor: "pointer", color: t.textMuted, fontSize: 15 }}>+</button>
-          </div>
-        </PR>
-        <PR label="Content Alignment">
-          <div style={{ display: "flex", border: `1px solid ${t.border}`, borderRadius: 4, overflow: "hidden" }}>
-            <button style={{ padding: "5px 10px", background: t.surface, border: "none", borderRight: `1px solid ${t.border}`, cursor: "pointer", color: t.textMuted }}><AlignLeft size={13} /></button>
-            <button style={{ padding: "5px 10px", background: isDark ? "#374151" : "#1F2937", border: "none", cursor: "pointer", color: "#fff" }}><AlignCenter size={13} /></button>
-          </div>
-        </PR>
-        <PR label="Font Family"><DD value="Montserrat" /></PR>
-        <PR label="Font Weight"><DD value="Regular" /></PR>
-      </Sec>
-      <Sec id="emailSettings" label="Email Settings">
-        <span style={{ fontSize: 12, color: t.textMuted, display: "block", marginBottom: 4 }}>Preheader Text</span>
-        <input type="text" placeholder="Enter Preheader Text" style={{ width: "100%", padding: "8px 0", border: "none", borderBottom: `1px solid ${t.border}`, background: "transparent", color: t.text, outline: "none", fontSize: 13 }} />
-        <p style={{ margin: "10px 0 0 0", fontSize: 11, color: t.textMuted, lineHeight: 1.4 }}>A preheader is the short summary text that follows the subject line when viewing an email from the inbox.</p>
-      </Sec>
-      <Sec id="links" label="Links">
-        <PR label="Color"><Swatch color="#0000FF" /></PR>
-        <PR label="Underline"><Toggle /></PR>
-      </Sec>
-      <Sec id="accessibility" label="Accessibility">
-        <span style={{ fontSize: 12, color: t.textMuted, display: "block", marginBottom: 4 }}>HTML Title</span>
-        <input type="text" placeholder="Enter HTML Title" style={{ width: "100%", padding: "8px 0", border: "none", borderBottom: `1px solid ${t.border}`, background: "transparent", color: t.text, outline: "none", fontSize: 13 }} />
-        <p style={{ margin: "10px 0 0 0", fontSize: 11, color: t.textMuted, lineHeight: 1.4 }}>Sets the HTML &lt;title&gt; tag in the exported HTML.</p>
-      </Sec>
-    </div>
-  );
-}
 
 // ── Images Tab (Unsplash) ─────────────────────────────────────────────────────
 
