@@ -766,7 +766,7 @@ function AppContent() {
                   {activePage === "Reports" && <PageReports t={t} isDark={isDark} MONTHLY={MONTHLY} activeTenantId={activeTenantId} />}
                   {activePage === "Marketing emails" && <PageMarketingEmails t={t} isDark={isDark} setActivePage={setActivePage} MARKETING_EMAILS={rawMarketingEmails} setActiveEmailTemplate={setActiveEmailTemplate} activeTenantId={activeTenantId} USERS={rawUsers} CONTACTS={CONTACTS} />}
                   {activePage === "Manage Templates" && <PageManageTemplates t={t} isDark={isDark} setActivePage={setActivePage} setActiveEmailTemplate={setActiveEmailTemplate} allTemplates={allTemplates} loading={loadingTemplates} fetchTemplates={fetchTemplates} />}
-                  {activePage === "Email Builder" && <PageEmailBuilder t={t} isDark={isDark} setActivePage={setActivePage} activeEmailTemplate={activeEmailTemplate} setActiveEmailTemplate={setActiveEmailTemplate} refreshTemplates={() => fetchTemplates(true)} activeTenantId={activeTenantId} backTo={prevPage} USERS={rawUsers} CONTACTS={CONTACTS} DIMENSIONS={DIMENSIONS} />}
+                  {activePage === "Email Builder" && <PageEmailBuilder t={t} isDark={isDark} setActivePage={setActivePage} activeEmailTemplate={activeEmailTemplate} setActiveEmailTemplate={setActiveEmailTemplate} refreshTemplates={() => fetchTemplates(true)} activeTenantId={activeTenantId} backTo={prevPage} USERS={rawUsers} CONTACTS={CONTACTS} DIMENSIONS={DIMENSIONS} organizationName={determinedTenantName} />}
                   {activePage === "AI Admin" && <PageAdminHelp t={t} isDark={isDark} />}
                   {activePage === "Company" && <PageCompany t={t} isDark={isDark} activeTenantId={activeTenantId} USERS={rawUsers} CONTACTS={rawContacts} />}
                 </>

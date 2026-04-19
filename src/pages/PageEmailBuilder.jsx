@@ -86,7 +86,7 @@ const INITIAL_ROWS = [
 // ── Main Component ────────────────────────────────────────────────────────────
 
 export default function PageEmailBuilder(props) {
-  const { t, isDark, setActivePage, activeEmailTemplate, setActiveEmailTemplate, refreshTemplates, activeTenantId: activeTenantIdProp, backTo = "Manage Templates", USERS = [], CONTACTS = [], DIMENSIONS = [] } = props;
+  const { t, isDark, setActivePage, activeEmailTemplate, setActiveEmailTemplate, refreshTemplates, activeTenantId: activeTenantIdProp, backTo = "Manage Templates", USERS = [], CONTACTS = [], DIMENSIONS = [], organizationName = "" } = props;
   const isUseMode = activeEmailTemplate?._useMode === true;
 
   const [activeMainTab, setActiveMainTab] = useState("Edit");
@@ -294,7 +294,6 @@ export default function PageEmailBuilder(props) {
     { id: "Content", icon: Square },
     { id: "Images", icon: ImageIcon },
     { id: "Uploads", icon: UploadCloud },
-    { id: "Audit", icon: FileText },
   ];
 
   const showBlockProps = !!(selectedRowId && selectedBlockType && activeRightTab === "Content");
@@ -696,7 +695,7 @@ export default function PageEmailBuilder(props) {
 
         {/* Canvas / Settings / Preview */}
         {activeMainTab === "Settings" ? (
-          <SettingsPanel t={t} isDark={isDark} settings={emailSettings} onChange={setEmailSettings} profile={profile} DIMENSIONS={DIMENSIONS} CONTACTS={CONTACTS} USERS={USERS} />
+          <SettingsPanel t={t} isDark={isDark} settings={emailSettings} onChange={setEmailSettings} profile={profile} DIMENSIONS={DIMENSIONS} CONTACTS={CONTACTS} USERS={USERS} emailName={emailName} organizationName={organizationName} />
         ) : activeMainTab === "Mobile" ? (
           <ReviewPanel t={t} isDark={isDark} rows={rows} emailSettings={emailSettings} narrow />
         ) : activeMainTab === "Desktop" ? (
@@ -748,12 +747,7 @@ export default function PageEmailBuilder(props) {
                       onInsertImage={handleInsertImage}
                     />
                   )}
-                  {activeRightTab === "Audit" && (
-                    <div style={{ padding: 24, textAlign: "center", color: t.textMuted, fontSize: 13, marginTop: 40 }}>
-                      <FileText size={32} style={{ margin: "0 auto 14px", display: "block", opacity: 0.4 }} />
-                      No audits found. Your email looks great!
-                    </div>
-                  )}
+
                 </>
               )}
             </div>
@@ -774,12 +768,7 @@ export default function PageEmailBuilder(props) {
                       color: active ? (isDark ? "#60A5FA" : "#3B82F6") : t.textMuted
                     }}
                   >
-                    <div style={{ position: "relative" }}>
                       <rt.icon size={18} strokeWidth={1.5} />
-                      {rt.id === "Audit" && (
-                        <span style={{ position: "absolute", top: -5, right: -7, background: "#EF4444", color: "#fff", fontSize: 8, fontWeight: 700, width: 13, height: 13, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center" }}>2</span>
-                      )}
-                    </div>
                     <span style={{ fontSize: 8.5, fontWeight: active ? 600 : 400, textAlign: "center" }}>{rt.id}</span>
                   </div>
                 );
@@ -1703,8 +1692,18 @@ function SettingsRow({ label, t, children }) {
   );
 }
 
-function SettingsPanel({ t, isDark, settings, onChange, profile, DIMENSIONS = [], CONTACTS = [], USERS = [] }) {
-  const [localSettings, setLocalSettings] = useState(settings);
+function SettingsPanel({ t, isDark, settings, onChange, profile, DIMENSIONS = [], CONTACTS = [], USERS = [], emailName = "", organizationName = "" }) {
+  const [localSettings, setLocalSettings] = useState(() => {
+    const s = { ...settings };
+    // Synchronize defaults
+    s.internalName = emailName || s.internalName || "";
+    if (!s.subject) s.subject = s.internalName;
+    if (!s.fromName) s.fromName = organizationName || "";
+    if (!s.from) s.from = profile?.email || "";
+    if (!s.replyTo) s.replyTo = profile?.email || "";
+    if (!s.type) s.type = "Marketing";
+    return s;
+  });
   const [showRecipients, setShowRecipients] = useState(false);
   const [selectedInTable, setSelectedInTable] = useState([]);
   const [rowSelection, setRowSelection] = useState({});
@@ -2097,17 +2096,91 @@ function SettingsPanel({ t, isDark, settings, onChange, profile, DIMENSIONS = []
                         }
                       }}
                       style={{ padding: "12px 16px", cursor: "pointer", transition: "background 0.2s" }}
+          <SettingsRow label="From:" t={t}>
+            <div ref={fromDropRef} style={{ position: "relative", flex: 1, borderBottom: `1px solid ${t.chipBorder}`, cursor: "pointer" }} onClick={() => setShowFromDropdown(!showFromDropdown)}>
+              <div style={{ ...inp, borderBottom: "none", color: localSettings.from ? t.text : t.textMuted, display: "flex", alignItems: "center" }}>
+                {localSettings.from || (t.isFrench ? "Choisir Expéditeur..." : "Select Sender Email...")}
+              </div>
+              <div style={{ position: "absolute", right: 0, top: "50%", transform: "translateY(-50%)", pointerEvents: "none", opacity: 0.6 }}>
+                <CDown />
+              </div>
+              {showFromDropdown && (
+                <div style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0, background: t.surface, border: `1px solid ${t.chipBorder}`, borderRadius: 8, boxShadow: "0 10px 25px rgba(0,0,0,0.15)", zIndex: 1000, overflow: "hidden" }}>
+                  {[
+                    { name: userName, email: profile?.email || "" },
+                    ...Array.from(new Set([...USERS, ...CONTACTS].map(u => u.email))).filter(Boolean).map(e => getInfoForEmail(e))
+                  ].slice(0, 10).map((opt, idx) => (
+                    <div
+                      key={idx}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        set("from", opt.email);
+                        setShowFromDropdown(false);
+                      }}
+                      style={{ padding: "12px 16px", cursor: "pointer", transition: "background 0.2s" }}
                       onMouseEnter={e => e.currentTarget.style.background = isDark ? "rgba(255,255,255,0.05)" : "#f3f4f6"}
                       onMouseLeave={e => e.currentTarget.style.background = "transparent"}
                     >
-                      <div style={{ fontSize: 14, color: t.text }}>{opt.name}</div>
-                      {opt.email && <div style={{ fontSize: 11, color: t.textMuted, marginTop: 2 }}>{opt.email}</div>}
+                      <div style={{ fontSize: 13, color: t.text }}>{opt.email}</div>
+                      <div style={{ fontSize: 11, color: t.textMuted, marginTop: 2 }}>{opt.name}</div>
                     </div>
                   ))}
                 </div>
               )}
             </div>
           </SettingsRow>
+
+          <SettingsRow label="Reply-to:" t={t}>
+            <div ref={replyToDropRef} style={{ position: "relative", flex: 1, borderBottom: `1px solid ${t.chipBorder}`, cursor: "pointer" }} onClick={() => setShowReplyToDropdown(!showReplyToDropdown)}>
+              <div style={{ ...inp, borderBottom: "none", color: localSettings.replyTo ? t.text : t.textMuted, display: "flex", alignItems: "center" }}>
+                {localSettings.replyTo || (t.isFrench ? "Choisir Adresse de réponse..." : "Select Reply-to Email...")}
+              </div>
+              <div style={{ position: "absolute", right: 0, top: "50%", transform: "translateY(-50%)", pointerEvents: "none", opacity: 0.6 }}>
+                <CDown />
+              </div>
+              {showReplyToDropdown && (
+                <div style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0, background: t.surface, border: `1px solid ${t.chipBorder}`, borderRadius: 8, boxShadow: "0 10px 25px rgba(0,0,0,0.15)", zIndex: 1000, overflow: "hidden" }}>
+                  {[
+                    { name: userName, email: profile?.email || "" },
+                    ...Array.from(new Set([...USERS, ...CONTACTS].map(u => u.email))).filter(Boolean).map(e => getInfoForEmail(e))
+                  ].slice(0, 10).map((opt, idx) => (
+                    <div
+                      key={idx}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        set("replyTo", opt.email);
+                        setShowReplyToDropdown(false);
+                      }}
+                      style={{ padding: "12px 16px", cursor: "pointer", transition: "background 0.2s" }}
+                      onMouseEnter={e => e.currentTarget.style.background = isDark ? "rgba(255,255,255,0.05)" : "#f3f4f6"}
+                      onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+                    >
+                      <div style={{ fontSize: 13, color: t.text }}>{opt.email}</div>
+                      <div style={{ fontSize: 11, color: t.textMuted, marginTop: 2 }}>{opt.name}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </SettingsRow>
+
+          <div style={{ display: "flex", justifyContent: "flex-end", gap: 12, marginTop: 20 }}>
+            <button
+              onClick={() => setLocalSettings(settings)}
+              style={{ ...actionBtn, background: isDark ? "rgba(255,255,255,0.05)" : "#F3F4F6", border: isDark ? "1px solid rgba(255,255,255,0.1)" : `1px solid ${t.border}` }}
+            >
+              Cancel
+            </button>
+            <button
+              onClick={() => onChange(localSettings)}
+              style={{ ...actionBtn, background: "#1D4ED8", color: "#fff", border: "none" }}
+            >
+              Save Campaign Settings
+            </button>
+          </div>
+
+        </div>
+      </div>
 
           <SettingsRow label="From:" t={t}>
             <div style={{ flex: 1, fontSize: 15, color: t.text, borderBottom: `1px solid ${t.chipBorder}`, padding: "8px 0" }}>{localSettings.from || "—"}</div>
