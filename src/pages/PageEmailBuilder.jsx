@@ -676,19 +676,39 @@ export default function PageEmailBuilder(props) {
                 <div style={{ position: "absolute", top: "calc(100% + 6px)", right: 0, width: 175, background: isDark ? "#1e293b" : "#fff", border: `1px solid ${t.border}`, borderRadius: 10, boxShadow: "0 8px 24px rgba(0,0,0,0.18)", zIndex: 500, overflow: "hidden" }}>
                   {[
                     { label: "Send now", icon: Send, action: async () => {
-                      if (!activeEmailTemplate?.id) {
-                        showToast("Template not found or not saved as campaign.", "error"); return;
-                      }
                       setIsSaving(true);
                       try {
                         const sendMarketing = httpsCallable(functions, "sendMarketingEmail");
                         const effectiveTenantId = tenantId || (activeTenantIdProp && activeTenantIdProp !== "GLOBAL" ? activeTenantIdProp : "");
-                        
+
+                        // Determine a valid Firestore campaign ID (no slashes)
+                        let campaignId = activeEmailTemplate?.id || "";
+                        if (!campaignId || campaignId.includes("/")) {
+                          // Storage template — create a Firestore draft first to get a real doc ID
+                          if (!effectiveTenantId) {
+                            showToast("No tenant selected. Cannot send.", "error");
+                            setIsSaving(false); return;
+                          }
+                          const { addDoc: _add, collection: _col, serverTimestamp: _ts } = await import("firebase/firestore");
+                          const newDoc = await _add(_col(db, `tenants/${effectiveTenantId}/marketingEmails`), {
+                            title: emailName,
+                            rows,
+                            settings: emailSettings,
+                            status: "Draft",
+                            createdAt: _ts(),
+                            updatedAt: _ts(),
+                          });
+                          campaignId = newDoc.id;
+                          if (typeof props.setActiveEmailTemplate === "function") {
+                            props.setActiveEmailTemplate(prev => ({ ...prev, id: newDoc.id }));
+                          }
+                        }
+
                         await sendMarketing({
                           tenantId: effectiveTenantId,
-                          campaignId: activeEmailTemplate.id,
+                          campaignId,
                           subject: emailSettings.subject || emailName,
-                          rows: rows,
+                          rows,
                           recipients: emailSettings.recipients,
                           doNotSendTo: emailSettings.doNotSendTo,
                           fromName: emailSettings.fromName,

@@ -1683,6 +1683,20 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
 
       {activeTab === "Investments" ? (
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+          <div style={{ display: "flex", gap: 8, marginBottom: 4 }}>
+            <input
+              placeholder="Search email..."
+              value={invSearch.email}
+              onChange={e => setInvSearch(s => ({ ...s, email: e.target.value }))}
+              style={{ padding: "6px 10px", borderRadius: 8, border: `1px solid ${t.chipBorder}`, background: t.inputBg, color: t.text, fontSize: 13 }}
+            />
+            <input
+              placeholder="Search payment method..."
+              value={invSearch.paymentMethod}
+              onChange={e => setInvSearch(s => ({ ...s, paymentMethod: e.target.value }))}
+              style={{ padding: "6px 10px", borderRadius: 8, border: `1px solid ${t.chipBorder}`, background: t.inputBg, color: t.text, fontSize: 13 }}
+            />
+          </div>
           <div style={{ height: '1200px', width: "100%", minHeight: '1200px' }}>
             <TanStackTable
               data={dealInvestments}
