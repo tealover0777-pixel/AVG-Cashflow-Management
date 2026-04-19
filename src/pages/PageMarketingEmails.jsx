@@ -244,6 +244,50 @@ const getMarketingEmailColumns = (isDark, t, actions, activeTab) => {
   return allCols;
 };
 
+const getActivityLogColumns = (isDark, t) => [
+  {
+    header: "Recipient",
+    accessorKey: "recipient",
+    size: 250,
+    cell: ({ getValue }) => <span style={{ fontSize: "12.5px", fontWeight: 600, color: t.text }}>{getValue() || "—"}</span>,
+  },
+  {
+    header: "Subject",
+    accessorKey: "subject",
+    size: 250,
+    cell: ({ getValue }) => <span style={{ fontSize: "12px", color: t.textMuted }}>{getValue() || "—"}</span>,
+  },
+  {
+    header: "Sent At",
+    accessorKey: "sentAt",
+    size: 180,
+    cell: ({ getValue }) => <span style={{ fontFamily: t.mono, fontSize: "11.5px", color: t.idText }}>{formatDate(getValue())}</span>,
+  },
+  {
+    header: "Status",
+    accessorKey: "status",
+    size: 120,
+    cell: ({ getValue }) => {
+      const status = getValue() || "Pending";
+      const isDelivered = status === "Delivered";
+      return (
+        <span style={{ 
+          fontSize: "10px", 
+          fontWeight: 700, 
+          padding: "2px 8px", 
+          borderRadius: 4, 
+          background: isDelivered ? (isDark ? "rgba(34,197,94,0.15)" : "#F0FDF4") : (isDark ? "rgba(239,68,68,0.15)" : "#FEF2F2"), 
+          color: isDelivered ? "#22C55E" : "#EF4444",
+          border: `1px solid ${isDelivered ? "rgba(34,197,94,0.2)" : "rgba(239,68,68,0.2)"}`,
+          textTransform: "uppercase",
+        }}>
+          {status}
+        </span>
+      );
+    },
+  },
+];
+
 const DUMMY_DRAFTS = [
   { id: 1, title: "Quarterly Investor Newsletter Template", recipients: "No recipients", createdAt: "2026-04-16T17:31:00", updatedAt: "2026-04-16T17:34:00", status: "Draft" },
   { id: 2, title: "New draft", recipients: "No recipients", createdAt: "2026-04-16T17:30:00", updatedAt: "2026-04-16T17:30:00", status: "Draft" },
@@ -273,6 +317,9 @@ export default function PageMarketingEmails({ t, isDark, setActivePage, MARKETIN
   const [emailConfig, setEmailConfig] = React.useState(null);
   const [loadingEmail, setLoadingEmail] = React.useState(true);
 
+  const [activityLogs, setActivityLogs] = React.useState([]);
+  const [loadingLogs, setLoadingLogs] = React.useState(false);
+
   React.useEffect(() => {
     if (activeTenantId) {
       setLoadingEmail(true);
@@ -283,6 +330,17 @@ export default function PageMarketingEmails({ t, isDark, setActivePage, MARKETIN
       }).finally(() => setLoadingEmail(false));
     }
   }, [activeTenantId]);
+
+  React.useEffect(() => {
+    if (activeTenantId && activeTab === "Activity") {
+      setLoadingLogs(true);
+      const q = query(collection(db, `tenants/${activeTenantId}/comms_log`), where("type", "==", "Marketing"));
+      getDocs(q).then(snap => {
+        const list = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        setActivityLogs(list.sort((a, b) => b.sentAt?.seconds - a.sentAt?.seconds));
+      }).finally(() => setLoadingLogs(false));
+    }
+  }, [activeTenantId, activeTab]);
 
   const emails = React.useMemo(() => {
     const source = (Array.isArray(MARKETING_EMAILS) && MARKETING_EMAILS.length > 0) ? MARKETING_EMAILS : DUMMY_DRAFTS;
@@ -310,6 +368,7 @@ export default function PageMarketingEmails({ t, isDark, setActivePage, MARKETIN
     { label: "Sent", icon: Send, count: sent.length },
     { label: "Scheduled", icon: Clock, count: scheduled.length },
     { label: "Inbox", icon: Inbox, count: inbox.length },
+    { label: "Activity", icon: FileText, count: activityLogs.length },
   ];
 
   const tableData = React.useMemo(() => {
@@ -317,8 +376,9 @@ export default function PageMarketingEmails({ t, isDark, setActivePage, MARKETIN
     if (activeTab === "Sent") return sent;
     if (activeTab === "Scheduled") return scheduled;
     if (activeTab === "Inbox") return inbox;
+    if (activeTab === "Activity") return activityLogs;
     return [];
-  }, [activeTab, drafts, sent, scheduled, inbox]);
+  }, [activeTab, drafts, sent, scheduled, inbox, activityLogs]);
 
   const [itemToEdit, setItemToEdit] = React.useState(null);
   const [itemToDelete, setItemToDelete] = React.useState(null);
@@ -347,57 +407,60 @@ export default function PageMarketingEmails({ t, isDark, setActivePage, MARKETIN
   }, [itemToReschedule]);
 
   const columnDefs = React.useMemo(
-    () => getMarketingEmailColumns(isDark, t, {
-      onOpen: (email) => {
-        setActiveEmailTemplate({ ...email, _useMode: true });
-        setActivePage("Email Builder");
-      },
-      onEditName: (email) => setItemToEdit(email),
-      onClone: async (email) => {
-        if (!activeTenantId) return;
-        
-        let newTitle = email.title || "Untitled";
-        const match = newTitle.match(/(.*)\s\((\d+)\)$/);
-        if (match) {
-          const base = match[1];
-          const num = parseInt(match[2], 10);
-          newTitle = `${base} (${num + 1})`;
-        } else {
-          newTitle = `${newTitle} (2)`;
-        }
+    () => {
+      if (activeTab === "Activity") return getActivityLogColumns(isDark, t);
+      return getMarketingEmailColumns(isDark, t, {
+        onOpen: (email) => {
+          setActiveEmailTemplate({ ...email, _useMode: true });
+          setActivePage("Email Builder");
+        },
+        onEditName: (email) => setItemToEdit(email),
+        onClone: async (email) => {
+          if (!activeTenantId) return;
+          
+          let newTitle = email.title || "Untitled";
+          const match = newTitle.match(/(.*)\s\((\d+)\)$/);
+          if (match) {
+            const base = match[1];
+            const num = parseInt(match[2], 10);
+            newTitle = `${base} (${num + 1})`;
+          } else {
+            newTitle = `${newTitle} (2)`;
+          }
 
-        const { id, ...emailData } = email;
+          const { id, ...emailData } = email;
 
-        const paths = getCollectionPaths(activeTenantId);
-        const colRef = collection(db, paths.marketingEmails);
-        await addDoc(colRef, {
-          ...emailData,
-          title: newTitle,
-          status: "Draft", // Clones should start as drafts
-          createdAt: serverTimestamp(),
-          updatedAt: serverTimestamp(),
-        });
-      },
-      onSaveAsTemplate: async (email) => {
-        if (!activeTenantId) return;
-        const sanitizedName = email.title.replace(/[/\s]+/g, "_").trim();
-        const path = `tenants/${activeTenantId}/templates/${sanitizedName}_backup.json`;
-        const templateRef = ref(storage, path);
-        const templateData = {
-          name: `${email.title} (From Campaign)`,
-          settings: email.settings || {},
-          rows: email.rows || [],
-          updatedAt: new Date().toISOString(),
-          category: "Your templates"
-        };
-        const blob = new Blob([JSON.stringify(templateData, null, 2)], { type: "application/json" });
-        await uploadBytes(templateRef, blob);
-        alert("Campaign saved to your template library!");
-      },
-      onDelete: (email) => setItemToDelete(email),
-      onEditSchedule: (email) => setItemToReschedule(email),
-    }, activeTab),
-    [isDark, t, setActivePage, setActiveEmailTemplate, activeTenantId, activeTab]
+          const paths = getCollectionPaths(activeTenantId);
+          const colRef = collection(db, paths.marketingEmails);
+          await addDoc(colRef, {
+            ...emailData,
+            title: newTitle,
+            status: "Draft", // Clones should start as drafts
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp(),
+          });
+        },
+        onSaveAsTemplate: async (email) => {
+          if (!activeTenantId) return;
+          const sanitizedName = email.title.replace(/[/\s]+/g, "_").trim();
+          const path = `tenants/${activeTenantId}/templates/${sanitizedName}_backup.json`;
+          const templateRef = ref(storage, path);
+          const templateData = {
+            name: `${email.title} (From Campaign)`,
+            settings: email.settings || {},
+            rows: email.rows || [],
+            updatedAt: new Date().toISOString(),
+            category: "Your templates"
+          };
+          const blob = new Blob([JSON.stringify(templateData, null, 2)], { type: "application/json" });
+          await uploadBytes(templateRef, blob);
+          alert("Campaign saved to your template library!");
+        },
+        onDelete: (email) => setItemToDelete(email),
+        onEditSchedule: (email) => setItemToReschedule(email),
+      }, activeTab);
+    },
+    [isDark, t, setActivePage, setActiveEmailTemplate, activeTenantId, activeTab, activityLogs]
   );
 
   const [isImporting, setIsImporting] = React.useState(false);

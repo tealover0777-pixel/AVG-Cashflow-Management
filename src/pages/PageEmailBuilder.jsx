@@ -40,8 +40,8 @@ const INITIAL_SETTINGS = {
   subject: "[Template] Investment Report",
   internalName: "Investment reports - March 2026",
   fromName: "American Vision Group",
-  from: "invest@americanvisioncap.com",
-  replyTo: "invest@americanvisioncap.com",
+  from: "",
+  replyTo: "",
   previewText: "",
   doNotSendTo: "",
   type: "Marketing",
@@ -674,25 +674,39 @@ export default function PageEmailBuilder(props) {
               </button>
               {showSendDropdown && (
                 <div style={{ position: "absolute", top: "calc(100% + 6px)", right: 0, width: 175, background: isDark ? "#1e293b" : "#fff", border: `1px solid ${t.border}`, borderRadius: 10, boxShadow: "0 8px 24px rgba(0,0,0,0.18)", zIndex: 500, overflow: "hidden" }}>
-                  {(Array.isArray([
+                  {[
                     { label: "Send now", icon: Send, action: async () => {
-                      const newSettings = { ...emailSettings, status: "Sent", sentAt: new Date().toISOString() };
-                      setEmailSettings(newSettings);
-                      await handleSave(false, null, newSettings);
-                      showToast("Email sent!", "success");
-                      setShowSendDropdown(false);
+                      if (!activeEmailTemplate?.id) {
+                        showToast("Template not found or not saved as campaign.", "error"); return;
+                      }
+                      setIsSaving(true);
+                      try {
+                        const sendMarketing = httpsCallable(functions, "sendMarketingEmail");
+                        const effectiveTenantId = tenantId || (activeTenantIdProp && activeTenantIdProp !== "GLOBAL" ? activeTenantIdProp : "");
+                        
+                        await sendMarketing({
+                          tenantId: effectiveTenantId,
+                          campaignId: activeEmailTemplate.id,
+                          subject: emailSettings.subject || emailName,
+                          rows: rows,
+                          recipients: emailSettings.recipients,
+                          doNotSendTo: emailSettings.doNotSendTo,
+                          fromName: emailSettings.fromName,
+                          fromEmail: emailSettings.from,
+                          replyTo: emailSettings.replyTo
+                        });
+
+                        showToast("Campaign dispatch triggered successfully!", "success");
+                        setShowSendDropdown(false);
+                      } catch (err) {
+                        console.error("Marketing send error:", err);
+                        showToast("Failed to dispatch campaign: " + (err.message || "Unknown error"), "error");
+                      } finally {
+                        setIsSaving(false);
+                      }
                     } },
                     { label: "Schedule", icon: Clock, action: () => { setScheduleData(d => ({ ...d, subject: emailSettings.subject || emailName })); setShowScheduleModal(true); setShowSendDropdown(false); } },
-                  ]) ? [
-                    { label: "Send now", icon: Send, action: async () => {
-                      const newSettings = { ...emailSettings, status: "Sent", sentAt: new Date().toISOString() };
-                      setEmailSettings(newSettings);
-                      await handleSave(false, null, newSettings);
-                      showToast("Email sent!", "success");
-                      setShowSendDropdown(false);
-                    } },
-                    { label: "Schedule", icon: Clock, action: () => { setScheduleData(d => ({ ...d, subject: emailSettings.subject || emailName })); setShowScheduleModal(true); setShowSendDropdown(false); } },
-                  ] : []).map(({ label, icon: Icon, action }) => (
+                  ].map(({ label, icon: Icon, action }) => (
                     <button key={label} onClick={action}
                       style={{ width: "100%", padding: "11px 16px", background: "transparent", border: "none", borderBottom: label === "Send now" ? `1px solid ${t.border}` : "none", color: t.text, fontSize: 13, fontWeight: 500, cursor: "pointer", textAlign: "left", display: "flex", alignItems: "center", gap: 8 }}
                       onMouseEnter={e => e.currentTarget.style.background = isDark ? "rgba(255,255,255,0.05)" : "#f3f4f6"}
@@ -1746,17 +1760,23 @@ function SettingsRow({ label, t, children }) {
 }
 
 function SettingsPanel({ t, isDark, settings, onChange, profile, DIMENSIONS = [], CONTACTS = [], USERS = [], emailName = "", organizationName = "", onSave, isSaving }) {
-  const [localSettings, setLocalSettings] = React.useState(() => ({
-    internalName: emailName || settings.internalName || "",
-    subject: settings.subject || emailName || "",
-    fromName: settings.fromName || organizationName || "",
-    from: settings.from || profile?.email || "",
-    replyTo: settings.replyTo || profile?.email || "",
-    type: settings.type || "Marketing",
-    ...settings,
-    recipients: Array.isArray(settings.recipients) ? settings.recipients.join("; ") : (settings.recipients || ""),
-    doNotSendTo: Array.isArray(settings.doNotSendTo) ? settings.doNotSendTo.join("; ") : (settings.doNotSendTo || "")
-  }));
+  const [localSettings, setLocalSettings] = React.useState(() => {
+    const s = { ...settings };
+    return {
+      internalName: emailName || s.internalName || "",
+      subject: s.subject || emailName || "",
+      fromName: s.fromName || organizationName || "",
+      from: s.from || profile?.email || "",
+      replyTo: s.replyTo || profile?.email || "",
+      type: s.type || "Marketing",
+      ...s,
+      // Priority overrides if empty
+      from: s.from || profile?.email || "",
+      replyTo: s.replyTo || profile?.email || "",
+      recipients: Array.isArray(s.recipients) ? s.recipients.join("; ") : (s.recipients || ""),
+      doNotSendTo: Array.isArray(s.doNotSendTo) ? s.doNotSendTo.join("; ") : (s.doNotSendTo || "")
+    };
+  });
 
   const [showRecipients, setShowRecipients] = React.useState(false);
   const [showDoNotSend, setShowDoNotSend] = React.useState(false);

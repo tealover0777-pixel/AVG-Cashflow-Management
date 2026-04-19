@@ -603,3 +603,72 @@ exports.sendTestEmail = functions.https.onCall(async (data, context) => {
     throw new functions.https.HttpsError('internal', err.message);
   }
 });
+
+/**
+ * cloud function: sendMarketingEmail
+ * Dispatches a live campaign to all chosen recipients.
+ * Creates an activity log entry for each recipient in a 'comms_log' subcollection.
+ */
+exports.sendMarketingEmail = functions.https.onCall(async (data, context) => {
+  if (!context.auth) throw new functions.https.HttpsError('unauthenticated', 'Login required.');
+  
+  const { tenantId, campaignId, subject, rows, recipients, doNotSendTo, fromName, fromEmail, replyTo } = data;
+  if (!tenantId || !campaignId) throw new functions.https.HttpsError('invalid-argument', 'Missing metadata.');
+
+  const db = admin.firestore();
+  
+  try {
+    const transporter = await getTransporter(tenantId);
+    const htmlBody = renderEmailBody(rows);
+    
+    const recipientList = (recipients || "").split(";").map(s => s.trim().toLowerCase()).filter(Boolean);
+    const blacklist = (doNotSendTo || "").split(";").map(s => s.trim().toLowerCase()).filter(Boolean);
+    const validRecipients = recipientList.filter(email => !blacklist.includes(email));
+
+    const results = [];
+    const logBatch = db.batch();
+
+    for (const email of validRecipients) {
+      try {
+        await transporter.sendMail({
+          from: `"${fromName || "American Vision Group"}" <${fromEmail || "no-reply@americanvisiongroup.com"}>`,
+          to: email,
+          replyTo: replyTo || fromEmail,
+          subject: subject || "Marketing Communication",
+          html: htmlBody
+        });
+
+        // Log success
+        const logRef = db.collection(`tenants/${tenantId}/comms_log`).doc();
+        logBatch.set(logRef, {
+          campaignId,
+          type: "Marketing",
+          recipient: email,
+          subject,
+          status: "Delivered",
+          sentAt: admin.firestore.FieldValue.serverTimestamp(),
+          provider: "Nodemailer"
+        });
+        results.push({ email, status: "Success" });
+      } catch (err) {
+        console.error(`Failed to send to ${email}:`, err.message);
+        results.push({ email, status: "Error", error: err.message });
+      }
+    }
+
+    if (results.length > 0) await logBatch.commit();
+
+    // Update campaign status
+    await db.doc(`tenants/${tenantId}/marketingEmails/${campaignId}`).update({
+      status: "Sent",
+      sentAt: admin.firestore.FieldValue.serverTimestamp(),
+      recipientCount: validRecipients.length,
+      successCount: results.filter(r => r.status === "Success").length
+    });
+
+    return { success: true, results };
+  } catch (err) {
+    console.error("sendMarketingEmail Error:", err);
+    throw new functions.https.HttpsError('internal', err.message);
+  }
+});
