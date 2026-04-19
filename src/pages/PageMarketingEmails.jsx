@@ -332,7 +332,7 @@ export default function PageMarketingEmails({ t, isDark, setActivePage, MARKETIN
   }, [activeTenantId]);
 
   React.useEffect(() => {
-    if (activeTenantId && activeTab === "Activity") {
+    if (activeTenantId) {
       setLoadingLogs(true);
       const q = query(collection(db, `tenants/${activeTenantId}/comms_log`), where("type", "==", "Marketing"));
       
@@ -351,7 +351,7 @@ export default function PageMarketingEmails({ t, isDark, setActivePage, MARKETIN
 
       return () => unsubscribe();
     }
-  }, [activeTenantId, activeTab]);
+  }, [activeTenantId]);
 
   const emails = React.useMemo(() => {
     const source = (Array.isArray(MARKETING_EMAILS) && MARKETING_EMAILS.length > 0) ? MARKETING_EMAILS : DUMMY_DRAFTS;

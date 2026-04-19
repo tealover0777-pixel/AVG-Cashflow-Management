@@ -630,7 +630,7 @@ exports.sendMarketingEmail = functions.https.onCall(async (data, context) => {
 
     for (const email of validRecipients) {
       try {
-        await transporter.sendMail({
+        const info = await transporter.sendMail({
           from: `"${fromName || "American Vision Group"}" <${fromEmail || "no-reply@americanvisiongroup.com"}>`,
           to: email,
           replyTo: replyTo || fromEmail,
@@ -647,9 +647,11 @@ exports.sendMarketingEmail = functions.https.onCall(async (data, context) => {
           subject,
           status: "Delivered",
           sentAt: admin.firestore.FieldValue.serverTimestamp(),
-          provider: "Nodemailer"
+          provider: "Nodemailer",
+          providerResponse: info.response,
+          messageId: info.messageId
         });
-        results.push({ email, status: "Success" });
+        results.push({ email, status: "Success", messageId: info.messageId });
       } catch (err) {
         console.error(`Failed to send to ${email}:`, err.message);
         results.push({ email, status: "Error", error: err.message });
