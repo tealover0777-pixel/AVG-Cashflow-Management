@@ -22,6 +22,23 @@ export default function PagePayments({ t, isDark, PAYMENTS = [], INVESTMENTS = [
   
   const gridRef = useRef(null);
   const [pageSize, setPageSize] = useState(30);
+  const [achConfig, setAchConfig] = useState(null);
+  const [loadingAch, setLoadingAch] = useState(true);
+
+  // Fetch ACH setup for the active tenant
+  const { tenantId: authTenantId } = useAuth();
+  const activeTenantId = collectionPath.split("/")[1] || authTenantId;
+
+  useEffect(() => {
+    if (activeTenantId) {
+      setLoadingAch(true);
+      getDoc(doc(db, "tenants", activeTenantId)).then(snap => {
+        if (snap.exists()) {
+          setAchConfig(snap.data()?.achSetup || { enabled: false });
+        }
+      }).finally(() => setLoadingAch(false));
+    }
+  }, [activeTenantId]);
 
   useEffect(() => {
     const calculatePageSize = () => {
@@ -209,6 +226,42 @@ export default function PagePayments({ t, isDark, PAYMENTS = [], INVESTMENTS = [
         );
       })}
     </div>
+
+    {activeTab === "ACH Batches" && (
+      <div style={{ 
+        marginBottom: 20, 
+        padding: "16px 20px", 
+        borderRadius: 12, 
+        background: achConfig?.enabled ? (isDark ? "rgba(52,211,153,0.05)" : "#f0fdf4") : (isDark ? "rgba(248,113,113,0.05)" : "#fef2f2"),
+        border: `1px solid ${achConfig?.enabled ? (isDark ? "rgba(52,211,153,0.2)" : "#bbf7d0") : (isDark ? "rgba(248,113,113,0.2)" : "#fecaca")}`,
+        display: "flex", 
+        alignItems: "center", 
+        justifyContent: "space-between",
+        gap: 16,
+        animation: "slideIn 0.3s ease-out"
+      }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <div style={{ width: 40, height: 40, borderRadius: 10, background: achConfig?.enabled ? t.accentGrad : (isDark ? "#2d0a0a" : "#fee2e2"), display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20 }}>
+            {achConfig?.enabled ? "🏦" : "⚠️"}
+          </div>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 13.5, fontWeight: 700, color: t.text }}>
+              {achConfig?.enabled ? "ACH Infrastructure Active" : "ACH Generation Disabled"}
+            </div>
+            <div style={{ fontSize: 12, color: t.textMuted }}>
+              {achConfig?.enabled 
+                ? `Ready for NACHA generation using ${achConfig.odfiName || "Authorized Bank"} (${achConfig.originatorId || "No ID Set"})` 
+                : "Your banking credentials must be configured in Company settings before processing payments."}
+            </div>
+          </div>
+        </div>
+        {!achConfig?.enabled && (
+          <button onClick={() => window.location.hash = "#Company"} style={{ padding: "8px 16px", borderRadius: 8, background: t.accent, color: "#fff", border: "none", fontSize: 12, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap" }}>
+            Finalize Setup
+          </button>
+        )}
+      </div>
+    )}
 
     {activeTab === "Payments" && (
       <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>

@@ -270,6 +270,19 @@ export default function PageMarketingEmails({ t, isDark, setActivePage, MARKETIN
   const [selectedRows, setSelectedRows] = React.useState([]);
   const [pageSize, setPageSize] = React.useState(25);
   const gridRef = React.useRef(null);
+  const [emailConfig, setEmailConfig] = React.useState(null);
+  const [loadingEmail, setLoadingEmail] = React.useState(true);
+
+  React.useEffect(() => {
+    if (activeTenantId) {
+      setLoadingEmail(true);
+      getDoc(doc(db, "tenants", activeTenantId)).then(snap => {
+        if (snap.exists()) {
+          setEmailConfig(snap.data()?.emailSetup || { method: "SMTP", api: { provider: "SendGrid" }, smtp: {} });
+        }
+      }).finally(() => setLoadingEmail(false));
+    }
+  }, [activeTenantId]);
 
   const emails = React.useMemo(() => {
     const source = (Array.isArray(MARKETING_EMAILS) && MARKETING_EMAILS.length > 0) ? MARKETING_EMAILS : DUMMY_DRAFTS;
@@ -473,6 +486,39 @@ export default function PageMarketingEmails({ t, isDark, setActivePage, MARKETIN
             </button>
           )}
         </div>
+      </div>
+      <div style={{ 
+        marginBottom: 20, 
+        padding: "14px 20px", 
+        borderRadius: 12, 
+        background: (emailConfig?.fromEmail) ? (isDark ? "rgba(52,211,153,0.05)" : "#f0fdf4") : (isDark ? "rgba(248,113,113,0.05)" : "#fef2f2"),
+        border: `1px solid ${(emailConfig?.fromEmail) ? (isDark ? "rgba(52,211,153,0.2)" : "#bbf7d0") : (isDark ? "rgba(248,113,113,0.2)" : "#fecaca")}`,
+        display: "flex", 
+        alignItems: "center", 
+        justifyContent: "space-between",
+        gap: 16,
+        animation: "slideIn 0.3s ease-out"
+      }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <div style={{ width: 36, height: 36, borderRadius: 8, background: (emailConfig?.fromEmail) ? t.accentGrad : (isDark ? "#2d0a0a" : "#fee2e2"), display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>
+            {(emailConfig?.fromEmail) ? "📧" : "⚠️"}
+          </div>
+          <div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: t.text }}>
+              {(emailConfig?.fromEmail) ? `Email Infrastructure Active: ${emailConfig.fromName || "American Vision Group"}` : "Email Setup Incomplete"}
+            </div>
+            <div style={{ fontSize: 12, color: t.textMuted }}>
+              {(emailConfig?.fromEmail) 
+                ? `Sending via ${emailConfig.method === "API" ? emailConfig.api.provider : "SMTP Relay"} • ${emailConfig.fromEmail}` 
+                : "Configure your ESP (SendGrid, Mailgun) or SMTP settings in Company settings to enable campaign dispatches."}
+            </div>
+          </div>
+        </div>
+        {!(emailConfig?.fromEmail) && (
+          <button onClick={() => window.location.hash = "#Company"} style={{ padding: "7px 14px", borderRadius: 8, background: t.accent, color: "#fff", border: "none", fontSize: 12, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap" }}>
+            Setup Email
+          </button>
+        )}
       </div>
 
       {/* Tabs */}
