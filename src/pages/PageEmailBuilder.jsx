@@ -695,7 +695,7 @@ export default function PageEmailBuilder(props) {
 
         {/* Canvas / Settings / Preview */}
         {activeMainTab === "Settings" ? (
-          <SettingsPanel t={t} isDark={isDark} settings={emailSettings} onChange={setEmailSettings} profile={profile} DIMENSIONS={DIMENSIONS} CONTACTS={CONTACTS} USERS={USERS} emailName={emailName} organizationName={organizationName} />
+          <SettingsPanel t={t} isDark={isDark} settings={emailSettings} onChange={setEmailSettings} profile={profile} DIMENSIONS={DIMENSIONS} CONTACTS={CONTACTS} USERS={USERS} emailName={emailName} organizationName={organizationName} onSave={(newS) => handleSave(false, null, newS)} isSaving={isSaving} />
         ) : activeMainTab === "Mobile" ? (
           <ReviewPanel t={t} isDark={isDark} rows={rows} emailSettings={emailSettings} narrow />
         ) : activeMainTab === "Desktop" ? (
@@ -1691,7 +1691,7 @@ function SettingsRow({ label, t, children }) {
   );
 }
 
-function SettingsPanel({ t, isDark, settings, onChange, profile, DIMENSIONS = [], CONTACTS = [], USERS = [], emailName = "", organizationName = "" }) {
+function SettingsPanel({ t, isDark, settings, onChange, profile, DIMENSIONS = [], CONTACTS = [], USERS = [], emailName = "", organizationName = "", onSave, isSaving }) {
   const [localSettings, setLocalSettings] = useState(() => ({
     internalName: emailName || settings.internalName || "",
     subject: settings.subject || emailName || "",
@@ -1874,7 +1874,13 @@ function SettingsPanel({ t, isDark, settings, onChange, profile, DIMENSIONS = []
 
           <div style={{ display: "flex", justifyContent: "flex-end", gap: 12, marginTop: 20 }}>
             <button onClick={() => setLocalSettings(settings)} style={{ ...actionBtn, background: isDark ? "rgba(255,255,255,0.05)" : "#F3F4F6" }}>Cancel</button>
-            <button onClick={() => onChange(localSettings)} style={{ ...actionBtn, background: "#1D4ED8", color: "#fff", border: "none" }}>Save Campaign Settings</button>
+            <button
+              onClick={() => onSave ? onSave(localSettings) : onChange(localSettings)}
+              disabled={isSaving}
+              style={{ ...actionBtn, background: "#1D4ED8", color: "#fff", border: "none", opacity: isSaving ? 0.7 : 1, cursor: isSaving ? "not-allowed" : "pointer" }}
+            >
+              {isSaving ? (t.isFrench ? "Enregistrement..." : "Saving...") : (t.isFrench ? "Email Settings" : "Email Settings")}
+            </button>
           </div>
         </div>
       </div>
