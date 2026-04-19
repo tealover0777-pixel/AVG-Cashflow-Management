@@ -22,6 +22,12 @@ export default function PageProfile({ t, isDark, setIsDark, ROLES = [], collecti
         email: user?.email || "",
         phone: profile?.phone || "",
         photo_url: profile?.photo_url || profile?.photoURL || "",
+        address1: profile?.address1 || "",
+        address2: profile?.address2 || "",
+        city: profile?.city || "",
+        state: profile?.state || "",
+        zip: profile?.zip || "",
+        country: profile?.country || "",
     });
     const [tenantData, setTenantData] = useState({ name: "", logo: "" });
 
@@ -51,6 +57,12 @@ export default function PageProfile({ t, isDark, setIsDark, ROLES = [], collecti
                 email: user?.email || "",
                 phone: profile.phone || "",
                 photo_url: profile.photo_url || profile.photoURL || "",
+                address1: profile.address1 || "",
+                address2: profile.address2 || "",
+                city: profile.city || "",
+                state: profile.state || "",
+                zip: profile.zip || "",
+                country: profile.country || "",
             });
         }
     }, [profile, user]);
@@ -127,6 +139,12 @@ export default function PageProfile({ t, isDark, setIsDark, ROLES = [], collecti
                 last_name: data.last_name || "",
                 phone: data.phone || "",
                 photo_url: data.photo_url || "",
+                address1: data.address1 || "",
+                address2: data.address2 || "",
+                city: data.city || "",
+                state: data.state || "",
+                zip: data.zip || "",
+                country: data.country || "",
                 last_updated: serverTimestamp(),
             }, { merge: true });
 
@@ -141,6 +159,12 @@ export default function PageProfile({ t, isDark, setIsDark, ROLES = [], collecti
                         last_name: data.last_name || "",
                         phone: data.phone || "",
                         photo_url: data.photo_url || "",
+                        address1: data.address1 || "",
+                        address2: data.address2 || "",
+                        city: data.city || "",
+                        state: data.state || "",
+                        zip: data.zip || "",
+                        country: data.country || "",
                         updated_at: serverTimestamp(),
                     });
                 }
@@ -227,11 +251,74 @@ export default function PageProfile({ t, isDark, setIsDark, ROLES = [], collecti
                             <div style={{ fontSize: 20, fontWeight: 700, color: isDark ? "#fff" : "#1C1917", marginBottom: 2 }}>
                                 {[data.first_name, data.last_name].filter(Boolean).join(" ") || "—"}
                             </div>
-                            <div style={{ fontFamily: t.mono, fontSize: 12.5, color: t.textMuted, opacity: 0.8 }}>{roleDisplay}</div>
+                            <div style={{ fontFamily: t.mono, fontSize: 12.5, color: t.textMuted, opacity: 0.8, marginBottom: 12 }}>{roleDisplay}</div>
+                            <button 
+                                onClick={() => document.getElementById("profile-photo-upload").click()}
+                                style={{
+                                    padding: "6px 12px",
+                                    borderRadius: 8,
+                                    border: `1px solid ${t.border}`,
+                                    background: isDark ? "rgba(255,255,255,0.05)" : "#fff",
+                                    color: t.accent,
+                                    fontSize: 12,
+                                    fontWeight: 600,
+                                    cursor: "pointer",
+                                    transition: "all 0.2s"
+                                }}
+                            >
+                                Update photo
+                            </button>
                         </div>
                     </div>
 
-                    <div style={{ display: "grid", gap: 20 }}>
+                    <div style={{ display: "grid", gap: 32 }}>
+                        {/* Information Section */}
+                        <div>
+                            <div style={{ fontSize: 14, fontWeight: 700, color: t.text, marginBottom: 16, display: "flex", alignItems: "center", gap: 10 }}>
+                                Information
+                                <div style={{ flex: 1, height: 1, background: t.border, opacity: 0.5 }} />
+                            </div>
+                            <div style={{ display: "grid", gap: 20 }}>
+                                <FF label="First Name" t={t}><FIn value={data.first_name} onChange={e => setData(s => ({ ...s, first_name: e.target.value }))} placeholder="First name" t={t} /></FF>
+                                <FF label="Last Name" t={t}><FIn value={data.last_name} onChange={e => setData(s => ({ ...s, last_name: e.target.value }))} placeholder="Last name" t={t} /></FF>
+                                <FF label="User Role" t={t}>
+                                    <div style={{ fontFamily: t.mono, fontSize: 13, color: t.idText, background: isDark ? "rgba(255,255,255,0.04)" : "#F5F4F1", border: `1px solid ${t.surfaceBorder}`, borderRadius: 9, padding: "10px 13px" }}>{roleDisplay}</div>
+                                </FF>
+                            </div>
+                        </div>
+
+                        {/* Contact Details Section */}
+                        <div>
+                            <div style={{ fontSize: 14, fontWeight: 700, color: t.text, marginBottom: 16, display: "flex", alignItems: "center", gap: 10 }}>
+                                Contact details
+                                <div style={{ flex: 1, height: 1, background: t.border, opacity: 0.5 }} />
+                            </div>
+                            <div style={{ display: "grid", gap: 20 }}>
+                                <FF label="Email Address" t={t}><FIn value={data.email} disabled t={t} /></FF>
+                                <FF label="Phone Number" t={t}><FIn value={data.phone} onChange={e => setData(s => ({ ...s, phone: e.target.value }))} placeholder="e.g. +1 555 000 0000" t={t} /></FF>
+                            </div>
+                        </div>
+
+                        {/* Address Section */}
+                        <div>
+                            <div style={{ fontSize: 14, fontWeight: 700, color: t.text, marginBottom: 16, display: "flex", alignItems: "center", gap: 10 }}>
+                                Address
+                                <div style={{ flex: 1, height: 1, background: t.border, opacity: 0.5 }} />
+                            </div>
+                            <div style={{ display: "grid", gap: 20 }}>
+                                <FF label="Street address line 1" t={t}><FIn value={data.address1} onChange={e => setData(s => ({ ...s, address1: e.target.value }))} placeholder="Address line 1" t={t} /></FF>
+                                <FF label="Street address line 2" t={t}><FIn value={data.address2} onChange={e => setData(s => ({ ...s, address2: e.target.value }))} placeholder="Address line 2" t={t} /></FF>
+                                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+                                    <FF label="City" t={t}><FIn value={data.city} onChange={e => setData(s => ({ ...s, city: e.target.value }))} placeholder="City" t={t} /></FF>
+                                    <FF label="State" t={t}><FIn value={data.state} onChange={e => setData(s => ({ ...s, state: e.target.value }))} placeholder="State" t={t} /></FF>
+                                </div>
+                                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+                                    <FF label="Zip code" t={t}><FIn value={data.zip} onChange={e => setData(s => ({ ...s, zip: e.target.value }))} placeholder="Zip code" t={t} /></FF>
+                                    <FF label="Country" t={t}><FIn value={data.country} onChange={e => setData(s => ({ ...s, country: e.target.value }))} placeholder="Country" t={t} /></FF>
+                                </div>
+                            </div>
+                        </div>
+
                         <FF label="Theme Preference" t={t}>
                             <div style={{ display: "flex", gap: 8 }}>
                                 {[
@@ -247,14 +334,7 @@ export default function PageProfile({ t, isDark, setIsDark, ROLES = [], collecti
                                 })}
                             </div>
                         </FF>
-
-                        <FF label="First Name" t={t}><FIn value={data.first_name} onChange={e => setData(s => ({ ...s, first_name: e.target.value }))} placeholder="First name" t={t} /></FF>
-                        <FF label="Last Name" t={t}><FIn value={data.last_name} onChange={e => setData(s => ({ ...s, last_name: e.target.value }))} placeholder="Last name" t={t} /></FF>
-                        <FF label="Email Address" t={t}><FIn value={data.email} disabled t={t} /></FF>
-                        <FF label="Phone Number" t={t}><FIn value={data.phone} onChange={e => setData(s => ({ ...s, phone: e.target.value }))} placeholder="e.g. +1 555 000 0000" t={t} /></FF>
-                        <FF label="User Role" t={t}>
-                            <div style={{ fontFamily: t.mono, fontSize: 13, color: t.idText, background: isDark ? "rgba(255,255,255,0.04)" : "#F5F4F1", border: `1px solid ${t.surfaceBorder}`, borderRadius: 9, padding: "10px 13px" }}>{roleDisplay}</div>
-                        </FF>
+                    </div>
 
                         <button onClick={handleSave} disabled={saving} className="primary-btn" style={{ background: t.accentGrad, color: "#fff", border: "none", padding: "12px 24px", borderRadius: 12, fontSize: 14, fontWeight: 600, cursor: saving ? "default" : "pointer", opacity: saving ? 0.6 : 1, boxShadow: `0 4px 16px ${t.accentShadow}`, marginTop: 8 }}>
                             {saving ? "Saving Profile..." : "Save Changes"}
