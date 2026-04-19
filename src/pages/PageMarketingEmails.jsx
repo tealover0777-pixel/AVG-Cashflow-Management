@@ -467,6 +467,7 @@ export default function PageMarketingEmails({ t, isDark, setActivePage, MARKETIN
           setGlobalFilter={setGlobalFilter}
           onSelectionChange={setSelectedRows}
           getRowId={(row) => String(row.id)}
+          initialSorting={[{ id: "updatedAt", desc: true }]}
         />
       </div>
 
