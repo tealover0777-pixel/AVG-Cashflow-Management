@@ -467,7 +467,16 @@ export default function PageMarketingEmails({ t, isDark, setActivePage, MARKETIN
     cell: ({ getValue, row }) => {
       const val = getValue() || "—";
       const isMultiple = val.includes("recipients");
-      const emails = isMultiple ? (row.original.settings?.recipients || row.original.recipients_list || []) : [];
+      
+      let emails = [];
+      if (isMultiple) {
+        const raw = row.original.settings?.recipients || row.original.recipients || row.original.recipients_list || [];
+        if (Array.isArray(raw)) {
+          emails = raw.map(r => typeof r === 'string' ? r : (r.email || ""));
+        } else if (typeof raw === 'string') {
+          emails = raw.split(';').map(s => s.trim()).filter(Boolean);
+        }
+      }
       
       return (
         <span 
@@ -580,7 +589,16 @@ export default function PageMarketingEmails({ t, isDark, setActivePage, MARKETIN
     cell: ({ getValue, row }) => {
       const val = getValue() || "—";
       const isMultiple = val.includes("recipients");
-      const emails = isMultiple ? (row.original.recipientList || []) : [];
+      
+      let emails = [];
+      if (isMultiple) {
+        const raw = row.original.recipientList || row.original.recipients || [];
+        if (Array.isArray(raw)) {
+          emails = raw.map(r => typeof r === 'string' ? r : (r.email || ""));
+        } else if (typeof raw === 'string') {
+          emails = raw.split(';').map(s => s.trim()).filter(Boolean);
+        }
+      }
       return (
         <span 
           onClick={() => {
