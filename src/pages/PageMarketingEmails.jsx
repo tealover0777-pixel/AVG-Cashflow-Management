@@ -27,11 +27,11 @@ const formatDate = (dateVal) => {
 };
 
 const ActionCell = ({ row, isDark, t, actions }) => {
-  const [showMenu, setShowMenu] = useState(false);
-  const [coords, setCoords] = useState({ top: 0, left: 0 });
-  const menuRef = useRef(null);
+  const [showMenu, setShowMenu] = React.useState(false);
+  const [coords, setCoords] = React.useState({ top: 0, left: 0 });
+  const menuRef = React.useRef(null);
 
-  useEffect(() => {
+  React.useEffect(() => {
     const clickOut = (e) => { if (menuRef.current && !menuRef.current.contains(e.target)) setShowMenu(false); };
     if (showMenu) document.addEventListener("mousedown", clickOut);
     return () => document.removeEventListener("mousedown", clickOut);
@@ -264,14 +264,14 @@ const DUMMY_DRAFTS = [
 ];
 
 export default function PageMarketingEmails({ t, isDark, setActivePage, MARKETING_EMAILS = [], setActiveEmailTemplate, activeTenantId, USERS = [], CONTACTS = [] }) {
-  const [activeTab, setActiveTab] = useState("Draft");
-  const [showTemplateModal, setShowTemplateModal] = useState(false);
-  const [globalFilter, setGlobalFilter] = useState("");
-  const [selectedRows, setSelectedRows] = useState([]);
-  const [pageSize, setPageSize] = useState(25);
-  const gridRef = useRef(null);
+  const [activeTab, setActiveTab] = React.useState("Draft");
+  const [showTemplateModal, setShowTemplateModal] = React.useState(false);
+  const [globalFilter, setGlobalFilter] = React.useState("");
+  const [selectedRows, setSelectedRows] = React.useState([]);
+  const [pageSize, setPageSize] = React.useState(25);
+  const gridRef = React.useRef(null);
 
-  const emails = useMemo(() => {
+  const emails = React.useMemo(() => {
     const source = (Array.isArray(MARKETING_EMAILS) && MARKETING_EMAILS.length > 0) ? MARKETING_EMAILS : DUMMY_DRAFTS;
     return (Array.isArray(source) ? source : []).map(e => ({
       ...e,
@@ -299,7 +299,7 @@ export default function PageMarketingEmails({ t, isDark, setActivePage, MARKETIN
     { label: "Inbox", icon: Inbox, count: inbox.length },
   ];
 
-  const tableData = useMemo(() => {
+  const tableData = React.useMemo(() => {
     if (activeTab === "Draft") return drafts;
     if (activeTab === "Sent") return sent;
     if (activeTab === "Scheduled") return scheduled;
@@ -307,13 +307,13 @@ export default function PageMarketingEmails({ t, isDark, setActivePage, MARKETIN
     return [];
   }, [activeTab, drafts, sent, scheduled, inbox]);
 
-  const [itemToEdit, setItemToEdit] = useState(null);
-  const [itemToDelete, setItemToDelete] = useState(null);
-  const [itemToReschedule, setItemToReschedule] = useState(null);
-  const [scheduleData, setScheduleData] = useState({ date: "", time: "", subject: "", recipients: [] });
-  const [recipientSearch, setRecipientSearch] = useState("");
+  const [itemToEdit, setItemToEdit] = React.useState(null);
+  const [itemToDelete, setItemToDelete] = React.useState(null);
+  const [itemToReschedule, setItemToReschedule] = React.useState(null);
+  const [scheduleData, setScheduleData] = React.useState({ date: "", time: "", subject: "", recipients: [] });
+  const [recipientSearch, setRecipientSearch] = React.useState("");
 
-  useEffect(() => {
+  React.useEffect(() => {
     if (itemToReschedule) {
       const s = itemToReschedule.settings || {};
       const sched = s.scheduledAt || "";
@@ -333,7 +333,7 @@ export default function PageMarketingEmails({ t, isDark, setActivePage, MARKETIN
     }
   }, [itemToReschedule]);
 
-  const columnDefs = useMemo(
+  const columnDefs = React.useMemo(
     () => getMarketingEmailColumns(isDark, t, {
       onOpen: (email) => {
         setActiveEmailTemplate({ ...email, _useMode: true });
@@ -387,7 +387,7 @@ export default function PageMarketingEmails({ t, isDark, setActivePage, MARKETIN
     [isDark, t, setActivePage, setActiveEmailTemplate, activeTenantId, activeTab]
   );
 
-  const [isImporting, setIsImporting] = useState(false);
+  const [isImporting, setIsImporting] = React.useState(false);
   const handleImportToLive = async () => {
     if (!activeTenantId || isImporting) return;
     setIsImporting(true);
@@ -423,7 +423,7 @@ export default function PageMarketingEmails({ t, isDark, setActivePage, MARKETIN
   };
 
   // Auto-calculate page size based on available height
-  useEffect(() => {
+  React.useEffect(() => {
     const calculate = () => {
       const available = window.innerHeight - 380 - 90;
       setPageSize(Math.max(15, Math.floor(available / 40)));

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React from "react";
 import { ArrowLeft, Search, MoreHorizontal, FileText, Image as ImageIcon, Briefcase, Star, Users, X, Trash2, Loader2, AlertCircle, Edit2, Send } from "lucide-react";
 import { DelModal, Modal } from "../components";
 import { useAuth } from "../AuthContext";
@@ -168,12 +168,12 @@ const TemplatePlaceholder = ({ isDark }) => (
 export default function PageManageTemplates({ t, isDark, setActivePage, setActiveEmailTemplate, allTemplates, loading, fetchTemplates }) {
   const { tenantId, isSuperAdmin, isGlobalRole, profile } = useAuth();
   const isAdmin = isSuperAdmin || isGlobalRole;
-  const [searchQuery, setSearchQuery] = useState("");
-  const [viewTemplate, setViewTemplate] = useState(null);
-  const [selectedTemplate, setSelectedTemplate] = useState(null);
-  const [templateToDelete, setTemplateToDelete] = useState(null);
-  const [isDeleting, setIsDeleting] = useState(false);
-  const [toast, setToast] = useState(null);
+  const [searchQuery, setSearchQuery] = React.useState("");
+  const [viewTemplate, setViewTemplate] = React.useState(null);
+  const [selectedTemplate, setSelectedTemplate] = React.useState(null);
+  const [templateToDelete, setTemplateToDelete] = React.useState(null);
+  const [isDeleting, setIsDeleting] = React.useState(false);
+  const [toast, setToast] = React.useState(null);
 
   const showToast = (msg, type = "info") => {
     setToast({ msg, type });

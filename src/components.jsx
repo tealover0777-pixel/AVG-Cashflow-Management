@@ -2,7 +2,7 @@
  * AVG Cashflow Management — Shared Components
  * Reusable UI components and hooks.
  */
-import React, { useState, useRef, useEffect, useMemo } from "react";
+import React from "react";
 import { badge, initials, fmtCurr, av } from "./utils";
 import { 
   ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, 
@@ -71,8 +71,8 @@ export const Pagination = ({ totalPages, currentPage, onPageChange, t }) => {
 };
 
 export const Tooltip = ({ children, text, position = "top", delay = 300, t }) => {
-  const [visible, setVisible] = useState(false);
-  const timeoutRef = useRef(null);
+  const [visible, setVisible] = React.useState(false);
+  const timeoutRef = React.useRef(null);
 
   const handleShow = () => {
     timeoutRef.current = setTimeout(() => setVisible(true), delay);
@@ -151,8 +151,8 @@ export const ActBtns = ({ show, t, onEdit, onDel, onUndo }) => {
 };
 
 export function useResizableColumns(cols) {
-  const [widths, setWidths] = useState(null);
-  const headerRef = useRef(null);
+  const [widths, setWidths] = React.useState(null);
+  const headerRef = React.useRef(null);
   const gridTemplate = widths ? widths.map(w => `${w}px`).join(" ") : cols.map(c => c.w).join(" ");
   const onResizeStart = (colIndex, e) => {
     e.preventDefault();
@@ -342,9 +342,9 @@ export const DelModal = ({ target, open, onClose, onConfirm, onDel, label, title
 };
 
 export const PromptModal = ({ open, onClose, onConfirm, title, label, defaultValue, t, isDark, loading }) => {
-  const [value, setValue] = useState(defaultValue || "");
+  const [value, setValue] = React.useState(defaultValue || "");
   
-  useEffect(() => {
+  React.useEffect(() => {
     if (open) setValue(defaultValue || "");
   }, [open, defaultValue]);
 
