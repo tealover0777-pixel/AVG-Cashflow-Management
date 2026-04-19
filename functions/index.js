@@ -658,13 +658,15 @@ exports.sendMarketingEmail = functions.https.onCall(async (data, context) => {
 
     if (results.length > 0) await logBatch.commit();
 
-    // Update campaign status
-    await db.doc(`tenants/${tenantId}/marketingEmails/${campaignId}`).update({
-      status: "Sent",
-      sentAt: admin.firestore.FieldValue.serverTimestamp(),
-      recipientCount: validRecipients.length,
-      successCount: results.filter(r => r.status === "Success").length
-    });
+    // Update campaign status only if campaignId is a valid Firestore ID (no slashes)
+    if (campaignId && !campaignId.includes('/')) {
+      await db.doc(`tenants/${tenantId}/marketingEmails/${campaignId}`).update({
+        status: "Sent",
+        sentAt: admin.firestore.FieldValue.serverTimestamp(),
+        recipientCount: validRecipients.length,
+        successCount: results.filter(r => r.status === "Success").length
+      }).catch(err => console.error("Failed to update campaign status:", err.message));
+    }
 
     return { success: true, results };
   } catch (err) {
