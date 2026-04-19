@@ -1063,9 +1063,41 @@ const FloatingTextBar = ({ t, isDark, DIMENSIONS = [] }) => {
   };
 
   const insertTag = (tag) => {
-    // Insert tag as a non-editable span box
-    const html = `<span style="border:1px dashed #9CA3AF;padding:2px 6px;border-radius:4px;color:#6B7280;font-size:11px;background:#F9FAFB;margin:0 2px;display:inline-block;vertical-align:middle" contenteditable="false">${tag}</span>&nbsp;`;
-    document.execCommand("insertHTML", false, html);
+    const selection = window.getSelection();
+    if (!selection.rangeCount) return;
+
+    const range = selection.getRangeAt(0);
+    // Ensure we are inside a contenteditable area
+    let parent = range.commonAncestorContainer;
+    if (parent.nodeType === 3) parent = parent.parentNode;
+    
+    // Simple check to see if we are inside our editor
+    if (!parent.closest || !parent.closest('[contenteditable="true"]')) {
+      // If not in editor, we can't reliably insert. 
+      // Most of the time onMouseDown preventDefault keeps the focus where it was.
+    }
+
+    range.deleteContents();
+
+    const span = document.createElement("span");
+    span.style.cssText = "border:1px dashed #9CA3AF;padding:2px 6px;border-radius:4px;color:#6B7280;font-size:11px;background:#F9FAFB;margin:0 2px;display:inline-flex;align-items:center;vertical-align:middle;line-height:1";
+    span.contentEditable = "false";
+    span.innerText = tag;
+
+    range.insertNode(span);
+    
+    // Add a space after the tag for convenience
+    const textNode = document.createTextNode("\u00A0");
+    range.setStartAfter(span);
+    range.insertNode(textNode);
+    
+    // Set cursor after the space
+    range.setStartAfter(textNode);
+    range.collapse(true);
+
+    selection.removeAllRanges();
+    selection.addRange(range);
+    
     setShowTags(false);
   };
 
