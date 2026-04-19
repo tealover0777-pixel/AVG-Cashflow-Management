@@ -1000,10 +1000,22 @@ function EmailCanvas({ t, isDark, rows, selectedRowId, onSelectRow, onAddRow, on
 
       </div>
       <style>{`
-        [contenteditable="true"] blockquote {
+        [contenteditable="true"] blockquote,
+        [contenteditable="true"] ul,
+        [contenteditable="true"] ol {
           margin-left: 2rem;
           margin-top: 0.5rem;
           margin-bottom: 0.5rem;
+        }
+        [contenteditable="true"] ul,
+        [contenteditable="true"] ol {
+          padding-left: 0;
+          list-style-position: outside;
+        }
+        [contenteditable="true"] li {
+          margin-bottom: 0.25rem;
+        }
+        [contenteditable="true"] blockquote {
           padding-left: 0.5rem;
           border-left: 1px dashed rgba(0,0,0,0.1);
         }
