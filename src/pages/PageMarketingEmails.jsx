@@ -434,7 +434,7 @@ export default function PageMarketingEmails({ t, isDark, setActivePage, MARKETIN
         >
           {getValue()}
         </span>
-        <span style={{ fontSize: "11px", color: t.textMuted }}>{row.original.subject || "No subject"}</span>
+        <span style={{ fontSize: "11px", color: t.textMuted }}>{row.original.settings?.subject || row.original.subject || "No subject"}</span>
       </div>
     ),
   },
