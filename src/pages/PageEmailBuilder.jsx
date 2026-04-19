@@ -1680,7 +1680,6 @@ const ctrlBtn = { background: "rgba(0,0,0,0.6)", color: "#fff", border: "none", 
 
 // ── Settings Panel ────────────────────────────────────────────────────────────
 
-// Stable module-level row wrapper — must NOT be defined inside SettingsPanel to avoid remount on every render
 function SettingsRow({ label, t, children }) {
   return (
     <div style={{ display: "flex", alignItems: "center", paddingBottom: 22 }}>
@@ -1693,548 +1692,151 @@ function SettingsRow({ label, t, children }) {
 }
 
 function SettingsPanel({ t, isDark, settings, onChange, profile, DIMENSIONS = [], CONTACTS = [], USERS = [], emailName = "", organizationName = "" }) {
-  const [localSettings, setLocalSettings] = useState(() => {
-    const s = { ...settings };
-    // Synchronize defaults
-    s.internalName = emailName || s.internalName || "";
-    if (!s.subject) s.subject = s.internalName;
-    if (!s.fromName) s.fromName = organizationName || "";
-    if (!s.from) s.from = profile?.email || "";
-    if (!s.replyTo) s.replyTo = profile?.email || "";
-    if (!s.type) s.type = "Marketing";
-    return s;
-  });
+  const [localSettings, setLocalSettings] = useState(() => ({
+    internalName: emailName || settings.internalName || "",
+    subject: settings.subject || emailName || "",
+    fromName: settings.fromName || organizationName || "",
+    from: settings.from || profile?.email || "",
+    replyTo: settings.replyTo || profile?.email || "",
+    type: settings.type || "Marketing",
+    recipients: settings.recipients || "",
+    doNotSendTo: settings.doNotSendTo || "",
+    ...settings
+  }));
+
   const [showRecipients, setShowRecipients] = useState(false);
-  const [selectedInTable, setSelectedInTable] = useState([]);
-  const [rowSelection, setRowSelection] = useState({});
   const [showDoNotSend, setShowDoNotSend] = useState(false);
+  const [rowSelection, setRowSelection] = useState({});
   const [doNotSendRowSelection, setDoNotSendRowSelection] = useState({});
+  const [selectedInTable, setSelectedInTable] = useState([]);
   const [selectedDoNotSend, setSelectedDoNotSend] = useState([]);
-  const [showReplyToDropdown, setShowReplyToDropdown] = useState(false);
-  const replyToDropRef = useRef(null);
   const [showFromDropdown, setShowFromDropdown] = useState(false);
-  const fromDropRef = useRef(null);
   const [showTypeDropdown, setShowTypeDropdown] = useState(false);
+  const [showReplyToDropdown, setShowReplyToDropdown] = useState(false);
+  const fromDropRef = useRef(null);
   const typeDropRef = useRef(null);
+  const replyToDropRef = useRef(null);
+
+  const userFullName = (profile?.first_name || profile?.last_name) ? `${profile.first_name || ""} ${profile.last_name || ""}`.trim() : profile?.displayName;
+  const userName = userFullName || profile?.email?.split("@")[0] || "Sender";
 
   useEffect(() => {
-    if (showRecipients) {
-      const currentEmails = (localSettings.recipients || "").split(";").map(s => s.trim().toLowerCase()).filter(Boolean);
-      const newSelObject = {};
-      CONTACTS.forEach((c, i) => {
-        const id = c.docId || c._docId || c.id || c.schedule_id || `idx-${i}`;
-        if (c.email && currentEmails.includes(c.email.toLowerCase())) {
-          newSelObject[id] = true;
-        }
-      });
-      setRowSelection(newSelObject);
-    } else {
-      setRowSelection({});
-    }
-  }, [showRecipients, CONTACTS, localSettings.recipients]);
+    const handler = (e) => {
+      if (showFromDropdown && fromDropRef.current && !fromDropRef.current.contains(e.target)) setShowFromDropdown(false);
+      if (showTypeDropdown && typeDropRef.current && !typeDropRef.current.contains(e.target)) setShowTypeDropdown(false);
+      if (showReplyToDropdown && replyToDropRef.current && !replyToDropRef.current.contains(e.target)) setShowReplyToDropdown(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [showFromDropdown, showTypeDropdown, showReplyToDropdown]);
 
   useEffect(() => {
-    if (showDoNotSend) {
-      const currentEmails = (localSettings.doNotSendTo || "").split(";").map(s => s.trim().toLowerCase()).filter(Boolean);
-      const newSelObject = {};
-      CONTACTS.forEach((c, i) => {
-        const id = c.docId || c._docId || c.id || c.schedule_id || `idx-${i}`;
-        if (c.email && currentEmails.includes(c.email.toLowerCase())) {
-          newSelObject[id] = true;
-        }
-      });
-      setDoNotSendRowSelection(newSelObject);
-    }
-  }, [showDoNotSend, CONTACTS, localSettings.doNotSendTo]);
+    setLocalSettings(prev => ({
+      ...prev,
+      internalName: emailName || prev.internalName,
+      subject: prev.subject || emailName
+    }));
+  }, [emailName]);
+
+  useEffect(() => {
+    setLocalSettings(prev => ({ ...prev, ...settings }));
+  }, [settings]);
+
+  const set = (key, val) => setLocalSettings(prev => ({ ...prev, [key]: val }));
 
   const tableData = useMemo(() => {
     const recipients = (localSettings.recipients || "").split(";").map(s => s.trim().toLowerCase()).filter(Boolean);
     const dns = (localSettings.doNotSendTo || "").split(";").map(s => s.trim().toLowerCase()).filter(Boolean);
-    return (Array.isArray(CONTACTS) ? CONTACTS : []).map((c, i) => {
-      const id = c.docId || c._docId || c.id || c.schedule_id || `idx-${i}`;
-      return {
-        ...c,
-        _rowId: id,
-        isSelected: !!rowSelection[id],
-        isAlreadyRecipient: c.email && recipients.includes(c.email.toLowerCase()),
-        isAlreadyDoNotSend: c.email && dns.includes(c.email.toLowerCase())
-      };
-    });
-  }, [CONTACTS, rowSelection, localSettings.recipients, localSettings.doNotSendTo]);
+    return (Array.isArray(CONTACTS) ? CONTACTS : []).map((c, i) => ({
+      ...c,
+      _rowId: c.docId || c._docId || c.id || c.schedule_id || `idx-${i}`,
+      isAlreadyRecipient: c.email && recipients.includes(c.email.toLowerCase()),
+      isAlreadyDoNotSend: c.email && dns.includes(c.email.toLowerCase())
+    }));
+  }, [CONTACTS, localSettings.recipients, localSettings.doNotSendTo]);
 
-  const doNotSendTableData = useMemo(() => {
-    const recipients = (localSettings.recipients || "").split(";").map(s => s.trim().toLowerCase()).filter(Boolean);
-    const dns = (localSettings.doNotSendTo || "").split(";").map(s => s.trim().toLowerCase()).filter(Boolean);
-    return (Array.isArray(CONTACTS) ? CONTACTS : []).map((c, i) => {
-      const id = c.docId || c._docId || c.id || c.schedule_id || `idx-${i}`;
-      return {
-        ...c,
-        _rowId: id,
-        isSelected: !!doNotSendRowSelection[id],
-        isAlreadyRecipient: c.email && recipients.includes(c.email.toLowerCase()),
-        isAlreadyDoNotSend: c.email && dns.includes(c.email.toLowerCase())
-      };
-    });
-  }, [CONTACTS, doNotSendRowSelection, localSettings.recipients, localSettings.doNotSendTo]);
+  const doNotSendTableData = tableData;
 
   const recipientColumns = useMemo(() => [
     {
       id: "select",
-      accessorKey: "isSelected",
-      header: ({ table }) => (
-        <input
-          type="checkbox"
-          className="ts-checkbox"
-          checked={table.getIsAllPageRowsSelected()}
-          onChange={table.getToggleAllPageRowsSelectedHandler()}
-        />
-      ),
-      cell: ({ row }) => (
-        <input
-          type="checkbox"
-          className="ts-checkbox"
-          checked={row.getIsSelected()}
-          disabled={!row.original.email || row.original.isAlreadyDoNotSend}
-          onChange={row.getToggleSelectedHandler()}
-        />
-      ),
-      size: 50,
-      enableSorting: true,
+      header: ({ table }) => <input type="checkbox" className="ts-checkbox" checked={table.getIsAllPageRowsSelected()} onChange={table.getToggleAllPageRowsSelectedHandler()} />,
+      cell: ({ row }) => <input type="checkbox" className="ts-checkbox" checked={row.getIsSelected()} disabled={!row.original.email || row.original.isAlreadyDoNotSend} onChange={row.getToggleSelectedHandler()} />,
+      size: 50
     },
-    {
-      accessorKey: "first_name",
-      header: (t.isFrench ? "Prénom" : "First Name"),
-      cell: info => info.getValue() || "—"
-    },
-    {
-      accessorKey: "last_name",
-      header: (t.isFrench ? "Nom" : "Last Name"),
-      cell: info => info.getValue() || "—"
-    },
+    { accessorKey: "first_name", header: (t.isFrench ? "Prénom" : "First Name"), cell: info => info.getValue() || "—" },
+    { accessorKey: "last_name", header: (t.isFrench ? "Nom" : "Last Name"), cell: info => info.getValue() || "—" },
     {
       accessorKey: "email",
       header: (t.isFrench ? "E-mail" : "Email Address"),
       cell: info => {
         const val = info.getValue() || "—";
-        const isExcluded = info.row.original.isAlreadyDoNotSend;
-        if (isExcluded) {
-          return (
-            <div style={{ color: isDark ? "#F87171" : "#DC2626", fontWeight: 600, display: "flex", alignItems: "center", gap: 8 }}>
-              {val}
-              <span style={{
-                fontSize: 10,
-                background: isDark ? "rgba(239, 68, 68, 0.2)" : "#FEE2E2",
-                color: isDark ? "#F87171" : "#DC2626",
-                padding: "2px 8px",
-                borderRadius: 12,
-                fontWeight: 700,
-                letterSpacing: "0.02em",
-                border: `1px solid ${isDark ? "rgba(239, 68, 68, 0.3)" : "#FECACA"}`
-              }}>
-                EXCLUDED
-              </span>
-            </div>
-          );
-        }
-        return val;
+        return info.row.original.isAlreadyDoNotSend ? (
+          <div style={{ color: isDark ? "#F87171" : "#DC2626", fontWeight: 600, display: "flex", alignItems: "center", gap: 8 }}>
+            {val} <span style={{ fontSize: 10, background: isDark ? "rgba(239, 68, 68, 0.2)" : "#FEE2E2", padding: "2px 8px", borderRadius: 12 }}>EXCLUDED</span>
+          </div>
+        ) : val;
       }
-    },
-  ], [t, isDark, CONTACTS]);
+    }
+  ], [t, isDark]);
 
   const doNotSendColumns = useMemo(() => [
     {
       id: "select",
-      accessorKey: "isSelected",
-      header: ({ table }) => (
-        <input
-          type="checkbox"
-          className="ts-checkbox"
-          checked={table.getIsAllPageRowsSelected()}
-          onChange={table.getToggleAllPageRowsSelectedHandler()}
-        />
-      ),
-      cell: ({ row }) => (
-        <input
-          type="checkbox"
-          className="ts-checkbox"
-          checked={row.getIsSelected()}
-          disabled={!row.original.email || row.original.isAlreadyRecipient}
-          onChange={row.getToggleSelectedHandler()}
-        />
-      ),
-      size: 50,
-      enableSorting: true,
+      header: ({ table }) => <input type="checkbox" className="ts-checkbox" checked={table.getIsAllPageRowsSelected()} onChange={table.getToggleAllPageRowsSelectedHandler()} />,
+      cell: ({ row }) => <input type="checkbox" className="ts-checkbox" checked={row.getIsSelected()} disabled={!row.original.email || row.original.isAlreadyRecipient} onChange={row.getToggleSelectedHandler()} />,
+      size: 50
     },
-    {
-      accessorKey: "first_name",
-      header: (t.isFrench ? "Prénom" : "First Name"),
-      cell: info => info.getValue() || "—"
-    },
-    {
-      accessorKey: "last_name",
-      header: (t.isFrench ? "Nom" : "Last Name"),
-      cell: info => info.getValue() || "—"
-    },
+    { accessorKey: "first_name", header: (t.isFrench ? "Prénom" : "First Name"), cell: info => info.getValue() || "—" },
+    { accessorKey: "last_name", header: (t.isFrench ? "Nom" : "Last Name"), cell: info => info.getValue() || "—" },
     {
       accessorKey: "email",
       header: (t.isFrench ? "E-mail" : "Email Address"),
       cell: info => {
         const val = info.getValue() || "—";
-        const isRecipient = info.row.original.isAlreadyRecipient;
-        if (isRecipient) {
-          return (
-            <div style={{ color: isDark ? "#60A5FA" : "#2563EB", fontWeight: 600, display: "flex", alignItems: "center", gap: 8 }}>
-              {val}
-              <span style={{
-                fontSize: 10,
-                background: isDark ? "rgba(59, 130, 246, 0.2)" : "#DBEAFE",
-                color: isDark ? "#60A5FA" : "#2563EB",
-                padding: "2px 8px",
-                borderRadius: 12,
-                fontWeight: 700,
-                letterSpacing: "0.02em",
-                border: `1px solid ${isDark ? "rgba(59, 130, 246, 0.3)" : "#BFDBFE"}`
-              }}>
-                RECIPIENT
-              </span>
-            </div>
-          );
-        }
-        return val;
+        return info.row.original.isAlreadyRecipient ? (
+          <div style={{ color: isDark ? "#60A5FA" : "#2563EB", fontWeight: 600, display: "flex", alignItems: "center", gap: 8 }}>
+            {val} <span style={{ fontSize: 10, background: isDark ? "rgba(59, 130, 246, 0.2)" : "#DBEAFE", padding: "2px 8px", borderRadius: 12 }}>RECIPIENT</span>
+          </div>
+        ) : val;
       }
-    },
-  ], [t, isDark, CONTACTS]);
-
-  const userFullName = (profile?.first_name || profile?.last_name)
-    ? `${profile.first_name || ""} ${profile.last_name || ""}`.trim()
-    : profile?.displayName;
-
-  const userName = userFullName || profile?.email?.split("@")[0] || "Sender";
-
-  const getInfoForEmail = (email) => {
-    if (!email) return { name: userName, email: profile?.email || "" };
-    const e = email.toLowerCase().trim();
-    const match = [...USERS, ...CONTACTS].find(u => (u.email || "").toLowerCase().trim() === e);
-
-    if (match) {
-      const name = (match.first_name || match.last_name)
-        ? `${match.first_name || ""} ${match.last_name || ""}`.trim()
-        : (match.name || match.full_name || match.displayName || match.email);
-      return { name, email: match.email };
     }
-    if (e === "invest@americanvisioncap.com") {
-      return { name: "American Vision Group", email: "invest@americanvisioncap.com" };
-    }
-    return { name: email.split("@")[0], email };
-  };
+  ], [t, isDark]);
 
-  const currentFromInfo = useMemo(() => getInfoForEmail(localSettings.from), [localSettings.from, USERS, CONTACTS, profile, userName]);
-  const currentReplyToInfo = useMemo(() => getInfoForEmail(localSettings.replyTo), [localSettings.replyTo, USERS, CONTACTS, profile, userName]);
-
-  // Close from name dropdown on outside click
-  useEffect(() => {
-    if (!showFromDropdown) return;
-    const handler = (e) => {
-      if (fromDropRef.current && !fromDropRef.current.contains(e.target)) setShowFromDropdown(false);
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, [showFromDropdown]);
-
-  // Close type dropdown on outside click
-  useEffect(() => {
-    if (!showTypeDropdown) return;
-    const handler = (e) => {
-      if (typeDropRef.current && !typeDropRef.current.contains(e.target)) setShowTypeDropdown(false);
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, [showTypeDropdown]);
-
-  // Close reply-to dropdown on outside click
-  useEffect(() => {
-    if (!showReplyToDropdown) return;
-    const handler = (e) => {
-      if (replyToDropRef.current && !replyToDropRef.current.contains(e.target)) setShowReplyToDropdown(false);
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, [showReplyToDropdown]);
-
-  // Sync local state when external settings change (e.g. from a different template)
-  useEffect(() => {
-    setLocalSettings(settings);
-  }, [settings]);
-
-  const set = (key, val) => {
-    setLocalSettings(prev => ({ ...prev, [key]: val }));
-  };
-
-  const commit = (key) => {
-    onChange(prev => ({ ...prev, [key]: localSettings[key] }));
-  };
-
-  const inp = { flex: 1, border: "none", borderBottom: `1px solid ${t.chipBorder}`, background: "transparent", fontSize: 15, color: t.text, outline: "none", padding: "8px 0", transition: "border-color 0.2s" };
-  const actionBtn = { border: `1px solid ${t.chipBorder}`, borderRadius: 20, padding: "8px 20px", background: "transparent", cursor: "pointer", color: t.text, fontSize: 13, fontWeight: 600, transition: "all 0.2s" };
+  const inp = { flex: 1, border: "none", borderBottom: `1px solid ${t.chipBorder}`, background: "transparent", fontSize: 15, color: t.text, outline: "none", padding: "8px 0" };
+  const actionBtn = { border: `1px solid ${t.chipBorder}`, borderRadius: 20, padding: "8px 20px", background: "transparent", cursor: "pointer", color: t.text, fontSize: 13, fontWeight: 600 };
 
   return (
     <div style={{ flex: 1, background: isDark ? "#111" : "#EEEEE9", display: "flex", alignItems: "flex-start", justifyContent: "center", padding: "40px 24px", overflowY: "auto" }}>
       <div style={{ width: "100%", maxWidth: 1360, background: t.surface, borderRadius: 16, border: `1px solid ${t.chipBorder}`, boxShadow: "0 10px 40px rgba(0,0,0,0.1)" }}>
         <div style={{ padding: "32px 48px", borderBottom: `1px solid ${t.chipBorder}` }}>
-          <h3 style={{ margin: 0, fontSize: 22, fontWeight: 700, color: t.text, letterSpacing: "-0.01em" }}>Email settings &amp; recipients</h3>
+          <h3 style={{ margin: 0, fontSize: 22, fontWeight: 700, color: t.text }}>Email settings &amp; recipients</h3>
         </div>
         <div style={{ padding: "40px 48px", display: "flex", flexDirection: "column", gap: 32 }}>
-
-          <SettingsRow label="Subject:" t={t}>
-            <input value={localSettings.subject || ""} onChange={e => set("subject", e.target.value)} onBlur={() => commit("subject")} placeholder="Enter Subject" style={inp} />
-          </SettingsRow>
-
-          <SettingsRow label="Internal name:" t={t}>
-            <input value={localSettings.internalName || ""} onChange={e => set("internalName", e.target.value)} onBlur={() => commit("internalName")} placeholder="Enter Internal Name" style={inp} />
-          </SettingsRow>
-
+          <SettingsRow label="Subject:" t={t}><input value={localSettings.subject || ""} onChange={e => set("subject", e.target.value)} style={inp} /></SettingsRow>
+          <SettingsRow label="Internal name:" t={t}><input value={localSettings.internalName || ""} onChange={e => set("internalName", e.target.value)} style={inp} /></SettingsRow>
           <SettingsRow label="Recipients:" t={t}>
-            <input
-              value={localSettings.recipients || ""}
-              onChange={e => set("recipients", e.target.value)}
-              onBlur={() => commit("recipients")}
-              placeholder="Click button to select recipients..."
-              style={{ ...inp, color: localSettings.recipients ? t.text : t.textMuted }}
-            />
-            <button
-              onClick={() => setShowRecipients(true)}
-              style={{ ...actionBtn, marginLeft: 16, display: "flex", alignItems: "center", gap: 8, background: isDark ? "#374151" : "#F3F4F6", border: "none" }}
-            >
-              <Eye size={16} /> View recipients
-            </button>
+            <input value={localSettings.recipients || ""} onChange={e => set("recipients", e.target.value)} style={{ ...inp, color: localSettings.recipients ? t.text : t.textMuted }} />
+            <button onClick={() => setShowRecipients(true)} style={{ ...actionBtn, marginLeft: 16 }}>View recipients</button>
           </SettingsRow>
-
           <SettingsRow label="Do not send to:" t={t}>
-            <input
-              value={localSettings.doNotSendTo || ""}
-              onChange={e => set("doNotSendTo", e.target.value)}
-              onBlur={() => commit("doNotSendTo")}
-              placeholder="(Optional) Click to select recipients to exclude"
-              style={{ ...inp, color: localSettings.doNotSendTo ? t.text : t.textMuted }}
-            />
-            <button
-              onClick={() => setShowDoNotSend(true)}
-              style={{ ...actionBtn, marginLeft: 16, display: "flex", alignItems: "center", gap: 8, background: isDark ? "#374151" : "#F3F4F6", border: "none" }}
-            >
-              <Eye size={16} /> View Do not send
-            </button>
+            <input value={localSettings.doNotSendTo || ""} onChange={e => set("doNotSendTo", e.target.value)} style={{ ...inp, color: localSettings.doNotSendTo ? t.text : t.textMuted }} />
+            <button onClick={() => setShowDoNotSend(true)} style={{ ...actionBtn, marginLeft: 16 }}>View Do not send</button>
           </SettingsRow>
-
           <SettingsRow label="Type:" t={t}>
             <div ref={typeDropRef} style={{ position: "relative", flex: 1, borderBottom: `1px solid ${t.chipBorder}`, cursor: "pointer" }} onClick={() => setShowTypeDropdown(!showTypeDropdown)}>
-              <div style={{ ...inp, borderBottom: "none", color: localSettings.type ? t.text : t.textMuted, display: "flex", alignItems: "center" }}>
-                {localSettings.type || (t.isFrench ? "Choisir Type..." : "Select Type...")}
-              </div>
-              <div style={{ position: "absolute", right: 0, top: "50%", transform: "translateY(-50%)", pointerEvents: "none", opacity: 0.6 }}>
-                <CDown />
-              </div>
+              <div style={{ ...inp, borderBottom: "none" }}>{localSettings.type}</div>
               {showTypeDropdown && (
-                <div style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0, background: t.surface, border: `1px solid ${t.chipBorder}`, borderRadius: 8, boxShadow: "0 10px 25px rgba(0,0,0,0.15)", zIndex: 1000, overflow: "hidden" }}>
-                  {(() => {
-                    const rawItems = DIMENSIONS.find(d => d.name === "EmailType")?.items || ["Marketing", "Transactional", "Operational"];
-                    const items = Array.isArray(rawItems) ? rawItems : ["Marketing", "Transactional", "Operational"];
-                    return items.map(opt => (
-                      <div
-                        key={opt}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          set("type", opt);
-                          onChange(prev => ({ ...prev, type: opt }));
-                          setShowTypeDropdown(false);
-                        }}
-                        style={{ padding: "12px 16px", cursor: "pointer", fontSize: 14, color: t.text, transition: "background 0.2s" }}
-                        onMouseEnter={e => e.currentTarget.style.background = isDark ? "rgba(255,255,255,0.05)" : "#f3f4f6"}
-                        onMouseLeave={e => e.currentTarget.style.background = "transparent"}
-                      >
-                        {opt}
-                      </div>
-                    ));
-                  })()}
+                <div style={{ position: "absolute", top: "100%", left: 0, right: 0, background: t.surface, border: `1px solid ${t.chipBorder}`, zIndex: 1000 }}>
+                  {["Marketing", "Transactional", "Operational"].map(opt => (
+                    <div key={opt} onClick={() => set("type", opt)} style={{ padding: 12, cursor: "pointer" }}>{opt}</div>
+                  ))}
                 </div>
               )}
             </div>
           </SettingsRow>
-
           <SettingsRow label="From name:" t={t}>
             <div ref={fromDropRef} style={{ position: "relative", flex: 1, borderBottom: `1px solid ${t.chipBorder}`, cursor: "pointer" }} onClick={() => setShowFromDropdown(!showFromDropdown)}>
-              <input
-                value={localSettings.fromName || ""}
-                onChange={e => set("fromName", e.target.value)}
-                onBlur={() => commit("fromName")}
-                onClick={e => e.stopPropagation()}
-                placeholder="Enter From Name"
-                style={{ ...inp, borderBottom: "none", paddingRight: 32 }}
-              />
-              <div
-                style={{ position: "absolute", right: 0, top: "50%", transform: "translateY(-50%)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", width: 32, height: "100%", opacity: 0.6 }}
-              >
-                <CDown />
-              </div>
-              {showFromDropdown && (
-                <div style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0, background: t.surface, border: `1px solid ${t.chipBorder}`, borderRadius: 8, boxShadow: "0 10px 25px rgba(0,0,0,0.15)", zIndex: 1000, overflow: "hidden" }}>
-                  {[
-                    { name: userName, email: profile?.email || "" },
-                    { name: "Custom sender name", email: "" }
-                  ].map((opt, idx) => (
-                    <div
-                      key={idx}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        const isCustom = opt.name === "Custom sender name";
-                        const newVal = isCustom ? "" : opt.name;
-                        set("fromName", newVal);
-                        onChange(prev => ({ ...prev, fromName: newVal }));
-                        setShowFromDropdown(false);
-                        if (isCustom) {
-                          const el = fromDropRef.current?.querySelector('input');
-                          if (el) el.focus();
-                        }
-                      }}
-                      style={{ padding: "12px 16px", cursor: "pointer", transition: "background 0.2s" }}
-          <SettingsRow label="From:" t={t}>
-            <div ref={fromDropRef} style={{ position: "relative", flex: 1, borderBottom: `1px solid ${t.chipBorder}`, cursor: "pointer" }} onClick={() => setShowFromDropdown(!showFromDropdown)}>
-              <div style={{ ...inp, borderBottom: "none", color: localSettings.from ? t.text : t.textMuted, display: "flex", alignItems: "center" }}>
-                {localSettings.from || (t.isFrench ? "Choisir Expéditeur..." : "Select Sender Email...")}
-              </div>
-              <div style={{ position: "absolute", right: 0, top: "50%", transform: "translateY(-50%)", pointerEvents: "none", opacity: 0.6 }}>
-                <CDown />
-              </div>
-              {showFromDropdown && (
-                <div style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0, background: t.surface, border: `1px solid ${t.chipBorder}`, borderRadius: 8, boxShadow: "0 10px 25px rgba(0,0,0,0.15)", zIndex: 1000, overflow: "hidden" }}>
-                  {[
-                    { name: userName, email: profile?.email || "" },
-                    ...Array.from(new Set([...USERS, ...CONTACTS].map(u => u.email))).filter(Boolean).map(e => getInfoForEmail(e))
-                  ].slice(0, 10).map((opt, idx) => (
-                    <div
-                      key={idx}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        set("from", opt.email);
-                        setShowFromDropdown(false);
-                      }}
-                      style={{ padding: "12px 16px", cursor: "pointer", transition: "background 0.2s" }}
-                      onMouseEnter={e => e.currentTarget.style.background = isDark ? "rgba(255,255,255,0.05)" : "#f3f4f6"}
-                      onMouseLeave={e => e.currentTarget.style.background = "transparent"}
-                    >
-                      <div style={{ fontSize: 13, color: t.text }}>{opt.email}</div>
-                      <div style={{ fontSize: 11, color: t.textMuted, marginTop: 2 }}>{opt.name}</div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </SettingsRow>
-
-          <SettingsRow label="Reply-to:" t={t}>
-            <div ref={replyToDropRef} style={{ position: "relative", flex: 1, borderBottom: `1px solid ${t.chipBorder}`, cursor: "pointer" }} onClick={() => setShowReplyToDropdown(!showReplyToDropdown)}>
-              <div style={{ ...inp, borderBottom: "none", color: localSettings.replyTo ? t.text : t.textMuted, display: "flex", alignItems: "center" }}>
-                {localSettings.replyTo || (t.isFrench ? "Choisir Adresse de réponse..." : "Select Reply-to Email...")}
-              </div>
-              <div style={{ position: "absolute", right: 0, top: "50%", transform: "translateY(-50%)", pointerEvents: "none", opacity: 0.6 }}>
-                <CDown />
-              </div>
-              {showReplyToDropdown && (
-                <div style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0, background: t.surface, border: `1px solid ${t.chipBorder}`, borderRadius: 8, boxShadow: "0 10px 25px rgba(0,0,0,0.15)", zIndex: 1000, overflow: "hidden" }}>
-                  {[
-                    { name: userName, email: profile?.email || "" },
-                    ...Array.from(new Set([...USERS, ...CONTACTS].map(u => u.email))).filter(Boolean).map(e => getInfoForEmail(e))
-                  ].slice(0, 10).map((opt, idx) => (
-                    <div
-                      key={idx}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        set("replyTo", opt.email);
-                        setShowReplyToDropdown(false);
-                      }}
-                      style={{ padding: "12px 16px", cursor: "pointer", transition: "background 0.2s" }}
-                      onMouseEnter={e => e.currentTarget.style.background = isDark ? "rgba(255,255,255,0.05)" : "#f3f4f6"}
-                      onMouseLeave={e => e.currentTarget.style.background = "transparent"}
-                    >
-                      <div style={{ fontSize: 13, color: t.text }}>{opt.email}</div>
-                      <div style={{ fontSize: 11, color: t.textMuted, marginTop: 2 }}>{opt.name}</div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </SettingsRow>
-
-          <div style={{ display: "flex", justifyContent: "flex-end", gap: 12, marginTop: 20 }}>
-            <button
-              onClick={() => setLocalSettings(settings)}
-              style={{ ...actionBtn, background: isDark ? "rgba(255,255,255,0.05)" : "#F3F4F6", border: isDark ? "1px solid rgba(255,255,255,0.1)" : `1px solid ${t.border}` }}
-            >
-              Cancel
-            </button>
-            <button
-              onClick={() => onChange(localSettings)}
-              style={{ ...actionBtn, background: "#1D4ED8", color: "#fff", border: "none" }}
-            >
-              Save Campaign Settings
-            </button>
-          </div>
-
-        </div>
-      </div>
-
-          <SettingsRow label="From:" t={t}>
-            <div style={{ flex: 1, fontSize: 15, color: t.text, borderBottom: `1px solid ${t.chipBorder}`, padding: "8px 0" }}>{localSettings.from || "—"}</div>
-            <button style={{ ...actionBtn, marginLeft: 16, marginRight: 16 }}>✏️ Edit</button>
-            <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 14, color: t.textMuted, cursor: "pointer", whiteSpace: "nowrap" }}>
-              <input type="checkbox" checked={!!localSettings.addSignature} onChange={e => { set("addSignature", e.target.checked); onChange(prev => ({ ...prev, addSignature: e.target.checked })); }} />
-              Add email signature
-            </label>
-          </SettingsRow>
-
-          <SettingsRow label="Reply-to:" t={t}>
-            <div ref={replyToDropRef} style={{ position: "relative", flex: 1, borderBottom: `1px solid ${t.chipBorder}`, display: "flex", alignItems: "center", cursor: "pointer" }} onClick={() => setShowReplyToDropdown(!showReplyToDropdown)}>
-              <input
-                value={localSettings.replyTo || ""}
-                onChange={e => set("replyTo", e.target.value)}
-                onBlur={() => commit("replyTo")}
-                onClick={e => e.stopPropagation()}
-                placeholder="Enter Reply-to"
-                style={{ ...inp, borderBottom: "none", paddingRight: 32 }}
-              />
-              <div style={{ position: "absolute", right: 0, top: "50%", transform: "translateY(-50%)", cursor: "pointer", opacity: 0.6, width: 32, height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <CDown />
-              </div>
-              {showReplyToDropdown && (
-                <div style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0, background: t.surface, border: `1px solid ${t.chipBorder}`, borderRadius: 8, boxShadow: "0 10px 25px rgba(0,0,0,0.15)", zIndex: 1000, overflow: "hidden" }}>
-                  {(() => {
-                    const base = Array.isArray(USERS) ? USERS : [];
-                    const list = [...base, { isCustom: true, name: "Custom reply-to name" }];
-                    return list.map((u, idx) => {
-                      const isCustom = u.isCustom;
-                      const name = isCustom ? u.name : (u.first_name ? `${u.first_name} ${u.last_name || ""}` : (u.name || u.full_name || u.email || "Unknown"));
-                      const email = isCustom ? "" : (u.email || "");
-                      return (
-                        <div
-                          key={idx}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            if (isCustom) {
-                              set("replyTo", "");
-                              onChange(prev => ({ ...prev, replyTo: "" }));
-                              const el = replyToDropRef.current?.querySelector('input');
-                              if (el) el.focus();
-                            } else {
-                              set("replyTo", email);
-                              onChange(prev => ({ ...prev, replyTo: email }));
-                            }
-                            setShowReplyToDropdown(false);
-                          }}
-                          style={{ padding: "12px 16px", cursor: "pointer", transition: "background 0.2s" }}
-                          onMouseEnter={e => e.currentTarget.style.background = isDark ? "rgba(255,255,255,0.05)" : "#f3f4f6"}
-                          onMouseLeave={e => e.currentTarget.style.background = "transparent"}
-                        >
-                          <div style={{ fontSize: 14, color: t.text }}>{name}</div>
-                          {email && <div style={{ fontSize: 11, color: t.textMuted, marginTop: 2 }}>{email}</div>}
                         </div>
                       );
                     });
