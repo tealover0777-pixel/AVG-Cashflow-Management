@@ -5,11 +5,13 @@ import { useAuth } from "../AuthContext";
 import { FF, FIn } from "../components";
 import { uploadFile } from "../utils/storageUtils";
 
-export default function PageCompany({ t, isDark, activeTenantId = "" }) {
+export default function PageCompany({ t, isDark, activeTenantId = "", USERS = [], CONTACTS = [] }) {
     const { user, profile, tenantId: authTenantId, isSuperAdmin } = useAuth();
     const tenantId = activeTenantId || authTenantId;
     const [saving, setSaving] = useState(false);
     const [toast, setToast] = useState(null);
+    const [showOwnerSearch, setShowOwnerSearch] = useState(false);
+    const [ownerSearch, setOwnerSearch] = useState("");
 
     const showToast = (msg, type = "success") => {
         setToast({ msg, type });
@@ -29,6 +31,7 @@ export default function PageCompany({ t, isDark, activeTenantId = "" }) {
         country: "",
         home_page: "",
         owner: "",
+        _origOwner: "",
     });
 
     useEffect(() => {
@@ -41,6 +44,7 @@ export default function PageCompany({ t, isDark, activeTenantId = "" }) {
                         logo: d.tenant_logo || d.logo || "",
                         email: d.tenant_email || d.email || "",
                         phone: d.tenant_phone || d.phone || "",
+                        address: d.address || d.address1 || "",
                         address1: d.address || d.address1 || "",
                         address2: d.address2 || "",
                         city: d.city || "",
@@ -49,11 +53,31 @@ export default function PageCompany({ t, isDark, activeTenantId = "" }) {
                         country: d.country || "",
                         home_page: d.home_page || "",
                         owner: d.owner || d.owner_id || "",
+                        _origOwner: d.owner || d.owner_id || "",
                     });
                 }
             }).catch(e => console.error("Error fetching tenant data:", e));
         }
     }, [tenantId]);
+
+    const resolvedOwnerName = useMemo(() => {
+        if (!data.owner) return "—";
+        const all = [...USERS, ...CONTACTS];
+        const found = all.find(u => u.id === data.owner || u.auth_uid === data.owner || u.email === data.owner);
+        if (found) {
+            return [found.first_name, found.last_name].filter(Boolean).join(" ") || found.name || found.contact_name || found.email || data.owner;
+        }
+        return data.owner;
+    }, [data.owner, USERS, CONTACTS]);
+
+    const filteredOwnerResults = useMemo(() => {
+        if (!ownerSearch) return [...USERS, ...CONTACTS].slice(0, 50);
+        const q = ownerSearch.toLowerCase();
+        return [...USERS, ...CONTACTS].filter(u => {
+            const name = [u.first_name, u.last_name].filter(Boolean).join(" ") || u.name || u.contact_name || u.email || "";
+            return name.toLowerCase().includes(q) || (u.email && u.email.toLowerCase().includes(q));
+        }).slice(0, 50);
+    }, [ownerSearch, USERS, CONTACTS]);
 
     const handlePhotoChange = async (e) => {
         const file = e.target.files[0];
@@ -79,6 +103,31 @@ export default function PageCompany({ t, isDark, activeTenantId = "" }) {
         if (!tenantId) return;
         setSaving(true);
         try {
+            // Check for Ownership transfer
+            const isNewOwner = data.owner && data.owner !== data._origOwner;
+            if (isNewOwner) {
+                const iAmOwner = profile?.role_id === "R10005" || profile?.role === "R10005";
+                if (!iAmOwner && !isSuperAdmin) {
+                    showToast("Only the current Owner or a Super Admin can transfer ownership.", "error");
+                    setSaving(false);
+                    return;
+                }
+
+                // 1. Demote old owner(s)
+                const existingOwners = USERS.filter(u => u.role_id === "R10005" && u.id !== data.owner);
+                for (const old of existingOwners) {
+                    await updateDoc(doc(db, "tenants", tenantId, "users", old.id), { role_id: "R10004", updated_at: serverTimestamp() });
+                    await updateDoc(doc(db, "global_users", old.auth_uid || old.id), { role: "R10004", last_updated: serverTimestamp() });
+                }
+
+                // 2. Promote new owner
+                const newOwnerInTenant = USERS.find(u => u.id === data.owner || u.auth_uid === data.owner);
+                if (newOwnerInTenant) {
+                    await updateDoc(doc(db, "tenants", tenantId, "users", newOwnerInTenant.id), { role_id: "R10005", updated_at: serverTimestamp() });
+                    await updateDoc(doc(db, "global_users", newOwnerInTenant.auth_uid || newOwnerInTenant.id), { role: "R10005", last_updated: serverTimestamp() });
+                }
+            }
+
             await updateDoc(doc(db, "tenants", tenantId), {
                 tenant_name: data.name,
                 tenant_logo: data.logo,
@@ -92,8 +141,11 @@ export default function PageCompany({ t, isDark, activeTenantId = "" }) {
                 country: data.country,
                 home_page: data.home_page,
                 owner: data.owner,
+                owner_id: data.owner,
                 updated_at: serverTimestamp()
             });
+
+            setData(s => ({ ...s, _origOwner: data.owner }));
             showToast("Company information updated successfully.");
         } catch (err) {
             console.error("Save company error:", err);
@@ -195,7 +247,52 @@ export default function PageCompany({ t, isDark, activeTenantId = "" }) {
                         <div style={{ height: 1, background: t.border, opacity: 0.5, margin: "8px 0" }} />
 
                         <FF label="Owner / Principal" t={t}>
-                            <FIn value={data.owner} onChange={e => setData(s => ({ ...s, owner: e.target.value }))} placeholder="Full Name of Owner" t={t} />
+                            <div style={{ position: "relative" }}>
+                                <div 
+                                    onClick={() => setShowOwnerSearch(!showOwnerSearch)}
+                                    style={{ 
+                                        width: "100%", padding: "10px 14px", borderRadius: 9, 
+                                        border: `1px solid ${t.border}`, background: isDark ? "rgba(255,255,255,0.05)" : "#fff", 
+                                        color: t.text, cursor: "pointer", fontSize: 14, display: "flex", alignItems: "center", justifyContent: "space-between" 
+                                    }}
+                                >
+                                    <span>{resolvedOwnerName}</span>
+                                    <span style={{ fontSize: 10, opacity: 0.5 }}>▼</span>
+                                </div>
+                                {showOwnerSearch && (
+                                    <div style={{ position: "absolute", top: "100%", left: 0, right: 0, background: t.surface, border: `1px solid ${t.border}`, borderRadius: 12, marginTop: 6, zIndex: 100, boxShadow: "0 12px 32px rgba(0,0,0,0.25)", overflow: "hidden" }}>
+                                        <input 
+                                            autoFocus
+                                            value={ownerSearch}
+                                            onChange={e => setOwnerSearch(e.target.value)}
+                                            placeholder="Search directory..."
+                                            style={{ width: "100%", padding: "12px 16px", border: "none", borderBottom: `1px solid ${t.border}`, background: "transparent", color: t.text, outline: "none" }}
+                                        />
+                                        <div style={{ maxHeight: 240, overflowY: "auto" }}>
+                                            {filteredOwnerResults.map(u => {
+                                                const uName = [u.first_name, u.last_name].filter(Boolean).join(" ") || u.name || u.contact_name || u.email || "—";
+                                                const uId = u.id || u.auth_uid;
+                                                return (
+                                                    <div 
+                                                        key={uId}
+                                                        onClick={() => {
+                                                            setData(s => ({ ...s, owner: uId }));
+                                                            setShowOwnerSearch(false);
+                                                            setOwnerSearch("");
+                                                        }}
+                                                        style={{ padding: "10px 16px", cursor: "pointer", borderBottom: `1px solid ${isDark ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.03)"}`, background: data.owner === uId ? t.navActive : "transparent" }}
+                                                        onMouseEnter={e => e.currentTarget.style.background = t.navHover}
+                                                        onMouseLeave={e => e.currentTarget.style.background = data.owner === uId ? t.navActive : "transparent"}
+                                                    >
+                                                        <div style={{ fontSize: 13, fontWeight: 600, color: t.text }}>{uName}</div>
+                                                        <div style={{ fontSize: 11, color: t.textMuted }}>{u.email}</div>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
                         </FF>
 
                         <button onClick={handleSave} disabled={saving} className="primary-btn" style={{ background: t.accentGrad, color: "#fff", border: "none", padding: "12px 24px", borderRadius: 12, fontSize: 14, fontWeight: 600, cursor: saving ? "default" : "pointer", opacity: saving ? 0.6 : 1, marginTop: 12 }}>

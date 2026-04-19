@@ -214,7 +214,27 @@ export default function PageUserProfiles({ t, isDark, USERS = [], GLOBAL_USERS =
                     notes: d.notes || ""
                 });
             } else if (modal.mode === "edit" && d.id) {
-                // Ensure all values are plain strings, not Firestore objects
+                // Check for Ownership transfer
+                const isPromotingToOwner = d.role_id === "R10005";
+                const wasAlreadyOwner = profile?.role_id === "R10005" || profile?.role === "R10005";
+                
+                if (isPromotingToOwner) {
+                    if (!wasAlreadyOwner && !isSuperAdmin) {
+                        showToast("Only the current Owner or a Super Admin can assign a new Owner.", "error");
+                        setSaving(false);
+                        return;
+                    }
+
+                    // Find current owner to demote
+                    const existingOwner = USERS.find(u => u.role_id === "R10005" && u.id !== d.id);
+                    if (existingOwner) {
+                        await updateDoc(doc(db, collectionPath, existingOwner.id), { role_id: "R10004", updated_at: serverTimestamp() });
+                        await updateDoc(doc(db, "global_users", existingOwner.auth_uid || existingOwner.id), { role: "R10004", last_updated: serverTimestamp() });
+                    }
+                    // Update tenant doc
+                    await updateDoc(doc(db, "tenants", tenantId), { owner: d.auth_uid || d.id, owner_id: d.auth_uid || d.id, updated_at: serverTimestamp() });
+                }
+
                 const payload = {
                     user_id: String(d.user_id || ""),
                     first_name: String(d.first_name || ""),
@@ -226,7 +246,6 @@ export default function PageUserProfiles({ t, isDark, USERS = [], GLOBAL_USERS =
                     updated_at: serverTimestamp(),
                 };
                 await updateDoc(doc(db, collectionPath, d.id), payload);
-                // Sync to global_users to keep data consistent
                 const authUid = String(d.auth_uid || d.id);
                 if (authUid && !/^U\d+$/.test(authUid)) {
                     await setDoc(doc(db, "global_users", authUid), {
