@@ -1766,11 +1766,9 @@ function SettingsPanel({ t, isDark, settings, onChange, profile, DIMENSIONS = []
       internalName: emailName || s.internalName || "",
       subject: s.subject || emailName || "",
       fromName: s.fromName || organizationName || "",
-      from: s.from || profile?.email || "",
-      replyTo: s.replyTo || profile?.email || "",
       type: s.type || "Marketing",
       ...s,
-      // Priority overrides if empty
+      // Fallback to profile email if explicitly empty in settings
       from: s.from || profile?.email || "",
       replyTo: s.replyTo || profile?.email || "",
       recipients: Array.isArray(s.recipients) ? s.recipients.join("; ") : (s.recipients || ""),
@@ -1960,7 +1958,7 @@ function SettingsPanel({ t, isDark, settings, onChange, profile, DIMENSIONS = []
               disabled={isSaving}
               style={{ ...actionBtn, background: "#1D4ED8", color: "#fff", border: "none", opacity: isSaving ? 0.7 : 1, cursor: isSaving ? "not-allowed" : "pointer" }}
             >
-              {isSaving ? (t.isFrench ? "Enregistrement..." : "Saving...") : (t.isFrench ? "Save Email Setting" : "Save Email Setting")}
+              {isSaving ? (t.isFrench ? "Enregistrement..." : "Saving...") : "Save Email Setting"}
             </button>
           </div>
         </div>
