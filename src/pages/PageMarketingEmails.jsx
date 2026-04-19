@@ -49,7 +49,7 @@ const ActionCell = ({ row, isDark, t, actions }) => {
         <MoreHorizontal size={16} />
       </button>
       {showMenu && ReactDOM.createPortal(
-        <div style={{
+        <div onMouseDown={e => e.stopPropagation()} style={{
           position: "absolute", top: coords.top, left: coords.left, width: 190,
           background: isDark ? "#1e293b" : "#fff", border: `1px solid ${t.border}`,
           borderRadius: 8, boxShadow: "0 10px 25px rgba(0,0,0,0.2)", zIndex: 99999,
