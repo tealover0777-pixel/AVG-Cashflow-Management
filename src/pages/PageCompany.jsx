@@ -55,6 +55,17 @@ export default function PageCompany({ t, isDark, activeTenantId = "", USERS = []
                 pass: "",
                 secure: true
             }
+        },
+        achSetup: {
+            enabled: false,
+            originatorName: "",
+            originatorId: "",
+            odfiName: "",
+            odfiRouting: "",
+            accountNumber: "",
+            accountType: "Checking",
+            immediateOrigin: "",
+            immediateDestination: ""
         }
     });
 
@@ -101,6 +112,17 @@ export default function PageCompany({ t, isDark, activeTenantId = "", USERS = []
                                 pass: "",
                                 secure: true
                             }
+                        },
+                        achSetup: d.achSetup || {
+                            enabled: false,
+                            originatorName: d.tenant_name || d.name || "",
+                            originatorId: "",
+                            odfiName: "",
+                            odfiRouting: "",
+                            accountNumber: "",
+                            accountType: "Checking",
+                            immediateOrigin: "",
+                            immediateDestination: ""
                         }
                     });
                 }
@@ -182,6 +204,7 @@ export default function PageCompany({ t, isDark, activeTenantId = "", USERS = []
                 owner: data.owner,
                 owner_id: data.owner,
                 emailSetup: data.emailSetup,
+                achSetup: data.achSetup,
                 updated_at: serverTimestamp()
             });
             setData(s => ({ ...s, _origOwner: data.owner }));
@@ -228,6 +251,13 @@ export default function PageCompany({ t, isDark, activeTenantId = "", USERS = []
                 ...s.emailSetup,
                 smtp: { ...s.emailSetup.smtp, ...patch }
             }
+        }));
+    };
+
+    const updACH = (patch) => {
+        setData(s => ({
+            ...s,
+            achSetup: { ...s.achSetup, ...patch }
         }));
     };
 
@@ -416,6 +446,57 @@ export default function PageCompany({ t, isDark, activeTenantId = "", USERS = []
                                 </label>
                             </>
                         )}
+                    </div>
+                </div>
+            </div>
+
+            <div style={{ background: t.surface, borderRadius: 16, border: `1px solid ${t.surfaceBorder}`, padding: 32, boxShadow: t.tableShadow, marginTop: 32 }}>
+                <div style={{ marginBottom: 24, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                    <div>
+                        <h3 style={{ fontSize: 17, fontWeight: 700, color: isDark ? "#fff" : "#1C1917", marginBottom: 6 }}>ACH Payment Setup</h3>
+                        <p style={{ fontSize: 12.5, color: t.textMuted, lineHeight: 1.5 }}>Configure banking credentials for NACHA file generation and automated payments.</p>
+                    </div>
+                    <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer", background: isDark ? "rgba(255,255,255,0.05)" : "#F3F4F6", padding: "8px 16px", borderRadius: 10, border: `1px solid ${data.achSetup.enabled ? t.accent : t.border}` }}>
+                        <span style={{ fontSize: 13, fontWeight: 600, color: data.achSetup.enabled ? (isDark ? "#34D399" : "#059669") : t.textMuted }}>{data.achSetup.enabled ? "ACH Generation Enabled" : "ACH Generation Disabled"}</span>
+                        <input type="checkbox" checked={data.achSetup.enabled} onChange={e => updACH({ enabled: e.target.checked })} style={{ width: 18, height: 18, accentColor: t.accent }} />
+                    </label>
+                </div>
+
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 32, opacity: data.achSetup.enabled ? 1 : 0.6, pointerEvents: data.achSetup.enabled ? "auto" : "none", transition: "opacity 0.2s" }}>
+                    <div style={{ display: "grid", gap: 20 }}>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: t.text }}>Originator Information</div>
+                        <FF label="Originator Name" t={t}><FIn value={data.achSetup.originatorName} onChange={e => updACH({ originatorName: e.target.value })} placeholder="Company Name" t={t} /></FF>
+                        <FF label="Originator ID (Company ID)" t={t}><FIn value={data.achSetup.originatorId} onChange={e => updACH({ originatorId: e.target.value })} placeholder="9-digit Tax ID" t={t} /></FF>
+                        
+                        <div style={{ height: 1, background: t.border, opacity: 0.5, margin: "8px 0" }} />
+                        <div style={{ fontSize: 13, fontWeight: 700, color: t.text }}>Banking Institution (ODFI)</div>
+                        <FF label="Bank Name" t={t}><FIn value={data.achSetup.odfiName} onChange={e => updACH({ odfiName: e.target.value })} placeholder="Your Bank Name" t={t} /></FF>
+                        <FF label="ODFI Routing Number" t={t}><FIn value={data.achSetup.odfiRouting} onChange={e => updACH({ odfiRouting: e.target.value })} placeholder="9-digit Routing" t={t} /></FF>
+                    </div>
+
+                    <div style={{ display: "grid", gap: 20 }}>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: t.text }}>Account Details</div>
+                        <FF label="Account Number" t={t}><FIn type="password" value={data.achSetup.accountNumber} onChange={e => updACH({ accountNumber: e.target.value })} placeholder="Your Account Number" t={t} /></FF>
+                        <FF label="Account Type" t={t}>
+                            <div style={{ position: "relative" }}>
+                                <select 
+                                    value={data.achSetup.accountType} 
+                                    onChange={e => updACH({ accountType: e.target.value })}
+                                    style={{ width: "100%", padding: "10px 14px", borderRadius: 9, border: `1px solid ${t.border}`, background: isDark ? "rgba(255,255,255,0.05)" : "#fff", color: t.text, cursor: "pointer", fontSize: 14, outline: "none", appearance: "none" }}
+                                >
+                                    <option value="Checking">Checking</option>
+                                    <option value="Savings">Savings</option>
+                                </select>
+                                <ChevronDown size={14} style={{ position: "absolute", right: 14, top: "50%", transform: "translateY(-50%)", pointerEvents: "none", opacity: 0.5 }} />
+                            </div>
+                        </FF>
+
+                        <div style={{ height: 1, background: t.border, opacity: 0.5, margin: "8px 0" }} />
+                        <div style={{ fontSize: 13, fontWeight: 700, color: t.text }}>NACHA File Header Metadata</div>
+                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+                            <FF label="Immediate Origin" t={t}><FIn value={data.achSetup.immediateOrigin} onChange={e => updACH({ immediateOrigin: e.target.value })} placeholder="e.g. TTNNNNNNN" t={t} /></FF>
+                            <FF label="Immediate Destination" t={t}><FIn value={data.achSetup.immediateDestination} onChange={e => updACH({ immediateDestination: e.target.value })} placeholder="Bank's Routing" t={t} /></FF>
+                        </div>
                     </div>
                 </div>
             </div>
