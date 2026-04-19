@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useRef, useEffect } from "react";
-import { Plus, Search, FileText, Send, Inbox, LayoutTemplate, X, ChevronRight, Trash2, MoreHorizontal } from "lucide-react";
+import { Plus, Search, FileText, Send, Inbox, LayoutTemplate, X, ChevronRight, Trash2, MoreHorizontal, Clock } from "lucide-react";
 import TanStackTable from "../components/TanStackTable";
 import { db } from "../firebase";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
@@ -43,6 +43,29 @@ const getMarketingEmailColumns = (isDark, t, onOpenEmail) => [
     ),
   },
   {
+    header: "Type",
+    accessorKey: "type",
+    size: 110,
+    cell: ({ getValue }) => {
+      const type = getValue() || "Marketing";
+      return (
+        <span style={{ 
+          fontSize: "10px", 
+          fontWeight: 700, 
+          padding: "2px 8px", 
+          borderRadius: 4, 
+          background: isDark ? "rgba(255,255,255,0.05)" : "#F3F4F6", 
+          color: t.accent,
+          border: `1px solid ${isDark ? "rgba(255,255,255,0.1)" : "#E5E7EB"}`,
+          textTransform: "uppercase",
+          letterSpacing: "0.02em"
+        }}>
+          {type}
+        </span>
+      );
+    },
+  },
+  {
     header: "Recipients",
     accessorKey: "recipients",
     size: 160,
@@ -72,11 +95,27 @@ const getMarketingEmailColumns = (isDark, t, onOpenEmail) => [
     size: 110,
     cell: ({ getValue }) => {
       const status = getValue() || "Draft";
-      const dotColor = status === "Sent" ? "#22c55e" : status === "Draft" ? "#9CA3AF" : "#F59E0B";
+      const dotColor = status === "Sent" ? "#22c55e" : status === "Draft" ? "#9CA3AF" : status === "Scheduled" ? "#F59E0B" : "#F59E0B";
       return (
         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
           <div style={{ width: 7, height: 7, borderRadius: "50%", background: dotColor, flexShrink: 0 }} />
           <span style={{ fontSize: "12px", fontWeight: 500, color: t.text }}>{status}</span>
+        </div>
+      );
+    },
+  },
+  {
+    header: "Schedule",
+    accessorKey: "scheduledAt",
+    size: 160,
+    cell: ({ getValue, row }) => {
+      const val = getValue();
+      const status = row.original.status;
+      if (status !== "Scheduled") return <span style={{ fontSize: "12px", color: t.textMuted }}>—</span>;
+      return (
+        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          <Clock size={12} color="#F59E0B" />
+          <span style={{ fontFamily: t.mono, fontSize: "11.5px", color: "#F59E0B" }}>{formatDate(val)}</span>
         </div>
       );
     },
@@ -115,6 +154,7 @@ const DUMMY_DRAFTS = [
   { id: 13, title: "Investor Newsletter for navigation purpose", recipients: "No recipients", createdAt: "2025-10-13T15:11:00", updatedAt: "2025-10-13T15:11:00", status: "Draft" },
   { id: 14, title: "Q3 2025 Insights: Investor Newsletter", recipients: "No recipients", createdAt: "2025-10-02T16:37:00", updatedAt: "2025-10-02T16:40:00", status: "Draft" },
   { id: 15, title: "New draft", recipients: "No recipients", createdAt: "2025-09-22T01:46:00", updatedAt: "2025-09-22T01:46:00", status: "Draft" },
+  { id: 16, title: "Monthly Portfolio Performance Update", recipients: "125 recipients", createdAt: "2026-04-18T10:00:00", updatedAt: "2026-04-18T10:05:00", status: "Scheduled", scheduledAt: "2026-04-20T09:00:00" },
 ];
 
 export default function PageMarketingEmails({ t, isDark, setActivePage, MARKETING_EMAILS = [], setActiveEmailTemplate, activeTenantId }) {
@@ -133,26 +173,30 @@ export default function PageMarketingEmails({ t, isDark, setActivePage, MARKETIN
       recipients: Array.isArray(e.recipients) ? `${e.recipients.length} recipients` : (e.recipients || "No recipients"),
       createdAt: e.createdAt || e.created_at || "",
       updatedAt: e.updatedAt || e.updated_at || "",
-      status: e.status || "Draft"
+      status: e.status || "Draft",
+      type: e.settings?.type || e.type || "Marketing"
     }));
   }, [MARKETING_EMAILS]);
 
   const drafts = emails.filter(e => (e.status || "Draft") === "Draft");
   const sent = emails.filter(e => e.status === "Sent");
+  const scheduled = emails.filter(e => e.status === "Scheduled");
   const inbox = emails.filter(e => e.status === "Inbox");
 
   const tabs = [
     { label: "Draft", icon: FileText, count: drafts.length },
     { label: "Sent", icon: Send, count: sent.length },
+    { label: "Scheduled", icon: Clock, count: scheduled.length },
     { label: "Inbox", icon: Inbox, count: inbox.length },
   ];
 
   const tableData = useMemo(() => {
     if (activeTab === "Draft") return drafts;
     if (activeTab === "Sent") return sent;
+    if (activeTab === "Scheduled") return scheduled;
     if (activeTab === "Inbox") return inbox;
     return [];
-  }, [activeTab, drafts, sent, inbox]);
+  }, [activeTab, drafts, sent, scheduled, inbox]);
 
   const columnDefs = useMemo(
     () => getMarketingEmailColumns(isDark, t, (email) => {
