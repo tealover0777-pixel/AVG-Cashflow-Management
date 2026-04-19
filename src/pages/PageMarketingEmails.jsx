@@ -319,6 +319,7 @@ export default function PageMarketingEmails({ t, isDark, setActivePage, MARKETIN
 
   const [activityLogs, setActivityLogs] = React.useState([]);
   const [loadingLogs, setLoadingLogs] = React.useState(false);
+  const [recipientsModalData, setRecipientsModalData] = React.useState(null);
 
   React.useEffect(() => {
     if (activeTenantId) {
@@ -417,10 +418,230 @@ export default function PageMarketingEmails({ t, isDark, setActivePage, MARKETIN
     }
   }, [itemToReschedule]);
 
+  // MOVED COLUMN DEFINITIONS INSIDE TO ACCESS setRecipientsModalData
+  const getMarketingEmailColumnsInner = (isDark, t, actions) => [
+  {
+    header: "Project",
+    accessorKey: "title",
+    size: 280,
+    cell: ({ getValue, row }) => (
+      <div style={{ display: "flex", flexDirection: "column" }}>
+        <span 
+          onClick={() => actions.onOpen(row.original)}
+          style={{ fontSize: "13.5px", fontWeight: 700, color: isDark ? "#fff" : "#1C1917", cursor: "pointer" }}
+          onMouseEnter={e => e.currentTarget.style.textDecoration = "underline"}
+          onMouseLeave={e => e.currentTarget.style.textDecoration = "none"}
+        >
+          {getValue()}
+        </span>
+        <span style={{ fontSize: "11px", color: t.textMuted }}>{row.original.subject || "No subject"}</span>
+      </div>
+    ),
+  },
+  {
+    header: "Type",
+    accessorKey: "type",
+    size: 110,
+    cell: ({ getValue }) => {
+      const type = getValue() || "Marketing";
+      return (
+        <span style={{ 
+          fontSize: "10px", 
+          fontWeight: 700, 
+          padding: "2px 8px", 
+          borderRadius: 4, 
+          background: isDark ? "rgba(59,130,246,0.15)" : "#EFF6FF", 
+          color: "#3B82F6",
+          border: "1px solid rgba(59,130,246,0.2)",
+          textTransform: "uppercase",
+        }}>
+          {type}
+        </span>
+      );
+    },
+  },
+  {
+    header: "Recipients",
+    accessorKey: "recipients",
+    size: 160,
+    cell: ({ getValue, row }) => {
+      const val = getValue() || "—";
+      const isMultiple = val.includes("recipients");
+      const emails = isMultiple ? (row.original.settings?.recipients || row.original.recipients_list || []) : [];
+      
+      return (
+        <span 
+          onClick={() => {
+            if (isMultiple && emails.length > 0) {
+              setRecipientsModalData({ title: row.original.title, emails });
+            }
+          }}
+          style={{ 
+            fontSize: "12px", 
+            color: isMultiple ? (isDark ? "#60A5FA" : "#2563EB") : t.textMuted,
+            cursor: isMultiple ? "pointer" : "default",
+            textDecoration: isMultiple ? "underline" : "none"
+          }}
+        >
+          {val}
+        </span>
+      );
+    },
+  },
+  {
+    header: "Created",
+    accessorKey: "createdAt",
+    size: 160,
+    cell: ({ getValue }) => (
+      <span style={{ fontFamily: t.mono, fontSize: "11.5px", color: t.idText }}>{formatDate(getValue())}</span>
+    ),
+  },
+  {
+    header: "Last Updated",
+    accessorKey: "updatedAt",
+    size: 160,
+    cell: ({ getValue }) => (
+      <span style={{ fontFamily: t.mono, fontSize: "11.5px", color: t.idText }}>{formatDate(getValue())}</span>
+    ),
+  },
+  {
+    header: "Status",
+    accessorKey: "status",
+    size: 110,
+    cell: ({ getValue, row }) => {
+      const status = getValue() || "Draft";
+      const dotColor = status === "Sent" ? "#22c55e" : status === "Draft" ? "#9CA3AF" : status === "Scheduled" ? "#F59E0B" : "#F59E0B";
+      const isScheduled = status === "Scheduled";
+      return (
+        <div 
+          onClick={(e) => {
+            if (isScheduled) {
+              e.stopPropagation();
+              actions.onEditSchedule(row.original);
+            }
+          }}
+          style={{ display: "flex", alignItems: "center", gap: 6, cursor: isScheduled ? "pointer" : "default" }}
+        >
+          <div style={{ width: 7, height: 7, borderRadius: "50%", background: dotColor, flexShrink: 0 }} />
+          <span 
+            style={{ 
+              fontSize: "12px", 
+              fontWeight: 500, 
+              color: isScheduled ? (isDark ? "#60A5FA" : "#2563EB") : t.text,
+            }}
+            onMouseEnter={e => { if (isScheduled) e.currentTarget.style.textDecoration = "underline"; }}
+            onMouseLeave={e => { if (isScheduled) e.currentTarget.style.textDecoration = "none"; }}
+          >
+            {status}
+          </span>
+        </div>
+      );
+    },
+  },
+  ...(activeTab === "Scheduled" ? [
+    {
+      header: "Scheduled Date",
+      accessorKey: "scheduledDate",
+      size: 120,
+      cell: ({ row }) => {
+        const val = row.original.scheduledAt;
+        if (!val) return <span style={{ fontSize: "12px", color: t.textMuted }}>—</span>;
+        const d = new Date(val);
+        return <span style={{ fontFamily: t.mono, fontSize: "11.5px", color: "#F59E0B" }}>{d.toLocaleDateString()}</span>;
+      },
+    },
+    {
+      header: "Scheduled Time",
+      accessorKey: "scheduledTime",
+      size: 120,
+      cell: ({ row }) => {
+        const val = row.original.scheduledAt;
+        if (!val) return <span style={{ fontSize: "12px", color: t.textMuted }}>—</span>;
+        const d = new Date(val);
+        return <span style={{ fontFamily: t.mono, fontSize: "11.5px", color: "#F59E0B" }}>{d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>;
+      },
+    }
+  ] : []),
+  {
+    header: "Actions",
+    id: "actions",
+    size: 70,
+    enableSorting: false,
+    enableColumnFilter: false,
+    cell: ({ row }) => <ActionCell row={row} isDark={isDark} t={t} actions={actions} />,
+  },
+  ];
+
+  const getActivityLogColumnsInner = (isDark, t) => [
+  {
+    header: "Recipient",
+    accessorKey: "recipient",
+    size: 250,
+    cell: ({ getValue, row }) => {
+      const val = getValue() || "—";
+      const isMultiple = val.includes("recipients");
+      const emails = isMultiple ? (row.original.recipientList || []) : [];
+      return (
+        <span 
+          onClick={() => {
+            if (isMultiple && emails.length > 0) {
+              setRecipientsModalData({ title: "Dispatch Batch", emails });
+            }
+          }}
+          style={{ 
+            fontSize: "12.5px", 
+            fontWeight: 600, 
+            color: isMultiple ? (isDark ? "#60A5FA" : "#2563EB") : t.text,
+            cursor: isMultiple ? "pointer" : "default",
+            textDecoration: isMultiple ? "underline" : "none"
+          }}
+        >
+          {val}
+        </span>
+      );
+    },
+  },
+  {
+    header: "Subject",
+    accessorKey: "subject",
+    size: 250,
+    cell: ({ getValue }) => <span style={{ fontSize: "12px", color: t.textMuted }}>{getValue() || "—"}</span>,
+  },
+  {
+    header: "Sent At",
+    accessorKey: "sentAt",
+    size: 180,
+    cell: ({ getValue }) => <span style={{ fontFamily: t.mono, fontSize: "11.5px", color: t.idText }}>{formatDate(getValue())}</span>,
+  },
+  {
+    header: "Status",
+    accessorKey: "status",
+    size: 120,
+    cell: ({ getValue }) => {
+      const status = getValue() || "Pending";
+      const isDelivered = status === "Delivered";
+      return (
+        <span style={{ 
+          fontSize: "10px", 
+          fontWeight: 700, 
+          padding: "2px 8px", 
+          borderRadius: 4, 
+          background: isDelivered ? (isDark ? "rgba(34,197,94,0.15)" : "#F0FDF4") : (isDark ? "rgba(239,68,68,0.15)" : "#FEF2F2"), 
+          color: isDelivered ? "#22C55E" : "#EF4444",
+          border: `1px solid ${isDelivered ? "rgba(34,197,94,0.2)" : "rgba(239,68,68,0.2)"}`,
+          textTransform: "uppercase",
+        }}>
+          {status}
+        </span>
+      );
+    },
+  },
+  ];
+
   const columnDefs = React.useMemo(
     () => {
-      if (activeTab === "Activity") return getActivityLogColumns(isDark, t);
-      return getMarketingEmailColumns(isDark, t, {
+      if (activeTab === "Activity") return getActivityLogColumnsInner(isDark, t);
+      return getMarketingEmailColumnsInner(isDark, t, {
         onOpen: (email) => {
           setActiveEmailTemplate({ ...email, _useMode: true });
           setActivePage("Email Builder");
@@ -911,6 +1132,53 @@ export default function PageMarketingEmails({ t, isDark, setActivePage, MARKETIN
                   </div>
                 </div>
               ))}
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Recipients Modal */}
+      {recipientsModalData && (
+        <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.5)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 10000 }}>
+          <div style={{ background: t.cardBg, border: `1px solid ${t.surfaceBorder}`, borderRadius: 16, width: "90%", maxWidth: 500, boxShadow: "0 20px 40px rgba(0,0,0,0.2)", display: "flex", flexDirection: "column", maxHeight: "70vh" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px 20px", borderBottom: `1px solid ${t.border}` }}>
+              <div>
+                <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: t.text }}>Recipient List</h3>
+                <p style={{ margin: "2px 0 0 0", fontSize: 12, color: t.textMuted }}>{recipientsModalData.title}</p>
+              </div>
+              <button onClick={() => setRecipientsModalData(null)} style={{ background: "transparent", border: "none", cursor: "pointer", color: t.textMuted }}>
+                <X size={20} />
+              </button>
+            </div>
+            <div style={{ padding: "12px 20px", overflowY: "auto", flex: 1 }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                {recipientsModalData.emails.map((emailObj, i) => {
+                  const email = typeof emailObj === 'string' ? emailObj : (emailObj.email || "");
+                  return (
+                    <div key={i} style={{ 
+                      padding: "8px 12px", 
+                      borderRadius: 6, 
+                      background: isDark ? "rgba(255,255,255,0.03)" : "#F9FAFB",
+                      border: `1px solid ${t.border}`,
+                      fontSize: 13,
+                      color: t.text,
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 10
+                    }}>
+                      <Users size={14} style={{ color: t.textMuted }} />
+                      {email}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+            <div style={{ padding: "12px 20px", borderTop: `1px solid ${t.border}`, textAlign: "center" }}>
+              <button 
+                onClick={() => setRecipientsModalData(null)}
+                style={{ padding: "8px 24px", borderRadius: 8, background: t.accentGrad, color: "#fff", border: "none", fontSize: 13, fontWeight: 600, cursor: "pointer" }}
+              >
+                Close
+              </button>
             </div>
           </div>
         </div>
