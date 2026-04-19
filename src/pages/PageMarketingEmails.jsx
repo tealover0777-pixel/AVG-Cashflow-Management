@@ -1,8 +1,9 @@
 import React, { useState, useMemo, useRef, useEffect } from "react";
-import { Plus, Search, FileText, Send, Inbox, LayoutTemplate, X, ChevronRight, Trash2, MoreHorizontal, Clock } from "lucide-react";
-import TanStackTable from "../components/TanStackTable";
-import { db } from "../firebase";
-import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { Plus, Search, FileText, Send, Inbox, LayoutTemplate, X, ChevronRight, Trash2, MoreHorizontal, Clock, Edit2, Copy, Save } from "lucide-react";
+import { TanStackTable, PromptModal, DelModal } from "../components";
+import { db, storage } from "../firebase";
+import { collection, addDoc, serverTimestamp, doc, updateDoc, deleteDoc, getDoc } from "firebase/firestore";
+import { ref, uploadBytes } from "firebase/storage";
 import { getCollectionPaths } from "../utils";
 
 const formatDate = (dateStr) => {
@@ -11,7 +12,63 @@ const formatDate = (dateStr) => {
   return d.toLocaleString("en-US", { month: "numeric", day: "numeric", year: "numeric", hour: "numeric", minute: "numeric", hour12: true });
 };
 
-const getMarketingEmailColumns = (isDark, t, onOpenEmail) => [
+};
+
+const ActionCell = ({ row, isDark, t, actions }) => {
+  const [showMenu, setShowMenu] = useState(false);
+  const menuRef = useRef(null);
+
+  useEffect(() => {
+    const clickOut = (e) => { if (menuRef.current && !menuRef.current.contains(e.target)) setShowMenu(false); };
+    if (showMenu) document.addEventListener("mousedown", clickOut);
+    return () => document.removeEventListener("mousedown", clickOut);
+  }, [showMenu]);
+
+  const email = row.original;
+
+  return (
+    <div style={{ position: "relative" }} ref={menuRef}>
+      <button
+        onClick={(e) => { e.stopPropagation(); setShowMenu(!showMenu); }}
+        style={{ background: "none", border: "none", color: t.textMuted, cursor: "pointer", padding: 4, borderRadius: 4, display: "flex", alignItems: "center" }}
+        onMouseEnter={e => e.currentTarget.style.background = isDark ? "#333" : "#F3F4F6"}
+        onMouseLeave={e => e.currentTarget.style.background = "none"}
+      >
+        <MoreHorizontal size={16} />
+      </button>
+      {showMenu && (
+        <div style={{
+          position: "absolute", top: "calc(100% + 4px)", right: 0, width: 190,
+          background: isDark ? "#1e293b" : "#fff", border: `1px solid ${t.border}`,
+          borderRadius: 8, boxShadow: "0 10px 25px rgba(0,0,0,0.2)", zIndex: 100,
+          padding: 4, overflow: "hidden"
+        }}>
+          {[
+            { label: "Edit name", icon: Edit2, action: () => actions.onEditName(email) },
+            { label: "Clone", icon: Copy, action: () => actions.onClone(email) },
+            { label: "Save as template", icon: Save, action: () => actions.onSaveAsTemplate(email) },
+            { label: "Delete", icon: Trash2, action: () => actions.onDelete(email), danger: true },
+          ].map((m, i) => (
+            <button key={i} onClick={(e) => { e.stopPropagation(); setShowMenu(false); m.action(); }}
+              style={{
+                width: "100%", padding: "8px 12px", background: "transparent", border: "none",
+                color: m.danger ? "#EF4444" : t.text, fontSize: 13, fontWeight: 500,
+                cursor: "pointer", textAlign: "left", display: "flex", alignItems: "center", gap: 10,
+                borderRadius: 4
+              }}
+              onMouseEnter={e => e.currentTarget.style.background = isDark ? "rgba(255,255,255,0.05)" : "#f3f4f6"}
+              onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+            >
+              <m.icon size={14} /> {m.label}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
+const getMarketingEmailColumns = (isDark, t, actions) => [
   {
     id: "select",
     header: ({ table }) => (
@@ -33,7 +90,7 @@ const getMarketingEmailColumns = (isDark, t, onOpenEmail) => [
     size: 360,
     cell: ({ getValue, row }) => (
       <span
-        onClick={() => onOpenEmail(row.original)}
+        onClick={() => actions.onOpen(row.original)}
         style={{ fontSize: "12.5px", fontWeight: 600, color: isDark ? "#60A5FA" : "#2563EB", cursor: "pointer", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
         onMouseEnter={e => e.currentTarget.style.textDecoration = "underline"}
         onMouseLeave={e => e.currentTarget.style.textDecoration = "none"}
@@ -126,15 +183,7 @@ const getMarketingEmailColumns = (isDark, t, onOpenEmail) => [
     size: 70,
     enableSorting: false,
     enableColumnFilter: false,
-    cell: () => (
-      <button
-        style={{ background: "none", border: "none", color: t.textMuted, cursor: "pointer", padding: 4, borderRadius: 4, display: "flex", alignItems: "center" }}
-        onMouseEnter={e => e.currentTarget.style.background = isDark ? "#333" : "#F3F4F6"}
-        onMouseLeave={e => e.currentTarget.style.background = "none"}
-      >
-        <MoreHorizontal size={16} />
-      </button>
-    ),
+    cell: ({ row }) => <ActionCell row={row} isDark={isDark} t={t} actions={actions} />,
   },
 ];
 
@@ -198,12 +247,47 @@ export default function PageMarketingEmails({ t, isDark, setActivePage, MARKETIN
     return [];
   }, [activeTab, drafts, sent, scheduled, inbox]);
 
+  const [itemToEdit, setItemToEdit] = useState(null);
+  const [itemToDelete, setItemToDelete] = useState(null);
+
   const columnDefs = useMemo(
-    () => getMarketingEmailColumns(isDark, t, (email) => {
-      setActiveEmailTemplate({ ...email, _useMode: true });
-      setActivePage("Email Builder");
+    () => getMarketingEmailColumns(isDark, t, {
+      onOpen: (email) => {
+        setActiveEmailTemplate({ ...email, _useMode: true });
+        setActivePage("Email Builder");
+      },
+      onEditName: (email) => setItemToEdit(email),
+      onClone: async (email) => {
+        if (!activeTenantId) return;
+        const paths = getCollectionPaths(activeTenantId);
+        const colRef = collection(db, paths.marketingEmails);
+        await addDoc(colRef, {
+          ...email,
+          id: undefined, // Let Firestore generate a new ID
+          title: `${email.title} (Copy)`,
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+        });
+      },
+      onSaveAsTemplate: async (email) => {
+        if (!activeTenantId) return;
+        const sanitizedName = email.title.replace(/[/\s]+/g, "_").trim();
+        const path = `tenants/${activeTenantId}/templates/${sanitizedName}_backup.json`;
+        const templateRef = ref(storage, path);
+        const templateData = {
+          name: `${email.title} (From Campaign)`,
+          settings: email.settings || {},
+          rows: email.rows || [],
+          updatedAt: new Date().toISOString(),
+          category: "Your templates"
+        };
+        const blob = new Blob([JSON.stringify(templateData, null, 2)], { type: "application/json" });
+        await uploadBytes(templateRef, blob);
+        alert("Campaign saved to your template library!");
+      },
+      onDelete: (email) => setItemToDelete(email),
     }),
-    [isDark, t, setActivePage, setActiveEmailTemplate]
+    [isDark, t, setActivePage, setActiveEmailTemplate, activeTenantId]
   );
 
   const [isImporting, setIsImporting] = useState(false);
@@ -340,6 +424,43 @@ export default function PageMarketingEmails({ t, isDark, setActivePage, MARKETIN
           getRowId={(row) => String(row.id)}
         />
       </div>
+
+      <PromptModal
+        open={!!itemToEdit}
+        onClose={() => setItemToEdit(null)}
+        title="Rename Email"
+        label="Enter a new title for this email campaign:"
+        defaultValue={itemToEdit?.title}
+        t={t}
+        isDark={isDark}
+        onConfirm={async (newName) => {
+          if (!activeTenantId || !itemToEdit || !newName) return;
+          const paths = getCollectionPaths(activeTenantId);
+          const docRef = doc(db, paths.marketingEmails, itemToEdit.id);
+          await updateDoc(docRef, { title: newName, updatedAt: new Date().toISOString() });
+          setItemToEdit(null);
+        }}
+      />
+
+      <DelModal
+        open={!!itemToDelete}
+        onClose={() => setItemToDelete(null)}
+        title="Delete Email"
+        t={t}
+        isDark={isDark}
+        onDel={async () => {
+          if (!activeTenantId || !itemToDelete) return;
+          const paths = getCollectionPaths(activeTenantId);
+          const docRef = doc(db, paths.marketingEmails, itemToDelete.id);
+          await deleteDoc(docRef);
+          setItemToDelete(null);
+        }}
+      >
+        <div style={{ padding: "8px 0" }}>
+          <p style={{ margin: "0 0 10px 0", fontSize: 13, color: t.text }}>Are you sure you want to delete <strong>{itemToDelete?.title}</strong>?</p>
+          <p style={{ margin: 0, fontSize: 12, color: t.textMuted }}>This draft will be permanently removed from your campaign list.</p>
+        </div>
+      </DelModal>
 
       {/* Template Modal */}
       {showTemplateModal && (
