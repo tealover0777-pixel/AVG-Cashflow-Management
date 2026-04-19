@@ -1692,7 +1692,7 @@ function SettingsRow({ label, t, children }) {
 }
 
 function SettingsPanel({ t, isDark, settings, onChange, profile, DIMENSIONS = [], CONTACTS = [], USERS = [], emailName = "", organizationName = "", onSave, isSaving }) {
-  const [localSettings, setLocalSettings] = useState(() => ({
+  const [localSettings, setLocalSettings] = React.useState(() => ({
     internalName: emailName || settings.internalName || "",
     subject: settings.subject || emailName || "",
     fromName: settings.fromName || organizationName || "",
@@ -1704,23 +1704,23 @@ function SettingsPanel({ t, isDark, settings, onChange, profile, DIMENSIONS = []
     doNotSendTo: Array.isArray(settings.doNotSendTo) ? settings.doNotSendTo.join("; ") : (settings.doNotSendTo || "")
   }));
 
-  const [showRecipients, setShowRecipients] = useState(false);
-  const [showDoNotSend, setShowDoNotSend] = useState(false);
-  const [rowSelection, setRowSelection] = useState({});
-  const [doNotSendRowSelection, setDoNotSendRowSelection] = useState({});
-  const [selectedInTable, setSelectedInTable] = useState([]);
-  const [selectedDoNotSend, setSelectedDoNotSend] = useState([]);
-  const [showFromDropdown, setShowFromDropdown] = useState(false);
-  const [showTypeDropdown, setShowTypeDropdown] = useState(false);
-  const [showReplyToDropdown, setShowReplyToDropdown] = useState(false);
-  const fromDropRef = useRef(null);
-  const typeDropRef = useRef(null);
-  const replyToDropRef = useRef(null);
+  const [showRecipients, setShowRecipients] = React.useState(false);
+  const [showDoNotSend, setShowDoNotSend] = React.useState(false);
+  const [rowSelection, setRowSelection] = React.useState({});
+  const [doNotSendRowSelection, setDoNotSendRowSelection] = React.useState({});
+  const [selectedInTable, setSelectedInTable] = React.useState([]);
+  const [selectedDoNotSend, setSelectedDoNotSend] = React.useState([]);
+  const [showFromDropdown, setShowFromDropdown] = React.useState(false);
+  const [showTypeDropdown, setShowTypeDropdown] = React.useState(false);
+  const [showReplyToDropdown, setShowReplyToDropdown] = React.useState(false);
+  const fromDropRef = React.useRef(null);
+  const typeDropRef = React.useRef(null);
+  const replyToDropRef = React.useRef(null);
 
   const userFullName = (profile?.first_name || profile?.last_name) ? `${profile.first_name || ""} ${profile.last_name || ""}`.trim() : profile?.displayName;
   const userName = userFullName || profile?.email?.split("@")[0] || "Sender";
 
-  useEffect(() => {
+  React.useEffect(() => {
     const handler = (e) => {
       if (showFromDropdown && fromDropRef.current && !fromDropRef.current.contains(e.target)) setShowFromDropdown(false);
       if (showTypeDropdown && typeDropRef.current && !typeDropRef.current.contains(e.target)) setShowTypeDropdown(false);
@@ -1730,7 +1730,7 @@ function SettingsPanel({ t, isDark, settings, onChange, profile, DIMENSIONS = []
     return () => document.removeEventListener("mousedown", handler);
   }, [showFromDropdown, showTypeDropdown, showReplyToDropdown]);
 
-  useEffect(() => {
+  React.useEffect(() => {
     setLocalSettings(prev => ({
       ...prev,
       internalName: emailName || prev.internalName,
@@ -1738,7 +1738,7 @@ function SettingsPanel({ t, isDark, settings, onChange, profile, DIMENSIONS = []
     }));
   }, [emailName]);
 
-  useEffect(() => {
+  React.useEffect(() => {
     setLocalSettings(prev => {
       const next = { ...prev, ...settings };
       if (Array.isArray(settings.recipients)) next.recipients = settings.recipients.join("; ");
@@ -1749,7 +1749,7 @@ function SettingsPanel({ t, isDark, settings, onChange, profile, DIMENSIONS = []
 
   const set = (key, val) => setLocalSettings(prev => ({ ...prev, [key]: val }));
 
-  const tableData = useMemo(() => {
+  const tableData = React.useMemo(() => {
     const rawR = localSettings.recipients;
     const recipients = (Array.isArray(rawR) ? rawR : (rawR || "").split(";")).map(s => String(s).trim().toLowerCase()).filter(Boolean);
     const rawD = localSettings.doNotSendTo;
@@ -1764,7 +1764,7 @@ function SettingsPanel({ t, isDark, settings, onChange, profile, DIMENSIONS = []
 
   const doNotSendTableData = tableData;
 
-  const recipientColumns = useMemo(() => [
+  const recipientColumns = React.useMemo(() => [
     {
       id: "select",
       header: ({ table }) => <input type="checkbox" className="ts-checkbox" checked={table.getIsAllPageRowsSelected()} onChange={table.getToggleAllPageRowsSelectedHandler()} />,
@@ -1787,7 +1787,7 @@ function SettingsPanel({ t, isDark, settings, onChange, profile, DIMENSIONS = []
     }
   ], [t, isDark]);
 
-  const doNotSendColumns = useMemo(() => [
+  const doNotSendColumns = React.useMemo(() => [
     {
       id: "select",
       header: ({ table }) => <input type="checkbox" className="ts-checkbox" checked={table.getIsAllPageRowsSelected()} onChange={table.getToggleAllPageRowsSelectedHandler()} />,
@@ -1886,7 +1886,7 @@ function SettingsPanel({ t, isDark, settings, onChange, profile, DIMENSIONS = []
               disabled={isSaving}
               style={{ ...actionBtn, background: "#1D4ED8", color: "#fff", border: "none", opacity: isSaving ? 0.7 : 1, cursor: isSaving ? "not-allowed" : "pointer" }}
             >
-              {isSaving ? (t.isFrench ? "Enregistrement..." : "Saving...") : (t.isFrench ? "Email Settings" : "Email Settings")}
+              {isSaving ? (t.isFrench ? "Enregistrement..." : "Saving...") : (t.isFrench ? "Save Email Setting" : "Save Email Setting")}
             </button>
           </div>
         </div>
