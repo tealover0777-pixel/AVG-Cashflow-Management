@@ -1,6 +1,9 @@
 import React from "react";
 import { ArrowLeft, Search, MoreHorizontal, FileText, Image as ImageIcon, Briefcase, Star, Users, X, Trash2, Loader2, AlertCircle, Edit2, Send } from "lucide-react";
-import { DelModal, Modal } from "../components";
+import { db, functions } from "../firebase";
+import { collection, addDoc, serverTimestamp, doc, setDoc } from "firebase/firestore";
+import { httpsCallable } from "firebase/functions";
+import { DelModal, Modal, PromptModal } from "../components";
 import { useAuth } from "../AuthContext";
 import { storage } from "../firebase";
 import { ref, listAll, getDownloadURL, deleteObject } from "firebase/storage";
@@ -174,6 +177,8 @@ export default function PageManageTemplates({ t, isDark, setActivePage, setActiv
   const [templateToDelete, setTemplateToDelete] = React.useState(null);
   const [isDeleting, setIsDeleting] = React.useState(false);
   const [toast, setToast] = React.useState(null);
+  const [showSendPrompt, setShowSendPrompt] = React.useState(null);
+  const [sendingEmail, setSendingEmail] = React.useState(false);
 
   const showToast = (msg, type = "info") => {
     setToast({ msg, type });
@@ -294,6 +299,51 @@ export default function PageManageTemplates({ t, isDark, setActivePage, setActiv
       showToast("Error deleting template. You might not have permission.", "error");
     } finally {
       setIsDeleting(false);
+    }
+  };
+
+  const handleSendTemplate = async (template, recipients) => {
+    if (!recipients) return;
+    setSendingEmail(true);
+    try {
+      // 1. Send via Cloud Function
+      const sendFn = httpsCallable(functions, 'sendMarketingEmail');
+      const res = await sendFn({
+        tenantId,
+        campaignId: template.id.replace(/\//g, '_'), // Sanitized ID for logs
+        subject: template.name || "Marketing Email",
+        rows: template.rows,
+        recipients,
+        fromName: profile?.displayName || "American Vision Group",
+        fromEmail: profile?.email || "",
+        replyTo: profile?.email || ""
+      });
+
+      // 2. Create a "Sent" record in marketingEmails so it shows in the "Sent" tab
+      const campaignData = {
+        name: `${template.name} (Sent from Library)`,
+        subject: template.name || "Marketing Email",
+        rows: template.rows,
+        status: "Sent",
+        sentAt: serverTimestamp(),
+        createdAt: serverTimestamp(),
+        type: "Marketing",
+        recipients: recipients,
+        recipientCount: recipients.split(';').length,
+        from: profile?.email || "",
+        fromName: profile?.displayName || "American Vision Group",
+        replyTo: profile?.email || ""
+      };
+
+      await addDoc(collection(db, `tenants/${tenantId}/marketingEmails`), campaignData);
+
+      showToast("Email sent successfully and recorded in Sent tab.", "success");
+      setShowSendPrompt(null);
+    } catch (err) {
+      console.error("Error sending template:", err);
+      showToast("Error sending template: " + err.message, "error");
+    } finally {
+      setSendingEmail(false);
     }
   };
 
@@ -448,6 +498,13 @@ export default function PageManageTemplates({ t, isDark, setActivePage, setActiv
             {/* Footer Buttons */}
             <div style={{ background: "#fff", borderTop: "1px solid #e5e7eb", padding: "14px 20px", display: "flex", gap: 10, justifyContent: "center", flexShrink: 0 }}>
               <button
+                onClick={() => setShowSendPrompt(viewTemplate)}
+                style={{ padding: "9px 20px", borderRadius: 7, background: "#10B981", color: "#fff", fontWeight: 600, fontSize: 13, border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}
+              >
+                <Send size={14} />
+                Send email
+              </button>
+              <button
                 onClick={() => {
                   setActiveEmailTemplate({ ...viewTemplate, _useMode: true });
                   setActivePage("Email Builder");
@@ -582,6 +639,21 @@ export default function PageManageTemplates({ t, isDark, setActivePage, setActiv
         t={t}
         isDark={isDark}
       />
+
+      {showSendPrompt && (
+        <PromptModal
+          isOpen={!!showSendPrompt}
+          onClose={() => setShowSendPrompt(null)}
+          onConfirm={(val) => handleSendTemplate(showSendPrompt, val)}
+          title="Send Template"
+          label="Recipient email(s) (separate with semicolon)"
+          placeholder="investor@example.com; partner@example.com"
+          confirmLabel={sendingEmail ? "Sending..." : "Send Now"}
+          defaultValue=""
+          t={t}
+          isDark={isDark}
+        />
+      )}
 
       <style>{`
         @keyframes slideIn {
