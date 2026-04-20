@@ -596,7 +596,7 @@ export default function PageEmailBuilder(props) {
           )}
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          {/* Always visible */}
+          {/* 1. Always visible: Save as my copy */}
           <button
             onClick={() => setShowSaveAsNewPrompt(true)}
             style={{ background: "transparent", color: t.textMuted, border: `1px solid ${t.border}`, borderRadius: 24, padding: "7px 18px", fontSize: 13, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}
@@ -604,8 +604,19 @@ export default function PageEmailBuilder(props) {
             <Save size={14} /> Save as my copy
           </button>
 
-          {/* Contextual Actions */}
-          {activeMainTab === "Edit" && isUseMode ? (
+          {/* 2. Template Persistence: Save or Update Global Template */}
+          {(!activeEmailTemplate?.isGlobal || isAdmin) && (
+            <button
+              onClick={() => handleSave()}
+              disabled={isSaving}
+              style={{ background: isEditingGlobal ? "#1D4ED8" : "transparent", color: isEditingGlobal ? "#fff" : "#1D4ED8", border: "1px solid #1D4ED8", borderRadius: 24, padding: "7px 18px", fontSize: 13, fontWeight: 600, cursor: isSaving ? "not-allowed" : "pointer", display: "flex", alignItems: "center", gap: 8, opacity: isSaving ? 0.7 : 1 }}
+            >
+              <Save size={14} /> {isSaving ? "Saving..." : isEditingGlobal ? "Update Global Template" : "Save"}
+            </button>
+          )}
+
+          {/* 3. Campaign Dispatch: Send test email & Send */}
+          {isUseMode && (
             <>
               <div style={{ position: "relative" }} ref={testDropRef}>
                 <button
@@ -737,12 +748,7 @@ export default function PageEmailBuilder(props) {
                 )}
               </div>
             </>
-          ) : (!isUseMode || activeMainTab === "Settings") && (!activeEmailTemplate?.isGlobal || isAdmin) ? (
-            <button onClick={() => handleSave()} disabled={isSaving}
-              style={{ background: isEditingGlobal ? "#1D4ED8" : "transparent", color: isEditingGlobal ? "#fff" : "#1D4ED8", border: `1px solid #1D4ED8`, borderRadius: 24, padding: "7px 18px", fontSize: 13, fontWeight: 600, cursor: isSaving ? "not-allowed" : "pointer", display: "flex", alignItems: "center", gap: 8, opacity: isSaving ? 0.7 : 1 }}>
-              <Save size={14} /> {isSaving ? "Saving..." : isEditingGlobal ? "Update Global Template" : "Save"}
-            </button>
-          ) : null}
+          )}
         </div>
       </div>
 
