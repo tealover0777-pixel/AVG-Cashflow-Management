@@ -603,149 +603,144 @@ export default function PageEmailBuilder(props) {
             <Save size={14} /> Save as my copy
           </button>
 
-          {/* ── Use-mode: Send test email + Send ── */}
-          {isUseMode && (<>
-            <div style={{ position: "relative" }} ref={testDropRef}>
-              <button
-                onClick={() => { setShowTestDropdown(v => !v); setShowSendDropdown(false); }}
-                style={{ background: "transparent", color: isDark ? "#60A5FA" : "#2563EB", border: `1px solid ${isDark ? "#60A5FA" : "#2563EB"}`, borderRadius: 24, padding: "7px 16px", fontSize: 13, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 7 }}
-              >
-                <Send size={14} /> Send test email <ChevronDown size={13} />
-              </button>
-              {showTestDropdown && (
-                <div style={{ position: "absolute", top: "calc(100% + 6px)", right: 0, width: 300, background: isDark ? "#1e293b" : "#fff", border: `1px solid ${t.border}`, borderRadius: 10, boxShadow: "0 8px 24px rgba(0,0,0,0.18)", zIndex: 500, padding: 12 }}>
-                  <p style={{ margin: "0 0 10px", fontSize: 12, fontWeight: 600, color: t.textMuted }}>Select recipient for test</p>
-                  <div style={{ position: "relative", marginBottom: 8 }}>
-                    <Search size={13} style={{ position: "absolute", left: 8, top: "50%", transform: "translateY(-50%)", color: t.textMuted, pointerEvents: "none" }} />
-                    <input autoFocus value={testSearch} onChange={e => setTestSearch(e.target.value)} placeholder="Search by name or email…" style={{ width: "100%", padding: "7px 8px 7px 28px", borderRadius: 7, border: `1px solid ${t.border}`, background: isDark ? "rgba(255,255,255,0.06)" : "#f9fafb", color: t.text, fontSize: 12, outline: "none", boxSizing: "border-box" }} />
-                  </div>
-                  <div style={{ maxHeight: 200, overflowY: "auto" }}>
-                    {setupTestEmail && !testSearch && (
-                      <div onClick={() => { handleSendTestEmail(setupTestEmail); setShowTestDropdown(false); }}
-                        style={{ padding: "8px 10px", borderRadius: 7, cursor: "pointer", display: "flex", alignItems: "center", gap: 8, background: (isDark ? "rgba(96,165,250,0.1)" : "#eff6ff"), marginBottom: 12, border: `1px solid ${isDark ? "rgba(96,165,250,0.2)" : "#dbeafe"}` }}
-                        onMouseEnter={e => e.currentTarget.style.background = isDark ? "rgba(96,165,250,0.15)" : "#dbeafe"}
-                        onMouseLeave={e => e.currentTarget.style.background = isDark ? "rgba(96,165,250,0.1)" : "#eff6ff"}>
-                        <div style={{ width: 28, height: 28, borderRadius: "50%", background: t.accentGrad, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700, color: "#fff", flexShrink: 0 }}>
-                           ST
-                        </div>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontSize: 11, fontWeight: 700, color: isDark ? "#60A5FA" : "#2563EB", textTransform: "uppercase", letterSpacing: "0.03em", marginBottom: 1 }}>Setup Default</div>
-                          <div style={{ fontSize: 12, color: t.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{setupTestEmail}</div>
-                        </div>
-                      </div>
-                    )}
-                    {(Array.isArray([...USERS, ...CONTACTS]) ? [...USERS, ...CONTACTS] : []).filter(u => {
-                      const name = u.first_name ? `${u.first_name} ${u.last_name || ""}` : (u.name || u.full_name || "");
-                      const email = u.email || "";
-                      const q = testSearch.toLowerCase();
-                      return !q || name.toLowerCase().includes(q) || email.toLowerCase().includes(q);
-                    }).slice(0, 30).map((u, i) => {
-                      const name = u.first_name ? `${u.first_name} ${u.last_name || ""}`.trim() : (u.name || u.full_name || u.email || "Unknown");
-                      const email = u.email || "";
-                      const sent = testSentTo === email;
-                      return (
-                        <div key={u.id || i} onClick={() => { handleSendTestEmail(email); setShowTestDropdown(false); setTestSearch(""); }}
-                          style={{ padding: "8px 10px", borderRadius: 7, cursor: "pointer", display: "flex", alignItems: "center", gap: 8, background: sent ? (isDark ? "rgba(34,197,94,0.1)" : "#f0fdf4") : "transparent" }}
-                          onMouseEnter={e => { if (!sent) e.currentTarget.style.background = isDark ? "rgba(255,255,255,0.05)" : "#f3f4f6"; }}
-                          onMouseLeave={e => { e.currentTarget.style.background = sent ? (isDark ? "rgba(34,197,94,0.1)" : "#f0fdf4") : "transparent"; }}>
-                          <div style={{ width: 28, height: 28, borderRadius: "50%", background: isDark ? "#334155" : "#e0e7ff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700, color: isDark ? "#93c5fd" : "#3730a3", flexShrink: 0 }}>
-                            {(name[0] || "?").toUpperCase()}
+          {/* ── Contextual Actions ── */}
+          {activeMainTab === "Edit" && isUseMode ? (
+            <>
+              <div style={{ position: "relative" }} ref={testDropRef}>
+                <button
+                  onClick={() => { setShowTestDropdown(v => !v); setShowSendDropdown(false); }}
+                  style={{ background: "transparent", color: isDark ? "#60A5FA" : "#2563EB", border: `1px solid ${isDark ? "#60A5FA" : "#2563EB"}`, borderRadius: 24, padding: "7px 16px", fontSize: 13, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 7 }}
+                >
+                  <Send size={14} /> Send test email <ChevronDown size={13} />
+                </button>
+                {showTestDropdown && (
+                  <div style={{ position: "absolute", top: "calc(100% + 6px)", right: 0, width: 300, background: isDark ? "#1e293b" : "#fff", border: `1px solid ${t.border}`, borderRadius: 10, boxShadow: "0 8px 24px rgba(0,0,0,0.18)", zIndex: 500, padding: 12 }}>
+                    <p style={{ margin: "0 0 10px", fontSize: 12, fontWeight: 600, color: t.textMuted }}>Select recipient for test</p>
+                    <div style={{ position: "relative", marginBottom: 8 }}>
+                      <Search size={13} style={{ position: "absolute", left: 8, top: "50%", transform: "translateY(-50%)", color: t.textMuted, pointerEvents: "none" }} />
+                      <input autoFocus value={testSearch} onChange={e => setTestSearch(e.target.value)} placeholder="Search by name or email…" style={{ width: "100%", padding: "7px 8px 7px 28px", borderRadius: 7, border: `1px solid ${t.border}`, background: isDark ? "rgba(255,255,255,0.06)" : "#f9fafb", color: t.text, fontSize: 12, outline: "none", boxSizing: "border-box" }} />
+                    </div>
+                    <div style={{ maxHeight: 200, overflowY: "auto" }}>
+                      {setupTestEmail && !testSearch && (
+                        <div onClick={() => { handleSendTestEmail(setupTestEmail); setShowTestDropdown(false); }}
+                          style={{ padding: "8px 10px", borderRadius: 7, cursor: "pointer", display: "flex", alignItems: "center", gap: 8, background: (isDark ? "rgba(96,165,250,0.1)" : "#eff6ff"), marginBottom: 12, border: `1px solid ${isDark ? "rgba(96,165,250,0.2)" : "#dbeafe"}` }}
+                          onMouseEnter={e => e.currentTarget.style.background = isDark ? "rgba(96,165,250,0.15)" : "#dbeafe"}
+                          onMouseLeave={e => e.currentTarget.style.background = isDark ? "rgba(96,165,250,0.1)" : "#eff6ff"}>
+                          <div style={{ width: 28, height: 28, borderRadius: "50%", background: t.accentGrad, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700, color: "#fff", flexShrink: 0 }}>
+                             ST
                           </div>
                           <div style={{ flex: 1, minWidth: 0 }}>
-                            <div style={{ fontSize: 12, fontWeight: 600, color: t.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{name}</div>
-                            <div style={{ fontSize: 11, color: t.textMuted, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{email}</div>
+                            <div style={{ fontSize: 11, fontWeight: 700, color: isDark ? "#60A5FA" : "#2563EB", textTransform: "uppercase", letterSpacing: "0.03em", marginBottom: 1 }}>Setup Default</div>
+                            <div style={{ fontSize: 12, color: t.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{setupTestEmail}</div>
                           </div>
-                          {sent && <Check size={14} color="#22c55e" />}
                         </div>
-                      );
-                    })}
-                    {[...USERS, ...CONTACTS].length === 0 && <div style={{ padding: "20px 10px", textAlign: "center", fontSize: 12, color: t.textMuted }}>No users found.</div>}
+                      )}
+                      {(Array.isArray([...USERS, ...CONTACTS]) ? [...USERS, ...CONTACTS] : []).filter(u => {
+                        const name = u.first_name ? `${u.first_name} ${u.last_name || ""}` : (u.name || u.full_name || "");
+                        const email = u.email || "";
+                        const q = testSearch.toLowerCase();
+                        return !q || name.toLowerCase().includes(q) || email.toLowerCase().includes(q);
+                      }).slice(0, 30).map((u, i) => {
+                        const name = u.first_name ? `${u.first_name} ${u.last_name || ""}`.trim() : (u.name || u.full_name || u.email || "Unknown");
+                        const email = u.email || "";
+                        const sent = testSentTo === email;
+                        return (
+                          <div key={u.id || i} onClick={() => { handleSendTestEmail(email); setShowTestDropdown(false); setTestSearch(""); }}
+                            style={{ padding: "8px 10px", borderRadius: 7, cursor: "pointer", display: "flex", alignItems: "center", gap: 8, background: sent ? (isDark ? "rgba(34,197,94,0.1)" : "#f0fdf4") : "transparent" }}
+                            onMouseEnter={e => { if (!sent) e.currentTarget.style.background = isDark ? "rgba(255,255,255,0.05)" : "#f3f4f6"; }}
+                            onMouseLeave={e => { e.currentTarget.style.background = sent ? (isDark ? "rgba(34,197,94,0.1)" : "#f0fdf4") : "transparent"; }}>
+                            <div style={{ width: 28, height: 28, borderRadius: "50%", background: isDark ? "#334155" : "#e0e7ff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700, color: isDark ? "#93c5fd" : "#3730a3", flexShrink: 0 }}>
+                              {(name[0] || "?").toUpperCase()}
+                            </div>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ fontSize: 12, fontWeight: 600, color: t.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{name}</div>
+                              <div style={{ fontSize: 11, color: t.textMuted, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{email}</div>
+                            </div>
+                            {sent && <Check size={14} color="#22c55e" />}
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
-                </div>
-              )}
-            </div>
+                )}
+              </div>
+              <div style={{ position: "relative" }} ref={sendDropRef}>
+                <button
+                  onClick={() => { setShowSendDropdown(v => !v); setShowTestDropdown(false); }}
+                  style={{ background: "#1D4ED8", color: "#fff", border: "none", borderRadius: 24, padding: "7px 16px", fontSize: 13, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 7 }}
+                >
+                  <Send size={14} /> Send <ChevronDown size={13} />
+                </button>
+                {showSendDropdown && (
+                  <div style={{ position: "absolute", top: "calc(100% + 6px)", right: 0, width: 175, background: isDark ? "#1e293b" : "#fff", border: `1px solid ${t.border}`, borderRadius: 10, boxShadow: "0 8px 24px rgba(0,0,0,0.18)", zIndex: 500, overflow: "hidden" }}>
+                    {[
+                      { label: "Send now", icon: Send, action: async () => {
+                        setIsSaving(true);
+                        try {
+                          const sendMarketing = httpsCallable(functions, "sendMarketingEmail");
+                          const effectiveTenantId = tenantId || (activeTenantIdProp && activeTenantIdProp !== "GLOBAL" ? activeTenantIdProp : "");
 
-            <div style={{ position: "relative" }} ref={sendDropRef}>
-              <button
-                onClick={() => { setShowSendDropdown(v => !v); setShowTestDropdown(false); }}
-                style={{ background: "#1D4ED8", color: "#fff", border: "none", borderRadius: 24, padding: "7px 16px", fontSize: 13, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 7 }}
-              >
-                <Send size={14} /> Send <ChevronDown size={13} />
-              </button>
-              {showSendDropdown && (
-                <div style={{ position: "absolute", top: "calc(100% + 6px)", right: 0, width: 175, background: isDark ? "#1e293b" : "#fff", border: `1px solid ${t.border}`, borderRadius: 10, boxShadow: "0 8px 24px rgba(0,0,0,0.18)", zIndex: 500, overflow: "hidden" }}>
-                  {[
-                    { label: "Send now", icon: Send, action: async () => {
-                      setIsSaving(true);
-                      try {
-                        const sendMarketing = httpsCallable(functions, "sendMarketingEmail");
-                        const effectiveTenantId = tenantId || (activeTenantIdProp && activeTenantIdProp !== "GLOBAL" ? activeTenantIdProp : "");
-
-                        // Determine a valid Firestore campaign ID (no slashes)
-                        let campaignId = activeEmailTemplate?.id || "";
-                        if (!campaignId || campaignId.includes("/")) {
-                          // Storage template — create a Firestore draft first to get a real doc ID
-                          if (!effectiveTenantId) {
-                            showToast("No tenant selected. Cannot send.", "error");
-                            setIsSaving(false); return;
+                          // Determine a valid Firestore campaign ID (no slashes)
+                          let campaignId = activeEmailTemplate?.id || "";
+                          if (!campaignId || campaignId.includes("/")) {
+                            // Storage template — create a Firestore draft first to get a real doc ID
+                            if (!effectiveTenantId) {
+                              showToast("No tenant selected. Cannot send.", "error");
+                              setIsSaving(false); return;
+                            }
+                            const { addDoc: _add, collection: _col, serverTimestamp: _ts } = await import("firebase/firestore");
+                            const newDoc = await _add(_col(db, `tenants/${effectiveTenantId}/marketingEmails`), {
+                              title: emailName,
+                              rows,
+                              settings: emailSettings,
+                              status: "Draft",
+                              createdAt: _ts(),
+                              updatedAt: _ts(),
+                            });
+                            campaignId = newDoc.id;
+                            if (typeof props.setActiveEmailTemplate === "function") {
+                              props.setActiveEmailTemplate(prev => ({ ...prev, id: newDoc.id }));
+                            }
                           }
-                          const { addDoc: _add, collection: _col, serverTimestamp: _ts } = await import("firebase/firestore");
-                          const newDoc = await _add(_col(db, `tenants/${effectiveTenantId}/marketingEmails`), {
-                            title: emailName,
+
+                          await sendMarketing({
+                            tenantId: effectiveTenantId,
+                            campaignId,
+                            subject: emailSettings.subject || emailName,
                             rows,
-                            settings: emailSettings,
-                            status: "Draft",
-                            createdAt: _ts(),
-                            updatedAt: _ts(),
+                            recipients: emailSettings.recipients,
+                            doNotSendTo: emailSettings.doNotSendTo,
+                            fromName: emailSettings.fromName,
+                            fromEmail: emailSettings.from,
+                            replyTo: emailSettings.replyTo
                           });
-                          campaignId = newDoc.id;
-                          if (typeof props.setActiveEmailTemplate === "function") {
-                            props.setActiveEmailTemplate(prev => ({ ...prev, id: newDoc.id }));
-                          }
+
+                          showToast("Campaign dispatched successfully!", "success");
+                          setShowSendDropdown(false);
+                        } catch (err) {
+                          console.error("Marketing send error:", err);
+                          showToast("Failed to dispatch campaign: " + (err.message || "Unknown error"), "error");
+                        } finally {
+                          setIsSaving(false);
                         }
-
-                        const sendResult = await sendMarketing({
-                          tenantId: effectiveTenantId,
-                          campaignId,
-                          subject: emailSettings.subject || emailName,
-                          rows,
-                          recipients: emailSettings.recipients,
-                          doNotSendTo: emailSettings.doNotSendTo,
-                          fromName: emailSettings.fromName,
-                          fromEmail: emailSettings.from,
-                          replyTo: emailSettings.replyTo
-                        });
-
-                        showToast("Campaign dispatched successfully!", "success");
-                        setShowSendDropdown(false);
-                      } catch (err) {
-                        console.error("Marketing send error:", err);
-                        showToast("Failed to dispatch campaign: " + (err.message || "Unknown error"), "error");
-                      } finally {
-                        setIsSaving(false);
-                      }
-                    } },
-                    { label: "Schedule", icon: Clock, action: () => { setScheduleData(d => ({ ...d, subject: emailSettings.subject || emailName })); setShowScheduleModal(true); setShowSendDropdown(false); } },
-                  ].map(({ label, icon: Icon, action }) => (
-                    <button key={label} onClick={action}
-                      style={{ width: "100%", padding: "11px 16px", background: "transparent", border: "none", borderBottom: label === "Send now" ? `1px solid ${t.border}` : "none", color: t.text, fontSize: 13, fontWeight: 500, cursor: "pointer", textAlign: "left", display: "flex", alignItems: "center", gap: 8 }}
-                      onMouseEnter={e => e.currentTarget.style.background = isDark ? "rgba(255,255,255,0.05)" : "#f3f4f6"}
-                      onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
-                      <Icon size={14} /> {label}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          </>)}
-
-          {/* ── Edit-mode save ── */}
-          {!isUseMode && (!activeEmailTemplate?.isGlobal || isAdmin) && (
+                      } },
+                      { label: "Schedule", icon: Clock, action: () => { setScheduleData(d => ({ ...d, subject: emailSettings.subject || emailName })); setShowScheduleModal(true); setShowSendDropdown(false); } },
+                    ].map(({ label, icon: Icon, action }) => (
+                      <button key={label} onClick={action}
+                        style={{ width: "100%", padding: "11px 16px", background: "transparent", border: "none", borderBottom: label === "Send now" ? `1px solid ${t.border}` : "none", color: t.text, fontSize: 13, fontWeight: 500, cursor: "pointer", textAlign: "left", display: "flex", alignItems: "center", gap: 8 }}>
+                        <Icon size={14} /> {label}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </>
+          ) : (activeMainTab === "Settings" || !isUseMode) && (!activeEmailTemplate?.isGlobal || isAdmin) ? (
             <button onClick={() => handleSave()} disabled={isSaving}
               style={{ background: isEditingGlobal ? "#1D4ED8" : "transparent", color: isEditingGlobal ? "#fff" : "#1D4ED8", border: `1px solid #1D4ED8`, borderRadius: 24, padding: "7px 18px", fontSize: 13, fontWeight: 600, cursor: isSaving ? "not-allowed" : "pointer", display: "flex", alignItems: "center", gap: 8, opacity: isSaving ? 0.7 : 1 }}>
               <Save size={14} /> {isSaving ? "Saving..." : isEditingGlobal ? "Update Global Template" : "Save"}
             </button>
-          )}
+          ) : null}
         </div>
       </div>
 
