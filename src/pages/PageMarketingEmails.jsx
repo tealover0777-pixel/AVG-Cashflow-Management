@@ -456,7 +456,7 @@ export default function PageMarketingEmails({ t, isDark, setActivePage, MARKETIN
     enableSorting: false,
   },
   {
-    header: "Draft Email",
+    header: "Subject",
     accessorKey: "title",
     size: 280,
     cell: ({ getValue, row }) => (
