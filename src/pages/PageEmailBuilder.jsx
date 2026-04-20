@@ -716,25 +716,6 @@ export default function PageEmailBuilder(props) {
                           replyTo: emailSettings.replyTo
                         });
 
-                        // Write a campaign-level summary to comms_log so Activity tab always has an entry
-                        try {
-                          const recipientList = (emailSettings.recipients || "").split(";").map(s => s.trim()).filter(Boolean);
-                          const successCount = sendResult?.data?.results?.filter(r => r.status === "Success").length ?? recipientList.length;
-                          await addDoc(collection(db, `tenants/${effectiveTenantId}/comms_log`), {
-                            campaignId,
-                            type: "Marketing",
-                            recipient: recipientList.length === 1 ? recipientList[0] : `${recipientList.length} recipients`,
-                            subject: emailSettings.subject || emailName,
-                            status: successCount > 0 ? "Delivered" : "Sent",
-                            sentAt: serverTimestamp(),
-                            provider: "Campaign",
-                            successCount,
-                            totalRecipients: recipientList.length,
-                          });
-                        } catch (logErr) {
-                          console.warn("Could not write activity log:", logErr);
-                        }
-
                         showToast("Campaign dispatched successfully!", "success");
                         setShowSendDropdown(false);
                       } catch (err) {
