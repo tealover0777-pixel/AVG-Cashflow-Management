@@ -991,7 +991,7 @@ export default function PageMarketingEmails({ t, isDark, setActivePage, MARKETIN
       <DelModal
         open={!!itemToDelete}
         onClose={() => setItemToDelete(null)}
-        title={Array.isArray(itemToDelete) ? "Delete Selected Emails" : "Delete Email"}
+        title={Array.isArray(itemToDelete) ? (activeTab === "Activity" ? "Delete Selected Logs" : "Delete Selected Emails") : (activeTab === "Activity" ? "Delete Log" : "Delete Email")}
         t={t}
         isDark={isDark}
         onDel={async () => {
@@ -1001,7 +1001,8 @@ export default function PageMarketingEmails({ t, isDark, setActivePage, MARKETIN
           
           for (const item of items) {
             if (!item.id || typeof item.id === 'number') continue; // Skip dummy data
-            const docRef = doc(db, paths.marketingEmails, item.id);
+            const colPath = activeTab === "Activity" ? `tenants/${activeTenantId}/comms_log` : paths.marketingEmails;
+            const docRef = doc(db, colPath, item.id);
             await deleteDoc(docRef);
           }
           
@@ -1015,13 +1016,13 @@ export default function PageMarketingEmails({ t, isDark, setActivePage, MARKETIN
         <div style={{ padding: "8px 0" }}>
           {Array.isArray(itemToDelete) ? (
             <>
-              <p style={{ margin: "0 0 10px 0", fontSize: 13, color: t.text }}>Are you sure you want to delete <strong>{itemToDelete.length}</strong> selected email(s)?</p>
-              <p style={{ margin: 0, fontSize: 12, color: t.textMuted }}>These campaigns will be permanently removed.</p>
+              <p style={{ margin: "0 0 10px 0", fontSize: 13, color: t.text }}>Are you sure you want to delete <strong>{itemToDelete.length}</strong> selected {activeTab === "Activity" ? "log(s)" : "email(s)"}?</p>
+              <p style={{ margin: 0, fontSize: 12, color: t.textMuted }}>These {activeTab === "Activity" ? "records" : "campaigns"} will be permanently removed.</p>
             </>
           ) : (
             <>
-              <p style={{ margin: "0 0 10px 0", fontSize: 13, color: t.text }}>Are you sure you want to delete <strong>{itemToDelete?.title}</strong>?</p>
-              <p style={{ margin: 0, fontSize: 12, color: t.textMuted }}>This draft will be permanently removed from your campaign list.</p>
+              <p style={{ margin: "0 0 10px 0", fontSize: 13, color: t.text }}>Are you sure you want to delete this {activeTab === "Activity" ? "log" : "email"}?</p>
+              <p style={{ margin: 0, fontSize: 12, color: t.textMuted }}>This {activeTab === "Activity" ? "record" : "draft"} will be permanently removed.</p>
             </>
           )}
         </div>
