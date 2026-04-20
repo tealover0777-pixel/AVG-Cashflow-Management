@@ -22,9 +22,9 @@ const PERMISSIONS_LIST = [
 ];
 
 export default function PageUserProfiles({ t, isDark, USERS = [], GLOBAL_USERS = [], ROLES = [], collectionPath = "", DIMENSIONS = [], tenantId = "", TENANTS = [], CONTACTS = [] }) {
-    const { hasPermission, isSuperAdmin, isTenantAdmin, user } = useAuth();
+    const { hasPermission, isSuperAdmin, isTenantAdmin, isMember, user } = useAuth();
     const canCreate = isSuperAdmin || isTenantAdmin || hasPermission("USER_PROFILE_CREATE") || hasPermission("USER_CREATE");
-    const canInvite = isSuperAdmin || isTenantAdmin || hasPermission("USER_PROFILE_CREATE") || hasPermission("USER_INVITE");
+    const canInvite = !isMember && (isSuperAdmin || isTenantAdmin || hasPermission("USER_PROFILE_CREATE") || hasPermission("USER_INVITE") || hasPermission("USER_CREATE") || hasPermission("USER_VIEW") || hasPermission("USER_UPDATE"));
     const canUpdate = isSuperAdmin || isTenantAdmin || hasPermission("USER_PROFILE_UPDATE") || hasPermission("USER_UPDATE");
     const canDelete = isSuperAdmin || isTenantAdmin || hasPermission("USER_PROFILE_DELETE") || hasPermission("USER_DELETE");
 
