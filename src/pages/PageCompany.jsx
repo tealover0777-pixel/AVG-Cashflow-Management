@@ -292,7 +292,17 @@ export default function PageCompany({ t, isDark, activeTenantId = "", USERS = []
         }));
     };
 
-    const PROVIDERS = ["SendGrid", "Mailgun", "Amazon SES", "Other / Custom API"];    const [activeTab, setActiveTab] = React.useState("Branding");
+    const PROVIDERS = ["SendGrid", "Mailgun", "Amazon SES", "Other / Custom API"];
+    const SMTP_PROFILES = [
+        { label: "Select Service", host: "", port: "" },
+        { label: "Gmail", host: "smtp.gmail.com", port: "587" },
+        { label: "Outlook", host: "smtp.office365.com", port: "587" },
+        { label: "Yahoo Mail", host: "smtp.mail.yahoo.com", port: "587" },
+        { label: "Zoho Mail", host: "smtp.zoho.com", port: "587" },
+        { label: "iCloud Mail", host: "smtp.mail.me.com", port: "587" },
+        { label: "Custom SMTP", host: "", port: "587" }
+    ];
+    const [activeTab, setActiveTab] = React.useState("Branding");
     const TABS = ["Branding", "Info", "Email", "ACH"];
 
     return (
@@ -535,6 +545,25 @@ export default function PageCompany({ t, isDark, activeTenantId = "", USERS = []
                             {data.emailSetup.method === "SMTP" && (
                                 <>
                                     <div style={{ fontSize: 13, fontWeight: 700, color: t.text }}>SMTP Relay Configuration</div>
+                                    
+                                    <FF label="Email Service" t={t}>
+                                        <div style={{ position: "relative" }}>
+                                            <select 
+                                                onChange={e => {
+                                                    const profile = SMTP_PROFILES.find(p => p.label === e.target.value);
+                                                    if (profile && profile.label !== "Select Service") {
+                                                        updSMTP({ host: profile.host, port: profile.port });
+                                                    }
+                                                }}
+                                                style={{ width: "100%", padding: "10px 14px", borderRadius: 9, border: `1px solid ${t.border}`, background: isDark ? "rgba(255,255,255,0.05)" : "#fff", color: t.text, cursor: "pointer", fontSize: 14, outline: "none", appearance: "none" }}
+                                            >
+                                                {SMTP_PROFILES.map(p => <option key={p.label} value={p.label}>{p.label}</option>)}
+                                            </select>
+                                            <ChevronDown size={14} style={{ position: "absolute", right: 14, top: "50%", transform: "translateY(-50%)", pointerEvents: "none", opacity: 0.5 }} />
+                                        </div>
+                                        <p style={{ fontSize: 11, color: t.textMuted, marginTop: 6 }}>Selecting a service will auto-populate host and port details.</p>
+                                    </FF>
+
                                     <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 12 }}>
                                         <FF label="SMTP Host" t={t}><FIn value={data.emailSetup.smtp.host} onChange={e => updSMTP({ host: e.target.value })} placeholder="smtp.provider.com" t={t} /></FF>
                                         <FF label="Port" t={t}><FIn value={data.emailSetup.smtp.port} onChange={e => updSMTP({ port: e.target.value })} placeholder="587" t={t} /></FF>
