@@ -356,18 +356,33 @@ export default function PageMarketingEmails({ t, isDark, setActivePage, MARKETIN
 
   const emails = React.useMemo(() => {
     const source = (Array.isArray(MARKETING_EMAILS) && MARKETING_EMAILS.length > 0) ? MARKETING_EMAILS : DUMMY_DRAFTS;
-    return (Array.isArray(source) ? source : []).map(e => ({
-      ...e,
-      title: e.settings?.subject || e.title || e.name || "Untitled",
-      recipients: (Array.isArray(e.settings?.recipients) && e.settings.recipients.length > 0) 
-        ? `${e.settings.recipients.length} recipients` 
-        : (Array.isArray(e.recipients) ? `${e.recipients.length} recipients` : (e.recipients || "No recipients")),
-      createdAt: e.createdAt || e.created_at || "",
-      updatedAt: e.updatedAt || e.updated_at || "",
-      status: e.status || "Draft",
-      type: e.settings?.type || e.type || "Marketing",
-      scheduledAt: e.scheduledAt || e.settings?.scheduledAt || "",
-    }));
+    return (Array.isArray(source) ? source : []).map(e => {
+      const settingsRecips = e.settings?.recipients;
+      const topRecips = e.recipients;
+      let count = 0;
+
+      if (Array.isArray(settingsRecips)) {
+        count = settingsRecips.length;
+      } else if (typeof settingsRecips === 'string' && settingsRecips.trim()) {
+        count = settingsRecips.split(';').filter(Boolean).length;
+      } else if (Array.isArray(topRecips)) {
+        count = topRecips.length;
+      } else if (typeof topRecips === 'string' && topRecips.trim()) {
+        count = topRecips.split(';').filter(Boolean).length;
+      }
+
+      return {
+        ...e,
+        title: e.settings?.subject || e.title || e.name || "Untitled",
+        recipients_count: count,
+        display_recipients: `${count} recipient${count === 1 ? "" : "s"}`,
+        createdAt: e.createdAt || e.created_at || "",
+        updatedAt: e.updatedAt || e.updated_at || "",
+        status: e.status || "Draft",
+        type: e.settings?.type || e.type || "Marketing",
+        scheduledAt: e.scheduledAt || e.settings?.scheduledAt || "",
+      };
+    });
   }, [MARKETING_EMAILS]);
 
   const drafts = emails.filter(e => (e.status || "Draft") === "Draft");
@@ -434,7 +449,6 @@ export default function PageMarketingEmails({ t, isDark, setActivePage, MARKETIN
         >
           {getValue()}
         </span>
-        <span style={{ fontSize: "11px", color: t.textMuted }}>{row.original.settings?.subject || row.original.subject || "No subject"}</span>
       </div>
     ),
   },
@@ -462,11 +476,12 @@ export default function PageMarketingEmails({ t, isDark, setActivePage, MARKETIN
   },
   {
     header: "Recipients",
-    accessorKey: "recipients",
+    accessorKey: "display_recipients",
     size: 160,
     cell: ({ getValue, row }) => {
-      const val = getValue() || "—";
-      const isMultiple = val.includes("recipients");
+      const val = getValue() || "0 recipients";
+      const count = row.original.recipients_count || 0;
+      const isMultiple = count > 0;
       
       let emails = [];
       if (isMultiple) {
