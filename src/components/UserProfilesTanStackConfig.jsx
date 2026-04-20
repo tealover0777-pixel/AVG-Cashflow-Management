@@ -122,7 +122,7 @@ export const getUserProfileColumns = (permissions, isDark, t, onEdit, onDel, onR
               onEdit={permissions.canUpdate ? () => onEdit(p) : null} 
               onDel={permissions.canDelete ? () => onDel(p) : null} 
             />
-            {permissions.canInvite && (!p.status || p.status === "Pending") && (
+            {permissions.canInvite && p.email && (
               <Tooltip text="Invite / Re-send verification email" t={t}>
                 <button 
                   onClick={() => onResend(p)} 

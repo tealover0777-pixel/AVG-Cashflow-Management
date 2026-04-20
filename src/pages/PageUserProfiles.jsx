@@ -401,9 +401,9 @@ export default function PageUserProfiles({ t, isDark, USERS = [], GLOBAL_USERS =
         </Modal>
 
         {/* Resend Invite Modal */}
-        <Modal open={modal.open && modal.mode === "resend"} onClose={close} title="Re-send Invitation" onSave={handleResendInvite} saveLabel={inviting ? "Sending..." : "Send Verification Email ✉️"} width={480} t={t} isDark={isDark}>
+        <Modal open={modal.open && modal.mode === "resend"} onClose={close} title="Invite / Re-send Verification" onSave={handleResendInvite} saveLabel={inviting ? "Sending..." : "Send Verification Email ✉️"} width={480} t={t} isDark={isDark}>
             <p style={{ fontSize: 13, color: t.textMuted, lineHeight: 1.6 }}>
-                User <strong>{modal.data.email}</strong> is currently Pending. This will re-trigger the verification email and generate a new secure link. No data will be modified.
+                Sending this will re-trigger the verification email for <strong>{modal.data.email}</strong> and generate a new secure sign-in link. This follows your high-fidelity security protocols and does not modify any existing profile data.
             </p>
         </Modal>
 
