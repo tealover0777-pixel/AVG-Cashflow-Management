@@ -687,6 +687,10 @@ export default function PageEmailBuilder(props) {
                   <div style={{ position: "absolute", top: "calc(100% + 6px)", right: 0, width: 175, background: isDark ? "#1e293b" : "#fff", border: `1px solid ${t.border}`, borderRadius: 10, boxShadow: "0 8px 24px rgba(0,0,0,0.18)", zIndex: 500, overflow: "hidden" }}>
                     {[
                       { label: "Send now", icon: Send, action: async () => {
+                        if (!emailSettings.recipients || emailSettings.recipients.length === 0) {
+                          showToast("No recipients assigned. Please add recipients in Settings before sending.", "error");
+                          return;
+                        }
                         setIsSaving(true);
                         try {
                           const { httpsCallable: _call } = await import("firebase/functions");
@@ -737,7 +741,15 @@ export default function PageEmailBuilder(props) {
                           setIsSaving(false);
                         }
                       } },
-                      { label: "Schedule", icon: Clock, action: () => { setScheduleData(d => ({ ...d, subject: emailSettings.subject || emailName })); setShowScheduleModal(true); setShowSendDropdown(false); } },
+                      { label: "Schedule", icon: Clock, action: () => {
+                        if (!emailSettings.recipients || emailSettings.recipients.length === 0) {
+                          showToast("No recipients assigned. Please add recipients in Settings before scheduling.", "error");
+                          return;
+                        }
+                        setScheduleData(d => ({ ...d, subject: emailSettings.subject || emailName }));
+                        setShowScheduleModal(true);
+                        setShowSendDropdown(false);
+                      } },
                     ].map(({ label, icon: Icon, action }) => (
                       <button key={label} onClick={action}
                         style={{ width: "100%", padding: "11px 16px", background: "transparent", border: "none", borderBottom: label === "Send now" ? `1px solid ${t.border}` : "none", color: t.text, fontSize: 13, fontWeight: 500, cursor: "pointer", textAlign: "left", display: "flex", alignItems: "center", gap: 8 }}>
