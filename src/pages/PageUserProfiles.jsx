@@ -22,11 +22,11 @@ const PERMISSIONS_LIST = [
 ];
 
 export default function PageUserProfiles({ t, isDark, USERS = [], GLOBAL_USERS = [], ROLES = [], collectionPath = "", DIMENSIONS = [], tenantId = "", TENANTS = [], CONTACTS = [] }) {
-    const { hasPermission, isSuperAdmin, user } = useAuth();
-    const canCreate = isSuperAdmin || hasPermission("USER_PROFILE_CREATE") || hasPermission("USER_CREATE");
-    const canInvite = isSuperAdmin || hasPermission("USER_PROFILE_CREATE") || hasPermission("USER_INVITE");
-    const canUpdate = isSuperAdmin || hasPermission("USER_PROFILE_UPDATE") || hasPermission("USER_UPDATE");
-    const canDelete = isSuperAdmin || hasPermission("USER_PROFILE_DELETE") || hasPermission("USER_DELETE");
+    const { hasPermission, isSuperAdmin, isTenantAdmin, user } = useAuth();
+    const canCreate = isSuperAdmin || isTenantAdmin || hasPermission("USER_PROFILE_CREATE") || hasPermission("USER_CREATE");
+    const canInvite = isSuperAdmin || isTenantAdmin || hasPermission("USER_PROFILE_CREATE") || hasPermission("USER_INVITE");
+    const canUpdate = isSuperAdmin || isTenantAdmin || hasPermission("USER_PROFILE_UPDATE") || hasPermission("USER_UPDATE");
+    const canDelete = isSuperAdmin || isTenantAdmin || hasPermission("USER_PROFILE_DELETE") || hasPermission("USER_DELETE");
 
     const [modal, setModal] = useState({ open: false, mode: "add", data: {} });
     const [delT, setDelT] = useState(null);
