@@ -596,6 +596,7 @@ export default function PageEmailBuilder(props) {
           )}
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          {/* Always visible */}
           <button
             onClick={() => setShowSaveAsNewPrompt(true)}
             style={{ background: "transparent", color: t.textMuted, border: `1px solid ${t.border}`, borderRadius: 24, padding: "7px 18px", fontSize: 13, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}
@@ -603,7 +604,7 @@ export default function PageEmailBuilder(props) {
             <Save size={14} /> Save as my copy
           </button>
 
-          {/* ── Contextual Actions ── */}
+          {/* Contextual Actions */}
           {activeMainTab === "Edit" && isUseMode ? (
             <>
               <div style={{ position: "relative" }} ref={testDropRef}>
@@ -677,7 +678,8 @@ export default function PageEmailBuilder(props) {
                       { label: "Send now", icon: Send, action: async () => {
                         setIsSaving(true);
                         try {
-                          const sendMarketing = httpsCallable(functions, "sendMarketingEmail");
+                          const { httpsCallable: _call } = await import("firebase/functions");
+                          const sendMarketing = _call(functions, "sendMarketingEmail");
                           const effectiveTenantId = tenantId || (activeTenantIdProp && activeTenantIdProp !== "GLOBAL" ? activeTenantIdProp : "");
 
                           // Determine a valid Firestore campaign ID (no slashes)
@@ -735,7 +737,7 @@ export default function PageEmailBuilder(props) {
                 )}
               </div>
             </>
-          ) : (activeMainTab === "Settings" || !isUseMode) && (!activeEmailTemplate?.isGlobal || isAdmin) ? (
+          ) : (!isUseMode || activeMainTab === "Settings") && (!activeEmailTemplate?.isGlobal || isAdmin) ? (
             <button onClick={() => handleSave()} disabled={isSaving}
               style={{ background: isEditingGlobal ? "#1D4ED8" : "transparent", color: isEditingGlobal ? "#fff" : "#1D4ED8", border: `1px solid #1D4ED8`, borderRadius: 24, padding: "7px 18px", fontSize: 13, fontWeight: 600, cursor: isSaving ? "not-allowed" : "pointer", display: "flex", alignItems: "center", gap: 8, opacity: isSaving ? 0.7 : 1 }}>
               <Save size={14} /> {isSaving ? "Saving..." : isEditingGlobal ? "Update Global Template" : "Save"}
