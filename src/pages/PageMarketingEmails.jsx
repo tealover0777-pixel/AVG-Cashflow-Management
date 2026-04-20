@@ -436,6 +436,21 @@ export default function PageMarketingEmails({ t, isDark, setActivePage, MARKETIN
   // MOVED COLUMN DEFINITIONS INSIDE TO ACCESS setRecipientsModalData
   const getMarketingEmailColumnsInner = (isDark, t, actions) => [
   {
+    id: "select",
+    header: ({ table }) => (
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", width: "100%", height: "100%" }}>
+        <input className="ts-checkbox" type="checkbox" checked={table.getIsAllPageRowsSelected()} onChange={table.getToggleAllPageRowsSelectedHandler()} />
+      </div>
+    ),
+    cell: ({ row }) => (
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", width: "100%", height: "100%" }}>
+        <input className="ts-checkbox" type="checkbox" checked={row.getIsSelected()} disabled={!row.getCanSelect()} onChange={row.getToggleSelectedHandler()} />
+      </div>
+    ),
+    size: 40,
+    enableSorting: false,
+  },
+  {
     header: "Project",
     accessorKey: "title",
     size: 280,
@@ -597,6 +612,21 @@ export default function PageMarketingEmails({ t, isDark, setActivePage, MARKETIN
   ];
 
   const getActivityLogColumnsInner = (isDark, t) => [
+  {
+    id: "select",
+    header: ({ table }) => (
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", width: "100%", height: "100%" }}>
+        <input className="ts-checkbox" type="checkbox" checked={table.getIsAllPageRowsSelected()} onChange={table.getToggleAllPageRowsSelectedHandler()} />
+      </div>
+    ),
+    cell: ({ row }) => (
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", width: "100%", height: "100%" }}>
+        <input className="ts-checkbox" type="checkbox" checked={row.getIsSelected()} disabled={!row.getCanSelect()} onChange={row.getToggleSelectedHandler()} />
+      </div>
+    ),
+    size: 40,
+    enableSorting: false,
+  },
   {
     header: "Recipient",
     accessorKey: "recipient",
