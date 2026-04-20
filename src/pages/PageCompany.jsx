@@ -292,8 +292,8 @@ export default function PageCompany({ t, isDark, activeTenantId = "", USERS = []
         }));
     };
 
-    const PROVIDERS = ["SendGrid", "Mailgun", "Amazon SES", "Other / Custom API"];    const [activeTab, setActiveTab] = React.useState("General");
-    const TABS = ["General", "Email", "ACH"];
+    const PROVIDERS = ["SendGrid", "Mailgun", "Amazon SES", "Other / Custom API"];    const [activeTab, setActiveTab] = React.useState("Branding");
+    const TABS = ["Branding", "Info", "Email", "ACH"];
 
     return (
         <div style={{ maxWidth: 1200, margin: "0 auto" }}>
@@ -345,9 +345,8 @@ export default function PageCompany({ t, isDark, activeTenantId = "", USERS = []
                 })}
             </div>
 
-            {activeTab === "General" && (
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 32, alignItems: "start" }}>
-                    {/* Branding Section */}
+            {activeTab === "Branding" && (
+                <div style={{ maxWidth: 800, margin: "0 auto" }}>
                     <div style={{ background: t.surface, borderRadius: 16, border: `1px solid ${t.surfaceBorder}`, padding: 32, boxShadow: t.tableShadow }}>
                         <div style={{ marginBottom: 24 }}>
                             <h3 style={{ fontSize: 17, fontWeight: 700, color: isDark ? "#fff" : "#1C1917", marginBottom: 6 }}>Organization Branding</h3>
@@ -374,8 +373,11 @@ export default function PageCompany({ t, isDark, activeTenantId = "", USERS = []
                             </FF>
                         </div>
                     </div>
+                </div>
+            )}
 
-                    {/* Info Section */}
+            {activeTab === "Info" && (
+                <div style={{ maxWidth: 800, margin: "0 auto" }}>
                     <div style={{ background: t.surface, borderRadius: 16, border: `1px solid ${t.surfaceBorder}`, padding: 32, boxShadow: t.tableShadow }}>
                         <div style={{ marginBottom: 24 }}>
                             <h3 style={{ fontSize: 17, fontWeight: 700, color: isDark ? "#fff" : "#1C1917", marginBottom: 6 }}>Company Information</h3>
