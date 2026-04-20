@@ -123,13 +123,14 @@ export const getUserProfileColumns = (permissions, isDark, t, onEdit, onDel, onR
               onDel={permissions.canDelete ? () => onDel(p) : null} 
             />
             {permissions.canInvite && (!p.status || p.status === "Pending") && (
-              <button 
-                onClick={() => onResend(p)} 
-                title="Re-send invite link" 
-                style={{ background: "rgba(96,165,250,0.1)", border: `none`, borderRadius: 6, padding: "4px 8px", cursor: "pointer", fontSize: 11, fontWeight: 600, color: t.accent }}
-              >
-                Resend
-              </button>
+              <Tooltip text="Invite / Re-send verification email" t={t}>
+                <button 
+                  onClick={() => onResend(p)} 
+                  style={{ background: "rgba(96,165,250,0.1)", border: `none`, borderRadius: 6, padding: "4px 8px", cursor: "pointer", fontSize: 11, fontWeight: 600, color: t.accent }}
+                >
+                  Invite
+                </button>
+              </Tooltip>
             )}
           </div>
         );
