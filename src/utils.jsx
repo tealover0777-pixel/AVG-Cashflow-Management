@@ -117,14 +117,6 @@ const NAV_ITEMS = [
     ]
   },
   {
-    label: "Settings",
-    icon: "Settings",
-    expandable: true,
-    children: [
-      { label: "Fees", icon: "CircleDollarSign" },
-    ]
-  },
-  {
     label: "Marketing",
     icon: "Megaphone",
     expandable: true,
@@ -151,6 +143,14 @@ const NAV_ITEMS = [
       { label: "Payment Schedule", icon: "CalendarDays" },
       { label: "User Profiles", icon: "UserSquare" },
       { label: "Company", icon: "Building2" },
+    ]
+  },
+  {
+    label: "Settings",
+    icon: "Settings",
+    expandable: true,
+    children: [
+      { label: "Fees", icon: "CircleDollarSign" },
     ]
   },
   {
