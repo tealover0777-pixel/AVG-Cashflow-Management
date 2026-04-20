@@ -121,9 +121,12 @@ export default function PageEmailBuilder(props) {
   const [recipientSearch, setRecipientSearch] = useState("");
   const sendDropRef = useRef(null);
 
-  const { profile, tenantId, isSuperAdmin, isGlobalRole, isR10010 } = useAuth();
+  const { profile, tenantId, isSuperAdmin, isGlobalRole, isTenantAdmin, isR10010 } = useAuth();
   const isAdmin = isSuperAdmin || isGlobalRole || isR10010;
   const isEditingGlobal = isAdmin && !!activeEmailTemplate?.isGlobal;
+  // Any admin (global or tenant) can see the persistence button. 
+  // Non-admins only see it for their own (personal) templates.
+  const canSeeSave = !activeEmailTemplate?.isGlobal || isAdmin || isTenantAdmin;
 
   const lastIdRef = useRef(null);
   useEffect(() => {
@@ -605,7 +608,7 @@ export default function PageEmailBuilder(props) {
           </button>
 
           {/* 2. Template Persistence: Save or Update Global Template */}
-          {(!activeEmailTemplate?.isGlobal || isAdmin) && (
+          {canSeeSave && (
             <button
               onClick={() => handleSave()}
               disabled={isSaving}
