@@ -113,6 +113,7 @@ export default function PageCompany({ t, isDark, activeTenantId = "", USERS = []
                                 port: "587",
                                 user: "",
                                 pass: "",
+                                has2FA: false,
                                 secure: true
                             }
                         },
@@ -521,7 +522,23 @@ export default function PageCompany({ t, isDark, activeTenantId = "", USERS = []
                                         <FF label="Port" t={t}><FIn value={data.emailSetup.smtp.port} onChange={e => updSMTP({ port: e.target.value })} placeholder="587" t={t} /></FF>
                                     </div>
                                     <FF label="SMTP Username" t={t}><FIn value={data.emailSetup.smtp.user} onChange={e => updSMTP({ user: e.target.value })} placeholder="username@provider.com" t={t} /></FF>
-                                    <FF label="SMTP Password" t={t}><FIn type="password" value={data.emailSetup.smtp.pass} onChange={e => updSMTP({ pass: e.target.value })} placeholder="••••••••" t={t} /></FF>
+                                    
+                                    <div style={{ marginBottom: 16 }}>
+                                        <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer", marginBottom: 12 }}>
+                                            <input type="checkbox" checked={data.emailSetup.smtp.has2FA} onChange={e => updSMTP({ has2FA: e.target.checked })} style={{ width: 16, height: 16, accentColor: t.accent }} />
+                                            <span style={{ fontSize: 13, fontWeight: 700, color: t.text }}>My account has 2FA enabled (requires App Password)</span>
+                                        </label>
+                                        
+                                        {data.emailSetup.smtp.has2FA ? (
+                                            <FF label="App Password 🔐" t={t}>
+                                                <FIn type="password" value={data.emailSetup.smtp.pass} onChange={e => updSMTP({ pass: e.target.value })} placeholder="16-character app password" t={t} />
+                                                <p style={{ fontSize: 11, color: t.textMuted, marginTop: 8, lineHeight: 1.4 }}>Generate this in your Google Account Security settings. Use it instead of your regular password.</p>
+                                            </FF>
+                                        ) : (
+                                            <FF label="SMTP Password" t={t}><FIn type="password" value={data.emailSetup.smtp.pass} onChange={e => updSMTP({ pass: e.target.value })} placeholder="••••••••" t={t} /></FF>
+                                        )}
+                                    </div>
+
                                     <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer", marginTop: 4 }}>
                                         <input type="checkbox" checked={data.emailSetup.smtp.secure} onChange={e => updSMTP({ secure: e.target.checked })} style={{ width: 16, height: 16, accentColor: t.accent }} />
                                         <span style={{ fontSize: 13, fontWeight: 500, color: t.text }}>Use TLS / SSL for secure connection</span>
