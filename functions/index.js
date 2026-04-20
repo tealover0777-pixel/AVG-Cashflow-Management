@@ -479,10 +479,11 @@ async function getTransporter(tenantId) {
 
   if (method === 'SMTP' && setup.smtp && setup.smtp.host) {
     const port = parseInt(setup.smtp.port) || 587;
-    // For SMTP, 465 usually means Implicit SSL (secure: true). 
-    // 587/25 usually mean STARTTLS (secure: false).
-    // Respect explicit user setting if available, otherwise guess by port.
-    const secure = (setup.smtp.secure !== undefined) ? setup.smtp.secure : (port === 465);
+    // For SMTP: 
+    // 465 = Implicit SSL (secure: true)
+    // 587/25 = STARTTLS (secure: false)
+    // We force the correct logic based on port to avoid SSL version mismatches.
+    const secure = (port === 465); 
 
     return nodemailer.createTransport({
       host: setup.smtp.host,
@@ -494,7 +495,9 @@ async function getTransporter(tenantId) {
       },
       tls: {
         // Do not fail on invalid certs
-        rejectUnauthorized: false
+        rejectUnauthorized: false,
+        // Ensure minimum TLS version for modern servers
+        minVersion: 'TLSv1.2'
       }
     });
   }
