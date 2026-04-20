@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from "react";
+import React, { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { db, storage } from "../firebase";
 import { doc, getDocs, collection, addDoc, updateDoc, setDoc, deleteDoc, serverTimestamp } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL, deleteObject } from "firebase/storage";
@@ -197,6 +197,16 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
     }
     return list;
   }, [dealId, deal.name, INVESTMENTS, CONTACTS, invSearch]);
+
+  const hasScheduleForInvestment = useCallback(
+    (invId) => (SCHEDULES || []).some(s => (s.investment_id || s.investment) === invId),
+    [SCHEDULES]
+  );
+
+  const pendingScheduleGenerationCount = useMemo(
+    () => dealInvestments.filter(inv => !hasScheduleForInvestment(inv.id)).length,
+    [dealInvestments, hasScheduleForInvestment]
+  );
 
   // Fund balance calculation moved to dealSchedules useMemo
 
@@ -1403,13 +1413,12 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
     return getDealInvestmentColumns(permissions, isDark, t, context);
   }, [permissions, isDark, t, CONTACTS, FEES_DATA, SCHEDULES]);
 
-  const investmentRowStyle = (row) => {
-    const hasSchedule = (SCHEDULES || []).some(s => (s.investment_id || s.investment) === row.id);
-    if (!hasSchedule) {
+  const investmentRowStyle = useCallback((row) => {
+    if (!hasScheduleForInvestment(row.id)) {
       return { background: isDark ? 'rgba(245, 158, 11, 0.08)' : 'rgba(245, 158, 11, 0.05)' };
     }
     return {};
-  };
+  }, [hasScheduleForInvestment, isDark]);
 
   const scheduleColumnDefs = useMemo(() => {
     return getDistributionColumns(isDark, t, CONTACTS, DEALS, INVESTMENTS, {
@@ -1638,6 +1647,52 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
           </div>
         </div>
       </div>
+
+      {pendingScheduleGenerationCount > 0 && (
+        <div
+          role="status"
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 12,
+            marginBottom: 20,
+            padding: "14px 18px",
+            borderRadius: 12,
+            border: isDark ? "1px solid rgba(245, 158, 11, 0.35)" : "1px solid #FDE68A",
+            background: isDark ? "rgba(245, 158, 11, 0.1)" : "#FFFBEB",
+            color: isDark ? "#FBBF24" : "#B45309",
+          }}
+        >
+          <AlertTriangle size={22} style={{ flexShrink: 0 }} aria-hidden />
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 2 }}>
+              {pendingScheduleGenerationCount === 1
+                ? "1 investment still needs payment schedule generation"
+                : `${pendingScheduleGenerationCount} investments still need payment schedule generation`}
+            </div>
+            <div style={{ fontSize: 12, fontWeight: 500, opacity: 0.9 }}>
+              Select investments on the Investments tab and use Generate Schedules to create rows.
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => setActiveTab("Investments")}
+            style={{
+              flexShrink: 0,
+              background: "none",
+              border: "none",
+              color: t.accent,
+              fontSize: 13,
+              fontWeight: 700,
+              cursor: "pointer",
+              textDecoration: "underline",
+              padding: "4px 0",
+            }}
+          >
+            Go to Investments
+          </button>
+        </div>
+      )}
 
       {/* Stat Cards */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16, marginBottom: 32 }}>
