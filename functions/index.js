@@ -478,13 +478,23 @@ async function getTransporter(tenantId) {
   const method = setup.method || (setup.provider === 'SMTP' ? 'SMTP' : 'ESP');
 
   if (method === 'SMTP' && setup.smtp && setup.smtp.host) {
+    const port = parseInt(setup.smtp.port) || 587;
+    // For SMTP, 465 usually means Implicit SSL (secure: true). 
+    // 587/25 usually mean STARTTLS (secure: false).
+    // Respect explicit user setting if available, otherwise guess by port.
+    const secure = (setup.smtp.secure !== undefined) ? setup.smtp.secure : (port === 465);
+
     return nodemailer.createTransport({
       host: setup.smtp.host,
-      port: parseInt(setup.smtp.port) || 587,
-      secure: setup.smtp.secure !== false,
+      port,
+      secure,
       auth: {
         user: setup.smtp.user,
         pass: setup.smtp.pass
+      },
+      tls: {
+        // Do not fail on invalid certs
+        rejectUnauthorized: false
       }
     });
   }

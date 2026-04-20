@@ -4,7 +4,9 @@ import { doc, getDoc, updateDoc, serverTimestamp } from "firebase/firestore";
 import { useAuth } from "../AuthContext";
 import { FF, FIn } from "../components";
 import { uploadFile } from "../utils/storageUtils";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, Send } from "lucide-react";
+import { functions } from "../firebase";
+import { httpsCallable } from "firebase/functions";
 
 export default function PageCompany({ t, isDark, activeTenantId = "", USERS = [], CONTACTS = [] }) {
     const { user, profile, tenantId: authTenantId, isSuperAdmin } = useAuth();
@@ -13,6 +15,7 @@ export default function PageCompany({ t, isDark, activeTenantId = "", USERS = []
     const [toast, setToast] = React.useState(null);
     const [showOwnerSearch, setShowOwnerSearch] = React.useState(false);
     const [ownerSearch, setOwnerSearch] = React.useState("");
+    const [testingEmail, setTestingEmail] = React.useState(false);
 
     const showToast = (msg, type = "success") => {
         setToast({ msg, type });
@@ -214,6 +217,32 @@ export default function PageCompany({ t, isDark, activeTenantId = "", USERS = []
             showToast("Failed to save changes: " + (err.message || "Unknown error"), "error");
         } finally {
             setSaving(false);
+        }
+    };
+
+    const handleTestEmail = async () => {
+        if (!tenantId) return;
+        const target = data.emailSetup.common.testEmail || user?.email;
+        if (!target) {
+            showToast("Please provide a Test Email Address first.", "error"); return;
+        }
+        setTestingEmail(true);
+        try {
+            const sendFn = httpsCallable(functions, "sendTestEmail");
+            await sendFn({
+                tenantId,
+                recipientEmail: target,
+                subject: "Test Configuration - American Vision Group",
+                rows: [
+                    { type: "paragraph", content: { html: `<h3>Configuration Test Success</h3><p>Your email infrastructure was verified by <b>${user?.displayName || user?.email}</b>.</p><p>Relay: ${data.emailSetup.method === "SMTP" ? data.emailSetup.smtp.host : data.emailSetup.api.provider}</p>` } }
+                ]
+            });
+            showToast(`Test email sent to ${target}. Please check your inbox.`);
+        } catch (err) {
+            console.error("Test email error:", err);
+            showToast("Test failed: " + (err.message || "Connection refused"), "error");
+        } finally {
+            setTestingEmail(false);
         }
     };
 
@@ -433,6 +462,28 @@ export default function PageCompany({ t, isDark, activeTenantId = "", USERS = []
                                         style={{ flex: 1, padding: "8px 0", borderRadius: 8, border: "none", fontSize: 13, fontWeight: 600, cursor: "pointer", background: data.emailSetup.method === "SMTP" ? t.accentGrad : "transparent", color: data.emailSetup.method === "SMTP" ? "#fff" : t.textMuted }}>Custom SMTP</button>
                                 </div>
                             </FF>
+                            
+                            <div style={{ marginTop: 40, padding: 24, borderRadius: 16, border: `1px solid ${t.border}`, background: isDark ? "rgba(255,255,255,0.02)" : "#FAFAF9" }}>
+                                <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
+                                    <div style={{ width: 32, height: 32, borderRadius: "50%", background: "#34D39933", display: "flex", alignItems: "center", justifyContent: "center", color: "#059669" }}>
+                                        <Send size={16} />
+                                    </div>
+                                    <h4 style={{ margin: 0, fontSize: 14, fontWeight: 700, color: t.text }}>Test Verification</h4>
+                                </div>
+                                <p style={{ fontSize: 12, color: t.textMuted, marginBottom: 20, lineHeight: 1.5 }}>Verify your credentials by sending a test message to the configured test address.</p>
+                                <button 
+                                    onClick={handleTestEmail}
+                                    disabled={testingEmail || saving}
+                                    style={{ width: "100%", padding: "10px", borderRadius: 8, border: "none", background: isDark ? "rgba(255,255,255,0.08)" : "#fff", border: `1px solid ${t.border}`, color: t.text, fontSize: 13, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, transition: "all 0.2s" }}
+                                    onMouseEnter={e => e.currentTarget.style.background = isDark ? "rgba(255,255,255,0.12)" : "#F3F4F6"}
+                                    onMouseLeave={e => e.currentTarget.style.background = isDark ? "rgba(255,255,255,0.08)" : "#fff"}
+                                >
+                                    {testingEmail ? "Verifying..." : "Send Verification Email"}
+                                </button>
+                                {data.emailSetup.common.testEmail && (
+                                    <p style={{ fontSize: 11, color: t.textMuted, marginTop: 12, textAlign: "center" }}>Target: <b>{data.emailSetup.common.testEmail}</b></p>
+                                )}
+                            </div>
                         </div>
 
                         <div style={{ display: "grid", gap: 16 }}>
