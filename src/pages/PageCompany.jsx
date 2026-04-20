@@ -474,7 +474,7 @@ export default function PageCompany({ t, isDark, activeTenantId = "", USERS = []
                                 <button 
                                     onClick={handleTestEmail}
                                     disabled={testingEmail || saving}
-                                    style={{ width: "100%", padding: "10px", borderRadius: 8, border: "none", background: isDark ? "rgba(255,255,255,0.08)" : "#fff", border: `1px solid ${t.border}`, color: t.text, fontSize: 13, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, transition: "all 0.2s" }}
+                                    style={{ width: "100%", padding: "10px", borderRadius: 8, background: isDark ? "rgba(255,255,255,0.08)" : "#fff", border: `1px solid ${t.border}`, color: t.text, fontSize: 13, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, transition: "all 0.2s" }}
                                     onMouseEnter={e => e.currentTarget.style.background = isDark ? "rgba(255,255,255,0.12)" : "#F3F4F6"}
                                     onMouseLeave={e => e.currentTarget.style.background = isDark ? "rgba(255,255,255,0.08)" : "#fff"}
                                 >
