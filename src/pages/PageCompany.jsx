@@ -313,9 +313,18 @@ export default function PageCompany({ t, isDark, activeTenantId = "", USERS = []
                 </div>
             )}
 
-            <div style={{ marginBottom: 20 }}>
-                <h1 style={{ fontFamily: t.titleFont, fontWeight: t.titleWeight, fontSize: t.titleSize, color: isDark ? "#fff" : "#1C1917", letterSpacing: t.titleTracking, lineHeight: 1, marginBottom: 6 }}>Company</h1>
-                <p style={{ fontSize: 13.5, color: t.textMuted }}>Manage organization branding and corporate information</p>
+            <div style={{ marginBottom: 28, display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
+                <div>
+                    <h1 style={{ fontFamily: t.titleFont, fontWeight: t.titleWeight, fontSize: t.titleSize, color: isDark ? "#fff" : "#1C1917", letterSpacing: t.titleTracking, lineHeight: 1, marginBottom: 6 }}>Company</h1>
+                    <p style={{ fontSize: 13.5, color: t.textMuted }}>Manage your organization's global settings and infrastructure.</p>
+                </div>
+                <div style={{ display: "flex", gap: 12 }}>
+                    <button onClick={handleSave} disabled={saving} 
+                        style={{ background: t.accentGrad, color: "#fff", border: "none", borderRadius: 12, padding: "12px 28px", fontSize: 14, fontWeight: 700, cursor: "pointer", boxShadow: `0 6px 20px ${t.accentShadow}`, display: "flex", alignItems: "center", gap: 10, transition: "all 0.2s" }}
+                        onMouseEnter={e => e.currentTarget.style.transform = "translateY(-2px)"} onMouseLeave={e => e.currentTarget.style.transform = "translateY(0)"}>
+                        {saving ? "⏳ Saving..." : "✅ Apply Global Settings"}
+                    </button>
+                </div>
             </div>
 
             {/* Tab Bar */}
@@ -612,11 +621,7 @@ export default function PageCompany({ t, isDark, activeTenantId = "", USERS = []
                 </div>
             )}
 
-            <div style={{ marginTop: 32, display: "flex", justifyContent: "flex-end", paddingBottom: 60 }}>
-                <button onClick={handleSave} disabled={saving} className="primary-btn" style={{ background: t.accentGrad, color: "#fff", border: "none", padding: "14px 40px", borderRadius: 12, fontSize: 14, fontWeight: 700, cursor: saving ? "default" : "pointer", boxShadow: `0 8px 20px ${t.accentShadow}` }}>
-                    {saving ? "Saving Changes..." : "Apply Global Settings"}
-                </button>
-            </div>
+            <div style={{ height: 100 }} />
         </div>
     );
 }
