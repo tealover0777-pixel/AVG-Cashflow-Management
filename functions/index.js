@@ -125,17 +125,50 @@ exports.inviteUser = functions.https.onCall(async (data, context) => {
       }, { merge: true });
     }
 
-    // 6. Generate email verification link and attempt to send email
     // 6. Generate password reset link (better for onboarding than verification)
     const link = await admin.auth().generatePasswordResetLink(email);
+
+    // 7. Attempt to send email using tenant SMTP/API if available
+    let emailSent = false;
+    if (tenantId) {
+      try {
+        const tenantSnap = await db.collection('tenants').doc(tenantId).get();
+        const tData = tenantSnap.data() || {};
+        const common = (tData.emailSetup && tData.emailSetup.common) || {};
+        
+        const transporter = await getTransporter(tenantId);
+        await transporter.sendMail({
+          from: `"${common.fromName || tData.tenant_name || "American Vision Group"}" <${common.fromEmail || "no-reply@americanvisiongroup.com"}>`,
+          to: email,
+          replyTo: common.replyTo || common.fromEmail || "",
+          subject: `You've been invited to ${tData.tenant_name || "the Platform"}`,
+          html: `<div style="font-family: sans-serif; max-width: 600px; padding: 20px;">
+            <h2>Welcome to ${tData.tenant_name || "American Vision Group"}</h2>
+            <p>Hello ${first_name || "there"},</p>
+            <p>You have been invited to join the platform with the role of <b>${role}</b>.</p>
+            <p>Please click the button below to set your password and access your account:</p>
+            <div style="margin: 30px 0;">
+              <a href="${link}" style="background: #1c1917; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: 600;">Accept Invitation</a>
+            </div>
+            <p style="font-size: 13px; color: #666;">If the button doesn't work, copy and paste this link into your browser:</p>
+            <p style="font-size: 13px; color: #666; word-break: break-all;">${link}</p>
+          </div>`
+        });
+        emailSent = true;
+      } catch (err) {
+        console.error("Failed to send invite email:", err.message);
+      }
+    }
 
     return {
       success: true,
       link,
-      emailSent: false, // We'll rely on the link display for now since API is rate-limited
+      emailSent,
       isNewUser,
       user_id,
-      message: `User created. Share the link below so they can set their password and log in.`
+      message: emailSent 
+        ? `Invitation sent to ${email}.`
+        : `User created. Share the link below so they can set their password and log in.`
     };
 
   } catch (error) {
@@ -162,7 +195,40 @@ exports.resendVerification = functions.https.onCall(async (data, context) => {
     const userRecord = await admin.auth().getUserByEmail(email);
     const uid = userRecord.uid;
     const link = await admin.auth().generatePasswordResetLink(email);
-    return { success: true, link, emailSent: false };
+
+    // Attempt to send email if tenant is known
+    let emailSent = false;
+    const db = admin.firestore();
+    const globalSnap = await db.collection('global_users').doc(uid).get();
+    const tenantId = globalSnap.exists ? globalSnap.data().tenantId : null;
+
+    if (tenantId) {
+      try {
+        const tenantSnap = await db.collection('tenants').doc(tenantId).get();
+        const tData = tenantSnap.data() || {};
+        const common = (tData.emailSetup && tData.emailSetup.common) || {};
+        
+        const transporter = await getTransporter(tenantId);
+        await transporter.sendMail({
+          from: `"${common.fromName || tData.tenant_name || "American Vision Group"}" <${common.fromEmail || "no-reply@americanvisiongroup.com"}>`,
+          to: email,
+          subject: `Reset Your Password - ${tData.tenant_name || "American Vision Group"}`,
+          html: `<div style="font-family: sans-serif; max-width: 600px; padding: 20px;">
+            <h2>Password Reset Request</h2>
+            <p>Access your account for <b>${tData.tenant_name || "American Vision Group"}</b> by clicking the link below:</p>
+            <div style="margin: 30px 0;">
+              <a href="${link}" style="background: #1c1917; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: 600;">Sign In / Reset Password</a>
+            </div>
+            <p style="font-size: 13px; color: #666;">This link will expire in 24 hours.</p>
+          </div>`
+        });
+        emailSent = true;
+      } catch (err) {
+        console.error("Resend email failed:", err.message);
+      }
+    }
+
+    return { success: true, link, emailSent };
   } catch (error) {
     console.error("Resend Verification Error:", error);
     const msg = error.code === 'auth/user-not-found'
