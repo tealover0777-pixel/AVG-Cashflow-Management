@@ -491,7 +491,7 @@ async function getTransporter(tenantId) {
       secure,
       auth: {
         user: (setup.smtp.user || "").trim(),
-        pass: (setup.smtp.pass || "").trim()
+        pass: (setup.smtp.pass || "").replace(/\s/g, "")
       },
       tls: {
         // Do not fail on invalid certs
