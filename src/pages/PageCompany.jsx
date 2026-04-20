@@ -212,7 +212,8 @@ export default function PageCompany({ t, isDark, activeTenantId = "", USERS = []
                 updated_at: serverTimestamp()
             });
             setData(s => ({ ...s, _origOwner: data.owner }));
-            showToast("Company information updated successfully.");
+            const methodLabel = data.emailSetup.method === "SMTP" ? "Custom SMTP" : "Service Provider (API)";
+            showToast(`Company settings and ${methodLabel} configuration updated successfully.`);
         } catch (err) {
             console.error("Save company error:", err);
             showToast("Failed to save changes: " + (err.message || "Unknown error"), "error");
@@ -458,9 +459,15 @@ export default function PageCompany({ t, isDark, activeTenantId = "", USERS = []
                             <FF label="Delivery Method" t={t}>
                                 <div style={{ display: "flex", gap: 8, background: isDark ? "rgba(255,255,255,0.05)" : "#F3F4F6", padding: 4, borderRadius: 10 }}>
                                     <button onClick={() => updES({ method: "ESP" })}
-                                        style={{ flex: 1, padding: "8px 0", borderRadius: 8, border: "none", fontSize: 13, fontWeight: 600, cursor: "pointer", background: data.emailSetup.method === "ESP" ? t.accentGrad : "transparent", color: data.emailSetup.method === "ESP" ? "#fff" : t.textMuted }}>Service Provider (API)</button>
+                                        style={{ flex: 1, padding: "8px 0", borderRadius: 8, border: "none", fontSize: 13, fontWeight: 600, cursor: "pointer", background: data.emailSetup.method === "ESP" ? t.accentGrad : "transparent", color: data.emailSetup.method === "ESP" ? "#fff" : t.textMuted, position: "relative" }}>
+                                        Service Provider (API)
+                                        {data.emailSetup.method === "ESP" && <span style={{ position: "absolute", top: -8, right: 4, background: "#34D399", color: "#fff", fontSize: 8, padding: "2px 6px", borderRadius: 6, fontWeight: 800 }}>ACTIVE</span>}
+                                    </button>
                                     <button onClick={() => updES({ method: "SMTP" })}
-                                        style={{ flex: 1, padding: "8px 0", borderRadius: 8, border: "none", fontSize: 13, fontWeight: 600, cursor: "pointer", background: data.emailSetup.method === "SMTP" ? t.accentGrad : "transparent", color: data.emailSetup.method === "SMTP" ? "#fff" : t.textMuted }}>Custom SMTP</button>
+                                        style={{ flex: 1, padding: "8px 0", borderRadius: 8, border: "none", fontSize: 13, fontWeight: 600, cursor: "pointer", background: data.emailSetup.method === "SMTP" ? t.accentGrad : "transparent", color: data.emailSetup.method === "SMTP" ? "#fff" : t.textMuted, position: "relative" }}>
+                                        Custom SMTP
+                                        {data.emailSetup.method === "SMTP" && <span style={{ position: "absolute", top: -8, right: 4, background: "#34D399", color: "#fff", fontSize: 8, padding: "2px 6px", borderRadius: 6, fontWeight: 800 }}>ACTIVE</span>}
+                                    </button>
                                 </div>
                             </FF>
                             
