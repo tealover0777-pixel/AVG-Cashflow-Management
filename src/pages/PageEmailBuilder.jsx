@@ -1217,8 +1217,8 @@ const FloatingTextBar = ({ t, isDark, DIMENSIONS = [] }) => {
   const [showTags, setShowTags] = useState(false);
   const tagDropRef = useRef(null);
 
-  const rawTags = DIMENSIONS.find(d => d.name === "EmailTags")?.items || ["First name", "Last name", "Email", "Property Name", "Investment Amount", "Closing Date"];
-  const emailTags = Array.isArray(rawTags) ? rawTags : ["First name", "Last name", "Email", "Property Name", "Investment Amount", "Closing Date"];
+  const rawTags = DIMENSIONS.find(d => d.name === "EmailTags")?.items || ["First name", "Last name", "Full name", "Current year", "Current quarter", "Last quarter", "Total distributed", "Total Invested", "Capital balance"];
+  const emailTags = Array.isArray(rawTags) ? rawTags : ["First name", "Last name", "Full name", "Current year", "Current quarter", "Last quarter", "Total distributed", "Total Invested", "Capital balance"];
 
   const cmd = (name, val = null) => {
     try {
@@ -1355,20 +1355,25 @@ const FloatingTextBar = ({ t, isDark, DIMENSIONS = [] }) => {
             minWidth: 160, boxShadow: "0 8px 30px rgba(0,0,0,0.5)", zIndex: 1100,
             overflowX: "hidden", overflowY: "auto", maxHeight: 250, padding: "4px 0"
           }}>
-            {(Array.isArray(emailTags) ? emailTags : []).map(tag => (
-              <div
-                key={tag}
-                onMouseDown={e => { e.preventDefault(); insertTag(tag); }}
-                style={{
-                  padding: "8px 12px", fontSize: 11, color: "#fff", cursor: "pointer",
-                  transition: "background 0.1s"
-                }}
-                onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,0.1)"}
-                onMouseLeave={e => e.currentTarget.style.background = "transparent"}
-              >
-                {tag}
-              </div>
-            ))}
+            {(Array.isArray(emailTags) ? emailTags : []).map(tagStr => {
+              const isMap = typeof tagStr === "string" && tagStr.includes(":");
+              const [label, tagValue] = isMap ? tagStr.split(":") : [tagStr, tagStr];
+              
+              return (
+                <div
+                  key={tagStr}
+                  onMouseDown={e => { e.preventDefault(); insertTag(`{{${tagValue}}}`); }}
+                  style={{
+                    padding: "8px 12px", fontSize: 11, color: "#fff", cursor: "pointer",
+                    transition: "background 0.1s"
+                  }}
+                  onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,0.1)"}
+                  onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+                >
+                  {label} {isMap && <span style={{ opacity: 0.4, fontSize: 9, marginLeft: 4 }}>({tagValue})</span>}
+                </div>
+              );
+            })}
           </div>
         )}
       </div>

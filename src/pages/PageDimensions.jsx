@@ -147,6 +147,9 @@ export default function PageDimensions({ t, isDark, DIMENSIONS = [], rawDimensio
             <div style={{ padding: "16px 20px", display: "flex", flexWrap: "wrap", gap: 8 }}>
               {g.items.map(item => {
                 const isEditingThis = editingItem?.group === g.name && editingItem?.item === item;
+                const isMap = typeof item === "string" && item.includes(":");
+                const [label, val] = isMap ? item.split(":") : [item, null];
+
                 if (isEditingThis) {
                   return (
                     <div key={item} style={{ display: "flex", alignItems: "center", gap: 4 }}>
@@ -166,7 +169,10 @@ export default function PageDimensions({ t, isDark, DIMENSIONS = [], rawDimensio
                 }
                 return (
                   <div key={item} style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 11.5, fontWeight: 500, padding: "2px 10px", borderRadius: 20, background: t.tagBg, color: t.tagColor, border: `1px solid ${t.tagBorder}`, whiteSpace: "nowrap" }}>
-                    {item}
+                    <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                      <span>{label}</span>
+                      {val && <span style={{ opacity: 0.5, fontSize: 10, fontFamily: t.mono, background: isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.05)", padding: "1px 6px", borderRadius: 4 }}>{val}</span>}
+                    </div>
                     {isEd && (
                       <>
                         <span onClick={() => setEditingItem({ group: g.name, item, value: item })} style={{ fontSize: 11, color: t.textMuted, lineHeight: 1, marginLeft: 2, cursor: "pointer", opacity: 0.7 }}>✏️</span>

@@ -684,6 +684,104 @@ exports.sendTestEmail = functions.https.onCall(async (data, context) => {
 });
 
 /**
+ * Helper to resolve dynamic tags for a specific recipient.
+ * Handles Name, Temporal (Year/Quarter), and Financial (Invested/Distributed/Balance) data.
+ */
+async function resolveRecipientTags(html, email, tenantId, db) {
+  let resolvedHtml = html;
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth(); // 0-11
+  const quarter = Math.floor(month / 3) + 1;
+  
+  // Last quarter logic
+  let lastQ = quarter - 1;
+  if (lastQ === 0) lastQ = 4;
+
+  // 1. Fetch Recipient Identity (Contact or User)
+  let recipientData = { first_name: '', last_name: '', id: null };
+  const contactSnap = await db.collection(`tenants/${tenantId}/contacts`).where('email', '==', email).limit(1).get();
+  if (!contactSnap.empty) {
+    const d = contactSnap.docs[0].data();
+    recipientData = { 
+      first_name: d.first_name || d.full_name || d.name || '', 
+      last_name: d.last_name || '', 
+      id: contactSnap.docs[0].id 
+    };
+  } else {
+    const userSnap = await db.collection(`tenants/${tenantId}/users`).where('email', '==', email).limit(1).get();
+    if (!userSnap.empty) {
+      const d = userSnap.docs[0].data();
+      recipientData = { 
+        first_name: d.first_name || '', 
+        last_name: d.last_name || '', 
+        id: userSnap.docs[0].id 
+      };
+    }
+  }
+
+  // 2. Resolve Temporal Tags
+  const temporal = {
+    '{{Current year}}': String(year),
+    '{{Current quarter}}': `Q${quarter}`,
+    '{{Last quarter}}': `Q${lastQ}`,
+    '{{First name}}': recipientData.first_name,
+    '{{Last name}}': recipientData.last_name,
+    '{{Full name}}': `${recipientData.first_name} ${recipientData.last_name}`.trim(),
+  };
+
+  // 3. Financial Data Aggregation
+  let totalInvested = 0;
+  let totalDistributed = 0;
+  let capitalBalance = 0;
+  let totalPrincipalRepaid = 0;
+
+  if (recipientData.id) {
+    // Fetch Investments
+    const invSnap = await db.collection(`tenants/${tenantId}/investments`).where('contact_id', '==', recipientData.id).get();
+    const invDocs = invSnap.docs.map(doc => doc.data());
+    totalInvested = invDocs.reduce((s, d) => s + (parseFloat(String(d.amount).replace(/[^0-9.-]/g, '')) || 0), 0);
+
+    // Fetch Completed Payments/Schedules
+    const schSnap = await db.collection(`tenants/${tenantId}/paymentSchedules`).where('contact_id', '==', recipientData.id).where('status', '==', 'Paid').get();
+    schSnap.docs.forEach(doc => {
+      const d = doc.data();
+      const amt = parseFloat(String(d.signed_payment_amount || d.payment_amount || 0).replace(/[^0-9.-]/g, '')) || 0;
+      const type = (d.payment_type || "").toUpperCase();
+      
+      // Interest logic
+      if (type.includes("INTEREST")) {
+        totalDistributed += Math.abs(amt);
+      }
+      
+      // Principal logic for balance
+      const principalPTs = ["INVESTOR_PRINCIPAL_PAYMENT", "BORROWER_PRINCIPAL_RECEIVED", "BORROWER_DISBURSEMENT", "INVESTOR_PRINCIPAL_DEPOSIT", "REPAYMENT", "BORROWER_REPAYMENT"];
+      if (principalPTs.includes(type) || type.includes("PRINCIPAL")) {
+        // Only count positive repayments to investor as reducing balance
+        if (amt > 0) totalPrincipalRepaid += amt;
+      }
+    });
+
+    capitalBalance = totalInvested - totalPrincipalRepaid;
+  }
+
+  const financials = {
+    '{{Total distributed}}': new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(totalDistributed),
+    '{{Total Invested}}': new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(totalInvested),
+    '{{Capital balance}}': new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(capitalBalance),
+  };
+
+  // 4. Final Replacement Synthesis
+  const allTags = { ...temporal, ...financials };
+  Object.keys(allTags).forEach(tag => {
+    const regex = new RegExp(tag.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g');
+    resolvedHtml = resolvedHtml.replace(regex, allTags[tag] || '');
+  });
+
+  return resolvedHtml;
+}
+
+/**
  * cloud function: sendMarketingEmail
  * Dispatches a live campaign to all chosen recipients.
  * Creates an activity log entry for each recipient in a 'comms_log' subcollection.
@@ -698,7 +796,7 @@ exports.sendMarketingEmail = functions.https.onCall(async (data, context) => {
   
   try {
     const transporter = await getTransporter(tenantId);
-    const htmlBody = renderEmailBody(rows);
+    const htmlBase = renderEmailBody(rows);
     
     const recipientList = (recipients || "").split(";").map(s => s.trim().toLowerCase()).filter(Boolean);
     const blacklist = (doNotSendTo || "").split(";").map(s => s.trim().toLowerCase()).filter(Boolean);
@@ -709,12 +807,16 @@ exports.sendMarketingEmail = functions.https.onCall(async (data, context) => {
 
     for (const email of validRecipients) {
       try {
+        // Resolve Personalized Tags per Recipient
+        const personalizedHtml = await resolveRecipientTags(htmlBase, email, tenantId, db);
+        const personalizedSubject = await resolveRecipientTags(subject || "Marketing Communication", email, tenantId, db);
+
         const info = await transporter.sendMail({
           from: `"${fromName || "American Vision Group"}" <${fromEmail || "no-reply@americanvisiongroup.com"}>`,
           to: email,
           replyTo: replyTo || fromEmail,
-          subject: subject || "Marketing Communication",
-          html: htmlBody
+          subject: personalizedSubject,
+          html: personalizedHtml
         });
 
         // Log success
@@ -723,7 +825,7 @@ exports.sendMarketingEmail = functions.https.onCall(async (data, context) => {
           campaignId,
           type: "Marketing",
           recipient: email,
-          subject,
+          subject: personalizedSubject,
           status: "Delivered",
           sentAt: admin.firestore.FieldValue.serverTimestamp(),
           provider: "Nodemailer",
@@ -737,7 +839,7 @@ exports.sendMarketingEmail = functions.https.onCall(async (data, context) => {
       }
     }
 
-    if (results.length > 0) await logBatch.commit();
+    if (results.length > 0) await logBatch.batchSize > 500 ? console.warn("Log batch exceeds 500, implement chunked commit") : await logBatch.commit();
 
     // Update campaign status only if campaignId is a valid Firestore ID (no slashes)
     if (campaignId && !campaignId.includes('/')) {
