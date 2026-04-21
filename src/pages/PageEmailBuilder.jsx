@@ -127,6 +127,7 @@ export default function PageEmailBuilder(props) {
   // Any admin (global or tenant) can see the persistence button. 
   // Non-admins only see it for their own (personal) templates.
   const canSeeSave = !activeEmailTemplate?.isGlobal || isAdmin || isTenantAdmin;
+  const isSimpleMode = activeEmailTemplate?.editorMode === "simple";
 
   const lastIdRef = useRef(null);
   useEffect(() => {
@@ -557,6 +558,26 @@ export default function PageEmailBuilder(props) {
     { id: "Desktop", label: "Desktop review", icon: <Monitor size={13} /> },
   ];
 
+  const simpleDraftHtml = useMemo(() => {
+    const paragraphRow = (Array.isArray(rows) ? rows : []).find(r => r?.type === "paragraph");
+    return paragraphRow?.content?.html || "";
+  }, [rows]);
+
+  const handleSimpleDraftHtmlChange = (html) => {
+    setRows(prev => {
+      const list = Array.isArray(prev) ? [...prev] : [];
+      const idx = list.findIndex(r => r?.type === "paragraph");
+      if (idx >= 0) {
+        list[idx] = {
+          ...list[idx],
+          content: { ...(list[idx].content || {}), html }
+        };
+        return list;
+      }
+      return [{ id: `r_${Date.now()}`, type: "paragraph", content: { html } }, ...list];
+    });
+  };
+
   return (
     <div
       id="email-builder-wrapper"
@@ -809,122 +830,136 @@ export default function PageEmailBuilder(props) {
         </div>
       </div>
 
-      {/* ── Sub Toolbar ── */}
-      <div
-        style={{ display: "flex", alignItems: "stretch", borderBottom: `1px solid ${t.border}`, background: t.surface, flexShrink: 0 }}
-        onClick={e => e.stopPropagation()}
-      >
-        <div style={{ flex: 1 }} />
-        <div style={{ display: "flex" }}>
-          {MAIN_TABS.map(tab => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveMainTab(tab.id)}
-              style={{
-                display: "flex", alignItems: "center", gap: 6, padding: "10px 18px",
-                background: "transparent", border: "none", cursor: "pointer",
-                color: activeMainTab === tab.id ? (isDark ? "#60A5FA" : "#2563EB") : t.textMuted,
-                fontSize: 13, fontWeight: activeMainTab === tab.id ? 600 : 500,
-                borderBottom: activeMainTab === tab.id ? `2px solid ${isDark ? "#60A5FA" : "#2563EB"}` : "2px solid transparent",
-                marginBottom: -1
-              }}
-            >
-              {tab.icon} {tab.label}
-            </button>
-          ))}
-        </div>
-        <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 8, paddingRight: 16 }}>
-          {/* Empty space for alignment balance */}
-        </div>
-      </div>
-
-      {/* ── Main Content Area ── */}
-      <div style={{ flex: 1, display: "flex", overflow: "hidden" }}>
-
-        {/* Canvas / Settings / Preview */}
-        {activeMainTab === "Settings" ? (
-          <SettingsPanel t={t} isDark={isDark} settings={emailSettings} onChange={setEmailSettings} profile={profile} DIMENSIONS={DIMENSIONS} CONTACTS={CONTACTS} USERS={USERS} emailName={emailName} organizationName={organizationName} onSave={(newS) => handleSave(false, null, newS)} isSaving={isSaving} />
-        ) : activeMainTab === "Mobile" ? (
-          <ReviewPanel t={t} isDark={isDark} rows={rows} emailSettings={emailSettings} narrow />
-        ) : activeMainTab === "Desktop" ? (
-          <ReviewPanel t={t} isDark={isDark} rows={rows} emailSettings={emailSettings} />
-        ) : (
-          <EmailCanvas
-            t={t} isDark={isDark} rows={rows}
-            selectedRowId={selectedRowId}
-            onSelectRow={handleSelectRow}
-            onAddRow={handleAddRow}
-            onDeleteRow={handleDeleteRow}
-            onDuplicateRow={handleDuplicateRow}
-            onUpdateRow={handleUpdateRow}
-            onAddBlockToColumn={handleAddBlockToColumn}
-            onReorder={handleReorderRows}
-            setActiveRightTab={setActiveRightTab}
-            DIMENSIONS={DIMENSIONS}
-          />
-        )}
-
-        {/* Right Sidebar – only in Edit mode */}
-        {activeMainTab === "Edit" && (
+      {isSimpleMode ? (
+        <SimpleDraftLayout
+          t={t}
+          isDark={isDark}
+          settings={emailSettings}
+          onSettingsChange={setEmailSettings}
+          profile={profile}
+          DIMENSIONS={DIMENSIONS}
+          CONTACTS={CONTACTS}
+          USERS={USERS}
+          emailName={emailName}
+          organizationName={organizationName}
+          onSave={(newS) => handleSave(false, null, newS)}
+          isSaving={isSaving}
+          bodyHtml={simpleDraftHtml}
+          onBodyHtmlChange={handleSimpleDraftHtmlChange}
+        />
+      ) : (
+        <>
+          {/* ── Sub Toolbar ── */}
           <div
-            style={{ width: 380, background: t.surface, borderLeft: `1px solid ${t.border}`, display: "flex", flexShrink: 0 }}
+            style={{ display: "flex", alignItems: "stretch", borderBottom: `1px solid ${t.border}`, background: t.surface, flexShrink: 0 }}
             onClick={e => e.stopPropagation()}
           >
-            <div style={{ flex: 1, overflowY: "auto", display: "flex", flexDirection: "column" }}>
-              {showBlockProps ? (
-                <BlockPropsPanel
-                  t={t} isDark={isDark} blockType={selectedBlockType} rowId={selectedRowId}
-                  onUpdate={handleUpdateRow} onClose={handleDeselect} rows={rows}
-                  uploads={uploads} isUploading={isUploading} uploadProgress={uploadProgress}
-                  onUpload={handleUploadFile} setActiveRightTab={setActiveRightTab}
-                  onDelete={handleDeleteRow} onDuplicate={handleDuplicateRow}
-                />
-              ) : (
-                <>
-                  {activeRightTab === "Content" && <ContentTab t={t} isDark={isDark} onAddRow={handleAddRow} />}
-                  {activeRightTab === "Images" && <ImagesTab t={t} isDark={isDark} setActiveRightTab={setActiveRightTab} hasImageSelected={selectedBlockType === "IMAGE"} onInsertImage={handleInsertImage} />}
-                  {activeRightTab === "Uploads" && (
-                    <UploadsTab
-                      t={t} isDark={isDark}
-                      uploads={uploads}
-                      isUploading={isUploading}
-                      uploadProgress={uploadProgress}
-                      onUpload={handleUploadFile}
-                      onDeleteUpload={handleDeleteUpload}
-                      hasImageSelected={selectedBlockType === "IMAGE"}
-                      onInsertImage={handleInsertImage}
-                    />
-                  )}
-
-                </>
-              )}
+            <div style={{ flex: 1 }} />
+            <div style={{ display: "flex" }}>
+              {MAIN_TABS.map(tab => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveMainTab(tab.id)}
+                  style={{
+                    display: "flex", alignItems: "center", gap: 6, padding: "10px 18px",
+                    background: "transparent", border: "none", cursor: "pointer",
+                    color: activeMainTab === tab.id ? (isDark ? "#60A5FA" : "#2563EB") : t.textMuted,
+                    fontSize: 13, fontWeight: activeMainTab === tab.id ? 600 : 500,
+                    borderBottom: activeMainTab === tab.id ? `2px solid ${isDark ? "#60A5FA" : "#2563EB"}` : "2px solid transparent",
+                    marginBottom: -1
+                  }}
+                >
+                  {tab.icon} {tab.label}
+                </button>
+              ))}
             </div>
-
-            {/* Far-right vertical tab strip */}
-            <div style={{ width: 60, borderLeft: `1px solid ${t.border}`, display: "flex", flexDirection: "column", background: isDark ? "#111" : "#FAFAFA" }}>
-              {RIGHT_TABS.map(rt => {
-                const active = activeRightTab === rt.id && !showBlockProps;
-                return (
-                  <div
-                    key={rt.id}
-                    onClick={() => setActiveRightTab(rt.id)}
-                    style={{
-                      display: "flex", flexDirection: "column", alignItems: "center", gap: 3,
-                      padding: "13px 0", cursor: "pointer",
-                      background: active ? t.surface : "transparent",
-                      borderLeft: active ? `3px solid ${isDark ? "#60A5FA" : "#3B82F6"}` : "3px solid transparent",
-                      color: active ? (isDark ? "#60A5FA" : "#3B82F6") : t.textMuted
-                    }}
-                  >
-                      <rt.icon size={18} strokeWidth={1.5} />
-                    <span style={{ fontSize: 8.5, fontWeight: active ? 600 : 400, textAlign: "center" }}>{rt.id}</span>
-                  </div>
-                );
-              })}
-            </div>
+            <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 8, paddingRight: 16 }} />
           </div>
-        )}
-      </div>
+
+          {/* ── Main Content Area ── */}
+          <div style={{ flex: 1, display: "flex", overflow: "hidden" }}>
+            {activeMainTab === "Settings" ? (
+              <SettingsPanel t={t} isDark={isDark} settings={emailSettings} onChange={setEmailSettings} profile={profile} DIMENSIONS={DIMENSIONS} CONTACTS={CONTACTS} USERS={USERS} emailName={emailName} organizationName={organizationName} onSave={(newS) => handleSave(false, null, newS)} isSaving={isSaving} />
+            ) : activeMainTab === "Mobile" ? (
+              <ReviewPanel t={t} isDark={isDark} rows={rows} emailSettings={emailSettings} narrow />
+            ) : activeMainTab === "Desktop" ? (
+              <ReviewPanel t={t} isDark={isDark} rows={rows} emailSettings={emailSettings} />
+            ) : (
+              <EmailCanvas
+                t={t} isDark={isDark} rows={rows}
+                selectedRowId={selectedRowId}
+                onSelectRow={handleSelectRow}
+                onAddRow={handleAddRow}
+                onDeleteRow={handleDeleteRow}
+                onDuplicateRow={handleDuplicateRow}
+                onUpdateRow={handleUpdateRow}
+                onAddBlockToColumn={handleAddBlockToColumn}
+                onReorder={handleReorderRows}
+                setActiveRightTab={setActiveRightTab}
+                DIMENSIONS={DIMENSIONS}
+              />
+            )}
+
+            {activeMainTab === "Edit" && (
+              <div
+                style={{ width: 380, background: t.surface, borderLeft: `1px solid ${t.border}`, display: "flex", flexShrink: 0 }}
+                onClick={e => e.stopPropagation()}
+              >
+                <div style={{ flex: 1, overflowY: "auto", display: "flex", flexDirection: "column" }}>
+                  {showBlockProps ? (
+                    <BlockPropsPanel
+                      t={t} isDark={isDark} blockType={selectedBlockType} rowId={selectedRowId}
+                      onUpdate={handleUpdateRow} onClose={handleDeselect} rows={rows}
+                      uploads={uploads} isUploading={isUploading} uploadProgress={uploadProgress}
+                      onUpload={handleUploadFile} setActiveRightTab={setActiveRightTab}
+                      onDelete={handleDeleteRow} onDuplicate={handleDuplicateRow}
+                    />
+                  ) : (
+                    <>
+                      {activeRightTab === "Content" && <ContentTab t={t} isDark={isDark} onAddRow={handleAddRow} />}
+                      {activeRightTab === "Images" && <ImagesTab t={t} isDark={isDark} setActiveRightTab={setActiveRightTab} hasImageSelected={selectedBlockType === "IMAGE"} onInsertImage={handleInsertImage} />}
+                      {activeRightTab === "Uploads" && (
+                        <UploadsTab
+                          t={t} isDark={isDark}
+                          uploads={uploads}
+                          isUploading={isUploading}
+                          uploadProgress={uploadProgress}
+                          onUpload={handleUploadFile}
+                          onDeleteUpload={handleDeleteUpload}
+                          hasImageSelected={selectedBlockType === "IMAGE"}
+                          onInsertImage={handleInsertImage}
+                        />
+                      )}
+                    </>
+                  )}
+                </div>
+
+                <div style={{ width: 60, borderLeft: `1px solid ${t.border}`, display: "flex", flexDirection: "column", background: isDark ? "#111" : "#FAFAFA" }}>
+                  {RIGHT_TABS.map(rt => {
+                    const active = activeRightTab === rt.id && !showBlockProps;
+                    return (
+                      <div
+                        key={rt.id}
+                        onClick={() => setActiveRightTab(rt.id)}
+                        style={{
+                          display: "flex", flexDirection: "column", alignItems: "center", gap: 3,
+                          padding: "13px 0", cursor: "pointer",
+                          background: active ? t.surface : "transparent",
+                          borderLeft: active ? `3px solid ${isDark ? "#60A5FA" : "#3B82F6"}` : "3px solid transparent",
+                          color: active ? (isDark ? "#60A5FA" : "#3B82F6") : t.textMuted
+                        }}
+                      >
+                        <rt.icon size={18} strokeWidth={1.5} />
+                        <span style={{ fontSize: 8.5, fontWeight: active ? 600 : 400, textAlign: "center" }}>{rt.id}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+        </>
+      )}
 
       {toast && (
         <div style={{ position: "fixed", bottom: 28, right: 28, zIndex: 9999, background: toast.type === "success" ? (isDark ? "#052e16" : "#f0fdf4") : (isDark ? "#2d0a0a" : "#fef2f2"), border: `1px solid ${toast.type === "success" ? "#22c55e" : "#ef4444"}`, color: toast.type === "success" ? "#22c55e" : "#ef4444", borderRadius: 12, padding: "12px 18px", fontSize: 13, fontWeight: 600, boxShadow: "0 8px 32px rgba(0,0,0,0.18)", display: "flex", alignItems: "center", gap: 10 }}>
@@ -1832,6 +1867,99 @@ function EmailRow({ row, isSelected, isHovered, onSelect, onHover, onDelete, onD
 const ctrlBtn = { background: "rgba(0,0,0,0.6)", color: "#fff", border: "none", borderRadius: 3, width: 22, height: 22, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" };
 
 // ── Settings Panel ────────────────────────────────────────────────────────────
+
+function SimpleDraftLayout({ t, isDark, settings, onSettingsChange, profile, DIMENSIONS = [], CONTACTS = [], USERS = [], emailName = "", organizationName = "", onSave, isSaving, bodyHtml = "", onBodyHtmlChange }) {
+  const editorRef = React.useRef(null);
+  const [showPersonalize, setShowPersonalize] = React.useState(false);
+  const dropdownRef = React.useRef(null);
+  const mergeTags = (DIMENSIONS.find(d => d.name === "EmailTags")?.items || ["First name", "Last name", "Full name"]);
+
+  React.useEffect(() => {
+    if (editorRef.current && editorRef.current.innerHTML !== bodyHtml && document.activeElement !== editorRef.current) {
+      editorRef.current.innerHTML = bodyHtml || "";
+    }
+  }, [bodyHtml]);
+
+  React.useEffect(() => {
+    if (!showPersonalize) return;
+    const onDocClick = (e) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) setShowPersonalize(false);
+    };
+    document.addEventListener("mousedown", onDocClick);
+    return () => document.removeEventListener("mousedown", onDocClick);
+  }, [showPersonalize]);
+
+  const runCommand = (command, value = null) => {
+    editorRef.current?.focus();
+    document.execCommand(command, false, value);
+  };
+
+  const insertTag = (rawTag) => {
+    const isMap = typeof rawTag === "string" && rawTag.includes(":");
+    const [, tagValue] = isMap ? rawTag.split(":") : [rawTag, rawTag];
+    runCommand("insertText", `{{${tagValue}}}`);
+    setShowPersonalize(false);
+  };
+
+  const toolbarBtn = (Icon, onClick, title) => (
+    <button onMouseDown={e => { e.preventDefault(); onClick(); }} title={title} style={{ border: "none", background: "transparent", cursor: "pointer", color: t.textMuted, padding: "6px 7px", borderRadius: 4, display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <Icon size={14} />
+    </button>
+  );
+
+  return (
+    <div style={{ flex: 1, overflowY: "auto", padding: "20px 24px 28px", background: isDark ? "#111" : "#F8F8F5" }}>
+      <SettingsPanel
+        t={t}
+        isDark={isDark}
+        settings={settings}
+        onChange={onSettingsChange}
+        profile={profile}
+        DIMENSIONS={DIMENSIONS}
+        CONTACTS={CONTACTS}
+        USERS={USERS}
+        emailName={emailName}
+        organizationName={organizationName}
+        onSave={onSave}
+        isSaving={isSaving}
+      />
+
+      <div style={{ background: "#fff", border: "1px solid #E5E7EB", borderRadius: 8, marginTop: 18 }}>
+        <div style={{ borderBottom: "1px solid #E5E7EB", padding: "8px 10px", display: "flex", alignItems: "center", gap: 4 }}>
+          <div style={{ border: "1px solid #E5E7EB", borderRadius: 6, padding: "4px 8px", fontSize: 12, color: "#6B7280", marginRight: 6 }}>arial, sans-serif</div>
+          {toolbarBtn(Bold, () => runCommand("bold"), "Bold")}
+          {toolbarBtn(Italic, () => runCommand("italic"), "Italic")}
+          {toolbarBtn(Underline, () => runCommand("underline"), "Underline")}
+          {toolbarBtn(AlignLeft, () => runCommand("justifyLeft"), "Align left")}
+          {toolbarBtn(AlignCenter, () => runCommand("justifyCenter"), "Align center")}
+          {toolbarBtn(AlignRight, () => runCommand("justifyRight"), "Align right")}
+          {toolbarBtn(List, () => runCommand("insertUnorderedList"), "List")}
+          <div style={{ position: "relative", marginLeft: 6 }} ref={dropdownRef}>
+            <button onClick={() => setShowPersonalize(p => !p)} style={{ border: "1px solid #E5E7EB", background: "#fff", borderRadius: 6, fontSize: 12, padding: "5px 10px", cursor: "pointer", color: "#374151" }}>
+              Personalize
+            </button>
+            {showPersonalize && (
+              <div style={{ position: "absolute", top: "calc(100% + 6px)", left: 0, minWidth: 180, maxHeight: 240, overflowY: "auto", background: "#fff", border: "1px solid #E5E7EB", borderRadius: 8, boxShadow: "0 10px 24px rgba(0,0,0,0.08)", zIndex: 20 }}>
+                {(Array.isArray(mergeTags) ? mergeTags : []).map(tag => (
+                  <div key={tag} onMouseDown={e => { e.preventDefault(); insertTag(tag); }} style={{ padding: "8px 10px", cursor: "pointer", fontSize: 12, color: "#374151" }}>
+                    {String(tag).split(":")[0]}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+        <div
+          ref={editorRef}
+          contentEditable
+          suppressContentEditableWarning
+          onInput={e => onBodyHtmlChange(e.currentTarget.innerHTML)}
+          style={{ minHeight: 320, padding: "14px 16px", fontSize: 14, lineHeight: 1.7, color: "#111827", outline: "none" }}
+        />
+      </div>
+    </div>
+  );
+}
 
 function SettingsRow({ label, t, children }) {
   return (
