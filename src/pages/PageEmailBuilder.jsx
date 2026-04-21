@@ -1915,22 +1915,8 @@ function SimpleDraftLayout({ t, isDark, settings, onSettingsChange, profile, DIM
   return (
     <div style={{ flex: 1, overflowY: "auto", background: isDark ? "#111" : "#F8F8F5" }}>
       <div style={{ maxWidth: 1200, margin: "20px auto 40px", background: "#fff", border: "1px solid #E5E7EB", borderRadius: 8, overflow: "hidden", boxShadow: "0 4px 20px rgba(0,0,0,0.05)" }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 32px", borderBottom: "1px solid #F3F4F6", background: "#fff" }}>
+        <div style={{ padding: "16px 32px", borderBottom: "1px solid #F3F4F6", background: "#fff" }}>
           <div style={{ fontSize: 13, fontWeight: 700, color: "#111827" }}>Draft Settings</div>
-          <div style={{ display: "flex", gap: 10 }}>
-            <button
-              onClick={() => onSave ? onSave(settings) : onSettingsChange(settings)}
-              disabled={isSaving}
-              style={{ ...actionBtnRefined, background: "#1D4ED8", color: "#fff", border: "none", padding: "6px 20px", borderRadius: 20 }}
-            >
-              {isSaving ? "Saving..." : "Save as new draft"}
-            </button>
-            <button
-              style={{ ...actionBtnRefined, padding: "6px 20px", borderRadius: 20 }}
-            >
-              Save as my copy
-            </button>
-          </div>
         </div>
 
         <SettingsPanel
@@ -2196,7 +2182,6 @@ function SettingsPanel({ t, isDark, settings, onChange, profile, DIMENSIONS = []
           <SettingsRow label="From name:" t={t} isUnified={isUnified}>
             <div style={{ display: "flex", alignItems: "center", flex: 1, gap: 12 }}>
               <input value={localSettings.fromName || ""} onChange={e => set("fromName", e.target.value)} style={isUnified ? inpRefined : inp} />
-              {isUnified && <button onClick={() => set("fromName", organizationName)} style={actionBtnRefined}>Return to dropdown</button>}
             </div>
           </SettingsRow>
           <SettingsRow label="From:" t={t} isUnified={isUnified}>
