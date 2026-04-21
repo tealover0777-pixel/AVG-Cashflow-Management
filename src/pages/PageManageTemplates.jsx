@@ -245,28 +245,9 @@ export default function PageManageTemplates({ t, isDark, setActivePage, setActiv
         backgroundColor: isDark ? "#111827" : "#F8FAFC",
         display: "flex", alignItems: "center", justifyContent: "center",
         borderBottom: `1px solid ${t.border}`,
-        position: "relative",
-        overflow: "hidden"
+        position: "relative"
       }}>
-        {template.rows && template.rows.length > 0 ? (
-          <div style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", overflow: "hidden", pointerEvents: "none" }}>
-            <iframe
-              srcDoc={generateEmailPreviewHtml(template.rows)}
-              title={template.name}
-              sandbox="allow-same-origin"
-              style={{
-                width: 600,
-                height: 420,
-                border: "none",
-                overflow: "hidden",
-                transform: "scale(0.47)",
-                transformOrigin: "top left",
-                pointerEvents: "none",
-                display: "block"
-              }}
-            />
-          </div>
-        ) : <TemplatePlaceholder isDark={isDark} />}
+        {template.previewContent || <TemplatePlaceholder isDark={isDark} />}
         {template.isGlobal && (
           <div style={{
             position: "absolute", bottom: 10, right: 10,

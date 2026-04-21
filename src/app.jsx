@@ -171,7 +171,7 @@ function AppContent() {
 
   // Trigger fetch when entering email-related pages
   useEffect(() => {
-    if (activePage === "Manage Templates" || activePage === "Email Builder") {
+    if (activePage === "Manage Templates" || activePage === "Email Builder" || activePage === "Select Template") {
       fetchTemplates();
     }
   }, [activePage, activeTenantId]);
