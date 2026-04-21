@@ -1915,6 +1915,24 @@ function SimpleDraftLayout({ t, isDark, settings, onSettingsChange, profile, DIM
   return (
     <div style={{ flex: 1, overflowY: "auto", background: isDark ? "#111" : "#F8F8F5" }}>
       <div style={{ maxWidth: 1200, margin: "20px auto 40px", background: "#fff", border: "1px solid #E5E7EB", borderRadius: 8, overflow: "hidden", boxShadow: "0 4px 20px rgba(0,0,0,0.05)" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 32px", borderBottom: "1px solid #F3F4F6", background: "#fff" }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: "#111827" }}>Draft Settings</div>
+          <div style={{ display: "flex", gap: 10 }}>
+            <button
+              onClick={() => onSave ? onSave(settings) : onSettingsChange(settings)}
+              disabled={isSaving}
+              style={{ ...actionBtnRefined, background: "#1D4ED8", color: "#fff", border: "none", padding: "6px 20px", borderRadius: 20 }}
+            >
+              {isSaving ? "Saving..." : "Save as new draft"}
+            </button>
+            <button
+              style={{ ...actionBtnRefined, padding: "6px 20px", borderRadius: 20 }}
+            >
+              Save as my copy
+            </button>
+          </div>
+        </div>
+
         <SettingsPanel
           t={t}
           isDark={isDark}
@@ -1932,7 +1950,26 @@ function SimpleDraftLayout({ t, isDark, settings, onSettingsChange, profile, DIM
         />
 
         <div style={{ borderTop: "1px solid #E5E7EB", padding: "8px 16px", display: "flex", alignItems: "center", gap: 4, background: "#fff" }}>
-          <div style={{ border: "1px solid #E5E7EB", borderRadius: 4, padding: "4px 8px", fontSize: 12, color: "#6B7280", marginRight: 6 }}>arial, sans-serif</div>
+          <select 
+            onChange={e => runCommand("fontName", e.target.value)}
+            style={{ 
+              border: "1px solid #E5E7EB", 
+              borderRadius: 4, 
+              padding: "4px 8px", 
+              fontSize: 12, 
+              color: "#374151", 
+              background: "#fff",
+              outline: "none",
+              marginRight: 6,
+              cursor: "pointer"
+            }}
+          >
+            <option value="Arial, sans-serif">Arial</option>
+            <option value="Georgia, serif">Georgia</option>
+            <option value="Verdana, sans-serif">Verdana</option>
+            <option value="Courier New, monospace">Courier</option>
+            <option value="'Plus Jakarta Sans', sans-serif">Jakarta Sans</option>
+          </select>
           <div style={{ display: "flex", alignItems: "center", gap: 2 }}>
             {toolbarBtn(Bold, () => runCommand("bold"), "Bold")}
             {toolbarBtn(Italic, () => runCommand("italic"), "Italic")}
@@ -1963,10 +2000,19 @@ function SimpleDraftLayout({ t, isDark, settings, onSettingsChange, profile, DIM
             )}
           </div>
         </div>
+        <style>{`
+          .simple-editor:empty:before {
+            content: "Start typing your simple email here...";
+            color: #9CA3AF;
+            font-style: italic;
+            cursor: text;
+          }
+        `}</style>
         <div
           ref={editorRef}
           contentEditable
           suppressContentEditableWarning
+          className="simple-editor"
           onInput={e => onBodyHtmlChange(e.currentTarget.innerHTML)}
           style={{ minHeight: 400, padding: "24px 32px", fontSize: 15, lineHeight: 1.8, color: "#111827", outline: "none" }}
         />
@@ -1985,7 +2031,7 @@ function SettingsRow({ label, t, children, isUnified }) {
     }}>
       <div style={{ width: 160, fontSize: 13, color: t.textMuted, fontWeight: 600, flexShrink: 0, display: "flex", alignItems: "center", gap: 6 }}>
         {label}
-        {label.includes(":") && (label.includes("Type") || label.includes("Preview")) && (
+        {label.includes(":") && label.includes("Preview") && (
           <HelpCircle size={13} style={{ opacity: 0.5 }} />
         )}
       </div>
@@ -2214,43 +2260,9 @@ function SettingsPanel({ t, isDark, settings, onChange, profile, DIMENSIONS = []
               )}
             </div>
           </SettingsRow>
-          <SettingsRow label="Preview text:" t={t} isUnified={isUnified}>
-            <input placeholder="Enter email preview text" value={localSettings.previewText || ""} onChange={e => set("previewText", e.target.value)} style={isUnified ? inpRefined : inp} />
-          </SettingsRow>
 
-          {isUnified && (
-            <div style={{ display: "flex", gap: 12, padding: "24px 32px", borderTop: "1px solid #F3F4F6", marginTop: 8 }}>
-              <button
-                onClick={() => onSave ? onSave(localSettings) : onChange(localSettings)}
-                disabled={isSaving}
-                style={{ 
-                  ...actionBtnRefined, 
-                  background: "#1D4ED8", 
-                  color: "#fff", 
-                  border: "none", 
-                  padding: "8px 24px",
-                  borderRadius: 24,
-                  fontSize: 13,
-                  boxShadow: "0 4px 12px rgba(29, 78, 216, 0.2)"
-                }}
-              >
-                {isSaving ? (t.isFrench ? "Enregistrement..." : "Saving...") : "Save as new draft"}
-              </button>
-              <button
-                onClick={() => { /* Implement duplicate/copy logic if needed, or just save as copy */ }}
-                style={{ 
-                  ...actionBtnRefined, 
-                  border: "1px solid #E5E7EB", 
-                  padding: "8px 24px",
-                  borderRadius: 24,
-                  fontSize: 13,
-                  color: "#374151"
-                }}
-              >
-                Save as my copy
-              </button>
-            </div>
-          )}
+
+
 
           {!isUnified && (
             <div style={{ display: "flex", justifyContent: "flex-end", gap: 12, padding: "24px 48px" }}>
