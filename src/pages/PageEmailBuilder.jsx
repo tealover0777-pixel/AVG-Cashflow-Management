@@ -2065,11 +2065,13 @@ function SettingsPanel({ t, isDark, settings, onChange, profile, DIMENSIONS = []
   React.useEffect(() => {
     setLocalSettings(prev => {
       const next = { ...prev, ...settings };
+      if (!next.from) next.from = profile?.email || "";
+      if (!next.replyTo) next.replyTo = profile?.email || "";
       if (Array.isArray(settings.recipients)) next.recipients = settings.recipients.join("; ");
       if (Array.isArray(settings.doNotSendTo)) next.doNotSendTo = settings.doNotSendTo.join("; ");
       return next;
     });
-  }, [settings]);
+  }, [settings, profile]);
 
   const set = (key, val) => setLocalSettings(prev => ({ ...prev, [key]: val }));
 
@@ -2134,7 +2136,7 @@ function SettingsPanel({ t, isDark, settings, onChange, profile, DIMENSIONS = []
     }
   ], [t, isDark]);
 
-  const inp = { flex: 1, border: "none", borderBottom: `1px solid ${t.chipBorder}`, background: "transparent", fontSize: 15, color: t.text, outline: "none", padding: "8px 0" };
+  const inp = { width: "100%", flex: 1, border: "none", borderBottom: `1px solid ${t.chipBorder}`, background: "transparent", fontSize: 15, color: t.text, outline: "none", padding: "8px 0" };
   const actionBtn = { border: `1px solid ${t.chipBorder}`, borderRadius: 20, padding: "8px 20px", background: "transparent", cursor: "pointer", color: t.text, fontSize: 13, fontWeight: 600 };
 
   return (
