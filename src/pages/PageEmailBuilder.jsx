@@ -1915,9 +1915,9 @@ function SimpleDraftLayout({ t, isDark, settings, onSettingsChange, profile, DIM
   return (
     <div style={{ flex: 1, overflowY: "auto", background: isDark ? "#111" : "#F8F8F5" }}>
       <div style={{ maxWidth: 1200, margin: "20px auto 40px", background: "#fff", border: "1px solid #E5E7EB", borderRadius: 8, overflow: "hidden", boxShadow: "0 4px 20px rgba(0,0,0,0.05)" }}>
-        <div style={{ padding: "16px 32px", borderBottom: "1px solid #F3F4F6", background: "#fff" }}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: "#111827" }}>Draft Settings</div>
-        </div>
+          <div style={{ padding: "24px 64px", borderBottom: "1px solid #F3F4F6", background: "#fff" }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: "#111827" }}>Draft Settings</div>
+          </div>
 
         <SettingsPanel
           t={t}
@@ -1980,7 +1980,7 @@ function SimpleDraftLayout({ t, isDark, settings, onSettingsChange, profile, DIM
           suppressContentEditableWarning
           className="simple-editor"
           onInput={e => onBodyHtmlChange(e.currentTarget.innerHTML)}
-          style={{ minHeight: 400, padding: "24px 32px", fontSize: 15, lineHeight: 1.8, color: "#111827", outline: "none" }}
+          style={{ minHeight: 400, padding: "24px 64px", fontSize: 15, lineHeight: 1.8, color: "#111827", outline: "none" }}
         />
       </div>
     </div>
@@ -1992,7 +1992,7 @@ function SettingsRow({ label, t, children, isUnified }) {
     <div style={{ 
       display: "flex", 
       alignItems: "center", 
-      padding: isUnified ? "12px 32px" : "0 0 22px 0", 
+      padding: isUnified ? "14px 64px" : "12px 64px", 
       borderBottom: isUnified ? "1px solid #F3F4F6" : "none" 
     }}>
       <div style={{ width: 160, fontSize: 13, color: t.textMuted, fontWeight: 600, flexShrink: 0, display: "flex", alignItems: "center", gap: 6 }}>
@@ -2138,10 +2138,10 @@ function SettingsPanel({ t, isDark, settings, onChange, profile, DIMENSIONS = []
   const actionBtn = { border: `1px solid ${t.chipBorder}`, borderRadius: 20, padding: "8px 20px", background: "transparent", cursor: "pointer", color: t.text, fontSize: 13, fontWeight: 600 };
 
   return (
-    <div style={isUnified ? { background: "#fff" } : { flex: 1, background: isDark ? "#111" : "#EEEEE9", display: "flex", alignItems: "flex-start", justifyContent: "center", padding: "40px 24px", overflowY: "auto" }}>
+    <div style={isUnified ? { background: "#fff" } : { flex: 1, background: isDark ? "#111" : "#EEEEE9", display: "flex", alignItems: "flex-start", justifyContent: "center", padding: "40px 64px", overflowY: "auto" }}>
       <div style={isUnified ? { width: "100%" } : { width: "100%", maxWidth: 1360, background: t.surface, borderRadius: 16, border: `1px solid ${t.chipBorder}`, boxShadow: "0 10px 40px rgba(0,0,0,0.1)" }}>
         {!isUnified && (
-          <div style={{ padding: "32px 48px", borderBottom: `1px solid ${t.border}` }}>
+          <div style={{ padding: "32px 64px", borderBottom: `1px solid ${t.border}` }}>
             <h3 style={{ margin: 0, fontSize: 22, fontWeight: 700, color: t.text }}>Email settings &amp; recipients</h3>
           </div>
         )}
@@ -2172,7 +2172,7 @@ function SettingsPanel({ t, isDark, settings, onChange, profile, DIMENSIONS = []
               </div>
               {showTypeDropdown && (
                 <div style={{ position: "absolute", top: "100%", left: 0, right: 0, background: t.surface, border: `1px solid ${t.border}`, zIndex: 1000, borderRadius: 8, boxShadow: "0 10px 25px rgba(0,0,0,0.15)", overflow: "hidden" }}>
-                  {["Marketing", "Transactional", "Operational"].map(opt => (
+                  {["Investor", "Marketing", "Transactional", "Operational"].map(opt => (
                     <div key={opt} onClick={() => set("type", opt)} style={{ padding: "12px 16px", cursor: "pointer", transition: "background 0.2s" }} onMouseEnter={e => e.currentTarget.style.background = isDark ? "rgba(255,255,255,0.05)" : "#f3f4f6"} onMouseLeave={e => e.currentTarget.style.background = "transparent"}>{opt}</div>
                   ))}
                 </div>
