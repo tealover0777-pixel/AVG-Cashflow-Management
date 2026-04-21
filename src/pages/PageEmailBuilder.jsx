@@ -2209,10 +2209,22 @@ function SettingsPanel({ t, isDark, settings, onChange, profile, DIMENSIONS = []
               )}
             </div>
           </SettingsRow>
-            >
-              {isSaving ? (t.isFrench ? "Enregistrement..." : "Saving...") : "Save Email Setting"}
-            </button>
-          </div>
+          <SettingsRow label="Preview text:" t={t} isUnified={isUnified}>
+            <input placeholder="Enter email preview text" value={localSettings.previewText || ""} onChange={e => set("previewText", e.target.value)} style={isUnified ? inpRefined : inp} />
+          </SettingsRow>
+
+          {!isUnified && (
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: 12, padding: "24px 48px" }}>
+              <button onClick={() => setLocalSettings(settings)} style={{ ...actionBtn, background: isDark ? "rgba(255,255,255,0.05)" : "#F3F4F6" }}>Cancel</button>
+              <button
+                onClick={() => onSave ? onSave(localSettings) : onChange(localSettings)}
+                disabled={isSaving}
+                style={{ ...actionBtn, background: "#1D4ED8", color: "#fff", border: "none", opacity: isSaving ? 0.7 : 1, cursor: isSaving ? "not-allowed" : "pointer" }}
+              >
+                {isSaving ? (t.isFrench ? "Enregistrement..." : "Saving...") : "Save Email Setting"}
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
