@@ -59,7 +59,7 @@ export default function PageSelectTemplate(props) {
   const handleUseBlank = (mode) => {
     const initialRows = mode === 'simple' 
       ? [{ id: "r_1", type: "paragraph", content: { html: "" } }]
-      : undefined; // Email Builder uses default INITIAL_ROWS if rows is undefined
+      : []; // Start with zero rows for blank templates
 
     handleSelectTemplate({
       name: `New ${mode === 'simple' ? 'Simple' : 'Drag & drop'} Draft`,
