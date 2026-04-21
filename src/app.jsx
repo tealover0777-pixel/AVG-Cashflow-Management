@@ -101,7 +101,39 @@ function AppContent() {
     const saved = localStorage.getItem("avg_theme");
     return saved !== null ? saved === "dark" : true;
   });
-  const [activePage, setActivePage] = useState("Dashboard");
+  
+  // Hash Routing Logic
+  const pageToHash = (page) => page.replace(/\s+/g, "-");
+  const hashToPage = (hash) => {
+    const clean = hash.replace(/^#/, "").replace(/-/g, " ");
+    // Special handling for casing if needed, but the Nav labels are mostly Title Case
+    // We'll try to find an exact match in the flat nav list to be safe
+    return clean; 
+  };
+
+  const [activePage, setActivePage] = useState(() => {
+    const initialHash = window.location.hash;
+    if (initialHash) return hashToPage(initialHash);
+    return "Dashboard";
+  });
+
+  useEffect(() => {
+    const handlePopState = () => {
+      const newPage = hashToPage(window.location.hash || "#Dashboard");
+      setActivePage(newPage);
+    };
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, []);
+
+  useEffect(() => {
+    const currentHash = window.location.hash;
+    const targetHash = `#${pageToHash(activePage)}`;
+    if (currentHash !== targetHash) {
+      window.history.pushState(null, "", targetHash);
+    }
+  }, [activePage]);
+
   const [prevPage, setPrevPage] = useState("Manage Templates");
   const [activeEmailTemplate, setActiveEmailTemplate] = useState(null);
 
