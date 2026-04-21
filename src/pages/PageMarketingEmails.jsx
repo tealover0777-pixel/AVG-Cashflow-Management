@@ -833,7 +833,7 @@ export default function PageMarketingEmails({ t, isDark, setActivePage, MARKETIN
             <LayoutTemplate size={16} /> Templates
           </button>
           <button
-            onClick={() => setShowTemplateModal(true)}
+            onClick={() => setActivePage("Select Template")}
             style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 18px", borderRadius: 8, background: t.accentGrad, color: "#fff", fontWeight: 600, fontSize: 13, border: "none", cursor: "pointer", boxShadow: "0 4px 12px rgba(59,130,246,0.25)" }}
           >
             <Plus size={16} /> New Draft
@@ -1170,44 +1170,6 @@ export default function PageMarketingEmails({ t, isDark, setActivePage, MARKETIN
         </div>
       )}
 
-      {/* Template Modal */}
-      {showTemplateModal && (
-        <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.5)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
-          <div style={{ background: t.cardBg, border: `1px solid ${t.surfaceBorder}`, borderRadius: 16, width: "90%", maxWidth: 640, boxShadow: "0 20px 40px rgba(0,0,0,0.2)", display: "flex", flexDirection: "column", maxHeight: "85vh" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "20px 24px", borderBottom: `1px solid ${t.border}` }}>
-              <div>
-                <h3 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: t.text }}>Select a Template</h3>
-                <p style={{ margin: "4px 0 0 0", fontSize: 13, color: t.textMuted }}>Start from scratch or pick an existing layout.</p>
-              </div>
-              <button onClick={() => setShowTemplateModal(false)} style={{ background: "transparent", border: "none", cursor: "pointer", color: t.textMuted }}>
-                <X size={20} />
-              </button>
-            </div>
-            <div style={{ padding: 24, overflowY: "auto", flex: 1, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-              {dummyTemplates.map(tmp => (
-                <div
-                  key={tmp.id}
-                  onClick={() => { setShowTemplateModal(false); setActivePage("Email Builder"); }}
-                  style={{ border: `1px solid ${t.border}`, borderRadius: 12, padding: 16, cursor: "pointer", display: "flex", flexDirection: "column", gap: 12, background: isDark ? "rgba(255,255,255,0.02)" : "#fff", transition: "all 0.2s" }}
-                  onMouseEnter={(e) => { e.currentTarget.style.borderColor = isDark ? "#60A5FA" : "#3B82F6"; e.currentTarget.style.transform = "translateY(-2px)"; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.borderColor = t.border; e.currentTarget.style.transform = "translateY(0)"; }}
-                >
-                  <div style={{ height: 100, background: isDark ? "#1F2937" : "#F3F4F6", borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", color: t.textMuted }}>
-                    <LayoutTemplate size={32} opacity={0.5} />
-                  </div>
-                  <div>
-                    <div style={{ fontSize: 11, fontWeight: 700, color: t.accent, marginBottom: 4, textTransform: "uppercase" }}>{tmp.category}</div>
-                    <div style={{ fontSize: 14, fontWeight: 600, color: t.text, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                      {tmp.name}
-                      <ChevronRight size={14} style={{ color: t.textMuted }} />
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
       {/* Recipients Modal */}
       {recipientsModalData && (
         <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.5)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 10000 }}>

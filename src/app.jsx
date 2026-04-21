@@ -26,6 +26,7 @@ import PageReports from "./pages/PageReports";
 import PageDimensions from "./pages/PageDimensions";
 import PageMarketingEmails from "./pages/PageMarketingEmails";
 import PageManageTemplates from "./pages/PageManageTemplates";
+import PageSelectTemplate from "./pages/PageSelectTemplate";
 import PageEmailBuilder from "./pages/PageEmailBuilder";
 import PageCompany from "./pages/PageCompany";
 import {
@@ -765,6 +766,7 @@ function AppContent() {
                   {activePage === "Dimensions" && <PageDimensions t={t} isDark={isDark} DIMENSIONS={DIMENSIONS} rawDimensions={rawDimensions} collectionPath={fetchPaths.dimensions} />}
                   {activePage === "Reports" && <PageReports t={t} isDark={isDark} MONTHLY={MONTHLY} activeTenantId={activeTenantId} />}
                   {activePage === "Marketing emails" && <PageMarketingEmails t={t} isDark={isDark} setActivePage={setActivePage} MARKETING_EMAILS={rawMarketingEmails} setActiveEmailTemplate={setActiveEmailTemplate} activeTenantId={activeTenantId} USERS={rawUsers} CONTACTS={CONTACTS} />}
+                  {activePage === "Select Template" && <PageSelectTemplate t={t} isDark={isDark} setActivePage={setActivePage} allTemplates={allTemplates} setActiveEmailTemplate={setActiveEmailTemplate} />}
                   {activePage === "Manage Templates" && <PageManageTemplates t={t} isDark={isDark} setActivePage={setActivePage} setActiveEmailTemplate={setActiveEmailTemplate} allTemplates={allTemplates} loading={loadingTemplates} fetchTemplates={fetchTemplates} />}
                   {activePage === "Email Builder" && <PageEmailBuilder t={t} isDark={isDark} setActivePage={setActivePage} activeEmailTemplate={activeEmailTemplate} setActiveEmailTemplate={setActiveEmailTemplate} refreshTemplates={() => fetchTemplates(true)} activeTenantId={activeTenantId} backTo={prevPage} USERS={rawUsers} CONTACTS={CONTACTS} DIMENSIONS={DIMENSIONS} organizationName={determinedTenantName} />}
                   {activePage === "AI Admin" && <PageAdminHelp t={t} isDark={isDark} />}
