@@ -200,50 +200,49 @@ export default function PageManageTemplates({ t, isDark, setActivePage, setActiv
       }}
       onMouseEnter={(e) => {
         e.currentTarget.style.transform = "translateY(-2px)";
-        e.currentTarget.style.boxShadow = "0 8px 16px rgba(0,0,0,0.1)";
+        e.currentTarget.style.boxShadow = "0 10px 20px rgba(0,0,0,0.08)";
       }}
       onMouseLeave={(e) => {
         e.currentTarget.style.transform = "translateY(0)";
         e.currentTarget.style.boxShadow = "0 2px 4px rgba(0,0,0,0.05)";
       }}
     >
-      {/* Delete Button - only for non-global (personal) templates */}
-      {!template.isGlobal && (
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            setTemplateToDelete(template);
-          }}
-          style={{
-            position: "absolute", top: 12, right: 12,
-            background: isDark ? "rgba(239,68,68,0.2)" : "rgba(239,68,68,0.1)",
-            border: `1px solid ${isDark ? "rgba(239,68,68,0.3)" : "rgba(239,68,68,0.2)"}`,
-            borderRadius: 6,
-            width: 28, height: 28, display: "flex", alignItems: "center", justifyContent: "center",
-            cursor: "pointer", color: "#EF4444",
-            zIndex: 10
-          }}
-          title="Delete template"
-        >
-          <Trash2 size={14} />
-        </button>
-      )}
+      {/* Badge & Trash Overlay */}
+      <div style={{ position: "absolute", top: 10, left: 10, right: 10, display: "flex", justifyContent: "space-between", alignItems: "center", zIndex: 10 }}>
+        {!template.isGlobal ? (
+          <div style={{
+            padding: "3px 8px", borderRadius: 4,
+            background: "#D1FAE5", // Light green
+            color: "#059669", // Dark green
+            fontSize: 10, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.4px"
+          }}>
+            YOURS
+          </div>
+        ) : <div />}
 
-      {!template.isGlobal && (
-        <div style={{
-          position: "absolute", top: 12, left: 12,
-          padding: "2px 6px", borderRadius: 4,
-          background: isDark ? "rgba(52,211,153,0.2)" : "rgba(52,211,153,0.1)",
-          border: `1px solid ${isDark ? "rgba(52,211,153,0.3)" : "rgba(52,211,153,0.2)"}`,
-          color: "#34D399", fontSize: 10, fontWeight: 700, zIndex: 5
-        }}>
-          YOURS
-        </div>
-      )}
+        {!template.isGlobal && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setTemplateToDelete(template);
+            }}
+            style={{
+              background: "#FEE2E2", // Light red
+              border: "none",
+              borderRadius: 6,
+              width: 26, height: 26, display: "flex", alignItems: "center", justifyContent: "center",
+              cursor: "pointer", color: "#EF4444",
+            }}
+            title="Delete template"
+          >
+            <Trash2 size={13} strokeWidth={2.5} />
+          </button>
+        )}
+      </div>
 
       <div style={{
         height: 140,
-        backgroundColor: template.bgColor || (isDark ? "#111827" : "#F3F4F6"),
+        backgroundColor: isDark ? "#111827" : "#F8FAFC",
         display: "flex", alignItems: "center", justifyContent: "center",
         borderBottom: `1px solid ${t.border}`,
         position: "relative"
@@ -251,9 +250,9 @@ export default function PageManageTemplates({ t, isDark, setActivePage, setActiv
         {template.previewContent || <TemplatePlaceholder isDark={isDark} />}
         {template.isGlobal && (
           <div style={{
-            position: "absolute", bottom: 8, right: 8,
+            position: "absolute", bottom: 10, right: 10,
             display: "flex", alignItems: "center", gap: 4,
-            fontSize: 10, color: t.textMuted, opacity: 0.8
+            fontSize: 10, color: t.textMuted, fontWeight: 600, opacity: 0.8
           }}>
             <Star size={10} fill={isDark ? "rgba(255,255,255,0.2)" : "rgba(0,0,0,0.1)"} />
             Global
@@ -261,25 +260,18 @@ export default function PageManageTemplates({ t, isDark, setActivePage, setActiv
         )}
       </div>
 
-      <div style={{ padding: "12px 16px" }}>
-        <h3 style={{ margin: "0 0 6px 0", fontSize: 13, fontWeight: 600, color: t.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+      <div style={{ padding: "14px 16px" }}>
+        <h3 style={{ margin: "0 0 4px 0", fontSize: 13, fontWeight: 700, color: t.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
           {template.name}
         </h3>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <span style={{ fontSize: 11, color: t.textMuted }}>
-            {template.subtext || `Updated ${template.updatedAt ? new Date(template.updatedAt).toLocaleDateString() : "recently"}`}
-          </span>
-          {template.tag && (
-            <span style={{
-              fontSize: 10, fontWeight: 600,
-              padding: "2px 6px", borderRadius: 4,
-              backgroundColor: isDark ? "rgba(255,255,255,0.05)" : "#F3F4F6",
-              color: t.textMuted, display: "flex", alignItems: "center", gap: 4
-            }}>
-              <span style={{ width: 4, height: 4, borderRadius: "50%", background: t.textMuted }}></span>
-              {template.tag}
-            </span>
-          )}
+          <div style={{ display: "flex", alignItems: "center", gap: 3, fontSize: 11, color: t.textMuted }}>
+            <span>Updated {template.updatedAt ? new Date(template.updatedAt).toLocaleDateString() : "recently"}</span>
+            <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+              <span style={{ fontSize: 13, color: t.textSubtle, opacity: 0.5 }}>•</span>
+              <span style={{ fontWeight: 600, fontSize: 10, color: t.textSubtle }}>{template.tag || (template.editorMode === 'simple' ? 'Simple' : 'Drag & drop')}</span>
+            </div>
+          </div>
         </div>
       </div>
     </div>

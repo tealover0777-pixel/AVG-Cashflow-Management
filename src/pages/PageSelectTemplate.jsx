@@ -144,35 +144,43 @@ export default function PageSelectTemplate(props) {
                       border: `1px solid ${t.border}`, borderRadius: 12, overflow: "hidden",
                       cursor: "pointer", transition: "all 0.2s", position: "relative"
                     }}
-                    onMouseEnter={e => { e.currentTarget.style.borderColor = "#3B82F6"; e.currentTarget.style.transform = "translateY(-2px)"; }}
-                    onMouseLeave={e => { e.currentTarget.style.borderColor = t.border; e.currentTarget.style.transform = "translateY(0)"; }}
+                    onMouseEnter={e => { e.currentTarget.style.borderColor = "#3B82F6"; e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = "0 10px 20px rgba(0,0,0,0.08)"; }}
+                    onMouseLeave={e => { e.currentTarget.style.borderColor = t.border; e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "none"; }}
                   >
-                    <div style={{ height: 140, borderBottom: `1px solid ${t.border}`, position: "relative" }}>
+                    {/* YOURS Badge Overlay */}
+                    {!tmp.isGlobal && (
+                      <div style={{ position: "absolute", top: 10, left: 10, zIndex: 10 }}>
+                        <div style={{
+                          padding: "3px 8px", borderRadius: 4,
+                          background: "#D1FAE5", color: "#059669",
+                          fontSize: 10, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.4px"
+                        }}>
+                          YOURS
+                        </div>
+                      </div>
+                    )}
+
+                    <div style={{ height: 140, borderBottom: `1px solid ${t.border}`, position: "relative", background: isDark ? "#111827" : "#F8FAFC", display: "flex", alignItems: "center", justifyContent: "center" }}>
                       {tmp.previewImage ? <img src={tmp.previewImage} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <TemplatePlaceholder isDark={isDark} />}
                       {tmp.isGlobal && (
                         <div style={{
-                          position: "absolute", bottom: 8, right: 8,
+                          position: "absolute", bottom: 10, right: 10,
                           display: "flex", alignItems: "center", gap: 4,
-                          fontSize: 10, color: "rgba(255,255,255,0.7)", background: "rgba(0,0,0,0.3)",
-                          padding: "2px 6px", borderRadius: 4, backdropFilter: "blur(4px)"
+                          fontSize: 10, color: t.textMuted, fontWeight: 600, opacity: 0.8
                         }}>
-                          <Star size={10} fill="currentColor" /> Global
+                          <Star size={10} fill={isDark ? "rgba(255,255,255,0.2)" : "rgba(0,0,0,0.1)"} />
+                          Global
                         </div>
                       )}
                     </div>
-                    <div style={{ padding: 16, position: "relative" }}>
+                    <div style={{ padding: "14px 16px", position: "relative" }}>
                       <h3 style={{ fontSize: 13, fontWeight: 700, color: t.text, margin: "0 0 4px 0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{tmp.name}</h3>
-                      <div style={{ fontSize: 11, color: t.textMuted }}>Updated {tmp.updatedAt ? new Date(tmp.updatedAt).toLocaleDateString() : "recently"}</div>
-                      
-                      {/* Editor Type Pill */}
-                      <div style={{ 
-                        position: "absolute", bottom: 16, right: 16,
-                        fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 4,
-                        background: isDark ? "rgba(255,255,255,0.05)" : "#F3F4F6", color: t.textMuted,
-                        border: `1px solid ${t.border}`, display: "flex", alignItems: "center", gap: 4
-                      }}>
-                        <div style={{ width: 4, height: 4, borderRadius: "50%", background: t.textMuted }} />
-                        {tmp.editorMode === 'simple' ? 'Simple' : 'Drag & drop'}
+                      <div style={{ display: "flex", alignItems: "center", gap: 3, fontSize: 11, color: t.textMuted }}>
+                        <span>Updated {tmp.updatedAt ? new Date(tmp.updatedAt).toLocaleDateString() : "recently"}</span>
+                        <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                          <span style={{ fontSize: 13, color: t.textSubtle, opacity: 0.5 }}>•</span>
+                          <span style={{ fontWeight: 600, fontSize: 10, color: t.textSubtle }}>{tmp.tag || (tmp.editorMode === 'simple' ? 'Simple' : 'Drag & drop')}</span>
+                        </div>
                       </div>
                     </div>
                   </div>
