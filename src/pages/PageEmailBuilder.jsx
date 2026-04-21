@@ -1994,7 +1994,7 @@ function SettingsRow({ label, t, children, isUnified }) {
 const inpRefined = { width: "100%", border: "none", background: "transparent", fontSize: 14, color: "#111827", outline: "none", padding: "6px 0" };
 const actionBtnRefined = { border: "1px solid #E5E7EB", borderRadius: 6, padding: "5px 12px", background: "#fff", cursor: "pointer", color: "#374151", fontSize: 12, fontWeight: 700, display: "flex", alignItems: "center", gap: 6 };
 
-function SettingsPanel({ t, isDark, settings, onChange, profile, DIMENSIONS = [], CONTACTS = [], USERS = [], emailName = "", organizationName = "", onSave, isSaving }) {
+function SettingsPanel({ t, isDark, settings, onChange, profile, DIMENSIONS = [], CONTACTS = [], USERS = [], emailName = "", organizationName = "", onSave, isSaving, isUnified }) {
   const [localSettings, setLocalSettings] = React.useState(() => {
     const s = { ...settings };
     return {
