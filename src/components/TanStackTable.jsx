@@ -58,7 +58,7 @@ const TanStackTable = React.forwardRef(({
       globalFilter,
       rowSelection,
     },
-    enableRowSelection: true,
+    enableRowSelection: (row) => !row.original.isAlreadyDoNotSend && !row.original.isAlreadyRecipient,
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
     onGlobalFilterChange: setGlobalFilter,
