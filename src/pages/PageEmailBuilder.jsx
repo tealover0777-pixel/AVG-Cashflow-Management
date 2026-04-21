@@ -1908,40 +1908,49 @@ function SimpleDraftLayout({ t, isDark, settings, onSettingsChange, profile, DIM
   );
 
   return (
-    <div style={{ flex: 1, overflowY: "auto", padding: "20px 24px 28px", background: isDark ? "#111" : "#F8F8F5" }}>
-      <SettingsPanel
-        t={t}
-        isDark={isDark}
-        settings={settings}
-        onChange={onSettingsChange}
-        profile={profile}
-        DIMENSIONS={DIMENSIONS}
-        CONTACTS={CONTACTS}
-        USERS={USERS}
-        emailName={emailName}
-        organizationName={organizationName}
-        onSave={onSave}
-        isSaving={isSaving}
-      />
+    <div style={{ flex: 1, overflowY: "auto", background: isDark ? "#111" : "#F8F8F5" }}>
+      <div style={{ maxWidth: 1200, margin: "20px auto 40px", background: "#fff", border: "1px solid #E5E7EB", borderRadius: 8, overflow: "hidden", boxShadow: "0 4px 20px rgba(0,0,0,0.05)" }}>
+        <SettingsPanel
+          t={t}
+          isDark={isDark}
+          settings={settings}
+          onChange={onSettingsChange}
+          profile={profile}
+          DIMENSIONS={DIMENSIONS}
+          CONTACTS={CONTACTS}
+          USERS={USERS}
+          emailName={emailName}
+          organizationName={organizationName}
+          onSave={onSave}
+          isSaving={isSaving}
+          isUnified
+        />
 
-      <div style={{ background: "#fff", border: "1px solid #E5E7EB", borderRadius: 8, marginTop: 18 }}>
-        <div style={{ borderBottom: "1px solid #E5E7EB", padding: "8px 10px", display: "flex", alignItems: "center", gap: 4 }}>
-          <div style={{ border: "1px solid #E5E7EB", borderRadius: 6, padding: "4px 8px", fontSize: 12, color: "#6B7280", marginRight: 6 }}>arial, sans-serif</div>
-          {toolbarBtn(Bold, () => runCommand("bold"), "Bold")}
-          {toolbarBtn(Italic, () => runCommand("italic"), "Italic")}
-          {toolbarBtn(Underline, () => runCommand("underline"), "Underline")}
-          {toolbarBtn(AlignLeft, () => runCommand("justifyLeft"), "Align left")}
-          {toolbarBtn(AlignCenter, () => runCommand("justifyCenter"), "Align center")}
-          {toolbarBtn(AlignRight, () => runCommand("justifyRight"), "Align right")}
+        <div style={{ borderTop: "1px solid #E5E7EB", padding: "8px 16px", display: "flex", alignItems: "center", gap: 4, background: "#fff" }}>
+          <div style={{ border: "1px solid #E5E7EB", borderRadius: 4, padding: "4px 8px", fontSize: 12, color: "#6B7280", marginRight: 6 }}>arial, sans-serif</div>
+          <div style={{ display: "flex", alignItems: "center", gap: 2 }}>
+            {toolbarBtn(Bold, () => runCommand("bold"), "Bold")}
+            {toolbarBtn(Italic, () => runCommand("italic"), "Italic")}
+            {toolbarBtn(Underline, () => runCommand("underline"), "Underline")}
+          </div>
+          <div style={{ width: 1, height: 20, background: "#E5E7EB", margin: "0 8px" }} />
+          <div style={{ display: "flex", alignItems: "center", gap: 2 }}>
+            {toolbarBtn(AlignLeft, () => runCommand("justifyLeft"), "Align left")}
+            {toolbarBtn(AlignCenter, () => runCommand("justifyCenter"), "Align center")}
+            {toolbarBtn(AlignRight, () => runCommand("justifyRight"), "Align right")}
+          </div>
+          <div style={{ width: 1, height: 20, background: "#E5E7EB", margin: "0 8px" }} />
           {toolbarBtn(List, () => runCommand("insertUnorderedList"), "List")}
-          <div style={{ position: "relative", marginLeft: 6 }} ref={dropdownRef}>
-            <button onClick={() => setShowPersonalize(p => !p)} style={{ border: "1px solid #E5E7EB", background: "#fff", borderRadius: 6, fontSize: 12, padding: "5px 10px", cursor: "pointer", color: "#374151" }}>
-              Personalize
+          
+          <div style={{ position: "relative", marginLeft: "auto" }} ref={dropdownRef}>
+            <button onClick={() => setShowPersonalize(p => !p)} style={{ border: "1px solid #E5E7EB", background: "#fff", borderRadius: 6, fontSize: 12, padding: "5px 12px", cursor: "pointer", color: "#374151", fontWeight: 600, display: "flex", alignItems: "center", gap: 4 }}>
+              Personalize <ChevronDown size={14} />
             </button>
             {showPersonalize && (
-              <div style={{ position: "absolute", top: "calc(100% + 6px)", left: 0, minWidth: 180, maxHeight: 240, overflowY: "auto", background: "#fff", border: "1px solid #E5E7EB", borderRadius: 8, boxShadow: "0 10px 24px rgba(0,0,0,0.08)", zIndex: 20 }}>
+              <div style={{ position: "absolute", top: "calc(100% + 6px)", right: 0, minWidth: 200, maxHeight: 300, overflowY: "auto", background: "#fff", border: "1px solid #E5E7EB", borderRadius: 8, boxShadow: "0 10px 24px rgba(0,0,0,0.12)", zIndex: 100 }}>
+                <div style={{ padding: "8px 12px", fontSize: 11, fontWeight: 700, color: "#9CA3AF", borderBottom: "1px solid #F3F4F6", textTransform: "uppercase" }}>Insert Merge Tag</div>
                 {(Array.isArray(mergeTags) ? mergeTags : []).map(tag => (
-                  <div key={tag} onMouseDown={e => { e.preventDefault(); insertTag(tag); }} style={{ padding: "8px 10px", cursor: "pointer", fontSize: 12, color: "#374151" }}>
+                  <div key={tag} onMouseDown={e => { e.preventDefault(); insertTag(tag); }} style={{ padding: "10px 12px", cursor: "pointer", fontSize: 13, color: "#374151", transition: "background 0.2s" }} onMouseEnter={e => e.currentTarget.style.background = "#F9FAFB"} onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
                     {String(tag).split(":")[0]}
                   </div>
                 ))}
@@ -1954,23 +1963,36 @@ function SimpleDraftLayout({ t, isDark, settings, onSettingsChange, profile, DIM
           contentEditable
           suppressContentEditableWarning
           onInput={e => onBodyHtmlChange(e.currentTarget.innerHTML)}
-          style={{ minHeight: 320, padding: "14px 16px", fontSize: 14, lineHeight: 1.7, color: "#111827", outline: "none" }}
+          style={{ minHeight: 400, padding: "24px 32px", fontSize: 15, lineHeight: 1.8, color: "#111827", outline: "none" }}
         />
       </div>
     </div>
   );
 }
 
-function SettingsRow({ label, t, children }) {
+function SettingsRow({ label, t, children, isUnified }) {
   return (
-    <div style={{ display: "flex", alignItems: "center", paddingBottom: 22 }}>
-      <div style={{ width: 180, fontSize: 14, color: t.textMuted, fontWeight: 500, flexShrink: 0 }}>
+    <div style={{ 
+      display: "flex", 
+      alignItems: "center", 
+      padding: isUnified ? "12px 32px" : "0 0 22px 0", 
+      borderBottom: isUnified ? "1px solid #F3F4F6" : "none" 
+    }}>
+      <div style={{ width: 160, fontSize: 13, color: t.textMuted, fontWeight: 600, flexShrink: 0, display: "flex", alignItems: "center", gap: 6 }}>
         {label}
+        {label.includes(":") && (label.includes("Type") || label.includes("Preview")) && (
+          <HelpCircle size={13} style={{ opacity: 0.5 }} />
+        )}
       </div>
-      {children}
+      <div style={{ flex: 1 }}>
+        {children}
+      </div>
     </div>
   );
 }
+
+const inpRefined = { width: "100%", border: "none", background: "transparent", fontSize: 14, color: "#111827", outline: "none", padding: "6px 0" };
+const actionBtnRefined = { border: "1px solid #E5E7EB", borderRadius: 6, padding: "5px 12px", background: "#fff", cursor: "pointer", color: "#374151", fontSize: 12, fontWeight: 700, display: "flex", alignItems: "center", gap: 6 };
 
 function SettingsPanel({ t, isDark, settings, onChange, profile, DIMENSIONS = [], CONTACTS = [], USERS = [], emailName = "", organizationName = "", onSave, isSaving }) {
   const [localSettings, setLocalSettings] = React.useState(() => {
@@ -2099,27 +2121,35 @@ function SettingsPanel({ t, isDark, settings, onChange, profile, DIMENSIONS = []
   const actionBtn = { border: `1px solid ${t.chipBorder}`, borderRadius: 20, padding: "8px 20px", background: "transparent", cursor: "pointer", color: t.text, fontSize: 13, fontWeight: 600 };
 
   return (
-    <div style={{ flex: 1, background: isDark ? "#111" : "#EEEEE9", display: "flex", alignItems: "flex-start", justifyContent: "center", padding: "40px 24px", overflowY: "auto" }}>
-      <div style={{ width: "100%", maxWidth: 1360, background: t.surface, borderRadius: 16, border: `1px solid ${t.chipBorder}`, boxShadow: "0 10px 40px rgba(0,0,0,0.1)" }}>
-        <div style={{ padding: "32px 48px", borderBottom: `1px solid ${t.chipBorder}` }}>
-          <h3 style={{ margin: 0, fontSize: 22, fontWeight: 700, color: t.text }}>Email settings &amp; recipients</h3>
-        </div>
-        <div style={{ padding: "40px 48px", display: "flex", flexDirection: "column", gap: 32 }}>
-          <SettingsRow label="Subject:" t={t}><input value={localSettings.subject || ""} onChange={e => set("subject", e.target.value)} style={inp} /></SettingsRow>
-          <SettingsRow label="Internal name:" t={t}><input value={localSettings.internalName || ""} onChange={e => set("internalName", e.target.value)} style={inp} /></SettingsRow>
-          <SettingsRow label="Recipients:" t={t}>
-            <input value={localSettings.recipients || ""} onChange={e => set("recipients", e.target.value)} style={{ ...inp, color: localSettings.recipients ? t.text : t.textMuted }} />
-            <button onClick={() => setShowRecipients(true)} style={{ ...actionBtn, marginLeft: 16 }}>View recipients</button>
+    <div style={isUnified ? { background: "#fff" } : { flex: 1, background: isDark ? "#111" : "#EEEEE9", display: "flex", alignItems: "flex-start", justifyContent: "center", padding: "40px 24px", overflowY: "auto" }}>
+      <div style={isUnified ? { width: "100%" } : { width: "100%", maxWidth: 1360, background: t.surface, borderRadius: 16, border: `1px solid ${t.chipBorder}`, boxShadow: "0 10px 40px rgba(0,0,0,0.1)" }}>
+        {!isUnified && (
+          <div style={{ padding: "32px 48px", borderBottom: `1px solid ${t.border}` }}>
+            <h3 style={{ margin: 0, fontSize: 22, fontWeight: 700, color: t.text }}>Email settings &amp; recipients</h3>
+          </div>
+        )}
+        <div style={{ display: "flex", flexDirection: "column" }}>
+          <SettingsRow label="Subject:" t={t} isUnified={isUnified}><input placeholder="Enter subject" value={localSettings.subject || ""} onChange={e => set("subject", e.target.value)} style={isUnified ? inpRefined : inp} /></SettingsRow>
+          <SettingsRow label="Internal name:" t={t} isUnified={isUnified}><input placeholder="Email draft name" value={localSettings.internalName || ""} onChange={e => set("internalName", e.target.value)} style={isUnified ? { ...inpRefined, fontWeight: 700 } : inp} /></SettingsRow>
+          <SettingsRow label="Recipients:" t={t} isUnified={isUnified}>
+            <div style={{ display: "flex", alignItems: "center", flex: 1, gap: 12 }}>
+              <input readOnly placeholder="Click to select your recipients" value={localSettings.recipients || ""} style={isUnified ? { ...inpRefined, cursor: "default" } : inp} />
+              <button onClick={() => setShowRecipients(true)} style={isUnified ? actionBtnRefined : { ...actionBtn, marginLeft: 16 }}>
+                <Users size={14} /> View recipients
+              </button>
+            </div>
           </SettingsRow>
-          <SettingsRow label="Do not send to:" t={t}>
-            <input value={localSettings.doNotSendTo || ""} onChange={e => set("doNotSendTo", e.target.value)} style={{ ...inp, color: localSettings.doNotSendTo ? t.text : t.textMuted }} />
-            <button onClick={() => setShowDoNotSend(true)} style={{ ...actionBtn, marginLeft: 16 }}>View Do not send</button>
+          <SettingsRow label="Do not send to:" t={t} isUnified={isUnified}>
+            <input placeholder="(Optional) Click to select recipients to exclude" value={localSettings.doNotSendTo || ""} onChange={e => set("doNotSendTo", e.target.value)} style={isUnified ? inpRefined : inp} />
           </SettingsRow>
-          <SettingsRow label="Type:" t={t}>
-            <div ref={typeDropRef} style={{ position: "relative", flex: 1, borderBottom: `1px solid ${t.chipBorder}`, cursor: "pointer" }} onClick={() => setShowTypeDropdown(!showTypeDropdown)}>
-              <div style={{ ...inp, borderBottom: "none" }}>{localSettings.type}</div>
+          <SettingsRow label="Type:" t={t} isUnified={isUnified}>
+            <div ref={typeDropRef} style={{ position: "relative", flex: 1, cursor: "pointer" }} onClick={() => setShowTypeDropdown(!showTypeDropdown)}>
+              <div style={isUnified ? { ...inpRefined, display: "flex", alignItems: "center", justifyContent: "space-between" } : inp}>
+                {localSettings.type}
+                {isUnified && <ChevronDown size={14} color={t.textMuted} />}
+              </div>
               {showTypeDropdown && (
-                <div style={{ position: "absolute", top: "100%", left: 0, right: 0, background: t.surface, border: `1px solid ${t.chipBorder}`, zIndex: 1000, borderRadius: 8, boxShadow: "0 10px 25px rgba(0,0,0,0.15)", overflow: "hidden" }}>
+                <div style={{ position: "absolute", top: "100%", left: 0, right: 0, background: t.surface, border: `1px solid ${t.border}`, zIndex: 1000, borderRadius: 8, boxShadow: "0 10px 25px rgba(0,0,0,0.15)", overflow: "hidden" }}>
                   {["Marketing", "Transactional", "Operational"].map(opt => (
                     <div key={opt} onClick={() => set("type", opt)} style={{ padding: "12px 16px", cursor: "pointer", transition: "background 0.2s" }} onMouseEnter={e => e.currentTarget.style.background = isDark ? "rgba(255,255,255,0.05)" : "#f3f4f6"} onMouseLeave={e => e.currentTarget.style.background = "transparent"}>{opt}</div>
                   ))}
@@ -2127,34 +2157,50 @@ function SettingsPanel({ t, isDark, settings, onChange, profile, DIMENSIONS = []
               )}
             </div>
           </SettingsRow>
-          <SettingsRow label="From name:" t={t}>
-            <div ref={fromDropRef} style={{ position: "relative", flex: 1, borderBottom: `1px solid ${t.chipBorder}`, cursor: "pointer" }} onClick={() => setShowFromDropdown(!showFromDropdown)}>
-              <input value={localSettings.fromName || ""} onChange={e => set("fromName", e.target.value)} onClick={e => e.stopPropagation()} style={{ ...inp, borderBottom: "none" }} />
-              {showFromDropdown && (
-                <div style={{ position: "absolute", top: "100%", left: 0, right: 0, background: t.surface, border: `1px solid ${t.chipBorder}`, zIndex: 1000, borderRadius: 8, boxShadow: "0 10px 25px rgba(0,0,0,0.15)", overflow: "hidden" }}>
-                  {[
-                    { name: organizationName || "Organization", email: "" },
-                    { name: userName, email: profile?.email || "" }
-                  ].map((opt, idx) => (
-                    <div key={idx} onClick={() => set("fromName", opt.name)} style={{ padding: "12px 16px", cursor: "pointer", transition: "background 0.2s" }} onMouseEnter={e => e.currentTarget.style.background = isDark ? "rgba(255,255,255,0.05)" : "#f3f4f6"} onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
-                      <div style={{ fontSize: 13, color: t.text }}>{opt.name}</div>
-                      {opt.email && <div style={{ fontSize: 11, color: t.textMuted, marginTop: 2 }}>{opt.email}</div>}
-                    </div>
-                  ))}
-                </div>
+          <SettingsRow label="From name:" t={t} isUnified={isUnified}>
+            <div style={{ display: "flex", alignItems: "center", flex: 1, gap: 12 }}>
+              <input value={localSettings.fromName || ""} onChange={e => set("fromName", e.target.value)} style={isUnified ? inpRefined : inp} />
+              {isUnified && <button onClick={() => set("fromName", organizationName)} style={actionBtnRefined}>Return to dropdown</button>}
+            </div>
+          </SettingsRow>
+          <SettingsRow label="From:" t={t} isUnified={isUnified}>
+            <div style={{ display: "flex", alignItems: "center", flex: 1, gap: 12 }}>
+              <input value={localSettings.from || ""} onChange={e => set("from", e.target.value)} style={isUnified ? inpRefined : inp} />
+              <div style={{ position: "relative" }} ref={fromDropRef}>
+                <button onClick={() => setShowFromDropdown(!showFromDropdown)} style={isUnified ? { ...actionBtnRefined, padding: "6px 12px" } : actionBtn}>
+                  <Edit2 size={13} /> Edit <ChevronDown size={13} />
+                </button>
+                {showFromDropdown && (
+                  <div style={{ position: "absolute", top: "100%", right: 0, width: 220, background: t.surface, border: `1px solid ${t.border}`, zIndex: 1000, borderRadius: 8, boxShadow: "0 10px 25px rgba(0,0,0,0.15)", overflow: "hidden" }}>
+                    {[
+                      { name: organizationName || "Organization", email: "" },
+                      { name: userName, email: profile?.email || "" }
+                    ].map((opt, idx) => (
+                      <div key={idx} onClick={() => { set("fromName", opt.name); set("from", opt.email || localSettings.from); setShowFromDropdown(false); }} style={{ padding: "12px 16px", cursor: "pointer", transition: "background 0.2s" }} onMouseEnter={e => e.currentTarget.style.background = isDark ? "rgba(255,255,255,0.05)" : "#f3f4f6"} onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+                        <div style={{ fontSize: 13, color: t.text, fontWeight: 600 }}>{opt.name}</div>
+                        {opt.email && <div style={{ fontSize: 11, color: t.textMuted, marginTop: 2 }}>{opt.email}</div>}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+              {isUnified && (
+                <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: t.textMuted, cursor: "pointer", marginLeft: 10 }}>
+                  <input type="checkbox" style={{ cursor: "pointer" }} /> Add email signature
+                </label>
               )}
             </div>
           </SettingsRow>
-          <SettingsRow label="From:" t={t}>
-            <input value={localSettings.from || ""} onChange={e => set("from", e.target.value)} style={inp} />
-          </SettingsRow>
-          <SettingsRow label="Reply-to:" t={t}>
-            <div ref={replyToDropRef} style={{ position: "relative", flex: 1, borderBottom: `1px solid ${t.chipBorder}`, cursor: "pointer" }} onClick={() => setShowReplyToDropdown(!showReplyToDropdown)}>
-              <div style={{ ...inp, borderBottom: "none" }}>{localSettings.replyTo || "Select reply-to..."}</div>
+          <SettingsRow label="Reply-to:" t={t} isUnified={isUnified}>
+             <div ref={replyToDropRef} style={{ position: "relative", flex: 1, cursor: "pointer" }} onClick={() => setShowReplyToDropdown(!showReplyToDropdown)}>
+              <div style={isUnified ? { ...inpRefined, display: "flex", alignItems: "center", justifyContent: "space-between" } : inp}>
+                {localSettings.replyTo || "Select reply-to..."}
+                {isUnified && <ChevronDown size={14} color={t.textMuted} />}
+              </div>
               {showReplyToDropdown && (
-                <div style={{ position: "absolute", top: "100%", left: 0, right: 0, background: t.surface, border: `1px solid ${t.chipBorder}`, zIndex: 1000, borderRadius: 8, boxShadow: "0 10px 25px rgba(0,0,0,0.15)", overflow: "hidden" }}>
+                <div style={{ position: "absolute", top: "100%", left: 0, right: 0, background: t.surface, border: `1px solid ${t.border}`, zIndex: 1000, borderRadius: 8, boxShadow: "0 10px 25px rgba(0,0,0,0.15)", overflow: "hidden" }}>
                   {[{ name: userName, email: profile?.email || "" }].map((opt, idx) => (
-                    <div key={idx} onClick={() => set("replyTo", opt.email)} style={{ padding: "12px 16px", cursor: "pointer", transition: "background 0.2s" }} onMouseEnter={e => e.currentTarget.style.background = isDark ? "rgba(255,255,255,0.05)" : "#f3f4f6"} onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+                    <div key={idx} onClick={() => { set("replyTo", opt.email); setShowReplyToDropdown(false); }} style={{ padding: "12px 16px", cursor: "pointer", transition: "background 0.2s" }} onMouseEnter={e => e.currentTarget.style.background = isDark ? "rgba(255,255,255,0.05)" : "#f3f4f6"} onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
                       <div style={{ fontSize: 13, color: t.text }}>{opt.email}</div>
                       <div style={{ fontSize: 11, color: t.textMuted, marginTop: 2 }}>{opt.name}</div>
                     </div>
@@ -2163,13 +2209,6 @@ function SettingsPanel({ t, isDark, settings, onChange, profile, DIMENSIONS = []
               )}
             </div>
           </SettingsRow>
-
-          <div style={{ display: "flex", justifyContent: "flex-end", gap: 12, marginTop: 20 }}>
-            <button onClick={() => setLocalSettings(settings)} style={{ ...actionBtn, background: isDark ? "rgba(255,255,255,0.05)" : "#F3F4F6" }}>Cancel</button>
-            <button
-              onClick={() => onSave ? onSave(localSettings) : onChange(localSettings)}
-              disabled={isSaving}
-              style={{ ...actionBtn, background: "#1D4ED8", color: "#fff", border: "none", opacity: isSaving ? 0.7 : 1, cursor: isSaving ? "not-allowed" : "pointer" }}
             >
               {isSaving ? (t.isFrench ? "Enregistrement..." : "Saving...") : "Save Email Setting"}
             </button>
