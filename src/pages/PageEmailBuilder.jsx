@@ -12,7 +12,8 @@ import {
   Plus, Trash2, Copy, Settings as SettingsIcon, Paperclip,
   AlignCenter, AlignRight, AlignJustify, Move, Send, Clock, Check, Eye,
   Bold, Italic, Underline, List, Link as LinkIcon, Indent, Outdent,
-  AlignStartVertical, AlignCenterVertical, AlignEndVertical
+  AlignStartVertical, AlignCenterVertical, AlignEndVertical,
+  Users, HelpCircle
 } from "lucide-react";
 import { PromptModal, DelModal, Modal, TanStackTable } from "../components";
 
