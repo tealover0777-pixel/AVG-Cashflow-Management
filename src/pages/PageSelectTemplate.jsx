@@ -1,13 +1,40 @@
 import React, { useState, useMemo } from "react";
 import { ArrowLeft, Search, Plus, LayoutTemplate, ChevronRight, X, Star } from "lucide-react";
 
-// Standard placeholder for templates without images
 const TemplatePlaceholder = ({ isDark }) => (
   <div style={{
     width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center",
-    background: isDark ? "rgba(255,255,255,0.02)" : "#F3F4F6", color: isDark ? "rgba(255,255,255,0.2)" : "#D1D5DB"
+    background: isDark
+      ? "radial-gradient(circle at center, #1e293b 0%, #0f172a 100%)"
+      : "radial-gradient(circle at center, #f8fafc 0%, #e2e8f0 100%)",
+    overflow: "hidden", position: "relative"
   }}>
-    <LayoutTemplate size={48} />
+    <div style={{ position: "absolute", width: 140, height: 140, borderRadius: "50%", background: "rgba(212,175,55,0.08)", top: -40, right: -40, filter: "blur(30px)" }} />
+    <div style={{ position: "absolute", width: 100, height: 100, borderRadius: "50%", background: "rgba(59,130,246,0.05)", bottom: -30, left: -20, filter: "blur(25px)" }} />
+    <div style={{
+      width: 75, height: 100,
+      background: isDark ? "rgba(255,255,255,0.03)" : "rgba(255,255,255,0.6)",
+      backdropFilter: "blur(10px)",
+      border: `1px solid ${isDark ? "rgba(255,255,255,0.08)" : "rgba(255,255,255,0.5)"}`,
+      borderRadius: 8,
+      boxShadow: isDark ? "0 20px 40px -10px rgba(0,0,0,0.5)" : "0 20px 40px -12px rgba(0,0,0,0.1)",
+      display: "flex", flexDirection: "column", padding: "12px 10px", gap: 7,
+      transform: "rotate(-3deg) translateY(-2px)", zIndex: 2
+    }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 4, marginBottom: 4 }}>
+        <div style={{ width: 10, height: 10, borderRadius: 2, background: "rgba(212,175,55,0.8)" }} />
+        <div style={{ width: "50%", height: 3, background: isDark ? "rgba(255,255,255,0.2)" : "rgba(0,0,0,0.1)", borderRadius: 1.5 }} />
+      </div>
+      <div style={{ width: "100%", height: 2, background: isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.05)", borderRadius: 1 }} />
+      <div style={{ width: "90%",  height: 2, background: isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.05)", borderRadius: 1 }} />
+      <div style={{ width: "100%", height: 2, background: isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.05)", borderRadius: 1 }} />
+      <div style={{ width: "85%",  height: 2, background: isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.05)", borderRadius: 1 }} />
+      <div style={{ flex: 1 }} />
+      <div style={{ width: "100%", height: 12, background: "linear-gradient(135deg,#d4af37 0%,#a28131 100%)", borderRadius: 4, opacity: 0.9, display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 4px 10px rgba(212,175,55,0.2)" }}>
+        <div style={{ width: "30%", height: 1.5, background: "rgba(255,255,255,0.6)", borderRadius: 1 }} />
+      </div>
+    </div>
+    <div style={{ position: "absolute", width: 75, height: 100, background: isDark ? "rgba(255,255,255,0.01)" : "rgba(255,255,255,0.3)", border: `1px solid ${isDark ? "rgba(255,255,255,0.05)" : "rgba(255,255,255,0.2)"}`, borderRadius: 8, transform: "rotate(6deg) translate(8px,4px)", zIndex: 1, opacity: 0.6 }} />
   </div>
 );
 
