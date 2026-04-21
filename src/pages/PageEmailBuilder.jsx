@@ -1873,7 +1873,11 @@ function SimpleDraftLayout({ t, isDark, settings, onSettingsChange, profile, DIM
   const editorRef = React.useRef(null);
   const [showPersonalize, setShowPersonalize] = React.useState(false);
   const dropdownRef = React.useRef(null);
-  const mergeTags = (DIMENSIONS.find(d => d.name === "EmailTags")?.items || ["First name", "Last name", "Full name"]);
+  const mergeTags = (DIMENSIONS.find(d => d.name === "EmailTags")?.items || [
+    "First name", "Last name", "Full name", 
+    "Current year", "Current quarter", "Last quarter", 
+    "Total distributed", "Total Invested", "Capital balance"
+  ]);
 
   React.useEffect(() => {
     if (editorRef.current && editorRef.current.innerHTML !== bodyHtml && document.activeElement !== editorRef.current) {
@@ -2213,6 +2217,40 @@ function SettingsPanel({ t, isDark, settings, onChange, profile, DIMENSIONS = []
           <SettingsRow label="Preview text:" t={t} isUnified={isUnified}>
             <input placeholder="Enter email preview text" value={localSettings.previewText || ""} onChange={e => set("previewText", e.target.value)} style={isUnified ? inpRefined : inp} />
           </SettingsRow>
+
+          {isUnified && (
+            <div style={{ display: "flex", gap: 12, padding: "24px 32px", borderTop: "1px solid #F3F4F6", marginTop: 8 }}>
+              <button
+                onClick={() => onSave ? onSave(localSettings) : onChange(localSettings)}
+                disabled={isSaving}
+                style={{ 
+                  ...actionBtnRefined, 
+                  background: "#1D4ED8", 
+                  color: "#fff", 
+                  border: "none", 
+                  padding: "8px 24px",
+                  borderRadius: 24,
+                  fontSize: 13,
+                  boxShadow: "0 4px 12px rgba(29, 78, 216, 0.2)"
+                }}
+              >
+                {isSaving ? (t.isFrench ? "Enregistrement..." : "Saving...") : "Save as new draft"}
+              </button>
+              <button
+                onClick={() => { /* Implement duplicate/copy logic if needed, or just save as copy */ }}
+                style={{ 
+                  ...actionBtnRefined, 
+                  border: "1px solid #E5E7EB", 
+                  padding: "8px 24px",
+                  borderRadius: 24,
+                  fontSize: 13,
+                  color: "#374151"
+                }}
+              >
+                Save as my copy
+              </button>
+            </div>
+          )}
 
           {!isUnified && (
             <div style={{ display: "flex", justifyContent: "flex-end", gap: 12, padding: "24px 48px" }}>
