@@ -22,11 +22,15 @@
     "@dataconnect/generated": "file:src/dataconnect-generated",
     "@firebase/vertexai": "^1.2.4",
     "@tanstack/react-table": "^8.21.3",
+    "docx": "^9.6.1",
     "firebase": "^12.10.0",
     "firebase-admin": "^13.7.0",
+    "jspdf": "^4.2.1",
+    "jspdf-autotable": "^5.0.7",
     "lucide-react": "^0.575.0",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
-    "recharts": "^3.7.0"
+    "recharts": "^3.7.0",
+    "xlsx": "^0.18.5"
   }
 }

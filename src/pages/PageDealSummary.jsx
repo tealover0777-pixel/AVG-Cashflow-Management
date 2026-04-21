@@ -11,8 +11,13 @@ import { getContactColumns } from "../components/ContactsTanStackConfig";
 import { getAssetColumns } from "../components/AssetsTanStackConfig";
 import TanStackTable from "../components/TanStackTable";
 import DocumentsTab from "../components/DocumentsTab";
-import { X, Check, Plus, Construction, AlertTriangle, FileCheck } from "lucide-react";
+import { X, Check, Plus, Construction, AlertTriangle, FileCheck, Download, ChevronDown } from "lucide-react";
 import { normalizeDateAtNoon, getFrequencyValue, pmtCalculator_ACT360_30360, feeCalculator_ACT360_30360, fmtCurr, initials, av, badge } from "../utils";
+
+import * as XLSX from "xlsx";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
+import { Document, Packer, Paragraph, Table, TableRow, TableCell, WidthType, AlignmentType, HeadingLevel, TextRun } from "docx";
 
 export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTMENTS = [], CONTACTS = [], DIMENSIONS = [], FEES_DATA = [], SCHEDULES = [], USERS = [], LEDGER = [], setActivePage, investmentCollection = "investments", scheduleCollection = "paymentSchedules", tenantId }) {
   const { hasPermission, isSuperAdmin, user } = useAuth();
@@ -82,6 +87,130 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
     paymentMethod: ""
   });
   const [drillDown, setDrillDown] = useState({ open: false, records: [], title: "" });
+  const [showExportMenu, setShowExportMenu] = useState(false);
+  const exportMenuRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (exportMenuRef.current && !exportMenuRef.current.contains(e.target)) {
+        setShowExportMenu(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [exportMenuRef]);
+
+  const handleExport = (format) => {
+    const isPivot = distributionView === "pivot";
+    let data = [];
+    let headers = [];
+    let title = `Distributions_${deal.name || "Deal"}_${isPivot ? "Pivot" : "Table"}_${new Date().toISOString().split('T')[0]}`;
+
+    if (isPivot) {
+      headers = ["Investor Name", "Type", "Start Date", "Payment Date", "Freq", "Rate", "Schedule", "Payment Method", ...pivotData.dates, "Total"];
+      data = filteredPivotRows.map(row => {
+        let rowTotal = 0;
+        const rowData = [
+          row.investor,
+          (row.type || "").replace(/_/g, ' '),
+          row.startDate,
+          row.endDate,
+          row.freq,
+          (row.rate || 0) + "%",
+          row.scheduleId,
+          row.paymentMethod
+        ];
+        pivotData.dates.forEach(date => {
+          const val = row.data[date] || 0;
+          rowTotal += val;
+          rowData.push(fmtCurrency(val));
+        });
+        rowData.push(fmtCurrency(rowTotal));
+        return rowData;
+      });
+    } else {
+      headers = ["Investor", "Type", "Amount", "Due Date", "Status", "Payment Date", "Freq", "Rate", "Schedule", "Payment Method"];
+      data = activeDealSchedules.map(s => [
+        s.contact_name || s.investor || "—",
+        (s.payment_type || s.type || "").replace(/_/g, ' '),
+        fmtCurrency(s.signed_payment_amount || 0),
+        s.dueDate || "—",
+        s.status || "—",
+        s.pmt_date || "—",
+        s.freq || "—",
+        (s.rate || 0) + "%",
+        s.schedule_id || "—",
+        s.payment_method || "—"
+      ]);
+    }
+
+    if (format === 'csv') {
+      const csvContent = [headers, ...data].map(e => e.map(f => `"${String(f || "").replace(/"/g, '""')}"`).join(",")).join("\n");
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.setAttribute("download", `${title}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } else if (format === 'xlsx') {
+      const ws = XLSX.utils.aoa_to_sheet([headers, ...data]);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Distributions");
+      XLSX.writeFile(wb, `${title}.xlsx`);
+    } else if (format === 'pdf') {
+      const doc = new jsPDF('l', 'mm', 'a4');
+      doc.setFontSize(16);
+      doc.text(`${deal.name || "Deal"} - Distributions (${isPivot ? "Pivot" : "Table"})`, 14, 15);
+      doc.setFontSize(10);
+      autoTable(doc, {
+        head: [headers],
+        body: data,
+        startY: 22,
+        styles: { fontSize: 8, cellPadding: 2 },
+        headStyles: { fillColor: [79, 70, 229], textColor: 255 },
+        margin: { top: 20 }
+      });
+      doc.save(`${title}.pdf`);
+    } else if (format === 'docx') {
+      const tableRows = data.map(rowData => new TableRow({
+        children: rowData.map(cell => new TableCell({
+          children: [new Paragraph({ children: [new TextRun({ text: String(cell || ""), size: 16 })] })],
+          width: { size: 100 / headers.length, type: WidthType.PERCENTAGE }
+        }))
+      }));
+
+      const headerRow = new TableRow({
+        children: headers.map(h => new TableCell({
+          children: [new Paragraph({ children: [new TextRun({ text: h, bold: true, size: 18, color: "FFFFFF" })], alignment: AlignmentType.CENTER })],
+          shading: { fill: "4F46E5" },
+          width: { size: 100 / headers.length, type: WidthType.PERCENTAGE }
+        }))
+      });
+
+      const docObj = new Document({
+        sections: [{
+          properties: { page: { size: { orientation: "landscape" } } },
+          children: [
+            new Paragraph({ text: `${deal.name || "Deal"} - Distributions`, heading: HeadingLevel.HEADING_1, spacing: { after: 200 } }),
+            new Table({
+              width: { size: 100, type: WidthType.PERCENTAGE },
+              rows: [headerRow, ...tableRows]
+            })
+          ]
+        }]
+      });
+
+      Packer.toBlob(docObj).then(blob => {
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.setAttribute("download", `${title}.docx`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      });
+    }
+  };
 
   const pivotOffsets = useMemo(() => {
     const offsets = [0];
@@ -1733,7 +1862,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
             </div>
           ))}
         </div>
-        <button style={{ background: "none", border: `1px solid ${t.accent}`, color: t.accent, padding: "8px 18px", borderRadius: 11, fontSize: 12, fontWeight: 700, cursor: "pointer", transition: "all 0.2s ease" }}>Export as Excel</button>
+        <div></div>
       </div>
 
       {activeTab === "Investments" ? (
@@ -1767,7 +1896,8 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
       ) : activeTab === "Distributions" ? (
         <div>
           {/* Distribution sub-tabs */}
-          <div style={{ borderBottom: `1px solid ${t.surfaceBorder}`, marginBottom: 20, display: "flex", gap: 24 }}>
+          <div style={{ borderBottom: `1px solid ${t.surfaceBorder}`, marginBottom: 20, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <div style={{ display: "flex", gap: 24 }}>
             <div
               onClick={() => setDistributionView("table")}
               style={{
@@ -1799,6 +1929,36 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
               {distributionView === "pivot" && <div style={{ position: "absolute", bottom: -1, left: 0, right: 0, height: 2, background: t.accent }} />}
             </div>
           </div>
+
+          <div style={{ position: "relative" }} ref={exportMenuRef}>
+            <button
+              onClick={() => setShowExportMenu(!showExportMenu)}
+              style={{ background: t.accentGrad || t.accent, color: "#fff", border: "none", padding: "8px 16px", borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", gap: 8, boxShadow: `0 4px 12px ${t.accentShadow || "none"}` }}
+            >
+              <Download size={16} /> Export <ChevronDown size={14} />
+            </button>
+            {showExportMenu && (
+              <div style={{ position: "absolute", top: "100%", right: 0, mt: 8, background: t.surface, border: `1px solid ${t.border}`, borderRadius: 12, boxShadow: "0 10px 25px rgba(0,0,0,0.2)", zIndex: 1000, overflow: "hidden", minWidth: 160, transform: "translateY(8px)" }}>
+                {[
+                  { id: 'csv', label: 'CSV File (.csv)' },
+                  { id: 'xlsx', label: 'Excel File (.xlsx)' },
+                  { id: 'pdf', label: 'PDF Report (.pdf)' },
+                  { id: 'docx', label: 'Word Document (.docx)' }
+                ].map(opt => (
+                  <div
+                    key={opt.id}
+                    onClick={() => { handleExport(opt.id); setShowExportMenu(false); }}
+                    style={{ padding: "12px 16px", fontSize: 13, fontWeight: 600, color: t.text, cursor: "pointer", transition: "all 0.2s" }}
+                    onMouseEnter={e => e.target.style.background = isDark ? "rgba(255,255,255,0.05)" : "#f3f4f6"}
+                    onMouseLeave={e => e.target.style.background = "transparent"}
+                  >
+                    {opt.label}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
 
           {distributionView === "table" ? (
             <div style={{ height: '1000px', width: "100%", minHeight: '1000px' }}>
@@ -2145,7 +2305,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
                               textOverflow: "ellipsis",
                               whiteSpace: "nowrap"
                             }}>
-                              {row.type.replace(/_/g, ' ')}
+                            {row.type.replace(/_/g, ' ')}
                             </td>
                             <td style={{
                               padding: "12px 16px",
