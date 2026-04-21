@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from "react";
-import { ArrowLeft, Search, Plus, LayoutTemplate, ChevronRight, X } from "lucide-react";
+import { ArrowLeft, Search, Plus, LayoutTemplate, ChevronRight, X, Star } from "lucide-react";
 
 // Standard placeholder for templates without images
 const TemplatePlaceholder = ({ isDark }) => (
