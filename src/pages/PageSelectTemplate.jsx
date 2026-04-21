@@ -105,7 +105,7 @@ export default function PageSelectTemplate(props) {
         </section>
 
         {/* Search templates */}
-        <div style={{ position: "relative", marginBottom: 24, maxWidth: 400 }}>
+        <div style={{ position: "relative", marginBottom: 32, maxWidth: 400 }}>
           <Search size={16} style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", color: t.textMuted }} />
           <input
             type="text"
@@ -120,50 +120,73 @@ export default function PageSelectTemplate(props) {
           />
         </div>
 
-        {/* Your templates section */}
-        <section>
-          <h2 style={{ fontSize: 16, fontWeight: 700, color: t.text, marginBottom: 16 }}>Your templates</h2>
-          {filteredTemplates.length > 0 ? (
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: 24 }}>
-              {filteredTemplates.map(tmp => (
-                <div
-                  key={tmp.id}
-                  onClick={() => handleSelectTemplate(tmp)}
-                  style={{
-                    background: isDark ? "rgba(255,255,255,0.02)" : "#fff",
-                    border: `1px solid ${t.border}`, borderRadius: 12, overflow: "hidden",
-                    cursor: "pointer", transition: "all 0.2s"
-                  }}
-                  onMouseEnter={e => { e.currentTarget.style.borderColor = "#3B82F6"; e.currentTarget.style.transform = "translateY(-2px)"; }}
-                  onMouseLeave={e => { e.currentTarget.style.borderColor = t.border; e.currentTarget.style.transform = "translateY(0)"; }}
-                >
-                  <div style={{ height: 140, borderBottom: `1px solid ${t.border}` }}>
-                    {tmp.previewImage ? <img src={tmp.previewImage} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <TemplatePlaceholder isDark={isDark} />}
-                  </div>
-                  <div style={{ padding: 16, position: "relative" }}>
-                    <h3 style={{ fontSize: 13, fontWeight: 700, color: t.text, margin: "0 0 4px 0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{tmp.name}</h3>
-                    <div style={{ fontSize: 11, color: t.textMuted }}>Created {tmp.createdAt ? new Date(tmp.createdAt).toLocaleDateString() : "recently"}</div>
-                    
-                    {/* Editor Type Pill */}
-                    <div style={{ 
-                      position: "absolute", bottom: 16, right: 16,
-                      fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 4,
-                      background: isDark ? "rgba(255,255,255,0.05)" : "#F3F4F6", color: t.textMuted,
-                      border: `1px solid ${t.border}`, display: "flex", alignItems: "center", gap: 4
-                    }}>
-                      <div style={{ width: 4, height: 4, borderRadius: "50%", background: t.textMuted }} />
-                      {tmp.editorMode === 'simple' ? 'Simple' : 'Drag & drop'}
+        {/* Templates sections */}
+        {[
+          { title: "Your templates", items: filteredTemplates.filter(t => !t.isGlobal) },
+          { title: "Global Templates", items: filteredTemplates.filter(t => t.isGlobal) }
+        ].map((section, idx) => (
+          <section key={idx} style={{ marginBottom: 48 }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+              <h2 style={{ fontSize: 16, fontWeight: 700, color: t.text, margin: 0 }}>{section.title}</h2>
+              <span style={{ fontSize: 12, fontWeight: 600, color: t.textMuted, opacity: 0.7 }}>
+                {section.items.length}
+              </span>
+            </div>
+            
+            {section.items.length > 0 ? (
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: 24 }}>
+                {section.items.map(tmp => (
+                  <div
+                    key={tmp.id}
+                    onClick={() => handleSelectTemplate(tmp)}
+                    style={{
+                      background: isDark ? "rgba(255,255,255,0.02)" : "#fff",
+                      border: `1px solid ${t.border}`, borderRadius: 12, overflow: "hidden",
+                      cursor: "pointer", transition: "all 0.2s", position: "relative"
+                    }}
+                    onMouseEnter={e => { e.currentTarget.style.borderColor = "#3B82F6"; e.currentTarget.style.transform = "translateY(-2px)"; }}
+                    onMouseLeave={e => { e.currentTarget.style.borderColor = t.border; e.currentTarget.style.transform = "translateY(0)"; }}
+                  >
+                    <div style={{ height: 140, borderBottom: `1px solid ${t.border}`, position: "relative" }}>
+                      {tmp.previewImage ? <img src={tmp.previewImage} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <TemplatePlaceholder isDark={isDark} />}
+                      {tmp.isGlobal && (
+                        <div style={{
+                          position: "absolute", bottom: 8, right: 8,
+                          display: "flex", alignItems: "center", gap: 4,
+                          fontSize: 10, color: "rgba(255,255,255,0.7)", background: "rgba(0,0,0,0.3)",
+                          padding: "2px 6px", borderRadius: 4, backdropFilter: "blur(4px)"
+                        }}>
+                          <Star size={10} fill="currentColor" /> Global
+                        </div>
+                      )}
+                    </div>
+                    <div style={{ padding: 16, position: "relative" }}>
+                      <h3 style={{ fontSize: 13, fontWeight: 700, color: t.text, margin: "0 0 4px 0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{tmp.name}</h3>
+                      <div style={{ fontSize: 11, color: t.textMuted }}>Updated {tmp.updatedAt ? new Date(tmp.updatedAt).toLocaleDateString() : "recently"}</div>
+                      
+                      {/* Editor Type Pill */}
+                      <div style={{ 
+                        position: "absolute", bottom: 16, right: 16,
+                        fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 4,
+                        background: isDark ? "rgba(255,255,255,0.05)" : "#F3F4F6", color: t.textMuted,
+                        border: `1px solid ${t.border}`, display: "flex", alignItems: "center", gap: 4
+                      }}>
+                        <div style={{ width: 4, height: 4, borderRadius: "50%", background: t.textMuted }} />
+                        {tmp.editorMode === 'simple' ? 'Simple' : 'Drag & drop'}
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div style={{ padding: "40px 0", textAlign: "center", color: t.textMuted }}>
-              No templates found matching your search.
-            </div>
-          )}
-        </section>
+                ))}
+              </div>
+            ) : (
+              <div style={{ padding: "32px 0", textAlign: "center", color: t.textMuted, fontSize: 13, border: `1px dashed ${t.border}`, borderRadius: 12 }}>
+                {section.title === "Your templates" 
+                  ? "No personal templates found."
+                  : "No global templates found."}
+              </div>
+            )}
+          </section>
+        ))}
       </div>
     </div>
   );

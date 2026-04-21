@@ -422,11 +422,10 @@ export default function PageManageTemplates({ t, isDark, setActivePage, setActiv
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 48 }}>
             {sections.map((section, idx) => (
-              <div key={idx}>
-                <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}>
+              <div key={idx} style={{ marginBottom: idx === 0 ? 48 : 0 }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
                   <h2 style={{ fontSize: 16, fontWeight: 700, margin: 0, color: t.text }}>{section.title}</h2>
-                  <div style={{ flex: 1, height: 1, background: t.border, opacity: 0.5 }}></div>
-                  <span style={{ fontSize: 12, color: t.textMuted, backgroundColor: isDark ? "rgba(255,255,255,0.05)" : "#F3F4F6", padding: "2px 8px", borderRadius: 10 }}>
+                  <span style={{ fontSize: 12, fontWeight: 600, color: t.textMuted, opacity: 0.7 }}>
                     {section.templates.length}
                   </span>
                 </div>
