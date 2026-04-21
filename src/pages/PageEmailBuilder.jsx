@@ -607,6 +607,48 @@ export default function PageEmailBuilder(props) {
             <Save size={14} /> Save as my copy
           </button>
 
+          {/* 1b. Save as new draft (Firestore) */}
+          <button
+            onClick={async () => {
+              if (!tenantId) {
+                showToast("No tenant ID found. Cannot save draft.", "error");
+                return;
+              }
+              setIsSaving(true);
+              try {
+                const docRef = await addDoc(collection(db, "tenants", tenantId, "marketingEmails"), {
+                  title: emailName,
+                  rows: rows,
+                  settings: emailSettings,
+                  status: "Draft",
+                  createdAt: new Date().toISOString(),
+                  updatedAt: new Date().toISOString(),
+                  createdBy: profile?.email || "unknown",
+                });
+                showToast("New draft created successfully!", "success");
+                if (typeof props.setActiveEmailTemplate === "function") {
+                  props.setActiveEmailTemplate({
+                    id: docRef.id,
+                    name: emailName,
+                    rows: rows,
+                    settings: emailSettings,
+                    status: "Draft"
+                  });
+                }
+                if (typeof props.refreshTemplates === "function") await props.refreshTemplates();
+              } catch (err) {
+                console.error("Draft save error:", err);
+                showToast("Failed to save draft.", "error");
+              } finally {
+                setIsSaving(false);
+              }
+            }}
+            disabled={isSaving}
+            style={{ background: "transparent", color: isDark ? "#60A5FA" : "#2563EB", border: `1px solid ${isDark ? "#60A5FA" : "#2563EB"}`, borderRadius: 24, padding: "7px 18px", fontSize: 13, fontWeight: 600, cursor: isSaving ? "not-allowed" : "pointer", display: "flex", alignItems: "center", gap: 8, opacity: isSaving ? 0.7 : 1 }}
+          >
+            <Plus size={14} /> {isSaving ? "Creating..." : "Save as new draft"}
+          </button>
+
           {/* 2. Template Persistence: Save or Update Global Template */}
           {canSeeSave && (
             <button
