@@ -1984,30 +1984,10 @@ function SimpleDraftLayout({ t, isDark, settings, onSettingsChange, profile, DIM
           <div style={{ width: 1, height: 20, background: "#E5E7EB", margin: "0 8px" }} />
           {toolbarBtn(List, () => runCommand("insertUnorderedList"), "List")}
           
-          <div style={{ position: "relative", marginLeft: "auto" }} ref={dropdownRef}>
-            <button onClick={() => setShowPersonalize(p => !p)} style={{ border: "1px solid #E5E7EB", background: "#fff", borderRadius: 6, fontSize: 12, padding: "5px 12px", cursor: "pointer", color: "#374151", fontWeight: 600, display: "flex", alignItems: "center", gap: 4 }}>
-              Personalize <ChevronDown size={14} />
-            </button>
-            {showPersonalize && (
-              <div style={{ position: "absolute", top: "calc(100% + 6px)", right: 0, minWidth: 200, maxHeight: 300, overflowY: "auto", background: "#fff", border: "1px solid #E5E7EB", borderRadius: 8, boxShadow: "0 10px 24px rgba(0,0,0,0.12)", zIndex: 100 }}>
-                <div style={{ padding: "8px 12px", fontSize: 11, fontWeight: 700, color: "#9CA3AF", borderBottom: "1px solid #F3F4F6", textTransform: "uppercase" }}>Insert Merge Tag</div>
-                {(Array.isArray(mergeTags) ? mergeTags : []).map(tag => (
-                  <div key={tag} onMouseDown={e => { e.preventDefault(); insertTag(tag); }} style={{ padding: "10px 12px", cursor: "pointer", fontSize: 13, color: "#374151", transition: "background 0.2s" }} onMouseEnter={e => e.currentTarget.style.background = "#F9FAFB"} onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
-                    {String(tag).split(":")[0]}
-                  </div>
-                ))}
-              </div>
-            )}
+          <div style={{ position: "relative", marginLeft: "auto" }}>
+            {/* Personalize button removed per user request */}
           </div>
         </div>
-        <style>{`
-          .simple-editor:empty:before {
-            content: "Start typing your simple email here...";
-            color: #9CA3AF;
-            font-style: italic;
-            cursor: text;
-          }
-        `}</style>
         <div
           ref={editorRef}
           contentEditable
@@ -2191,7 +2171,12 @@ function SettingsPanel({ t, isDark, settings, onChange, profile, DIMENSIONS = []
             </div>
           </SettingsRow>
           <SettingsRow label="Do not send to:" t={t} isUnified={isUnified}>
-            <input placeholder="(Optional) Click to select recipients to exclude" value={localSettings.doNotSendTo || ""} onChange={e => set("doNotSendTo", e.target.value)} style={isUnified ? inpRefined : inp} />
+            <div style={{ display: "flex", alignItems: "center", flex: 1, gap: 12 }}>
+              <input readOnly placeholder="(Optional) Click to select recipients to exclude" value={localSettings.doNotSendTo || ""} style={isUnified ? inpRefined : inp} />
+              <button onClick={() => setShowDoNotSend(true)} style={isUnified ? actionBtnRefined : { ...actionBtn, marginLeft: 16 }}>
+                <Users size={14} /> View do not send
+              </button>
+            </div>
           </SettingsRow>
           <SettingsRow label="Type:" t={t} isUnified={isUnified}>
             <div ref={typeDropRef} style={{ position: "relative", flex: 1, cursor: "pointer" }} onClick={() => setShowTypeDropdown(!showTypeDropdown)}>
@@ -2217,29 +2202,6 @@ function SettingsPanel({ t, isDark, settings, onChange, profile, DIMENSIONS = []
           <SettingsRow label="From:" t={t} isUnified={isUnified}>
             <div style={{ display: "flex", alignItems: "center", flex: 1, gap: 12 }}>
               <input value={localSettings.from || ""} onChange={e => set("from", e.target.value)} style={isUnified ? inpRefined : inp} />
-              <div style={{ position: "relative" }} ref={fromDropRef}>
-                <button onClick={() => setShowFromDropdown(!showFromDropdown)} style={isUnified ? { ...actionBtnRefined, padding: "6px 12px" } : actionBtn}>
-                  <Edit2 size={13} /> Edit <ChevronDown size={13} />
-                </button>
-                {showFromDropdown && (
-                  <div style={{ position: "absolute", top: "100%", right: 0, width: 220, background: t.surface, border: `1px solid ${t.border}`, zIndex: 1000, borderRadius: 8, boxShadow: "0 10px 25px rgba(0,0,0,0.15)", overflow: "hidden" }}>
-                    {[
-                      { name: organizationName || "Organization", email: "" },
-                      { name: userName, email: profile?.email || "" }
-                    ].map((opt, idx) => (
-                      <div key={idx} onClick={() => { set("fromName", opt.name); set("from", opt.email || localSettings.from); setShowFromDropdown(false); }} style={{ padding: "12px 16px", cursor: "pointer", transition: "background 0.2s" }} onMouseEnter={e => e.currentTarget.style.background = isDark ? "rgba(255,255,255,0.05)" : "#f3f4f6"} onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
-                        <div style={{ fontSize: 13, color: t.text, fontWeight: 600 }}>{opt.name}</div>
-                        {opt.email && <div style={{ fontSize: 11, color: t.textMuted, marginTop: 2 }}>{opt.email}</div>}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-              {isUnified && (
-                <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: t.textMuted, cursor: "pointer", marginLeft: 10 }}>
-                  <input type="checkbox" style={{ cursor: "pointer" }} /> Add email signature
-                </label>
-              )}
             </div>
           </SettingsRow>
           <SettingsRow label="Reply-to:" t={t} isUnified={isUnified}>
@@ -2250,10 +2212,10 @@ function SettingsPanel({ t, isDark, settings, onChange, profile, DIMENSIONS = []
               </div>
               {showReplyToDropdown && (
                 <div style={{ position: "absolute", top: "100%", left: 0, right: 0, background: t.surface, border: `1px solid ${t.border}`, zIndex: 1000, borderRadius: 8, boxShadow: "0 10px 25px rgba(0,0,0,0.15)", overflow: "hidden" }}>
-                  {[{ name: userName, email: profile?.email || "" }].map((opt, idx) => (
+                  {(USERS && USERS.length > 0 ? USERS : [{ first_name: userName, email: profile?.email || "" }]).filter(u => u.email).map((opt, idx) => (
                     <div key={idx} onClick={() => { set("replyTo", opt.email); setShowReplyToDropdown(false); }} style={{ padding: "12px 16px", cursor: "pointer", transition: "background 0.2s" }} onMouseEnter={e => e.currentTarget.style.background = isDark ? "rgba(255,255,255,0.05)" : "#f3f4f6"} onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
                       <div style={{ fontSize: 13, color: t.text }}>{opt.email}</div>
-                      <div style={{ fontSize: 11, color: t.textMuted, marginTop: 2 }}>{opt.name}</div>
+                      <div style={{ fontSize: 11, color: t.textMuted, marginTop: 2 }}>{opt.first_name} {opt.last_name || ""}</div>
                     </div>
                   ))}
                 </div>
