@@ -2121,8 +2121,8 @@ function SettingsPanel({ t, isDark, settings, onChange, profile, DIMENSIONS = []
       cell: ({ row }) => <input type="checkbox" className="ts-checkbox" checked={row.getIsSelected()} disabled={!row.original.email || row.original.isAlreadyDoNotSend} onChange={row.getToggleSelectedHandler()} />,
       size: 50
     },
-    { accessorKey: "first_name", header: (t.isFrench ? "Prénom" : "First Name"), cell: info => info.getValue() || "—" },
-    { accessorKey: "last_name", header: (t.isFrench ? "Nom" : "Last Name"), cell: info => info.getValue() || "—" },
+    { accessorKey: "first_name", header: (t.isFrench ? "Prénom" : "First Name"), cell: info => info.getValue() || (info.row.original.name || "").split(" ")[0] || "—" },
+    { accessorKey: "last_name", header: (t.isFrench ? "Nom" : "Last Name"), cell: info => info.getValue() || (info.row.original.name || "").split(" ").slice(1).join(" ") || "—" },
     {
       accessorKey: "email",
       header: (t.isFrench ? "E-mail" : "Email Address"),
@@ -2144,8 +2144,8 @@ function SettingsPanel({ t, isDark, settings, onChange, profile, DIMENSIONS = []
       cell: ({ row }) => <input type="checkbox" className="ts-checkbox" checked={row.getIsSelected()} disabled={!row.original.email || row.original.isAlreadyRecipient} onChange={row.getToggleSelectedHandler()} />,
       size: 50
     },
-    { accessorKey: "first_name", header: (t.isFrench ? "Prénom" : "First Name"), cell: info => info.getValue() || "—" },
-    { accessorKey: "last_name", header: (t.isFrench ? "Nom" : "Last Name"), cell: info => info.getValue() || "—" },
+    { accessorKey: "first_name", header: (t.isFrench ? "Prénom" : "First Name"), cell: info => info.getValue() || (info.row.original.name || "").split(" ")[0] || "—" },
+    { accessorKey: "last_name", header: (t.isFrench ? "Nom" : "Last Name"), cell: info => info.getValue() || (info.row.original.name || "").split(" ").slice(1).join(" ") || "—" },
     {
       accessorKey: "email",
       header: (t.isFrench ? "E-mail" : "Email Address"),

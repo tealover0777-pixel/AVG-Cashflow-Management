@@ -10,7 +10,7 @@ import { InvestorSummaryModal } from "../components/InvestorSummaryModal";
 import { useAuth } from "../AuthContext";
 
 export default function PageContacts({ t, isDark, CONTACTS = [], INVESTMENTS = [], SCHEDULES = [], DEALS = [], collectionPath = "", DIMENSIONS = [], tenantId = "", LEDGER = [], USERS = [] }) {
-  const { hasPermission, isSuperAdmin } = useAuth();
+  const { hasPermission, isSuperAdmin, user } = useAuth();
   const canCreate = hasPermission("CONTACT_CREATE");
   const canUpdate = hasPermission("CONTACT_UPDATE");
   const canDelete = hasPermission("CONTACT_DELETE");

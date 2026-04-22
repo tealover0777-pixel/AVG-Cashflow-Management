@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { fmtCurr } from "../utils";
 import { 
   X, Info, ArrowUp, AlertCircle
@@ -32,6 +32,8 @@ export const InvestorSummaryModal = ({
   const [editData, setEditData] = useState({});
   const [saving, setSaving] = useState(false);
 
+  const lastContactIdRef = useRef("");
+
   const [selectedInvestmentId, setSelectedInvestmentId] = useState("");
   const [investmentEditData, setInvestmentEditData] = useState({});
   const [savingInvestment, setSavingInvestment] = useState(false);
@@ -44,17 +46,28 @@ export const InvestorSummaryModal = ({
   
   useEffect(() => {
     setViewMode(defaultView);
-    if (contact) {
+  }, [defaultView]);
+
+  useEffect(() => {
+    const contactId = contact?.id || contact?.docId || "";
+    if (contact && contactId !== lastContactIdRef.current) {
+      lastContactIdRef.current = contactId;
+
+      const fullName = contact.contact_name || contact.name || "";
+      const split = fullName.trim().split(/\s+/);
+      const firstNameFallback = split[0] || "";
+      const lastNameFallback = split.length > 1 ? split.slice(1).join(" ") : "";
+
       setEditData({
         ...contact,
-        first_name: contact.first_name || "",
-        last_name: contact.last_name || "",
+        first_name: contact.first_name || firstNameFallback,
+        last_name: contact.last_name || lastNameFallback,
         contact_type: contact.contact_type || contact.type || "Individual",
         role_type: contact.role_type || contact.role || "Investor",
         email: contact.email || "",
         phone: contact.phone || "",
         address: contact.address || "",
-        bank_information: contact.bank_information || "",
+        bank_information: contact.bank_information || contact.bank_name || "",
         bank_address: contact.bank_address || "",
         bank_routing_number: contact.bank_routing_number || "",
         bank_account_number: contact.bank_account_number || "",
@@ -63,7 +76,7 @@ export const InvestorSummaryModal = ({
       });
       setIsEditing(false);
     }
-  }, [defaultView, contact]);
+  }, [contact]);
 
   const dpId = contact ? String(contact.id || "").trim() : "";
   const dpDocId = contact ? String(contact.docId || "").trim() : "";
