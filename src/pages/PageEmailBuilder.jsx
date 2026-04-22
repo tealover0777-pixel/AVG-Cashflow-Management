@@ -1217,7 +1217,7 @@ function EmailCanvas({ t, isDark, rows, selectedRowId, onSelectRow, onAddRow, on
           </React.Fragment>
         ))}
 
-        {rows.length === 0 && !isSimpleMode && (
+        {rows.length === 0 && (
           <div style={{
             display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
             padding: "60px 40px", border: `2px dashed ${isDark ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.15)"}`,
