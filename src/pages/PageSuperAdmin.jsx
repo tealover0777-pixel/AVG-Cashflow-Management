@@ -240,6 +240,13 @@ export default function PageSuperAdmin({ t, isDark, ROLES = [], TENANTS = [] }) 
                     {roleOptions.map(r => <option key={r.id} value={r.id} style={{ color: "#000" }}>{r.display}</option>)}
                 </select>
             </FF>
+            <FF label="Status" t={t}>
+                <select value={modal.data.status || "Active"} onChange={e => setF("status", e.target.value)} style={{ background: isDark ? "rgba(255,255,255,0.05)" : "#fff", color: t.text, border: `1px solid ${t.border}`, borderRadius: 10, padding: 12, fontSize: 14, outline: "none", width: "100%" }}>
+                    <option value="Active" style={{ color: "#000" }}>Active</option>
+                    <option value="Pending" style={{ color: "#000" }}>Pending</option>
+                    <option value="Inactive" style={{ color: "#000" }}>Inactive</option>
+                </select>
+            </FF>
             <FF label="Tenant Assignment" t={t}>
                 {!isRoleGlobal(modal.data.role) ? (
                     <select value={modal.data.tenantId || ""} onChange={e => setF("tenantId", e.target.value)} style={{ background: isDark ? "rgba(255,255,255,0.05)" : "#fff", color: t.text, border: `1px solid ${t.border}`, borderRadius: 10, padding: 12, fontSize: 14, outline: "none", width: "100%" }}>
@@ -263,6 +270,13 @@ export default function PageSuperAdmin({ t, isDark, ROLES = [], TENANTS = [] }) 
                 <select value={modal.data.role || ""} onChange={e => setF("role", e.target.value)} style={{ background: isDark ? "rgba(255,255,255,0.05)" : "#fff", color: t.text, border: `1px solid ${t.border}`, borderRadius: 10, padding: 12, fontSize: 14, outline: "none", width: "100%" }}>
                     <option value="">Select Role</option>
                     {roleOptions.map(r => <option key={r.id} value={r.id} style={{ color: "#000" }}>{r.display}</option>)}
+                </select>
+            </FF>
+            <FF label="Status" t={t}>
+                <select value={modal.data.status || "Active"} onChange={e => setF("status", e.target.value)} style={{ background: isDark ? "rgba(255,255,255,0.05)" : "#fff", color: t.text, border: `1px solid ${t.border}`, borderRadius: 10, padding: 12, fontSize: 14, outline: "none", width: "100%" }}>
+                    <option value="Active" style={{ color: "#000" }}>Active</option>
+                    <option value="Pending" style={{ color: "#000" }}>Pending</option>
+                    <option value="Inactive" style={{ color: "#000" }}>Inactive</option>
                 </select>
             </FF>
             <FF label="Tenant Assignment" t={t}>

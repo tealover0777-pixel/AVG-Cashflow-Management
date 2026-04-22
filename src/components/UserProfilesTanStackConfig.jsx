@@ -3,9 +3,18 @@ import { ActBtns, Tooltip } from '../components';
 
 const StatusBadge = ({ status, t, isDark }) => {
     const isPending = !status || status === "Pending";
-    const bg = isPending ? (isDark ? "rgba(251,191,36,0.15)" : "#FFFBEB") : (isDark ? "rgba(34,197,94,0.15)" : "#F0FDF4");
-    const color = isPending ? "#F59E0B" : "#22C55E";
-    const border = isPending ? "1px solid rgba(245,158,11,0.35)" : "1px solid rgba(34,197,94,0.35)";
+    const isInactive = status === "Inactive";
+
+    let bg = isPending ? (isDark ? "rgba(251,191,36,0.15)" : "#FFFBEB") : (isDark ? "rgba(34,197,94,0.15)" : "#F0FDF4");
+    let color = isPending ? "#F59E0B" : "#22C55E";
+    let border = isPending ? "1px solid rgba(245,158,11,0.35)" : "1px solid rgba(34,197,94,0.35)";
+
+    if (isInactive) {
+        bg = isDark ? "rgba(156,163,175,0.15)" : "#F3F4F6";
+        color = "#9CA3AF";
+        border = "1px solid rgba(156,163,175,0.35)";
+    }
+
     return (
         <span style={{ 
             display: "inline-block", 
@@ -19,7 +28,7 @@ const StatusBadge = ({ status, t, isDark }) => {
             letterSpacing: "0.02em", 
             whiteSpace: "nowrap" 
         }}>
-            {isPending ? "⏳ Pending" : "✓ Active"}
+            {isInactive ? "🚫 Inactive" : isPending ? "⏳ Pending" : "✓ Active"}
         </span>
     );
 };

@@ -560,6 +560,10 @@ function AppContent() {
     return <LoginScreen login={login} t={t} isDark={isDark} />;
   }
 
+  if (profile?.status === "Inactive") {
+    return <InactiveScreen logout={logout} t={t} isDark={isDark} />;
+  }
+
   return (
     <div style={{ display: "flex", height: "100vh", background: t.body, fontFamily: t.font, color: t.text, overflow: "hidden" }}>
       <style>{`
@@ -808,6 +812,21 @@ function AppContent() {
         </div>
       </div>
       <SidebarHelp open={helpOpen} onClose={() => setHelpOpen(false)} t={t} isDark={isDark} />
+    </div>
+  );
+}
+
+function InactiveScreen({ logout, t, isDark }) {
+  return (
+    <div style={{ height: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: isDark ? "#0C0A09" : "#F5F4F1", color: t.text, fontFamily: t.font, textAlign: "center", padding: 20 }}>
+      <div style={{ maxWidth: 400, background: t.surface, padding: 40, borderRadius: 24, border: `1px solid ${t.surfaceBorder}`, boxShadow: t.tableShadow }}>
+        <div style={{ width: 64, height: 64, borderRadius: "50%", background: "rgba(239, 68, 68, 0.1)", color: "#EF4444", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 24px" }}>
+          <ShieldAlert size={32} />
+        </div>
+        <h1 style={{ fontSize: 24, fontWeight: 800, marginBottom: 12, color: isDark ? "#fff" : "#1C1917" }}>Account Inactive</h1>
+        <p style={{ color: t.textMuted, lineHeight: 1.6, marginBottom: 32, fontSize: 14 }}>Your account has been deactivated by your administrator. Please contact your company's admin or support for assistance.</p>
+        <button onClick={logout} style={{ background: t.accentGrad, color: "#fff", padding: "12px 32px", borderRadius: 12, fontWeight: 700, border: "none", cursor: "pointer", boxShadow: `0 4px 12px ${t.accentShadow}` }}>Sign Out</button>
+      </div>
     </div>
   );
 }

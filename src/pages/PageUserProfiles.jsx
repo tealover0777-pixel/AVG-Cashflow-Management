@@ -241,6 +241,7 @@ export default function PageUserProfiles({ t, isDark, USERS = [], GLOBAL_USERS =
                     last_name: String(d.last_name || ""),
                     email: String(d.email || ""),
                     role_id: String(d.role_id || ""),
+                    status: String(d.status || "Active"),
                     phone: String(d.phone || ""),
                     notes: String(d.notes || ""),
                     updated_at: serverTimestamp(),
@@ -254,6 +255,7 @@ export default function PageUserProfiles({ t, isDark, USERS = [], GLOBAL_USERS =
                         last_name: String(d.last_name || ""),
                         email: String(d.email || ""),
                         role: String(d.role_id || ""),
+                        status: String(d.status || "Active"),
                         notes: String(d.notes || ""),
                         last_updated: serverTimestamp()
                     }, { merge: true });
@@ -418,6 +420,13 @@ export default function PageUserProfiles({ t, isDark, USERS = [], GLOBAL_USERS =
             <FF label="Role" t={t}>
                 <select value={modal.data.role_id || ""} onChange={e => setF("role_id", e.target.value)} style={{ background: isDark ? "rgba(255,255,255,0.04)" : "#fff", color: isDark ? "#fff" : "#000", border: `1px solid ${t.border}`, borderRadius: 9, padding: "10px 13px", fontSize: 13.5, outline: "none", width: "100%", fontFamily: t.font, appearance: "none" }}>
                     {ROLES.map(r => <option key={r.id || r.role_id} value={r.id || r.role_id} style={{ color: "#000" }}>{r.role_name || r.name || r.id}</option>)}
+                </select>
+            </FF>
+            <FF label="Status" t={t}>
+                <select value={modal.data.status || "Active"} onChange={e => setF("status", e.target.value)} style={{ background: isDark ? "rgba(255,255,255,0.04)" : "#fff", color: isDark ? "#fff" : "#000", border: `1px solid ${t.border}`, borderRadius: 9, padding: "10px 13px", fontSize: 13.5, outline: "none", width: "100%", fontFamily: t.font, appearance: "none" }}>
+                    <option value="Active" style={{ color: "#000" }}>Active</option>
+                    <option value="Pending" style={{ color: "#000" }}>Pending</option>
+                    <option value="Inactive" style={{ color: "#000" }}>Inactive</option>
                 </select>
             </FF>
             {isSuperAdmin && (
