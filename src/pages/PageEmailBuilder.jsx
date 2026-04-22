@@ -145,7 +145,7 @@ export default function PageEmailBuilder(props) {
 
   // Close dropdowns on outside click
   const activeId = tenantId || (activeTenantIdProp && activeTenantIdProp !== "GLOBAL" ? activeTenantIdProp : "");
-  const effectiveUploadTenantId = activeId;
+  const effectiveTenantId = activeId;
 
   const [setupTestEmail, setSetupTestEmail] = useState("");
 
@@ -633,13 +633,13 @@ export default function PageEmailBuilder(props) {
           {/* 1b. Save as new draft (Firestore) */}
           <button
             onClick={async () => {
-              if (!tenantId) {
+              if (!effectiveTenantId) {
                 showToast("No tenant ID found. Cannot save draft.", "error");
                 return;
               }
               setIsSaving(true);
               try {
-                const docRef = await addDoc(collection(db, "tenants", tenantId, "marketingEmails"), {
+                const docRef = await addDoc(collection(db, "tenants", effectiveTenantId, "marketingEmails"), {
                   title: emailName,
                   rows: rows,
                   settings: emailSettings,
