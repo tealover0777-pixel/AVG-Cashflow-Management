@@ -2383,6 +2383,7 @@ function resolvePreviewTags(html, contacts = []) {
 }
 
 function ReviewPanel({ t, isDark, rows, emailSettings, narrow, contacts = [] }) {
+  const recipientVal = Array.isArray(emailSettings.recipients) ? emailSettings.recipients.join("; ") : (emailSettings.recipients || "—");
   return (
     <div style={{ flex: 1, background: isDark ? "#111" : "#EEEEE9", display: "flex", gap: 24, padding: "40px", overflowY: "auto" }}>
       <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 14 }}>
@@ -2398,7 +2399,7 @@ function ReviewPanel({ t, isDark, rows, emailSettings, narrow, contacts = [] }) 
 
       <div style={{ width: 220, background: t.surface, borderRadius: 10, border: `1px solid ${t.border}`, padding: 20, height: "fit-content", flexShrink: 0 }}>
         <h4 style={{ margin: "0 0 16px 0", fontSize: 14, fontWeight: 700, color: t.text }}>Email info</h4>
-        {[["From:", emailSettings.from], ["From name:", emailSettings.fromName], ["Reply-to:", emailSettings.replyTo], ["Subject:", emailSettings.subject], ["Recipients:", "—"]].map(([label, val]) => (
+        {[["From:", emailSettings.from], ["From name:", emailSettings.fromName], ["Reply-to:", emailSettings.replyTo], ["Subject:", emailSettings.subject], ["Recipients:", recipientVal]].map(([label, val]) => (
           <div key={label} style={{ marginBottom: 14 }}>
             <div style={{ fontSize: 11, color: t.textMuted, marginBottom: 2 }}>{label}</div>
             <div style={{ fontSize: 12, color: val === "—" ? t.textMuted : t.text }}>{val || "—"}</div>
@@ -2416,6 +2417,11 @@ function RowPreview({ row, narrow, contacts = [] }) {
       if (row.content?.banner) return (
         <div style={{ background: row.content.bg, minHeight: narrow ? 80 : 120, display: "flex", alignItems: "flex-end", justifyContent: "flex-end" }}>
           {row.content.bannerText && <div style={{ background: "#D97706", color: "#fff", padding: narrow ? "5px 14px" : "7px 20px", fontWeight: 700, fontSize: narrow ? 11 : 13, letterSpacing: 1 }}>{resolvePreviewTags(row.content.bannerText, contacts)}</div>}
+        </div>
+      );
+      if (row.content?.imageUrl) return (
+        <div style={{ padding: p, background: "#fff", textAlign: row.content?.align || "center" }}>
+          <img src={row.content.imageUrl} alt="" style={{ maxWidth: "100%", width: row.content.autoWidth !== false ? "auto" : (row.content.width || "100%"), height: row.content.autoHeight !== false ? "auto" : (row.content.height || "auto"), display: "inline-block" }} />
         </div>
       );
       return <div style={{ height: narrow ? 80 : 120, background: "#F3F4F6" }} />;
