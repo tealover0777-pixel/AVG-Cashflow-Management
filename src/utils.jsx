@@ -137,7 +137,6 @@ const NAV_ITEMS = [
     icon: "ShieldAlert",
     expandable: true,
     children: [
-      { label: "Reports", icon: "BarChart3" },
       { label: "Investments", icon: "Coins" },
       { label: "Role Types", icon: "ShieldCheck" },
       { label: "Payment Schedule", icon: "CalendarDays" },
@@ -203,7 +202,6 @@ export const getNav = (isSuper, _isAdmin, hasPermission, isR10010) => {
     if (item.label === "Role Types" && !hasPermission("ROLE_TYPE_VIEW")) return false;
     if (item.label === "Tenants" && !(hasPermission("PLATFORM_TENANT_VIEW") || hasPermission("TENANT_VIEW"))) return false;
     if (item.label === "Dimensions" && !(hasPermission("DIMENSION_VIEW") || hasPermission("DIMENTION_VIEW"))) return false;
-    if (item.label === "Reports" && !hasPermission("REPORT_VIEW")) return false;
 
     return true;
   };
