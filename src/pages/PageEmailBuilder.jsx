@@ -888,9 +888,9 @@ export default function PageEmailBuilder(props) {
             {activeMainTab === "Settings" ? (
               <SettingsPanel t={t} isDark={isDark} settings={emailSettings} onChange={setEmailSettings} profile={profile} DIMENSIONS={DIMENSIONS} CONTACTS={CONTACTS} USERS={USERS} emailName={emailName} organizationName={organizationName} onSave={(newS) => handleSave(false, null, newS)} isSaving={isSaving} />
             ) : activeMainTab === "Mobile" ? (
-              <ReviewPanel t={t} isDark={isDark} rows={rows} emailSettings={emailSettings} narrow />
+              <ReviewPanel t={t} isDark={isDark} rows={rows} emailSettings={emailSettings} narrow contacts={CONTACTS} />
             ) : activeMainTab === "Desktop" ? (
-              <ReviewPanel t={t} isDark={isDark} rows={rows} emailSettings={emailSettings} />
+              <ReviewPanel t={t} isDark={isDark} rows={rows} emailSettings={emailSettings} contacts={CONTACTS} />
             ) : (
               <EmailCanvas
                 t={t} isDark={isDark} rows={rows}
@@ -2339,17 +2339,23 @@ function SettingsPanel({ t, isDark, settings, onChange, profile, DIMENSIONS = []
  * Client-side tag resolver for previews. Matches the logic in cloud functions
  * but uses mock data for visualization.
  */
-function resolvePreviewTags(html) {
+function resolvePreviewTags(html, contacts = []) {
   if (!html) return "";
   const now = new Date();
   const year = now.getFullYear();
   const q = Math.floor(now.getMonth() / 3) + 1;
   const lq = q === 1 ? 4 : q - 1;
 
+  // Use the first contact if available, otherwise fallback to "John Doe"
+  const c = Array.isArray(contacts) && contacts.length > 0 ? contacts[0] : null;
+  const firstName = c?.first_name || (c?.name || "").split(" ")[0] || "John";
+  const lastName = c?.last_name || (c?.name || "").split(" ").slice(1).join(" ") || "Doe";
+  const fullName = c?.contact_name || c?.name || `${firstName} ${lastName}`.trim() || "John Doe";
+
   const mock = {
-    "First name": "John",
-    "Last name": "Doe",
-    "Full name": "John Doe",
+    "First name": firstName,
+    "Last name": lastName,
+    "Full name": fullName,
     "Current year": String(year),
     "Current quarter": `Q${q}`,
     "Last quarter": `Q${lq}`,
@@ -2376,7 +2382,7 @@ function resolvePreviewTags(html) {
   return res;
 }
 
-function ReviewPanel({ t, isDark, rows, emailSettings, narrow }) {
+function ReviewPanel({ t, isDark, rows, emailSettings, narrow, contacts = [] }) {
   return (
     <div style={{ flex: 1, background: isDark ? "#111" : "#EEEEE9", display: "flex", gap: 24, padding: "40px", overflowY: "auto" }}>
       <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 14 }}>
@@ -2386,7 +2392,7 @@ function ReviewPanel({ t, isDark, rows, emailSettings, narrow }) {
           </div>
         )}
         <div style={{ width: narrow ? 390 : "100%", maxWidth: narrow ? 390 : 1100, boxShadow: "0 10px 40px rgba(0,0,0,0.1)", background: "#fff", borderRadius: 8, overflow: "hidden" }}>
-          {(Array.isArray(rows) ? rows : []).map(row => <RowPreview key={row.id} row={row} narrow={narrow} />)}
+          {(Array.isArray(rows) ? rows : []).map(row => <RowPreview key={row.id} row={row} narrow={narrow} contacts={contacts} />)}
         </div>
       </div>
 
@@ -2403,39 +2409,39 @@ function ReviewPanel({ t, isDark, rows, emailSettings, narrow }) {
   );
 }
 
-function RowPreview({ row, narrow }) {
+function RowPreview({ row, narrow, contacts = [] }) {
   const p = narrow ? "14px 18px" : "22px 30px";
   switch (row.type) {
     case "image":
       if (row.content?.banner) return (
         <div style={{ background: row.content.bg, minHeight: narrow ? 80 : 120, display: "flex", alignItems: "flex-end", justifyContent: "flex-end" }}>
-          {row.content.bannerText && <div style={{ background: "#D97706", color: "#fff", padding: narrow ? "5px 14px" : "7px 20px", fontWeight: 700, fontSize: narrow ? 11 : 13, letterSpacing: 1 }}>{row.content.bannerText}</div>}
+          {row.content.bannerText && <div style={{ background: "#D97706", color: "#fff", padding: narrow ? "5px 14px" : "7px 20px", fontWeight: 700, fontSize: narrow ? 11 : 13, letterSpacing: 1 }}>{resolvePreviewTags(row.content.bannerText, contacts)}</div>}
         </div>
       );
       return <div style={{ height: narrow ? 80 : 120, background: "#F3F4F6" }} />;
     case "paragraph":
-      return <div style={{ padding: p, background: "#fff", color: "#1F2937", fontSize: narrow ? 12 : 13, lineHeight: 1.65 }} dangerouslySetInnerHTML={{ __html: resolvePreviewTags(row.content?.html || "") }} />;
+      return <div style={{ padding: p, background: "#fff", color: "#1F2937", fontSize: narrow ? 12 : 13, lineHeight: 1.65 }} dangerouslySetInnerHTML={{ __html: resolvePreviewTags(row.content?.html || "", contacts) }} />;
     case "heading":
       return (
         <div style={{ padding: p, background: "#fff" }}>
-          <h2 style={{ margin: 0, fontSize: narrow ? 18 : 22, color: row.content?.color || "#111" }}>{resolvePreviewTags(row.content?.headingText || row.content?.text || "")}</h2>
+          <h2 style={{ margin: 0, fontSize: narrow ? 18 : 22, color: row.content?.color || "#111" }}>{resolvePreviewTags(row.content?.headingText || row.content?.text || "", contacts)}</h2>
         </div>
       );
     case "button":
       return (
         <div style={{ padding: p, background: "#fff", textAlign: row.content?.align || "center" }}>
           <div style={{ display: "inline-block", background: row.content?.bgColor || "#1D4ED8", color: "#fff", padding: "10px 24px", borderRadius: 6, fontWeight: 700, fontSize: narrow ? 11 : 13 }}>
-            {resolvePreviewTags(row.content?.buttonText || row.content?.text || "Click here")}
+            {resolvePreviewTags(row.content?.buttonText || row.content?.text || "Click here", contacts)}
           </div>
         </div>
       );
     case "footer":
       return (
         <div style={{ background: row.content?.bg || "#1c170f", padding: p, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <div style={{ color: "#fff", fontSize: narrow ? 10 : 14, fontWeight: 300, whiteSpace: "pre-line" }}>{resolvePreviewTags(row.content?.leftText || "")}</div>
+          <div style={{ color: "#fff", fontSize: narrow ? 10 : 14, fontWeight: 300, whiteSpace: "pre-line" }}>{resolvePreviewTags(row.content?.leftText || "", contacts)}</div>
           <div style={{ color: "#fff", fontSize: narrow ? 9 : 12, textAlign: "right" }}>
-            <div style={{ whiteSpace: "pre-line" }}>{resolvePreviewTags(row.content?.rightText || "")}</div>
-            {row.content?.buttonText && <div style={{ marginTop: 6, border: "1px solid rgba(255,255,255,0.5)", borderRadius: 2, padding: "3px 10px", fontSize: 9, display: "inline-block", letterSpacing: 1 }}>{resolvePreviewTags(row.content.buttonText)}</div>}
+            <div style={{ whiteSpace: "pre-line" }}>{resolvePreviewTags(row.content?.rightText || "", contacts)}</div>
+            {row.content?.buttonText && <div style={{ marginTop: 6, border: "1px solid rgba(255,255,255,0.5)", borderRadius: 2, padding: "3px 10px", fontSize: 9, display: "inline-block", letterSpacing: 1 }}>{resolvePreviewTags(row.content.buttonText, contacts)}</div>}
           </div>
         </div>
       );
@@ -2445,7 +2451,7 @@ function RowPreview({ row, narrow }) {
         <div style={{ display: "flex", width: "100%", background: row.content?.rowBg || "transparent" }}>
           {(Array.isArray(ratios) ? ratios : []).map((flex, i) => (
             <div key={i} style={{ flex: `${flex} 1 0%`, padding: row.content?.columns?.[i]?.settings?.padding || "10px", background: row.content?.columns?.[i]?.settings?.bgColor || "transparent" }}>
-              {(Array.isArray(row.content?.columns?.[i]?.blocks) ? row.content.columns[i].blocks : []).map(b => <RowPreview key={b.id} row={b} narrow={narrow} />)}
+              {(Array.isArray(row.content?.columns?.[i]?.blocks) ? row.content.columns[i].blocks : []).map(b => <RowPreview key={b.id} row={b} narrow={narrow} contacts={contacts} />)}
             </div>
           ))}
         </div>
@@ -2459,7 +2465,7 @@ function RowPreview({ row, narrow }) {
               {(Array.isArray(tRows) ? tRows : []).map((tr, rIdx) => (
                 <tr key={tr.id} style={{ background: tr.isHeader ? (row.content?.headerBg || "#EBEBEB") : (row.content?.striped && rIdx % 2 === 1 ? "#F9F9F9" : (row.content?.bg || "transparent")) }}>
                   {(Array.isArray(tr.cells) ? tr.cells : []).map(cell => (
-                    <td key={cell.id} style={{ border: "1px solid #DDDDDD", padding: row.content?.cellPadding || "12px", fontSize: narrow ? 11 : 13 }} dangerouslySetInnerHTML={{ __html: resolvePreviewTags(cell.text || "") }} />
+                    <td key={cell.id} style={{ border: "1px solid #DDDDDD", padding: row.content?.cellPadding || "12px", fontSize: narrow ? 11 : 13 }} dangerouslySetInnerHTML={{ __html: resolvePreviewTags(cell.text || "", contacts) }} />
                   ))}
                 </tr>
               ))}
