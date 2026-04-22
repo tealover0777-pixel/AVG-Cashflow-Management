@@ -129,19 +129,38 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
         return rowData;
       });
     } else {
-      headers = ["Investor", "Type", "Amount", "Due Date", "Status", "Payment Date", "Freq", "Rate", "Schedule", "Payment Method"];
-      data = activeDealSchedules.map(s => [
-        s.contact_name || s.investor || "—",
-        (s.payment_type || s.type || "").replace(/_/g, ' '),
-        fmtCurrency(s.signed_payment_amount || 0),
-        s.dueDate || "—",
-        s.status || "—",
-        s.pmt_date || "—",
-        s.freq || "—",
-        (s.rate || 0) + "%",
-        s.schedule_id || "—",
-        s.payment_method || "—"
-      ]);
+      headers = ["Investor Name", "Deal Name", "Start Date", "Payment Date", "Type", "Freq", "Amount", "Status", "Notes"];
+      data = activeDealSchedules.map(s => {
+        const contact = CONTACTS.find(x => x.id === s.contact_id);
+        const dealObj = DEALS.find(x => x.id === s.deal_id);
+        const inv = INVESTMENTS.find(x => x.id === s.investment_id || x.id === s.investment);
+        const investorName = contact ? contact.name : (s.contact_name || s.investor || "—");
+        const dealName = dealObj ? (dealObj.deal_name || dealObj.name) : (s.deal_id || "—");
+        const type = (s.payment_type || s.type || "").replace(/_/g, ' ');
+        const isPrincipalPayment = type.toLowerCase() === "investor principal payment";
+        const startDate = isPrincipalPayment ? (s.dueDate || s.due_date || "—") : (() => {
+          const val = s.term_start || "—";
+          const start = inv?.start_date;
+          return (start && val !== "—" && val < start) ? start : val;
+        })();
+        const paymentDate = (() => {
+          const val = s.dueDate || s.due_date || "—";
+          const end = inv?.maturity_date;
+          return (end && val !== "—" && val > end) ? end : val;
+        })();
+        const freq = s.frequency || inv?.freq || inv?.payment_frequency || s.freq || "—";
+        return [
+          investorName,
+          dealName,
+          startDate,
+          paymentDate,
+          type,
+          freq,
+          fmtCurrency(s.signed_payment_amount || 0),
+          s.status || "—",
+          s.notes || "—"
+        ];
+      });
     }
 
     if (format === 'csv') {
