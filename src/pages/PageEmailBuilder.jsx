@@ -887,25 +887,33 @@ export default function PageEmailBuilder(props) {
           <div style={{ flex: 1, display: "flex", overflow: "hidden" }}>
             {activeMainTab === "Settings" ? (
               <SettingsPanel t={t} isDark={isDark} settings={emailSettings} onChange={setEmailSettings} profile={profile} DIMENSIONS={DIMENSIONS} CONTACTS={CONTACTS} USERS={USERS} emailName={emailName} organizationName={organizationName} onSave={(newS) => handleSave(false, null, newS)} isSaving={isSaving} />
-            ) : activeMainTab === "Mobile" ? (
-              <ReviewPanel t={t} isDark={isDark} rows={rows} emailSettings={emailSettings} narrow contacts={CONTACTS} />
-            ) : activeMainTab === "Desktop" ? (
-              <ReviewPanel t={t} isDark={isDark} rows={rows} emailSettings={emailSettings} contacts={CONTACTS} />
-            ) : (
-              <EmailCanvas
-                t={t} isDark={isDark} rows={rows}
-                selectedRowId={selectedRowId}
-                onSelectRow={handleSelectRow}
-                onAddRow={handleAddRow}
-                onDeleteRow={handleDeleteRow}
-                onDuplicateRow={handleDuplicateRow}
-                onUpdateRow={handleUpdateRow}
-                onAddBlockToColumn={handleAddBlockToColumn}
-                onReorder={handleReorderRows}
-                setActiveRightTab={setActiveRightTab}
-                DIMENSIONS={DIMENSIONS}
-              />
-            )}
+            ) : (() => {
+              const rawR = emailSettings.recipients;
+              const recEmails = (Array.isArray(rawR) ? rawR : (rawR || "").split(";")).map(s => String(s).trim().toLowerCase()).filter(Boolean);
+              const assignedContacts = CONTACTS.filter(c => c.email && recEmails.includes(c.email.toLowerCase()));
+
+              if (activeMainTab === "Mobile") {
+                return <ReviewPanel t={t} isDark={isDark} rows={rows} emailSettings={emailSettings} narrow contacts={assignedContacts} />;
+              }
+              if (activeMainTab === "Desktop") {
+                return <ReviewPanel t={t} isDark={isDark} rows={rows} emailSettings={emailSettings} contacts={assignedContacts} />;
+              }
+              return (
+                <EmailCanvas
+                  t={t} isDark={isDark} rows={rows}
+                  selectedRowId={selectedRowId}
+                  onSelectRow={handleSelectRow}
+                  onAddRow={handleAddRow}
+                  onDeleteRow={handleDeleteRow}
+                  onDuplicateRow={handleDuplicateRow}
+                  onUpdateRow={handleUpdateRow}
+                  onAddBlockToColumn={handleAddBlockToColumn}
+                  onReorder={handleReorderRows}
+                  setActiveRightTab={setActiveRightTab}
+                  DIMENSIONS={DIMENSIONS}
+                />
+              );
+            })()}
 
             {activeMainTab === "Edit" && (
               <div
@@ -2346,16 +2354,10 @@ function resolvePreviewTags(html, contacts = []) {
   const q = Math.floor(now.getMonth() / 3) + 1;
   const lq = q === 1 ? 4 : q - 1;
 
-  // Use the first contact if available, otherwise fallback to "John Doe"
+  // Use the first contact if available
   const c = Array.isArray(contacts) && contacts.length > 0 ? contacts[0] : null;
-  const firstName = c?.first_name || (c?.name || "").split(" ")[0] || "John";
-  const lastName = c?.last_name || (c?.name || "").split(" ").slice(1).join(" ") || "Doe";
-  const fullName = c?.contact_name || c?.name || `${firstName} ${lastName}`.trim() || "John Doe";
 
   const mock = {
-    "First name": firstName,
-    "Last name": lastName,
-    "Full name": fullName,
     "Current year": String(year),
     "Current quarter": `Q${q}`,
     "Last quarter": `Q${lq}`,
@@ -2365,6 +2367,16 @@ function resolvePreviewTags(html, contacts = []) {
     "sponsor portal link": "https://avg-cashflow-management.web.app",
     "From name": "Sponsor Name"
   };
+
+  // Only resolve identity tags if a contact was provided
+  if (c) {
+    const firstName = c?.first_name || (c?.name || "").split(" ")[0] || "John";
+    const lastName = c?.last_name || (c?.name || "").split(" ").slice(1).join(" ") || "Doe";
+    const fullName = c?.contact_name || c?.name || `${firstName} ${lastName}`.trim() || `${firstName} ${lastName}`.trim();
+    mock["First name"] = firstName;
+    mock["Last name"] = lastName;
+    mock["Full name"] = fullName;
+  }
 
   let res = html;
   Object.keys(mock).forEach(tag => {
