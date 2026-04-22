@@ -1217,6 +1217,26 @@ function EmailCanvas({ t, isDark, rows, selectedRowId, onSelectRow, onAddRow, on
           </React.Fragment>
         ))}
 
+        {rows.length === 0 && !isSimpleMode && (
+          <div style={{
+            display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+            padding: "60px 40px", border: `2px dashed ${isDark ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.15)"}`,
+            borderRadius: 16, background: isDark ? "rgba(255,255,255,0.02)" : "rgba(255,255,255,0.5)",
+            textAlign: "center", gap: 12, marginTop: 8
+          }}>
+            <div style={{ width: 48, height: 48, borderRadius: 12, background: isDark ? "rgba(59,130,246,0.15)" : "rgba(59,130,246,0.08)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={isDark ? "#60A5FA" : "#3B82F6"} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="3" width="18" height="18" rx="3"/>
+                <path d="M12 8v8M8 12h8"/>
+              </svg>
+            </div>
+            <div>
+              <div style={{ fontSize: 14, fontWeight: 700, color: isDark ? "#E2E8F0" : "#1E293B", marginBottom: 4 }}>Start building your email</div>
+              <div style={{ fontSize: 12, color: isDark ? "#94A3B8" : "#64748B", lineHeight: 1.5 }}>Drag blocks from the left panel onto this canvas,<br/>or click any block to add it here.</div>
+            </div>
+          </div>
+        )}
+
       </div>
       <style>{`
         [contenteditable="true"] blockquote,
