@@ -121,7 +121,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
           row.paymentMethod
         ];
         pivotData.dates.forEach(date => {
-          const val = row.data[date] || 0;
+          const val = pivotData.data[`${row.key}|||${date}`]?.amount || 0;
           rowTotal += val;
           rowData.push(fmtCurrency(val));
         });
