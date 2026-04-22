@@ -59,11 +59,11 @@ const INITIAL_ROWS = [
   {
     id: "r_body", type: "paragraph",
     content: {
-      html: `<p style="margin:0 0 12px 0">Dear <span style="border:1px dashed #9CA3AF;padding:2px 6px;border-radius:4px;color:#6B7280;font-size:11px;background:#F9FAFB">First name</span>,</p>
+      html: `<p style="margin:0 0 12px 0">Dear <span contenteditable="false">First name</span>,</p>
 <p style="margin:0 0 12px 0">We are pleased to inform you that your [YEAR] [QUARTER] distribution report has been uploaded. You can find the report attached to this email, and it is also available for download via your investor portal.</p>
 <p style="margin:0 0 10px 0">To access your investor report via portal, please follow these steps:</p>
 <ol style="margin:0 0 12px 0;padding-left:20px">
-  <li style="margin-bottom:5px">Log into <span style="border:1px dashed #9CA3AF;padding:1px 5px;border-radius:4px;color:#6B7280;font-size:10px">Selected sponsor portal link</span>.</li>
+  <li style="margin-bottom:5px">Log into <span contenteditable="false">Selected sponsor portal link</span>.</li>
   <li style="margin-bottom:5px">Go to <strong>Investments</strong> on the left navigation menu.</li>
   <li style="margin-bottom:5px">Locate the <strong>Export Summary</strong> button at the top right.</li>
   <li>You have the option to <strong>View</strong> or <strong>Download</strong> your investment report.</li>
@@ -107,6 +107,7 @@ export default function PageEmailBuilder(props) {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [toast, setToast] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [isProcessingSend, setIsProcessingSend] = useState(false);
   const [showSaveAsNewPrompt, setShowSaveAsNewPrompt] = useState(false);
 
   // Send test email
@@ -759,7 +760,7 @@ export default function PageEmailBuilder(props) {
                             showToast("No recipients assigned. Please add recipients in Settings before sending.", "error");
                             return;
                           }
-                          setIsSaving(true);
+                          setIsProcessingSend(true);
                           try {
                             const { httpsCallable: _call } = await import("firebase/functions");
                             const sendMarketing = _call(functions, "sendMarketingEmail");
@@ -771,7 +772,7 @@ export default function PageEmailBuilder(props) {
                               // Storage template — create a Firestore draft first to get a real doc ID
                               if (!effectiveTenantId) {
                                 showToast("No tenant selected. Cannot send.", "error");
-                                setIsSaving(false); return;
+                                setIsProcessingSend(false); return;
                               }
                               const { addDoc: _add, collection: _col, serverTimestamp: _ts } = await import("firebase/firestore");
                               const newDoc = await _add(_col(db, `tenants/${effectiveTenantId}/marketingEmails`), {
@@ -806,7 +807,7 @@ export default function PageEmailBuilder(props) {
                             console.error("Marketing send error:", err);
                             showToast("Failed to dispatch campaign: " + (err.message || "Unknown error"), "error");
                           } finally {
-                            setIsSaving(false);
+                            setIsProcessingSend(false);
                           }
                         }
                       },
@@ -835,6 +836,7 @@ export default function PageEmailBuilder(props) {
         </div>
       </div>
 
+      {isProcessingSend && <ProcessingOverlay isDark={isDark} t={t} />}
       {isSimpleMode ? (
         <SimpleDraftLayout
           t={t}
@@ -1349,7 +1351,6 @@ const FloatingTextBar = ({ t, isDark, DIMENSIONS = [] }) => {
     range.deleteContents();
 
     const span = document.createElement("span");
-    span.style.cssText = "border:1px dashed #9CA3AF;padding:2px 6px;border-radius:4px;color:#6B7280;font-size:11px;background:#F9FAFB;margin:0 2px;display:inline-flex;align-items:center;vertical-align:middle;line-height:1";
     span.contentEditable = "false";
     span.innerText = tag;
 
@@ -3409,6 +3410,47 @@ function UploadsTab({ t, isDark, uploads, isUploading, uploadProgress, onUpload,
           </p>
         </div>
       </DelModal>
+    </div>
+  );
+}
+
+function ProcessingOverlay({ isDark, t, message = "Processing email sending..." }) {
+  return (
+    <div style={{
+      position: "fixed",
+      inset: 0,
+      zIndex: 9999,
+      background: "rgba(0,0,0,0.6)",
+      backdropFilter: "blur(5px)",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      flexDirection: "column",
+      gap: 16
+    }}>
+      <div style={{
+        width: 54,
+        height: 54,
+        borderRadius: "50%",
+        border: `3px solid ${isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.05)"}`,
+        borderTop: `3px solid ${t.accent || "#3B82F6"}`,
+        animation: "spin 1s linear infinite"
+      }} />
+      <div style={{
+        fontSize: 16,
+        fontWeight: 700,
+        color: "#fff",
+        letterSpacing: "0.02em",
+        textShadow: "0 2px 4px rgba(0,0,0,0.3)"
+      }}>
+        {message}
+      </div>
+      <style>{`
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+      `}</style>
     </div>
   );
 }
