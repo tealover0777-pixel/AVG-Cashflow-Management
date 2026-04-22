@@ -2172,7 +2172,7 @@ function SettingsPanel({ t, isDark, settings, onChange, profile, DIMENSIONS = []
           <SettingsRow label="Internal name:" t={t} isUnified={isUnified}><input placeholder="Email draft name" value={localSettings.internalName || ""} onChange={e => set("internalName", e.target.value)} style={isUnified ? { ...inpRefined, fontWeight: 700 } : inp} /></SettingsRow>
           <SettingsRow label="Recipients:" t={t} isUnified={isUnified}>
             <div style={{ display: "flex", alignItems: "center", flex: 1, gap: 12 }}>
-              <input readOnly placeholder="Click to select your recipients" value={localSettings.recipients || ""} style={isUnified ? { ...inpRefined, cursor: "default" } : inp} />
+              <input placeholder="Enter emails (semicolon-separated) or use picker →" value={localSettings.recipients || ""} onChange={e => { set("recipients", e.target.value); onChange(prev => ({ ...prev, recipients: e.target.value })); }} style={isUnified ? inpRefined : inp} />
               <button onClick={() => setShowRecipients(true)} style={isUnified ? actionBtnRefined : { ...actionBtn, marginLeft: 16 }}>
                 <Users size={14} /> View recipients
               </button>
@@ -2180,7 +2180,7 @@ function SettingsPanel({ t, isDark, settings, onChange, profile, DIMENSIONS = []
           </SettingsRow>
           <SettingsRow label="Do not send to:" t={t} isUnified={isUnified}>
             <div style={{ display: "flex", alignItems: "center", flex: 1, gap: 12 }}>
-              <input readOnly placeholder="(Optional) Click to select recipients to exclude" value={localSettings.doNotSendTo || ""} style={isUnified ? inpRefined : inp} />
+              <input placeholder="(Optional) Enter emails to exclude or use picker →" value={localSettings.doNotSendTo || ""} onChange={e => { set("doNotSendTo", e.target.value); onChange(prev => ({ ...prev, doNotSendTo: e.target.value })); }} style={isUnified ? inpRefined : inp} />
               <button onClick={() => setShowDoNotSend(true)} style={isUnified ? actionBtnRefined : { ...actionBtn, marginLeft: 16 }}>
                 <Users size={14} /> View do not send
               </button>
