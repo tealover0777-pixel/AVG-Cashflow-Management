@@ -2335,6 +2335,47 @@ function SettingsPanel({ t, isDark, settings, onChange, profile, DIMENSIONS = []
 
 // ── Review Panels ─────────────────────────────────────────────────────────────
 
+/**
+ * Client-side tag resolver for previews. Matches the logic in cloud functions
+ * but uses mock data for visualization.
+ */
+function resolvePreviewTags(html) {
+  if (!html) return "";
+  const now = new Date();
+  const year = now.getFullYear();
+  const q = Math.floor(now.getMonth() / 3) + 1;
+  const lq = q === 1 ? 4 : q - 1;
+
+  const mock = {
+    "First name": "John",
+    "Last name": "Doe",
+    "Full name": "John Doe",
+    "Current year": String(year),
+    "Current quarter": `Q${q}`,
+    "Last quarter": `Q${lq}`,
+    "Total invested": "$100,000.00",
+    "Total distributed": "$12,345.67",
+    "Capital balance": "$87,654.33",
+    "sponsor portal link": "https://avg-cashflow-management.web.app",
+    "From name": "Sponsor Name"
+  };
+
+  let res = html;
+  Object.keys(mock).forEach(tag => {
+    // 1. Handle {{Tag}} or {{tag}}
+    const curly = new RegExp(`{{${tag}}}`, "gi");
+    // 2. Handle <span>Tag</span> or <span>tag</span> (editor style)
+    const span = new RegExp(`<span>${tag}</span>`, "gi");
+    // 3. Handle <span>{{Tag}}</span> (common in editor)
+    const curlySpan = new RegExp(`<span>{{${tag}}}</span>`, "gi");
+
+    res = res.replace(curlySpan, mock[tag]);
+    res = res.replace(curly, mock[tag]);
+    res = res.replace(span, mock[tag]);
+  });
+  return res;
+}
+
 function ReviewPanel({ t, isDark, rows, emailSettings, narrow }) {
   return (
     <div style={{ flex: 1, background: isDark ? "#111" : "#EEEEE9", display: "flex", gap: 24, padding: "40px", overflowY: "auto" }}>
@@ -2373,14 +2414,28 @@ function RowPreview({ row, narrow }) {
       );
       return <div style={{ height: narrow ? 80 : 120, background: "#F3F4F6" }} />;
     case "paragraph":
-      return <div style={{ padding: p, background: "#fff", color: "#1F2937", fontSize: narrow ? 12 : 13, lineHeight: 1.65 }} dangerouslySetInnerHTML={{ __html: row.content?.html || "" }} />;
+      return <div style={{ padding: p, background: "#fff", color: "#1F2937", fontSize: narrow ? 12 : 13, lineHeight: 1.65 }} dangerouslySetInnerHTML={{ __html: resolvePreviewTags(row.content?.html || "") }} />;
+    case "heading":
+      return (
+        <div style={{ padding: p, background: "#fff" }}>
+          <h2 style={{ margin: 0, fontSize: narrow ? 18 : 22, color: row.content?.color || "#111" }}>{resolvePreviewTags(row.content?.headingText || row.content?.text || "")}</h2>
+        </div>
+      );
+    case "button":
+      return (
+        <div style={{ padding: p, background: "#fff", textAlign: row.content?.align || "center" }}>
+          <div style={{ display: "inline-block", background: row.content?.bgColor || "#1D4ED8", color: "#fff", padding: "10px 24px", borderRadius: 6, fontWeight: 700, fontSize: narrow ? 11 : 13 }}>
+            {resolvePreviewTags(row.content?.buttonText || row.content?.text || "Click here")}
+          </div>
+        </div>
+      );
     case "footer":
       return (
         <div style={{ background: row.content?.bg || "#1c170f", padding: p, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <div style={{ color: "#fff", fontSize: narrow ? 10 : 14, fontWeight: 300, whiteSpace: "pre-line" }}>{row.content?.leftText}</div>
+          <div style={{ color: "#fff", fontSize: narrow ? 10 : 14, fontWeight: 300, whiteSpace: "pre-line" }}>{resolvePreviewTags(row.content?.leftText || "")}</div>
           <div style={{ color: "#fff", fontSize: narrow ? 9 : 12, textAlign: "right" }}>
-            <div style={{ whiteSpace: "pre-line" }}>{row.content?.rightText}</div>
-            {row.content?.buttonText && <div style={{ marginTop: 6, border: "1px solid rgba(255,255,255,0.5)", borderRadius: 2, padding: "3px 10px", fontSize: 9, display: "inline-block", letterSpacing: 1 }}>{row.content.buttonText}</div>}
+            <div style={{ whiteSpace: "pre-line" }}>{resolvePreviewTags(row.content?.rightText || "")}</div>
+            {row.content?.buttonText && <div style={{ marginTop: 6, border: "1px solid rgba(255,255,255,0.5)", borderRadius: 2, padding: "3px 10px", fontSize: 9, display: "inline-block", letterSpacing: 1 }}>{resolvePreviewTags(row.content.buttonText)}</div>}
           </div>
         </div>
       );
@@ -2404,7 +2459,7 @@ function RowPreview({ row, narrow }) {
               {(Array.isArray(tRows) ? tRows : []).map((tr, rIdx) => (
                 <tr key={tr.id} style={{ background: tr.isHeader ? (row.content?.headerBg || "#EBEBEB") : (row.content?.striped && rIdx % 2 === 1 ? "#F9F9F9" : (row.content?.bg || "transparent")) }}>
                   {(Array.isArray(tr.cells) ? tr.cells : []).map(cell => (
-                    <td key={cell.id} style={{ border: "1px solid #DDDDDD", padding: row.content?.cellPadding || "12px", fontSize: narrow ? 11 : 13 }} dangerouslySetInnerHTML={{ __html: cell.text || "" }} />
+                    <td key={cell.id} style={{ border: "1px solid #DDDDDD", padding: row.content?.cellPadding || "12px", fontSize: narrow ? 11 : 13 }} dangerouslySetInnerHTML={{ __html: resolvePreviewTags(cell.text || "") }} />
                   ))}
                 </tr>
               ))}
