@@ -175,9 +175,9 @@ export default function PageEmailBuilder(props) {
 
   useEffect(() => {
     const fetchUploads = async () => {
-      if (!effectiveUploadTenantId) return;
+      if (!effectiveTenantId) return;
       try {
-        const res = await listAll(ref(storage, `tenants/${effectiveUploadTenantId}/marketing_uploads`));
+        const res = await listAll(ref(storage, `tenants/${effectiveTenantId}/marketing_uploads`));
         const items = Array.isArray(res.items) ? res.items : [];
         const list = await Promise.all(
           items.slice().reverse().map(async (r) => ({
@@ -189,7 +189,7 @@ export default function PageEmailBuilder(props) {
       } catch (err) { console.error(err); }
     };
     fetchUploads();
-  }, [effectiveUploadTenantId]);
+  }, [effectiveTenantId]);
 
   const handleDeleteUpload = async (item) => {
     if (!item?.path) {
@@ -208,12 +208,12 @@ export default function PageEmailBuilder(props) {
 
   const handleUploadFile = async (file, onComplete) => {
     if (!file) return;
-    if (!effectiveUploadTenantId) {
+    if (!effectiveTenantId) {
       showToast("No tenant ID found. Cannot upload.", "error");
       return;
     }
     setIsUploading(true);
-    const storageRef = ref(storage, `tenants/${effectiveUploadTenantId}/marketing_uploads/${Date.now()}_${file.name}`);
+    const storageRef = ref(storage, `tenants/${effectiveTenantId}/marketing_uploads/${Date.now()}_${file.name}`);
     const task = uploadBytesResumable(storageRef, file);
     task.on("state_changed",
       snap => setUploadProgress((snap.bytesTransferred / snap.totalBytes) * 100),
