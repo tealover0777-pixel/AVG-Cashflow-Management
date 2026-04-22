@@ -667,13 +667,15 @@ exports.sendTestEmail = functions.https.onCall(async (data, context) => {
 
     const transporter = await getTransporter(tenantId);
     const htmlBody = renderEmailBody(rows);
+    const personalizedSubject = await resolveRecipientTags(subject || "Test Email", recipientEmail, tenantId, db, finalFromName);
+    const personalizedHtml = await resolveRecipientTags(htmlBody, recipientEmail, tenantId, db, finalFromName);
 
     await transporter.sendMail({
       from: `"${finalFromName}" <${finalFromEmail}>`,
       to: recipientEmail,
       replyTo: finalReplyTo,
-      subject: subject || "Test Email",
-      html: htmlBody
+      subject: personalizedSubject,
+      html: personalizedHtml
     });
 
     return { success: true };
@@ -687,7 +689,7 @@ exports.sendTestEmail = functions.https.onCall(async (data, context) => {
  * Helper to resolve dynamic tags for a specific recipient.
  * Handles Name, Temporal (Year/Quarter), and Financial (Invested/Distributed/Balance) data.
  */
-async function resolveRecipientTags(html, email, tenantId, db) {
+async function resolveRecipientTags(html, email, tenantId, db, fromName) {
   let resolvedHtml = html;
   const now = new Date();
   const year = now.getFullYear();
@@ -728,6 +730,8 @@ async function resolveRecipientTags(html, email, tenantId, db) {
     '{{First name}}': recipientData.first_name,
     '{{Last name}}': recipientData.last_name,
     '{{Full name}}': `${recipientData.first_name} ${recipientData.last_name}`.trim(),
+    '{{From name}}': fromName || '',
+    '{{sponsor portal link}}': 'https://avg-cashflow-management.web.app',
   };
 
   // 3. Financial Data Aggregation
@@ -737,32 +741,31 @@ async function resolveRecipientTags(html, email, tenantId, db) {
   let totalPrincipalRepaid = 0;
 
   if (recipientData.id) {
-    // Fetch Investments
-    const invSnap = await db.collection(`tenants/${tenantId}/investments`).where('contact_id', '==', recipientData.id).get();
-    const invDocs = invSnap.docs.map(doc => doc.data());
-    totalInvested = invDocs.reduce((s, d) => s + (parseFloat(String(d.amount).replace(/[^0-9.-]/g, '')) || 0), 0);
+    const schSnap = await db.collection(`tenants/${tenantId}/paymentSchedules`).where('contact_id', '==', recipientData.id).get();
+    const allSchedules = schSnap.docs.map(doc => doc.data());
 
-    // Fetch Completed Payments/Schedules
-    const schSnap = await db.collection(`tenants/${tenantId}/paymentSchedules`).where('contact_id', '==', recipientData.id).where('status', '==', 'Paid').get();
-    schSnap.docs.forEach(doc => {
-      const d = doc.data();
-      const amt = parseFloat(String(d.signed_payment_amount || d.payment_amount || 0).replace(/[^0-9.-]/g, '')) || 0;
-      const type = (d.payment_type || "").toUpperCase();
-      
-      // Interest logic
-      if (type.includes("INTEREST")) {
-        totalDistributed += Math.abs(amt);
-      }
-      
-      // Principal logic for balance
-      const principalPTs = ["INVESTOR_PRINCIPAL_PAYMENT", "BORROWER_PRINCIPAL_RECEIVED", "BORROWER_DISBURSEMENT", "INVESTOR_PRINCIPAL_DEPOSIT", "REPAYMENT", "BORROWER_REPAYMENT"];
-      if (principalPTs.includes(type) || type.includes("PRINCIPAL")) {
-        // Only count positive repayments to investor as reducing balance
-        if (amt > 0) totalPrincipalRepaid += amt;
-      }
+    // 1. Contributions (from Capital Transactions tab logic)
+    const contributions = allSchedules.filter(s => (s.payment_type || s.type) === "INVESTOR_PRINCIPAL_DEPOSIT" || (s.type === 'deposit'));
+    totalInvested = contributions.reduce((sum, s) => sum + (parseFloat(String(s.signed_payment_amount || s.payment_amount || s.amount || 0).replace(/[^0-9.-]/g, '')) || 0), 0);
+
+    // 2. Withdrawals
+    const withdrawals = allSchedules.filter(s => {
+      const ty = (s.payment_type || s.type || "");
+      const st = (s.PaymentStatus || s.status || "").toLowerCase();
+      return ty === "INVESTOR_PRINCIPAL_PAYMENT" && (st === "withdrawals" || st === "withdrawal" || st === "withdrawl");
     });
+    const totalWithdrawals = withdrawals.reduce((sum, s) => sum + (parseFloat(String(s.signed_payment_amount || s.payment_amount || s.amount || 0).replace(/[^0-9.-]/g, '')) || 0), 0);
 
-    capitalBalance = totalInvested - totalPrincipalRepaid;
+    // 3. Distributions (Interest)
+    const distSchedules = allSchedules.filter(s => {
+      const ty = (s.payment_type || s.type || "").toLowerCase();
+      // Filter for status "Paid" for actual distributed amount
+      const st = (s.status || s.PaymentStatus || "").toLowerCase();
+      return (ty.includes("interest") || ty.includes("distribution")) && st === "paid";
+    });
+    totalDistributed = distSchedules.reduce((sum, s) => sum + (parseFloat(String(s.signed_payment_amount || s.payment_amount || s.amount || 0).replace(/[^0-9.-]/g, '')) || 0), 0);
+
+    capitalBalance = totalInvested - Math.abs(totalWithdrawals);
   }
 
   const financials = {
@@ -808,8 +811,8 @@ exports.sendMarketingEmail = functions.https.onCall(async (data, context) => {
     for (const email of validRecipients) {
       try {
         // Resolve Personalized Tags per Recipient
-        const personalizedHtml = await resolveRecipientTags(htmlBase, email, tenantId, db);
-        const personalizedSubject = await resolveRecipientTags(subject || "Marketing Communication", email, tenantId, db);
+        const personalizedHtml = await resolveRecipientTags(htmlBase, email, tenantId, db, fromName);
+        const personalizedSubject = await resolveRecipientTags(subject || "Marketing Communication", email, tenantId, db, fromName);
 
         const info = await transporter.sendMail({
           from: `"${fromName || "American Vision Group"}" <${fromEmail || "no-reply@americanvisiongroup.com"}>`,

@@ -1901,7 +1901,8 @@ function SimpleDraftLayout({ t, isDark, settings, onSettingsChange, profile, DIM
   const mergeTags = (DIMENSIONS.find(d => d.name === "EmailTags")?.items || [
     "First name", "Last name", "Full name",
     "Current year", "Current quarter", "Last quarter",
-    "Total distributed", "Total Invested", "Capital balance"
+    "Total distributed", "Total Invested", "Capital balance",
+    "sponsor portal link"
   ]);
 
   React.useEffect(() => {
