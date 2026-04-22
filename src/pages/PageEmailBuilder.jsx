@@ -234,7 +234,7 @@ export default function PageEmailBuilder(props) {
     try {
       const sendTest = httpsCallable(functions, "sendTestEmail");
       const effectiveTenantId = tenantId || (activeTenantIdProp && activeTenantIdProp !== "GLOBAL" ? activeTenantIdProp : "");
-      
+
       await sendTest({
         tenantId: effectiveTenantId,
         recipientEmail: recipient,
@@ -244,7 +244,7 @@ export default function PageEmailBuilder(props) {
         fromEmail: emailSettings.from,
         replyTo: emailSettings.replyTo
       });
-      
+
       setTestSentTo(recipient);
       showToast(`Test email sent to ${recipient}`, "success");
     } catch (err) {
@@ -706,7 +706,7 @@ export default function PageEmailBuilder(props) {
                           onMouseEnter={e => e.currentTarget.style.background = isDark ? "rgba(96,165,250,0.15)" : "#dbeafe"}
                           onMouseLeave={e => e.currentTarget.style.background = isDark ? "rgba(96,165,250,0.1)" : "#eff6ff"}>
                           <div style={{ width: 28, height: 28, borderRadius: "50%", background: t.accentGrad, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700, color: "#fff", flexShrink: 0 }}>
-                             ST
+                            ST
                           </div>
                           <div style={{ flex: 1, minWidth: 0 }}>
                             <div style={{ fontSize: 11, fontWeight: 700, color: isDark ? "#60A5FA" : "#2563EB", textTransform: "uppercase", letterSpacing: "0.03em", marginBottom: 1 }}>Setup Default</div>
@@ -753,70 +753,74 @@ export default function PageEmailBuilder(props) {
                 {showSendDropdown && (
                   <div style={{ position: "absolute", top: "calc(100% + 6px)", right: 0, width: 175, background: isDark ? "#1e293b" : "#fff", border: `1px solid ${t.border}`, borderRadius: 10, boxShadow: "0 8px 24px rgba(0,0,0,0.18)", zIndex: 500, overflow: "hidden" }}>
                     {[
-                      { label: "Send now", icon: Send, action: async () => {
-                        if (!emailSettings.recipients || emailSettings.recipients.length === 0) {
-                          showToast("No recipients assigned. Please add recipients in Settings before sending.", "error");
-                          return;
-                        }
-                        setIsSaving(true);
-                        try {
-                          const { httpsCallable: _call } = await import("firebase/functions");
-                          const sendMarketing = _call(functions, "sendMarketingEmail");
-                          const effectiveTenantId = tenantId || (activeTenantIdProp && activeTenantIdProp !== "GLOBAL" ? activeTenantIdProp : "");
-
-                          // Determine a valid Firestore campaign ID (no slashes)
-                          let campaignId = activeEmailTemplate?.id || "";
-                          if (!campaignId || campaignId.includes("/")) {
-                            // Storage template — create a Firestore draft first to get a real doc ID
-                            if (!effectiveTenantId) {
-                              showToast("No tenant selected. Cannot send.", "error");
-                              setIsSaving(false); return;
-                            }
-                            const { addDoc: _add, collection: _col, serverTimestamp: _ts } = await import("firebase/firestore");
-                            const newDoc = await _add(_col(db, `tenants/${effectiveTenantId}/marketingEmails`), {
-                              title: emailName,
-                              rows,
-                              settings: emailSettings,
-                              status: "Draft",
-                              createdAt: _ts(),
-                              updatedAt: _ts(),
-                            });
-                            campaignId = newDoc.id;
-                            if (typeof props.setActiveEmailTemplate === "function") {
-                              props.setActiveEmailTemplate(prev => ({ ...prev, id: newDoc.id }));
-                            }
+                      {
+                        label: "Send now", icon: Send, action: async () => {
+                          if (!emailSettings.recipients || emailSettings.recipients.length === 0) {
+                            showToast("No recipients assigned. Please add recipients in Settings before sending.", "error");
+                            return;
                           }
+                          setIsSaving(true);
+                          try {
+                            const { httpsCallable: _call } = await import("firebase/functions");
+                            const sendMarketing = _call(functions, "sendMarketingEmail");
+                            const effectiveTenantId = tenantId || (activeTenantIdProp && activeTenantIdProp !== "GLOBAL" ? activeTenantIdProp : "");
 
-                          await sendMarketing({
-                            tenantId: effectiveTenantId,
-                            campaignId,
-                            subject: emailSettings.subject || emailName,
-                            rows,
-                            recipients: emailSettings.recipients,
-                            doNotSendTo: emailSettings.doNotSendTo,
-                            fromName: emailSettings.fromName,
-                            fromEmail: emailSettings.from,
-                            replyTo: emailSettings.replyTo
-                          });
+                            // Determine a valid Firestore campaign ID (no slashes)
+                            let campaignId = activeEmailTemplate?.id || "";
+                            if (!campaignId || campaignId.includes("/")) {
+                              // Storage template — create a Firestore draft first to get a real doc ID
+                              if (!effectiveTenantId) {
+                                showToast("No tenant selected. Cannot send.", "error");
+                                setIsSaving(false); return;
+                              }
+                              const { addDoc: _add, collection: _col, serverTimestamp: _ts } = await import("firebase/firestore");
+                              const newDoc = await _add(_col(db, `tenants/${effectiveTenantId}/marketingEmails`), {
+                                title: emailName,
+                                rows,
+                                settings: emailSettings,
+                                status: "Draft",
+                                createdAt: _ts(),
+                                updatedAt: _ts(),
+                              });
+                              campaignId = newDoc.id;
+                              if (typeof props.setActiveEmailTemplate === "function") {
+                                props.setActiveEmailTemplate(prev => ({ ...prev, id: newDoc.id }));
+                              }
+                            }
 
-                          showToast("Campaign dispatched successfully!", "success");
+                            await sendMarketing({
+                              tenantId: effectiveTenantId,
+                              campaignId,
+                              subject: emailSettings.subject || emailName,
+                              rows,
+                              recipients: emailSettings.recipients,
+                              doNotSendTo: emailSettings.doNotSendTo,
+                              fromName: emailSettings.fromName,
+                              fromEmail: emailSettings.from,
+                              replyTo: emailSettings.replyTo
+                            });
+
+                            showToast("Campaign dispatched successfully!", "success");
+                            setShowSendDropdown(false);
+                          } catch (err) {
+                            console.error("Marketing send error:", err);
+                            showToast("Failed to dispatch campaign: " + (err.message || "Unknown error"), "error");
+                          } finally {
+                            setIsSaving(false);
+                          }
+                        }
+                      },
+                      {
+                        label: "Schedule", icon: Clock, action: () => {
+                          if (!emailSettings.recipients || emailSettings.recipients.length === 0) {
+                            showToast("No recipients assigned. Please add recipients in Settings before scheduling.", "error");
+                            return;
+                          }
+                          setScheduleData(d => ({ ...d, subject: emailSettings.subject || emailName }));
+                          setShowScheduleModal(true);
                           setShowSendDropdown(false);
-                        } catch (err) {
-                          console.error("Marketing send error:", err);
-                          showToast("Failed to dispatch campaign: " + (err.message || "Unknown error"), "error");
-                        } finally {
-                          setIsSaving(false);
                         }
-                      } },
-                      { label: "Schedule", icon: Clock, action: () => {
-                        if (!emailSettings.recipients || emailSettings.recipients.length === 0) {
-                          showToast("No recipients assigned. Please add recipients in Settings before scheduling.", "error");
-                          return;
-                        }
-                        setScheduleData(d => ({ ...d, subject: emailSettings.subject || emailName }));
-                        setShowScheduleModal(true);
-                        setShowSendDropdown(false);
-                      } },
+                      },
                     ].map(({ label, icon: Icon, action }) => (
                       <button key={label} onClick={action}
                         style={{ width: "100%", padding: "11px 16px", background: "transparent", border: "none", borderBottom: label === "Send now" ? `1px solid ${t.border}` : "none", color: t.text, fontSize: 13, fontWeight: 500, cursor: "pointer", textAlign: "left", display: "flex", alignItems: "center", gap: 8 }}>
@@ -1104,9 +1108,9 @@ export default function PageEmailBuilder(props) {
                 disabled={!scheduleData.date || !scheduleData.time || scheduleData.recipients.length === 0}
                 onClick={async () => {
                   const scheduledAt = `${scheduleData.date}T${scheduleData.time}:00`;
-                  const newSettings = { 
-                    ...emailSettings, 
-                    status: "Scheduled", 
+                  const newSettings = {
+                    ...emailSettings,
+                    status: "Scheduled",
                     scheduledAt,
                     subject: scheduleData.subject,
                     recipients: scheduleData.recipients,
@@ -1114,7 +1118,7 @@ export default function PageEmailBuilder(props) {
                     fromEmail: emailSettings.from || profile?.email || "tealover0777@gmail.com"
                   };
                   setEmailSettings(newSettings);
-                  
+
                   // 1. Update the campaign itself
                   await handleSave(false, null, newSettings);
 
@@ -1226,13 +1230,13 @@ function EmailCanvas({ t, isDark, rows, selectedRowId, onSelectRow, onAddRow, on
           }}>
             <div style={{ width: 48, height: 48, borderRadius: 12, background: isDark ? "rgba(59,130,246,0.15)" : "rgba(59,130,246,0.08)", display: "flex", alignItems: "center", justifyContent: "center" }}>
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={isDark ? "#60A5FA" : "#3B82F6"} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="3" y="3" width="18" height="18" rx="3"/>
-                <path d="M12 8v8M8 12h8"/>
+                <rect x="3" y="3" width="18" height="18" rx="3" />
+                <path d="M12 8v8M8 12h8" />
               </svg>
             </div>
             <div>
               <div style={{ fontSize: 14, fontWeight: 700, color: isDark ? "#E2E8F0" : "#1E293B", marginBottom: 4 }}>Start building your email</div>
-              <div style={{ fontSize: 12, color: isDark ? "#94A3B8" : "#64748B", lineHeight: 1.5 }}>Drag blocks from the left panel onto this canvas,<br/>or click any block to add it here.</div>
+              <div style={{ fontSize: 12, color: isDark ? "#94A3B8" : "#64748B", lineHeight: 1.5 }}>Click any block in the right panel to add it here.</div>
             </div>
           </div>
         )}
@@ -1335,7 +1339,7 @@ const FloatingTextBar = ({ t, isDark, DIMENSIONS = [] }) => {
     // Ensure we are inside a contenteditable area
     let parent = range.commonAncestorContainer;
     if (parent.nodeType === 3) parent = parent.parentNode;
-    
+
     // Simple check to see if we are inside our editor
     if (!parent.closest || !parent.closest('[contenteditable="true"]')) {
       // If not in editor, we can't reliably insert. 
@@ -1350,19 +1354,19 @@ const FloatingTextBar = ({ t, isDark, DIMENSIONS = [] }) => {
     span.innerText = tag;
 
     range.insertNode(span);
-    
+
     // Add a space after the tag for convenience
     const textNode = document.createTextNode("\u00A0");
     range.setStartAfter(span);
     range.insertNode(textNode);
-    
+
     // Set cursor after the space
     range.setStartAfter(textNode);
     range.collapse(true);
 
     selection.removeAllRanges();
     selection.addRange(range);
-    
+
     setShowTags(false);
   };
 
@@ -1456,7 +1460,7 @@ const FloatingTextBar = ({ t, isDark, DIMENSIONS = [] }) => {
             {(Array.isArray(emailTags) ? emailTags : []).map(tagStr => {
               const isMap = typeof tagStr === "string" && tagStr.includes(":");
               const [label, tagValue] = isMap ? tagStr.split(":") : [tagStr, tagStr];
-              
+
               return (
                 <div
                   key={tagStr}
@@ -1894,8 +1898,8 @@ function SimpleDraftLayout({ t, isDark, settings, onSettingsChange, profile, DIM
   const [showPersonalize, setShowPersonalize] = React.useState(false);
   const dropdownRef = React.useRef(null);
   const mergeTags = (DIMENSIONS.find(d => d.name === "EmailTags")?.items || [
-    "First name", "Last name", "Full name", 
-    "Current year", "Current quarter", "Last quarter", 
+    "First name", "Last name", "Full name",
+    "Current year", "Current quarter", "Last quarter",
     "Total distributed", "Total Invested", "Capital balance"
   ]);
 
@@ -1935,9 +1939,9 @@ function SimpleDraftLayout({ t, isDark, settings, onSettingsChange, profile, DIM
   return (
     <div style={{ flex: 1, overflowY: "auto", background: isDark ? "#111" : "#F8F8F5" }}>
       <div style={{ maxWidth: 1200, margin: "20px auto 40px", background: "#fff", border: "1px solid #E5E7EB", borderRadius: 8, overflow: "hidden", boxShadow: "0 4px 20px rgba(0,0,0,0.05)" }}>
-          <div style={{ padding: "24px 64px", borderBottom: "1px solid #F3F4F6", background: "#fff" }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: "#111827" }}>Draft Settings</div>
-          </div>
+        <div style={{ padding: "24px 64px", borderBottom: "1px solid #F3F4F6", background: "#fff" }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: "#111827" }}>Draft Settings</div>
+        </div>
 
         <SettingsPanel
           t={t}
@@ -1956,14 +1960,14 @@ function SimpleDraftLayout({ t, isDark, settings, onSettingsChange, profile, DIM
         />
 
         <div style={{ borderTop: "1px solid #E5E7EB", padding: "8px 16px", display: "flex", alignItems: "center", gap: 4, background: "#fff" }}>
-          <select 
+          <select
             onChange={e => runCommand("fontName", e.target.value)}
-            style={{ 
-              border: "1px solid #E5E7EB", 
-              borderRadius: 4, 
-              padding: "4px 8px", 
-              fontSize: 12, 
-              color: "#374151", 
+            style={{
+              border: "1px solid #E5E7EB",
+              borderRadius: 4,
+              padding: "4px 8px",
+              fontSize: 12,
+              color: "#374151",
               background: "#fff",
               outline: "none",
               marginRight: 6,
@@ -1989,7 +1993,7 @@ function SimpleDraftLayout({ t, isDark, settings, onSettingsChange, profile, DIM
           </div>
           <div style={{ width: 1, height: 20, background: "#E5E7EB", margin: "0 8px" }} />
           {toolbarBtn(List, () => runCommand("insertUnorderedList"), "List")}
-          
+
           <div style={{ position: "relative", marginLeft: "auto" }}>
             {/* Personalize button removed per user request */}
           </div>
@@ -2009,11 +2013,11 @@ function SimpleDraftLayout({ t, isDark, settings, onSettingsChange, profile, DIM
 
 function SettingsRow({ label, t, children, isUnified }) {
   return (
-    <div style={{ 
-      display: "flex", 
-      alignItems: "center", 
-      padding: isUnified ? "14px 64px" : "12px 64px", 
-      borderBottom: isUnified ? "1px solid #F3F4F6" : "none" 
+    <div style={{
+      display: "flex",
+      alignItems: "center",
+      padding: isUnified ? "14px 64px" : "12px 64px",
+      borderBottom: isUnified ? "1px solid #F3F4F6" : "none"
     }}>
       <div style={{ width: 160, fontSize: 13, color: t.textMuted, fontWeight: 600, flexShrink: 0, display: "flex", alignItems: "center", gap: 6 }}>
         {label}
@@ -2212,7 +2216,7 @@ function SettingsPanel({ t, isDark, settings, onChange, profile, DIMENSIONS = []
             </div>
           </SettingsRow>
           <SettingsRow label="Reply-to:" t={t} isUnified={isUnified}>
-             <div ref={replyToDropRef} style={{ position: "relative", flex: 1, cursor: "pointer" }} onClick={() => setShowReplyToDropdown(!showReplyToDropdown)}>
+            <div ref={replyToDropRef} style={{ position: "relative", flex: 1, cursor: "pointer" }} onClick={() => setShowReplyToDropdown(!showReplyToDropdown)}>
               <div style={isUnified ? { ...inpRefined, display: "flex", alignItems: "center", justifyContent: "space-between" } : inp}>
                 {localSettings.replyTo || "Select reply-to..."}
                 {isUnified && <ChevronDown size={14} color={t.textMuted} />}
