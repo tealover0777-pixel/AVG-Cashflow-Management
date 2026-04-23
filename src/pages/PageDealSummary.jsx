@@ -806,7 +806,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
       if (d.rolloverDistributionId) {
         const dist = (SCHEDULES || []).find(s => s.id === d.rolloverDistributionId || s.docId === d.rolloverDistributionId);
         if (dist) {
-          const distCollection = dist._path ? dist._path.split(\'/\').slice(0, -1).join(\'/\') : scheduleCollection;
+          const distCollection = dist._path ? dist._path.split('/').slice(0, -1).join('/') : scheduleCollection;
           const oldRef = dist._path ? doc(db, dist._path) : doc(db, scheduleCollection, dist.docId || dist.id);
           
           const vNum = Number(dist.version_num || 1);
