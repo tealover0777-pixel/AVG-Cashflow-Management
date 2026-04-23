@@ -2956,6 +2956,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
               payment_amount: Number(String(s.payment_amount || 0).replace(/[^0-9.-]/g, "")) || 0,
               signed_payment_amount: Number(String(s.signed_payment_amount || 0).replace(/[^0-9.-]/g, "")) || 0,
               status: s.status || "Due",
+              rollover: s.rollover || false,
               notes: s.notes || "",
               updated_at: serverTimestamp()
             };
@@ -2975,6 +2976,22 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
           <FF label="Payment Amount" t={t}><FIn value={scheduleModal.data.payment_amount} onChange={e => setScheduleModal(m => ({ ...m, data: { ...m.data, payment_amount: e.target.value } }))} placeholder="e.g. 100.00" t={t} /></FF>
           <FF label="Signed Amount" t={t}><FIn value={scheduleModal.data.signed_payment_amount} onChange={e => setScheduleModal(m => ({ ...m, data: { ...m.data, signed_payment_amount: e.target.value } }))} placeholder="e.g. -100.00" t={t} /></FF>
         </div>
+        
+        {scheduleModal.data.type === "INVESTOR_PRINCIPAL_PAYMENT" && (
+          <div style={{ marginTop: 12, marginBottom: 12, padding: "12px", background: isDark ? "rgba(147, 51, 234, 0.08)" : "#F5F3FF", borderRadius: 12, border: `1px solid ${isDark ? "rgba(147, 51, 234, 0.2)" : "#DDD6FE"}` }}>
+            <h4 style={{ fontSize: 10, fontWeight: 700, color: isDark ? "#A855F7" : "#7E22CE", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 8 }}>Rollover at Maturity</h4>
+            <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }}>
+              <input
+                type="checkbox"
+                checked={scheduleModal.data.rollover || false}
+                onChange={e => setScheduleModal(m => ({ ...m, data: { ...m.data, rollover: e.target.checked } }))}
+                style={{ width: 18, height: 18, accentColor: "#9333EA", cursor: "pointer" }}
+              />
+              <span style={{ fontSize: 14, fontWeight: 600, color: t.text }}>Rollover Principal</span>
+            </label>
+          </div>
+        )}
+
         <FF label="Notes" t={t}><FIn value={scheduleModal.data.notes || ""} onChange={e => setScheduleModal(m => ({ ...m, data: { ...m.data, notes: e.target.value } }))} placeholder="Edit notes..." t={t} /></FF>
       </Modal>
 
