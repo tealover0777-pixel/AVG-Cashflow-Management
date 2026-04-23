@@ -835,6 +835,21 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
         const collectionRef = oldRef.parent;
         await addDoc(collectionRef, newPayload);
 
+        // SYNC Rollover back to Investment
+        if (d.type === "INVESTOR_PRINCIPAL_PAYMENT" && d.investment) {
+          const inv = INVESTMENTS.find(i => i.id === d.investment || i.investment_id === d.investment);
+          if (inv) {
+            // Determine investment collection (investments or tenant-specific)
+            let rawPath = inv._path || `investments/${inv.docId || inv.id}`;
+            // If the schedule path is tenants/XXX/schedules, the investment path might be tenants/XXX/investments
+            if (oldRef.path.startsWith("tenants/")) {
+              const tenantPart = oldRef.path.split("/")[1];
+              rawPath = `tenants/${tenantPart}/investments/${inv.docId || inv.id}`;
+            }
+            await updateDoc(doc(db, rawPath), { rollover: !!d.rollover, updated_at: serverTimestamp() }).catch(e => console.error("Sync inv rollover error:", e));
+          }
+        }
+
         // 2. Mark the old version as replaced and inactive
         await updateDoc(oldRef, { 
           active_version: false, 

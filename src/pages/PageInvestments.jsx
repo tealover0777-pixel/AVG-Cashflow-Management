@@ -128,14 +128,24 @@ export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [
       if (modal.mode === "edit" && d.docId) {
         const docRef = d._path ? doc(db, d._path) : doc(db, collectionPath, d.docId);
         await updateDoc(docRef, payload);
+
+        // SYNC Rollover to distribution schedules
+        if (d.id) {
+          const principalSchedules = (SCHEDULES || []).filter(s => s.investment === d.id && s.type === "INVESTOR_PRINCIPAL_PAYMENT");
+          if (principalSchedules.length > 0) {
+            await Promise.all(principalSchedules.map(s => {
+              const path = s._path || `tenants/${tenantId}/schedules/${s.docId || s.id}`;
+              // If we are in PageInvestments, we might need a more robust way to get the schedule path if s._path is missing
+              // But usually s._path is provided in App.jsx mapping.
+              return updateDoc(doc(db, path), { rollover: !!d.rollover, updated_at: serverTimestamp() });
+            })).catch(e => console.error("Principal schedule rollover sync error:", e));
+          }
+        }
       } else {
         // For new investments, we use the collectionPath
-        // If it's a GROUP: path, we might need a fallback, but usually creation happens in a specific tenant.
         const effectivePath = collectionPath.startsWith("GROUP:") ? collectionPath.replace("GROUP:", "") : collectionPath;
         const newDocRef = await addDoc(collection(db, effectivePath), { ...payload, investment_id: d.id || "", created_at: serverTimestamp() });
         if (d.auto_generate) {
-          // If auto_generate is on, we generate the schedule for this newly created investment.
-          // Note: we use d.id (the custom investment_id) which is already in the d object.
           setTimeout(() => generateSchedulesForInvestments([d]), 500);
         }
       }

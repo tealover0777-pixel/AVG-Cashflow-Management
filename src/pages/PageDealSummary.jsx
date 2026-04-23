@@ -801,6 +801,19 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
         const contactRef = contactObj._path ? doc(db, contactObj._path) : doc(db, "contacts", contactObj.docId || contactObj.id);
         await updateDoc(contactRef, { payment_method: d.payment_method, updated_at: serverTimestamp() }).catch(e => console.error("Sync contact error:", e));
       }
+
+      // SYNC Rollover to distribution schedules
+      const currentInvId = d.id || investmentIdForGen;
+      if (currentInvId) {
+        const principalSchedules = (SCHEDULES || []).filter(s => s.investment === currentInvId && s.type === "INVESTOR_PRINCIPAL_PAYMENT");
+        if (principalSchedules.length > 0) {
+          await Promise.all(principalSchedules.map(s => {
+            const path = s._path || `${scheduleCollection}/${s.docId || s.id}`;
+            return updateDoc(doc(db, path), { rollover: !!d.rollover, updated_at: serverTimestamp() });
+          })).catch(e => console.error("Principal schedule rollover sync error:", e));
+        }
+      }
+
       setModal(m => ({ ...m, open: false }));
 
       // Run Generate Schedule if requested
@@ -2965,6 +2978,16 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
               updated_at: serverTimestamp()
             };
             await updateDoc(doc(db, refPath), dataToSave);
+            
+            // SYNC Rollover back to Investment
+            if (s.type === "INVESTOR_PRINCIPAL_PAYMENT" && s.investment) {
+              const inv = INVESTMENTS.find(i => i.id === s.investment || i.investment_id === s.investment);
+              if (inv) {
+                const invPath = inv._path || `${investmentCollection}/${inv.docId || inv.id}`;
+                await updateDoc(doc(db, invPath), { rollover: !!s.rollover, updated_at: serverTimestamp() }).catch(e => console.error("Sync inv rollover error:", e));
+              }
+            }
+            
             setScheduleModal({ open: false, data: {} });
           } catch (err) { console.error("Save schedule error:", err); }
         }}
