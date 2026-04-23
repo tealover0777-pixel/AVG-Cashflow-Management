@@ -464,6 +464,44 @@ export default function PageCompany({ t, isDark, activeTenantId = "", USERS = []
                                 </div>
                             </FF>
                         </div>
+                        
+                        <div style={{ height: 1, background: t.border, opacity: 0.5, margin: "24px 0" }} />
+                        
+                        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}>
+                            <div style={{ width: 32, height: 32, borderRadius: 8, background: isDark ? "rgba(251,191,36,0.15)" : "#FFFBEB", display: "flex", alignItems: "center", justifyContent: "center", color: "#F59E0B" }}>
+                                🕒
+                            </div>
+                            <div>
+                                <h4 style={{ margin: 0, fontSize: 14, fontWeight: 700, color: t.text }}>Scheduling & Delivery Context</h4>
+                                <p style={{ margin: 0, fontSize: 11.5, color: t.textMuted }}>Used for calculating "Time of Day" for automated marketing campaigns.</p>
+                            </div>
+                        </div>
+
+                        <div style={{ maxWidth: 400 }}>
+                            <FF label={
+                                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                                    <span>Primary Time Zone</span>
+                                    {(!data.emailSetup.timeZone || data.emailSetup.timeZone === resolveTimeZone(data.state, data.zip)) && (data.state || data.zip) && (
+                                        <span style={{ fontSize: 10, background: isDark ? "rgba(52,211,153,0.15)" : "#F0FDF4", color: "#22C55E", padding: "2px 8px", borderRadius: 6, fontWeight: 700, border: "1px solid rgba(34,197,94,0.3)" }}>SUGGESTED</span>
+                                    )}
+                                </div>
+                            } t={t}>
+                                <div style={{ position: "relative" }}>
+                                    <select 
+                                        value={data.emailSetup.timeZone} 
+                                        onChange={e => updES({ timeZone: e.target.value })}
+                                        style={{ width: "100%", padding: "10px 14px", borderRadius: 9, border: `1px solid ${t.border}`, background: isDark ? "rgba(255,255,255,0.05)" : "#fff", color: t.text, cursor: "pointer", fontSize: 14, outline: "none", appearance: "none" }}
+                                    >
+                                        <option value="">Select Time Zone (Optional)</option>
+                                        {US_TIMEZONES.map(tz => <option key={tz.value} value={tz.value}>{tz.label} ({tz.value})</option>)}
+                                    </select>
+                                    <ChevronDown size={14} style={{ position: "absolute", right: 14, top: "50%", transform: "translateY(-50%)", pointerEvents: "none", opacity: 0.5 }} />
+                                </div>
+                                <p style={{ fontSize: 11, color: t.textMuted, marginTop: 8, lineHeight: 1.4 }}>
+                                    {data.emailSetup.timeZone ? `Campaigns will be scheduled in ${US_TIMEZONES.find(z => z.value === data.emailSetup.timeZone)?.label || data.emailSetup.timeZone}.` : "If left unset, campaigns will use UTC by default."}
+                                </p>
+                            </FF>
+                        </div>
                     </div>
                 </div>
             )}
@@ -605,44 +643,6 @@ export default function PageCompany({ t, isDark, activeTenantId = "", USERS = []
                                     </label>
                                 </>
                             )}
-                        </div>
-                    </div>
-
-                    <div style={{ marginTop: 40, borderTop: `1px solid ${t.border}`, paddingTop: 32 }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}>
-                            <div style={{ width: 32, height: 32, borderRadius: 8, background: isDark ? "rgba(251,191,36,0.15)" : "#FFFBEB", display: "flex", alignItems: "center", justifyContent: "center", color: "#F59E0B" }}>
-                                🕒
-                            </div>
-                            <div>
-                                <h4 style={{ margin: 0, fontSize: 14, fontWeight: 700, color: t.text }}>Scheduling & Delivery Context</h4>
-                                <p style={{ margin: 0, fontSize: 11.5, color: t.textMuted }}>Used for calculating "Time of Day" for automated marketing campaigns.</p>
-                            </div>
-                        </div>
-
-                        <div style={{ maxWidth: 400 }}>
-                            <FF label={
-                                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                                    <span>Primary Time Zone</span>
-                                    {(!data.emailSetup.timeZone || data.emailSetup.timeZone === resolveTimeZone(data.state, data.zip)) && (data.state || data.zip) && (
-                                        <span style={{ fontSize: 10, background: isDark ? "rgba(52,211,153,0.15)" : "#F0FDF4", color: "#22C55E", padding: "2px 8px", borderRadius: 6, fontWeight: 700, border: "1px solid rgba(34,197,94,0.3)" }}>SUGGESTED</span>
-                                    )}
-                                </div>
-                            } t={t}>
-                                <div style={{ position: "relative" }}>
-                                    <select 
-                                        value={data.emailSetup.timeZone} 
-                                        onChange={e => updES({ timeZone: e.target.value })}
-                                        style={{ width: "100%", padding: "10px 14px", borderRadius: 9, border: `1px solid ${t.border}`, background: isDark ? "rgba(255,255,255,0.05)" : "#fff", color: t.text, cursor: "pointer", fontSize: 14, outline: "none", appearance: "none" }}
-                                    >
-                                        <option value="">Select Time Zone (Optional)</option>
-                                        {US_TIMEZONES.map(tz => <option key={tz.value} value={tz.value}>{tz.label} ({tz.value})</option>)}
-                                    </select>
-                                    <ChevronDown size={14} style={{ position: "absolute", right: 14, top: "50%", transform: "translateY(-50%)", pointerEvents: "none", opacity: 0.5 }} />
-                                </div>
-                                <p style={{ fontSize: 11, color: t.textMuted, marginTop: 8, lineHeight: 1.4 }}>
-                                    {data.emailSetup.timeZone ? `Campaigns will be scheduled in ${US_TIMEZONES.find(z => z.value === data.emailSetup.timeZone)?.label || data.emailSetup.timeZone}.` : "If left unset, campaigns will use UTC by default."}
-                                </p>
-                            </FF>
                         </div>
                     </div>
                 </div>
