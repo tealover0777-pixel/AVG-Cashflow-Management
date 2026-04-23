@@ -1,8 +1,9 @@
 import React from 'react';
 import { Bdg, ActBtns } from '../components';
 
-export const getDealInvestmentColumns = (permissions, isDark, t, context) => {
+export const getDealInvestmentColumns = (permissions, isDark, t, context, viewType = 'investment') => {
   const { CONTACTS, FEES_DATA, SCHEDULES, callbacks } = context;
+  const isLending = viewType === 'lending';
 
   const fmtCurrency = (val) => {
     if (val === null || val === undefined || val === "") return "—";
@@ -57,6 +58,17 @@ export const getDealInvestmentColumns = (permissions, isDark, t, context) => {
       }
     },
     {
+      header: isLending ? "Lending ID" : "Investment ID",
+      accessorFn: (row) => row.investment_id || row.id || "—",
+      id: "investment_id",
+      size: 110,
+      cell: ({ getValue }) => (
+        <span style={{ fontFamily: t.mono, fontSize: '10.5px', fontWeight: 700, color: t.textSecondary }}>
+          {getValue()}
+        </span>
+      )
+    },
+    {
       header: "Capital Amount",
       accessorKey: "amount",
       size: 130,
@@ -66,7 +78,7 @@ export const getDealInvestmentColumns = (permissions, isDark, t, context) => {
         </span>
       )
     },
-    {
+    ...(!isLending ? [{
       header: "Rollover Principal",
       id: "rolloverPrincipal",
       size: 150,
@@ -86,9 +98,9 @@ export const getDealInvestmentColumns = (permissions, isDark, t, context) => {
           </span>
         );
       }
-    },
+    }] : []),
     {
-      header: "Investor Name",
+      header: isLending ? "Borrower Name" : "Investor Name",
       accessorKey: "contact",
       size: 150,
       cell: ({ row, getValue }) => (

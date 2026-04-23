@@ -327,9 +327,30 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
     loadImages();
     loadAssets();
   }, [deal.id, dealPath]);
+  const allDealInvestments = useMemo(() => INVESTMENTS.filter(inv => inv.deal_id === dealId || inv.deal === deal.name), [INVESTMENTS, dealId, deal.name]);
 
   const dealInvestments = useMemo(() => {
-    let list = INVESTMENTS.filter(c => c.deal_id === dealId || c.deal === deal.name);
+    let list = allDealInvestments.filter(c => !(c.investment_id || c.id || "").startsWith("L"));
+    if (invSearch.email) {
+      const q = invSearch.email.toLowerCase();
+      list = list.filter(c => {
+        const contact = CONTACTS.find(x => x.name === c.contact || x.id === c.contact_id);
+        return (contact?.email || "").toLowerCase().includes(q);
+      });
+    }
+    if (invSearch.paymentMethod) {
+      const q = invSearch.paymentMethod.toLowerCase();
+      list = list.filter(c => {
+        const contact = CONTACTS.find(x => x.name === c.contact || x.id === c.contact_id);
+        const method = c.payment_method || contact?.payment_method || "";
+        return method.toLowerCase().includes(q);
+      });
+    }
+    return list;
+  }, [dealId, deal.name, INVESTMENTS, CONTACTS, invSearch]);
+
+  const dealLendings = useMemo(() => {
+    let list = allDealInvestments.filter(c => (c.investment_id || c.id || "").startsWith("L"));
     if (invSearch.email) {
       const q = invSearch.email.toLowerCase();
       list = list.filter(c => {
@@ -358,16 +379,16 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
   );
 
   const pendingScheduleGenerationCount = useMemo(
-    () => dealInvestments.filter(inv => !hasScheduleForInvestment(inv)).length,
-    [dealInvestments, hasScheduleForInvestment]
+    () => allDealInvestments.filter(inv => !hasScheduleForInvestment(inv)).length,
+    [allDealInvestments, hasScheduleForInvestment]
   );
 
   // Fund balance calculation moved to dealSchedules useMemo
 
   const dealContacts = useMemo(() => {
-    const contactIds = new Set(dealInvestments.map(inv => inv.contact_id));
+    const contactIds = new Set(allDealInvestments.map(inv => inv.contact_id));
     return CONTACTS.filter(c => contactIds.has(c.id) || contactIds.has(c.docId));
-  }, [dealInvestments, CONTACTS]);
+  }, [allDealInvestments, CONTACTS]);
 
   const dealSchedules = useMemo(() =>
     SCHEDULES.filter(s => s.deal_id === dealId)
@@ -586,7 +607,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
   }, [pivotData.rows, pivotFilters]);
 
   const gridRef = useRef();
-  const tabs = ["Investments", ...(canAssetView ? ["Assets"] : []), "Distributions", "Documents", "Valuation forms", "Contacts"];
+  const tabs = ["Investments", ...(canAssetView ? ["Assets"] : []), "Distributions", "Documents", "Valuation forms", "Lending", "Contacts"];
 
   const calculatorOpts = (DIMENSIONS.find(d => d.name === "Calculator") || {}).items || ["ACT/360+30/360"];
   const investorEditTypeOpts = (DIMENSIONS.find(d => d.name === "InvestorInvestmentEditType") || {}).items || [];
@@ -598,6 +619,9 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
   const selectedContact = CONTACTS.find(p => p.name === modal.data.contact);
   const contactRole = selectedContact ? selectedContact.role : "";
   const getTypeOpts = () => {
+    const isLending = activeTab === "Lending";
+    if (isLending) return borrowerNewTypeOpts.length > 0 ? borrowerNewTypeOpts : ["Loan", "Mortgage", "Equity"];
+
     const isNew = modal.mode === "add";
     const invOpts = investorNewTypeOpts;
     const borOpts = isNew ? borrowerNewTypeOpts : borrowerEditTypeOpts;
@@ -629,10 +653,12 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
   };
 
   const openAdd = () => {
+    const isLending = activeTab === "Lending";
+    const prefix = isLending ? "L" : "I";
     let maxIdNum = 10000;
     INVESTMENTS.forEach(c => {
       const cid = c.investment_id || c.id;
-      if (cid && cid.startsWith("I")) {
+      if (cid && cid.startsWith(prefix)) {
         const num = parseInt(cid.substring(1), 10);
         if (!isNaN(num) && num > maxIdNum) maxIdNum = num;
       }
@@ -641,11 +667,11 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
       open: true,
       mode: "add",
       data: {
-        id: `I${maxIdNum + 1}`,
+        id: `${prefix}${maxIdNum + 1}`,
         deal: deal.name || "",
         deal_id: deal.id || "",
         contact: "",
-        type: "DEPOSIT",
+        type: isLending ? (borrowerNewTypeOpts[0] || "Loan") : "DEPOSIT",
         amount: "",
         rate: "",
         freq: "Quarterly",
@@ -724,15 +750,17 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
       }
 
       // Create $0 investment record
+      const isLending = activeTab === "Lending";
+      const prefix = isLending ? "L" : "I";
       let maxIdNum = 10000;
       INVESTMENTS.forEach(c => {
         const cid = c.investment_id || c.id;
-        if (cid && cid.startsWith("I")) {
+        if (cid && cid.startsWith(prefix)) {
           const num = parseInt(cid.substring(1), 10);
           if (!isNaN(num) && num > maxIdNum) maxIdNum = num;
         }
       });
-      const invId = `I${maxIdNum + 1}`;
+      const invId = `${prefix}${maxIdNum + 1}`;
 
       const newInv = {
         id: invId,
@@ -743,7 +771,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
         deal_name: deal.name,
         contact_id: contactId,
         contact_name: contactName,
-        investment_type: "Investor",
+        investment_type: isLending ? "Borrower" : "Investor",
         status: "Active",
         start_date: deal.startDate || "",
         created_at: serverTimestamp(),
@@ -1129,7 +1157,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
 
         const entries = [];
         const cTypeUpper = (c.type || "").toUpperCase();
-        const isDisbursement = cTypeUpper.includes("DISBURSEMENT");
+        const isDisbursement = cTypeUpper.includes("DISBURSEMENT") || (c.investment_id || c.id || "").startsWith("L");
 
         // --- 1. Initial Deposit/Disbursement ---
         const initialPaymentType = isDisbursement ? PT_BOR_DISBURSEMENT : PT_DEPOSIT;
@@ -1633,7 +1661,11 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
   };
   const context = { CONTACTS, FEES_DATA, SCHEDULES, callbacks, permissions, isDark, t };
   const columnDefs = useMemo(() => {
-    return getDealInvestmentColumns(permissions, isDark, t, context);
+    return getDealInvestmentColumns(permissions, isDark, t, context, 'investment');
+  }, [permissions, isDark, t, CONTACTS, FEES_DATA, SCHEDULES]);
+
+  const lendingColumnDefs = useMemo(() => {
+    return getDealInvestmentColumns(permissions, isDark, t, context, 'lending');
   }, [permissions, isDark, t, CONTACTS, FEES_DATA, SCHEDULES]);
 
   const investmentRowStyle = useCallback((row) => {
@@ -1798,7 +1830,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
 
           <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
             {/* --- Investment Bulk Actions --- */}
-            {activeTab === "Investments" && sel.size > 0 && (
+            {(activeTab === "Investments" || activeTab === "Lending") && sel.size > 0 && (
               <div style={{ display: "flex", alignItems: "center", gap: 10, background: isDark ? "rgba(255,255,255,0.03)" : "#f8f9fa", padding: "5px 12px", borderRadius: 10, border: `1px solid ${t.surfaceBorder}`, animation: "fadeIn 0.2s ease" }}>
                 <span style={{ fontSize: 13, fontWeight: 700, color: t.accent }}>{sel.size} selected</span>
                 <FSel
@@ -1856,24 +1888,44 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
             )}
 
             {/* --- Generate Button (Unified) --- */}
-            {activeTab === "Investments" && (
+            {(activeTab === "Investments" || activeTab === "Lending") && (
               <button
                 onClick={handleGenerateSchedules}
-                disabled={generating || (activeTab === "Investments" ? sel.size === 0 : Object.keys(rowSelection).length === 0)}
+                disabled={generating || ((activeTab === "Investments" || activeTab === "Lending") ? sel.size === 0 : Object.keys(rowSelection).length === 0)}
                 style={{
                   display: "flex", alignItems: "center", gap: 7, background: t.successGrad || "#10B981", color: "#fff",
                   border: "none", padding: "11px 20px", borderRadius: 11, fontSize: 13, fontWeight: 600,
-                  cursor: (generating || (activeTab === "Investments" ? sel.size === 0 : Object.keys(rowSelection).length === 0)) ? "default" : "pointer",
-                  boxShadow: (activeTab === "Investments" ? sel.size > 0 : Object.keys(rowSelection).length > 0) ? `0 4px 16px ${t.successShadow || "rgba(16,185,129,0.2)"}` : "none",
-                  opacity: (generating || (activeTab === "Investments" ? sel.size === 0 : Object.keys(rowSelection).length === 0)) ? 0.45 : 1
+                  cursor: (generating || ((activeTab === "Investments" || activeTab === "Lending") ? sel.size === 0 : Object.keys(rowSelection).length === 0)) ? "default" : "pointer",
+                  boxShadow: ((activeTab === "Investments" || activeTab === "Lending") ? sel.size > 0 : Object.keys(rowSelection).length > 0) ? `0 4px 16px ${t.successShadow || "rgba(16,185,129,0.2)"}` : "none",
+                  opacity: (generating || ((activeTab === "Investments" || activeTab === "Lending") ? sel.size === 0 : Object.keys(rowSelection).length === 0)) ? 0.45 : 1
                 }}
               >
-                ▤ {generating ? "Generating..." : (activeTab === "Investments" ? (sel.size > 0 ? `Generate Schedules (${sel.size})` : "Generate Schedules") : (Object.keys(rowSelection).length > 0 ? `Generate Schedules (${Object.keys(rowSelection).length})` : "Generate Schedules"))}
+                ▤ {generating ? "Generating..." : ((activeTab === "Investments" || activeTab === "Lending") ? (sel.size > 0 ? `Generate Schedules (${sel.size})` : "Generate Schedules") : (Object.keys(rowSelection).length > 0 ? `Generate Schedules (${Object.keys(rowSelection).length})` : "Generate Schedules"))}
               </button>
             )}
 
 
-            {canCreate && activeTab === "Investments" && <button onClick={openAdd} style={{ background: t.accentGrad || t.accent, color: "#fff", border: "none", padding: "11px 22px", borderRadius: 11, fontSize: 13.5, fontWeight: 600, boxShadow: `0 4px 16px ${t.accentShadow || "none"}`, display: "flex", alignItems: "center", gap: 7 }}><span style={{ fontSize: 18, lineHeight: 1 }}>+</span> New investment</button>}
+            {canCreate && (activeTab === "Investments" || activeTab === "Lending") && (
+              <button 
+                onClick={openAdd} 
+                style={{ 
+                  background: t.accentGrad || t.accent, 
+                  color: "#fff", 
+                  border: "none", 
+                  padding: "11px 22px", 
+                  borderRadius: 11, 
+                  fontSize: 13.5, 
+                  fontWeight: 600, 
+                  boxShadow: `0 4px 16px ${t.accentShadow || "none"}`, 
+                  display: "flex", 
+                  alignItems: "center", 
+                  gap: 7 
+                }}
+              >
+                <span style={{ fontSize: 18, lineHeight: 1 }}>+</span> 
+                {activeTab === "Lending" ? "New Lending" : "New investment"}
+              </button>
+            )}
             {canAssetCreate && activeTab === "Assets" && <button onClick={openAddAsset} style={{ background: t.accentGrad || t.accent, color: "#fff", border: "none", padding: "11px 20px", borderRadius: 11, fontSize: 13, fontWeight: 600, boxShadow: `0 4px 16px ${t.accentShadow || "none"}`, display: "flex", alignItems: "center", gap: 7 }}><span style={{ fontSize: 18, lineHeight: 1 }}>+</span> Add asset</button>}
             {canCreate && activeTab === "Contacts" && <button onClick={openAddContactModal} style={{ background: t.accentGrad || t.accent, color: "#fff", border: "none", padding: "11px 20px", borderRadius: 11, fontSize: 13, fontWeight: 600, boxShadow: `0 4px 16px ${t.accentShadow || "none"}`, display: "flex", alignItems: "center", gap: 7 }}><span style={{ fontSize: 18, lineHeight: 1 }}>+</span> New/Add Contact</button>}
           </div>
@@ -1998,6 +2050,35 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
               key="investments-table"
               data={dealInvestments}
               columns={columnDefs}
+              pageSize={pageSize}
+              t={t}
+              isDark={isDark}
+              rowStyle={investmentRowStyle}
+              onSelectionChange={(selected) => setSel(new Set(selected.map(r => r.id)))}
+            />
+          </div>
+        </div>
+      ) : activeTab === "Lending" ? (
+        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+          <div style={{ display: "flex", gap: 8, marginBottom: 4 }}>
+            <input
+              placeholder="Search email..."
+              value={invSearch.email}
+              onChange={e => setInvSearch(s => ({ ...s, email: e.target.value }))}
+              style={{ padding: "6px 10px", borderRadius: 8, border: `1px solid ${t.chipBorder}`, background: t.inputBg, color: t.text, fontSize: 13 }}
+            />
+            <input
+              placeholder="Search payment method..."
+              value={invSearch.paymentMethod}
+              onChange={e => setInvSearch(s => ({ ...s, paymentMethod: e.target.value }))}
+              style={{ padding: "6px 10px", borderRadius: 8, border: `1px solid ${t.chipBorder}`, background: t.inputBg, color: t.text, fontSize: 13 }}
+            />
+          </div>
+          <div style={{ height: '1200px', width: "100%", minHeight: '1200px' }}>
+            <TanStackTable
+              key="lending-table"
+              data={dealLendings}
+              columns={lendingColumnDefs}
               pageSize={pageSize}
               t={t}
               isDark={isDark}
@@ -2883,7 +2964,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
       <Modal
         open={modal.open}
         onClose={() => setModal(m => ({ ...m, open: false }))}
-        title={modal.mode === "add" ? "New Investment" : "Edit Investment"}
+        title={modal.mode === "add" ? (activeTab === "Lending" ? "New Lending" : "New Investment") : (activeTab === "Lending" ? "Edit Lending" : "Edit Investment")}
         onSave={handleSaveInvestment}
         width={620}
         t={t}
@@ -2891,7 +2972,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
       >
         {(modal.mode === "edit" || (modal.mode === "add" && modal.data.id)) && (
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
-            <FF label="Investment ID" t={t}>
+            <FF label={activeTab === "Lending" ? "Lending ID" : "Investment ID"} t={t}>
               <div style={{ fontFamily: t.mono, fontSize: 13, color: t.idText, background: isDark ? "rgba(255,255,255,0.04)" : "#F5F4F1", border: `1px solid ${t.surfaceBorder}`, borderRadius: 9, padding: "10px 13px", minHeight: 41, display: 'flex', alignItems: 'center' }}>{modal.data.id || "—"}</div>
             </FF>
             <FF label="Deal ID" t={t}>
@@ -2900,7 +2981,17 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
           </div>
         )}
         <FF label="Deal name" t={t}><FSel value={modal.data.deal} onChange={e => setF("deal", e.target.value)} options={DEALS.map(p => p.name)} t={t} /></FF>
-        <FF label="Contact" t={t}><FSel value={modal.data.contact} onChange={e => setF("contact", e.target.value)} options={CONTACTS.map(p => p.name)} t={t} /></FF>
+        <FF label="Contact" t={t}>
+          <FSel 
+            value={modal.data.contact} 
+            onChange={e => setF("contact", e.target.value)} 
+            options={activeTab === "Lending" 
+              ? CONTACTS.filter(p => p.role === "Borrower" || p.role === "Both").map(p => p.name)
+              : CONTACTS.map(p => p.name)
+            } 
+            t={t} 
+          />
+        </FF>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14 }}>
           <FF label="Type" t={t}><FSel value={modal.data.type} onChange={e => setF("type", e.target.value)} options={getTypeOpts()} t={t} /></FF>
           <FF label="Amount" t={t}>
@@ -2930,12 +3021,14 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
           <FF label="Frequency" t={t}><FSel value={modal.data.freq} onChange={e => setF("freq", e.target.value)} options={scheduleFrequencyOpts} t={t} /></FF>
           <FF label="Term (months)" t={t}><FIn value={modal.data.term_months || ""} onChange={e => setF("term_months", e.target.value)} placeholder="e.g. 24" t={t} /></FF>
           <FF label="Status" t={t}><FSel value={modal.data.status} onChange={e => setF("status", e.target.value)} options={["Open", "Active", "Closed"]} t={t} /></FF>
-          <FF label="Rollover at Maturity" t={t}>
-            <div style={{ display: "flex", alignItems: "center", height: 38 }}>
-              <input type="checkbox" checked={!!modal.data.rollover} onChange={e => setF("rollover", e.target.checked)} style={{ cursor: "pointer", width: 18, height: 18 }} />
-              <span style={{ marginLeft: 8, fontSize: 13, color: t.textSecondary }}>Rollover Principal</span>
-            </div>
-          </FF>
+          {activeTab !== "Lending" && (
+            <FF label="Rollover at Maturity" t={t}>
+              <div style={{ display: "flex", alignItems: "center", height: 38 }}>
+                <input type="checkbox" checked={!!modal.data.rollover} onChange={e => setF("rollover", e.target.checked)} style={{ cursor: "pointer", width: 18, height: 18 }} />
+                <span style={{ marginLeft: 8, fontSize: 13, color: t.textSecondary }}>Rollover Principal</span>
+              </div>
+            </FF>
+          )}
           {modal.mode === "add" && (
             <FF label="Generate Schedule" t={t}>
               <div style={{ display: "flex", alignItems: "center", height: 38 }}>
