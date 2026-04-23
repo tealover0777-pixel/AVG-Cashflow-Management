@@ -802,6 +802,20 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
         await updateDoc(contactRef, { payment_method: d.payment_method, updated_at: serverTimestamp() }).catch(e => console.error("Sync contact error:", e));
       }
 
+      // ZERO OUT SOURCE DISTRIBUTION IF ROLLOVER
+      if (d.rolloverDistributionId) {
+        const dist = (SCHEDULES || []).find(s => s.id === d.rolloverDistributionId || s.docId === d.rolloverDistributionId);
+        if (dist) {
+          const distPath = dist._path || `${scheduleCollection}/${dist.docId || dist.id}`;
+          await updateDoc(doc(db, distPath), { 
+            payment_amount: 0, 
+            signed_payment_amount: 0, 
+            notes: (dist.notes || "") + " (Rolled over to new investment)",
+            updated_at: serverTimestamp() 
+          }).catch(e => console.error("Zero out distribution error:", e));
+        }
+      }
+
       // SYNC Rollover to distribution schedules
       const currentInvId = d.id || investmentIdForGen;
       if (currentInvId) {
@@ -2846,8 +2860,28 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
         <FF label="Deal name" t={t}><FSel value={modal.data.deal} onChange={e => setF("deal", e.target.value)} options={DEALS.map(p => p.name)} t={t} /></FF>
         <FF label="Contact" t={t}><FSel value={modal.data.contact} onChange={e => setF("contact", e.target.value)} options={CONTACTS.map(p => p.name)} t={t} /></FF>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14 }}>
-          <FF label="Type" t={t}><FSel value={modal.data.type} onChange={e => setF("type", e.target.value)} options={getTypeOpts()} t={t} /></FF>
-          <FF label="Amount" t={t}><FIn value={modal.data.amount} onChange={e => setF("amount", e.target.value)} placeholder="$0" t={t} /></FF>
+          <FF label="Type" t={t}><FSel value={modal.data.type} onChange={e => setF("type", e.target.value)} options={getTypeOpts()} t={t} disabled={modal.data.lockedAmount} /></FF>
+          <FF label="Amount" t={t}>
+            {modal.data.lockedAmount ? (
+              <div style={{ 
+                fontFamily: t.mono, 
+                fontSize: 13, 
+                fontWeight: 700,
+                color: isDark ? "#A5B4FC" : "#4338CA", 
+                background: isDark ? "rgba(99,102,241,0.1)" : "#EEF2FF", 
+                border: `1px solid ${isDark ? "rgba(99,102,241,0.2)" : "#C7D2FE"}`, 
+                borderRadius: 9, 
+                padding: "10px 13px", 
+                minHeight: 41, 
+                display: 'flex', 
+                alignItems: 'center' 
+              }}>
+                {fmtCurr(modal.data.amount)}
+              </div>
+            ) : (
+              <FIn value={modal.data.amount} onChange={e => setF("amount", e.target.value)} placeholder="$0" t={t} />
+            )}
+          </FF>
           <FF label="Rate" t={t}><FIn value={modal.data.rate} onChange={e => setF("rate", e.target.value)} placeholder="10%" t={t} /></FF>
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14 }}>
@@ -2995,6 +3029,32 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
                 const invPath = inv._path || `${investmentCollection}/${inv.docId || inv.id}`;
                 await updateDoc(doc(db, invPath), { rollover: !!s.rollover, updated_at: serverTimestamp() }).catch(e => console.error("Sync inv rollover error:", e));
               }
+            }
+
+            // TRIGGER NEW INVESTMENT MODAL IF STATUS IS ROLLOVER
+            if (s.status === "Rollover") {
+              const absAmount = Math.abs(dataToSave.signed_payment_amount || dataToSave.payment_amount || 0);
+              const contactRef = (CONTACTS || []).find(c => c.id === s.contact_id);
+              
+              setScheduleModal({ open: false, data: {} });
+              // Small delay to let first modal close
+              setTimeout(() => {
+                setModal({
+                  open: true,
+                  mode: "add",
+                  data: {
+                    amount: absAmount,
+                    deal: s.deal_name || (DEALS.find(d => d.id === s.deal_id)?.name || ""),
+                    contact: contactRef ? contactRef.name : (s.party_id || ""),
+                    source_of_funds: "Rollover Principal",
+                    rollover_source_id: s.investment || "",
+                    rolloverDistributionId: s.id || s.docId, // Reference for later zero-out
+                    lockedAmount: true,
+                    status: "Open"
+                  }
+                });
+              }, 150);
+              return;
             }
             
             setScheduleModal({ open: false, data: {} });
