@@ -16,7 +16,7 @@ import {
   Users, HelpCircle
 } from "lucide-react";
 import { PromptModal, DelModal, Modal, TanStackTable } from "../components";
-import { US_TIMEZONES } from "../utils/timeZoneUtils";
+import { US_TIMEZONES, resolveTimeZone } from "../utils/timeZoneUtils";
 
 const CDown = () => <ChevronDown size={12} strokeWidth={2.5} style={{ opacity: 0.7 }} />;
 
@@ -160,6 +160,9 @@ export default function PageEmailBuilder(props) {
           }
           if (d.emailSetup?.timeZone) {
             setScheduleData(s => ({ ...s, timezone: d.emailSetup.timeZone }));
+          } else {
+            const resolved = resolveTimeZone(d.state, d.zip);
+            if (resolved) setScheduleData(s => ({ ...s, timezone: resolved }));
           }
         }
       });

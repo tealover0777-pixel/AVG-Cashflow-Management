@@ -137,15 +137,16 @@ export default function PageCompany({ t, isDark, activeTenantId = "", USERS = []
         }
     }, [tenantId, user?.email]);
 
-    // Auto-resolve TimeZone based on Info folder (State/Zip)
+    // Auto-resolve TimeZone based on Info folder (State/Zip) and persist to Firestore
     React.useEffect(() => {
-        if (!data.emailSetup.timeZone && (data.state || data.zip)) {
+        if (!data.emailSetup.timeZone && (data.state || data.zip) && tenantId) {
             const resolved = resolveTimeZone(data.state, data.zip);
             if (resolved) {
                 updES({ timeZone: resolved });
+                updateDoc(doc(db, "tenants", tenantId), { "emailSetup.timeZone": resolved }).catch(() => {});
             }
         }
-    }, [data.state, data.zip]);
+    }, [data.state, data.zip, tenantId]);
 
     const resolvedOwnerName = React.useMemo(() => {
         if (!data.owner) return "—";
