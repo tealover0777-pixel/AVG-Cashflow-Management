@@ -269,12 +269,11 @@ export const getScheduleColumns = (permissions, isDark, t, context) => {
     },
     {
       header: "Status",
-      accessorKey: "status",
+      accessorFn: (row) => row.rollover ? "ROLLOVER" : row.status,
+      id: "status",
       size: 90,
-      cell: ({ row, getValue }) => {
-        const status = getValue();
-        const isRollover = !!row.original.rollover;
-        return <Bdg status={isRollover ? "ROLLOVER" : status} isDark={isDark} />;
+      cell: ({ getValue }) => {
+        return <Bdg status={getValue()} isDark={isDark} />;
       }
     },
     {
