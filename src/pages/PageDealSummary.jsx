@@ -802,17 +802,45 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
         await updateDoc(contactRef, { payment_method: d.payment_method, updated_at: serverTimestamp() }).catch(e => console.error("Sync contact error:", e));
       }
 
-      // ZERO OUT SOURCE DISTRIBUTION IF ROLLOVER
+      // ZERO OUT SOURCE DISTRIBUTION IF ROLLOVER (Versioned Upgrade)
       if (d.rolloverDistributionId) {
         const dist = (SCHEDULES || []).find(s => s.id === d.rolloverDistributionId || s.docId === d.rolloverDistributionId);
         if (dist) {
-          const distPath = dist._path || `${scheduleCollection}/${dist.docId || dist.id}`;
-          await updateDoc(doc(db, distPath), { 
-            payment_amount: 0, 
-            signed_payment_amount: 0, 
-            notes: (dist.notes || "") + " (Rolled over to new investment)",
-            updated_at: serverTimestamp() 
-          }).catch(e => console.error("Zero out distribution error:", e));
+          const distCollection = dist._path ? dist._path.split(\'/\').slice(0, -1).join(\'/\') : scheduleCollection;
+          const oldRef = dist._path ? doc(db, dist._path) : doc(db, scheduleCollection, dist.docId || dist.id);
+          
+          const vNum = Number(dist.version_num || 1);
+          const newVNum = vNum + 1;
+          const versionId = `${dist.schedule_id || dist.payment_id || "S"}-V${newVNum}`;
+
+          // 1. Deactivate old version
+          await updateDoc(oldRef, {
+            active_version: false,
+            status: "REPLACED",
+            replaced_at: serverTimestamp(),
+            replaced_by: user?.email || "system",
+            linked_schedule_id: versionId
+          }).catch(e => console.error("Deactivate old version error:", e));
+
+          // 2. Create new version (V2+) with 0 amount
+          const newDocRef = doc(collection(db, distCollection));
+          const { docId, id, _path, ...cleanOldData } = dist; // Remove metadata
+          
+          const newVersionData = {
+            ...cleanOldData,
+            version_num: newVNum,
+            version_id: versionId,
+            previous_version_id: dist.docId || dist.id,
+            payment_amount: 0,
+            signed_payment_amount: 0,
+            status: "Rollover",
+            active_version: true,
+            notes: (dist.notes || "") + ` (Rolled over to new investment ${currentInvId})`,
+            created_at: serverTimestamp(),
+            updated_at: serverTimestamp()
+          };
+
+          await setDoc(newDocRef, newVersionData).catch(e => console.error("Create V2 version error:", e));
         }
       }
 
@@ -3070,7 +3098,10 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
             <FSel 
               value={scheduleModal.data.status} 
               onChange={e => setScheduleModal(m => ({ ...m, data: { ...m.data, status: e.target.value } }))} 
-              options={scheduleModal.data.rollover ? ["Rollover"] : paymentStatusOpts} 
+              options={scheduleModal.data.rollover 
+                ? Array.from(new Set(["Rollover", scheduleModal.data.status])) 
+                : paymentStatusOpts
+              } 
               t={t} 
             />
           </FF>
@@ -3087,17 +3118,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
               <input
                 type="checkbox"
                 checked={scheduleModal.data.rollover || false}
-                onChange={e => {
-                  const val = e.target.checked;
-                  setScheduleModal(m => ({ 
-                    ...m, 
-                    data: { 
-                      ...m.data, 
-                      rollover: val,
-                      status: val ? "Rollover" : m.data.status
-                    } 
-                  }));
-                }}
+                onChange={e => setScheduleModal(m => ({ ...m, data: { ...m.data, rollover: e.target.checked } }))}
                 style={{ width: 18, height: 18, accentColor: "#9333EA", cursor: "pointer" }}
               />
               <span style={{ fontSize: 14, fontWeight: 600, color: t.text }}>Rollover Principal</span>
