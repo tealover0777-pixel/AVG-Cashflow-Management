@@ -55,13 +55,20 @@ exports.inviteUser = functions.https.onCall(async (data, context) => {
 
     // 2. Look up if role is global from role_types
     let isGlobal = false;
+    let roleName = role; // Default to role ID
     try {
       const roleDoc = await db.collection('role_types').doc(role).get();
-      if (roleDoc.exists && roleDoc.data().IsGlobal === true) {
-        isGlobal = true;
+      if (roleDoc.exists) {
+        const roleData = roleDoc.data();
+        if (roleData.IsGlobal === true) {
+          isGlobal = true;
+        }
+        if (roleData.role_name) {
+          roleName = roleData.role_name;
+        }
       }
     } catch (e) {
-      console.warn('Could not check IsGlobal for role:', role, e.message);
+      console.warn('Could not check role_types for role:', role, e.message);
     }
 
     // 3. Set Custom Claims (include isGlobal for Firestore rules)
@@ -145,7 +152,7 @@ exports.inviteUser = functions.https.onCall(async (data, context) => {
           html: `<div style="font-family: sans-serif; max-width: 600px; padding: 20px;">
             <h2>Welcome to ${tData.tenant_name || "American Vision Group"}</h2>
             <p>Hello ${first_name || "there"},</p>
-            <p>You have been invited to join the platform with the role of <b>${role}</b>.</p>
+            <p>You have been invited to join the platform with the role of <b>${roleName}</b>.</p>
             <p>Please click the button below to set your password and access your account:</p>
             <div style="margin: 30px 0;">
               <a href="${link}" style="background: #1c1917; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: 600;">Accept Invitation</a>
