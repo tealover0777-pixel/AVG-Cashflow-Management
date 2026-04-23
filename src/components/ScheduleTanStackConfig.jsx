@@ -138,6 +138,13 @@ export const getScheduleColumns = (permissions, isDark, t, context) => {
       header: "Contact ID",
       accessorKey: "contact_id",
       size: 200,
+      filterFn: (row, columnId, filterValue) => {
+        const contactId = row.getValue(columnId) || "";
+        const contact = CONTACTS.find(c => c.id === contactId);
+        const contactName = contact?.name || "";
+        const search = filterValue.toLowerCase();
+        return contactId.toLowerCase().includes(search) || contactName.toLowerCase().includes(search);
+      },
       cell: ({ getValue, row }) => {
         const contactId = getValue();
         const contact = CONTACTS.find(c => c.id === contactId);
@@ -157,6 +164,13 @@ export const getScheduleColumns = (permissions, isDark, t, context) => {
       header: "Deal ID",
       accessorKey: "deal_id",
       size: 200,
+      filterFn: (row, columnId, filterValue) => {
+        const dealId = row.getValue(columnId) || "";
+        const deal = DEALS.find(d => d.id === dealId);
+        const dealName = deal?.name || "";
+        const search = filterValue.toLowerCase();
+        return dealId.toLowerCase().includes(search) || dealName.toLowerCase().includes(search);
+      },
       cell: ({ getValue }) => {
         const dealId = getValue();
         if (!dealId) return <span style={{ color: t.textMuted }}>—</span>;
