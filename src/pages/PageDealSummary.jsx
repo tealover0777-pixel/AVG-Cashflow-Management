@@ -76,6 +76,8 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
   const assetTypeOpts = (DIMENSIONS.find(d => d.name === "AssetType") || {}).items || ["Multi-family", "Retail", "Industrial", "Office", "Mixed-Use", "Other"];
 
   const [pivotColWidths, setPivotColWidths] = useState([180, 130, 100, 100, 80, 70, 100, 120]); // Name, Type, Start, End, Freq, Rate, Schedule, Method
+  const [columnFilters, setColumnFilters] = useState([]);
+  const [distColumnFilters, setDistColumnFilters] = useState([]);
   const [pivotFilters, setPivotFilters] = useState({
     investor: "",
     type: "",
@@ -1916,6 +1918,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
           </div>
           <div style={{ height: '1200px', width: "100%", minHeight: '1200px' }}>
             <TanStackTable
+              key="investments-table"
               data={dealInvestments}
               columns={columnDefs}
               pageSize={pageSize}
@@ -1996,6 +1999,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
           {distributionView === "table" ? (
             <div style={{ height: '1000px', width: "100%", minHeight: '1000px' }}>
               <TanStackTable
+                key="distributions-table"
                 data={activeDealSchedules}
                 columns={scheduleColumnDefs}
                 pageSize={100}
