@@ -160,7 +160,11 @@ export const getDealInvestmentColumns = (permissions, isDark, t, context) => {
       header: "Schedule Generated",
       size: 110,
       accessorFn: (row) => {
-        const hasSchedule = (SCHEDULES || []).some(s => (s.investment_id || s.investment) === row.id);
+        const hasSchedule = (SCHEDULES || []).some(s => 
+          (s.active_version === true) && 
+          (s.investment_id === row.id || s.investment === row.id) &&
+          (s.deal_id === row.deal_id)
+        );
         return hasSchedule ? "Generated" : "Pending";
       },
       cell: ({ getValue }) => {

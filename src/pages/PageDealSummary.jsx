@@ -347,12 +347,16 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
   }, [dealId, deal.name, INVESTMENTS, CONTACTS, invSearch]);
 
   const hasScheduleForInvestment = useCallback(
-    (invId) => (SCHEDULES || []).some(s => (s.investment_id || s.investment) === invId),
+    (inv) => (SCHEDULES || []).some(s => 
+      (s.active_version === true) && 
+      (s.investment_id === (inv.investment_id || inv.id) || s.investment === (inv.investment_id || inv.id)) &&
+      (s.deal_id === inv.deal_id)
+    ),
     [SCHEDULES]
   );
 
   const pendingScheduleGenerationCount = useMemo(
-    () => dealInvestments.filter(inv => !hasScheduleForInvestment(inv.id)).length,
+    () => dealInvestments.filter(inv => !hasScheduleForInvestment(inv)).length,
     [dealInvestments, hasScheduleForInvestment]
   );
 
