@@ -193,10 +193,17 @@ export default function PageContacts({ t, isDark, CONTACTS = [], INVESTMENTS = [
     setInvitingId(party.id);
     try {
       const inviteUserFn = httpsCallable(functions, "inviteUser");
-      // Split name into first/last if possible
-      const nameParts = (party.name || "").trim().split(/\s+/);
-      const firstName = nameParts[0] || "";
-      const lastName = nameParts.slice(1).join(" ") || "";
+      
+      // Prioritize existing first_name/last_name fields, fall back to splitting name
+      let firstName = party.first_name || "";
+      let lastName = party.last_name || "";
+      
+      if (!firstName && party.name) {
+        const nameParts = (party.name || "").trim().split(/\s+/);
+        firstName = nameParts[0] || "";
+        lastName = nameParts.slice(1).join(" ") || "";
+      }
+
       const result = await inviteUserFn({
         email: party.email,
         role: "R10001",

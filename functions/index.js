@@ -27,12 +27,30 @@ exports.inviteUser = functions.https.onCall(async (data, context) => {
     throw new functions.https.HttpsError('unauthenticated', 'The function must be called while authenticated.');
   }
 
-  const { email, role, tenantId, phone, notes, user_id: providedUserId, contactId, partyId, first_name, last_name } = data;
+  const { email, role, tenantId, phone, notes, user_id: providedUserId, contactId, partyId, first_name: initialFirstName, last_name: initialLastName } = data;
   const db = admin.firestore();
+
+  let first_name = initialFirstName;
+  let last_name = initialLastName;
 
   try {
     let userRecord;
     let isNewUser = false;
+
+    // 0. If names are missing, try to fetch from Contact record if contactId exists
+    const cid = contactId || partyId;
+    if ((!first_name || !last_name) && cid && tenantId) {
+      try {
+        const contactSnap = await db.doc(`tenants/${tenantId}/contacts/${cid}`).get();
+        if (contactSnap.exists) {
+          const cData = contactSnap.data();
+          if (!first_name) first_name = cData.first_name || "";
+          if (!last_name) last_name = cData.last_name || "";
+        }
+      } catch (e) {
+        console.warn("Could not fetch contact for naming:", cid, e.message);
+      }
+    }
 
     // 1. Check if user exists or create them
     try {

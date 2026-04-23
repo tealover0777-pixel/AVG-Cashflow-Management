@@ -89,7 +89,13 @@ export default function PageSuperAdmin({ t, isDark, ROLES = [], TENANTS = [] }) 
         setInvitingId(user.id);
         try {
             const inviteUserFn = httpsCallable(functions, "inviteUser");
-            const result = await inviteUserFn({ email: user.email, role: user.role, tenantId: user.tenantId || "" });
+            const result = await inviteUserFn({ 
+                email: user.email, 
+                role: user.role, 
+                tenantId: user.tenantId || "",
+                first_name: user.first_name || "",
+                last_name: user.last_name || ""
+            });
             setInviteResult({ link: result.data.link, email: user.email });
         } catch (err) {
             console.error("Row invite error:", err);
