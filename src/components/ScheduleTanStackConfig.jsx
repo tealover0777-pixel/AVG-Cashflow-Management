@@ -1,6 +1,5 @@
-import React from 'react';
-import { CornerDownRight, ExternalLink } from 'lucide-react';
-import { Bdg } from '../components';
+import { CornerDownRight, ExternalLink, RotateCcw } from 'lucide-react';
+import { Bdg, Tooltip } from '../components';
 import { fmtCurr } from '../utils';
 
 export const getScheduleColumns = (permissions, isDark, t, context) => {
@@ -188,7 +187,22 @@ export const getScheduleColumns = (permissions, isDark, t, context) => {
       header: "Type",
       accessorKey: "type",
       size: 140,
-      cell: ({ getValue }) => <span style={{ fontSize: '12px', fontWeight: 500 }}>{getValue()}</span>
+      cell: ({ row, getValue }) => {
+        const val = getValue();
+        const isRollover = !!row.original.rollover;
+        return (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <span style={{ fontSize: '12px', fontWeight: 500 }}>{val}</span>
+            {isRollover && (
+              <Tooltip text="Rollover Principal Marked" t={t}>
+                <div style={{ color: isDark ? '#818CF8' : '#4F46E5', display: 'flex', alignItems: 'center' }}>
+                  <RotateCcw size={12} strokeWidth={2.5} />
+                </div>
+              </Tooltip>
+            )}
+          </div>
+        );
+      }
     },
     {
       header: "Freq",
@@ -229,7 +243,11 @@ export const getScheduleColumns = (permissions, isDark, t, context) => {
       header: "Status",
       accessorKey: "status",
       size: 90,
-      cell: ({ getValue }) => <Bdg status={getValue()} isDark={isDark} />
+      cell: ({ row, getValue }) => {
+        const status = getValue();
+        const isRollover = !!row.original.rollover;
+        return <Bdg status={isRollover ? "ROLLOVER" : status} isDark={isDark} />;
+      }
     },
     {
       header: "Notes",

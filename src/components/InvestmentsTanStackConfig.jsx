@@ -1,6 +1,6 @@
 import React from 'react';
-import { ExternalLink, Edit2, Trash2, Info } from 'lucide-react';
-import { Bdg } from '../components';
+import { ExternalLink, Edit2, Trash2, Info, RotateCcw } from 'lucide-react';
+import { Bdg, Tooltip } from '../components';
 
 export const getInvestmentColumns = (permissions, isDark, t, context) => {
   const { callbacks } = context;
@@ -106,22 +106,32 @@ export const getInvestmentColumns = (permissions, isDark, t, context) => {
       header: "Type",
       accessorKey: "type",
       size: 130,
-      cell: ({ getValue }) => {
+      cell: ({ row, getValue }) => {
         const val = getValue();
         const isB = val?.includes("BORROWER");
+        const rollover = !!row.original.rollover;
         return (
-          <div style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            padding: '2px 8px',
-            borderRadius: '6px',
-            fontSize: '10px',
-            fontWeight: 700,
-            background: isB ? (isDark ? 'rgba(251,191,36,0.1)' : '#FFFBEB') : (isDark ? 'rgba(96,165,250,0.1)' : '#EFF6FF'),
-            color: isB ? (isDark ? '#FBBF24' : '#D97706') : (isDark ? '#60A5FA' : '#2563EB'),
-            border: `1px solid ${isB ? (isDark ? 'rgba(251,191,36,0.2)' : '#FDE68A') : (isDark ? 'rgba(96,165,250,0.2)' : '#BFDBFE')}`,
-          }}>
-            {val}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <div style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              padding: '2px 8px',
+              borderRadius: '6px',
+              fontSize: '10px',
+              fontWeight: 700,
+              background: isB ? (isDark ? 'rgba(251,191,36,0.1)' : '#FFFBEB') : (isDark ? 'rgba(96,165,250,0.1)' : '#EFF6FF'),
+              color: isB ? (isDark ? '#FBBF24' : '#D97706') : (isDark ? '#60A5FA' : '#2563EB'),
+              border: `1px solid ${isB ? (isDark ? 'rgba(251,191,36,0.2)' : '#FDE68A') : (isDark ? 'rgba(96,165,250,0.2)' : '#BFDBFE')}`,
+            }}>
+              {val}
+            </div>
+            {rollover && (
+              <Tooltip text="Marked for Rollover" t={t}>
+                <div style={{ color: isDark ? '#818CF8' : '#4F46E5', display: 'flex', alignItems: 'center' }}>
+                  <RotateCcw size={12} strokeWidth={2.5} />
+                </div>
+              </Tooltip>
+            )}
           </div>
         );
       }
@@ -130,11 +140,17 @@ export const getInvestmentColumns = (permissions, isDark, t, context) => {
       header: "Amount",
       accessorKey: "amount",
       size: 120,
-      cell: ({ getValue }) => (
-        <span style={{ fontFamily: t.mono, fontSize: '11.5px', fontWeight: 700, color: isDark ? '#60A5FA' : '#4F46E5' }}>
-          {getValue()}
-        </span>
-      )
+      cell: ({ row, getValue }) => {
+        const rollover = !!row.original.rollover;
+        return (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{ fontFamily: t.mono, fontSize: '11.5px', fontWeight: 700, color: isDark ? '#60A5FA' : '#4F46E5' }}>
+              {getValue()}
+            </span>
+            {rollover && <Bdg status="ROLLOVER" isDark={isDark} />}
+          </div>
+        );
+      }
     },
     {
       header: "Rate",

@@ -515,6 +515,7 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
       payment_id: d.payment_id || d.schedule_id || docRefId,
       original_payment_amount: d.original_payment_amount || d.payment || null,
       active_version: d.active_version !== undefined ? d.active_version : true,
+      rollover: !!d.rollover,
       updated_at: serverTimestamp(),
     };
 
@@ -1172,7 +1173,21 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
             }} options={["IN", "OUT"]} t={t} disabled={freeze} /></FF>
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr", gap: 14 }}>
-            <FF label="Payment Type" t={t}><FSel value={modal.data.type} onChange={e => setF("type", e.target.value)} options={["INVESTOR_PRINCIPAL_DEPOSIT", "INVESTOR_INTEREST_PAYMENT", "INVESTOR_PRINCIPAL_PAYMENT", "BORROWER_PRINCIPAL_RECEIVED", "BORROWER_INTEREST_PAYMENT", "BORROWER_PRINCIPAL_PAYMENT", "FEE"]} t={t} disabled={freeze} /></FF>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              <FF label="Payment Type" t={t}><FSel value={modal.data.type} onChange={e => setF("type", e.target.value)} options={["INVESTOR_PRINCIPAL_DEPOSIT", "INVESTOR_INTEREST_PAYMENT", "INVESTOR_PRINCIPAL_PAYMENT", "BORROWER_PRINCIPAL_RECEIVED", "BORROWER_INTEREST_PAYMENT", "BORROWER_PRINCIPAL_PAYMENT", "FEE"]} t={t} disabled={freeze} /></FF>
+              {modal.data.type === "INVESTOR_PRINCIPAL_PAYMENT" && (
+                <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "0 4px" }}>
+                  <input 
+                    type="checkbox" 
+                    id="rollover_chk"
+                    checked={!!modal.data.rollover} 
+                    onChange={e => setF("rollover", e.target.checked)} 
+                    style={{ cursor: "pointer", width: 16, height: 16, accentColor: t.accent }} 
+                  />
+                  <label htmlFor="rollover_chk" style={{ fontSize: 13, color: t.textSecondary, cursor: "pointer", fontWeight: 500 }}>Rollover Principal</label>
+                </div>
+              )}
+            </div>
             <FF label="Applied To" t={t}><FSel value={modal.data.applied_to || "Principal Amount"} onChange={e => setF("applied_to", e.target.value)} options={["Principal Amount", "Interest Amount", "Total Amount", "Balance"]} t={t} disabled={freeze} /></FF>
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14 }}>

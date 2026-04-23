@@ -1,6 +1,7 @@
 import React from 'react';
-import { Bdg } from '../components';
+import { Bdg, Tooltip } from '../components';
 import { fmtCurr } from '../utils';
+import { RotateCcw } from 'lucide-react';
 
 export const getContactTransactionColumns = (isDark, t, context) => {
   const { DEALS = [] } = context;
@@ -25,9 +26,22 @@ export const getContactTransactionColumns = (isDark, t, context) => {
       id: "type",
       accessorFn: (row) => row.type || row.payment_type || "—",
       size: 200,
-      cell: ({ getValue }) => (
-        <span style={{ fontSize: 12, color: t.textSecondary }}>{getValue()}</span>
-      )
+      cell: ({ row, getValue }) => {
+        const val = getValue();
+        const isRollover = row.original.status === "ROLLOVER";
+        return (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <span style={{ fontSize: 12, color: t.textSecondary }}>{val}</span>
+            {isRollover && (
+              <Tooltip text="Rollover Principal" t={t}>
+                <div style={{ color: isDark ? '#818CF8' : '#4F46E5', display: 'flex', alignItems: 'center' }}>
+                  <RotateCcw size={12} strokeWidth={2.5} />
+                </div>
+              </Tooltip>
+            )}
+          </div>
+        );
+      }
     },
     {
       header: "Memo",

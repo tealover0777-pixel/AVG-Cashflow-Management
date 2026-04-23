@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef } from "react";
 import { fmtCurr } from "../utils";
 import { 
-  X, Info, ArrowUp, AlertCircle
+  X, Info, ArrowUp, AlertCircle, RotateCcw
 } from "lucide-react";
-import { Bdg, FF, FIn, FSel, TanStackTable } from "../components"; // We will export these from the main components file
+import { Bdg, FF, FIn, FSel, TanStackTable, Tooltip } from "../components"; // We will export these from the main components file
 import InvestmentDocumentsTab from "./InvestmentDocumentsTab";
 import InvestmentChangelogTab from "./InvestmentChangelogTab";
 import { getContactTransactionColumns } from "./ContactTransactionsTanStackConfig";
@@ -417,9 +417,27 @@ export const InvestorSummaryModal = ({
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
                   <FF label="Payment Method" t={t}><FSel value={investmentEditData.payment_method} onChange={e => setIED({ payment_method: e.target.value })} options={paymentMethods} t={t} /></FF>
                   <FF label="Rollover at Maturity" t={t}>
-                    <div style={{ display: "flex", alignItems: "center", height: 40 }}>
-                      <input type="checkbox" checked={investmentEditData.rollover} onChange={e => setIED({ rollover: e.target.checked })} style={{ cursor: "pointer", width: 18, height: 18 }} />
-                      <span style={{ marginLeft: 10, fontSize: 13, color: t.textSecondary }}>Rollover Principal</span>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                      <div style={{ display: "flex", alignItems: "center", height: 40 }}>
+                        <input type="checkbox" checked={investmentEditData.rollover} onChange={e => setIED({ rollover: e.target.checked })} style={{ cursor: "pointer", width: 18, height: 18 }} />
+                        <span style={{ marginLeft: 10, fontSize: 13, color: t.textSecondary }}>Rollover Principal</span>
+                      </div>
+                      {investmentEditData.rollover && (
+                        <div style={{ 
+                          padding: "10px 14px", 
+                          background: isDark ? "rgba(99,102,241,0.08)" : "#EEF2FF", 
+                          border: `1px solid ${isDark ? "rgba(99,102,241,0.2)" : "#C7D2FE"}`, 
+                          borderRadius: 8, 
+                          display: "flex", 
+                          gap: 10, 
+                          alignItems: "flex-start" 
+                        }}>
+                          <RotateCcw size={16} style={{ marginTop: 2, color: isDark ? "#818CF8" : "#4F46E5", flexShrink: 0 }} />
+                          <div style={{ fontSize: 12, color: isDark ? "#A5B4FC" : "#3730A3", lineHeight: 1.5 }}>
+                            <strong>Principal Rollover Enabled:</strong> The final principal payment will be marked as <strong>ROLLOVER</strong> in the schedule. Administrators should manually move these funds to a new investment record upon maturity.
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </FF>
                 </div>

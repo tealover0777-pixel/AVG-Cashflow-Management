@@ -91,7 +91,9 @@ export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [
         calculator: "ACT/360+30/360",
         rollover: false,
         auto_generate: true,
-        investment_name: ""
+        investment_name: "",
+        source_of_funds: "New Principal",
+        rollover_source_id: ""
       }
     });
   };
@@ -118,6 +120,8 @@ export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [
       fees: (d.feeIds || []).join(","),
       rollover: !!d.rollover,
       investment_name: d.investment_name || "",
+      source_of_funds: d.source_of_funds || "New Principal",
+      rollover_source_id: d.rollover_source_id || "",
       updated_at: serverTimestamp(),
     };
     try {
@@ -548,6 +552,23 @@ export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [
   };
   const setF = (k, v) => setModal(m => {
     const next = { ...m, data: { ...m.data, [k]: v } };
+    
+    // Logic for Source of Funds
+    if (k === "source_of_funds") {
+      if (v === "New Principal") {
+        next.data.rollover_source_id = "";
+      }
+    }
+
+    if (k === "rollover_source_id" && v) {
+      const sourceInv = INVESTMENTS.find(i => i.id === v);
+      if (sourceInv) {
+        // Lock amount to the source principal
+        const amt = Number(String(sourceInv.amount || 0).replace(/[^0-9.-]/g, ""));
+        next.data.amount = String(amt);
+      }
+    }
+
     if (k === "deal") {
       const deal = DEALS.find(p => p.name === v);
       if (deal) {
@@ -706,10 +727,59 @@ export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [
         </div>
       )}
       <FF label="Deal name" t={t}><FSel value={modal.data.deal} onChange={e => setF("deal", e.target.value)} options={DEALS.map(p => p.name)} t={t} /></FF>
-      <FF label="Contact" t={t}><FSel value={modal.data.contact} onChange={e => setF("contact", e.target.value)} options={CONTACTS.map(p => p.name)} t={t} /></FF>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+        <FF label="Contact" t={t}><FSel value={modal.data.contact} onChange={e => setF("contact", e.target.value)} options={CONTACTS.map(p => p.name)} t={t} /></FF>
+        <FF label="Source of Funds" t={t}>
+          <FSel 
+            value={modal.data.source_of_funds} 
+            onChange={e => setF("source_of_funds", e.target.value)} 
+            options={["New Principal", "Rollover Principal"]} 
+            t={t} 
+          />
+        </FF>
+      </div>
+
+      {modal.data.source_of_funds === "Rollover Principal" && (
+        <FF label="Rollover Source (Maturing Investment)" t={t}>
+          <FSel 
+            value={modal.data.rollover_source_id} 
+            onChange={e => setF("rollover_source_id", e.target.value)} 
+            placeholder="Select investment to roll over..."
+            options={INVESTMENTS
+              .filter(i => i.contact === modal.data.contact && i.rollover)
+              .map(i => ({
+                value: i.id,
+                label: `${i.id} | ${i.deal} | ${fmtCurr(i.amount)}`
+              }))
+            }
+            t={t}
+          />
+        </FF>
+      )}
+
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14 }}>
         <FF label="Type" t={t}><FSel value={modal.data.type} onChange={e => setF("type", e.target.value)} options={getTypeOpts()} t={t} /></FF>
-        <FF label="Amount" t={t}><FIn value={modal.data.amount} onChange={e => setF("amount", e.target.value)} placeholder="$0" t={t} /></FF>
+        <FF label="Amount" t={t}>
+          {modal.data.rollover_source_id ? (
+            <div style={{ 
+              fontFamily: t.mono, 
+              fontSize: 13, 
+              color: t.idText, 
+              background: isDark ? "rgba(99,102,241,0.1)" : "#EEF2FF", 
+              border: `1px solid ${isDark ? "rgba(99,102,241,0.2)" : "#C7D2FE"}`, 
+              borderRadius: 9, 
+              padding: "10px 13px", 
+              minHeight: 41, 
+              display: 'flex', 
+              alignItems: 'center',
+              fontWeight: 700 
+            }}>
+              {fmtCurr(modal.data.amount)}
+            </div>
+          ) : (
+            <FIn value={modal.data.amount} onChange={e => setF("amount", e.target.value)} placeholder="$0" t={t} />
+          )}
+        </FF>
         <FF label="Rate" t={t}><FIn value={modal.data.rate} onChange={e => setF("rate", e.target.value)} placeholder="10%" t={t} /></FF>
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14 }}>
