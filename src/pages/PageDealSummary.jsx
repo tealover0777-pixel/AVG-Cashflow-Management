@@ -2888,7 +2888,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
         <FF label="Deal name" t={t}><FSel value={modal.data.deal} onChange={e => setF("deal", e.target.value)} options={DEALS.map(p => p.name)} t={t} /></FF>
         <FF label="Contact" t={t}><FSel value={modal.data.contact} onChange={e => setF("contact", e.target.value)} options={CONTACTS.map(p => p.name)} t={t} /></FF>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14 }}>
-          <FF label="Type" t={t}><FSel value={modal.data.type} onChange={e => setF("type", e.target.value)} options={getTypeOpts()} t={t} disabled={modal.data.lockedAmount} /></FF>
+          <FF label="Type" t={t}><FSel value={modal.data.type} onChange={e => setF("type", e.target.value)} options={getTypeOpts()} t={t} /></FF>
           <FF label="Amount" t={t}>
             {modal.data.lockedAmount ? (
               <div style={{ 
@@ -3074,6 +3074,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
                     amount: absAmount,
                     deal: s.deal_name || (DEALS.find(d => d.id === s.deal_id)?.name || ""),
                     contact: contactRef ? contactRef.name : (s.party_id || ""),
+                    type: "DEPOSIT", // Pre-fill with standard new type
                     source_of_funds: "Rollover Principal",
                     rollover_source_id: s.investment || "",
                     rolloverDistributionId: s.id || s.docId, // Reference for later zero-out
