@@ -595,7 +595,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
   const borrowerNewTypeOpts = (DIMENSIONS.find(d => d.name === "BorrowerInvestmentNewType") || {}).items || [];
   const scheduleFrequencyOpts = (DIMENSIONS.find(d => d.name === "ScheduleFrequency" || d.name === "Schedule Frequency") || {}).items || ["Monthly", "Quarterly", "Semi-Annual", "Annual", "At Maturity"];
 
-  const selectedContact = CONTACTS.find(p => p.name === modal.data.party);
+  const selectedContact = CONTACTS.find(p => p.name === modal.data.contact);
   const contactRole = selectedContact ? selectedContact.role : "";
   const getTypeOpts = () => {
     const isNew = modal.mode === "add";
@@ -645,7 +645,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
         deal: deal.name || "",
         deal_id: deal.id || "",
         contact: "",
-        type: "Individual",
+        type: "DEPOSIT",
         amount: "",
         rate: "",
         freq: "Quarterly",
