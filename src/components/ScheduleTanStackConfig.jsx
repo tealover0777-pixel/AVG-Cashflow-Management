@@ -57,8 +57,9 @@ export const getScheduleColumns = (permissions, isDark, t, context) => {
       cell: ({ row, getValue }) => {
         const val = getValue();
         const data = row.original;
-        const isArchived = data.active_version === false;
-        
+        // Only indent if this is a genuine older version of the same schedule (has active sibling with same schedule_id)
+        const isArchived = data.active_version === false && !!data._is_replaced_version;
+
         return (
           <div style={{ paddingLeft: isArchived ? 20 : 0, display: 'flex', alignItems: 'center', gap: 6 }}>
             {isArchived && <CornerDownRight size={14} style={{ opacity: 0.5 }} />}
@@ -122,7 +123,7 @@ export const getScheduleColumns = (permissions, isDark, t, context) => {
     },
     {
       header: "Investment ID",
-      accessorKey: "investment",
+      accessorFn: (row) => row.investment || row.investment_id,
       size: 110,
       cell: ({ getValue, row }) => (
         <span 
@@ -178,7 +179,7 @@ export const getScheduleColumns = (permissions, isDark, t, context) => {
     },
     {
       header: "Due Date",
-      accessorKey: "dueDate",
+      accessorFn: (row) => row.dueDate || row.due_date,
       size: 100,
       cell: ({ getValue }) => <span style={{ fontFamily: t.mono, fontSize: '12px' }}>{getValue()}</span>,
       sortingFn: 'datetime'

@@ -17,7 +17,7 @@ const fmtCurr = v => {
   return sign + "$" + Math.abs(n).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 };
 
-const ZEROING_STATUSES = ["Missed", "Cancelled", "VOID", "WAIVED", "REPLACED"];
+const ZEROING_STATUSES = ["Missed", "Cancelled", "VOID", "WAIVED", "REPLACED", "Rollover"];
 
 export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = [], CONTACTS = [], DEALS = [], DIMENSIONS = [], FEES_DATA = [], USERS = [], LEDGER = [], collectionPath = "", setActivePage, setSelectedDealId, tenantId }) {
 
@@ -627,6 +627,70 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
       return dt.toISOString().split("T")[0];
     };
 
+    // Rollover Workflow
+    if (modal.mode === "edit" && d.status === "Rollover" && d.status !== d.originalStatus) {
+      const onConfirmRollover = async () => {
+        setDialog(null);
+        try {
+          const originalSchedule = SCHEDULES.find(x => x.docId === docRefId || x.schedule_id === d.schedule_id);
+          if (!originalSchedule) { showDialog("Could not find original schedule.", "Error"); return; }
+
+          const ref = originalSchedule._path ? doc(db, originalSchedule._path) : doc(db, collectionPath, originalSchedule.docId);
+          const newVersionNum = Number(originalSchedule.version_num || 1) + 1;
+
+          let previousVersionId = originalSchedule.version_id;
+          if (!previousVersionId) previousVersionId = `${originalSchedule.schedule_id}-V1`;
+
+          const v2 = {
+            schedule_id: originalSchedule.schedule_id,
+            investment_id: originalSchedule.investment || "",
+            deal_id: originalSchedule.deal_id || "",
+            contact_id: originalSchedule.contact_id || "",
+            due_date: originalSchedule.dueDate || null,
+            payment_type: originalSchedule.type || "",
+            direction_from_company: originalSchedule.direction || "",
+            period_number: originalSchedule.period_number ? Number(originalSchedule.period_number) : null,
+            principal_amount: 0,
+            payment_amount: 0,
+            signed_payment_amount: 0,
+            fee_id: originalSchedule.fee_id || null,
+            status: "Rollover",
+            notes: d.notes || `Rollover for ${originalSchedule.schedule_id}`,
+            applied_to: originalSchedule.applied_to || "",
+            term_start: originalSchedule.term_start || null,
+            term_end: originalSchedule.term_end || null,
+            version_num: newVersionNum,
+            version_id: `${originalSchedule.schedule_id}-V${newVersionNum}`,
+            payment_id: originalSchedule.schedule_id,
+            original_payment_amount: originalSchedule.original_payment_amount || originalSchedule.payment || 0,
+            active_version: true,
+            rollover: true,
+            previous_version_id: previousVersionId,
+            created_at: serverTimestamp(),
+            updated_at: serverTimestamp(),
+            updated_by: user?.displayName || user?.email || user?.uid || "system"
+          };
+
+          await addDoc(ref.parent, v2);
+          await updateDoc(ref, {
+            active_version: false,
+            status: "REPLACED",
+            replaced_at: serverTimestamp(),
+            replaced_by: user?.uid || "system",
+            updated_at: serverTimestamp()
+          });
+
+          showDialog(`Rollover V${newVersionNum} created for ${originalSchedule.schedule_id}.`, "Success");
+        } catch (err) {
+          console.error("Rollover error:", err);
+          showDialog(`Rollover failed: ${err.message}`, "Error");
+        }
+      };
+
+      showDialog(`Create a Rollover record (V${Number(d.version_num || 1) + 1}) for ${d.schedule_id}? The original will be marked as Replaced.`, "Rollover Principal", "confirm", onConfirmRollover);
+      return;
+    }
+
     // Missed Payment Workflow (only Missed now, Cancelled removed)
     if (modal.mode === "edit" && d.status === "Missed" && d.status !== d.originalStatus) {
         const onConfirmMissed = async () => {
@@ -999,6 +1063,17 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
     });
 
     if (showHistory) {
+      // Mark inactive records that are genuine older versions of a schedule
+      // (i.e., there's an active record with the same schedule_id in the current view)
+      const activeScheduleIds = new Set(
+        filtered.filter(s => s.active_version !== false).map(s => s.schedule_id)
+      );
+      filtered = filtered.map(s =>
+        s.active_version === false
+          ? { ...s, _is_replaced_version: activeScheduleIds.has(s.schedule_id) }
+          : s
+      );
+
       // Group by schedule_id, then sort by version_num DESC within each group
       // Keep the active version at the top of its schedule group
       filtered.sort((a, b) => {
@@ -1173,6 +1248,8 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
                   updates.notes = "payment is missed so $0 now. Replacement is scheduled.";
                 } else if (newStatus === "Cancelled") {
                   updates.notes = "payment is cancelled so $0 now.";
+                } else if (newStatus === "Rollover") {
+                  updates.notes = `Rollover for ${modal.data.schedule_id}. Principal rolled over to next term.`;
                 }
                 setModal(m => ({ ...m, data: { ...m.data, ...updates } }));
               }} options={modal.data.rollover 

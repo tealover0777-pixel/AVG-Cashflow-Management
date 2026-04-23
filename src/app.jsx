@@ -430,7 +430,7 @@ function AppContent() {
       return {
         schedule_id: d.schedule_id || d.id, docId: d.doc_id || d.id, _path: d._path, investment: d.investment_id || "", dueDate: fmtDate(d.due_date),
         batch_id: d.batch_id || "",
-        type: d.payment_type || "",
+        type: d.payment_type || d.type || "",
         payment: d.payment_amount != null ? d.payment_amount : (Math.abs(d.signed_payment_amount || 0) || (isPrincipal ? d.principal_amount : 0)),
         status: d.status || "", direction: dir, fee_id: d.fee_id || "", fee_name: d.fee_name || "",
         contact_id: contactId,

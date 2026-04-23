@@ -828,6 +828,11 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
           
           const newVersionData = {
             ...cleanOldData,
+            investment_id: dist.investment_id || dist.investment || "",
+            due_date: dist.due_date || dist.dueDate || "",
+            type: dist.type || "",
+            contact_id: dist.contact_id || "",
+            deal_id: dist.deal_id || dealId || "",
             version_num: newVNum,
             version_id: versionId,
             previous_version_id: dist.docId || dist.id,
@@ -835,6 +840,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
             signed_payment_amount: 0,
             status: "Rollover",
             active_version: true,
+            rollover: true,
             notes: (dist.notes || "") + ` (Rolled over to new investment ${investmentIdForGen})`,
             created_at: serverTimestamp(),
             updated_at: serverTimestamp()
@@ -1134,7 +1140,9 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
           original_payment_amount: principal,
           applied_to: "Principal Amount",
           term_start: startDate.toISOString().slice(0, 10), term_end: startDate.toISOString().slice(0, 10),
-          status: "Due", notes: `Initial for ${c.id}`, created_at: serverTimestamp(),
+          status: "Due", notes: `Initial for ${c.id}`, 
+          rollover: !!c.rollover,
+          created_at: serverTimestamp(),
         });
 
         // --- 2. Interest and Recurring Fees ---

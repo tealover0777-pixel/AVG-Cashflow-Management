@@ -303,7 +303,9 @@ export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [
           original_payment_amount: principal,
           applied_to: "Principal Amount",
           term_start: startDate.toISOString().slice(0, 10), term_end: startDate.toISOString().slice(0, 10),
-          status: "Due", notes: `Initial for ${c.id}`, created_at: serverTimestamp(),
+          status: "Due", notes: `Initial for ${c.id}`, 
+          rollover: !!c.rollover,
+          created_at: serverTimestamp(),
         });
 
         // --- 2. Interest and Recurring Fees ---
