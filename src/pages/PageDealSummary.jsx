@@ -751,7 +751,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
     }
   };
 
-  const handleSaveInvestment = async () => {
+  async function handleSaveInvestment() {
     const d = modal.data;
     const dealObj = DEALS.find(p => p.name === d.deal);
     const contactObj = CONTACTS.find(p => p.name === d.contact);
@@ -835,7 +835,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
             signed_payment_amount: 0,
             status: "Rollover",
             active_version: true,
-            notes: (dist.notes || "") + ` (Rolled over to new investment ${currentInvId})`,
+            notes: (dist.notes || "") + ` (Rolled over to new investment ${investmentIdForGen})`,
             created_at: serverTimestamp(),
             updated_at: serverTimestamp()
           };
@@ -847,13 +847,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
       // SYNC Rollover to distribution schedules
       const currentInvId = d.id || investmentIdForGen;
       if (currentInvId) {
-        const principalSchedules = (SCHEDULES || []).filter(s => s.investment === currentInvId && s.type === "INVESTOR_PRINCIPAL_PAYMENT");
-        if (principalSchedules.length > 0) {
-          await Promise.all(principalSchedules.map(s => {
-            const path = s._path || (scheduleCollection && scheduleCollection !== "paymentSchedules" ? `${scheduleCollection}/${s.docId || s.id}` : `tenants/${tenantId}/paymentSchedules/${s.docId || s.id}`);
-            return updateDoc(doc(db, path), { rollover: !!d.rollover, updated_at: serverTimestamp() });
-          })).catch(e => console.error("Principal schedule rollover sync error:", e));
-        }
+        await syncRolloverToSchedules(db, SCHEDULES, currentInvId, !!d.rollover, scheduleCollection, tenantId);
       }
 
       setModal(m => ({ ...m, open: false }));
@@ -874,7 +868,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
       console.error("Save investment error:", err);
       setGenResult({ title: "Error", message: "Failed to save investment. " + err.message });
     }
-  };
+  }
 
   const handleDeleteInvestment = async () => {
     if (!delT || !delT.docId) return;
@@ -884,7 +878,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
     } catch (err) { console.error("Delete investment error:", err); }
   };
 
-  const handleBulkInvestmentStatus = (status) => {
+  function handleBulkInvestmentStatus(status) {
     if (!status || sel.size === 0) return;
     setConfirmAction({
       title: "Confirm Status Update",
@@ -904,9 +898,9 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
         } catch (err) { console.error("Bulk status update error:", err); }
       }
     });
-  };
+  }
 
-  const handleBulkInvestmentDelete = () => {
+  function handleBulkInvestmentDelete() {
     if (sel.size === 0) return;
     setConfirmAction({
       title: "Confirm Delete",
@@ -926,9 +920,9 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
         } catch (err) { console.error("Bulk delete error:", err); }
       }
     });
-  };
+  }
 
-  const handleUpdateInvestmentModal = async (inv) => {
+  async function handleUpdateInvestmentModal(inv) {
     if (!inv.id) return;
     const { id, ...rest } = inv;
     const payload = {
@@ -987,9 +981,9 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
       console.error("Update investment modal error:", err);
       throw err;
     }
-  };
+  }
 
-  const handleBulkScheduleStatus = (status) => {
+  function handleBulkScheduleStatus(status) {
     if (!status || Object.keys(rowSelection).length === 0) return;
     setConfirmAction({
       title: "Confirm Status Update",
@@ -1009,9 +1003,9 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
         } catch (err) { console.error("Bulk schedule status update error:", err); }
       }
     });
-  };
+  }
 
-  const handleBulkScheduleDelete = () => {
+  function handleBulkScheduleDelete() {
     if (Object.keys(rowSelection).length === 0) return;
     setConfirmAction({
       title: "Confirm Delete",
@@ -1031,15 +1025,15 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
         } catch (err) { console.error("Bulk schedule delete error:", err); }
       }
     });
-  };
+  }
 
-  const handleGenerateSchedules = () => {
+  function handleGenerateSchedules() {
     if (sel.size === 0) return;
     const selected = INVESTMENTS.filter(c => sel.has(c.id));
     setGenConfirm({ count: selected.length });
-  };
+  }
 
-  const executeGenerateSchedules = async (targetInvestments = null) => {
+  async function executeGenerateSchedules(targetInvestments = null) {
     setGenConfirm(null);
     const selected = (Array.isArray(targetInvestments) ? targetInvestments : null) || INVESTMENTS.filter(c => sel.has(c.id));
     if (selected.length === 0) return;
@@ -3696,4 +3690,19 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
       )}
     </div>
   );
+}
+
+async function syncRolloverToSchedules(db, schedules, investmentId, isRollover, schedulePath, tenantId) {
+  if (!db || !investmentId) return;
+  const principalSchedules = (schedules || []).filter(s => s.investment === investmentId && s.type === "INVESTOR_PRINCIPAL_PAYMENT");
+  if (principalSchedules.length > 0) {
+    try {
+      await Promise.all(principalSchedules.map(s => {
+        const path = s._path || (schedulePath && schedulePath !== "paymentSchedules" ? `${schedulePath}/${s.docId || s.id}` : `tenants/${tenantId}/paymentSchedules/${s.docId || s.id}`);
+        return updateDoc(doc(db, path), { rollover: !!isRollover, updated_at: serverTimestamp() });
+      }));
+    } catch (e) {
+      console.error("Principal schedule rollover sync error:", e);
+    }
+  }
 }

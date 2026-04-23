@@ -99,7 +99,7 @@ export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [
   };
   const openEdit = r => setModal({ open: true, mode: "edit", data: { ...r } });
   const close = () => setModal(m => ({ ...m, open: false }));
-  const handleSaveInvestment = async () => {
+  async function handleSaveInvestment() {
     const d = modal.data;
     const dealObj = DEALS.find(p => p.name === d.deal);
     const contactObj = CONTACTS.find(p => p.name === d.contact);
@@ -131,13 +131,7 @@ export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [
 
         // SYNC Rollover to distribution schedules
         if (d.id) {
-          const principalSchedules = (SCHEDULES || []).filter(s => s.investment === d.id && s.type === "INVESTOR_PRINCIPAL_PAYMENT");
-          if (principalSchedules.length > 0) {
-            await Promise.all(principalSchedules.map(s => {
-              const path = s._path || (schedulePath ? `${schedulePath}/${s.docId || s.id}` : `tenants/${tenantId}/paymentSchedules/${s.docId || s.id}`);
-              return updateDoc(doc(db, path), { rollover: !!d.rollover, updated_at: serverTimestamp() });
-            })).catch(e => console.error("Principal schedule rollover sync error:", e));
-          }
+          await syncRolloverToSchedules(db, SCHEDULES, d.id, !!d.rollover, schedulePath, tenantId);
         }
       } else {
         // For new investments, we use the collectionPath
@@ -152,19 +146,19 @@ export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [
       console.error("Save investment error:", err);
       setGenResult({ title: "Error", message: "Failed to save investment. " + err.message });
     }
-  };
+  }
 
-  const handleDeleteInvestment = async () => {
+  async function handleDeleteInvestment() {
     if (!delT || (!delT.docId && !delT._path)) return;
     try {
       const docRef = delT._path ? doc(db, delT._path) : doc(db, collectionPath, delT.docId);
       await deleteDoc(docRef);
       setDelT(null);
     } catch (err) { console.error("Delete investment error:", err); }
-  };
+  }
   const investmentStatusOpts = (DIMENSIONS.find(d => d.name === "InvestmentStatus" || d.name === "Investment Status" || d.name === "Payment Status") || {}).items?.filter(i => i) || ["Open", "Active", "Closed"];
   const [bulkStatus, setBulkStatus] = useState(investmentStatusOpts[0] || "");
-  const handleBulkStatus = (status) => {
+  function handleBulkStatus(status) {
     if (!status || sel.size === 0) return;
     setConfirmAction({
       title: "Update Status",
@@ -184,8 +178,8 @@ export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [
         } catch (err) { console.error("Bulk status update error:", err); }
       }
     });
-  };
-  const handleBulkDelete = () => {
+  }
+  function handleBulkDelete() {
     if (sel.size === 0) return;
     setConfirmAction({
       title: "Confirm Delete",
@@ -205,19 +199,19 @@ export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [
         } catch (err) { console.error("Bulk delete error:", err); }
       }
     });
-  };
-  const handleGenerate = () => {
+  }
+  function handleGenerate() {
     if (sel.size === 0) return;
     const selected = INVESTMENTS.filter(c => sel.has(c.id));
     setGenConfirm({ count: selected.length });
-  };
+  }
 
-  const executeGenerate = async () => {
+  async function executeGenerate() {
     setGenConfirm(null);
     const selected = INVESTMENTS.filter(c => sel.has(c.id));
     if (selected.length === 0) return;
     await generateSchedulesForInvestments(selected);
-  };
+  }
 
   async function generateSchedulesForInvestments(selectedList) {
 
@@ -964,4 +958,19 @@ export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [
       onUpdateInvestment={handleUpdateInvestmentModal}
     />
   </>);
+}
+
+async function syncRolloverToSchedules(db, schedules, investmentId, isRollover, schedulePath, tenantId) {
+  if (!db || !investmentId) return;
+  const principalSchedules = (schedules || []).filter(s => s.investment === investmentId && s.type === "INVESTOR_PRINCIPAL_PAYMENT");
+  if (principalSchedules.length > 0) {
+    try {
+      await Promise.all(principalSchedules.map(s => {
+        const path = s._path || (schedulePath ? `${schedulePath}/${s.docId || s.id}` : `tenants/${tenantId}/paymentSchedules/${s.docId || s.id}`);
+        return updateDoc(doc(db, path), { rollover: !!isRollover, updated_at: serverTimestamp() });
+      }));
+    } catch (e) {
+      console.error("Principal schedule rollover sync error:", e);
+    }
+  }
 }
