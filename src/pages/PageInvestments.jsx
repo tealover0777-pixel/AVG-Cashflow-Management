@@ -474,7 +474,11 @@ export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [
           period_number: periodNum, principal_amount: principal, payment_amount: principal,
           signed_payment_amount: ds3.signed, direction_from_company: ds3.direction,
           original_payment_amount: principal, term_start: startDate.toISOString().slice(0, 10), term_end: matDate.toISOString().slice(0, 10),
-          applied_to: "Principal Amount", status: c.rollover ? "ROLLOVER" : "Due", notes: c.rollover ? `Rollover for ${c.id}` : `Repayment for ${c.id}`, created_at: serverTimestamp(),
+          applied_to: "Principal Amount", 
+          status: "Due", 
+          notes: c.rollover ? `Rollover for ${c.id}` : `Repayment for ${c.id}`, 
+          rollover: !!c.rollover,
+          created_at: serverTimestamp(),
         });
 
         // --- 4. Post-process Fee Merging ---
