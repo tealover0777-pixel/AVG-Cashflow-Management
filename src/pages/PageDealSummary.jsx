@@ -850,7 +850,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
         const principalSchedules = (SCHEDULES || []).filter(s => s.investment === currentInvId && s.type === "INVESTOR_PRINCIPAL_PAYMENT");
         if (principalSchedules.length > 0) {
           await Promise.all(principalSchedules.map(s => {
-            const path = s._path || `${scheduleCollection}/${s.docId || s.id}`;
+            const path = s._path || (scheduleCollection && scheduleCollection !== "paymentSchedules" ? `${scheduleCollection}/${s.docId || s.id}` : `tenants/${tenantId}/paymentSchedules/${s.docId || s.id}`);
             return updateDoc(doc(db, path), { rollover: !!d.rollover, updated_at: serverTimestamp() });
           })).catch(e => console.error("Principal schedule rollover sync error:", e));
         }
@@ -1059,14 +1059,14 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
       INVESTOR_INTEREST_PAYMENT: "OUT",
       FEE: "OUT",
     };
-    const getDirectionAndSigned = (pt, amt) => {
+    function getDirectionAndSigned(pt, amt) {
       let dir = "";
       if (inPT.includes(pt)) dir = "IN";
       else if (outPT.includes(pt)) dir = "OUT";
       else if (FALLBACK_DIR[pt]) dir = FALLBACK_DIR[pt];
       const signed = dir === "OUT" ? -Math.abs(amt) : Math.abs(amt);
       return { direction: dir, signed: signed };
-    };
+    }
 
     const PT_DEPOSIT = "INVESTOR_PRINCIPAL_DEPOSIT";
     const PT_INTEREST = "INVESTOR_INTEREST_PAYMENT";

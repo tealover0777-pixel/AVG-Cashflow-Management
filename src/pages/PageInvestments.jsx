@@ -9,7 +9,7 @@ import { InvestorSummaryModal } from "../components/InvestorSummaryModal";
 import { useAuth } from "../AuthContext";
 import { Check, Plus, Construction, AlertTriangle, FileCheck } from "lucide-react";
 
-export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [], CONTACTS = [], DIMENSIONS = [], FEES_DATA = [], SCHEDULES = [], LEDGER = [], USERS = [], collectionPath = "", schedulePath = "" }) {
+export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [], CONTACTS = [], DIMENSIONS = [], FEES_DATA = [], SCHEDULES = [], LEDGER = [], USERS = [], collectionPath = "", schedulePath = "", tenantId = "" }) {
   const { hasPermission, isSuperAdmin } = useAuth();
   const canCreate = isSuperAdmin || hasPermission("INVESTMENT_CREATE");
   const canUpdate = isSuperAdmin || hasPermission("INVESTMENT_UPDATE");
@@ -134,9 +134,7 @@ export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [
           const principalSchedules = (SCHEDULES || []).filter(s => s.investment === d.id && s.type === "INVESTOR_PRINCIPAL_PAYMENT");
           if (principalSchedules.length > 0) {
             await Promise.all(principalSchedules.map(s => {
-              const path = s._path || `tenants/${tenantId}/schedules/${s.docId || s.id}`;
-              // If we are in PageInvestments, we might need a more robust way to get the schedule path if s._path is missing
-              // But usually s._path is provided in App.jsx mapping.
+              const path = s._path || (schedulePath ? `${schedulePath}/${s.docId || s.id}` : `tenants/${tenantId}/paymentSchedules/${s.docId || s.id}`);
               return updateDoc(doc(db, path), { rollover: !!d.rollover, updated_at: serverTimestamp() });
             })).catch(e => console.error("Principal schedule rollover sync error:", e));
           }
@@ -221,7 +219,7 @@ export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [
     await generateSchedulesForInvestments(selected);
   };
 
-  const generateSchedulesForInvestments = async (selectedList) => {
+  async function generateSchedulesForInvestments(selectedList) {
 
     // 1. Preparation - Load mapping from DIMENSIONS
     const findDim = n => (DIMENSIONS.find(d => d.name === n) || {}).items || [];
@@ -238,14 +236,14 @@ export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [
       INVESTOR_INTEREST_PAYMENT: "OUT",
       FEE: "OUT",
     };
-    const getDirectionAndSigned = (pt, amt) => {
+    function getDirectionAndSigned(pt, amt) {
       let dir = "";
       if (inPT.includes(pt)) dir = "IN";
       else if (outPT.includes(pt)) dir = "OUT";
       else if (FALLBACK_DIR[pt]) dir = FALLBACK_DIR[pt];
       const signed = dir === "OUT" ? -Math.abs(amt) : Math.abs(amt);
       return { direction: dir, signed: signed };
-    };
+    }
 
     const PT_DEPOSIT = "INVESTOR_PRINCIPAL_DEPOSIT";
     const PT_INTEREST = "INVESTOR_INTEREST_PAYMENT";
