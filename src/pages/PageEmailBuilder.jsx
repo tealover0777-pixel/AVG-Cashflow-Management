@@ -120,7 +120,7 @@ export default function PageEmailBuilder(props) {
   // Send / Schedule
   const [showSendDropdown, setShowSendDropdown] = useState(false);
   const [showScheduleModal, setShowScheduleModal] = useState(false);
-  const [scheduleData, setScheduleData] = useState({ date: "", time: "", subject: "", recipients: [], timezone: "America/New_York" });
+  const [scheduleData, setScheduleData] = useState({ date: "", time: "", subject: "", recipients: [], timezone: "UTC" });
   const [recipientSearch, setRecipientSearch] = useState("");
   const sendDropRef = useRef(null);
 
@@ -823,7 +823,7 @@ export default function PageEmailBuilder(props) {
                           }
                           
                           // Force-fetch latest tenant timezone if possible
-                          let tz = scheduleData.timezone || "America/New_York";
+                          let tz = scheduleData.timezone || "UTC";
                           if (effectiveTenantId) {
                             try {
                               const snap = await getDoc(doc(db, "tenants", effectiveTenantId));
@@ -1036,7 +1036,7 @@ export default function PageEmailBuilder(props) {
             <div style={{ padding: "18px 24px", borderBottom: `1px solid ${t.border}`, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
               <div>
                 <div style={{ fontSize: 16, fontWeight: 700, color: t.text }}>Schedule email</div>
-                <div style={{ fontSize: 12, color: t.textMuted, marginTop: 2 }}>All times in Eastern Time (ET)</div>
+                <div style={{ fontSize: 12, color: t.textMuted, marginTop: 2 }}>All times in {US_TIMEZONES.find(z => z.value === scheduleData.timezone)?.label || scheduleData.timezone}</div>
               </div>
               <button onClick={() => setShowScheduleModal(false)} style={{ background: "transparent", border: "none", color: t.textMuted, cursor: "pointer" }}><XIcon size={18} /></button>
             </div>
