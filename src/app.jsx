@@ -394,6 +394,7 @@ function AppContent() {
         created_at: fmtDate(d.created_at),
         updated_at: fmtDate(d.updated_at),
         payment_method: d.payment_method || "",
+        rollover: d.rollover || false,
       };
     });
 
@@ -452,7 +453,8 @@ function AppContent() {
         _undo_snapshot: d._undo_snapshot || null,
         previous_version_id: d.previous_version_id || "",
         updated_at: d.updated_at, 
-        updated_by: d.updated_by || ""
+        updated_by: d.updated_by || "",
+        rollover: d.rollover || false,
       };
     });
 
