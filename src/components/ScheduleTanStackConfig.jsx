@@ -123,7 +123,7 @@ export const getScheduleColumns = (permissions, isDark, t, context) => {
     },
     {
       header: "Investment ID",
-      accessorFn: (row) => row.investment || row.investment_id,
+      accessorFn: (row) => row.investment_id || row.investment || "",
       size: 110,
       cell: ({ getValue, row }) => (
         <span 
@@ -193,14 +193,15 @@ export const getScheduleColumns = (permissions, isDark, t, context) => {
     },
     {
       header: "Due Date",
-      accessorFn: (row) => row.dueDate || row.due_date,
+      accessorFn: (row) => row.due_date || row.dueDate || "",
       size: 100,
       cell: ({ getValue }) => <span style={{ fontFamily: t.mono, fontSize: '12px' }}>{getValue()}</span>,
       sortingFn: 'datetime'
     },
     {
       header: "Type",
-      accessorKey: "type",
+      id: "type",
+      accessorFn: (row) => row.type || row.payment_type || "",
       size: 140,
       cell: ({ row, getValue }) => {
         const val = getValue();

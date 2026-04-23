@@ -658,7 +658,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
 
   const openEdit = (r) => {
     const feeIds = r.fees ? String(r.fees).split(",").filter(Boolean) : [];
-    setModal({ open: true, mode: "edit", data: { ...r, feeIds } });
+    setModal({ open: true, mode: "edit", data: { ...r, id: r.investment_id || r.id, feeIds } });
   };
 
   const openAddContactModal = () => setContactModal({ open: true, mode: "existing", data: { type: "Individual", role: "Investor", investor_type: "Fixed" } });
@@ -833,7 +833,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
             ...cleanOldData,
             investment_id: dist.investment_id || dist.investment || "",
             due_date: dist.due_date || dist.dueDate || "",
-            type: dist.type || "",
+            type: dist.type || dist.payment_type || "",
             contact_id: dist.contact_id || "",
             deal_id: dist.deal_id || dealId || "",
             version_num: newVNum,
@@ -1136,15 +1136,15 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
           version_id: `${sId1}-V1`,
           payment_id: sId1,
           active_version: true,
-          investment_id: c.id, deal_id: dealId, contact_id: c.contact_id || "",
-          due_date: startDate.toISOString().slice(0, 10), payment_type: initialPaymentType, fee_id: "",
+          investment_id: c.investment_id || c.id, deal_id: dealId, contact_id: c.contact_id || "",
+          due_date: startDate.toISOString().slice(0, 10), payment_type: initialPaymentType, type: initialPaymentType, fee_id: "",
           period_number: 1, principal_amount: principal, payment_amount: principal,
           signed_payment_amount: ds1.signed, direction_from_company: ds1.direction,
           original_payment_amount: principal,
           applied_to: "Principal Amount",
           term_start: startDate.toISOString().slice(0, 10), term_end: startDate.toISOString().slice(0, 10),
           status: "Due", notes: `Initial for ${c.id}`, 
-          rollover: !!c.rollover,
+          rollover: false,
           created_at: serverTimestamp(),
         });
 
@@ -1183,8 +1183,8 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
             const sIdFee = mkId("S");
             entries.push({
               schedule_id: sIdFee, version_num: 1, version_id: `${sIdFee}-V1`, payment_id: sIdFee, active_version: true,
-              investment_id: c.id, deal_id: dealId, contact_id: c.contact_id || "",
-              due_date: dDate.toISOString().slice(0, 10), payment_type: PT_FEE, fee_id: fid,
+              investment_id: c.investment_id || c.id, deal_id: dealId, contact_id: c.contact_id || "",
+              due_date: dDate.toISOString().slice(0, 10), payment_type: PT_FEE, type: PT_FEE, fee_id: fid,
               period_number: 1, principal_amount: principal, payment_amount: feeAmt,
               signed_payment_amount: signedFeeAmt, direction_from_company: feeDir,
               original_payment_amount: feeAmt, term_start: startDate.toISOString().slice(0, 10), term_end: dDate.toISOString().slice(0, 10),
@@ -1240,8 +1240,8 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
             const sIdInt = mkId("S");
             entries.push({
               schedule_id: sIdInt, version_num: 1, version_id: `${sIdInt}-V1`, payment_id: sIdInt, active_version: true,
-              investment_id: c.id, deal_id: dealId, contact_id: c.contact_id || "",
-              due_date: pEnd.toISOString().slice(0, 10), payment_type: interestPT, fee_id: "",
+              investment_id: c.investment_id || c.id, deal_id: dealId, contact_id: c.contact_id || "",
+              due_date: pEnd.toISOString().slice(0, 10), payment_type: interestPT, type: interestPT, fee_id: "",
               period_number: periodNum, principal_amount: principal, payment_amount: roundedInterest,
               signed_payment_amount: ds2.signed, direction_from_company: ds2.direction,
               original_payment_amount: roundedInterest, term_start: pStart.toISOString().slice(0, 10), term_end: pEnd.toISOString().slice(0, 10),
@@ -1277,8 +1277,8 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
                   const sIdRecFee = mkId("S");
                   entries.push({
                     schedule_id: sIdRecFee, version_num: 1, version_id: `${sIdRecFee}-V1`, payment_id: sIdRecFee, active_version: true,
-                    investment_id: c.id, deal_id: dealId, contact_id: c.contact_id || "",
-                    due_date: feeDueDate.toISOString().slice(0, 10), payment_type: PT_FEE, fee_id: fid,
+                    investment_id: c.investment_id || c.id, deal_id: dealId, contact_id: c.contact_id || "",
+                    due_date: feeDueDate.toISOString().slice(0, 10), payment_type: PT_FEE, type: PT_FEE, fee_id: fid,
                     period_number: periodNum, principal_amount: principal, payment_amount: roundedFeeAmt,
                     signed_payment_amount: signedFeeAmt, direction_from_company: feeDir,
                     original_payment_amount: roundedFeeAmt, term_start: pStart.toISOString().slice(0, 10), term_end: pEnd.toISOString().slice(0, 10),
@@ -1300,8 +1300,8 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
         const sIdRepay = mkId("S");
         entries.push({
           schedule_id: sIdRepay, version_num: 1, version_id: `${sIdRepay}-V1`, payment_id: sIdRepay, active_version: true,
-          investment_id: c.id, deal_id: dealId, contact_id: c.contact_id || "",
-          due_date: matDate.toISOString().slice(0, 10), payment_type: repaymentPT, fee_id: "",
+          investment_id: c.investment_id || c.id, deal_id: dealId, contact_id: c.contact_id || "",
+          due_date: matDate.toISOString().slice(0, 10), payment_type: repaymentPT, type: repaymentPT, fee_id: "",
           period_number: periodNum, principal_amount: principal, payment_amount: principal,
           signed_payment_amount: ds3.signed, direction_from_company: ds3.direction,
           original_payment_amount: principal, term_start: startDate.toISOString().slice(0, 10), term_end: matDate.toISOString().slice(0, 10),
