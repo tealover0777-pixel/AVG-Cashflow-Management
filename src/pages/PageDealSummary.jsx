@@ -1588,6 +1588,14 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
     return {};
   }, [hasScheduleForInvestment, isDark]);
 
+  const distRowStyle = useCallback((row) => {
+    if (row.rollover === true) {
+      // Premium purple highlight for rollovers
+      return { background: isDark ? 'rgba(147, 51, 234, 0.08)' : '#F5F3FF' };
+    }
+    return {};
+  }, [isDark]);
+
   const scheduleColumnDefs = useMemo(() => {
     return getDistributionColumns(isDark, t, CONTACTS, DEALS, INVESTMENTS, {
       onEdit: (s) => setScheduleModal({ open: true, data: { ...s } }),
@@ -2021,6 +2029,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
                 isDark={isDark}
                 rowSelection={rowSelection}
                 onRowSelectionChange={setRowSelection}
+                rowStyle={distRowStyle}
               />
             </div>
           ) : (

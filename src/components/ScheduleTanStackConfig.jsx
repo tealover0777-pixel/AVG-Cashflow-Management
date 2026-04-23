@@ -191,14 +191,27 @@ export const getScheduleColumns = (permissions, isDark, t, context) => {
         const val = getValue();
         const isRollover = !!row.original.rollover;
         return (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <span style={{ fontSize: '12px', fontWeight: 500 }}>{val}</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             {isRollover && (
-              <Tooltip text="Rollover Principal Marked" t={t}>
-                <div style={{ color: isDark ? '#818CF8' : '#4F46E5', display: 'flex', alignItems: 'center' }}>
-                  <RotateCcw size={12} strokeWidth={2.5} />
-                </div>
-              </Tooltip>
+              <span style={{ 
+                fontSize: '9px', 
+                fontWeight: 800, 
+                color: '#fff', 
+                background: '#9333EA', 
+                padding: '1px 5px', 
+                borderRadius: '4px', 
+                textTransform: 'uppercase',
+                letterSpacing: '0.02em',
+                lineHeight: 1
+              }}>
+                Rollover
+              </span>
+            )}
+            <span style={{ fontSize: '12px', fontWeight: 500, color: isRollover ? (isDark ? '#E9D5FF' : '#7E22CE') : 'inherit' }}>{val}</span>
+            {isRollover && (
+              <div style={{ color: isDark ? '#A855F7' : '#9333EA', display: 'flex', alignItems: 'center' }}>
+                <RotateCcw size={12} strokeWidth={2.5} />
+              </div>
             )}
           </div>
         );
