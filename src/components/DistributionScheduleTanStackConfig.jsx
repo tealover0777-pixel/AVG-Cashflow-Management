@@ -105,8 +105,34 @@ export const getDistributionColumns = (isDark, t, CONTACTS, DEALS, INVESTMENTS =
     accessorFn: (row) => (row.type || "").toString().replace(/_/g, " "),
     header: 'TYPE',
     size: 140,
-    cell: ({ getValue }) => {
-      return <span style={{ fontSize: 12, color: t.textSecondary }}>{getValue()}</span>;
+    cell: ({ row, getValue }) => {
+      const isRollover = !!row.original.rollover;
+      return (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          {isRollover && (
+            <span style={{ 
+              fontSize: '9px', 
+              fontWeight: 800, 
+              color: '#fff', 
+              background: '#9333EA', 
+              padding: '1px 5px', 
+              borderRadius: '4px', 
+              textTransform: 'uppercase',
+              letterSpacing: '0.02em',
+              lineHeight: 1
+            }}>
+              Rollover
+            </span>
+          )}
+          <span style={{ 
+            fontSize: 12, 
+            fontWeight: 500,
+            color: isRollover ? (isDark ? '#E9D5FF' : '#7E22CE') : t.textSecondary 
+          }}>
+            {getValue()}
+          </span>
+        </div>
+      );
     },
   },
   {
