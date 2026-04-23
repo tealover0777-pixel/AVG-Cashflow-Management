@@ -67,6 +67,35 @@ export const getDealInvestmentColumns = (permissions, isDark, t, context) => {
       )
     },
     {
+      header: "Rollover Principal",
+      id: "rolloverPrincipal",
+      size: 150,
+      accessorFn: (row) => row.rollover ? row.amount : null,
+      cell: ({ row, getValue }) => {
+        const val = getValue();
+        if (!val) return <span style={{ color: t.textMuted }}>—</span>;
+        return (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span style={{ 
+              fontSize: '9px', 
+              fontWeight: 800, 
+              color: '#fff', 
+              background: '#9333EA', 
+              padding: '1px 5px', 
+              borderRadius: '4px', 
+              textTransform: 'uppercase',
+              lineHeight: 1
+            }}>
+              Rollover
+            </span>
+            <span style={{ fontWeight: 700, fontFamily: t.mono, fontSize: '11.5px', color: isDark ? '#E9D5FF' : '#7E22CE' }}>
+              {fmtCurrency(val)}
+            </span>
+          </div>
+        );
+      }
+    },
+    {
       header: "Investor Name",
       accessorKey: "contact",
       size: 150,

@@ -141,13 +141,40 @@ export const getInvestmentColumns = (permissions, isDark, t, context) => {
       accessorKey: "amount",
       size: 120,
       cell: ({ row, getValue }) => {
-        const rollover = !!row.original.rollover;
         return (
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <span style={{ fontFamily: t.mono, fontSize: '11.5px', fontWeight: 700, color: isDark ? '#60A5FA' : '#4F46E5' }}>
               {getValue()}
             </span>
-            {rollover && <Bdg status="ROLLOVER" isDark={isDark} />}
+          </div>
+        );
+      }
+    },
+    {
+      header: "Rollover Principal",
+      id: "rolloverPrincipal",
+      size: 150,
+      accessorFn: (row) => row.rollover ? row.amount : null,
+      cell: ({ row, getValue }) => {
+        const val = getValue();
+        if (!val) return <span style={{ color: t.textMuted }}>—</span>;
+        return (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span style={{ 
+              fontSize: '9px', 
+              fontWeight: 800, 
+              color: '#fff', 
+              background: '#9333EA', 
+              padding: '1px 5px', 
+              borderRadius: '4px', 
+              textTransform: 'uppercase',
+              lineHeight: 1
+            }}>
+              Rollover
+            </span>
+            <span style={{ fontWeight: 700, fontFamily: t.mono, fontSize: '11.5px', color: isDark ? '#E9D5FF' : '#7E22CE' }}>
+              {val}
+            </span>
           </div>
         );
       }

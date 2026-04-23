@@ -1175,7 +1175,7 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
                   updates.notes = "payment is cancelled so $0 now.";
                 }
                 setModal(m => ({ ...m, data: { ...m.data, ...updates } }));
-              }} options={paymentStatusOpts} t={t} />
+              }} options={modal.data.rollover ? ["Rollover"] : paymentStatusOpts} t={t} />
             </FF>
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14 }}>
@@ -1196,7 +1196,17 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
                     type="checkbox" 
                     id="rollover_chk"
                     checked={!!modal.data.rollover} 
-                    onChange={e => setF("rollover", e.target.checked)} 
+                    onChange={e => {
+                      const val = e.target.checked;
+                      setModal(m => ({ 
+                        ...m, 
+                        data: { 
+                          ...m.data, 
+                          rollover: val,
+                          status: val ? "Rollover" : m.data.status
+                        } 
+                      }));
+                    }}
                     style={{ cursor: "pointer", width: 16, height: 16, accentColor: t.accent }} 
                   />
                   <label htmlFor="rollover_chk" style={{ fontSize: 13, color: t.textSecondary, cursor: "pointer", fontWeight: 500 }}>Rollover Principal</label>

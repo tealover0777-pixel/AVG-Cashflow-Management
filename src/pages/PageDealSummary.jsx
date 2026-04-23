@@ -3006,7 +3006,14 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
       >
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
           <FF label="Due Date" t={t}><FIn value={scheduleModal.data.dueDate || ""} onChange={e => setScheduleModal(m => ({ ...m, data: { ...m.data, dueDate: e.target.value } }))} t={t} type="date" /></FF>
-          <FF label="Status" t={t}><FSel value={scheduleModal.data.status} onChange={e => setScheduleModal(m => ({ ...m, data: { ...m.data, status: e.target.value } }))} options={paymentStatusOpts} t={t} /></FF>
+          <FF label="Status" t={t}>
+            <FSel 
+              value={scheduleModal.data.status} 
+              onChange={e => setScheduleModal(m => ({ ...m, data: { ...m.data, status: e.target.value } }))} 
+              options={scheduleModal.data.rollover ? ["Rollover"] : paymentStatusOpts} 
+              t={t} 
+            />
+          </FF>
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
           <FF label="Payment Amount" t={t}><FIn value={scheduleModal.data.payment_amount} onChange={e => setScheduleModal(m => ({ ...m, data: { ...m.data, payment_amount: e.target.value } }))} placeholder="e.g. 100.00" t={t} /></FF>
@@ -3020,7 +3027,17 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
               <input
                 type="checkbox"
                 checked={scheduleModal.data.rollover || false}
-                onChange={e => setScheduleModal(m => ({ ...m, data: { ...m.data, rollover: e.target.checked } }))}
+                onChange={e => {
+                  const val = e.target.checked;
+                  setScheduleModal(m => ({ 
+                    ...m, 
+                    data: { 
+                      ...m.data, 
+                      rollover: val,
+                      status: val ? "Rollover" : m.data.status
+                    } 
+                  }));
+                }}
                 style={{ width: 18, height: 18, accentColor: "#9333EA", cursor: "pointer" }}
               />
               <span style={{ fontSize: 14, fontWeight: 600, color: t.text }}>Rollover Principal</span>
