@@ -724,7 +724,15 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
       }
 
       // Create $0 investment record
-      const invId = `INV${Date.now()}R${Math.floor(Math.random() * 100)}`;
+      let maxIdNum = 10000;
+      INVESTMENTS.forEach(c => {
+        const cid = c.investment_id || c.id;
+        if (cid && cid.startsWith("I")) {
+          const num = parseInt(cid.substring(1), 10);
+          if (!isNaN(num) && num > maxIdNum) maxIdNum = num;
+        }
+      });
+      const invId = `I${maxIdNum + 1}`;
 
       const newInv = {
         id: invId,

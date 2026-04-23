@@ -52,7 +52,8 @@ export const getInvestmentColumns = (permissions, isDark, t, context) => {
     },
     {
       header: "Investment ID",
-      accessorKey: "id",
+      accessorFn: (row) => row.investment_id || row.id,
+      id: "id",
       size: 110,
       cell: ({ row, getValue }) => {
         const val = getValue();
