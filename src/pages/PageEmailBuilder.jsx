@@ -816,12 +816,30 @@ export default function PageEmailBuilder(props) {
                         }
                       },
                       {
-                        label: "Schedule", icon: Clock, action: () => {
+                        label: "Schedule", icon: Clock, action: async () => {
                           if (!emailSettings.recipients || emailSettings.recipients.length === 0) {
                             showToast("No recipients assigned. Please add recipients in Settings before scheduling.", "error");
                             return;
                           }
-                          setScheduleData(d => ({ ...d, subject: emailSettings.subject || emailName }));
+                          
+                          // Force-fetch latest tenant timezone if possible
+                          let tz = scheduleData.timezone || "America/New_York";
+                          if (effectiveTenantId) {
+                            try {
+                              const snap = await getDoc(doc(db, "tenants", effectiveTenantId));
+                              if (snap.exists() && snap.data().emailSetup?.timeZone) {
+                                tz = snap.data().emailSetup.timeZone;
+                              }
+                            } catch (e) {
+                              console.error("TZ fetch error:", e);
+                            }
+                          }
+
+                          setScheduleData(d => ({ 
+                            ...d, 
+                            subject: emailSettings.subject || emailName,
+                            timezone: tz 
+                          }));
                           setShowScheduleModal(true);
                           setShowSendDropdown(false);
                         }
