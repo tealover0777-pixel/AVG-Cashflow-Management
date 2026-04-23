@@ -1566,8 +1566,9 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
   }, [permissions, isDark, t, CONTACTS, FEES_DATA, SCHEDULES]);
 
   const investmentRowStyle = useCallback((row) => {
-    if (!hasScheduleForInvestment(row.id)) {
-      return { background: isDark ? 'rgba(245, 158, 11, 0.08)' : 'rgba(245, 158, 11, 0.05)' };
+    if (!hasScheduleForInvestment(row)) {
+      // Use exact notification colors requested
+      return { background: isDark ? 'rgba(245, 158, 11, 0.1)' : '#FFFBEB' };
     }
     return {};
   }, [hasScheduleForInvestment, isDark]);
@@ -1818,9 +1819,18 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
           <AlertTriangle size={22} style={{ flexShrink: 0 }} aria-hidden />
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 2 }}>
-              {pendingScheduleGenerationCount === 1
-                ? "1 investment still needs payment schedule generation"
-                : `${pendingScheduleGenerationCount} investments still need payment schedule generation`}
+              {(() => {
+                const total = dealInvestments.length;
+                const pending = pendingScheduleGenerationCount;
+                const generated = total - pending;
+                
+                let text = pending === 1
+                  ? "1 investment still needs payment schedule generation"
+                  : `${pending} investments still need payment schedule generation`;
+                  
+                text += `, ${generated} ${generated === 1 ? "is" : "are"} generated.`;
+                return text;
+              })()}
             </div>
             <div style={{ fontSize: 12, fontWeight: 500, opacity: 0.9 }}>
               Select investments on the Investments tab and use Generate Schedules to create rows.
