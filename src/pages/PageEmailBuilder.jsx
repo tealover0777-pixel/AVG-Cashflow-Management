@@ -16,6 +16,7 @@ import {
   Users, HelpCircle
 } from "lucide-react";
 import { PromptModal, DelModal, Modal, TanStackTable } from "../components";
+import { US_TIMEZONES } from "../utils/timeZoneUtils";
 
 const CDown = () => <ChevronDown size={12} strokeWidth={2.5} style={{ opacity: 0.7 }} />;
 
@@ -156,6 +157,9 @@ export default function PageEmailBuilder(props) {
           const d = snap.data();
           if (d.emailSetup?.common?.testEmail) {
             setSetupTestEmail(d.emailSetup.common.testEmail);
+          }
+          if (d.emailSetup?.timeZone) {
+            setScheduleData(s => ({ ...s, timezone: d.emailSetup.timeZone }));
           }
         }
       });
@@ -1024,22 +1028,30 @@ export default function PageEmailBuilder(props) {
               {/* Date + Time */}
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
                 <div>
-                  <label style={{ fontSize: 12, fontWeight: 600, color: t.textMuted, display: "block", marginBottom: 6 }}>Date (ET)</label>
+                  <label style={{ fontSize: 12, fontWeight: 600, color: t.textMuted, display: "block", marginBottom: 6 }}>Date</label>
                   <input type="date" value={scheduleData.date} onChange={e => setScheduleData(d => ({ ...d, date: e.target.value }))}
                     style={{ width: "100%", padding: "9px 12px", borderRadius: 8, border: `1px solid ${t.border}`, background: isDark ? "rgba(255,255,255,0.06)" : "#f9fafb", color: t.text, fontSize: 13, outline: "none", boxSizing: "border-box" }} />
                 </div>
                 <div>
-                  <label style={{ fontSize: 12, fontWeight: 600, color: t.textMuted, display: "block", marginBottom: 6 }}>Time (ET)</label>
+                  <label style={{ fontSize: 12, fontWeight: 600, color: t.textMuted, display: "block", marginBottom: 6 }}>Time</label>
                   <input type="time" value={scheduleData.time} onChange={e => setScheduleData(d => ({ ...d, time: e.target.value }))}
                     style={{ width: "100%", padding: "9px 12px", borderRadius: 8, border: `1px solid ${t.border}`, background: isDark ? "rgba(255,255,255,0.06)" : "#f9fafb", color: t.text, fontSize: 13, outline: "none", boxSizing: "border-box" }} />
                 </div>
               </div>
 
-              {/* Subject */}
+              {/* Time Zone */}
               <div>
-                <label style={{ fontSize: 12, fontWeight: 600, color: t.textMuted, display: "block", marginBottom: 6 }}>Subject</label>
-                <input type="text" value={scheduleData.subject} onChange={e => setScheduleData(d => ({ ...d, subject: e.target.value }))}
-                  style={{ width: "100%", padding: "9px 12px", borderRadius: 8, border: `1px solid ${t.border}`, background: isDark ? "rgba(255,255,255,0.06)" : "#f9fafb", color: t.text, fontSize: 13, outline: "none", boxSizing: "border-box" }} />
+                <label style={{ fontSize: 12, fontWeight: 600, color: t.textMuted, display: "block", marginBottom: 6 }}>Time Zone</label>
+                <div style={{ position: "relative" }}>
+                  <select 
+                    value={scheduleData.timezone}
+                    onChange={e => setScheduleData(d => ({ ...d, timezone: e.target.value }))}
+                    style={{ width: "100%", padding: "9px 12px", borderRadius: 8, border: `1px solid ${t.border}`, background: isDark ? "rgba(255,255,255,0.06)" : "#f9fafb", color: t.text, fontSize: 13, outline: "none", appearance: "none" }}
+                  >
+                    {US_TIMEZONES.map(tz => <option key={tz.value} value={tz.value}>{tz.label} ({tz.value})</option>)}
+                  </select>
+                  <ChevronDown size={14} style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", pointerEvents: "none", opacity: 0.5 }} />
+                </div>
               </div>
 
               {/* Recipients */}
