@@ -599,7 +599,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
   const contactRole = selectedContact ? selectedContact.role : "";
   const getTypeOpts = () => {
     const isNew = modal.mode === "add";
-    const invOpts = isNew ? investorNewTypeOpts : investorEditTypeOpts;
+    const invOpts = investorNewTypeOpts;
     const borOpts = isNew ? borrowerNewTypeOpts : borrowerEditTypeOpts;
     let opts = [];
     if (contactRole === "Investor") opts = [...invOpts];
