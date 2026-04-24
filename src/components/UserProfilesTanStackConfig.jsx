@@ -130,17 +130,8 @@ export const getUserProfileColumns = (permissions, isDark, t, onEdit, onDel, onR
               t={t} 
               onEdit={permissions.canUpdate ? () => onEdit(p) : null} 
               onDel={permissions.canDelete ? () => onDel(p) : null} 
+              onInvite={permissions.canInvite && p.email ? () => onResend(p) : null}
             />
-            {permissions.canInvite && p.email && (
-              <Tooltip text="Invite / Re-send verification email" t={t}>
-                <button 
-                  onClick={() => onResend(p)} 
-                  style={{ background: "rgba(96,165,250,0.1)", border: `none`, borderRadius: 6, padding: "4px 8px", cursor: "pointer", fontSize: 11, fontWeight: 600, color: t.accent }}
-                >
-                  Invite
-                </button>
-              </Tooltip>
-            )}
           </div>
         );
       },

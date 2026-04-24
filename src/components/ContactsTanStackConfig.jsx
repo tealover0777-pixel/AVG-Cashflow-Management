@@ -239,27 +239,14 @@ export const getContactColumns = (permissions, isDark, t, context) => {
         return (
           <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
             <ActBtns
-              show={canUpdate || canDelete}
+              show={canUpdate || canDelete || (canInvite && data.email)}
               t={t}
               onEdit={canUpdate ? () => callbacks.onEdit(data) : null}
               onDel={canDelete ? () => callbacks.onDelete({ id: data.id, name: data.name, docId: data.docId }) : null}
               onClone={canUpdate ? () => callbacks.onClone(data) : null}
+              onInvite={canInvite && data.email ? () => callbacks.onInvite(data) : null}
+              isInviting={invitingId === data.id}
             />
-            {canInvite && data.email && (
-              <Tooltip text="Invite as Member (R10001)" t={t}>
-                <button
-                  onClick={(e) => { e.stopPropagation(); callbacks.onInvite(data); }}
-                  disabled={invitingId === data.id}
-                  style={{
-                    background: "rgba(96,165,250,0.1)", border: `none`,
-                    borderRadius: 6, padding: "4px 8px", cursor: invitingId === data.id ? "default" : "pointer",
-                    fontSize: 11, fontWeight: 600, color: t.accent, opacity: invitingId === data.id ? 0.5 : 1
-                  }}
-                >
-                  {invitingId === data.id ? "..." : "Invite"}
-                </button>
-              </Tooltip>
-            )}
           </div>
         );
       }

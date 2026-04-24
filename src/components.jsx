@@ -7,8 +7,9 @@ import { badge, initials, fmtCurr, av } from "./utils";
 import { 
   ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, 
   Pencil, Trash2, RotateCcw, X, Info, Check, Plus, AlertCircle, FileText,
-  ArrowUp, ArrowDown
+  ArrowUp, ArrowDown, MoreHorizontal, Copy, UserPlus
 } from "lucide-react";
+import ReactDOM from "react-dom";
 import InvestmentDocumentsTab from "./components/InvestmentDocumentsTab";
 import InvestmentChangelogTab from "./components/InvestmentChangelogTab";
 export { default as TanStackTable } from "./components/TanStackTable";
@@ -122,36 +123,159 @@ export const Tooltip = ({ children, text, position = "top", delay = 300, t }) =>
   );
 };
 
-export const ActBtns = ({ show, t, onEdit, onDel, onUndo, onClone }) => {
+export const ActBtns = ({ show, t, onEdit, onDel, onUndo, onClone, onInvite, isInviting }) => {
+  const [isOpen, setIsOpen] = React.useState(false);
+  const [coords, setCoords] = React.useState({ top: 0, left: 0 });
+  const btnRef = React.useRef(null);
+  const menuRef = React.useRef(null);
+  const isDark = t.isDark;
+
+  React.useEffect(() => {
+    const clickOut = (e) => {
+      if (menuRef.current && !menuRef.current.contains(e.target) && btnRef.current && !btnRef.current.contains(e.target)) {
+        setIsOpen(false);
+      }
+    };
+    if (isOpen) document.addEventListener("mousedown", clickOut);
+    return () => document.removeEventListener("mousedown", clickOut);
+  }, [isOpen]);
+
+  const toggleMenu = (e) => {
+    e.stopPropagation();
+    if (!isOpen) {
+      const rect = e.currentTarget.getBoundingClientRect();
+      setCoords({
+        top: rect.bottom + window.scrollY + 5,
+        left: rect.right + window.scrollX - 160
+      });
+    }
+    setIsOpen(!isOpen);
+  };
+
+  if (!onEdit && !onDel && !onUndo && !onClone && !onInvite) return null;
+
   return (
-    <div style={{ display: "flex", gap: 6, opacity: show ? 1 : 0, transition: "opacity 0.15s ease", pointerEvents: show ? "auto" : "none" }}>
-      {onUndo && (
-        <Tooltip text="Undo last action" t={t}>
-          <button className="action-btn" onClick={e => { e.stopPropagation(); onUndo(e); }} style={{ padding: "4px 8px", borderRadius: 6, background: "rgba(251,191,36,0.1)", color: "#FBBF24", border: "none", cursor: "pointer", fontSize: 11, fontWeight: 600 }}>
-            Undo
-          </button>
-        </Tooltip>
-      )}
-      {onClone && (
-        <Tooltip text="Clone this record" t={t}>
-          <button className="action-btn" onClick={e => { e.stopPropagation(); onClone(e); }} style={{ padding: "4px 8px", borderRadius: 6, background: "rgba(16,185,129,0.1)", color: "#10B981", border: "none", cursor: "pointer", fontSize: 11, fontWeight: 600 }}>
-            Clone
-          </button>
-        </Tooltip>
-      )}
-      {onEdit && (
-        <Tooltip text="Edit this record" t={t}>
-          <button className="action-btn" onClick={e => { e.stopPropagation(); onEdit(e); }} style={{ padding: "4px 8px", borderRadius: 6, background: "rgba(96,165,250,0.1)", color: "#60A5FA", border: "none", cursor: "pointer", fontSize: 11, fontWeight: 600 }}>
-            Edit
-          </button>
-        </Tooltip>
-      )}
-      {onDel && (
-        <Tooltip text="Delete this record" t={t}>
-          <button className="action-btn" onClick={e => { e.stopPropagation(); onDel(e); }} style={{ padding: "4px 8px", borderRadius: 6, background: "rgba(248,113,113,0.1)", color: "#F87171", border: "none", cursor: "pointer", fontSize: 11, fontWeight: 600 }}>
-            Del
-          </button>
-        </Tooltip>
+    <div style={{ position: "relative", opacity: show ? 1 : 0, pointerEvents: show ? "auto" : "none" }}>
+      <button
+        ref={btnRef}
+        className="action-trigger-btn"
+        onClick={toggleMenu}
+        style={{
+          background: "none",
+          border: "none",
+          color: t.textSubtle,
+          cursor: "pointer",
+          padding: "6px",
+          borderRadius: "6px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          transition: "all 0.2s ease"
+        }}
+        onMouseEnter={e => e.currentTarget.style.background = isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.05)"}
+        onMouseLeave={e => e.currentTarget.style.background = "none"}
+      >
+        <MoreHorizontal size={18} />
+      </button>
+
+      {isOpen && ReactDOM.createPortal(
+        <div
+          ref={menuRef}
+          onMouseDown={e => e.stopPropagation()}
+          style={{
+            position: "absolute",
+            top: coords.top,
+            left: coords.left,
+            width: 160,
+            background: isDark ? "#1E1E1E" : "#FFFFFF",
+            border: `1px solid ${t.surfaceBorder}`,
+            borderRadius: 10,
+            boxShadow: isDark ? "0 10px 25px rgba(0,0,0,0.5)" : "0 10px 25px rgba(0,0,0,0.1)",
+            zIndex: 99999,
+            padding: "5px",
+            overflow: "hidden",
+            animation: "fadeInUp 0.15s ease-out forwards"
+          }}
+        >
+          {onEdit && (
+            <button
+              className="menu-item"
+              onClick={(e) => { e.stopPropagation(); setIsOpen(false); onEdit(e); }}
+              style={{
+                width: "100%", padding: "8px 12px", background: "transparent", border: "none",
+                color: t.text, fontSize: "12.5px", fontWeight: 500, cursor: "pointer",
+                textAlign: "left", display: "flex", alignItems: "center", gap: 10, borderRadius: 6
+              }}
+              onMouseEnter={e => e.currentTarget.style.background = isDark ? "rgba(255,255,255,0.05)" : "#F3F4F6"}
+              onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+            >
+              <Pencil size={14} style={{ color: "#60A5FA" }} /> Edit
+            </button>
+          )}
+          {onClone && (
+            <button
+              className="menu-item"
+              onClick={(e) => { e.stopPropagation(); setIsOpen(false); onClone(e); }}
+              style={{
+                width: "100%", padding: "8px 12px", background: "transparent", border: "none",
+                color: t.text, fontSize: "12.5px", fontWeight: 500, cursor: "pointer",
+                textAlign: "left", display: "flex", alignItems: "center", gap: 10, borderRadius: 6
+              }}
+              onMouseEnter={e => e.currentTarget.style.background = isDark ? "rgba(255,255,255,0.05)" : "#F3F4F6"}
+              onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+            >
+              <Copy size={14} style={{ color: "#10B981" }} /> Clone
+            </button>
+          )}
+          {onInvite && (
+            <button
+              className="menu-item"
+              disabled={isInviting}
+              onClick={(e) => { e.stopPropagation(); setIsOpen(false); onInvite(e); }}
+              style={{
+                width: "100%", padding: "8px 12px", background: "transparent", border: "none",
+                color: t.text, fontSize: "12.5px", fontWeight: 500, cursor: isInviting ? "default" : "pointer",
+                textAlign: "left", display: "flex", alignItems: "center", gap: 10, borderRadius: 6,
+                opacity: isInviting ? 0.5 : 1
+              }}
+              onMouseEnter={e => !isInviting && (e.currentTarget.style.background = isDark ? "rgba(255,255,255,0.05)" : "#F3F4F6")}
+              onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+            >
+              <UserPlus size={14} style={{ color: "#8B5CF6" }} /> {isInviting ? "Inviting..." : "Invite"}
+            </button>
+          )}
+          {onUndo && (
+            <button
+              className="menu-item"
+              onClick={(e) => { e.stopPropagation(); setIsOpen(false); onUndo(e); }}
+              style={{
+                width: "100%", padding: "8px 12px", background: "transparent", border: "none",
+                color: t.text, fontSize: "12.5px", fontWeight: 500, cursor: "pointer",
+                textAlign: "left", display: "flex", alignItems: "center", gap: 10, borderRadius: 6
+              }}
+              onMouseEnter={e => e.currentTarget.style.background = isDark ? "rgba(255,255,255,0.05)" : "#F3F4F6"}
+              onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+            >
+              <RotateCcw size={14} style={{ color: "#FBBF24" }} /> Undo
+            </button>
+          )}
+          {onDel && (
+            <button
+              className="menu-item"
+              onClick={(e) => { e.stopPropagation(); setIsOpen(false); onDel(e); }}
+              style={{
+                width: "100%", padding: "8px 12px", background: "transparent", border: "none",
+                color: "#F87171", fontSize: "12.5px", fontWeight: 600, cursor: "pointer",
+                textAlign: "left", display: "flex", alignItems: "center", gap: 10, borderRadius: 6
+              }}
+              onMouseEnter={e => e.currentTarget.style.background = isDark ? "rgba(248,113,113,0.1)" : "#FEF2F2"}
+              onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+            >
+              <Trash2 size={14} /> Delete
+            </button>
+          )}
+        </div>,
+        document.body
       )}
     </div>
   );

@@ -181,27 +181,14 @@ export const getSuperAdminColumns = (permissions, isDark, t, onEdit, onDel, getR
 
         return (
           <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-            {(permissions.canUpdate || permissions.canDelete) && (
-              <ActBtns
-                show={true}
-                t={t}
-                onEdit={permissions.canUpdate ? () => onEdit(row.original) : undefined}
-                onDel={permissions.canDelete ? () => onDel(row.original) : undefined}
-              />
-            )}
-            {permissions.canCreate && (
-              <button
-                onClick={(e) => { e.stopPropagation(); onInvite(row.original); }}
-                disabled={invitingId === row.original.id}
-                style={{
-                  background: "rgba(96,165,250,0.1)", border: `none`,
-                  borderRadius: 6, padding: "4px 8px", cursor: invitingId === row.original.id ? "default" : "pointer",
-                  fontSize: 11, fontWeight: 600, color: t.accent, opacity: invitingId === row.original.id ? 0.5 : 1
-                }}
-              >
-                {invitingId === row.original.id ? "..." : "Invite"}
-              </button>
-            )}
+            <ActBtns
+              show={true}
+              t={t}
+              onEdit={permissions.canUpdate ? () => onEdit(row.original) : null}
+              onDel={permissions.canDelete ? () => onDel(row.original) : null}
+              onInvite={permissions.canCreate ? () => onInvite(row.original) : null}
+              isInviting={invitingId === row.original.id}
+            />
           </div>
         );
       },
