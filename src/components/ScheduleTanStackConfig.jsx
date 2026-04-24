@@ -1,5 +1,5 @@
 import { CornerDownRight, ExternalLink, RotateCcw } from 'lucide-react';
-import { Bdg, Tooltip, ActBtns } from '../components';
+import { Bdg, Tooltip } from '../components';
 import { fmtCurr } from '../utils';
 
 export const getScheduleColumns = (permissions, isDark, t, context) => {
