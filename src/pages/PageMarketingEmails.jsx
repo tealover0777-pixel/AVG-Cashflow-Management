@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useRef, useEffect } from "react";
 import ReactDOM from "react-dom";
 import { Plus, Search, FileText, Send, Inbox, LayoutTemplate, X, ChevronRight, Trash2, MoreHorizontal, Clock, Edit2, Copy, Save, Check, Users } from "lucide-react";
-import { TanStackTable, PromptModal, DelModal, Modal } from "../components";
+import { TanStackTable, PromptModal, DelModal, Modal, ActBtns } from "../components";
 import { db, storage } from "../firebase";
 import { collection, addDoc, serverTimestamp, doc, updateDoc, deleteDoc, getDoc, query, where, getDocs, onSnapshot } from "firebase/firestore";
 import { ref, uploadBytes } from "firebase/storage";
