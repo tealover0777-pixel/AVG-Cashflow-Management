@@ -144,6 +144,30 @@ export default function PageDeals({ t, isDark, DEALS = [], INVESTMENTS = [], SCH
     }
   };
 
+  const handleCloneDeal = async (row) => {
+    try {
+      const newId = nextDealId;
+      const payload = {
+        ...row,
+        id: newId,
+        name: `${row.name} (Copy)`,
+        deal_name: `${row.deal_name || row.name} (Copy)`,
+        created_at: serverTimestamp(),
+        updated_at: serverTimestamp(),
+      };
+      // Remove metadata
+      delete payload.docId;
+      delete payload._path;
+      
+      const dealRef = doc(db, collectionPath, newId);
+      await setDoc(dealRef, payload);
+      showToast(`Deal cloned as ${newId}`, "success");
+    } catch (err) {
+      console.error("Failed to clone deal:", err);
+      showToast("Failed to clone deal.", "error");
+    }
+  };
+
   const handleFileSelect = (e) => {
     const files = Array.from(e.target.files);
     const added = files.map(file => ({
@@ -216,24 +240,23 @@ export default function PageDeals({ t, isDark, DEALS = [], INVESTMENTS = [], SCH
   // TanStack Table: Column definitions
   const permissions = { canUpdate, canDelete };
 
-  const columnContext = useMemo(() => ({
+  const columnDefs = useMemo(() => getDealColumns(
+    { canUpdate, canDelete },
     isDark,
     t,
-    permissions,
-    feesData: FEES_DATA, // Using destructured prop
-    callbacks: {
-      onEdit: openEdit,
-      onDelete: (deal) => setDelT(deal),
-      onSelectDeal: (data) => {
-        setSelectedDealId(data.id);
-        setActivePage("Deal Summary");
-      }
+    { 
+      callbacks: { 
+        onEdit: openEdit, 
+        onDelete: (deal) => setDelT(deal), 
+        onSelectDeal: (data) => {
+          setSelectedDealId(data.id);
+          setActivePage("Deal Summary");
+        },
+        onClone: handleCloneDeal,
+      },
+      feesData: FEES_DATA 
     }
-  }), [isDark, t, permissions, FEES_DATA, setSelectedDealId, setActivePage]);
-
-  const columnDefs = useMemo(() => {
-    return getDealColumns(permissions, isDark, t, columnContext);
-  }, [permissions, isDark, t, columnContext]);
+  ), [canUpdate, canDelete, isDark, t, FEES_DATA, setSelectedDealId, handleCloneDeal, setActivePage]);
 
   return (<>
     <div style={{ marginBottom: 28, display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>

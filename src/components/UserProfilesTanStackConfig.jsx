@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useRef, useEffect } from "react";
-import { ActBtns, Tooltip } from '../components';
+import { ActBtns, Tooltip } from '../components.jsx';
 
 const StatusBadge = ({ status, t, isDark }) => {
     const isPending = !status || status === "Pending";

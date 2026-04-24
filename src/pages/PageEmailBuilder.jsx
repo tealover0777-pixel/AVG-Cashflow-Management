@@ -110,6 +110,7 @@ export default function PageEmailBuilder(props) {
   const [isSaving, setIsSaving] = useState(false);
   const [isProcessingSend, setIsProcessingSend] = useState(false);
   const [showSaveAsNewPrompt, setShowSaveAsNewPrompt] = useState(false);
+  const [showLinkPrompt, setShowLinkPrompt] = useState(false);
 
   // Send test email
   const [showTestDropdown, setShowTestDropdown] = useState(false);
@@ -1029,6 +1030,20 @@ export default function PageEmailBuilder(props) {
         }}
       />
 
+      <PromptModal
+        open={showLinkPrompt}
+        onClose={() => setShowLinkPrompt(false)}
+        title="Insert Link"
+        label="Enter URL:"
+        defaultValue="https://"
+        t={t}
+        isDark={isDark}
+        onConfirm={(url) => {
+          if (url) cmd("createLink", url);
+          setShowLinkPrompt(false);
+        }}
+      />
+
       {/* ── Schedule Modal ── */}
       {showScheduleModal && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.55)", backdropFilter: "blur(4px)", zIndex: 2000, display: "flex", alignItems: "center", justifyContent: "center" }}
@@ -1466,8 +1481,7 @@ const FloatingTextBar = ({ t, isDark, DIMENSIONS = [] }) => {
       <button
         onMouseDown={e => {
           e.preventDefault();
-          const url = prompt("Enter URL:", "https://");
-          if (url) cmd("createLink", url);
+          setShowLinkPrompt(true);
         }}
         style={{ background: "transparent", border: "none", color: "#fff", padding: "6px 8px", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", borderRadius: 4, transition: "background 0.2s" }}
         onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,0.1)"}

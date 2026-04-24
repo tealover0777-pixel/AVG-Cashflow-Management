@@ -1,6 +1,6 @@
 import React from 'react';
 import { ExternalLink, Edit2, Trash2, Info, RotateCcw } from 'lucide-react';
-import { Bdg, Tooltip } from '../components';
+import { Bdg, Tooltip, ActBtns } from '../components';
 
 export const getInvestmentColumns = (permissions, isDark, t, context) => {
   const { callbacks } = context;

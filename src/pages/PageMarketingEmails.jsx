@@ -27,70 +27,25 @@ const formatDate = (dateVal) => {
 };
 
 const ActionCell = ({ row, isDark, t, actions }) => {
-  const [showMenu, setShowMenu] = React.useState(false);
-  const [coords, setCoords] = React.useState({ top: 0, left: 0 });
-  const menuRef = React.useRef(null);
-
-  React.useEffect(() => {
-    const clickOut = (e) => { if (menuRef.current && !menuRef.current.contains(e.target)) setShowMenu(false); };
-    if (showMenu) document.addEventListener("mousedown", clickOut);
-    return () => document.removeEventListener("mousedown", clickOut);
-  }, [showMenu]);
-
   const email = row.original;
-
-  const toggleMenu = (e) => {
-    e.stopPropagation();
-    if (!showMenu) {
-      const rect = e.currentTarget.getBoundingClientRect();
-      setCoords({
-        top: rect.bottom + window.scrollY + 4,
-        left: rect.right + window.scrollX - 190
-      });
-    }
-    setShowMenu(!showMenu);
-  };
+  const { onEditName, onClone, onSaveAsTemplate, onDelete } = actions;
 
   return (
-    <div style={{ position: "relative" }} ref={menuRef}>
-      <button
-        onClick={toggleMenu}
-        style={{ background: "none", border: "none", color: t.textMuted, cursor: "pointer", padding: 4, borderRadius: 4, display: "flex", alignItems: "center" }}
-        onMouseEnter={e => e.currentTarget.style.background = isDark ? "#333" : "#F3F4F6"}
-        onMouseLeave={e => e.currentTarget.style.background = "none"}
-      >
-        <MoreHorizontal size={16} />
-      </button>
-      {showMenu && ReactDOM.createPortal(
-        <div onMouseDown={e => e.stopPropagation()} style={{
-          position: "absolute", top: coords.top, left: coords.left, width: 190,
-          background: isDark ? "#1e293b" : "#fff", border: `1px solid ${t.border}`,
-          borderRadius: 8, boxShadow: "0 10px 25px rgba(0,0,0,0.2)", zIndex: 99999,
-          padding: 4, overflow: "hidden", pointerEvents: "auto"
-        }}>
-          {[
-            { label: "Edit name", icon: Edit2, action: () => actions.onEditName(email) },
-            { label: "Clone", icon: Copy, action: () => actions.onClone(email) },
-            { label: "Save as new template", icon: Save, action: () => actions.onSaveAsTemplate(email) },
-            { label: "Delete", icon: Trash2, action: () => actions.onDelete(email), danger: true },
-          ].map((m, i) => (
-            <button key={i} onClick={(e) => { e.stopPropagation(); setShowMenu(false); m.action(); }}
-              style={{
-                width: "100%", padding: "7px 12px", background: "transparent", border: "none",
-                color: m.danger ? "#EF4444" : t.text, fontSize: "12.5px", fontWeight: 500,
-                cursor: "pointer", textAlign: "left", display: "flex", alignItems: "center", gap: 10,
-                borderRadius: 4
-              }}
-              onMouseEnter={e => e.currentTarget.style.background = isDark ? "rgba(255,255,255,0.06)" : "#f3f4f6"}
-              onMouseLeave={e => e.currentTarget.style.background = "transparent"}
-            >
-              <m.icon size={13} strokeWidth={2} /> {m.label}
-            </button>
-          ))}
-        </div>,
-        document.body
-      )}
-    </div>
+    <ActBtns
+      show={true}
+      t={t}
+      onEdit={() => onEditName(email)}
+      onClone={() => onClone(email)}
+      onDel={() => onDelete(email)}
+      extraActions={[
+        { 
+          label: "Save as new template", 
+          icon: Save, 
+          onClick: () => onSaveAsTemplate(email),
+          color: isDark ? "#A78BFA" : "#7C3AED" 
+        }
+      ]}
+    />
   );
 };
 
@@ -754,7 +709,7 @@ export default function PageMarketingEmails({ t, isDark, setActivePage, MARKETIN
           };
           const blob = new Blob([JSON.stringify(templateData, null, 2)], { type: "application/json" });
           await uploadBytes(templateRef, blob);
-          alert("Campaign saved to your template library!");
+          showToast("Campaign saved to your template library!", "success");
         },
         onDelete: (email) => setItemToDelete(email),
         onEditSchedule: (email) => setItemToReschedule(email),
@@ -792,7 +747,7 @@ export default function PageMarketingEmails({ t, isDark, setActivePage, MARKETIN
       // Re-fetch should happen automatically via the listener in App.jsx
     } catch (err) {
       console.error("Error importing drafts:", err);
-      alert("Failed to import drafts. Check console for details.");
+      showToast("Failed to import drafts. Check console for details.", "error");
     } finally {
       setIsImporting(false);
     }

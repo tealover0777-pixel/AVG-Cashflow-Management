@@ -1,6 +1,6 @@
 import React from 'react';
 import { Edit2, Trash2, Mail, User, Shield, Info } from 'lucide-react';
-import { Bdg, ActBtns, Tooltip } from '../components';
+import { Bdg, Tooltip, ActBtns } from '../components.jsx';
 import { initials, av, fmtCurr } from '../utils';
 
 export const getContactColumns = (permissions, isDark, t, context) => {

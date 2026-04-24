@@ -9,7 +9,7 @@ import { StatCard, Bdg, Pagination, ActBtns, Modal, FF, FIn, FSel, DelModal, Too
 import { InvestorSummaryModal } from "../components/InvestorSummaryModal";
 import { useAuth } from "../AuthContext";
 
-export default function PageContacts({ t, isDark, CONTACTS = [], INVESTMENTS = [], SCHEDULES = [], DEALS = [], collectionPath = "", DIMENSIONS = [], tenantId = "", LEDGER = [], USERS = [] }) {
+export default function PageContacts({ t, isDark, CONTACTS = [], INVESTMENTS = [], SCHEDULES = [], DEALS = [], collectionPath = "", DIMENSIONS = [], tenantId = "", LEDGER = [], USERS = [], ROLES = [] }) {
   const { hasPermission, isSuperAdmin, user } = useAuth();
   const canCreate = hasPermission("CONTACT_CREATE");
   const canUpdate = hasPermission("CONTACT_UPDATE");
@@ -19,6 +19,11 @@ export default function PageContacts({ t, isDark, CONTACTS = [], INVESTMENTS = [
   const contactTypeOpts = (DIMENSIONS.find(d => d.name === "ContactType") || {}).items || ["Individual", "Company", "Trust", "Partnership"];
   const investorTypeOpts = (DIMENSIONS.find(d => d.name === "InvestorType") || {}).items || ["Fixed", "Equity", "Both"];
   const paymentMethods = (DIMENSIONS.find(d => d.name === "Payment Method" || d.name === "PaymentMethod") || {}).items || [];
+  
+  const getRoleInfo = (id) => {
+    const r = ROLES.find(x => (x.id || x.role_id) === id);
+    return r ? { name: r.role_name || r.name || id, id } : { name: "Member", id: "R10001" };
+  };
   const [chip, setChip] = useState("All");
   const [modal, setModal] = useState({ open: false, mode: "add", data: {} });
   const [delT, setDelT] = useState(null);
@@ -204,9 +209,10 @@ export default function PageContacts({ t, isDark, CONTACTS = [], INVESTMENTS = [
         lastName = nameParts.slice(1).join(" ") || "";
       }
 
+      const roleInfo = getRoleInfo("R10001");
       const result = await inviteUserFn({
         email: party.email,
-        role: "R10001",
+        role: roleInfo.id,
         tenantId: tenantId || "",
         first_name: firstName,
         last_name: lastName,
@@ -214,7 +220,7 @@ export default function PageContacts({ t, isDark, CONTACTS = [], INVESTMENTS = [
         contactId: party.id || "",
         notes: `Invited from Contacts page — ${party.id}`,
       });
-      setInviteResult({ email: party.email, user_id: result.data.user_id, link: result.data.link });
+      setInviteResult({ email: party.email, user_id: result.data.user_id, link: result.data.link, roleName: roleInfo.name });
     } catch (err) {
       console.error("Invite contact error:", err);
       showToast("Invite failed: " + (err.message || "Unknown error"), "error");
@@ -363,13 +369,11 @@ export default function PageContacts({ t, isDark, CONTACTS = [], INVESTMENTS = [
       </div>
     </Modal>
     <DelModal target={delT} onClose={() => setDelT(null)} onConfirm={handleDeleteContact} label="This contact" t={t} isDark={isDark} />
-    <Modal open={!!inviteConfirm} onClose={() => setInviteConfirm(null)} title="Invite as Member" onSave={executeInvite} saveLabel="Invite" t={t} isDark={isDark}>
-      <div style={{ display: "flex", flexDirection: "column", gap: 16, alignItems: "center", textAlign: "center", padding: "8px 0" }}>
-        <div style={{ width: 52, height: 52, borderRadius: 14, background: isDark ? "rgba(96,165,250,0.15)" : "#EFF6FF", border: `1px solid ${isDark ? "rgba(96,165,250,0.25)" : "#BFDBFE"}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, color: isDark ? "#60A5FA" : "#2563EB" }}>✉️</div>
-        <div>
-          <div style={{ fontSize: 15, fontWeight: 600, color: isDark ? "#fff" : "#1C1917", marginBottom: 8 }}>Invite {inviteConfirm?.name}?</div>
-          <div style={{ fontSize: 13, color: t.textMuted, lineHeight: 1.7 }}>{inviteConfirm?.email} will be invited as a Member (R10001).</div>
-        </div>
+    <Modal open={!!inviteConfirm} onClose={() => setInviteConfirm(null)} title="Confirm Invitation" onSave={executeInvite} saveLabel={processing ? "Sending..." : "Send Invite ✉️"} width={480} t={t} isDark={isDark}>
+      <div style={{ fontSize: 13.5, color: t.text, marginBottom: 12, fontWeight: 600 }}>Invite {inviteConfirm?.first_name || (inviteConfirm?.name || "").split(" ")[0] || "User"}?</div>
+      <div style={{ fontSize: 13, color: t.textMuted, lineHeight: 1.7 }}>{inviteConfirm?.email} will be invited as a <strong>{getRoleInfo("R10001").name}</strong>.</div>
+      <div style={{ fontSize: 12, color: t.textSubtle, marginTop: 12, padding: 12, background: isDark ? "rgba(255,255,255,0.03)" : "#F9F8F6", borderRadius: 8, border: `1px solid ${t.surfaceBorder}` }}>
+        This will create a secure profile and send a verification email. They will be addressed as <strong>{inviteConfirm?.first_name || (inviteConfirm?.name || "").split(" ")[0] || "User"}</strong> in the greeting.
       </div>
     </Modal>
     <InvestorSummaryModal 
@@ -392,7 +396,7 @@ export default function PageContacts({ t, isDark, CONTACTS = [], INVESTMENTS = [
         <div style={{ background: isDark ? "#1C1917" : "#fff", borderRadius: 16, padding: 28, maxWidth: 540, width: "90%", boxShadow: "0 24px 60px rgba(0,0,0,0.3)" }}>
           <h3 style={{ fontFamily: t.titleFont, fontSize: 18, marginBottom: 8, color: isDark ? "#fff" : "#1C1917" }}>Member Invited</h3>
           <p style={{ fontSize: 13, color: t.textMuted, marginBottom: 12, lineHeight: 1.6 }}>
-            <strong>{inviteResult.email}</strong> has been invited as a Member (R10001).
+            <strong>{inviteResult.email}</strong> has been invited as a {inviteResult.roleName || "Member"}.
           </p>
           {inviteResult.user_id && (
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>

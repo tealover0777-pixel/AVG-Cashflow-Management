@@ -89,12 +89,21 @@ export default function PageSuperAdmin({ t, isDark, ROLES = [], TENANTS = [] }) 
         setInvitingId(user.id);
         try {
             const inviteUserFn = httpsCallable(functions, "inviteUser");
+            
+            let fn = user.first_name || "";
+            let ln = user.last_name || "";
+            if (!fn && user.name) {
+                const parts = user.name.trim().split(/\s+/);
+                fn = parts[0] || "";
+                ln = parts.slice(1).join(" ") || "";
+            }
+
             const result = await inviteUserFn({ 
                 email: user.email, 
                 role: user.role, 
                 tenantId: user.tenantId || "",
-                first_name: user.first_name || "",
-                last_name: user.last_name || ""
+                first_name: fn,
+                last_name: ln
             });
             setInviteResult({ link: result.data.link, email: user.email });
         } catch (err) {

@@ -168,6 +168,7 @@ export const getDealColumns = (permissions, isDark, t, context) => {
                t={t}
                onEdit={canUpdate ? () => callbacks.onEdit(data) : null}
                onDel={canDelete ? () => callbacks.onDelete(data) : null}
+               onClone={canUpdate ? () => callbacks.onClone?.(data) : null}
              />
            </div>
          );

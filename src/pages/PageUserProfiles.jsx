@@ -118,23 +118,38 @@ export default function PageUserProfiles({ t, isDark, USERS = [], GLOBAL_USERS =
             showToast("This email does not belong to any existing Contact. Please create a Contact record first on the Contacts page.", "error");
             return;
         }
+        setInviteConfirm({ ...d, tenantId: isSelectedRoleGlobal(d.role_id) ? "" : (d.inviteTenantId || tenantId || "") });
+    };
+
+    const executeInvite = async () => {
         setProcessing(true);
         setInviting(true);
         try {
-            const resolvedTenantId = isSelectedRoleGlobal(d.role_id) ? "" : (d.inviteTenantId || tenantId || "");
             const inviteUserFn = httpsCallable(functions, "inviteUser");
+            const party = inviteConfirm;
+            let firstName = party.first_name || "";
+            let lastName = party.last_name || "";
+
+            if (!firstName && party.name) {
+                const nameParts = (party.name || "").trim().split(/\s+/);
+                firstName = nameParts[0] || "";
+                lastName = nameParts.slice(1).join(" ") || "";
+            }
+
+            const roleInfo = getRoleInfo(party.role_id || party.role);
             const result = await inviteUserFn({
-                email: d.email,
-                role: d.role_id,
-                tenantId: resolvedTenantId,
+                email: party.email,
+                role: party.role_id || party.role,
+                tenantId: party.tenantId || "",
                 user_id: nextUserId,
-                first_name: d.first_name || "",
-                last_name: d.last_name || "",
-                phone: d.phone || "",
-                notes: d.notes || ""
+                first_name: firstName,
+                last_name: lastName,
+                phone: party.phone || "",
+                notes: `Invited from User Profiles page — ${party.email}`
             });
             close();
-            setInviteResult({ email: d.email, user_id: result.data.user_id, emailSent: result.data.emailSent, link: result.data.link });
+            setInviteConfirm(null);
+            setInviteResult({ email: party.email, user_id: result.data.user_id, emailSent: result.data.emailSent, link: result.data.link, roleName: roleInfo.name });
         } catch (err) {
             console.error("Invite error:", err);
             showToast("Invite failed: " + (err.message || "Unknown error"), "error");
@@ -301,6 +316,17 @@ export default function PageUserProfiles({ t, isDark, USERS = [], GLOBAL_USERS =
             </p>
         </Modal>
 
+        {/* Invite Confirm Modal */}
+        <Modal open={!!inviteConfirm} onClose={() => setInviteConfirm(null)} title="Confirm Invitation" onSave={executeInvite} saveLabel={processing ? "Sending..." : "Send Invite ✉️"} width={480} t={t} isDark={isDark} loading={processing}>
+            <div style={{ fontSize: 13.5, color: t.text, marginBottom: 12, fontWeight: 600 }}>Invite {inviteConfirm?.first_name || (inviteConfirm?.name || "").split(" ")[0] || "User"}?</div>
+            <div style={{ fontSize: 13, color: t.textMuted, lineHeight: 1.7 }}>
+                {inviteConfirm?.email} will be invited as a <strong>{getRoleInfo(inviteConfirm?.role_id).name}</strong>.
+            </div>
+            <div style={{ fontSize: 12, color: t.textSubtle, marginTop: 12, padding: 12, background: isDark ? "rgba(255,255,255,0.03)" : "#F9F8F6", borderRadius: 8, border: `1px solid ${t.surfaceBorder}` }}>
+                This will create a secure profile and send a verification email. They will be addressed as <strong>{inviteConfirm?.first_name || (inviteConfirm?.name || "").split(" ")[0] || "User"}</strong> in the greeting.
+            </div>
+        </Modal>
+
         {processing && (
             <div style={{ position: "fixed", inset: 0, zIndex: 9999, background: "rgba(0,0,0,0.6)", backdropFilter: "blur(4px)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", color: "#fff" }}>
                 <div style={{ width: 44, height: 44, border: "3px solid rgba(255,255,255,0.2)", borderTopColor: "#fff", borderRadius: "50%", animation: "spin 0.8s linear infinite", marginBottom: 16 }} />
@@ -315,6 +341,9 @@ export default function PageUserProfiles({ t, isDark, USERS = [], GLOBAL_USERS =
                     <h3 style={{ fontFamily: t.titleFont, fontSize: 18, marginBottom: 8, color: isDark ? "#fff" : "#1C1917" }}>
                         {inviteResult.emailSent ? "✅ Invite Sent!" : "✅ User Created"}
                     </h3>
+                    <p style={{ fontSize: 13, color: t.textMuted, marginBottom: 12, lineHeight: 1.6 }}>
+                        <strong>{inviteResult.email}</strong> has been invited as a {inviteResult.roleName || "User"}.
+                    </p>
                     <p style={{ fontSize: 13, color: t.textMuted, marginBottom: 12, lineHeight: 1.6 }}>
                         {inviteResult.emailSent
                             ? <>A verification email has been sent to <strong>{inviteResult.email}</strong>. They will need to click the link in the email to verify their address.</>

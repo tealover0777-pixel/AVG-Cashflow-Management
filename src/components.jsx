@@ -123,7 +123,7 @@ export const Tooltip = ({ children, text, position = "top", delay = 300, t }) =>
   );
 };
 
-export const ActBtns = ({ show, t, onEdit, onDel, onUndo, onClone, onInvite, isInviting }) => {
+export const ActBtns = ({ show, t, onEdit, onDel, onUndo, onClone, onInvite, isInviting, extraActions = [] }) => {
   const [isOpen, setIsOpen] = React.useState(false);
   const [coords, setCoords] = React.useState({ top: 0, left: 0 });
   const btnRef = React.useRef(null);
@@ -146,13 +146,13 @@ export const ActBtns = ({ show, t, onEdit, onDel, onUndo, onClone, onInvite, isI
       const rect = e.currentTarget.getBoundingClientRect();
       setCoords({
         top: rect.bottom + window.scrollY + 5,
-        left: rect.right + window.scrollX - 160
+        left: rect.right + window.scrollX - 170
       });
     }
     setIsOpen(!isOpen);
   };
 
-  if (!onEdit && !onDel && !onUndo && !onClone && !onInvite) return null;
+  if (!onEdit && !onDel && !onUndo && !onClone && !onInvite && extraActions.length === 0) return null;
 
   return (
     <div style={{ position: "relative", opacity: show ? 1 : 0, pointerEvents: show ? "auto" : "none" }}>
@@ -186,7 +186,7 @@ export const ActBtns = ({ show, t, onEdit, onDel, onUndo, onClone, onInvite, isI
             position: "absolute",
             top: coords.top,
             left: coords.left,
-            width: 160,
+            width: 170,
             background: isDark ? "#1E1E1E" : "#FFFFFF",
             border: `1px solid ${t.surfaceBorder}`,
             borderRadius: 10,
@@ -256,19 +256,36 @@ export const ActBtns = ({ show, t, onEdit, onDel, onUndo, onClone, onInvite, isI
               onMouseEnter={e => e.currentTarget.style.background = isDark ? "rgba(255,255,255,0.05)" : "#F3F4F6"}
               onMouseLeave={e => e.currentTarget.style.background = "transparent"}
             >
-              <RotateCcw size={14} style={{ color: "#FBBF24" }} /> Undo
+              <RotateCcw size={14} style={{ color: "#F59E0B" }} /> Undo
             </button>
           )}
+          {extraActions.map((act, idx) => (
+            <button
+              key={idx}
+              className="menu-item"
+              onClick={(e) => { e.stopPropagation(); setIsOpen(false); act.onClick(e); }}
+              style={{
+                width: "100%", padding: "8px 12px", background: "transparent", border: "none",
+                color: act.danger ? "#EF4444" : t.text, fontSize: "12.5px", fontWeight: 500, cursor: "pointer",
+                textAlign: "left", display: "flex", alignItems: "center", gap: 10, borderRadius: 6
+              }}
+              onMouseEnter={e => e.currentTarget.style.background = isDark ? "rgba(255,255,255,0.05)" : "#F3F4F6"}
+              onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+            >
+              {act.icon && <act.icon size={14} style={{ color: act.color || t.textSubtle }} />}
+              {act.label}
+            </button>
+          ))}
           {onDel && (
             <button
               className="menu-item"
               onClick={(e) => { e.stopPropagation(); setIsOpen(false); onDel(e); }}
               style={{
                 width: "100%", padding: "8px 12px", background: "transparent", border: "none",
-                color: "#F87171", fontSize: "12.5px", fontWeight: 600, cursor: "pointer",
+                color: "#EF4444", fontSize: "12.5px", fontWeight: 600, cursor: "pointer",
                 textAlign: "left", display: "flex", alignItems: "center", gap: 10, borderRadius: 6
               }}
-              onMouseEnter={e => e.currentTarget.style.background = isDark ? "rgba(248,113,113,0.1)" : "#FEF2F2"}
+              onMouseEnter={e => e.currentTarget.style.background = isDark ? "rgba(239,68,68,0.1)" : "#FEF2F2"}
               onMouseLeave={e => e.currentTarget.style.background = "transparent"}
             >
               <Trash2 size={14} /> Delete
