@@ -263,6 +263,7 @@ export const getDealInvestmentColumns = (permissions, isDark, t, context, viewTy
             t={t} 
             onEdit={permissions.canUpdate ? () => callbacks.onEdit?.(row.original) : null} 
             onDel={permissions.canDelete ? () => callbacks.onDelete?.(row.original) : null} 
+            onClone={permissions.canUpdate ? () => callbacks.onClone?.(row.original) : null} 
           />
         </div>
       )

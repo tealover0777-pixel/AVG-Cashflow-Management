@@ -244,9 +244,14 @@ export const getInvestmentColumns = (permissions, isDark, t, context) => {
       cell: ({ row }) => {
         const data = row.original;
         return (
-          <div style={{ display: 'flex', gap: 6 }}>
-            <button onClick={() => callbacks.onEdit?.(data)} style={{ padding: '4px 8px', borderRadius: 6, background: 'rgba(96,165,250,0.1)', color: '#60A5FA', border: 'none', cursor: 'pointer', fontSize: 11, fontWeight: 600 }}>Edit</button>
-            <button onClick={() => callbacks.onDelete?.(data)} style={{ padding: '4px 8px', borderRadius: 6, background: 'rgba(248,113,113,0.1)', color: '#F87171', border: 'none', cursor: 'pointer', fontSize: 11, fontWeight: 600 }}>Del</button>
+          <div style={{ display: 'flex', alignItems: 'center' }}>
+            <ActBtns
+              show={true}
+              t={t}
+              onEdit={callbacks.onEdit ? () => callbacks.onEdit(data) : null}
+              onDel={callbacks.onDelete ? () => callbacks.onDelete(data) : null}
+              onClone={callbacks.onClone ? () => callbacks.onClone(data) : null}
+            />
           </div>
         );
       }

@@ -122,13 +122,20 @@ export const Tooltip = ({ children, text, position = "top", delay = 300, t }) =>
   );
 };
 
-export const ActBtns = ({ show, t, onEdit, onDel, onUndo }) => {
+export const ActBtns = ({ show, t, onEdit, onDel, onUndo, onClone }) => {
   return (
     <div style={{ display: "flex", gap: 6, opacity: show ? 1 : 0, transition: "opacity 0.15s ease", pointerEvents: show ? "auto" : "none" }}>
       {onUndo && (
         <Tooltip text="Undo last action" t={t}>
           <button className="action-btn" onClick={e => { e.stopPropagation(); onUndo(e); }} style={{ padding: "4px 8px", borderRadius: 6, background: "rgba(251,191,36,0.1)", color: "#FBBF24", border: "none", cursor: "pointer", fontSize: 11, fontWeight: 600 }}>
             Undo
+          </button>
+        </Tooltip>
+      )}
+      {onClone && (
+        <Tooltip text="Clone this record" t={t}>
+          <button className="action-btn" onClick={e => { e.stopPropagation(); onClone(e); }} style={{ padding: "4px 8px", borderRadius: 6, background: "rgba(16,185,129,0.1)", color: "#10B981", border: "none", cursor: "pointer", fontSize: 11, fontWeight: 600 }}>
+            Clone
           </button>
         </Tooltip>
       )}

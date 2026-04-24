@@ -243,6 +243,7 @@ export const getContactColumns = (permissions, isDark, t, context) => {
               t={t}
               onEdit={canUpdate ? () => callbacks.onEdit(data) : null}
               onDel={canDelete ? () => callbacks.onDelete({ id: data.id, name: data.name, docId: data.docId }) : null}
+              onClone={canUpdate ? () => callbacks.onClone(data) : null}
             />
             {canInvite && data.email && (
               <Tooltip text="Invite as Member (R10001)" t={t}>

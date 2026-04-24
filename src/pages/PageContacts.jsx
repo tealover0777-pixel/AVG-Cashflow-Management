@@ -265,7 +265,36 @@ export default function PageContacts({ t, isDark, CONTACTS = [], INVESTMENTS = [
       onEdit: openEdit,
       onDelete: (target) => setDelT(target),
       onInvite: handleInviteContact,
-      onNameClick: (party) => setDetailContact(party)
+      onNameClick: (party) => setDetailContact(party),
+      onClone: async (r) => {
+        try {
+          let maxNum = 10000;
+          CONTACTS.forEach(p => {
+            const m = String(p.id).match(/^M(\d+)$/);
+            if (m) {
+              const num = Number(m[1]);
+              if (num > maxNum) maxNum = num;
+            }
+          });
+          const nextContactId = "M" + (maxNum + 1);
+          
+          const { id, docId, _path, created_at, updated_at, ...rest } = r;
+          const payload = {
+            ...rest,
+            id: nextContactId,
+            created_at: serverTimestamp(),
+            updated_at: serverTimestamp(),
+            notes: `Cloned from ${id || "unknown"} on ${new Date().toLocaleDateString()}.${r.notes ? ` ${r.notes}` : ""}`
+          };
+          
+          const colRef = collectionPath ? collection(db, collectionPath) : collection(db, "tenants", tenantId, "contacts");
+          await addDoc(colRef, payload);
+          if (typeof showToast === "function") showToast(`Contact ${nextContactId} created (cloned)`, "success");
+        } catch (err) {
+          console.error("Clone error:", err);
+          if (typeof showToast === "function") showToast("Failed to clone contact", "error");
+        }
+      }
     },
     invitingId,
     INVESTMENTS

@@ -651,6 +651,37 @@ export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [
         onEdit: openEdit,
         onDelete: (target) => setDelT({ id: target.id, name: target.id, docId: target.docId, _path: target._path }),
         onDrillDown: (investment) => setDrillInvestment(investment),
+        onClone: async (r) => {
+          try {
+            const prefix = (r.investment_id || r.id || "").startsWith("L") ? "L" : "I";
+            let maxIdNum = 10000;
+            INVESTMENTS.forEach(c => {
+              const cid = c.investment_id || c.id;
+              if (cid && cid.startsWith(prefix)) {
+                const num = parseInt(cid.substring(1), 10);
+                if (!isNaN(num) && num > maxIdNum) maxIdNum = num;
+              }
+            });
+            const nextId = `${prefix}${maxIdNum + 1}`;
+            
+            const { id, docId, _path, created_at, updated_at, ...rest } = r;
+            const payload = {
+              ...rest,
+              id: nextId,
+              investment_id: nextId,
+              created_at: serverTimestamp(),
+              updated_at: serverTimestamp(),
+              notes: `Cloned from ${id || r.investment_id || "unknown"} on ${new Date().toLocaleDateString()}.${r.notes ? ` ${r.notes}` : ""}`
+            };
+            
+            const colRef = collectionPath ? collection(db, collectionPath) : collection(db, "tenants", tenantId, "investments");
+            await addDoc(colRef, payload);
+            if (typeof showToast === "function") showToast(`Investment ${nextId} created (cloned)`, "success");
+          } catch (err) {
+            console.error("Clone error:", err);
+            if (typeof showToast === "function") showToast("Failed to clone investment", "error");
+          }
+        },
       }
     });
   }, [permissions, isDark, t, FEES_DATA]);

@@ -1624,6 +1624,37 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
     onContactClick: (r) => {
       const cp = CONTACTS.find(x => x.name === r.contact || x.id === r.contact_id || x.docId === r.contact_id);
       if (cp) setDetailContact({ data: cp, view: "simple" });
+    },
+    onClone: async (r) => {
+      try {
+        const prefix = (r.investment_id || r.id || "").startsWith("L") ? "L" : "I";
+        let maxIdNum = 10000;
+        INVESTMENTS.forEach(c => {
+          const cid = c.investment_id || c.id;
+          if (cid && cid.startsWith(prefix)) {
+            const num = parseInt(cid.substring(1), 10);
+            if (!isNaN(num) && num > maxIdNum) maxIdNum = num;
+          }
+        });
+        const nextId = `${prefix}${maxIdNum + 1}`;
+        
+        const { id, docId, _path, created_at, updated_at, ...rest } = r;
+        const payload = {
+          ...rest,
+          id: nextId,
+          investment_id: nextId,
+          created_at: serverTimestamp(),
+          updated_at: serverTimestamp(),
+          notes: `Cloned from ${id || r.investment_id || "unknown"} on ${new Date().toLocaleDateString()}.${r.notes ? ` ${r.notes}` : ""}`
+        };
+        
+        const colRef = collection(db, "tenants", tenantId, "investments");
+        await addDoc(colRef, payload);
+        showToast(`${prefix === "L" ? "Lending" : "Investment"} ${nextId} created (cloned)`, "success");
+      } catch (err) {
+        console.error("Clone error:", err);
+        showToast("Failed to clone record", "error");
+      }
     }
   };
   const context = { CONTACTS, FEES_DATA, SCHEDULES, callbacks, permissions, isDark, t };
@@ -1654,6 +1685,36 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
   const scheduleColumnDefs = useMemo(() => {
     return getDistributionColumns(isDark, t, CONTACTS, DEALS, INVESTMENTS, {
       onEdit: (s) => setScheduleModal({ open: true, data: { ...s } }),
+      onClone: async (s) => {
+        try {
+          const mkId = (pre = "S") => `${pre}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
+          const newSId = mkId("S");
+          // Remove unique identifiers and internal markers
+          const { id, docId, _path, schedule_id, payment_id, version_id, created_at, updated_at, ...rest } = s;
+          
+          const newData = {
+            ...rest,
+            schedule_id: newSId,
+            payment_id: newSId,
+            version_id: `${newSId}-V1`,
+            version_num: 1,
+            active_version: true,
+            created_at: serverTimestamp(),
+            updated_at: serverTimestamp(),
+            notes: `Cloned from ${schedule_id || ""} — ${rest.notes || ""}`
+          };
+          
+          const targetCollection = s._path 
+            ? s._path.split('/').slice(0, -1).join('/') 
+            : scheduleCollection;
+
+          await addDoc(collection(db, targetCollection), newData);
+          showToast(`Succeeded! Entry cloned.`, "success");
+        } catch (err) {
+          console.error("Clone schedule error:", err);
+          showToast("Failed to clone entry.", "error");
+        }
+      },
       onDelete: (s) => {
         setConfirmAction({
           title: "Confirm Delete",
@@ -1737,7 +1798,36 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
         onNameClick: (r) => setDetailContact({ data: r, view: "detail" }),
         onEdit: (r) => { /* Optional: specific logic */ },
         onDelete: (r) => { /* Optional: specific logic */ },
-        onInvite: (r) => { /* Optional: specific logic */ }
+        onInvite: (r) => { /* Optional: specific logic */ },
+        onClone: async (r) => {
+          try {
+            let maxNum = 10000;
+            CONTACTS.forEach(p => {
+              const m = String(p.id).match(/^M(\d+)$/);
+              if (m) {
+                const num = Number(m[1]);
+                if (num > maxNum) maxNum = num;
+              }
+            });
+            const nextContactId = "M" + (maxNum + 1);
+            
+            const { id, docId, _path, created_at, updated_at, ...rest } = r;
+            const payload = {
+              ...rest,
+              id: nextContactId,
+              created_at: serverTimestamp(),
+              updated_at: serverTimestamp(),
+              notes: `Cloned from ${id || "unknown"} on ${new Date().toLocaleDateString()}.${r.notes ? ` ${r.notes}` : ""}`
+            };
+            
+            const colRef = collection(db, "tenants", tenantId, "contacts");
+            await addDoc(colRef, payload);
+            showToast(`Contact ${nextContactId} created (cloned)`, "success");
+          } catch (err) {
+            console.error("Clone error:", err);
+            showToast("Failed to clone contact", "error");
+          }
+        }
       },
       invitingId: null
     };
