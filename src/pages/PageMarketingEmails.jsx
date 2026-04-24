@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useRef, useEffect } from "react";
 import ReactDOM from "react-dom";
 import { Plus, Search, FileText, Send, Inbox, LayoutTemplate, X, ChevronRight, Trash2, MoreHorizontal, Clock, Edit2, Copy, Save, Check, Users } from "lucide-react";
-import { TanStackTable, PromptModal, DelModal } from "../components";
+import { TanStackTable, PromptModal, DelModal, Modal } from "../components";
 import { db, storage } from "../firebase";
 import { collection, addDoc, serverTimestamp, doc, updateDoc, deleteDoc, getDoc, query, where, getDocs, onSnapshot } from "firebase/firestore";
 import { ref, uploadBytes } from "firebase/storage";
@@ -894,59 +894,23 @@ export default function PageMarketingEmails({ t, isDark, setActivePage, MARKETIN
       </div>
 
       {/* Rename Modal */}
-      {itemToEdit && (
-        <div style={{ position: "fixed", inset: 0, zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center" }}>
-          <div onClick={() => setItemToEdit(null)} style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.45)", backdropFilter: "blur(4px)" }} />
-          <div style={{ position: "relative", zIndex: 1, background: "#fff", borderRadius: 24, width: 460, maxWidth: "90vw", padding: "40px 32px", display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", boxShadow: "0 20px 50px rgba(0,0,0,0.15)" }}>
-            <h2 style={{ fontSize: 26, fontWeight: 600, color: "#374151", margin: "0 0 24px 0", lineHeight: 1.3 }}>Enter a new name for this email:</h2>
-            
-            <input 
-              autoFocus
-              defaultValue={itemToEdit.title}
-              id="rename-input"
-              onKeyDown={e => {
-                if (e.key === "Enter") {
-                  const val = e.target.value;
-                  if (val && activeTenantId) {
-                    const paths = getCollectionPaths(activeTenantId);
-                    const docRef = doc(db, paths.marketingEmails, itemToEdit.id);
-                    updateDoc(docRef, { title: val, updatedAt: new Date().toISOString() });
-                    setItemToEdit(null);
-                  }
-                }
-              }}
-              style={{ width: "100%", padding: "12px 16px", borderRadius: 8, border: "1px solid #D1D5DB", fontSize: 16, color: "#374151", marginBottom: 32, outline: "none" }}
-            />
-
-            <div style={{ display: "flex", gap: 16, width: "100%", justifyContent: "center" }}>
-              <button 
-                onClick={async () => {
-                  const val = document.getElementById("rename-input").value;
-                  if (val && activeTenantId) {
-                    const paths = getCollectionPaths(activeTenantId);
-                    const docRef = doc(db, paths.marketingEmails, itemToEdit.id);
-                    await updateDoc(docRef, { title: val, updatedAt: new Date().toISOString() });
-                    setItemToEdit(null);
-                  }
-                }}
-                style={{ padding: "12px 36px", borderRadius: 10, background: "#1D4ED8", color: "#fff", border: "none", fontSize: 15, fontWeight: 600, cursor: "pointer", transition: "all 0.2s" }}
-                onMouseEnter={e => e.currentTarget.style.background = "#1E40AF"}
-                onMouseLeave={e => e.currentTarget.style.background = "#1D4ED8"}
-              >
-                Rename
-              </button>
-              <button 
-                onClick={() => setItemToEdit(null)}
-                style={{ padding: "12px 36px", borderRadius: 10, background: "#fff", color: "#1D4ED8", border: "1px solid #1D4ED8", fontSize: 15, fontWeight: 600, cursor: "pointer", transition: "all 0.2s" }}
-                onMouseEnter={e => e.currentTarget.style.background = "#F9FAFB"}
-                onMouseLeave={e => e.currentTarget.style.background = "#fff"}
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <PromptModal
+        open={!!itemToEdit}
+        onClose={() => setItemToEdit(null)}
+        onConfirm={async (val) => {
+          if (val && activeTenantId) {
+            const paths = getCollectionPaths(activeTenantId);
+            const docRef = doc(db, paths.marketingEmails, itemToEdit.id);
+            await updateDoc(docRef, { title: val, updatedAt: new Date().toISOString() });
+            setItemToEdit(null);
+          }
+        }}
+        title="Rename Email"
+        label="Enter a new name for this email:"
+        defaultValue={itemToEdit?.title || ""}
+        t={t}
+        isDark={isDark}
+      />
 
       <DelModal
         open={!!itemToDelete}
@@ -991,187 +955,166 @@ export default function PageMarketingEmails({ t, isDark, setActivePage, MARKETIN
         </div>
       </DelModal>
 
-      {/* Reschedule Modal */}
-      {itemToReschedule && (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.55)", backdropFilter: "blur(4px)", zIndex: 2000, display: "flex", alignItems: "center", justifyContent: "center" }}
-          onClick={() => setItemToReschedule(null)}>
-          <div style={{ width: "100%", maxWidth: 480, background: isDark ? "#1e293b" : "#fff", border: `1px solid ${t.border}`, borderRadius: 14, boxShadow: "0 20px 48px rgba(0,0,0,0.25)", overflow: "hidden" }}
-            onClick={e => e.stopPropagation()}>
-            <div style={{ padding: "18px 24px", borderBottom: `1px solid ${t.border}`, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-              <div>
-                <div style={{ fontSize: 16, fontWeight: 700, color: t.text }}>Edit Schedule</div>
-                <div style={{ fontSize: 12, color: t.textMuted, marginTop: 2 }}>All times in Eastern Time (ET)</div>
-              </div>
-              <button onClick={() => setItemToReschedule(null)} style={{ background: "transparent", border: "none", color: t.textMuted, cursor: "pointer" }}><X size={18} /></button>
+      {/* Schedule Modal */}
+      <Modal
+        open={!!itemToReschedule}
+        onClose={() => setItemToReschedule(null)}
+        title="Edit Schedule"
+        width={480}
+        t={t}
+        isDark={isDark}
+        onSave={async () => {
+          if (!activeTenantId || !itemToReschedule) return;
+          const paths = getCollectionPaths(activeTenantId);
+          const scheduledAt = `${scheduleData.date}T${scheduleData.time}:00`;
+          const newSettings = {
+            ...(itemToReschedule.settings || {}),
+            scheduledAt,
+            subject: scheduleData.subject,
+            recipients: scheduleData.recipients,
+          };
+
+          const docRef = doc(db, paths.marketingEmails, itemToReschedule.id);
+          await updateDoc(docRef, { settings: newSettings, updatedAt: new Date().toISOString() });
+
+          const jobsRef = collection(db, paths.scheduledJobs);
+          const q = query(jobsRef, where("campaignId", "==", itemToReschedule.id), where("jobStatus", "==", "Pending"));
+          const jobSnap = await getDocs(q);
+          if (!jobSnap.empty) {
+            await updateDoc(jobSnap.docs[0].ref, {
+              scheduledAt,
+              subject: scheduleData.subject,
+              recipients: scheduleData.recipients,
+              settings: newSettings
+            });
+          } else {
+            await addDoc(jobsRef, {
+              campaignId: itemToReschedule.id,
+              title: itemToReschedule.title,
+              scheduledAt,
+              subject: scheduleData.subject,
+              recipients: scheduleData.recipients,
+              settings: newSettings,
+              jobStatus: "Pending",
+              createdAt: serverTimestamp()
+            });
+          }
+          setItemToReschedule(null);
+        }}
+        saveLabel="Update Schedule"
+        disabled={!scheduleData.date || !scheduleData.time || scheduleData.recipients.length === 0}
+      >
+        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", background: isDark ? "rgba(59,130,246,0.1)" : "#EFF6FF", borderRadius: 8, border: `1px solid ${isDark ? "rgba(59,130,246,0.2)" : "#DBEAFE"}` }}>
+            <Clock size={14} color={isDark ? "#60A5FA" : "#1D4ED8"} />
+            <span style={{ fontSize: 12, fontWeight: 500, color: isDark ? "#93C5FD" : "#1E40AF" }}>All times in Eastern Time (ET)</span>
+          </div>
+
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+            <div>
+              <label style={{ fontSize: 12, fontWeight: 600, color: t.textMuted, display: "block", marginBottom: 6 }}>Date (ET)</label>
+              <input type="date" value={scheduleData.date} onChange={e => setScheduleData(d => ({ ...d, date: e.target.value }))}
+                style={{ width: "100%", padding: "9px 12px", borderRadius: 8, border: `1px solid ${t.border}`, background: isDark ? "rgba(255,255,255,0.06)" : "#f9fafb", color: t.text, fontSize: 13, outline: "none", boxSizing: "border-box" }} />
             </div>
-            <div style={{ padding: "20px 24px", display: "flex", flexDirection: "column", gap: 16 }}>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-                <div>
-                  <label style={{ fontSize: 12, fontWeight: 600, color: t.textMuted, display: "block", marginBottom: 6 }}>Date (ET)</label>
-                  <input type="date" value={scheduleData.date} onChange={e => setScheduleData(d => ({ ...d, date: e.target.value }))}
-                    style={{ width: "100%", padding: "9px 12px", borderRadius: 8, border: `1px solid ${t.border}`, background: isDark ? "rgba(255,255,255,0.06)" : "#f9fafb", color: t.text, fontSize: 13, outline: "none", boxSizing: "border-box" }} />
-                </div>
-                <div>
-                  <label style={{ fontSize: 12, fontWeight: 600, color: t.textMuted, display: "block", marginBottom: 6 }}>Time (ET)</label>
-                  <input type="time" value={scheduleData.time} onChange={e => setScheduleData(d => ({ ...d, time: e.target.value }))}
-                    style={{ width: "100%", padding: "9px 12px", borderRadius: 8, border: `1px solid ${t.border}`, background: isDark ? "rgba(255,255,255,0.06)" : "#f9fafb", color: t.text, fontSize: 13, outline: "none", boxSizing: "border-box" }} />
-                </div>
+            <div>
+              <label style={{ fontSize: 12, fontWeight: 600, color: t.textMuted, display: "block", marginBottom: 6 }}>Time (ET)</label>
+              <input type="time" value={scheduleData.time} onChange={e => setScheduleData(d => ({ ...d, time: e.target.value }))}
+                style={{ width: "100%", padding: "9px 12px", borderRadius: 8, border: `1px solid ${t.border}`, background: isDark ? "rgba(255,255,255,0.06)" : "#f9fafb", color: t.text, fontSize: 13, outline: "none", boxSizing: "border-box" }} />
+            </div>
+          </div>
+          <div>
+            <label style={{ fontSize: 12, fontWeight: 600, color: t.textMuted, display: "block", marginBottom: 6 }}>Subject</label>
+            <input type="text" value={scheduleData.subject} onChange={e => setScheduleData(d => ({ ...d, subject: e.target.value }))}
+              style={{ width: "100%", padding: "9px 12px", borderRadius: 8, border: `1px solid ${t.border}`, background: isDark ? "rgba(255,255,255,0.06)" : "#f9fafb", color: t.text, fontSize: 13, outline: "none", boxSizing: "border-box" }} />
+          </div>
+          <div>
+            <label style={{ fontSize: 12, fontWeight: 600, color: t.textMuted, display: "block", marginBottom: 6 }}>Recipients</label>
+            <div style={{ position: "relative", marginBottom: 8 }}>
+              <Search size={13} style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: t.textMuted, pointerEvents: "none" }} />
+              <input value={recipientSearch} onChange={e => setRecipientSearch(e.target.value)} placeholder="Search users or contacts…"
+                style={{ width: "100%", padding: "8px 10px 8px 30px", borderRadius: 8, border: `1px solid ${t.border}`, background: isDark ? "rgba(255,255,255,0.06)" : "#f9fafb", color: t.text, fontSize: 12, outline: "none", boxSizing: "border-box" }} />
+            </div>
+            {scheduleData.recipients.length > 0 && (
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 8 }}>
+                {scheduleData.recipients.map(r => (
+                  <span key={r.email} style={{ display: "flex", alignItems: "center", gap: 4, padding: "3px 10px", borderRadius: 20, background: isDark ? "rgba(59,130,246,0.2)" : "#EFF6FF", color: isDark ? "#93c5fd" : "#1D4ED8", fontSize: 12, fontWeight: 500 }}>
+                    {r.name || r.email}
+                    <button onClick={() => setScheduleData(d => ({ ...d, recipients: d.recipients.filter(x => x.email !== r.email) }))}
+                      style={{ background: "none", border: "none", cursor: "pointer", color: "inherit", padding: 0, lineHeight: 1 }}>×</button>
+                  </span>
+                ))}
               </div>
-              <div>
-                <label style={{ fontSize: 12, fontWeight: 600, color: t.textMuted, display: "block", marginBottom: 6 }}>Subject</label>
-                <input type="text" value={scheduleData.subject} onChange={e => setScheduleData(d => ({ ...d, subject: e.target.value }))}
-                  style={{ width: "100%", padding: "9px 12px", borderRadius: 8, border: `1px solid ${t.border}`, background: isDark ? "rgba(255,255,255,0.06)" : "#f9fafb", color: t.text, fontSize: 13, outline: "none", boxSizing: "border-box" }} />
-              </div>
-              <div>
-                <label style={{ fontSize: 12, fontWeight: 600, color: t.textMuted, display: "block", marginBottom: 6 }}>Recipients</label>
-                <div style={{ position: "relative", marginBottom: 8 }}>
-                  <Search size={13} style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: t.textMuted, pointerEvents: "none" }} />
-                  <input value={recipientSearch} onChange={e => setRecipientSearch(e.target.value)} placeholder="Search users or contacts…"
-                    style={{ width: "100%", padding: "8px 10px 8px 30px", borderRadius: 8, border: `1px solid ${t.border}`, background: isDark ? "rgba(255,255,255,0.06)" : "#f9fafb", color: t.text, fontSize: 12, outline: "none", boxSizing: "border-box" }} />
-                </div>
-                {scheduleData.recipients.length > 0 && (
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 8 }}>
-                    {scheduleData.recipients.map(r => (
-                      <span key={r.email} style={{ display: "flex", alignItems: "center", gap: 4, padding: "3px 10px", borderRadius: 20, background: isDark ? "rgba(59,130,246,0.2)" : "#EFF6FF", color: isDark ? "#93c5fd" : "#1D4ED8", fontSize: 12, fontWeight: 500 }}>
-                        {r.name || r.email}
-                        <button onClick={() => setScheduleData(d => ({ ...d, recipients: d.recipients.filter(x => x.email !== r.email) }))}
-                          style={{ background: "none", border: "none", cursor: "pointer", color: "inherit", padding: 0, lineHeight: 1 }}>×</button>
-                      </span>
-                    ))}
+            )}
+            <div style={{ maxHeight: 160, overflowY: "auto", border: `1px solid ${t.border}`, borderRadius: 8, background: isDark ? "rgba(0,0,0,0.15)" : "#fafafa" }}>
+              {[...USERS, ...CONTACTS].filter(u => {
+                const name = u.first_name ? `${u.first_name} ${u.last_name || ""}` : (u.name || u.full_name || "");
+                const email = u.email || "";
+                const q = recipientSearch.toLowerCase();
+                return email && (!q || name.toLowerCase().includes(q) || email.toLowerCase().includes(q));
+              }).slice(0, 40).map((u, i) => {
+                const name = u.first_name ? `${u.first_name} ${u.last_name || ""}`.trim() : (u.name || u.full_name || "");
+                const email = u.email || "";
+                const selected = scheduleData.recipients.some(r => r.email === email);
+                return (
+                  <div key={u.id || i} onClick={() => setScheduleData(d => ({
+                    ...d,
+                    recipients: selected ? d.recipients.filter(r => r.email !== email) : [...d.recipients, { name, email }]
+                  }))}
+                    style={{ padding: "8px 12px", display: "flex", alignItems: "center", gap: 10, cursor: "pointer", borderBottom: `1px solid ${isDark ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.04)"}`, background: selected ? (isDark ? "rgba(59,130,246,0.12)" : "#EFF6FF") : "transparent" }}
+                  >
+                    <div style={{ width: 26, height: 26, borderRadius: "50%", background: isDark ? "#334155" : "#e0e7ff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 700, color: isDark ? "#93c5fd" : "#3730a3", flexShrink: 0 }}>
+                      {(name[0] || email[0] || "?").toUpperCase()}
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 12, fontWeight: 600, color: t.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{name || email}</div>
+                      <div style={{ fontSize: 11, color: t.textMuted, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{email}</div>
+                    </div>
+                    {selected && <Check size={14} color={isDark ? "#60A5FA" : "#1D4ED8"} />}
                   </div>
-                )}
-                <div style={{ maxHeight: 160, overflowY: "auto", border: `1px solid ${t.border}`, borderRadius: 8, background: isDark ? "rgba(0,0,0,0.15)" : "#fafafa" }}>
-                  {[...USERS, ...CONTACTS].filter(u => {
-                    const name = u.first_name ? `${u.first_name} ${u.last_name || ""}` : (u.name || u.full_name || "");
-                    const email = u.email || "";
-                    const q = recipientSearch.toLowerCase();
-                    return email && (!q || name.toLowerCase().includes(q) || email.toLowerCase().includes(q));
-                  }).slice(0, 40).map((u, i) => {
-                    const name = u.first_name ? `${u.first_name} ${u.last_name || ""}`.trim() : (u.name || u.full_name || "");
-                    const email = u.email || "";
-                    const selected = scheduleData.recipients.some(r => r.email === email);
-                    return (
-                      <div key={u.id || i} onClick={() => setScheduleData(d => ({
-                        ...d,
-                        recipients: selected ? d.recipients.filter(r => r.email !== email) : [...d.recipients, { name, email }]
-                      }))}
-                        style={{ padding: "8px 12px", display: "flex", alignItems: "center", gap: 10, cursor: "pointer", borderBottom: `1px solid ${isDark ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.04)"}`, background: selected ? (isDark ? "rgba(59,130,246,0.12)" : "#EFF6FF") : "transparent" }}
-                      >
-                        <div style={{ width: 26, height: 26, borderRadius: "50%", background: isDark ? "#334155" : "#e0e7ff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 700, color: isDark ? "#93c5fd" : "#3730a3", flexShrink: 0 }}>
-                          {(name[0] || email[0] || "?").toUpperCase()}
-                        </div>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontSize: 12, fontWeight: 600, color: t.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{name || email}</div>
-                          <div style={{ fontSize: 11, color: t.textMuted, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{email}</div>
-                        </div>
-                        {selected && <Check size={14} color={isDark ? "#60A5FA" : "#1D4ED8"} />}
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
-            <div style={{ padding: "16px 24px", borderTop: `1px solid ${t.border}`, display: "flex", gap: 10, justifyContent: "flex-end" }}>
-              <button onClick={() => setItemToReschedule(null)}
-                style={{ padding: "9px 20px", borderRadius: 8, border: `1px solid ${t.border}`, background: "transparent", color: t.text, fontWeight: 600, fontSize: 13, cursor: "pointer" }}>
-                Cancel
-              </button>
-              <button
-                disabled={!scheduleData.date || !scheduleData.time || scheduleData.recipients.length === 0}
-                onClick={async () => {
-                   if (!activeTenantId || !itemToReschedule) return;
-                   const paths = getCollectionPaths(activeTenantId);
-                   const scheduledAt = `${scheduleData.date}T${scheduleData.time}:00`;
-                   const newSettings = {
-                      ...(itemToReschedule.settings || {}),
-                      scheduledAt,
-                      subject: scheduleData.subject,
-                      recipients: scheduleData.recipients,
-                   };
-
-                   const docRef = doc(db, paths.marketingEmails, itemToReschedule.id);
-                   await updateDoc(docRef, { settings: newSettings, updatedAt: new Date().toISOString() });
-
-                   const jobsRef = collection(db, paths.scheduledJobs);
-                   const q = query(jobsRef, where("campaignId", "==", itemToReschedule.id), where("jobStatus", "==", "Pending"));
-                   const jobSnap = await getDocs(q);
-                   if (!jobSnap.empty) {
-                      await updateDoc(jobSnap.docs[0].ref, {
-                        scheduledAt,
-                        subject: scheduleData.subject,
-                        recipients: scheduleData.recipients,
-                        settings: newSettings
-                      });
-                   } else {
-                      await addDoc(jobsRef, {
-                        campaignId: itemToReschedule.id,
-                        title: itemToReschedule.title,
-                        scheduledAt,
-                        subject: scheduleData.subject,
-                        recipients: scheduleData.recipients,
-                        settings: newSettings,
-                        jobStatus: "Pending",
-                        createdAt: serverTimestamp()
-                      });
-                   }
-
-                   setItemToReschedule(null);
-                }}
-                style={{ padding: "9px 20px", borderRadius: 8, background: "#1D4ED8", color: "#fff", fontWeight: 600, fontSize: 13, border: "none", cursor: "pointer" }}>
-                Update Schedule
-              </button>
+                );
+              })}
             </div>
           </div>
         </div>
-      )}
+      </Modal>
 
       {/* Recipients Modal */}
-      {recipientsModalData && (
-        <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.5)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 10000 }}>
-          <div style={{ background: t.cardBg, border: `1px solid ${t.surfaceBorder}`, borderRadius: 16, width: "90%", maxWidth: 500, boxShadow: "0 20px 40px rgba(0,0,0,0.2)", display: "flex", flexDirection: "column", maxHeight: "70vh" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px 20px", borderBottom: `1px solid ${t.border}` }}>
-              <div>
-                <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: t.text }}>Recipient List</h3>
-                <p style={{ margin: "2px 0 0 0", fontSize: 12, color: t.textMuted }}>{recipientsModalData.title}</p>
-              </div>
-              <button onClick={() => setRecipientsModalData(null)} style={{ background: "transparent", border: "none", cursor: "pointer", color: t.textMuted }}>
-                <X size={20} />
-              </button>
-            </div>
-            <div style={{ padding: "12px 20px", overflowY: "auto", flex: 1 }}>
-              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                {recipientsModalData.emails.map((emailObj, i) => {
-                  const email = typeof emailObj === 'string' ? emailObj : (emailObj.email || "");
-                  return (
-                    <div key={i} style={{ 
-                      padding: "8px 12px", 
-                      borderRadius: 6, 
-                      background: isDark ? "rgba(255,255,255,0.03)" : "#F9FAFB",
-                      border: `1px solid ${t.border}`,
-                      fontSize: 13,
-                      color: t.text,
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 10
-                    }}>
-                      <Users size={14} style={{ color: t.textMuted }} />
-                      {email}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-            <div style={{ padding: "12px 20px", borderTop: `1px solid ${t.border}`, textAlign: "center" }}>
-              <button 
-                onClick={() => setRecipientsModalData(null)}
-                style={{ padding: "8px 24px", borderRadius: 8, background: t.accentGrad, color: "#fff", border: "none", fontSize: 13, fontWeight: 600, cursor: "pointer" }}
-              >
-                Close
-              </button>
+      <Modal
+        open={!!recipientsModalData}
+        onClose={() => setRecipientsModalData(null)}
+        title="Recipient List"
+        width={500}
+        t={t}
+        isDark={isDark}
+        hideSave
+      >
+        <div style={{ display: "flex", flexDirection: "column", maxHeight: "60vh" }}>
+          <div style={{ fontSize: 13, color: t.textMuted, marginBottom: 12 }}>{recipientsModalData?.title}</div>
+          <div style={{ overflowY: "auto", flex: 1 }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {(recipientsModalData?.emails || []).map((emailObj, i) => {
+                const email = typeof emailObj === 'string' ? emailObj : (emailObj.email || "");
+                return (
+                  <div key={i} style={{ 
+                    padding: "8px 12px", 
+                    borderRadius: 6, 
+                    background: isDark ? "rgba(255,255,255,0.03)" : "#F9FAFB",
+                    border: `1px solid ${t.border}`,
+                    fontSize: 13,
+                    color: t.text,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 10
+                  }}>
+                    <Users size={14} style={{ color: t.textMuted }} />
+                    {email}
+                  </div>
+                );
+              })}
             </div>
           </div>
         </div>
-      )}
+      </Modal>
       {/* Toast Notification */}
       {toast && (
         <div style={{ position: "fixed", bottom: 28, right: 28, zIndex: 9999, background: toast.type === "success" ? (isDark ? "#052e16" : "#f0fdf4") : (isDark ? "#2d0a0a" : "#fef2f2"), border: `1px solid ${toast.type === "success" ? "#22c55e" : "#ef4444"}`, color: toast.type === "success" ? "#22c55e" : "#ef4444", borderRadius: 12, padding: "14px 20px", fontSize: 13.5, fontWeight: 600, boxShadow: "0 8px 32px rgba(0,0,0,0.18)", display: "flex", alignItems: "center", gap: 10, maxWidth: 380 }}>

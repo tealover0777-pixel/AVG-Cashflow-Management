@@ -35,6 +35,7 @@ export default function PageUserProfiles({ t, isDark, USERS = [], GLOBAL_USERS =
     const [saving, setSaving] = useState(false);
     const [fixing, setFixing] = useState(false);
     const [inviteResult, setInviteResult] = useState(null);
+    const [inviteConfirm, setInviteConfirm] = useState(null);
     const [toast, setToast] = useState(null); // { msg, type: 'success'|'error'|'info' }
     const [confirmFix, setConfirmFix] = useState(false);
 
@@ -56,6 +57,11 @@ export default function PageUserProfiles({ t, isDark, USERS = [], GLOBAL_USERS =
     const isSelectedRoleGlobal = (roleId) => {
         const found = ROLES.find(r => (r.id || r.role_id) === roleId);
         return found && found.IsGlobal === true;
+    };
+
+    const getRoleInfo = (id) => {
+        const r = ROLES.find(x => (x.id || x.role_id) === id);
+        return r ? { name: r.role_name || r.name || id, id } : { name: "Member", id: "R10001" };
     };
 
     // Merge tenant users with global users data (for first_name/last_name)
