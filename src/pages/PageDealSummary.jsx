@@ -702,7 +702,11 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
           return;
         }
 
-        contactId = `P${Date.now()}R${Math.floor(Math.random() * 1000)}`;
+        const maxNum = Math.max(10000, ...CONTACTS.map(p => { 
+          const m = String(p.id).match(/^M(\d+)$/); 
+          return m ? Number(m[1]) : 0; 
+        }));
+        contactId = "M" + (maxNum + 1);
         contactName = (contactModal.data.type === "Company" && contactModal.data.company_name)
           ? contactModal.data.company_name
           : `${contactModal.data.first_name} ${contactModal.data.last_name}`.trim();
@@ -2015,7 +2019,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
               </button>
             )}
             {canAssetCreate && activeTab === "Assets" && <button onClick={openAddAsset} style={{ background: t.accentGrad || t.accent, color: "#fff", border: "none", padding: "11px 20px", borderRadius: 11, fontSize: 13, fontWeight: 600, boxShadow: `0 4px 16px ${t.accentShadow || "none"}`, display: "flex", alignItems: "center", gap: 7 }}><span style={{ fontSize: 18, lineHeight: 1 }}>+</span> Add asset</button>}
-            {canCreate && activeTab === "Contacts" && <button onClick={openAddContactModal} style={{ background: t.accentGrad || t.accent, color: "#fff", border: "none", padding: "11px 20px", borderRadius: 11, fontSize: 13, fontWeight: 600, boxShadow: `0 4px 16px ${t.accentShadow || "none"}`, display: "flex", alignItems: "center", gap: 7 }}><span style={{ fontSize: 18, lineHeight: 1 }}>+</span> New/Add Contact</button>}
+            {canCreate && activeTab === "Contacts" && <button onClick={openAddContactModal} style={{ background: t.accentGrad || t.accent, color: "#fff", border: "none", padding: "11px 20px", borderRadius: 11, fontSize: 13, fontWeight: 600, boxShadow: `0 4px 16px ${t.accentShadow || "none"}`, display: "flex", alignItems: "center", gap: 7 }}><span style={{ fontSize: 18, lineHeight: 1 }}>+</span> New Contact</button>}
           </div>
         </div>
       </div>
@@ -3163,18 +3167,6 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
         t={t}
         isDark={isDark}
       >
-      <ConfirmModal 
-        open={duplicateConfirm} 
-        onClose={() => setDuplicateConfirm(false)} 
-        onConfirm={() => {
-          setDuplicateConfirm(false);
-          handleSaveContactToDeal(true);
-        }}
-        title="Duplicate Name"
-        message={`A contact with the name "${contactModal.data.first_name} ${contactModal.data.last_name}" already exists. Do you still want to proceed?`}
-        t={t}
-        isDark={isDark}
-      />
         <div style={{ display: "flex", gap: 12, marginBottom: 20 }}>
           <button
             type="button"
@@ -3243,6 +3235,19 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
           </>
         )}
       </Modal>
+
+      <ConfirmModal 
+        open={duplicateConfirm} 
+        onClose={() => setDuplicateConfirm(false)} 
+        onConfirm={() => {
+          setDuplicateConfirm(false);
+          handleSaveContactToDeal(true);
+        }}
+        title="Duplicate Name"
+        message={`A contact with the name "${contactModal.data.first_name} ${contactModal.data.last_name}" already exists. Do you still want to proceed?`}
+        t={t}
+        isDark={isDark}
+      />
 
 
       {/* Schedule Edit Modal */}
