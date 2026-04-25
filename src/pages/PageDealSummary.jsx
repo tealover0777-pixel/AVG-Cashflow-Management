@@ -9,6 +9,7 @@ import { getDealInvestmentColumns } from "../components/DealSummaryTanStackConfi
 import { getDistributionColumns } from "../components/DistributionScheduleTanStackConfig";
 import { getContactColumns } from "../components/ContactsTanStackConfig";
 import { getAssetColumns } from "../components/AssetsTanStackConfig";
+import { getDistributionMemoColumns } from "../components/DistributionMemoTanStackConfig";
 import TanStackTable from "../components/TanStackTable";
 import DocumentsTab from "../components/DocumentsTab";
 import { X, Check, Plus, Construction, AlertTriangle, FileCheck, Download, ChevronDown } from "lucide-react";
@@ -32,6 +33,14 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
   const paymentMethods = (DIMENSIONS.find(d => d.name === "Payment Method" || d.name === "PaymentMethod") || {}).items || [];
   const investmentStatusOpts = (DIMENSIONS.find(d => d.name === "InvestmentStatus" || d.name === "Investment Status") || {}).items?.filter(i => i) || ["Open", "Active", "Closed"];
   const paymentStatusOpts = (DIMENSIONS.find(d => d.name === "PaymentStatus" || d.name === "Payment Status" || d.name === "ScheduleStatus" || d.name === "Schedule Status") || {}).items?.filter(i => i) || ["Due", "Paid", "Partial", "Missed", "Cancelled"];
+  const paymentTypeOpts = useMemo(() => {
+    const fromDim = [
+      ...((DIMENSIONS.find(d => d.name === "IN_PaymentType") || {}).items || []),
+      ...((DIMENSIONS.find(d => d.name === "OUT_PaymentType") || {}).items || []),
+    ].filter(Boolean);
+    if (fromDim.length) return [...new Set(fromDim)];
+    return [...new Set(SCHEDULES.map(s => s.type || s.payment_type || "").filter(Boolean))].sort();
+  }, [DIMENSIONS, SCHEDULES]);
 
   const deal = useMemo(() => DEALS.find(d => d.id === dealId) || {}, [dealId, DEALS]);
   const dealPath = useMemo(() => {
@@ -41,7 +50,11 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
     return "";
   }, [deal._path, deal.id, tenantId]);
   const [activeTab, setActiveTab] = useState("Investments");
-  const [distributionView, setDistributionView] = useState("table"); // "table" or "pivot"
+  const [distributionView, setDistributionView] = useState("memo"); // "memo", "table", or "pivot"
+  const [distMemos, setDistMemos] = useState([]);
+  const [distMemoModal, setDistMemoModal] = useState({ open: false, mode: "add", data: {} });
+  const [distMemoDelT, setDistMemoDelT] = useState(null);
+  const [distMemoDrillDown, setDistMemoDrillDown] = useState({ open: false, memo: null, schedules: [] });
   const [assetImages, setAssetImages] = useState([]);
   const [assets, setAssets] = useState([]);
   const [modal, setModal] = useState({ open: false, mode: "add", data: {} });
@@ -107,6 +120,82 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
   const sortedContacts = useMemo(() => {
     return [...CONTACTS].sort((a, b) => (a.name || "").localeCompare(b.name || ""));
   }, [CONTACTS]);
+
+  // Distribution Memos
+  const distMemoCollectionPath = tenantId ? `tenants/${tenantId}/distributionMemos` : null;
+
+  const fetchDistMemos = useCallback(async () => {
+    if (!distMemoCollectionPath || !dealId) return;
+    try {
+      const snap = await getDocs(collection(db, distMemoCollectionPath));
+      const items = snap.docs
+        .map(d => ({ docId: d.id, _path: `${distMemoCollectionPath}/${d.id}`, ...d.data() }))
+        .filter(m => m.deal_id === dealId);
+      setDistMemos(items);
+    } catch (err) {
+      console.error("Failed to fetch distribution memos:", err);
+    }
+  }, [distMemoCollectionPath, dealId]);
+
+  useEffect(() => { fetchDistMemos(); }, [fetchDistMemos]);
+
+  const handleSaveDistMemo = async () => {
+    const d = distMemoModal.data;
+    if (!d.memo) { showToast("Memo name is required", "error"); return; }
+    try {
+      const payload = {
+        deal_id: dealId,
+        memo: d.memo || "",
+        status: d.status || "",
+        payment_type: d.payment_type || "",
+        period_start: d.period_start || "",
+        period_end: d.period_end || "",
+        updated_at: serverTimestamp(),
+        updated_by: user?.uid || "system",
+      };
+      if (distMemoModal.mode === "add") {
+        payload.created_at = serverTimestamp();
+        await addDoc(collection(db, distMemoCollectionPath), payload);
+        showToast("Distribution memo created", "success");
+      } else {
+        await updateDoc(doc(db, d._path), payload);
+        showToast("Distribution memo updated", "success");
+      }
+      setDistMemoModal({ open: false, mode: "add", data: {} });
+      fetchDistMemos();
+    } catch (err) {
+      showToast("Failed to save: " + err.message, "error");
+    }
+  };
+
+  const handleDeleteDistMemo = async () => {
+    if (!distMemoDelT?._path) return;
+    try {
+      await deleteDoc(doc(db, distMemoDelT._path));
+      showToast("Distribution memo deleted", "success");
+      setDistMemoDelT(null);
+      fetchDistMemos();
+    } catch (err) {
+      showToast("Failed to delete: " + err.message, "error");
+    }
+  };
+
+  const handleCloneDistMemo = async (memo) => {
+    try {
+      const { docId, _path, created_at, updated_at, ...rest } = memo;
+      await addDoc(collection(db, distMemoCollectionPath), {
+        ...rest,
+        memo: `${rest.memo} (Copy)`,
+        created_at: serverTimestamp(),
+        updated_at: serverTimestamp(),
+        updated_by: user?.uid || "system",
+      });
+      showToast("Memo cloned", "success");
+      fetchDistMemos();
+    } catch (err) {
+      showToast("Failed to clone: " + err.message, "error");
+    }
+  };
 
   const handleExport = (format) => {
     const isPivot = distributionView === "pivot";
@@ -2118,6 +2207,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
             )}
             {canAssetCreate && activeTab === "Assets" && <button onClick={openAddAsset} style={{ background: t.accentGrad || t.accent, color: "#fff", border: "none", padding: "11px 20px", borderRadius: 11, fontSize: 13, fontWeight: 600, boxShadow: `0 4px 16px ${t.accentShadow || "none"}`, display: "flex", alignItems: "center", gap: 7 }}><span style={{ fontSize: 18, lineHeight: 1 }}>+</span> Add asset</button>}
             {canCreate && activeTab === "Contacts" && <button onClick={openAddContactModal} style={{ background: t.accentGrad || t.accent, color: "#fff", border: "none", padding: "11px 20px", borderRadius: 11, fontSize: 13, fontWeight: 600, boxShadow: `0 4px 16px ${t.accentShadow || "none"}`, display: "flex", alignItems: "center", gap: 7 }}><span style={{ fontSize: 18, lineHeight: 1 }}>+</span> New Contact</button>}
+            {activeTab === "Distributions" && distributionView === "memo" && <button onClick={() => setDistMemoModal({ open: true, mode: "add", data: { deal_id: dealId } })} style={{ background: t.accentGrad || t.accent, color: "#fff", border: "none", padding: "11px 20px", borderRadius: 11, fontSize: 13, fontWeight: 600, boxShadow: `0 4px 16px ${t.accentShadow || "none"}`, display: "flex", alignItems: "center", gap: 7 }}><span style={{ fontSize: 18, lineHeight: 1 }}>+</span> Add Distribution Memo</button>}
           </div>
         </div>
       </div>
@@ -2254,36 +2344,28 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
           {/* Distribution sub-tabs */}
           <div style={{ borderBottom: `1px solid ${t.surfaceBorder}`, marginBottom: 20, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <div style={{ display: "flex", gap: 24 }}>
-            <div
-              onClick={() => setDistributionView("table")}
-              style={{
-                padding: "10px 0",
-                fontSize: 13,
-                fontWeight: 600,
-                color: distributionView === "table" ? t.text : t.textMuted,
-                cursor: "pointer",
-                position: "relative",
-                transition: "all 0.2s ease"
-              }}
-            >
-              Table View
-              {distributionView === "table" && <div style={{ position: "absolute", bottom: -1, left: 0, right: 0, height: 2, background: t.accent }} />}
-            </div>
-            <div
-              onClick={() => setDistributionView("pivot")}
-              style={{
-                padding: "10px 0",
-                fontSize: 13,
-                fontWeight: 600,
-                color: distributionView === "pivot" ? t.text : t.textMuted,
-                cursor: "pointer",
-                position: "relative",
-                transition: "all 0.2s ease"
-              }}
-            >
-              Pivot View
-              {distributionView === "pivot" && <div style={{ position: "absolute", bottom: -1, left: 0, right: 0, height: 2, background: t.accent }} />}
-            </div>
+            {[
+              { key: "memo", label: "Distribution View" },
+              { key: "table", label: "Table View" },
+              { key: "pivot", label: "Pivot View" },
+            ].map(({ key, label }) => (
+              <div
+                key={key}
+                onClick={() => setDistributionView(key)}
+                style={{
+                  padding: "10px 0",
+                  fontSize: 13,
+                  fontWeight: 600,
+                  color: distributionView === key ? t.text : t.textMuted,
+                  cursor: "pointer",
+                  position: "relative",
+                  transition: "all 0.2s ease"
+                }}
+              >
+                {label}
+                {distributionView === key && <div style={{ position: "absolute", bottom: -1, left: 0, right: 0, height: 2, background: t.accent }} />}
+              </div>
+            ))}
             </div>
             
             <div style={{ display: "flex", alignItems: "center", gap: 10, flex: 1, justifyContent: "center" }}>
@@ -2343,7 +2425,27 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
 
         <div style={{ marginBottom: 20 }} />
 
-        {distributionView === "table" ? (
+        {distributionView === "memo" ? (
+          <div style={{ height: '1000px', width: "100%", minHeight: '1000px' }}>
+            <TanStackTable
+              key="dist-memo-table"
+              data={distMemos}
+              columns={getDistributionMemoColumns(isDark, t, {
+                SCHEDULES: activeDealSchedules,
+                dealId,
+                callbacks: {
+                  onMemoClick: (memo, linked) => setDistMemoDrillDown({ open: true, memo, schedules: linked }),
+                  onEdit: (row) => setDistMemoModal({ open: true, mode: "edit", data: { ...row } }),
+                  onDelete: (row) => setDistMemoDelT(row),
+                  onClone: (row) => handleCloneDistMemo(row),
+                }
+              })}
+              pageSize={50}
+              t={t}
+              isDark={isDark}
+            />
+          </div>
+        ) : distributionView === "table" ? (
           <div style={{ height: '1000px', width: "100%", minHeight: '1000px' }}>
             <TanStackTable
               key="distributions-table"
@@ -3800,6 +3902,116 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
       <DelModal target={delT} onClose={() => setDelT(null)} onConfirm={handleDeleteInvestment} label="this investment" t={t} isDark={isDark} />
       <DelModal target={assetDelT} onClose={() => setAssetDelT(null)} onConfirm={handleDeleteAsset} label="this asset" t={t} isDark={isDark} />
       <DelModal target={contactDelT} onClose={() => setContactDelT(null)} onConfirm={handleRemoveContactFromDeal} label="this contact" t={t} isDark={isDark} />
+      <DelModal target={distMemoDelT} onClose={() => setDistMemoDelT(null)} onConfirm={handleDeleteDistMemo} label="this distribution memo" t={t} isDark={isDark} />
+
+      {/* Add / Edit Distribution Memo Modal */}
+      <Modal
+        open={distMemoModal.open}
+        onClose={() => setDistMemoModal({ open: false, mode: "add", data: {} })}
+        title={distMemoModal.mode === "edit" ? "Edit Distribution Memo" : "Add Distribution Memo"}
+        onSave={handleSaveDistMemo}
+        width={520}
+        t={t}
+        isDark={isDark}
+      >
+        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+          <FF label="Memo" t={t}>
+            <FIn
+              value={distMemoModal.data.memo || ""}
+              onChange={e => setDistMemoModal(m => ({ ...m, data: { ...m.data, memo: e.target.value } }))}
+              placeholder="e.g. Q1 2025 Interest Distribution"
+              t={t}
+            />
+          </FF>
+          <FF label="Payment Status" t={t}>
+            <FSel
+              value={distMemoModal.data.status || ""}
+              options={["", ...paymentStatusOpts]}
+              onChange={e => setDistMemoModal(m => ({ ...m, data: { ...m.data, status: e.target.value } }))}
+              t={t}
+            />
+          </FF>
+          <FF label="Payment Type" t={t}>
+            <FSel
+              value={distMemoModal.data.payment_type || ""}
+              options={["", ...paymentTypeOpts]}
+              onChange={e => setDistMemoModal(m => ({ ...m, data: { ...m.data, payment_type: e.target.value } }))}
+              t={t}
+            />
+          </FF>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+            <FF label="Period Start Date" t={t}>
+              <FIn
+                type="date"
+                value={distMemoModal.data.period_start || ""}
+                onChange={e => setDistMemoModal(m => ({ ...m, data: { ...m.data, period_start: e.target.value } }))}
+                t={t}
+              />
+            </FF>
+            <FF label="Period End Date" t={t}>
+              <FIn
+                type="date"
+                value={distMemoModal.data.period_end || ""}
+                onChange={e => setDistMemoModal(m => ({ ...m, data: { ...m.data, period_end: e.target.value } }))}
+                t={t}
+              />
+            </FF>
+          </div>
+          {distMemoModal.data.period_start && distMemoModal.data.period_end && distMemoModal.data.payment_type && (
+            <div style={{ padding: "10px 14px", background: isDark ? "rgba(59,130,246,0.08)" : "#EFF6FF", border: `1px solid ${isDark ? "rgba(59,130,246,0.2)" : "#BFDBFE"}`, borderRadius: 8 }}>
+              <div style={{ fontSize: 12, fontWeight: 600, color: isDark ? "#93C5FD" : "#1D4ED8" }}>
+                {(() => {
+                  const count = activeDealSchedules.filter(s => {
+                    const sType = (s.type || s.payment_type || "").toLowerCase();
+                    const mType = (distMemoModal.data.payment_type || "").toLowerCase();
+                    const due = s.dueDate || s.due_date || "";
+                    return sType === mType && due >= distMemoModal.data.period_start && due <= distMemoModal.data.period_end;
+                  }).length;
+                  return `${count} schedule${count !== 1 ? "s" : ""} will be linked with these criteria`;
+                })()}
+              </div>
+            </div>
+          )}
+        </div>
+      </Modal>
+
+      {/* Distribution Memo Drilldown Modal */}
+      {distMemoDrillDown.open && (
+        <Modal
+          open={distMemoDrillDown.open}
+          onClose={() => setDistMemoDrillDown({ open: false, memo: null, schedules: [] })}
+          title={distMemoDrillDown.memo?.memo || "Linked Schedules"}
+          width={900}
+          t={t}
+          isDark={isDark}
+          showCancel={false}
+        >
+          <div>
+            <div style={{ display: "flex", gap: 16, marginBottom: 16 }}>
+              {[
+                { label: "Linked Schedules", val: distMemoDrillDown.schedules.length },
+                { label: "Total Amount", val: fmtCurr(distMemoDrillDown.schedules.reduce((s, r) => s + (Number(r.signed_payment_amount || r.payment_amount || 0) || 0), 0)) },
+                { label: "Period", val: `${distMemoDrillDown.memo?.period_start || "—"} → ${distMemoDrillDown.memo?.period_end || "—"}` },
+              ].map((stat, i) => (
+                <div key={i} style={{ flex: 1, padding: "14px 18px", background: isDark ? "rgba(255,255,255,0.03)" : "#F9FAFB", border: `1px solid ${t.surfaceBorder}`, borderRadius: 10 }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: t.textMuted, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 6 }}>{stat.label}</div>
+                  <div style={{ fontSize: 18, fontWeight: 700, color: t.text }}>{stat.val}</div>
+                </div>
+              ))}
+            </div>
+            <div style={{ height: 400 }}>
+              <TanStackTable
+                data={distMemoDrillDown.schedules}
+                columns={scheduleColumnDefs}
+                pageSize={50}
+                t={t}
+                isDark={isDark}
+                initialSorting={[{ id: 'dueDate', desc: false }]}
+              />
+            </div>
+          </div>
+        </Modal>
+      )}
 
       {/* Confirmation Modal for Bulk Actions */}
       {confirmAction && (
