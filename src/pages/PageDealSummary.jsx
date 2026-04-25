@@ -398,7 +398,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
 
   // Pivot data for distribution chart view
   const pivotData = useMemo(() => {
-    if (!dealSchedules.length) return { rows: [], dates: [], data: {} };
+    if (!filteredDealSchedules.length) return { rows: [], dates: [], data: {} };
 
     // Get unique investor+type combinations, dates, and data
     const rowSet = new Set();
@@ -417,9 +417,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
       return isNaN(parsed) ? 0 : parsed;
     };
 
-    dealSchedules.forEach(schedule => {
-      // Only include active version (latest version) of each schedule in pivot view
-      if (schedule.active_version !== true) return;
+    filteredDealSchedules.forEach(schedule => {
 
       const investor = CONTACTS.find(c => c.id === schedule.contact_id);
       const investorName = investor ? investor.name : schedule.contact_id || "Unknown";
@@ -496,7 +494,6 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
       });
     });
 
-    // Convert row keys to objects with investor and type
     const rows = Array.from(rowSet).map(key => {
       const parts = key.split('|||');
       const investor = parts[0];
@@ -515,7 +512,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
 
     const dates = Array.from(dateSet).sort();
     return { rows, dates, data: dataMap };
-  }, [dealSchedules, CONTACTS, INVESTMENTS, FEES_DATA]);
+  }, [filteredDealSchedules, CONTACTS, INVESTMENTS, FEES_DATA]);
 
   const drillDownColumns = useMemo(() => [
     { header: "Start Date", accessorKey: "startDate", size: 100 },
@@ -2195,32 +2192,33 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
           </div>
         </div>
 
-          {distributionView === "table" ? (
-            <div style={{ height: '1000px', width: "100%", minHeight: '1000px' }}>
-              <div style={{ display: "flex", gap: 10, marginBottom: 20 }}>
-                {["All", "Interest", "Principal", "Fee"].map(f => (
-                  <button
-                    key={f}
-                    onClick={() => setDistFilter(f)}
-                    style={{
-                      padding: "8px 16px",
-                      borderRadius: 20,
-                      background: distFilter === f ? t.accentGrad : (isDark ? "rgba(255,255,255,0.05)" : "#f3f4f6"),
-                      color: distFilter === f ? "#fff" : t.textSecondary,
-                      border: `1px solid ${distFilter === f ? "transparent" : t.surfaceBorder}`,
-                      fontSize: 13,
-                      fontWeight: 600,
-                      cursor: "pointer",
-                      transition: "all 0.2s",
-                      boxShadow: distFilter === f ? `0 4px 10px ${t.accentShadow}` : "none"
-                    }}
-                  >
-                    {f}
-                  </button>
-                ))}
-              </div>
-              <TanStackTable
-                key="distributions-table"
+        <div style={{ display: "flex", gap: 10, marginBottom: 20 }}>
+          {["All", "Interest", "Principal", "Fee"].map(f => (
+            <button
+              key={f}
+              onClick={() => setDistFilter(f)}
+              style={{
+                padding: "8px 16px",
+                borderRadius: 20,
+                background: distFilter === f ? t.accentGrad : (isDark ? "rgba(255,255,255,0.05)" : "#f3f4f6"),
+                color: distFilter === f ? "#fff" : t.textSecondary,
+                border: `1px solid ${distFilter === f ? "transparent" : t.surfaceBorder}`,
+                fontSize: 13,
+                fontWeight: 600,
+                cursor: "pointer",
+                transition: "all 0.2s",
+                boxShadow: distFilter === f ? `0 4px 10px ${t.accentShadow}` : "none"
+              }}
+            >
+              {f}
+            </button>
+          ))}
+        </div>
+
+        {distributionView === "table" ? (
+          <div style={{ height: '1000px', width: "100%", minHeight: '1000px' }}>
+            <TanStackTable
+              key="distributions-table"
                 data={filteredDealSchedules}
                 columns={scheduleColumnDefs}
                 pageSize={100}
