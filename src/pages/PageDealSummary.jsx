@@ -3929,6 +3929,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
               options={paymentStatusOpts}
               onChange={v => setDistMemoModal(m => ({ ...m, data: { ...m.data, status: v } }))}
               t={t}
+              showSelectAll
             />
           </FF>
           <FF label="Payment Type" t={t}>
@@ -3937,6 +3938,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
               options={paymentTypeOpts}
               onChange={v => setDistMemoModal(m => ({ ...m, data: { ...m.data, payment_type: v } }))}
               t={t}
+              showSelectAll
             />
           </FF>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>

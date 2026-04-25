@@ -447,24 +447,42 @@ export const FSel = ({ value, onChange, options, t, placeholder, disabled }) => 
   </select>
 );
 
-export const FMultiSel = ({ value = [], onChange, options, t, style = {} }) => (
-  <div style={{ display: "flex", flexDirection: "column", gap: 6, maxHeight: 300, overflowY: "auto", background: t.searchBg, border: `1px solid ${t.searchBorder}`, borderRadius: 9, padding: "10px 12px", ...style }}>
-    {options.map(o => (
-      <label key={o} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12.5, color: t.searchText, cursor: "pointer", fontFamily: t.mono }}>
-        <input
-          type="checkbox"
-          checked={value.includes(o)}
-          onChange={(e) => {
-            if (e.target.checked) onChange([...value, o]);
-            else onChange(value.filter(v => v !== o));
-          }}
-          style={{ accentColor: t.accent, cursor: "pointer" }}
-        />
-        {o}
-      </label>
-    ))}
-  </div>
-);
+export const FMultiSel = ({ value = [], onChange, options, t, style = {}, showSelectAll = false }) => {
+  const allSelected = options.length > 0 && options.every(o => value.includes(o));
+  const someSelected = options.some(o => value.includes(o));
+  return (
+    <div style={{ display: "flex", flexDirection: "column", background: t.searchBg, border: `1px solid ${t.searchBorder}`, borderRadius: 9, overflow: "hidden", ...style }}>
+      {showSelectAll && (
+        <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12.5, fontWeight: 700, color: t.searchText, cursor: "pointer", fontFamily: t.mono, padding: "8px 12px", borderBottom: `1px solid ${t.searchBorder}`, background: someSelected ? (t.isDark ? "rgba(255,255,255,0.04)" : "#F0F4FF") : "transparent" }}>
+          <input
+            type="checkbox"
+            checked={allSelected}
+            ref={el => { if (el) el.indeterminate = someSelected && !allSelected; }}
+            onChange={() => onChange(allSelected ? [] : [...options])}
+            style={{ accentColor: t.accent, cursor: "pointer" }}
+          />
+          Select All
+        </label>
+      )}
+      <div style={{ display: "flex", flexDirection: "column", gap: 6, maxHeight: 200, overflowY: "auto", padding: "10px 12px" }}>
+        {options.map(o => (
+          <label key={o} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12.5, color: t.searchText, cursor: "pointer", fontFamily: t.mono }}>
+            <input
+              type="checkbox"
+              checked={value.includes(o)}
+              onChange={(e) => {
+                if (e.target.checked) onChange([...value, o]);
+                else onChange(value.filter(v => v !== o));
+              }}
+              style={{ accentColor: t.accent, cursor: "pointer" }}
+            />
+            {o}
+          </label>
+        ))}
+      </div>
+    </div>
+  );
+};
 
 export const ConfirmModal = ({ open, onClose, onConfirm, title, message, t, isDark, saveLabel = "Yes, Proceed" }) => (
   <Modal 
