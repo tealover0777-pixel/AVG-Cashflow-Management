@@ -110,14 +110,24 @@ export default function PageContacts({ t, isDark, CONTACTS = [], INVESTMENTS = [
       updated_at: serverTimestamp(),
     };
     try {
-      if (modal.mode === "add") {
-        const isDuplicate = CONTACTS.find(c => 
-          (c.first_name || "").toLowerCase().trim() === (d.first_name || "").toLowerCase().trim() && 
-          (c.last_name || "").toLowerCase().trim() === (d.last_name || "").toLowerCase().trim()
-        );
-        if (isDuplicate) {
-          setDuplicateConfirm(payload);
-          return;
+      if (modal.mode === "add" && d.type !== "Company") {
+        const newFirst = (d.first_name || "").toLowerCase().trim();
+        const newLast = (d.last_name || "").toLowerCase().trim();
+        if (newFirst || newLast) {
+          const isDuplicate = CONTACTS.find(c => {
+            if ((c.contact_type || c.type) === "Company") return false;
+            const cFirst = (c.first_name || "").toLowerCase().trim();
+            const cLast = (c.last_name || "").toLowerCase().trim();
+            if (!cFirst && !cLast && c.name) {
+              const parts = c.name.trim().toLowerCase().split(/\s+/);
+              return (parts[0] || "") === newFirst && (parts.slice(1).join(" ") || "") === newLast;
+            }
+            return cFirst === newFirst && cLast === newLast;
+          });
+          if (isDuplicate) {
+            setDuplicateConfirm(payload);
+            return;
+          }
         }
       }
 

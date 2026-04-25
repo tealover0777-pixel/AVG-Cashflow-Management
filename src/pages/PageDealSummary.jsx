@@ -685,13 +685,14 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
   const handleRemoveContactFromDeal = async () => {
     if (!contactDelT) return;
     try {
-      const updatedContacts = (deal.contacts || []).filter(c => c.id !== contactDelT.id);
-      await updateDoc(doc(db, dealPath), { contacts: updatedContacts, updated_at: serverTimestamp() });
+      const contactDocId = contactDelT.docId || contactDelT.id;
+      if (!contactDocId) throw new Error("Contact document ID not found");
+      await deleteDoc(doc(db, "tenants", tenantId, "contacts", contactDocId));
       setContactDelT(null);
-      showToast("Contact removed from deal", "success");
+      showToast("Contact deleted", "success");
     } catch (err) {
-      console.error("Remove contact error:", err);
-      showToast("Failed to remove contact: " + err.message, "error");
+      console.error("Delete contact error:", err);
+      showToast("Failed to delete contact: " + err.message, "error");
     }
   };
 
@@ -3790,7 +3791,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
 
       <DelModal target={delT} onClose={() => setDelT(null)} onConfirm={handleDeleteInvestment} label="this investment" t={t} isDark={isDark} />
       <DelModal target={assetDelT} onClose={() => setAssetDelT(null)} onConfirm={handleDeleteAsset} label="this asset" t={t} isDark={isDark} />
-      <DelModal target={contactDelT} onClose={() => setContactDelT(null)} onConfirm={handleRemoveContactFromDeal} label="this contact from the deal" t={t} isDark={isDark} />
+      <DelModal target={contactDelT} onClose={() => setContactDelT(null)} onConfirm={handleRemoveContactFromDeal} label="this contact" t={t} isDark={isDark} />
 
       {/* Confirmation Modal for Bulk Actions */}
       {confirmAction && (
