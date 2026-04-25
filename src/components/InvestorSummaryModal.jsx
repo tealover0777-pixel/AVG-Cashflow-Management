@@ -41,6 +41,7 @@ export const InvestorSummaryModal = ({
   const [notes, setNotes] = useState([]);
   const [noteText, setNoteText] = useState("");
   const [savingNote, setSavingNote] = useState(false);
+  const [distFilter, setDistFilter] = useState("All");
   const [toast, setToast] = useState(null);
   const showToast = (msg, type = "info") => { setToast({ msg, type }); setTimeout(() => setToast(null), 4000); };
   
@@ -488,16 +489,51 @@ export const InvestorSummaryModal = ({
         );
 
       case "Distributions":
+        const filteredDist = partySchedules.filter(s => {
+          if (distFilter === "All") return true;
+          const ty = (s.payment_type || s.type || "").toLowerCase();
+          if (distFilter === "Interest") return ty.includes("interest") || ty.includes("distribution");
+          if (distFilter === "Principal") return ty.includes("principal") || ty.includes("deposit") || ty.includes("received") || ty.includes("disbursement");
+          if (distFilter === "Fee") return ty.includes("fee");
+          return true;
+        });
+        const filteredTotal = filteredDist.reduce((sum, s) => sum + (Number(s.signed_payment_amount || s.payment_amount || String(s.amount || 0).replace(/[^0-9.-]/g,'')) || 0), 0);
+
         return (
           <div>
+            <div style={{ display: "flex", gap: 10, marginBottom: 20 }}>
+              {["All", "Interest", "Principal", "Fee"].map(f => (
+                <button
+                  key={f}
+                  onClick={() => setDistFilter(f)}
+                  style={{
+                    padding: "8px 16px",
+                    borderRadius: 20,
+                    background: distFilter === f ? t.accentGrad : (isDark ? "rgba(255,255,255,0.05)" : "#f3f4f6"),
+                    color: distFilter === f ? "#fff" : t.textSecondary,
+                    border: `1px solid ${distFilter === f ? "transparent" : t.surfaceBorder}`,
+                    fontSize: 13,
+                    fontWeight: 600,
+                    cursor: "pointer",
+                    transition: "all 0.2s",
+                    boxShadow: distFilter === f ? `0 4px 10px ${t.accentShadow}` : "none"
+                  }}
+                >
+                  {f}
+                </button>
+              ))}
+            </div>
+
             <div style={{ background: isDark ? "#1C1917" : "#fff", borderRadius: 12, border: `1px solid ${t.surfaceBorder}`, overflow: "hidden", marginBottom: 32, boxShadow: "0 1px 2px rgba(0,0,0,0.05)" }}>
               <div style={{ padding: "20px 24px", borderBottom: `1px solid ${t.surfaceBorder}`, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                <div style={{ fontSize: 16, fontWeight: 700, color: isDark ? "#fff" : "#111827" }}>Interest Payments</div>
-                <div style={{ fontSize: 14, fontWeight: 600, color: t.accent }}>{fmtCurr(distributedAmount)}</div>
+                <div style={{ fontSize: 16, fontWeight: 700, color: isDark ? "#fff" : "#111827" }}>
+                  {distFilter === "All" ? "All Transactions" : `${distFilter} Transactions`}
+                </div>
+                <div style={{ fontSize: 14, fontWeight: 600, color: t.accent }}>{fmtCurr(filteredTotal)}</div>
               </div>
               <div style={{ height: 400 }}>
                 <TanStackTable
-                  data={distributions}
+                  data={filteredDist}
                   columns={getContactTransactionColumns(isDark, t, { DEALS })}
                   isDark={isDark}
                   t={t}
