@@ -749,12 +749,20 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
           return;
         }
 
+        const newFirst = (contactModal.data.first_name || "").toLowerCase().trim();
+        const newLast = (contactModal.data.last_name || "").toLowerCase().trim();
         const isDuplicate = CONTACTS.find(c => {
           if (contactModal.data.type === "Company") {
             return (c.company_name || "").toLowerCase().trim() === (contactModal.data.company_name || "").toLowerCase().trim();
           }
-          return (c.first_name || "").toLowerCase().trim() === (contactModal.data.first_name || "").toLowerCase().trim() && 
-                 (c.last_name || "").toLowerCase().trim() === (contactModal.data.last_name || "").toLowerCase().trim();
+          if ((c.contact_type || c.type) === "Company") return false;
+          const cFirst = (c.first_name || "").toLowerCase().trim();
+          const cLast = (c.last_name || "").toLowerCase().trim();
+          if (!cFirst && !cLast && c.name) {
+            const parts = c.name.trim().toLowerCase().split(/\s+/);
+            return (parts[0] || "") === newFirst && (parts.slice(1).join(" ") || "") === newLast;
+          }
+          return cFirst === newFirst && cLast === newLast;
         });
 
         if (isDuplicate && !skipDuplicateCheck) {

@@ -1,10 +1,10 @@
 import React from 'react';
-import { Bdg, Tooltip } from '../components';
+import { Bdg, Tooltip, ActBtns } from '../components';
 import { fmtCurr } from '../utils';
 import { RotateCcw } from 'lucide-react';
 
 export const getContactTransactionColumns = (isDark, t, context) => {
-  const { DEALS = [] } = context;
+  const { DEALS = [], onEdit } = context;
 
   return [
     {
@@ -94,6 +94,22 @@ export const getContactTransactionColumns = (isDark, t, context) => {
         return <span style={{ fontFamily: t.mono, fontSize: 12, color: t.textSecondary }}>{val}</span>;
       },
       sortingFn: 'datetime'
+    },
+    {
+      id: "actions",
+      header: "",
+      size: 60,
+      enableSorting: false,
+      enableColumnFilter: false,
+      cell: ({ row }) => (
+        <div style={{ display: 'flex', alignItems: 'center' }}>
+          <ActBtns
+            show={true}
+            t={t}
+            onEdit={onEdit ? () => onEdit(row.original) : null}
+          />
+        </div>
+      )
     }
   ];
 };

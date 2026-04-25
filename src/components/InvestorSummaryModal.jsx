@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useRef } from "react";
 import { fmtCurr } from "../utils";
-import { 
+import {
   X, Info, ArrowUp, AlertCircle, RotateCcw
 } from "lucide-react";
-import { Bdg, FF, FIn, FSel, TanStackTable, Tooltip } from "../components"; // We will export these from the main components file
+import { db } from "../firebase";
+import { doc, updateDoc, serverTimestamp } from "firebase/firestore";
+import { Bdg, FF, FIn, FSel, TanStackTable, Tooltip, Modal } from "../components"; // We will export these from the main components file
 import InvestmentDocumentsTab from "./InvestmentDocumentsTab";
 import InvestmentChangelogTab from "./InvestmentChangelogTab";
 import { getContactTransactionColumns } from "./ContactTransactionsTanStackConfig";
@@ -42,8 +44,34 @@ export const InvestorSummaryModal = ({
   const [noteText, setNoteText] = useState("");
   const [savingNote, setSavingNote] = useState(false);
   const [distFilter, setDistFilter] = useState("All");
+  const [txEditModal, setTxEditModal] = useState({ open: false, data: null });
+  const [txSaving, setTxSaving] = useState(false);
   const [toast, setToast] = useState(null);
   const showToast = (msg, type = "info") => { setToast({ msg, type }); setTimeout(() => setToast(null), 4000); };
+
+  const handleSaveTx = async () => {
+    const s = txEditModal.data;
+    if (!s?._path) { showToast("Cannot update: missing document path", "error"); return; }
+    setTxSaving(true);
+    try {
+      const amt = Number(String(s.payment_amount_edit ?? (s.payment || 0)).replace(/[^0-9.-]/g, "")) || 0;
+      const signedAmt = s.direction === "OUT" ? -Math.abs(amt) : Math.abs(amt);
+      await updateDoc(doc(db, s._path), {
+        status: s.status_edit ?? s.status,
+        notes: s.notes_edit ?? s.notes ?? "",
+        due_date: s.due_date_edit ?? s.dueDate ?? null,
+        payment_amount: amt,
+        signed_payment_amount: signedAmt,
+        updated_at: serverTimestamp(),
+      });
+      showToast("Transaction updated", "success");
+      setTxEditModal({ open: false, data: null });
+    } catch (err) {
+      showToast("Failed to update: " + err.message, "error");
+    } finally {
+      setTxSaving(false);
+    }
+  };
   
   useEffect(() => {
     setViewMode(defaultView);
@@ -371,7 +399,7 @@ export const InvestorSummaryModal = ({
               <div style={{ height: 400 }}>
                 <TanStackTable
                   data={partySchedules}
-                  columns={getContactTransactionColumns(isDark, t, { DEALS })}
+                  columns={getContactTransactionColumns(isDark, t, { DEALS, onEdit: (row) => setTxEditModal({ open: true, data: { ...row, status_edit: row.status, notes_edit: row.notes ?? "", payment_amount_edit: row.payment, due_date_edit: row.dueDate ?? "" } }) })}
                   isDark={isDark}
                   t={t}
                   pageSize={50}
@@ -554,7 +582,7 @@ export const InvestorSummaryModal = ({
               <div style={{ height: 400 }}>
                 <TanStackTable
                   data={filteredDist}
-                  columns={getContactTransactionColumns(isDark, t, { DEALS })}
+                  columns={getContactTransactionColumns(isDark, t, { DEALS, onEdit: (row) => setTxEditModal({ open: true, data: { ...row, status_edit: row.status, notes_edit: row.notes ?? "", payment_amount_edit: row.payment, due_date_edit: row.dueDate ?? "" } }) })}
                   isDark={isDark}
                   t={t}
                   pageSize={50}
@@ -767,6 +795,53 @@ export const InvestorSummaryModal = ({
           {renderTabContent()}
         </div>
       </div>
+      <Modal
+        open={txEditModal.open}
+        onClose={() => setTxEditModal({ open: false, data: null })}
+        title={`Edit Transaction — ${txEditModal.data?.schedule_id || ""}`}
+        onSave={handleSaveTx}
+        width={480}
+        t={t}
+        isDark={isDark}
+      >
+        {txEditModal.data && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+            <FF label="Status" t={t}>
+              <FSel
+                value={txEditModal.data.status_edit}
+                options={["Due", "Paid", "Partial", "Missed", "Cancelled", "VOID", "WAIVED", "Rollover"]}
+                onChange={e => setTxEditModal(m => ({ ...m, data: { ...m.data, status_edit: e.target.value } }))}
+                t={t}
+              />
+            </FF>
+            <FF label="Amount" t={t}>
+              <FIn
+                value={txEditModal.data.payment_amount_edit}
+                onChange={e => setTxEditModal(m => ({ ...m, data: { ...m.data, payment_amount_edit: e.target.value } }))}
+                placeholder="0.00"
+                t={t}
+              />
+            </FF>
+            <FF label="Due Date" t={t}>
+              <FIn
+                value={txEditModal.data.due_date_edit}
+                onChange={e => setTxEditModal(m => ({ ...m, data: { ...m.data, due_date_edit: e.target.value } }))}
+                type="date"
+                t={t}
+              />
+            </FF>
+            <FF label="Notes" t={t}>
+              <textarea
+                value={txEditModal.data.notes_edit}
+                onChange={e => setTxEditModal(m => ({ ...m, data: { ...m.data, notes_edit: e.target.value } }))}
+                rows={3}
+                style={{ width: "100%", background: isDark ? "rgba(255,255,255,0.03)" : "#fff", border: `1px solid ${t.surfaceBorder}`, borderRadius: 8, padding: "10px 13px", color: t.text, fontSize: 13.5, fontFamily: "inherit", outline: "none", resize: "vertical", boxSizing: "border-box" }}
+              />
+            </FF>
+          </div>
+        )}
+      </Modal>
+
       {toast && (
         <div style={{ position: "fixed", bottom: 28, right: 28, zIndex: 9999, background: toast.type === "success" ? (isDark ? "#052e16" : "#f0fdf4") : (isDark ? "#2d0a0a" : "#fef2f2"), border: `1px solid ${toast.type === "success" ? "#22c55e" : "#ef4444"}`, color: toast.type === "success" ? "#22c55e" : "#ef4444", borderRadius: 12, padding: "14px 20px", fontSize: 13.5, fontWeight: 600, boxShadow: "0 8px 32px rgba(0,0,0,0.18)", display: "flex", alignItems: "center", gap: 10, maxWidth: 380 }}>
           <span>{toast.type === "success" ? "✅" : "❌"}</span>
