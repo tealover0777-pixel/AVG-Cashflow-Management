@@ -26,7 +26,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
   const canDelete = isSuperAdmin || hasPermission("INVESTMENT_DELETE") || hasPermission("INVESTMENTS_DELETE");
   const canCreate = isSuperAdmin || hasPermission("INVESTMENT_CREATE");
 
-  const canAssetView   = isSuperAdmin || hasPermission("DEAL_VIEW") || hasPermission("DEAL_CREATE") || hasPermission("DEAL_UPDATE") || hasPermission("DEAL_DELETE");
+  const canAssetView = isSuperAdmin || hasPermission("DEAL_VIEW") || hasPermission("DEAL_CREATE") || hasPermission("DEAL_UPDATE") || hasPermission("DEAL_DELETE");
   const canAssetCreate = isSuperAdmin || hasPermission("DEAL_CREATE");
   const canAssetUpdate = isSuperAdmin || hasPermission("DEAL_UPDATE");
   const canAssetDelete = isSuperAdmin || hasPermission("DEAL_DELETE");
@@ -433,8 +433,8 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
   }, [allDealInvestments]);
 
   const hasScheduleForInvestment = useCallback(
-    (inv) => (SCHEDULES || []).some(s => 
-      (s.active_version === true) && 
+    (inv) => (SCHEDULES || []).some(s =>
+      (s.active_version === true) &&
       (s.investment_id === (inv.investment_id || inv.id) || s.investment === (inv.investment_id || inv.id)) &&
       (s.deal_id === inv.deal_id)
     ),
@@ -461,7 +461,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
   const activeDealSchedules = useMemo(() =>
     dealSchedules.filter(s => s.active_version === true)
     , [dealSchedules]);
-    
+
   const filteredDealSchedules = useMemo(() => {
     if (distFilter === "All") return activeDealSchedules;
     return activeDealSchedules.filter(s => {
@@ -877,9 +877,9 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
           return;
         }
 
-        const maxNum = Math.max(10000, ...CONTACTS.map(p => { 
-          const m = String(p.id).match(/^M(\d+)$/); 
-          return m ? Number(m[1]) : 0; 
+        const maxNum = Math.max(10000, ...CONTACTS.map(p => {
+          const m = String(p.id).match(/^M(\d+)$/);
+          return m ? Number(m[1]) : 0;
         }));
         contactId = "M" + (maxNum + 1);
         contactName = (contactModal.data.type === "Company" && contactModal.data.company_name)
@@ -1021,7 +1021,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
         if (dist) {
           const distCollection = dist._path ? dist._path.split('/').slice(0, -1).join('/') : scheduleCollection;
           const oldRef = dist._path ? doc(db, dist._path) : doc(db, scheduleCollection, dist.docId || dist.id);
-          
+
           const vNum = Number(dist.version_num || 1);
           const newVNum = vNum + 1;
           const versionId = `${dist.schedule_id || dist.payment_id || "S"}-V${newVNum}`;
@@ -1038,7 +1038,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
           // 2. Create new version (V2+) with 0 amount
           const newDocRef = doc(collection(db, distCollection));
           const { docId, id, _path, ...cleanOldData } = dist; // Remove metadata
-          
+
           const newVersionData = {
             ...cleanOldData,
             investment_id: dist.investment_id || dist.investment || "",
@@ -1078,7 +1078,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
           ...payload,
           id: investmentIdForGen,
           type: payload.investment_type, // Normalize field names as expected by generator
-          freq: payload.payment_frequency, 
+          freq: payload.payment_frequency,
           fees: payload.fees,
         };
         executeGenerateSchedules([newInvForGen]);
@@ -1302,7 +1302,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
     try {
       // 2. Logic Safeguard - Ensure tenant-specific path
       let schedulePath = scheduleCollection;
-      
+
       // If we're in GLOBAL/Consolidated mode, derived safe path from dealPath if possible
       if ((!schedulePath || schedulePath === "paymentSchedules" || schedulePath.startsWith("GROUP:")) && dealPath && dealPath.startsWith("tenants/")) {
         const tenantPart = dealPath.split("/")[1];
@@ -1353,7 +1353,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
           original_payment_amount: principal,
           applied_to: "Principal Amount",
           term_start: startDate.toISOString().slice(0, 10), term_end: startDate.toISOString().slice(0, 10),
-          status: "Due", notes: `Initial for ${c.id}`, 
+          status: "Due", notes: `Initial for ${c.id}`,
           rollover: false,
           created_at: serverTimestamp(),
         });
@@ -1515,9 +1515,9 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
           period_number: periodNum, principal_amount: principal, payment_amount: principal,
           signed_payment_amount: ds3.signed, direction_from_company: ds3.direction,
           original_payment_amount: principal, term_start: startDate.toISOString().slice(0, 10), term_end: matDate.toISOString().slice(0, 10),
-          applied_to: "Principal Amount", 
-          status: "Due", 
-          notes: c.rollover ? `Rollover for ${c.id}` : `Repayment for ${c.id}`, 
+          applied_to: "Principal Amount",
+          status: "Due",
+          notes: c.rollover ? `Rollover for ${c.id}` : `Repayment for ${c.id}`,
           rollover: !!c.rollover,
           created_at: serverTimestamp(),
         });
@@ -1847,7 +1847,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
           }
         });
         const nextId = `${prefix}${maxIdNum + 1}`;
-        
+
         const { id, docId, _path, created_at, updated_at, ...rest } = r;
         const payload = {
           ...rest,
@@ -1857,7 +1857,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
           updated_at: serverTimestamp(),
           notes: `Cloned from ${id || r.investment_id || "unknown"} on ${new Date().toLocaleDateString()}.${r.notes ? ` ${r.notes}` : ""}`
         };
-        
+
         const colRef = collection(db, "tenants", tenantId, "investments");
         await addDoc(colRef, payload);
         showToast(`${prefix === "L" ? "Lending" : "Investment"} ${nextId} created (cloned)`, "success");
@@ -1901,7 +1901,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
           const newSId = mkId("S");
           // Remove unique identifiers and internal markers
           const { id, docId, _path, schedule_id, payment_id, version_id, created_at, updated_at, ...rest } = s;
-          
+
           const newData = {
             ...rest,
             schedule_id: newSId,
@@ -1913,9 +1913,9 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
             updated_at: serverTimestamp(),
             notes: `Cloned from ${schedule_id || ""} — ${rest.notes || ""}`
           };
-          
-          const targetCollection = s._path 
-            ? s._path.split('/').slice(0, -1).join('/') 
+
+          const targetCollection = s._path
+            ? s._path.split('/').slice(0, -1).join('/')
             : scheduleCollection;
 
           await addDoc(collection(db, targetCollection), newData);
@@ -2020,7 +2020,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
               }
             });
             const nextContactId = "M" + (maxNum + 1);
-            
+
             const { id, docId, _path, created_at, updated_at, ...rest } = r;
             const payload = {
               ...rest,
@@ -2029,7 +2029,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
               updated_at: serverTimestamp(),
               notes: `Cloned from ${id || "unknown"} on ${new Date().toLocaleDateString()}.${r.notes ? ` ${r.notes}` : ""}`
             };
-            
+
             const docRef = doc(db, "tenants", tenantId, "contacts", nextContactId);
             await setDoc(docRef, payload);
 
@@ -2203,23 +2203,23 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
 
 
             {canCreate && (activeTab === "Investments" || activeTab === "Lending") && (
-              <button 
-                onClick={openAdd} 
-                style={{ 
-                  background: t.accentGrad || t.accent, 
-                  color: "#fff", 
-                  border: "none", 
-                  padding: "11px 22px", 
-                  borderRadius: 11, 
-                  fontSize: 13.5, 
-                  fontWeight: 600, 
-                  boxShadow: `0 4px 16px ${t.accentShadow || "none"}`, 
-                  display: "flex", 
-                  alignItems: "center", 
-                  gap: 7 
+              <button
+                onClick={openAdd}
+                style={{
+                  background: t.accentGrad || t.accent,
+                  color: "#fff",
+                  border: "none",
+                  padding: "11px 22px",
+                  borderRadius: 11,
+                  fontSize: 13.5,
+                  fontWeight: 600,
+                  boxShadow: `0 4px 16px ${t.accentShadow || "none"}`,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 7
                 }}
               >
-                <span style={{ fontSize: 18, lineHeight: 1 }}>+</span> 
+                <span style={{ fontSize: 18, lineHeight: 1 }}>+</span>
                 {activeTab === "Lending" ? "New Lending" : "New investment"}
               </button>
             )}
@@ -2252,11 +2252,11 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
                 const total = dealInvestments.length;
                 const pending = pendingScheduleGenerationCount;
                 const generated = total - pending;
-                
+
                 let text = pending === 1
                   ? "1 investment still needs payment schedule generation"
                   : `${pending} investments still need payment schedule generation`;
-                  
+
                 text += `, ${generated} ${generated === 1 ? "is" : "are"} generated.`;
                 return text;
               })()}
@@ -2362,30 +2362,30 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
           {/* Distribution sub-tabs */}
           <div style={{ borderBottom: `1px solid ${t.surfaceBorder}`, marginBottom: 20, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <div style={{ display: "flex", gap: 24 }}>
-            {[
-              { key: "memo", label: "Distribution View" },
-              { key: "table", label: "Table View" },
-              { key: "pivot", label: "Pivot View" },
-            ].map(({ key, label }) => (
-              <div
-                key={key}
-                onClick={() => setDistributionView(key)}
-                style={{
-                  padding: "10px 0",
-                  fontSize: 13,
-                  fontWeight: 600,
-                  color: distributionView === key ? t.text : t.textMuted,
-                  cursor: "pointer",
-                  position: "relative",
-                  transition: "all 0.2s ease"
-                }}
-              >
-                {label}
-                {distributionView === key && <div style={{ position: "absolute", bottom: -1, left: 0, right: 0, height: 2, background: t.accent }} />}
-              </div>
-            ))}
+              {[
+                { key: "memo", label: "Distribution View" },
+                { key: "table", label: "Table View" },
+                { key: "pivot", label: "Pivot View" },
+              ].map(({ key, label }) => (
+                <div
+                  key={key}
+                  onClick={() => setDistributionView(key)}
+                  style={{
+                    padding: "10px 0",
+                    fontSize: 13,
+                    fontWeight: 600,
+                    color: distributionView === key ? t.text : t.textMuted,
+                    cursor: "pointer",
+                    position: "relative",
+                    transition: "all 0.2s ease"
+                  }}
+                >
+                  {label}
+                  {distributionView === key && <div style={{ position: "absolute", bottom: -1, left: 0, right: 0, height: 2, background: t.accent }} />}
+                </div>
+              ))}
             </div>
-            
+
             <div style={{ display: "flex", alignItems: "center", gap: 10, flex: 1, justifyContent: "center" }}>
               <span style={{ fontSize: 11, fontWeight: 800, color: t.textMuted, textTransform: "uppercase", letterSpacing: 1 }}>Filter By</span>
               {["All", "Interest", "Principal", "Fee"].map(f => (
@@ -2411,62 +2411,62 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
               ))}
             </div>
 
-          <div style={{ position: "relative" }} ref={exportMenuRef}>
-            <button
-              onClick={() => setShowExportMenu(!showExportMenu)}
-              style={{ background: t.accentGrad || t.accent, color: "#fff", border: "none", padding: "8px 16px", borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", gap: 8, boxShadow: `0 4px 12px ${t.accentShadow || "none"}` }}
-            >
-              <Download size={16} /> Export <ChevronDown size={14} />
-            </button>
-            {showExportMenu && (
-              <div style={{ position: "absolute", top: "100%", right: 0, mt: 8, background: t.surface, border: `1px solid ${t.border}`, borderRadius: 12, boxShadow: "0 10px 25px rgba(0,0,0,0.2)", zIndex: 1000, overflow: "hidden", minWidth: 160, transform: "translateY(8px)" }}>
-                {[
-                  { id: 'csv', label: 'CSV File (.csv)' },
-                  { id: 'xlsx', label: 'Excel File (.xlsx)' },
-                  { id: 'pdf', label: 'PDF Report (.pdf)' },
-                  { id: 'docx', label: 'Word Document (.docx)' }
-                ].map(opt => (
-                  <div
-                    key={opt.id}
-                    onClick={() => { handleExport(opt.id); setShowExportMenu(false); }}
-                    style={{ padding: "12px 16px", fontSize: 13, fontWeight: 600, color: t.text, cursor: "pointer", transition: "all 0.2s" }}
-                    onMouseEnter={e => e.target.style.background = isDark ? "rgba(255,255,255,0.05)" : "#f3f4f6"}
-                    onMouseLeave={e => e.target.style.background = "transparent"}
-                  >
-                    {opt.label}
-                  </div>
-                ))}
-              </div>
-            )}
+            <div style={{ position: "relative" }} ref={exportMenuRef}>
+              <button
+                onClick={() => setShowExportMenu(!showExportMenu)}
+                style={{ background: t.accentGrad || t.accent, color: "#fff", border: "none", padding: "8px 16px", borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", gap: 8, boxShadow: `0 4px 12px ${t.accentShadow || "none"}` }}
+              >
+                <Download size={16} /> Export <ChevronDown size={14} />
+              </button>
+              {showExportMenu && (
+                <div style={{ position: "absolute", top: "100%", right: 0, mt: 8, background: t.surface, border: `1px solid ${t.border}`, borderRadius: 12, boxShadow: "0 10px 25px rgba(0,0,0,0.2)", zIndex: 1000, overflow: "hidden", minWidth: 160, transform: "translateY(8px)" }}>
+                  {[
+                    { id: 'csv', label: 'CSV File (.csv)' },
+                    { id: 'xlsx', label: 'Excel File (.xlsx)' },
+                    { id: 'pdf', label: 'PDF Report (.pdf)' },
+                    { id: 'docx', label: 'Word Document (.docx)' }
+                  ].map(opt => (
+                    <div
+                      key={opt.id}
+                      onClick={() => { handleExport(opt.id); setShowExportMenu(false); }}
+                      style={{ padding: "12px 16px", fontSize: 13, fontWeight: 600, color: t.text, cursor: "pointer", transition: "all 0.2s" }}
+                      onMouseEnter={e => e.target.style.background = isDark ? "rgba(255,255,255,0.05)" : "#f3f4f6"}
+                      onMouseLeave={e => e.target.style.background = "transparent"}
+                    >
+                      {opt.label}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
-        </div>
 
-        <div style={{ marginBottom: 20 }} />
+          <div style={{ marginBottom: 20 }} />
 
-        {distributionView === "memo" ? (
-          <div style={{ height: '1000px', width: "100%", minHeight: '1000px' }}>
-            <TanStackTable
-              key="dist-memo-table"
-              data={filteredDistMemos}
-              columns={getDistributionMemoColumns(isDark, t, {
-                SCHEDULES: activeDealSchedules,
-                dealId,
-                callbacks: {
-                  onMemoClick: (memo, linked) => setDistMemoDrillDown({ open: true, memo, schedules: linked }),
-                  onEdit: (row) => setDistMemoModal({ open: true, mode: "edit", data: { ...row } }),
-                  onDelete: (row) => setDistMemoDelT(row),
-                  onClone: (row) => handleCloneDistMemo(row),
-                }
-              })}
-              pageSize={50}
-              t={t}
-              isDark={isDark}
-            />
-          </div>
-        ) : distributionView === "table" ? (
-          <div style={{ height: '1000px', width: "100%", minHeight: '1000px' }}>
-            <TanStackTable
-              key="distributions-table"
+          {distributionView === "memo" ? (
+            <div style={{ height: '1000px', width: "100%", minHeight: '1000px' }}>
+              <TanStackTable
+                key="dist-memo-table"
+                data={filteredDistMemos}
+                columns={getDistributionMemoColumns(isDark, t, {
+                  SCHEDULES: activeDealSchedules,
+                  dealId,
+                  callbacks: {
+                    onMemoClick: (memo, linked) => setDistMemoDrillDown({ open: true, memo, schedules: linked }),
+                    onEdit: (row) => setDistMemoModal({ open: true, mode: "edit", data: { ...row } }),
+                    onDelete: (row) => setDistMemoDelT(row),
+                    onClone: (row) => handleCloneDistMemo(row),
+                  }
+                })}
+                pageSize={50}
+                t={t}
+                isDark={isDark}
+              />
+            </div>
+          ) : distributionView === "table" ? (
+            <div style={{ height: '1000px', width: "100%", minHeight: '1000px' }}>
+              <TanStackTable
+                key="distributions-table"
                 data={filteredDealSchedules}
                 columns={scheduleColumnDefs}
                 pageSize={100}
@@ -2810,7 +2810,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
                               textOverflow: "ellipsis",
                               whiteSpace: "nowrap"
                             }}>
-                            {row.type.replace(/_/g, ' ')}
+                              {row.type.replace(/_/g, ' ')}
                             </td>
                             <td style={{
                               padding: "12px 16px",
@@ -3291,32 +3291,32 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
         )}
         <FF label="Deal name" t={t}><FSel value={modal.data.deal} onChange={e => setF("deal", e.target.value)} options={DEALS.map(p => p.name)} t={t} /></FF>
         <FF label="Contact" t={t}>
-          <FSel 
-            value={modal.data.contact} 
-            onChange={e => setF("contact", e.target.value)} 
-            options={activeTab === "Lending" 
+          <FSel
+            value={modal.data.contact}
+            onChange={e => setF("contact", e.target.value)}
+            options={activeTab === "Lending"
               ? sortedContacts.filter(p => p.role === "Borrower" || p.role === "Both").map(p => p.name)
               : sortedContacts.map(p => p.name)
-            } 
-            t={t} 
+            }
+            t={t}
           />
         </FF>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14 }}>
           <FF label="Type" t={t}><FSel value={modal.data.type} onChange={e => setF("type", e.target.value)} options={getTypeOpts()} t={t} /></FF>
           <FF label="Amount" t={t}>
             {modal.data.lockedAmount ? (
-              <div style={{ 
-                fontFamily: t.mono, 
-                fontSize: 13, 
+              <div style={{
+                fontFamily: t.mono,
+                fontSize: 13,
                 fontWeight: 700,
-                color: isDark ? "#A5B4FC" : "#4338CA", 
-                background: isDark ? "rgba(99,102,241,0.1)" : "#EEF2FF", 
-                border: `1px solid ${isDark ? "rgba(99,102,241,0.2)" : "#C7D2FE"}`, 
-                borderRadius: 9, 
-                padding: "10px 13px", 
-                minHeight: 41, 
-                display: 'flex', 
-                alignItems: 'center' 
+                color: isDark ? "#A5B4FC" : "#4338CA",
+                background: isDark ? "rgba(99,102,241,0.1)" : "#EEF2FF",
+                border: `1px solid ${isDark ? "rgba(99,102,241,0.2)" : "#C7D2FE"}`,
+                borderRadius: 9,
+                padding: "10px 13px",
+                minHeight: 41,
+                display: 'flex',
+                alignItems: 'center'
               }}>
                 {fmtCurr(modal.data.amount)}
               </div>
@@ -3456,9 +3456,9 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
         )}
       </Modal>
 
-      <ConfirmModal 
-        open={duplicateConfirm} 
-        onClose={() => setDuplicateConfirm(false)} 
+      <ConfirmModal
+        open={duplicateConfirm}
+        onClose={() => setDuplicateConfirm(false)}
         onConfirm={() => {
           setDuplicateConfirm(false);
           handleSaveContactToDeal(true);
@@ -3489,7 +3489,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
               updated_at: serverTimestamp()
             };
             await updateDoc(doc(db, refPath), dataToSave);
-            
+
             // SYNC Rollover back to Investment
             if (s.type === "INVESTOR_PRINCIPAL_PAYMENT" && s.investment) {
               const inv = INVESTMENTS.find(i => i.id === s.investment || i.investment_id === s.investment);
@@ -3503,7 +3503,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
             if (s.status === "Rollover") {
               const absAmount = Math.abs(dataToSave.signed_payment_amount || dataToSave.payment_amount || 0);
               const contactRef = (CONTACTS || []).find(c => c.id === s.contact_id);
-              
+
               setScheduleModal({ open: false, data: {} });
               // Small delay to let first modal close
               setTimeout(() => {
@@ -3525,7 +3525,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
               }, 150);
               return;
             }
-            
+
             setScheduleModal({ open: false, data: {} });
           } catch (err) { console.error("Save schedule error:", err); }
         }}
@@ -3536,14 +3536,14 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
           <FF label="Due Date" t={t}><FIn value={scheduleModal.data.dueDate || ""} onChange={e => setScheduleModal(m => ({ ...m, data: { ...m.data, dueDate: e.target.value } }))} t={t} type="date" /></FF>
           <FF label="Status" t={t}>
-            <FSel 
-              value={scheduleModal.data.status} 
-              onChange={e => setScheduleModal(m => ({ ...m, data: { ...m.data, status: e.target.value } }))} 
-              options={scheduleModal.data.rollover 
-                ? Array.from(new Set(["Rollover", scheduleModal.data.status])) 
+            <FSel
+              value={scheduleModal.data.status}
+              onChange={e => setScheduleModal(m => ({ ...m, data: { ...m.data, status: e.target.value } }))}
+              options={scheduleModal.data.rollover
+                ? Array.from(new Set(["Rollover", scheduleModal.data.status]))
                 : paymentStatusOpts
-              } 
-              t={t} 
+              }
+              t={t}
             />
           </FF>
         </div>
@@ -3551,7 +3551,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
           <FF label="Payment Amount" t={t}><FIn value={scheduleModal.data.payment_amount} onChange={e => setScheduleModal(m => ({ ...m, data: { ...m.data, payment_amount: e.target.value } }))} placeholder="e.g. 100.00" t={t} /></FF>
           <FF label="Signed Amount" t={t}><FIn value={scheduleModal.data.signed_payment_amount} onChange={e => setScheduleModal(m => ({ ...m, data: { ...m.data, signed_payment_amount: e.target.value } }))} placeholder="e.g. -100.00" t={t} /></FF>
         </div>
-        
+
         {scheduleModal.data.type === "INVESTOR_PRINCIPAL_PAYMENT" && (
           <div style={{ marginTop: 12, marginBottom: 12, padding: "12px", background: isDark ? "rgba(147, 51, 234, 0.08)" : "#F5F3FF", borderRadius: 12, border: `1px solid ${isDark ? "rgba(147, 51, 234, 0.2)" : "#DDD6FE"}` }}>
             <h4 style={{ fontSize: 10, fontWeight: 700, color: isDark ? "#A855F7" : "#7E22CE", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 8 }}>Rollover at Maturity</h4>
@@ -3941,7 +3941,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
               t={t}
             />
           </FF>
-          <FF label="Payment Status" t={t}>
+          <FF label="Select Payment Status to Filter. Select none includeds all" t={t}>
             <FMultiSel
               value={Array.isArray(distMemoModal.data.status) ? distMemoModal.data.status : (distMemoModal.data.status ? [distMemoModal.data.status] : [])}
               options={paymentStatusOpts}
@@ -3950,7 +3950,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
               showSelectAll
             />
           </FF>
-          <FF label="Payment Type" t={t}>
+          <FF label="Select Payment Type to Filter. Select none includes all" t={t}>
             <FMultiSel
               value={Array.isArray(distMemoModal.data.payment_type) ? distMemoModal.data.payment_type : (distMemoModal.data.payment_type ? [distMemoModal.data.payment_type] : [])}
               options={paymentTypeOpts}
