@@ -125,16 +125,6 @@ export default function InvestmentChangelogTab({ t, isDark, LEDGER = [], USERS =
                 borderRadius: 20, 
                 alignSelf: "flex-start" 
               }}>
-                <div style={{ 
-                  width: 24, height: 24, borderRadius: 12, 
-                  background: isDark ? "rgba(52,211,153,0.1)" : "rgba(79,70,229,0.1)", 
-                  color: t.accent, 
-                  display: "flex", alignItems: "center", justifyContent: "center", 
-                  fontSize: 9, fontWeight: 800,
-                  border: `1px solid ${isDark ? "rgba(52,211,153,0.2)" : "rgba(79,70,229,0.2)"}`
-                }}>
-                   {initials(name)}
-                </div>
                 <div style={{ fontSize: 12, color: t.textSecondary }}>
                    <span style={{ fontWeight: 600, color: isDark ? "#fff" : "#444" }}>{name}</span> 
                    <span style={{ opacity: 0.6, marginLeft: 4 }}>• {role}</span>

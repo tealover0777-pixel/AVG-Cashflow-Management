@@ -71,14 +71,6 @@ export const getContactColumns = (permissions, isDark, t, context) => {
         const avatarStyle = av(val || row.original.name || row.original.contact_name, isDark);
         return (
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
-            <div style={{
-              width: 32, height: 32, borderRadius: 9, background: avatarStyle.bg,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 11, fontWeight: 700, color: avatarStyle.c, flexShrink: 0,
-              border: `1px solid ${avatarStyle.c}${isDark ? '44' : '22'}`
-            }}>
-              {initials(val || row.original.name || row.original.contact_name)}
-            </div>
             <a
               onClick={(e) => { e.preventDefault(); e.stopPropagation(); callbacks.onNameClick(row.original); }}
               href="#"
