@@ -442,8 +442,8 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
   );
 
   const pendingScheduleGenerationCount = useMemo(
-    () => allDealInvestments.filter(inv => !hasScheduleForInvestment(inv)).length,
-    [allDealInvestments, hasScheduleForInvestment]
+    () => dealInvestments.filter(inv => !hasScheduleForInvestment(inv)).length,
+    [dealInvestments, hasScheduleForInvestment]
   );
 
   // Fund balance calculation moved to dealSchedules useMemo
@@ -3983,8 +3983,9 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
         <Modal
           open={distMemoDrillDown.open}
           onClose={() => setDistMemoDrillDown({ open: false, memo: null, schedules: [] })}
-          title={distMemoDrillDown.memo?.memo || "Linked Schedules"}
-          width={900}
+          title={`Distribution Memo  ${distMemoDrillDown.memo?.period_start || ""}  ~  ${distMemoDrillDown.memo?.period_end || ""}`}
+          width={1350}
+          titleFont={t.font}
           t={t}
           isDark={isDark}
           showCancel={false}
