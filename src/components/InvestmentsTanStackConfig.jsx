@@ -94,12 +94,22 @@ export const getInvestmentColumns = (permissions, isDark, t, context) => {
       )
     },
     {
-      header: "Contact",
-      accessorKey: "contact",
-      size: 180,
+      header: "First Name",
+      accessorKey: "first_name",
+      size: 150,
+      cell: ({ getValue }) => (
+        <span style={{ fontSize: '11.5px', fontWeight: 600, color: isDark ? "#60A5FA" : "#4F46E5" }}>
+          {getValue() || "—"}
+        </span>
+      )
+    },
+    {
+      header: "Last Name",
+      accessorKey: "last_name",
+      size: 150,
       cell: ({ getValue }) => (
         <span style={{ fontSize: '11.5px', fontWeight: 500, color: isDark ? 'rgba(255,255,255,0.85)' : '#1C1917' }}>
-          {getValue()}
+          {getValue() || "—"}
         </span>
       )
     },

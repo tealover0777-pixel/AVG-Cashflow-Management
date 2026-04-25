@@ -63,12 +63,12 @@ export const getContactColumns = (permissions, isDark, t, context) => {
       )
     },
     {
-      header: "Contact Name",
-      accessorKey: "name",
-      size: 200,
+      header: "First Name",
+      accessorKey: "first_name",
+      size: 150,
       cell: ({ row, getValue }) => {
-        const val = getValue();
-        const avatarStyle = av(val, isDark);
+        const val = getValue() || "";
+        const avatarStyle = av(val || row.original.name || row.original.contact_name, isDark);
         return (
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
             <div style={{
@@ -77,7 +77,7 @@ export const getContactColumns = (permissions, isDark, t, context) => {
               fontSize: 11, fontWeight: 700, color: avatarStyle.c, flexShrink: 0,
               border: `1px solid ${avatarStyle.c}${isDark ? '44' : '22'}`
             }}>
-              {initials(val)}
+              {initials(val || row.original.name || row.original.contact_name)}
             </div>
             <a
               onClick={(e) => { e.preventDefault(); e.stopPropagation(); callbacks.onNameClick(row.original); }}
@@ -88,11 +88,21 @@ export const getContactColumns = (permissions, isDark, t, context) => {
                 cursor: 'pointer', textDecoration: 'none'
               }}
             >
-              {val}
+              {val || "—"}
             </a>
           </div>
         );
       }
+    },
+    {
+      header: "Last Name",
+      accessorKey: "last_name",
+      size: 150,
+      cell: ({ getValue }) => (
+        <span style={{ fontSize: '11.5px', fontWeight: 500, color: t.text }}>
+          {getValue() || "—"}
+        </span>
+      )
     },
     {
       header: "Type",

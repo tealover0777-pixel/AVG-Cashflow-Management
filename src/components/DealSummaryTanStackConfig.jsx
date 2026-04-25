@@ -100,15 +100,25 @@ export const getDealInvestmentColumns = (permissions, isDark, t, context, viewTy
       }
     }] : []),
     {
-      header: isLending ? "Borrower Name" : "Investor Name",
-      accessorKey: "contact",
+      header: "First Name",
+      accessorKey: "first_name",
       size: 150,
       cell: ({ row, getValue }) => (
         <span 
           onClick={(e) => { e.stopPropagation(); callbacks.onContactClick?.(row.original); }}
           style={{ fontWeight: 600, color: isDark ? "#60A5FA" : "#4F46E5", fontSize: '11.5px', cursor: 'pointer' }}
         >
-          {getValue()}
+          {getValue() || "—"}
+        </span>
+      )
+    },
+    {
+      header: "Last Name",
+      accessorKey: "last_name",
+      size: 150,
+      cell: ({ getValue }) => (
+        <span style={{ fontSize: '11.5px', fontWeight: 500, color: isDark ? 'rgba(255,255,255,0.85)' : '#1C1917' }}>
+          {getValue() || "—"}
         </span>
       )
     },

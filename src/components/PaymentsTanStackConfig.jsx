@@ -46,12 +46,22 @@ export const getPaymentColumns = (permissions, isDark, t, onEdit, onDel, onBatch
       ),
     },
     {
-      accessorKey: 'contact',
-      header: 'Contact',
-      size: 180,
+      accessorKey: 'first_name',
+      header: 'First Name',
+      size: 150,
+      cell: ({ getValue }) => (
+        <span style={{ fontSize: '13px', fontWeight: 600, color: isDark ? "#60A5FA" : "#4F46E5" }}>
+          {getValue() || "—"}
+        </span>
+      ),
+    },
+    {
+      accessorKey: 'last_name',
+      header: 'Last Name',
+      size: 150,
       cell: ({ getValue }) => (
         <span style={{ fontSize: '13px', fontWeight: 500, color: isDark ? "rgba(255,255,255,0.85)" : "#1C1917" }}>
-          {getValue()}
+          {getValue() || "—"}
         </span>
       ),
     },
