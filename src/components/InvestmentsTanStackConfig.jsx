@@ -97,21 +97,23 @@ export const getInvestmentColumns = (permissions, isDark, t, context) => {
       header: "First Name",
       accessorKey: "first_name",
       size: 150,
-      cell: ({ getValue }) => (
-        <span style={{ fontSize: '11.5px', fontWeight: 600, color: isDark ? "#60A5FA" : "#4F46E5" }}>
-          {getValue() || "—"}
-        </span>
-      )
+      cell: ({ getValue, row }) => {
+        const val = getValue();
+        if (val) return <span style={{ fontSize: '11.5px', fontWeight: 600, color: isDark ? "#60A5FA" : "#4F46E5" }}>{val}</span>;
+        const parts = (row.original.contact_name || row.original.contact || "").split(' ');
+        return <span style={{ fontSize: '11.5px', fontWeight: 600, color: isDark ? "#60A5FA" : "#4F46E5" }}>{parts[0] || "—"}</span>;
+      }
     },
     {
       header: "Last Name",
       accessorKey: "last_name",
       size: 150,
-      cell: ({ getValue }) => (
-        <span style={{ fontSize: '11.5px', fontWeight: 500, color: isDark ? 'rgba(255,255,255,0.85)' : '#1C1917' }}>
-          {getValue() || "—"}
-        </span>
-      )
+      cell: ({ getValue, row }) => {
+        const val = getValue();
+        if (val) return <span style={{ fontSize: '11.5px', fontWeight: 500, color: isDark ? 'rgba(255,255,255,0.85)' : '#1C1917' }}>{val}</span>;
+        const parts = (row.original.contact_name || row.original.contact || "").split(' ');
+        return <span style={{ fontSize: '11.5px', fontWeight: 500, color: isDark ? 'rgba(255,255,255,0.85)' : '#1C1917' }}>{parts.slice(1).join(' ') || "—"}</span>;
+      }
     },
     {
       header: "Type",

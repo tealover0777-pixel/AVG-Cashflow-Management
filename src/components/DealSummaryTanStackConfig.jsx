@@ -103,24 +103,40 @@ export const getDealInvestmentColumns = (permissions, isDark, t, context, viewTy
       header: "First Name",
       accessorKey: "first_name",
       size: 150,
-      cell: ({ row, getValue }) => (
-        <span 
-          onClick={(e) => { e.stopPropagation(); callbacks.onContactClick?.(row.original); }}
-          style={{ fontWeight: 600, color: isDark ? "#60A5FA" : "#4F46E5", fontSize: '11.5px', cursor: 'pointer' }}
-        >
-          {getValue() || "—"}
-        </span>
-      )
+      cell: ({ row, getValue }) => {
+        const val = getValue();
+        let display = val;
+        if (!display) {
+          const parts = (row.original.contact_name || row.original.contact || "").split(' ');
+          display = parts[0] || "—";
+        }
+        return (
+          <span 
+            onClick={(e) => { e.stopPropagation(); callbacks.onContactClick?.(row.original); }}
+            style={{ fontWeight: 600, color: isDark ? "#60A5FA" : "#4F46E5", fontSize: '11.5px', cursor: 'pointer' }}
+          >
+            {display}
+          </span>
+        );
+      }
     },
     {
       header: "Last Name",
       accessorKey: "last_name",
       size: 150,
-      cell: ({ getValue }) => (
-        <span style={{ fontSize: '11.5px', fontWeight: 500, color: isDark ? 'rgba(255,255,255,0.85)' : '#1C1917' }}>
-          {getValue() || "—"}
-        </span>
-      )
+      cell: ({ row, getValue }) => {
+        const val = getValue();
+        let display = val;
+        if (!display) {
+          const parts = (row.original.contact_name || row.original.contact || "").split(' ');
+          display = parts.slice(1).join(' ') || "—";
+        }
+        return (
+          <span style={{ fontSize: '11.5px', fontWeight: 500, color: isDark ? 'rgba(255,255,255,0.85)' : '#1C1917' }}>
+            {display}
+          </span>
+        );
+      }
     },
     {
       header: "Email address",
