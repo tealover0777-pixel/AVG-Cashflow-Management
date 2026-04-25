@@ -37,8 +37,9 @@ export const getDistributionColumns = (isDark, t, CONTACTS, DEALS, INVESTMENTS =
     id: 'party',
     header: 'Investor Name',
     accessorFn: (row) => {
-      const c = (CONTACTS || []).find(x => x.id === row.contact_id);
-      return c ? c.name : row.party_id;
+      const cid = row.contact_id || row.party_id || "";
+      const c = (CONTACTS || []).find(x => x.id === cid || x.docId === cid || x.contact_id === cid);
+      return c ? (c.name || c.contact_name || [c.first_name, c.last_name].filter(Boolean).join(" ")) : (row.contact || cid || "");
     },
     size: 180,
     cell: ({ getValue, row }) => {
