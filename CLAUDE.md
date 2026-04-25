@@ -71,6 +71,22 @@ Firestore rules (`firestore.rules`) enforce multi-tenancy at the database level 
 
 `dataconnect/` contains a PostgreSQL schema (Cloud SQL instance `avgcashflowmanagement-fdc`) and auto-generated SDK in `src/dataconnect-generated/`. This is separate from the primary Firestore database.
 
+## Coding Rules
+
+### No Hard-Coded Option Lists
+Dropdown options, status values, payment types, frequency labels, roles, and any other user-facing enumeration **must** come from `DIMENSIONS` (Firestore `dimensions/` collection), not hard-coded arrays.
+
+Pattern to follow:
+```javascript
+const myOpts = (DIMENSIONS.find(d => d.name === "DimensionName") || {}).items
+  ?.map(i => String(i || "").trim()).filter(Boolean)
+  || ["Fallback1", "Fallback2"]; // only as last-resort safety net
+```
+
+- Look up by the exact dimension `name` field; include common aliases (e.g. `"ScheduleStatus" || "Schedule Status"`).
+- A short fallback array is acceptable **only** when the dimension may legitimately be absent (e.g. a brand-new tenant with no data yet). The fallback must never be the primary source.
+- If a dimension doesn't exist yet in Firestore, add it there — don't patch the code.
+
 ## Recent Changes
 
 - **Terminology Migrations**: Projects → Deals, Contracts → Investments, Parties → Contacts. Firestore collections are `deals/`, `investments/`, `contacts/`. Permissions use `DEAL_*`, `INVESTMENT_*`, `CONTACT_*`. See `scripts/README.md` for migration details.
