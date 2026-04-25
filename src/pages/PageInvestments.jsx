@@ -97,20 +97,36 @@ export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [
         auto_generate: true,
         investment_name: "",
         source_of_funds: "New Principal",
-        rollover_source_id: ""
+        rollover_source_id: "",
+        first_name: "",
+        last_name: ""
       }
     });
   };
-  const openEdit = r => setModal({ open: true, mode: "edit", data: { ...r } });
+  const openEdit = r => {
+    const parts = (r.contact_name || r.contact || "").split(' ');
+    setModal({
+      open: true,
+      mode: "edit",
+      data: {
+        ...r,
+        first_name: r.first_name || parts[0] || "",
+        last_name: r.last_name || parts.slice(1).join(' ') || ""
+      }
+    });
+  };
   const close = () => setModal(m => ({ ...m, open: false }));
   async function handleSaveInvestment() {
     const d = modal.data;
     const dealObj = DEALS.find(p => p.name === d.deal);
-    const contactObj = CONTACTS.find(p => p.name === d.contact);
+    const contactName = `${d.first_name || ""} ${d.last_name || ""}`.trim();
+    const contactObj = CONTACTS.find(p => p.name === contactName);
     const payload = {
       deal_name: d.deal || "",
       deal_id: dealObj ? dealObj.id : (d.deal_id || ""),
-      contact_name: d.contact || "",
+      contact_name: contactName,
+      first_name: d.first_name || "",
+      last_name: d.last_name || "",
       contact_id: contactObj ? contactObj.id : (d.contact_id || ""),
       investment_type: d.type || "",
       amount: d.amount ? Number(String(d.amount).replace(/[^0-9.-]/g, "")) || null : null,
@@ -770,8 +786,9 @@ export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [
         </div>
       )}
       <FF label="Deal name" t={t}><FSel value={modal.data.deal} onChange={e => setF("deal", e.target.value)} options={DEALS.map(p => p.name)} t={t} /></FF>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
-        <FF label="Contact" t={t}><FSel value={modal.data.contact} onChange={e => setF("contact", e.target.value)} options={sortedContacts.map(p => p.name)} t={t} /></FF>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14 }}>
+        <FF label="First Name" t={t}><FIn value={modal.data.first_name} onChange={e => setF("first_name", e.target.value)} t={t} /></FF>
+        <FF label="Last Name" t={t}><FIn value={modal.data.last_name} onChange={e => setF("last_name", e.target.value)} t={t} /></FF>
         <FF label="Source of Funds" t={t}>
           <FSel 
             value={modal.data.source_of_funds} 

@@ -69,15 +69,21 @@ export default function PagePayments({ t, isDark, PAYMENTS = [], INVESTMENTS = [
   const close = () => setModal(m => ({ ...m, open: false }));
   const setF = (k, v) => setModal(m => ({ ...m, data: { ...m.data, [k]: v } }));
 
-  const openAddPayment = () => setModal({ open: true, mode: "add", type: "payment", data: { investment_id: "", contact_name: "", payment_type: "Principal", amount: "", payment_date: "", payment_method: "Wire", direction: "Received", status: "Pending", notes: "" } });
-  const openEditPayment = r => setModal({ open: true, mode: "edit", type: "payment", data: {
-    ...r,
-    investment_id: r.investment_id || r.investment || "",
-    contact_name: r.contact_name || r.contact || r.party_name || r.party || "",
-    payment_type: r.payment_type || r.type || "",
-    payment_date: r.payment_date || r.date || "",
-    payment_method: r.payment_method || r.method || "",
-  } });
+  const openAddPayment = () => setModal({ open: true, mode: "add", type: "payment", data: { investment_id: "", contact_name: "", first_name: "", last_name: "", payment_type: "Principal", amount: "", payment_date: "", payment_method: "Wire", direction: "Received", status: "Pending", notes: "" } });
+  const openEditPayment = r => {
+    const contactName = r.contact_name || r.contact || r.party_name || r.party || "";
+    const parts = contactName.split(' ');
+    setModal({ open: true, mode: "edit", type: "payment", data: {
+      ...r,
+      investment_id: r.investment_id || r.investment || "",
+      contact_name: contactName,
+      first_name: r.first_name || parts[0] || "",
+      last_name: r.last_name || parts.slice(1).join(' ') || "",
+      payment_type: r.payment_type || r.type || "",
+      payment_date: r.payment_date || r.date || "",
+      payment_method: r.payment_method || r.method || "",
+    } });
+  };
   
   const openAddBatch = () => setModal({ open: true, mode: "add", type: "batch", data: { batch_id: `B${Date.now().toString().slice(-6)}`, status: "VERSION_CREATED", notes: "" } });
   const openEditBatch = r => setModal({ open: true, mode: "edit", type: "batch", data: { ...r } });
@@ -91,7 +97,9 @@ export default function PagePayments({ t, isDark, PAYMENTS = [], INVESTMENTS = [
     if (type === "payment") {
       payload = {
         investment_id: d.investment_id || "",
-        contact_name: d.contact_name || "",
+        contact_name: `${d.first_name || ""} ${d.last_name || ""}`.trim(),
+        first_name: d.first_name || "",
+        last_name: d.last_name || "",
         payment_type: d.payment_type || "",
         amount: d.amount ? Number(String(d.amount).replace(/[^0-9.-]/g, "")) || null : null,
         payment_date: d.payment_date || null,
@@ -316,9 +324,10 @@ export default function PagePayments({ t, isDark, PAYMENTS = [], INVESTMENTS = [
             <FF label="Direction" t={t}><FSel value={modal.data.direction} onChange={e => setF("direction", e.target.value)} options={["Received", "Sent"]} t={t} /></FF>
             <FF label="Payment Type" t={t}><FSel value={modal.data.payment_type} onChange={e => setF("payment_type", e.target.value)} options={["Interest", "Principal", "Interest + Principal", "Disbursement", "Fee", "Rollover"]} t={t} /></FF>
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14 }}>
             <FF label="Investment ID" t={t}><FSel value={modal.data.investment_id} onChange={e => setF("investment_id", e.target.value)} options={INVESTMENTS.map(i => i.id)} t={t} /></FF>
-            <FF label="Contact" t={t}><FSel value={modal.data.contact_name} onChange={e => setF("contact_name", e.target.value)} options={sortedContacts.map(c => c.name)} t={t} /></FF>
+            <FF label="First Name" t={t}><FIn value={modal.data.first_name} onChange={e => setF("first_name", e.target.value)} t={t} /></FF>
+            <FF label="Last Name" t={t}><FIn value={modal.data.last_name} onChange={e => setF("last_name", e.target.value)} t={t} /></FF>
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
             <FF label="Amount" t={t}><FIn value={modal.data.amount} onChange={e => setF("amount", e.target.value)} placeholder="0.00" t={t} /></FF>

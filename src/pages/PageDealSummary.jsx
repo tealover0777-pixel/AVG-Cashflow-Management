@@ -777,6 +777,8 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
         generateSchedule: true,
         feeIds: [],
         investment_name: "",
+        first_name: "",
+        last_name: "",
         payment_method: (CONTACTS.find(p => p.name === "")?.payment_method || (paymentMethods[0] || ""))
       }
     });
@@ -784,7 +786,18 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
 
   const openEdit = (r) => {
     const feeIds = r.fees ? String(r.fees).split(",").filter(Boolean) : [];
-    setModal({ open: true, mode: "edit", data: { ...r, id: r.investment_id || r.id, feeIds } });
+    const parts = (r.contact_name || r.contact || "").split(' ');
+    setModal({ 
+      open: true, 
+      mode: "edit", 
+      data: { 
+        ...r, 
+        id: r.investment_id || r.id, 
+        feeIds,
+        first_name: r.first_name || parts[0] || "",
+        last_name: r.last_name || parts.slice(1).join(' ') || ""
+      } 
+    });
   };
 
   const openAddContactModal = () => setContactModal({ open: true, mode: "existing", data: { type: "Individual", role: "Investor", investor_type: "Fixed", marketing_emails: "Subscribed" } });
@@ -967,11 +980,14 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
   async function handleSaveInvestment() {
     const d = modal.data;
     const dealObj = DEALS.find(p => p.name === d.deal);
-    const contactObj = CONTACTS.find(p => p.name === d.contact);
+    const contactName = `${d.first_name || ""} ${d.last_name || ""}`.trim();
+    const contactObj = CONTACTS.find(p => p.name === contactName);
     const payload = {
       deal_name: d.deal || "",
       deal_id: dealObj ? dealObj.id : (d.deal_id || ""),
-      contact_name: d.contact || "",
+      contact_name: contactName,
+      first_name: d.first_name || "",
+      last_name: d.last_name || "",
       contact_id: contactObj ? contactObj.id : (d.contact_id || ""),
       investment_type: d.type || "",
       amount: d.amount ? Number(String(d.amount).replace(/[^0-9.-]/g, "")) || null : null,
@@ -3290,17 +3306,10 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
           </div>
         )}
         <FF label="Deal name" t={t}><FSel value={modal.data.deal} onChange={e => setF("deal", e.target.value)} options={DEALS.map(p => p.name)} t={t} /></FF>
-        <FF label="Contact" t={t}>
-          <FSel
-            value={modal.data.contact}
-            onChange={e => setF("contact", e.target.value)}
-            options={activeTab === "Lending"
-              ? sortedContacts.filter(p => p.role === "Borrower" || p.role === "Both").map(p => p.name)
-              : sortedContacts.map(p => p.name)
-            }
-            t={t}
-          />
-        </FF>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+          <FF label="First Name" t={t}><FIn value={modal.data.first_name} onChange={e => setF("first_name", e.target.value)} t={t} /></FF>
+          <FF label="Last Name" t={t}><FIn value={modal.data.last_name} onChange={e => setF("last_name", e.target.value)} t={t} /></FF>
+        </div>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14 }}>
           <FF label="Type" t={t}><FSel value={modal.data.type} onChange={e => setF("type", e.target.value)} options={getTypeOpts()} t={t} /></FF>
           <FF label="Amount" t={t}>
