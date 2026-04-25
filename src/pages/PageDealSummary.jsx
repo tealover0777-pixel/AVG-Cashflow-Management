@@ -88,6 +88,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
     paymentMethod: ""
   });
   const [drillDown, setDrillDown] = useState({ open: false, records: [], title: "" });
+  const [distFilter, setDistFilter] = useState("All");
   const [showExportMenu, setShowExportMenu] = useState(false);
   const exportMenuRef = useRef(null);
 
@@ -131,7 +132,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
       });
     } else {
       headers = ["Investor Name", "Deal Name", "Start Date", "Payment Date", "Type", "Freq", "Amount", "Status", "Notes"];
-      data = activeDealSchedules.map(s => {
+      data = filteredDealSchedules.map(s => {
         const contact = CONTACTS.find(x => x.id === s.contact_id);
         const dealObj = DEALS.find(x => x.id === s.deal_id);
         const inv = INVESTMENTS.find(x => x.id === s.investment_id || x.id === s.investment);
@@ -365,6 +366,17 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
   const activeDealSchedules = useMemo(() =>
     dealSchedules.filter(s => s.active_version === true)
     , [dealSchedules]);
+    
+  const filteredDealSchedules = useMemo(() => {
+    if (distFilter === "All") return activeDealSchedules;
+    return activeDealSchedules.filter(s => {
+      const ty = (s.payment_type || s.type || "").toLowerCase();
+      if (distFilter === "Interest") return ty.includes("interest") || ty.includes("distribution");
+      if (distFilter === "Principal") return ty.includes("principal") || ty.includes("deposit") || ty.includes("received") || ty.includes("disbursement");
+      if (distFilter === "Fee") return ty.includes("fee");
+      return true;
+    });
+  }, [activeDealSchedules, distFilter]);
 
   const totalFundBalance = useMemo(() => {
     let sum = 0;
@@ -2185,9 +2197,31 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
 
           {distributionView === "table" ? (
             <div style={{ height: '1000px', width: "100%", minHeight: '1000px' }}>
+              <div style={{ display: "flex", gap: 10, marginBottom: 20 }}>
+                {["All", "Interest", "Principal", "Fee"].map(f => (
+                  <button
+                    key={f}
+                    onClick={() => setDistFilter(f)}
+                    style={{
+                      padding: "8px 16px",
+                      borderRadius: 20,
+                      background: distFilter === f ? t.accentGrad : (isDark ? "rgba(255,255,255,0.05)" : "#f3f4f6"),
+                      color: distFilter === f ? "#fff" : t.textSecondary,
+                      border: `1px solid ${distFilter === f ? "transparent" : t.surfaceBorder}`,
+                      fontSize: 13,
+                      fontWeight: 600,
+                      cursor: "pointer",
+                      transition: "all 0.2s",
+                      boxShadow: distFilter === f ? `0 4px 10px ${t.accentShadow}` : "none"
+                    }}
+                  >
+                    {f}
+                  </button>
+                ))}
+              </div>
               <TanStackTable
                 key="distributions-table"
-                data={activeDealSchedules}
+                data={filteredDealSchedules}
                 columns={scheduleColumnDefs}
                 pageSize={100}
                 initialSorting={[{ id: 'dueDate', desc: false }]}
