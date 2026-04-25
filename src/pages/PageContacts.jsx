@@ -361,10 +361,15 @@ export default function PageContacts({ t, isDark, CONTACTS = [], INVESTMENTS = [
       </div>
       <FF label="Address" t={t}><FIn value={modal.data.address || ""} onChange={e => setF("address", e.target.value)} placeholder="Full address" t={t} /></FF>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
-        <FF label="Bank Information" t={t}><FIn value={modal.data.bank_information || ""} onChange={e => setF("bank_information", e.target.value)} placeholder="e.g. Citibank" t={t} /></FF>
-        <FF label="Payment Method" t={t}><FSel value={modal.data.payment_method} onChange={e => setF("payment_method", e.target.value)} options={paymentMethods} t={t} /></FF>
+        <FF label="Bank Name" t={t}><FIn value={modal.data.bank_information || modal.data.bank_name || ""} onChange={e => setF("bank_information", e.target.value)} placeholder="e.g. Citibank" t={t} /></FF>
+        <FF label="Bank Address" t={t}><FIn value={modal.data.bank_address || ""} onChange={e => setF("bank_address", e.target.value)} placeholder="Bank branch address" t={t} /></FF>
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+        <FF label="Bank Routing Number" t={t}><FIn value={modal.data.bank_routing_number || ""} onChange={e => setF("bank_routing_number", e.target.value)} placeholder="9-digit routing #" t={t} /></FF>
+        <FF label="Bank Account Number" t={t}><FIn value={modal.data.bank_account_number || ""} onChange={e => setF("bank_account_number", e.target.value)} placeholder="Account #" t={t} /></FF>
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+        <FF label="Payment Method" t={t}><FSel value={modal.data.payment_method} onChange={e => setF("payment_method", e.target.value)} options={paymentMethods} t={t} /></FF>
         <FF label="Marketing Emails?" t={t}><FSel value={modal.data.marketing_emails || "Subscribed"} onChange={e => setF("marketing_emails", e.target.value)} options={["Subscribed", "Unsubscribed"]} t={t} /></FF>
       </div>
     </Modal>

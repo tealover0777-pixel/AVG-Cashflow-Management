@@ -72,7 +72,9 @@ export const InvestorSummaryModal = ({
         bank_routing_number: contact.bank_routing_number || "",
         bank_account_number: contact.bank_account_number || "",
         tax_id: contact.tax_id || "",
-        payment_method: contact.payment_method || ""
+        payment_method: contact.payment_method || "",
+        investor_type: contact.investor_type || "Fixed",
+        marketing_emails: contact.marketing_emails || "Subscribed"
       });
       setIsEditing(false);
     }
@@ -123,6 +125,7 @@ export const InvestorSummaryModal = ({
 
   const roleOpts = (DIMENSIONS.find(d => d.name === "ContactRole" || d.name === "Contact Role") || {}).items || ["Investor", "Borrower"];
   const contactTypeOpts = (DIMENSIONS.find(d => d.name === "ContactType" || d.name === "Contact Type") || {}).items || ["Individual", "Company", "Trust", "Partnership"];
+  const investorTypeOpts = ["Fixed", "Equity", "Both"];
   const paymentMethods = (DIMENSIONS.find(d => d.name === "Payment Method" || d.name === "PaymentMethod") || {}).items || [];
 
   const handleSave = async () => {
@@ -260,6 +263,14 @@ export const InvestorSummaryModal = ({
             </FF>
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
+            <FF label="Investor Type" t={t}>
+              {isEditing ? <FSel value={editData.investor_type} options={investorTypeOpts} onChange={e => setED({ investor_type: e.target.value })} t={t} /> : <div style={{ padding: "12px 16px", background: isDark ? "rgba(255,255,255,0.03)" : "#fff", border: `1px solid ${t.surfaceBorder}`, borderRadius: 8, color: t.text, fontWeight: 500 }}>{showData.investor_type || "—"}</div>}
+            </FF>
+            <FF label="Tax ID" t={t}>
+              {isEditing ? <FIn value={editData.tax_id} onChange={e => setED({ tax_id: e.target.value })} t={t} /> : <div style={{ padding: "12px 16px", background: isDark ? "rgba(255,255,255,0.03)" : "#fff", border: `1px solid ${t.surfaceBorder}`, borderRadius: 8, color: t.text, fontWeight: 500 }}>{showData.tax_id || "—"}</div>}
+            </FF>
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
             <FF label="Email" t={t}>
               {isEditing ? <FIn value={editData.email} onChange={e => setED({ email: e.target.value })} t={t} /> : <div style={{ padding: "12px 16px", background: isDark ? "rgba(255,255,255,0.03)" : "#fff", border: `1px solid ${t.surfaceBorder}`, borderRadius: 8, color: t.text, fontWeight: 500 }}>{showData.email || "—"}</div>}
             </FF>
@@ -287,13 +298,13 @@ export const InvestorSummaryModal = ({
             </FF>
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
-            <FF label="Tax ID" t={t}>
-              {isEditing ? <FIn value={editData.tax_id} onChange={e => setED({ tax_id: e.target.value })} t={t} /> : <div style={{ padding: "12px 16px", background: isDark ? "rgba(255,255,255,0.03)" : "#fff", border: `1px solid ${t.surfaceBorder}`, borderRadius: 8, color: t.text, fontWeight: 500 }}>{showData.tax_id || "—"}</div>}
+            <FF label="Payment Method" t={t}>
+              {isEditing ? <FSel value={editData.payment_method} options={paymentMethods} onChange={e => setED({ payment_method: e.target.value })} t={t} /> : <div style={{ padding: "12px 16px", background: isDark ? "rgba(255,255,255,0.03)" : "#fff", border: `1px solid ${t.surfaceBorder}`, borderRadius: 8, color: t.text, fontWeight: 500 }}>{showData.payment_method || "—"}</div>}
+            </FF>
+            <FF label="Marketing Emails?" t={t}>
+              {isEditing ? <FSel value={editData.marketing_emails} options={["Subscribed", "Unsubscribed"]} onChange={e => setED({ marketing_emails: e.target.value })} t={t} /> : <div style={{ padding: "12px 16px", background: isDark ? "rgba(255,255,255,0.03)" : "#fff", border: `1px solid ${t.surfaceBorder}`, borderRadius: 8, color: t.text, fontWeight: 500 }}>{showData.marketing_emails || "—"}</div>}
             </FF>
           </div>
-          <FF label="Payment Method" t={t}>
-            {isEditing ? <FSel value={editData.payment_method} options={paymentMethods} onChange={e => setED({ payment_method: e.target.value })} t={t} /> : <div style={{ padding: "12px 16px", background: isDark ? "rgba(255,255,255,0.03)" : "#fff", border: `1px solid ${t.surfaceBorder}`, borderRadius: 8, color: t.text, fontWeight: 500 }}>{showData.payment_method || "—"}</div>}
-          </FF>
         </div>
       );
     }
