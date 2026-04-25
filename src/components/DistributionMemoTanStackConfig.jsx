@@ -2,21 +2,29 @@ import React from 'react';
 import { Bdg, ActBtns } from '../components';
 import { fmtCurr } from '../utils';
 
+const toArr = (v) => Array.isArray(v) ? v : (v ? [v] : []);
+
 export const getDistributionMemoColumns = (isDark, t, context) => {
   const { SCHEDULES = [], dealId, callbacks } = context;
 
-  const getLinkedSchedules = (memo) =>
-    SCHEDULES.filter(s => {
+  const getLinkedSchedules = (memo) => {
+    const types = toArr(memo.payment_type).map(x => x.toLowerCase());
+    const statuses = toArr(memo.status).map(x => x.toLowerCase());
+    return SCHEDULES.filter(s => {
       if (s.deal_id !== dealId) return false;
       const sType = (s.type || s.payment_type || "").toLowerCase();
-      const mType = (memo.payment_type || "").toLowerCase();
-      if (mType && sType !== mType) return false;
+      if (types.length > 0 && !types.includes(sType)) return false;
       const due = s.dueDate || s.due_date || "";
       if (!due) return false;
       if (memo.period_start && due < memo.period_start) return false;
       if (memo.period_end && due > memo.period_end) return false;
+      if (statuses.length > 0) {
+        const sSt = (s.status || "").toLowerCase();
+        if (!statuses.includes(sSt)) return false;
+      }
       return true;
     });
+  };
 
   return [
     {
@@ -44,11 +52,15 @@ export const getDistributionMemoColumns = (isDark, t, context) => {
     {
       header: "Payment Status",
       accessorKey: "status",
-      size: 120,
+      size: 150,
       cell: ({ getValue }) => {
-        const val = getValue();
-        if (!val) return <span style={{ color: t.textMuted }}>—</span>;
-        return <Bdg status={val} isDark={isDark} />;
+        const val = toArr(getValue());
+        if (val.length === 0) return <span style={{ color: t.textMuted }}>—</span>;
+        return (
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
+            {val.map(s => <Bdg key={s} status={s} isDark={isDark} />)}
+          </div>
+        );
       }
     },
     {
@@ -74,9 +86,17 @@ export const getDistributionMemoColumns = (isDark, t, context) => {
       accessorKey: "payment_type",
       size: 200,
       cell: ({ getValue }) => {
-        const val = getValue();
-        if (!val) return <span style={{ color: t.textMuted }}>—</span>;
-        return <span style={{ fontSize: 12, color: t.textSecondary }}>{val}</span>;
+        const val = toArr(getValue());
+        if (val.length === 0) return <span style={{ color: t.textMuted }}>—</span>;
+        return (
+          <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+            {val.map((v, i) => (
+              <span key={i} style={{ fontSize: 11, color: t.textSecondary, background: isDark ? "rgba(255,255,255,0.05)" : "#F3F4F6", padding: "1px 6px", borderRadius: 4, display: "inline-block" }}>
+                {v}
+              </span>
+            ))}
+          </div>
+        );
       }
     },
     {

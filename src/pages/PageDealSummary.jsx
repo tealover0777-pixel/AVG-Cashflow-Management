@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useRef, useCallback } from "react"
 import { db, storage } from "../firebase";
 import { doc, getDocs, collection, addDoc, updateDoc, setDoc, deleteDoc, serverTimestamp } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL, deleteObject } from "firebase/storage";
-import { Modal, FF, FIn, FSel, DelModal, Bdg, ConfirmModal } from "../components";
+import { Modal, FF, FIn, FSel, FMultiSel, DelModal, Bdg, ConfirmModal } from "../components";
 import { InvestorSummaryModal } from "../components/InvestorSummaryModal";
 import { useAuth } from "../AuthContext";
 import { getDealInvestmentColumns } from "../components/DealSummaryTanStackConfig";
@@ -3924,18 +3924,18 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
             />
           </FF>
           <FF label="Payment Status" t={t}>
-            <FSel
-              value={distMemoModal.data.status || ""}
-              options={["", ...paymentStatusOpts]}
-              onChange={e => setDistMemoModal(m => ({ ...m, data: { ...m.data, status: e.target.value } }))}
+            <FMultiSel
+              value={Array.isArray(distMemoModal.data.status) ? distMemoModal.data.status : (distMemoModal.data.status ? [distMemoModal.data.status] : [])}
+              options={paymentStatusOpts}
+              onChange={v => setDistMemoModal(m => ({ ...m, data: { ...m.data, status: v } }))}
               t={t}
             />
           </FF>
           <FF label="Payment Type" t={t}>
-            <FSel
-              value={distMemoModal.data.payment_type || ""}
-              options={["", ...paymentTypeOpts]}
-              onChange={e => setDistMemoModal(m => ({ ...m, data: { ...m.data, payment_type: e.target.value } }))}
+            <FMultiSel
+              value={Array.isArray(distMemoModal.data.payment_type) ? distMemoModal.data.payment_type : (distMemoModal.data.payment_type ? [distMemoModal.data.payment_type] : [])}
+              options={paymentTypeOpts}
+              onChange={v => setDistMemoModal(m => ({ ...m, data: { ...m.data, payment_type: v } }))}
               t={t}
             />
           </FF>
@@ -3957,15 +3957,16 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
               />
             </FF>
           </div>
-          {distMemoModal.data.period_start && distMemoModal.data.period_end && distMemoModal.data.payment_type && (
+          {distMemoModal.data.period_start && distMemoModal.data.period_end && (
             <div style={{ padding: "10px 14px", background: isDark ? "rgba(59,130,246,0.08)" : "#EFF6FF", border: `1px solid ${isDark ? "rgba(59,130,246,0.2)" : "#BFDBFE"}`, borderRadius: 8 }}>
               <div style={{ fontSize: 12, fontWeight: 600, color: isDark ? "#93C5FD" : "#1D4ED8" }}>
                 {(() => {
+                  const types = Array.isArray(distMemoModal.data.payment_type) ? distMemoModal.data.payment_type.map(x => x.toLowerCase()) : [];
                   const count = activeDealSchedules.filter(s => {
                     const sType = (s.type || s.payment_type || "").toLowerCase();
-                    const mType = (distMemoModal.data.payment_type || "").toLowerCase();
                     const due = s.dueDate || s.due_date || "";
-                    return sType === mType && due >= distMemoModal.data.period_start && due <= distMemoModal.data.period_end;
+                    const typeMatch = types.length === 0 || types.includes(sType);
+                    return typeMatch && due >= distMemoModal.data.period_start && due <= distMemoModal.data.period_end;
                   }).length;
                   return `${count} schedule${count !== 1 ? "s" : ""} will be linked with these criteria`;
                 })()}
