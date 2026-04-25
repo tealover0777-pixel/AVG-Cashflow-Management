@@ -477,6 +477,24 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
     });
   }, [activeDealSchedules, distFilter]);
 
+  const matchesDistFilter = (type) => {
+    const ty = (type || "").toLowerCase();
+    if (distFilter === "All") return true;
+    if (distFilter === "Interest") return ty.includes("interest") || ty.includes("distribution") || (ty.includes("payment") && !ty.includes("principal"));
+    if (distFilter === "Principal") return ty.includes("principal") || ty.includes("deposit") || ty.includes("received") || ty.includes("disbursement");
+    if (distFilter === "Fee") return ty.includes("fee");
+    return true;
+  };
+
+  const filteredDistMemos = useMemo(() => {
+    if (distFilter === "All") return distMemos;
+    return distMemos.filter(memo => {
+      const types = Array.isArray(memo.payment_type) ? memo.payment_type : (memo.payment_type ? [memo.payment_type] : []);
+      if (types.length === 0) return false;
+      return types.some(ty => matchesDistFilter(ty));
+    });
+  }, [distMemos, distFilter]);
+
   const totalFundBalance = useMemo(() => {
     let sum = 0;
     dealSchedules.forEach(sch => {
@@ -2429,7 +2447,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
           <div style={{ height: '1000px', width: "100%", minHeight: '1000px' }}>
             <TanStackTable
               key="dist-memo-table"
-              data={distMemos}
+              data={filteredDistMemos}
               columns={getDistributionMemoColumns(isDark, t, {
                 SCHEDULES: activeDealSchedules,
                 dealId,
