@@ -466,6 +466,24 @@ export const FMultiSel = ({ value = [], onChange, options, t, style = {} }) => (
   </div>
 );
 
+export const ConfirmModal = ({ open, onClose, onConfirm, title, message, t, isDark, saveLabel = "Yes, Proceed" }) => (
+  <Modal 
+    open={open} 
+    onClose={onClose} 
+    title={title || "Confirm Action"} 
+    onSave={onConfirm} 
+    saveLabel={saveLabel}
+    t={t} 
+    isDark={isDark}
+    width={400}
+  >
+    <div style={{ padding: "8px 0", fontSize: 14, color: t.text, lineHeight: 1.6 }}>
+      {message}
+    </div>
+  </Modal>
+);
+
+
 export const DelModal = ({ target, open, onClose, onConfirm, onDel, label, title, t, isDark, children }) => {
   const isOpen = open !== undefined ? open : !!target;
   const onSave = onConfirm || onDel;

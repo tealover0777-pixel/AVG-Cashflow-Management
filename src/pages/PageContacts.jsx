@@ -5,7 +5,7 @@ import { db, functions } from "../firebase";
 import { collection, doc, setDoc, updateDoc, deleteDoc, addDoc, serverTimestamp } from "firebase/firestore";
 import { httpsCallable } from "firebase/functions";
 import { initials, av, badge, sortData, fmtCurr } from "../utils";
-import { StatCard, Bdg, Pagination, ActBtns, Modal, FF, FIn, FSel, DelModal, Tooltip } from "../components";
+import { StatCard, Bdg, Pagination, ActBtns, Modal, FF, FIn, FSel, DelModal, Tooltip, ConfirmModal } from "../components";
 import { InvestorSummaryModal } from "../components/InvestorSummaryModal";
 import { useAuth } from "../AuthContext";
 
@@ -27,6 +27,7 @@ export default function PageContacts({ t, isDark, CONTACTS = [], INVESTMENTS = [
   const [chip, setChip] = useState("All");
   const [modal, setModal] = useState({ open: false, mode: "add", data: {} });
   const [delT, setDelT] = useState(null);
+  const [duplicateConfirm, setDuplicateConfirm] = useState(null);
   const [toast, setToast] = useState(null);
   const showToast = (msg, type = "info") => { setToast({ msg, type }); setTimeout(() => setToast(null), 4000); };
   const nextContactId = (() => {
@@ -88,7 +89,7 @@ export default function PageContacts({ t, isDark, CONTACTS = [], INVESTMENTS = [
   const handleSaveContact = async () => {
     const d = modal.data;
     const payload = {
-      contact_name: `${d.first_name || ""} ${d.last_name || ""}`.trim() || d.name || "",
+      contact_name: d.type === "Company" ? (d.company_name || "") : `${d.first_name || ""} ${d.last_name || ""}`.trim() || d.name || "",
       first_name: d.first_name || "",
       last_name: d.last_name || "",
       contact_type: d.type || "",
@@ -98,15 +99,28 @@ export default function PageContacts({ t, isDark, CONTACTS = [], INVESTMENTS = [
       phone: d.phone || "",
       address: d.address || "",
       tax_id: d.tax_id || "",
+      company_name: d.company_name || "",
       bank_information: d.bank_information || "",
       bank_address: d.bank_address || "",
       bank_routing_number: d.bank_routing_number || "",
       bank_account_number: d.bank_account_number || "",
       payment_method: d.payment_method || "",
       marketing_emails: d.marketing_emails || "Subscribed",
+      notes: d.notes || "",
       updated_at: serverTimestamp(),
     };
     try {
+      if (modal.mode === "add") {
+        const isDuplicate = CONTACTS.find(c => 
+          (c.first_name || "").toLowerCase().trim() === (d.first_name || "").toLowerCase().trim() && 
+          (c.last_name || "").toLowerCase().trim() === (d.last_name || "").toLowerCase().trim()
+        );
+        if (isDuplicate) {
+          setDuplicateConfirm(payload);
+          return;
+        }
+      }
+
       if (modal.mode === "edit" && d.docId) {
         const docRef = d._path ? doc(db, d._path) : doc(db, collectionPath, d.docId);
         await updateDoc(docRef, payload);
@@ -117,6 +131,18 @@ export default function PageContacts({ t, isDark, CONTACTS = [], INVESTMENTS = [
     } catch (err) { 
       console.error("Save contact error:", err);
       showToast("Failed to save contact. " + err.message, "error");
+    }
+  };
+
+  const handleConfirmDuplicate = async () => {
+    const payload = duplicateConfirm;
+    setDuplicateConfirm(null);
+    try {
+      await setDoc(doc(db, collectionPath, modal.data.id), { ...payload, created_at: serverTimestamp() });
+      close();
+    } catch (err) {
+      console.error("Save duplicate contact error:", err);
+      showToast("Failed to save duplicate contact. " + err.message, "error");
     }
   };
 
@@ -136,7 +162,7 @@ export default function PageContacts({ t, isDark, CONTACTS = [], INVESTMENTS = [
   const handleUpdateContact = async (updatedData) => {
     const d = updatedData;
     const payload = {
-      contact_name: `${d.first_name || ""} ${d.last_name || ""}`.trim() || d.name || "",
+      contact_name: d.contact_type === "Company" || d.type === "Company" ? (d.company_name || "") : `${d.first_name || ""} ${d.last_name || ""}`.trim() || d.name || "",
       first_name: d.first_name || "",
       last_name: d.last_name || "",
       contact_type: d.contact_type || d.type || "",
@@ -146,12 +172,14 @@ export default function PageContacts({ t, isDark, CONTACTS = [], INVESTMENTS = [
       phone: d.phone || "",
       address: d.address || "",
       tax_id: d.tax_id || "",
+      company_name: d.company_name || "",
       bank_information: d.bank_information || "",
       bank_address: d.bank_address || "",
       bank_routing_number: d.bank_routing_number || "",
       bank_account_number: d.bank_account_number || "",
       payment_method: d.payment_method || "",
       marketing_emails: d.marketing_emails || "Subscribed",
+      notes: d.notes || "",
       updated_at: serverTimestamp(),
     };
     try {
@@ -385,6 +413,15 @@ export default function PageContacts({ t, isDark, CONTACTS = [], INVESTMENTS = [
         This will create a secure profile and send a verification email. They will be addressed as <strong>{inviteConfirm?.first_name || (inviteConfirm?.name || "").split(" ")[0] || "User"}</strong> in the greeting.
       </div>
     </Modal>
+    <ConfirmModal 
+      open={!!duplicateConfirm} 
+      onClose={() => setDuplicateConfirm(null)} 
+      onConfirm={handleConfirmDuplicate}
+      title="Duplicate Name"
+      message={`A contact with the name "${duplicateConfirm?.first_name} ${duplicateConfirm?.last_name}" already exists. Do you still want to proceed?`}
+      t={t}
+      isDark={isDark}
+    />
     <InvestorSummaryModal 
       contact={detailContact}
       onClose={() => setDetailContact(null)}

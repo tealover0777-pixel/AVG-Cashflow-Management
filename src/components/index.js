@@ -6,5 +6,5 @@ export { default as TanStackTable } from "./TanStackTable";
 // Re-export shared components from components.jsx
 export { 
   StatCard, Bdg, Pagination, Tooltip, ActBtns, 
-  Modal, FF, FIn, FSel, FMultiSel, DelModal, PromptModal 
+  Modal, FF, FIn, FSel, FMultiSel, DelModal, PromptModal, ConfirmModal 
 } from "../components.jsx";

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useRef, useCallback } from "react"
 import { db, storage } from "../firebase";
 import { doc, getDocs, collection, addDoc, updateDoc, setDoc, deleteDoc, serverTimestamp } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL, deleteObject } from "firebase/storage";
-import { Modal, FF, FIn, FSel, DelModal, Bdg } from "../components";
+import { Modal, FF, FIn, FSel, DelModal, Bdg, ConfirmModal } from "../components";
 import { InvestorSummaryModal } from "../components/InvestorSummaryModal";
 import { useAuth } from "../AuthContext";
 import { getDealInvestmentColumns } from "../components/DealSummaryTanStackConfig";
@@ -65,6 +65,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
   const [bulkScheduleStatus, setBulkScheduleStatus] = useState(paymentStatusOpts[0] || "");
   const [scheduleModal, setScheduleModal] = useState({ open: false, data: {} });
   const [contactModal, setContactModal] = useState({ open: false, mode: "existing", data: {} });
+  const [duplicateConfirm, setDuplicateConfirm] = useState(null);
   const [confirmAction, setConfirmAction] = useState(null); // { title: string, message: string, onConfirm: () => void }
   const [toast, setToast] = useState(null);
   const showToast = (msg, type = "info") => { setToast({ msg, type }); setTimeout(() => setToast(null), 4000); };
@@ -678,9 +679,9 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
     setModal({ open: true, mode: "edit", data: { ...r, id: r.investment_id || r.id, feeIds } });
   };
 
-  const openAddContactModal = () => setContactModal({ open: true, mode: "existing", data: { type: "Individual", role: "Investor", investor_type: "Fixed" } });
+  const openAddContactModal = () => setContactModal({ open: true, mode: "existing", data: { type: "Individual", role: "Investor", investor_type: "Fixed", marketing_emails: "Subscribed" } });
 
-  const handleSaveContactToDeal = async () => {
+  const handleSaveContactToDeal = async (skipDuplicateCheck = false) => {
     try {
       let contactId = "";
       let contactName = "";
@@ -691,6 +692,16 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
           showToast("Please fill in first name, last name, and email.", "error");
           return;
         }
+
+        const isDuplicate = CONTACTS.find(c => 
+          (c.first_name || "").toLowerCase().trim() === (contactModal.data.first_name || "").toLowerCase().trim() && 
+          (c.last_name || "").toLowerCase().trim() === (contactModal.data.last_name || "").toLowerCase().trim()
+        );
+        if (isDuplicate && !skipDuplicateCheck) {
+          setDuplicateConfirm(true);
+          return;
+        }
+
         contactId = `P${Date.now()}R${Math.floor(Math.random() * 1000)}`;
         contactName = (contactModal.data.type === "Company" && contactModal.data.company_name)
           ? contactModal.data.company_name
@@ -719,7 +730,10 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
           bank_routing_number: contactModal.data.bank_routing_number || "",
           bank_account_number: contactModal.data.bank_account_number || "",
           tax_id: contactModal.data.tax_id || "",
+          company_name: contactModal.data.company_name || "",
           payment_method: contactModal.data.payment_method || "",
+          notes: contactModal.data.notes || "",
+          marketing_emails: contactModal.data.marketing_emails || "Subscribed",
           created_at: serverTimestamp(),
           updated_at: serverTimestamp(),
         });
@@ -3149,6 +3163,18 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
         t={t}
         isDark={isDark}
       >
+      <ConfirmModal 
+        open={duplicateConfirm} 
+        onClose={() => setDuplicateConfirm(false)} 
+        onConfirm={() => {
+          setDuplicateConfirm(false);
+          handleSaveContactToDeal(true);
+        }}
+        title="Duplicate Name"
+        message={`A contact with the name "${contactModal.data.first_name} ${contactModal.data.last_name}" already exists. Do you still want to proceed?`}
+        t={t}
+        isDark={isDark}
+      />
         <div style={{ display: "flex", gap: 12, marginBottom: 20 }}>
           <button
             type="button"
@@ -3202,9 +3228,18 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
             </div>
             <FF label="Address" t={t}><FIn value={contactModal.data.address || ""} onChange={e => setContactModal(prev => ({ ...prev, data: { ...prev.data, address: e.target.value } }))} placeholder="Full address" t={t} /></FF>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
-              <FF label="Bank Information" t={t}><FIn value={contactModal.data.bank_information || ""} onChange={e => setContactModal(prev => ({ ...prev, data: { ...prev.data, bank_information: e.target.value } }))} placeholder="e.g. Citibank" t={t} /></FF>
-              <FF label="Payment Method" t={t}><FSel value={contactModal.data.payment_method || ""} onChange={e => setContactModal(prev => ({ ...prev, data: { ...prev.data, payment_method: e.target.value } }))} options={paymentMethods} t={t} /></FF>
+              <FF label="Bank Name" t={t}><FIn value={contactModal.data.bank_information || ""} onChange={e => setContactModal(prev => ({ ...prev, data: { ...prev.data, bank_information: e.target.value } }))} placeholder="e.g. Citibank" t={t} /></FF>
+              <FF label="Bank Address" t={t}><FIn value={contactModal.data.bank_address || ""} onChange={e => setContactModal(prev => ({ ...prev, data: { ...prev.data, bank_address: e.target.value } }))} placeholder="Bank branch address" t={t} /></FF>
             </div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+              <FF label="Bank Routing Number" t={t}><FIn value={contactModal.data.bank_routing_number || ""} onChange={e => setContactModal(prev => ({ ...prev, data: { ...prev.data, bank_routing_number: e.target.value } }))} placeholder="9-digit routing #" t={t} /></FF>
+              <FF label="Bank Account Number" t={t}><FIn value={contactModal.data.bank_account_number || ""} onChange={e => setContactModal(prev => ({ ...prev, data: { ...prev.data, bank_account_number: e.target.value } }))} placeholder="Account #" t={t} /></FF>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+              <FF label="Payment Method" t={t}><FSel value={contactModal.data.payment_method || ""} onChange={e => setContactModal(prev => ({ ...prev, data: { ...prev.data, payment_method: e.target.value } }))} options={paymentMethods} t={t} /></FF>
+              <FF label="Marketing Emails?" t={t}><FSel value={contactModal.data.marketing_emails || "Subscribed"} onChange={e => setContactModal(prev => ({ ...prev, data: { ...prev.data, marketing_emails: e.target.value } }))} options={["Subscribed", "Unsubscribed"]} t={t} /></FF>
+            </div>
+            <FF label="Notes" t={t}><textarea value={contactModal.data.notes || ""} onChange={e => setContactModal(prev => ({ ...prev, data: { ...prev.data, notes: e.target.value } }))} placeholder="Additional notes..." rows={3} style={{ width: "100%", background: t.searchBg, border: `1px solid ${t.searchBorder}`, borderRadius: 9, padding: "10px 13px", color: t.searchText, fontSize: 13.5, fontFamily: "inherit", outline: "none", resize: "vertical", boxSizing: "border-box" }} /></FF>
           </>
         )}
       </Modal>
