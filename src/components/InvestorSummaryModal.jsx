@@ -200,9 +200,8 @@ export const InvestorSummaryModal = ({
   const totalContributions = contributions.reduce((sum, s) => sum + (Number(s.signed_payment_amount || s.payment_amount || String(s.amount || 0).replace(/[^0-9.-]/g,'')) || 0), 0);
 
   const withdrawals = partySchedules.filter(s => {
-      const ty = (s.payment_type || s.type || "");
       const st = (s.PaymentStatus || s.status || "").toLowerCase();
-      return ty === "INVESTOR_PRINCIPAL_PAYMENT" && (st === "withdrawals" || st === "withdrawal" || st === "withdrawl");
+      return st === "withdrawal" || st === "withdrawals" || st === "withdrawl";
   });
   const totalWithdrawals = withdrawals.reduce((sum, s) => sum + (Number(s.signed_payment_amount || s.payment_amount || String(s.amount || 0).replace(/[^0-9.-]/g,'')) || 0), 0);
 
