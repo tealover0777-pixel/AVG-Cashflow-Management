@@ -64,6 +64,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
   const [bulkInvestmentStatus, setBulkInvestmentStatus] = useState(investmentStatusOpts[0] || "");
   const [bulkScheduleStatus, setBulkScheduleStatus] = useState(paymentStatusOpts[0] || "");
   const [scheduleModal, setScheduleModal] = useState({ open: false, data: {} });
+  const [contactDelT, setContactDelT] = useState(null);
   const [contactModal, setContactModal] = useState({ open: false, mode: "existing", data: {} });
   const [duplicateConfirm, setDuplicateConfirm] = useState(null);
   const [confirmAction, setConfirmAction] = useState(null); // { title: string, message: string, onConfirm: () => void }
@@ -681,11 +682,65 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
 
   const openAddContactModal = () => setContactModal({ open: true, mode: "existing", data: { type: "Individual", role: "Investor", investor_type: "Fixed", marketing_emails: "Subscribed" } });
 
+  const handleRemoveContactFromDeal = async () => {
+    if (!contactDelT) return;
+    try {
+      const updatedContacts = (deal.contacts || []).filter(c => c.id !== contactDelT.id);
+      await updateDoc(doc(db, dealPath), { contacts: updatedContacts, updated_at: serverTimestamp() });
+      setContactDelT(null);
+      showToast("Contact removed from deal", "success");
+    } catch (err) {
+      console.error("Remove contact error:", err);
+      showToast("Failed to remove contact: " + err.message, "error");
+    }
+  };
+
   const handleSaveContactToDeal = async (skipDuplicateCheck = false) => {
     try {
       let contactId = "";
       let contactName = "";
-      const isNew = contactModal.mode === "new";
+      const mode = contactModal.mode;
+      const isNew = mode === "new";
+      const isEdit = mode === "edit";
+
+      if (isEdit) {
+        contactId = contactModal.data.id || contactModal.data.docId;
+        if (!contactId) throw new Error("Missing contact ID");
+
+        contactName = (contactModal.data.type === "Company" && contactModal.data.company_name)
+          ? contactModal.data.company_name
+          : `${contactModal.data.first_name} ${contactModal.data.last_name}`.trim();
+
+        const contactPathPrefix = investmentCollection.includes("/")
+          ? investmentCollection.substring(0, investmentCollection.lastIndexOf("/")) + "/contacts"
+          : "contacts";
+
+        const docRef = doc(db, contactPathPrefix, contactId);
+        await updateDoc(docRef, {
+          contact_name: contactName,
+          first_name: contactModal.data.first_name || "",
+          last_name: contactModal.data.last_name || "",
+          email: contactModal.data.email || "",
+          phone: contactModal.data.phone || "",
+          contact_type: contactModal.data.type || "Individual",
+          role_type: contactModal.data.role || "Investor",
+          investor_type: contactModal.data.investor_type || "Fixed",
+          address: contactModal.data.address || "",
+          bank_information: contactModal.data.bank_information || "",
+          bank_address: contactModal.data.bank_address || "",
+          bank_routing_number: contactModal.data.bank_routing_number || "",
+          bank_account_number: contactModal.data.bank_account_number || "",
+          tax_id: contactModal.data.tax_id || "",
+          company_name: contactModal.data.company_name || "",
+          payment_method: contactModal.data.payment_method || "",
+          notes: contactModal.data.notes || "",
+          marketing_emails: contactModal.data.marketing_emails || "Subscribed",
+          updated_at: serverTimestamp(),
+        });
+        setContactModal({ open: false, mode: "existing", data: {} });
+        showToast("Contact updated", "success");
+        return;
+      }
 
       if (isNew) {
         if (!contactModal.data.first_name || !contactModal.data.last_name || !contactModal.data.email) {
@@ -693,10 +748,14 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
           return;
         }
 
-        const isDuplicate = CONTACTS.find(c => 
-          (c.first_name || "").toLowerCase().trim() === (contactModal.data.first_name || "").toLowerCase().trim() && 
-          (c.last_name || "").toLowerCase().trim() === (contactModal.data.last_name || "").toLowerCase().trim()
-        );
+        const isDuplicate = CONTACTS.find(c => {
+          if (contactModal.data.type === "Company") {
+            return (c.company_name || "").toLowerCase().trim() === (contactModal.data.company_name || "").toLowerCase().trim();
+          }
+          return (c.first_name || "").toLowerCase().trim() === (contactModal.data.first_name || "").toLowerCase().trim() && 
+                 (c.last_name || "").toLowerCase().trim() === (contactModal.data.last_name || "").toLowerCase().trim();
+        });
+
         if (isDuplicate && !skipDuplicateCheck) {
           setDuplicateConfirm(true);
           return;
@@ -1831,8 +1890,8 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
     const contactContext = {
       callbacks: {
         onNameClick: (r) => setDetailContact({ data: r, view: "detail" }),
-        onEdit: (r) => { /* Optional: specific logic */ },
-        onDelete: (r) => { /* Optional: specific logic */ },
+        onEdit: (r) => setContactModal({ open: true, mode: "edit", data: { ...r } }),
+        onDelete: (r) => setContactDelT(r),
         onInvite: (r) => { /* Optional: specific logic */ },
         onClone: async (r) => {
           try {
@@ -1855,9 +1914,39 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
               notes: `Cloned from ${id || "unknown"} on ${new Date().toLocaleDateString()}.${r.notes ? ` ${r.notes}` : ""}`
             };
             
-            const colRef = collection(db, "tenants", tenantId, "contacts");
-            await addDoc(colRef, payload);
-            showToast(`Contact ${nextContactId} created (cloned)`, "success");
+            const docRef = doc(db, "tenants", tenantId, "contacts", nextContactId);
+            await setDoc(docRef, payload);
+
+            // Also add to current deal
+            const isLending = activeTab === "Lending";
+            const prefix = isLending ? "L" : "I";
+            let maxInvNum = 10000;
+            INVESTMENTS.forEach(c => {
+              const cid = c.investment_id || c.id;
+              if (cid && cid.startsWith(prefix)) {
+                const num = parseInt(cid.substring(1), 10);
+                if (!isNaN(num) && num > maxInvNum) maxInvNum = num;
+              }
+            });
+            const invId = `${prefix}${maxInvNum + 1}`;
+            const newInv = {
+              id: invId,
+              investment_id: invId,
+              doc_id: invId,
+              amount: 0,
+              deal_id: deal.id,
+              deal_name: deal.name,
+              contact_id: nextContactId,
+              contact_name: (payload.type === "Company" && payload.company_name) ? payload.company_name : `${payload.first_name} ${payload.last_name}`.trim(),
+              investment_type: isLending ? "Borrower" : "Investor",
+              status: "Active",
+              start_date: deal.startDate || "",
+              created_at: serverTimestamp(),
+              updated_at: serverTimestamp(),
+            };
+            await setDoc(doc(db, investmentCollection, invId), newInv);
+
+            showToast(`Contact ${nextContactId} created (cloned) and added to deal`, "success");
           } catch (err) {
             console.error("Clone error:", err);
             showToast("Failed to clone contact", "error");
@@ -3161,28 +3250,30 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
       <Modal
         open={contactModal.open}
         onClose={() => setContactModal({ open: false, mode: "existing", data: {} })}
-        title={contactModal.mode === "new" ? "Add New Contact to Deal" : "Add Existing Contact to Deal"}
+        title={contactModal.mode === "edit" ? "Edit Contact" : (contactModal.mode === "existing" ? "Add Existing Contact" : "Create New Contact")}
         onSave={handleSaveContactToDeal}
         width={600}
         t={t}
         isDark={isDark}
       >
-        <div style={{ display: "flex", gap: 12, marginBottom: 20 }}>
-          <button
-            type="button"
-            onClick={() => setContactModal(prev => ({ ...prev, mode: "existing" }))}
-            style={{ flex: 1, padding: "8px 16px", borderRadius: 8, border: `1px solid ${contactModal.mode === "existing" ? t.accent : t.surfaceBorder}`, background: contactModal.mode === "existing" ? (isDark ? "rgba(59,130,246,0.1)" : "#EFF6FF") : "transparent", color: contactModal.mode === "existing" ? t.accent : t.text, fontWeight: 600, cursor: "pointer" }}
-          >
-            Select Existing Contact
-          </button>
-          <button
-            type="button"
-            onClick={() => setContactModal(prev => ({ ...prev, mode: "new" }))}
-            style={{ flex: 1, padding: "8px 16px", borderRadius: 8, border: `1px solid ${contactModal.mode === "new" ? t.accent : t.surfaceBorder}`, background: contactModal.mode === "new" ? (isDark ? "rgba(59,130,246,0.1)" : "#EFF6FF") : "transparent", color: contactModal.mode === "new" ? t.accent : t.text, fontWeight: 600, cursor: "pointer" }}
-          >
-            Create New Contact
-          </button>
-        </div>
+        {contactModal.mode !== "edit" && (
+          <div style={{ display: "flex", gap: 12, marginBottom: 20 }}>
+            <button
+              type="button"
+              onClick={() => setContactModal(prev => ({ ...prev, mode: "existing" }))}
+              style={{ flex: 1, padding: "8px 16px", borderRadius: 8, border: `1px solid ${contactModal.mode === "existing" ? t.accent : t.surfaceBorder}`, background: contactModal.mode === "existing" ? (isDark ? "rgba(59,130,246,0.1)" : "#EFF6FF") : "transparent", color: contactModal.mode === "existing" ? t.accent : t.text, fontWeight: 600, cursor: "pointer" }}
+            >
+              Select Existing Contact
+            </button>
+            <button
+              type="button"
+              onClick={() => setContactModal(prev => ({ ...prev, mode: "new" }))}
+              style={{ flex: 1, padding: "8px 16px", borderRadius: 8, border: `1px solid ${contactModal.mode === "new" ? t.accent : t.surfaceBorder}`, background: contactModal.mode === "new" ? (isDark ? "rgba(59,130,246,0.1)" : "#EFF6FF") : "transparent", color: contactModal.mode === "new" ? t.accent : t.text, fontWeight: 600, cursor: "pointer" }}
+            >
+              Create New Contact
+            </button>
+          </div>
+        )}
 
         {contactModal.mode === "existing" ? (
           <FF label="Select Contact" t={t}>
@@ -3699,6 +3790,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
 
       <DelModal target={delT} onClose={() => setDelT(null)} onConfirm={handleDeleteInvestment} label="this investment" t={t} isDark={isDark} />
       <DelModal target={assetDelT} onClose={() => setAssetDelT(null)} onConfirm={handleDeleteAsset} label="this asset" t={t} isDark={isDark} />
+      <DelModal target={contactDelT} onClose={() => setContactDelT(null)} onConfirm={handleRemoveContactFromDeal} label="this contact from the deal" t={t} isDark={isDark} />
 
       {/* Confirmation Modal for Bulk Actions */}
       {confirmAction && (
