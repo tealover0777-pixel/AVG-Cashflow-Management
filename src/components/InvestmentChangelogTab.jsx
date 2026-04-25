@@ -1,5 +1,4 @@
 import React from "react";
-import { initials } from "../utils";
 
 export default function InvestmentChangelogTab({ t, isDark, LEDGER = [], USERS = [], currentUser = null, contact, selectedInvestmentId }) {
   // 1. Filter ledger entries: Only selected investment OR the contact profile

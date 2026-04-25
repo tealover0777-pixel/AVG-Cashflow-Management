@@ -351,6 +351,9 @@ export default function PageContacts({ t, isDark, CONTACTS = [], INVESTMENTS = [
         <FF label="Contact Type" t={t}><FSel value={modal.data.type || "Individual"} onChange={e => setF("type", e.target.value)} options={contactTypeOpts} t={t} /></FF>
         <FF label="Role" t={t}><FSel value={modal.data.role || "Investor"} onChange={e => setF("role", e.target.value)} options={roleOpts} t={t} /></FF>
       </div>
+      {modal.data.type === "Company" && (
+        <FF label="Company Name" t={t}><FIn value={modal.data.company_name || ""} onChange={e => setF("company_name", e.target.value)} placeholder="e.g. Acme Corp" t={t} /></FF>
+      )}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
         <FF label="Investor Type" t={t}><FSel value={modal.data.investor_type || "Fixed"} onChange={e => setF("investor_type", e.target.value)} options={investorTypeOpts} t={t} /></FF>
         <FF label="Tax ID" t={t}><FIn value={modal.data.tax_id || ""} onChange={e => setF("tax_id", e.target.value)} placeholder="e.g. 123-45-6789" t={t} /></FF>
@@ -372,6 +375,7 @@ export default function PageContacts({ t, isDark, CONTACTS = [], INVESTMENTS = [
         <FF label="Payment Method" t={t}><FSel value={modal.data.payment_method} onChange={e => setF("payment_method", e.target.value)} options={paymentMethods} t={t} /></FF>
         <FF label="Marketing Emails?" t={t}><FSel value={modal.data.marketing_emails || "Subscribed"} onChange={e => setF("marketing_emails", e.target.value)} options={["Subscribed", "Unsubscribed"]} t={t} /></FF>
       </div>
+      <FF label="Notes" t={t}><textarea value={modal.data.notes || ""} onChange={e => setF("notes", e.target.value)} placeholder="Additional notes..." rows={3} style={{ width: "100%", background: t.searchBg, border: `1px solid ${t.searchBorder}`, borderRadius: 9, padding: "10px 13px", color: t.searchText, fontSize: 13.5, fontFamily: "inherit", outline: "none", resize: "vertical", boxSizing: "border-box" }} /></FF>
     </Modal>
     <DelModal target={delT} onClose={() => setDelT(null)} onConfirm={handleDeleteContact} label="This contact" t={t} isDark={isDark} />
     <Modal open={!!inviteConfirm} onClose={() => setInviteConfirm(null)} title="Confirm Invitation" onSave={executeInvite} saveLabel={processing ? "Sending..." : "Send Invite ✉️"} width={480} t={t} isDark={isDark}>

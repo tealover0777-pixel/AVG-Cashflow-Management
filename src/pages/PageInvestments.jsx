@@ -29,6 +29,10 @@ export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [
     return CONTACTS.find(c => c.id === pId || c.docId === pId) || { name: drillInvestment.contact, id: pId };
   }, [drillInvestment, CONTACTS]);
 
+  const sortedContacts = useMemo(() => {
+    return [...CONTACTS].sort((a, b) => (a.name || "").localeCompare(b.name || ""));
+  }, [CONTACTS]);
+
   const handleUpdateInvestmentModal = async (updatedData) => {
     if (!updatedData.docId) return;
     try {
@@ -767,7 +771,7 @@ export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [
       )}
       <FF label="Deal name" t={t}><FSel value={modal.data.deal} onChange={e => setF("deal", e.target.value)} options={DEALS.map(p => p.name)} t={t} /></FF>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
-        <FF label="Contact" t={t}><FSel value={modal.data.contact} onChange={e => setF("contact", e.target.value)} options={CONTACTS.map(p => p.name)} t={t} /></FF>
+        <FF label="Contact" t={t}><FSel value={modal.data.contact} onChange={e => setF("contact", e.target.value)} options={sortedContacts.map(p => p.name)} t={t} /></FF>
         <FF label="Source of Funds" t={t}>
           <FSel 
             value={modal.data.source_of_funds} 

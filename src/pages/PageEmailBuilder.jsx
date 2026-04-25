@@ -737,8 +737,8 @@ export default function PageEmailBuilder(props) {
                             style={{ padding: "8px 10px", borderRadius: 7, cursor: "pointer", display: "flex", alignItems: "center", gap: 8, background: sent ? (isDark ? "rgba(34,197,94,0.1)" : "#f0fdf4") : "transparent" }}
                             onMouseEnter={e => { if (!sent) e.currentTarget.style.background = isDark ? "rgba(255,255,255,0.05)" : "#f3f4f6"; }}
                             onMouseLeave={e => { e.currentTarget.style.background = sent ? (isDark ? "rgba(34,197,94,0.1)" : "#f0fdf4") : "transparent"; }}>
-                            <div style={{ width: 28, height: 28, borderRadius: "50%", background: isDark ? "#334155" : "#e0e7ff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700, color: isDark ? "#93c5fd" : "#3730a3", flexShrink: 0 }}>
-                              {(name[0] || "?").toUpperCase()}
+                            <div style={{ width: 28, height: 28, borderRadius: "50%", background: isDark ? "rgba(255,255,255,0.05)" : "#f3f4f6", display: "flex", alignItems: "center", justifyContent: "center", color: t.textSecondary, flexShrink: 0 }}>
+                              <Users size={14} />
                             </div>
                             <div style={{ flex: 1, minWidth: 0 }}>
                               <div style={{ fontSize: 12, fontWeight: 600, color: t.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{name}</div>
@@ -1116,6 +1116,10 @@ export default function PageEmailBuilder(props) {
                     const email = u.email || "";
                     const q = recipientSearch.toLowerCase();
                     return email && (!q || name.toLowerCase().includes(q) || email.toLowerCase().includes(q));
+                  }).sort((a, b) => {
+                    const nameA = a.first_name ? `${a.first_name} ${a.last_name || ""}` : (a.name || a.full_name || "");
+                    const nameB = b.first_name ? `${b.first_name} ${b.last_name || ""}` : (b.name || b.full_name || "");
+                    return nameA.localeCompare(nameB);
                   }).slice(0, 40).map((u, i) => {
                     const name = u.first_name ? `${u.first_name} ${u.last_name || ""}`.trim() : (u.name || u.full_name || "");
                     const email = u.email || "";
@@ -1130,9 +1134,6 @@ export default function PageEmailBuilder(props) {
                         style={{ padding: "8px 12px", display: "flex", alignItems: "center", gap: 10, cursor: "pointer", borderBottom: `1px solid ${isDark ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.04)"}`, background: selected ? (isDark ? "rgba(59,130,246,0.12)" : "#EFF6FF") : "transparent" }}
                         onMouseEnter={e => { if (!selected) e.currentTarget.style.background = isDark ? "rgba(255,255,255,0.04)" : "#f3f4f6"; }}
                         onMouseLeave={e => { e.currentTarget.style.background = selected ? (isDark ? "rgba(59,130,246,0.12)" : "#EFF6FF") : "transparent"; }}>
-                        <div style={{ width: 26, height: 26, borderRadius: "50%", background: isDark ? "#334155" : "#e0e7ff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 700, color: isDark ? "#93c5fd" : "#3730a3", flexShrink: 0 }}>
-                          {(name[0] || email[0] || "?").toUpperCase()}
-                        </div>
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ fontSize: 12, fontWeight: 600, color: t.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{name || email}</div>
                           <div style={{ fontSize: 11, color: t.textMuted, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{email}</div>

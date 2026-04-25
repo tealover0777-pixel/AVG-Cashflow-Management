@@ -159,11 +159,16 @@ export default function PageCompany({ t, isDark, activeTenantId = "", USERS = []
     }, [data.owner, USERS, CONTACTS]);
 
     const filteredOwnerResults = React.useMemo(() => {
-        if (!ownerSearch) return [...USERS, ...CONTACTS].slice(0, 50);
+        const all = [...USERS, ...CONTACTS];
+        if (!ownerSearch) return all.slice(0, 50);
         const q = ownerSearch.toLowerCase();
-        return [...USERS, ...CONTACTS].filter(u => {
+        return all.filter(u => {
             const name = [u.first_name, u.last_name].filter(Boolean).join(" ") || u.name || u.contact_name || u.email || "";
             return name.toLowerCase().includes(q) || (u.email && u.email.toLowerCase().includes(q));
+        }).sort((a, b) => {
+            const nameA = [a.first_name, a.last_name].filter(Boolean).join(" ") || a.name || a.contact_name || a.email || "";
+            const nameB = [b.first_name, b.last_name].filter(Boolean).join(" ") || b.name || b.contact_name || b.email || "";
+            return nameA.localeCompare(nameB);
         }).slice(0, 50);
     }, [ownerSearch, USERS, CONTACTS]);
 

@@ -212,7 +212,7 @@ export default function PageProfile({ t, isDark, setIsDark, ROLES = [], collecti
                                 {data.photo_url ? (
                                     <img src={data.photo_url} alt="Profile" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                                 ) : (
-                                    (data.first_name || data.last_name || "?").charAt(0).toUpperCase()
+                                    <User size={32} />
                                 )}
                             </div>
                             <input type="file" id="profile-photo-upload" accept="image/*" onChange={e => handlePhotoChange(e, "profile")} style={{ display: "none" }} />

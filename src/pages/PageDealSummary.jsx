@@ -102,6 +102,10 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [exportMenuRef]);
 
+  const sortedContacts = useMemo(() => {
+    return [...CONTACTS].sort((a, b) => (a.name || "").localeCompare(b.name || ""));
+  }, [CONTACTS]);
+
   const handleExport = (format) => {
     const isPivot = distributionView === "pivot";
     let data = [];
@@ -371,9 +375,13 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
     if (distFilter === "All") return activeDealSchedules;
     return activeDealSchedules.filter(s => {
       const ty = (s.payment_type || s.type || "").toLowerCase();
-      if (distFilter === "Interest") return ty.includes("interest") || ty.includes("distribution");
-      if (distFilter === "Principal") return ty.includes("principal") || ty.includes("deposit") || ty.includes("received") || ty.includes("disbursement");
-      if (distFilter === "Fee") return ty.includes("fee");
+      if (distFilter === "Interest") {
+        return ty.includes("interest") || ty.includes("distribution") || (ty.includes("payment") && !ty.includes("principal"));
+      }
+      if (distFilter === "Principal") {
+        return ty.includes("principal") || ty.includes("deposit") || ty.includes("received") || ty.includes("disbursement");
+      }
+      if (distFilter === "Fee") return ty.includes("fee") || s.fee_id || s.feeId;
       return true;
     });
   }, [activeDealSchedules, distFilter]);
@@ -2160,7 +2168,32 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
               Pivot View
               {distributionView === "pivot" && <div style={{ position: "absolute", bottom: -1, left: 0, right: 0, height: 2, background: t.accent }} />}
             </div>
-          </div>
+            </div>
+            
+            <div style={{ display: "flex", alignItems: "center", gap: 10, flex: 1, justifyContent: "center" }}>
+              <span style={{ fontSize: 11, fontWeight: 800, color: t.textMuted, textTransform: "uppercase", letterSpacing: 1 }}>Filter By</span>
+              {["All", "Interest", "Principal", "Fee"].map(f => (
+                <button
+                  key={f}
+                  onClick={() => setDistFilter(f)}
+                  style={{
+                    padding: "6px 14px",
+                    borderRadius: 20,
+                    fontSize: 12,
+                    fontWeight: 700,
+                    cursor: "pointer",
+                    border: "none",
+                    background: distFilter === f ? (t.accentGrad || t.accent) : (isDark ? "rgba(255,255,255,0.05)" : "#f3f4f6"),
+                    color: distFilter === f ? "#fff" : t.textMuted,
+                    transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
+                    boxShadow: distFilter === f ? `0 4px 10px ${t.accentShadow}` : "none",
+                    transform: distFilter === f ? "translateY(-1px)" : "none"
+                  }}
+                >
+                  {f}
+                </button>
+              ))}
+            </div>
 
           <div style={{ position: "relative" }} ref={exportMenuRef}>
             <button
@@ -2192,28 +2225,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
           </div>
         </div>
 
-        <div style={{ display: "flex", gap: 10, marginBottom: 20 }}>
-          {["All", "Interest", "Principal", "Fee"].map(f => (
-            <button
-              key={f}
-              onClick={() => setDistFilter(f)}
-              style={{
-                padding: "8px 16px",
-                borderRadius: 20,
-                background: distFilter === f ? t.accentGrad : (isDark ? "rgba(255,255,255,0.05)" : "#f3f4f6"),
-                color: distFilter === f ? "#fff" : t.textSecondary,
-                border: `1px solid ${distFilter === f ? "transparent" : t.surfaceBorder}`,
-                fontSize: 13,
-                fontWeight: 600,
-                cursor: "pointer",
-                transition: "all 0.2s",
-                boxShadow: distFilter === f ? `0 4px 10px ${t.accentShadow}` : "none"
-              }}
-            >
-              {f}
-            </button>
-          ))}
-        </div>
+        <div style={{ marginBottom: 20 }} />
 
         {distributionView === "table" ? (
           <div style={{ height: '1000px', width: "100%", minHeight: '1000px' }}>
@@ -3047,8 +3059,8 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
             value={modal.data.contact} 
             onChange={e => setF("contact", e.target.value)} 
             options={activeTab === "Lending" 
-              ? CONTACTS.filter(p => p.role === "Borrower" || p.role === "Both").map(p => p.name)
-              : CONTACTS.map(p => p.name)
+              ? sortedContacts.filter(p => p.role === "Borrower" || p.role === "Both").map(p => p.name)
+              : sortedContacts.map(p => p.name)
             } 
             t={t} 
           />
@@ -3162,7 +3174,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
               style={{ width: "100%", background: t.searchBg, border: `1px solid ${t.searchBorder}`, borderRadius: 9, padding: "10px 13px", color: contactModal.data.selectedContactId ? t.searchText : (t.textMuted), fontSize: 13.5, fontFamily: "inherit", outline: "none", cursor: "pointer" }}
             >
               <option value="">Select an existing contact...</option>
-              {CONTACTS.map(c => (
+              {sortedContacts.map(c => (
                 <option key={c.id} value={c.id}>{c.name} ({c.email || c.role || c.type || "Unknown"})</option>
               ))}
             </select>

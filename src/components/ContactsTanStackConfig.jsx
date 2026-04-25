@@ -1,7 +1,7 @@
 import React from 'react';
 import { Edit2, Trash2, Mail, User, Shield, Info } from 'lucide-react';
 import { Bdg, Tooltip, ActBtns } from '../components.jsx';
-import { initials, av, fmtCurr } from '../utils';
+import { fmtCurr } from '../utils';
 
 export const getContactColumns = (permissions, isDark, t, context) => {
   const { callbacks, invitingId, INVESTMENTS } = context;
@@ -68,7 +68,6 @@ export const getContactColumns = (permissions, isDark, t, context) => {
       size: 150,
       cell: ({ row, getValue }) => {
         const val = getValue() || "";
-        const avatarStyle = av(val || row.original.name || row.original.contact_name, isDark);
         return (
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
             <a

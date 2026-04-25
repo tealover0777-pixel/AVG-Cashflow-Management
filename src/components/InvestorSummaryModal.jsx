@@ -263,6 +263,11 @@ export const InvestorSummaryModal = ({
               {isEditing ? <FSel value={editData.role_type} options={roleOpts} onChange={e => setED({ role_type: e.target.value })} t={t} /> : <div style={{ padding: "12px 16px", background: isDark ? "rgba(255,255,255,0.03)" : "#fff", border: `1px solid ${t.surfaceBorder}`, borderRadius: 8, color: t.text, fontWeight: 500 }}>{showData.role_type || showData.role || "—"}</div>}
             </FF>
           </div>
+          {(isEditing ? editData.contact_type === "Company" : (showData.contact_type === "Company" || showData.type === "Company" || showData.company_name)) && (
+            <FF label="Company Name" t={t}>
+              {isEditing ? <FIn value={editData.company_name} onChange={e => setED({ company_name: e.target.value })} placeholder="e.g. Acme Corp" t={t} /> : <div style={{ padding: "12px 16px", background: isDark ? "rgba(255,255,255,0.03)" : "#fff", border: `1px solid ${t.surfaceBorder}`, borderRadius: 8, color: t.text, fontWeight: 500 }}>{showData.company_name || "—"}</div>}
+            </FF>
+          )}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
             <FF label="Investor Type" t={t}>
               {isEditing ? <FSel value={editData.investor_type} options={investorTypeOpts} onChange={e => setED({ investor_type: e.target.value })} t={t} /> : <div style={{ padding: "12px 16px", background: isDark ? "rgba(255,255,255,0.03)" : "#fff", border: `1px solid ${t.surfaceBorder}`, borderRadius: 8, color: t.text, fontWeight: 500 }}>{showData.investor_type || "—"}</div>}
@@ -306,6 +311,21 @@ export const InvestorSummaryModal = ({
               {isEditing ? <FSel value={editData.marketing_emails} options={["Subscribed", "Unsubscribed"]} onChange={e => setED({ marketing_emails: e.target.value })} t={t} /> : <div style={{ padding: "12px 16px", background: isDark ? "rgba(255,255,255,0.03)" : "#fff", border: `1px solid ${t.surfaceBorder}`, borderRadius: 8, color: t.text, fontWeight: 500 }}>{showData.marketing_emails || "—"}</div>}
             </FF>
           </div>
+          <FF label="Notes" t={t}>
+            {isEditing ? (
+              <textarea 
+                value={editData.notes || ""} 
+                onChange={e => setED({ notes: e.target.value })} 
+                placeholder="Additional notes..." 
+                rows={3} 
+                style={{ width: "100%", background: isDark ? "rgba(255,255,255,0.03)" : "#fff", border: `1px solid ${t.surfaceBorder}`, borderRadius: 8, padding: "12px 16px", color: t.text, fontSize: 13.5, fontFamily: "inherit", outline: "none", resize: "vertical", boxSizing: "border-box" }} 
+              />
+            ) : (
+              <div style={{ padding: "12px 16px", background: isDark ? "rgba(255,255,255,0.03)" : "#fff", border: `1px solid ${t.surfaceBorder}`, borderRadius: 8, color: t.text, fontWeight: 500, minHeight: 46, whiteSpace: "pre-wrap" }}>
+                {showData.notes || "—"}
+              </div>
+            )}
+          </FF>
         </div>
       );
     }

@@ -336,7 +336,8 @@ function AppContent() {
         type: d.deal_type || "",
         feeIds: typeof d.fees === "string" && d.fees ? d.fees.split(",").map(s => s.trim()) : [],
       };
-    });
+    })
+    .sort((a, b) => (a.name || "").localeCompare(b.name || ""));
 
   const CONTACTS = rawContacts
     .filter(d => {
@@ -352,7 +353,8 @@ function AppContent() {
       bank_address: d.bank_address || "", bank_routing_number: d.bank_routing_number || "", bank_account_number: d.bank_account_number || "",
       tax_id: d.tax_id || "", payment_method: d.payment_method || "",
       created_at: fmtDate(d.created_at), updated_at: fmtDate(d.updated_at),
-    }));
+    }))
+    .sort((a, b) => (a.name || "").localeCompare(b.name || ""));
  
   const INVESTMENTS = rawInvestments
     .filter(d => {
@@ -398,7 +400,8 @@ function AppContent() {
         payment_method: d.payment_method || "",
         rollover: d.rollover || false,
       };
-    });
+    })
+    .sort((a, b) => (a.investment_name || a.id || "").localeCompare(b.investment_name || b.id || ""));
 
   const SCHEDULES = rawSchedules
     .filter(d => {
@@ -699,8 +702,8 @@ function AppContent() {
         <div style={{ padding: "16px", borderTop: `1px solid ${t.sidebarBorder}` }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <Tooltip text="View your profile settings" t={t}>
-              <div onClick={() => setActivePage("Profile")} style={{ cursor: "pointer", width: isDark ? 32 : 34, height: isDark ? 32 : 34, borderRadius: isDark ? 8 : 9, background: isDark ? "linear-gradient(135deg,#60A5FA,#3B82F6)" : "linear-gradient(135deg,#F472B6,#EC4899)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700, color: "#fff" }}>
-                {(profile?.first_name || profile?.last_name || user.email || "A").charAt(0).toUpperCase()}
+              <div onClick={() => setActivePage("Profile")} style={{ cursor: "pointer", width: isDark ? 32 : 34, height: isDark ? 32 : 34, borderRadius: isDark ? 8 : 9, background: isDark ? "linear-gradient(135deg,#60A5FA,#3B82F6)" : "linear-gradient(135deg,#F472B6,#EC4899)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff" }}>
+                <User size={18} />
               </div>
             </Tooltip>
             <div style={{ flex: 1, minWidth: 0 }}>
@@ -814,7 +817,7 @@ function AppContent() {
                   {activePage === "Manage Templates" && <PageManageTemplates t={t} isDark={isDark} setActivePage={setActivePage} setActiveEmailTemplate={setActiveEmailTemplate} allTemplates={allTemplates} loading={loadingTemplates} fetchTemplates={fetchTemplates} />}
                   {activePage === "Email Builder" && <PageEmailBuilder t={t} isDark={isDark} setActivePage={setActivePage} activeEmailTemplate={activeEmailTemplate} setActiveEmailTemplate={setActiveEmailTemplate} refreshTemplates={() => fetchTemplates(true)} activeTenantId={activeTenantId} backTo={prevPage} USERS={rawUsers} CONTACTS={CONTACTS} DIMENSIONS={DIMENSIONS} organizationName={determinedTenantName} />}
                   {activePage === "AI Admin" && <PageAdminHelp t={t} isDark={isDark} />}
-                  {activePage === "Company" && <PageCompany t={t} isDark={isDark} activeTenantId={activeTenantId} USERS={rawUsers} CONTACTS={rawContacts} />}
+                  {activePage === "Company" && <PageCompany t={t} isDark={isDark} activeTenantId={activeTenantId} USERS={rawUsers.sort((a, b) => (a.displayName || a.name || "").localeCompare(b.displayName || b.name || ""))} CONTACTS={CONTACTS} />}
                 </>
               )}
         </div>
