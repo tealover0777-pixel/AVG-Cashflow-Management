@@ -378,7 +378,9 @@ export default function PageUserProfiles({ t, isDark, USERS = [], GLOBAL_USERS =
 
         {/* Invite Modal */}
         <Modal open={modal.open && modal.mode === "invite"} onClose={close} title="Create New User" onSave={handleInviteUser} saveLabel={inviting ? "Processing..." : "Create User"} width={520} t={t} isDark={isDark}>
-
+            <p style={{ fontSize: 12.5, color: t.textMuted, marginBottom: 16, lineHeight: 1.6 }}>
+                This will create a user in your organization responsible for monitoring operations and managing users associated with your business processes.
+            </p>
             <FF label="Upcoming User ID" t={t}>
                 <div style={{ fontFamily: t.mono, fontSize: 13, color: t.idText, background: isDark ? "rgba(255,255,255,0.04)" : "#F5F4F1", border: `1px solid ${t.surfaceBorder}`, borderRadius: 9, padding: "10px 13px" }}>{nextUserId}</div>
             </FF>
