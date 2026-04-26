@@ -534,9 +534,10 @@ function AppContent() {
       owner_id: ownerId,
       owner_first_name: ownerUser?.first_name || "",
       owner_last_name: ownerUser?.last_name || "",
-      email: d.tenant_email || "",
-      phone: d.tenant_phone || "",
-      notes: d.Notes || "",
+      owner_doc_id: ownerUser?.doc_id || ownerUser?.id || "",
+      email: d.tenant_email || ownerUser?.email || "",
+      phone: d.tenant_phone || ownerUser?.phone || ownerUser?.phone_number || "",
+      notes: d.Notes || d.notes || ownerUser?.notes || "",
       created_at: fmtDate(d.created_at),
       updated_at: fmtDate(d.updated_at),
     };

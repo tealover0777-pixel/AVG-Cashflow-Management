@@ -41,7 +41,7 @@ export const getTenantColumns = (permissions, isDark, t, onEdit, onDel) => {
       accessorKey: 'email',
       header: 'Email',
       size: 180,
-      cell: ({ getValue }) => <span style={{ fontSize: '12px', color: t.textSecondary }}>{getValue()}</span>,
+      cell: ({ getValue }) => <span style={{ fontSize: '12px', color: t.textSecondary }}>{getValue() || "—"}</span>,
     },
     {
       accessorKey: 'phone',

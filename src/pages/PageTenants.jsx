@@ -88,6 +88,18 @@ export default function PageTenants({ t, isDark, TENANTS = [], GLOBAL_USERS = []
         try {
             if (modal.mode === "edit" && d.docId) {
                 await updateDoc(doc(db, collectionPath, d.docId), payload);
+                
+                // Also update the owner's global user record if we have their doc ID
+                if (d.owner_doc_id) {
+                    await updateDoc(doc(db, "global_users", d.owner_doc_id), {
+                        first_name: d.first_name || "",
+                        last_name: d.last_name || "",
+                        email: d.email || "",
+                        phone: d.phone || "",
+                        notes: d.notes || "",
+                        last_updated: serverTimestamp()
+                    });
+                }
             } else {
                 // 1. Create Tenant
                 await setDoc(doc(db, collectionPath, tenantId), {
