@@ -54,22 +54,10 @@ export default function PageTenants({ t, isDark, TENANTS = [], GLOBAL_USERS = []
         return "T" + (maxNum + 1);
     })();
 
-    const nextOwnerId = (() => {
-        const allUserIds = [
-            ...(GLOBAL_USERS || []).map(u => u.user_id || u.id),
-            ...TENANTS.map(t => t.owner_id)
-        ];
-        const maxNum = Math.max(...allUserIds.map(id => {
-            const m = String(id || "").match(/^[UO](\d+)$/);
-            return m ? Number(m[1]) : 0;
-        }), 10000); 
-        return "U" + (maxNum + 1);
-    })();
-
     const openAdd = () => setModal({
         open: true,
         mode: "add",
-        data: { id: nextTenantId, name: "", owner_id: nextOwnerId, first_name: "", last_name: "", email: "", phone: "", notes: "", role_id: "R10005", inviteUser: true }
+        data: { id: nextTenantId, name: "", owner_id: "U10001", first_name: "", last_name: "", email: "", phone: "", notes: "", role_id: "R10005", inviteUser: true }
     });
     const openEdit = r => setModal({ open: true, mode: "edit", data: { ...r } });
     const close = () => setModal(m => ({ ...m, open: false }));
@@ -183,7 +171,7 @@ export default function PageTenants({ t, isDark, TENANTS = [], GLOBAL_USERS = []
             </div>
 
             <FF label="OWNER ID (UPCOMING)" t={t}>
-                <div style={{ fontFamily: t.mono, fontSize: 13, color: t.idText, background: isDark ? "rgba(255,255,255,0.04)" : "#F5F4F1", border: `1px solid ${t.surfaceBorder}`, borderRadius: 9, padding: "10px 13px" }}>{modal.data.owner_id || nextOwnerId}</div>
+                <div style={{ fontFamily: t.mono, fontSize: 13, color: t.idText, background: isDark ? "rgba(255,255,255,0.04)" : "#F5F4F1", border: `1px solid ${t.surfaceBorder}`, borderRadius: 9, padding: "10px 13px" }}>{modal.data.owner_id || "U10001"}</div>
             </FF>
 
             <FF label="EMAIL ADDRESS" t={t}><FIn value={modal.data.email} onChange={e => setF("email", e.target.value)} placeholder="owner@company.com" t={t} /></FF>
