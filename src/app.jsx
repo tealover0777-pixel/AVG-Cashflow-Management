@@ -517,19 +517,26 @@ function AppContent() {
   }));
 
 
-  const TENANTS = rawTenants.map(d => ({
-    id: d.id || d.tenant_id || "",
-    docId: d.doc_id || d.id,
-    _path: d._path,
-    name: d.tenant_name || "",
-    logo: d.tenant_logo || "",
-    owner_id: d.owner_id || "",
-    email: d.tenant_email || "",
-    phone: d.tenant_phone || "",
-    notes: d.Notes || "",
-    created_at: fmtDate(d.created_at),
-    updated_at: fmtDate(d.updated_at),
-  }));
+  const TENANTS = rawTenants.map(d => {
+    const ownerId = d.owner_id || "";
+    const ownerUser = globalUsers.find(u => u.uid === ownerId || u.id === ownerId);
+    const ownerName = ownerUser ? (ownerUser.displayName || [ownerUser.first_name, ownerUser.last_name].filter(Boolean).join(" ") || ownerUser.email) : "";
+
+    return {
+      id: d.id || d.tenant_id || "",
+      docId: d.doc_id || d.id,
+      _path: d._path,
+      name: d.tenant_name || "",
+      logo: d.tenant_logo || "",
+      owner_id: ownerId,
+      owner_name: ownerName,
+      email: d.tenant_email || "",
+      phone: d.tenant_phone || "",
+      notes: d.Notes || "",
+      created_at: fmtDate(d.created_at),
+      updated_at: fmtDate(d.updated_at),
+    };
+  });
 
   const activeTenant = useMemo(() => {
     if (activeTenantId) return TENANTS.find(t2 => t2.id === activeTenantId) || null;

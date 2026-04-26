@@ -20,14 +20,10 @@ export const getTenantColumns = (permissions, isDark, t, onEdit, onDel) => {
       ),
     },
     {
-      accessorKey: 'logo',
-      header: 'Logo',
-      size: 110,
-      cell: ({ getValue }) => {
-        const val = getValue();
-        if (!val) return <span style={{ color: t.textMuted }}>—</span>;
-        return <img src={val} alt="Logo" style={{ width: 32, height: 32, borderRadius: 4, objectFit: "contain", background: isDark ? "rgba(255,255,255,0.05)" : "#F5F4F1", border: `1px solid ${t.surfaceBorder}` }} />;
-      },
+      accessorKey: 'owner_name',
+      header: 'Owner Name',
+      size: 160,
+      cell: ({ getValue }) => <span style={{ fontSize: '13px', fontWeight: 500, color: t.textSecondary }}>{getValue() || "—"}</span>,
     },
     {
       accessorKey: 'owner_id',
