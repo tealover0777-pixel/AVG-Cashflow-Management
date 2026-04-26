@@ -134,14 +134,17 @@ const TanStackTable = React.forwardRef(({
                               {header.column.getIsSorted() === 'asc' ? <ArrowUp size={12} /> : <ArrowDown size={12} />}
                             </span>
                          ) : null}
-                      </div>
                       {header.column.getCanFilter() && (
                         <input 
                           value={(header.column.getFilterValue() ?? '')}
-                          onChange={e => header.column.setFilterValue(e.target.value)}
+                          onChange={e => {
+                            const val = e.target.value;
+                            // Trim leading space for better usability (Error #2)
+                            header.column.setFilterValue(val.trimStart());
+                          }}
                           placeholder="..."
                           style={{
-                            width: '80%', padding: '3px 6px', fontSize: '10px', borderRadius: '4px',
+                            width: '80%', padding: '4px 8px', fontSize: '13px', borderRadius: '4px',
                             border: `1px solid ${t.surfaceBorder}`, background: isDark ? 'rgba(0,0,0,0.2)' : '#fff',
                             color: t.text, outline: 'none'
                           }}
