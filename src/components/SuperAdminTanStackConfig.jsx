@@ -131,11 +131,12 @@ export const getSuperAdminColumns = (permissions, isDark, t, onEdit, onDel, getR
       enableColumnFilter: true,
     },
     {
-      accessorKey: 'tenantId',
+      id: 'tenantId',
       header: 'TENANT ASSIGNMENT',
       size: 150,
-      cell: ({ getValue }) => {
-        const tid = getValue();
+      accessorFn: (row) => `${row.tenantId || ""} ${getTenantName(row.tenantId) || ""}`,
+      cell: ({ row }) => {
+        const tid = row.original.tenantId;
         const tName = getTenantName(tid);
         return (
           <div style={{ fontSize: 12.5 }}>

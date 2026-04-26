@@ -59,7 +59,15 @@ export default function PageTenants({ t, isDark, TENANTS = [], GLOBAL_USERS = []
         mode: "add",
         data: { id: nextTenantId, name: "", owner_id: "U10001", first_name: "", last_name: "", email: "", phone: "", notes: "", role_id: "R10005", inviteUser: true }
     });
-    const openEdit = r => setModal({ open: true, mode: "edit", data: { ...r } });
+    const openEdit = r => setModal({ 
+        open: true, 
+        mode: "edit", 
+        data: { 
+            ...r, 
+            first_name: r.owner_first_name || "", 
+            last_name: r.owner_last_name || "" 
+        } 
+    });
     const close = () => setModal(m => ({ ...m, open: false }));
     const setF = (k, v) => setModal(m => ({ ...m, data: { ...m.data, [k]: v } }));
 

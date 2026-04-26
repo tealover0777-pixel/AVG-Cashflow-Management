@@ -519,7 +519,11 @@ function AppContent() {
 
   const TENANTS = rawTenants.map(d => {
     const ownerId = d.owner_id || "";
-    const ownerUser = globalUsers.find(u => u.uid === ownerId || u.id === ownerId);
+    const tId = d.id || d.tenant_id || "";
+    const ownerUser = globalUsers.find(u => 
+      u.id === ownerId || 
+      (u.user_id === ownerId && u.tenantId === tId)
+    );
 
     return {
       id: d.id || d.tenant_id || "",
