@@ -1,14 +1,15 @@
 import React, { useState, useMemo, useRef, useEffect } from "react";
 import TanStackTable from "../components/TanStackTable";
 import { getTenantColumns } from "../components/TenantsTanStackConfig";
-import { db } from "../firebase";
+import { db, functions } from "../firebase";
 import { doc, setDoc, updateDoc, deleteDoc, serverTimestamp } from "firebase/firestore";
+import { httpsCallable } from "firebase/functions";
 import { StatCard, Modal, FF, FIn, FSel, DelModal, Tooltip } from "../components";
 import { useAuth } from "../AuthContext";
 import { uploadFile } from "../utils/storageUtils";
 
 export default function PageTenants({ t, isDark, TENANTS = [], GLOBAL_USERS = [], ROLES = [], collectionPath = "" }) {
-    const { hasPermission, isSuperAdmin } = useAuth();
+    const { hasPermission, isSuperAdmin, isGlobalRole } = useAuth();
     const canCreate = isSuperAdmin || hasPermission("PLATFORM_TENANT_CREATE") || hasPermission("TENANT_CREATE");
     const canUpdate = isSuperAdmin || hasPermission("PLATFORM_TENANT_UPDATE") || hasPermission("TENANT_UPDATE");
     const canDelete = isSuperAdmin || hasPermission("PLATFORM_TENANT_DELETE") || hasPermission("TENANT_DELETE");
@@ -39,6 +40,11 @@ export default function PageTenants({ t, isDark, TENANTS = [], GLOBAL_USERS = []
         };
     }, []);
 
+    const isSelectedRoleGlobal = (roleId) => {
+        const found = ROLES.find(r => (r.id || r.role_id) === roleId);
+        return found && found.IsGlobal === true;
+    };
+
     const nextTenantId = (() => {
         if (TENANTS.length === 0) return "T10001";
         const maxNum = Math.max(...TENANTS.map(p => {
@@ -63,7 +69,7 @@ export default function PageTenants({ t, isDark, TENANTS = [], GLOBAL_USERS = []
     const openAdd = () => setModal({
         open: true,
         mode: "add",
-        data: { id: nextTenantId, name: "", owner_id: nextOwnerId, first_name: "", last_name: "", email: "", phone: "", notes: "", role_id: "R10005" }
+        data: { id: nextTenantId, name: "", owner_id: nextOwnerId, first_name: "", last_name: "", email: "", phone: "", notes: "", role_id: "R10005", inviteUser: true }
     });
     const openEdit = r => setModal({ open: true, mode: "edit", data: { ...r } });
     const close = () => setModal(m => ({ ...m, open: false }));
@@ -94,39 +100,24 @@ export default function PageTenants({ t, isDark, TENANTS = [], GLOBAL_USERS = []
                     created_at: serverTimestamp()
                 });
 
-                // 2. Create Owner User in global_users
-                const userPayload = {
+                // 2. Create Owner via Cloud Function (consistent with Create New User)
+                const inviteUserFn = httpsCallable(functions, "inviteUser");
+                await inviteUserFn({
+                    email: d.email,
+                    role: d.role_id || "R10005",
+                    tenantId: tenantId,
                     user_id: ownerId,
                     first_name: d.first_name || "",
                     last_name: d.last_name || "",
-                    email: d.email || "",
-                    role: d.role_id || "R10005", 
-                    status: "Active",
-                    notes: d.notes || "",
-                    created_at: serverTimestamp(),
-                    last_updated: serverTimestamp(),
-                    tenantId: tenantId
-                };
-                await setDoc(doc(db, "global_users", ownerId), userPayload);
-
-                // 3. Create Owner User in tenant users collection
-                await setDoc(doc(db, `tenants/${tenantId}/users`, ownerId), {
-                    user_id: ownerId,
-                    first_name: d.first_name || "",
-                    last_name: d.last_name || "",
-                    email: d.email || "",
-                    role_id: d.role_id || "R10005",
-                    status: "Active",
                     phone: d.phone || "",
-                    notes: d.notes || "",
-                    created_at: serverTimestamp(),
-                    updated_at: serverTimestamp()
+                    notes: d.notes || `Created with New Tenant: ${tenantId}`,
+                    inviteUser: d.inviteUser ?? true
                 });
             }
             showToast(`Tenant ${modal.mode === "add" ? "created" : "updated"} successfully.`, "success");
         } catch (err) {
             console.error("Failed to save tenant:", err);
-            showToast("Failed to save tenant profile.", "error");
+            showToast("Failed to save tenant: " + (err.message || "Unknown error"), "error");
         }
         close();
     };
@@ -187,29 +178,51 @@ export default function PageTenants({ t, isDark, TENANTS = [], GLOBAL_USERS = []
             </FF>
             <FF label="TENANT NAME" t={t}><FIn value={modal.data.name} onChange={e => setF("name", e.target.value)} placeholder="e.g. AVG Real Estate" t={t} /></FF>
             
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
-                <FF label="OWNER ID" t={t}><FIn value={modal.data.owner_id} onChange={e => setF("owner_id", e.target.value)} placeholder="e.g. U10001" t={t} /></FF>
-                <FF label="ROLE" t={t}>
-                    <FSel 
-                        value={modal.data.role_id || "R10005"} 
-                        onChange={e => setF("role_id", e.target.value)} 
-                        options={ROLES.map(r => ({ label: r.name, value: r.id || r.role_id }))} 
-                        t={t} 
-                    />
-                </FF>
-            </div>
-            
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
-                <FF label="FIRST NAME" t={t}><FIn value={modal.data.first_name || ""} onChange={e => setF("first_name", e.target.value)} placeholder="e.g. Jane" t={t} /></FF>
-                <FF label="LAST NAME" t={t}><FIn value={modal.data.last_name || ""} onChange={e => setF("last_name", e.target.value)} placeholder="e.g. Doe" t={t} /></FF>
+            <div style={{ margin: "20px 0 10px 0", borderBottom: `1px solid ${t.border}`, paddingBottom: 8 }}>
+                <span style={{ fontSize: 11, fontWeight: 700, color: t.textMuted, letterSpacing: "0.5px" }}>PRIMARY OWNER DETAILS</span>
             </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
-                <FF label="EMAIL" t={t}><FIn value={modal.data.email} onChange={e => setF("email", e.target.value)} placeholder="email@tenant.com" t={t} /></FF>
-                <FF label="PHONE" t={t}><FIn value={modal.data.phone} onChange={e => setF("phone", e.target.value)} placeholder="e.g. +1 234 567 8900" t={t} /></FF>
-            </div>
+            <FF label="OWNER ID (UPCOMING)" t={t}>
+                <div style={{ fontFamily: t.mono, fontSize: 13, color: t.idText, background: isDark ? "rgba(255,255,255,0.04)" : "#F5F4F1", border: `1px solid ${t.surfaceBorder}`, borderRadius: 9, padding: "10px 13px" }}>{modal.data.owner_id || nextOwnerId}</div>
+            </FF>
+
+            <FF label="EMAIL ADDRESS" t={t}><FIn value={modal.data.email} onChange={e => setF("email", e.target.value)} placeholder="owner@company.com" t={t} /></FF>
             
-            <FF label="INTERNAL NOTES" t={t}><FIn value={modal.data.notes} onChange={e => setF("notes", e.target.value)} placeholder="Internal remarks..." t={t} /></FF>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+                <FF label="FIRST NAME" t={t}><FIn value={modal.data.first_name || ""} onChange={e => setF("first_name", e.target.value)} placeholder="Jane" t={t} /></FF>
+                <FF label="LAST NAME" t={t}><FIn value={modal.data.last_name || ""} onChange={e => setF("last_name", e.target.value)} placeholder="Doe" t={t} /></FF>
+            </div>
+
+            <FF label="PHONE" t={t}><FIn value={modal.data.phone || ""} onChange={e => setF("phone", e.target.value)} placeholder="+1 555 000 0000" t={t} /></FF>
+
+            <FF label="ROLE" t={t}>
+                <select value={modal.data.role_id || "R10005"} onChange={e => setF("role_id", e.target.value)} style={{ background: isDark ? "rgba(255,255,255,0.04)" : "#fff", color: isDark ? "#fff" : "#000", border: `1px solid ${t.border}`, borderRadius: 9, padding: "10px 13px", fontSize: 13.5, outline: "none", width: "100%", fontFamily: t.font, appearance: "none" }}>
+                    {ROLES.filter(r => isGlobalRole || isSuperAdmin || (!isSelectedRoleGlobal(r.id || r.role_id) && (r.id || r.role_id) !== "R10005")).map(r => (
+                        <option key={r.id || r.role_id} value={r.id || r.role_id} style={{ color: "#000" }}>{r.role_name || r.name || r.id}</option>
+                    ))}
+                </select>
+            </FF>
+
+            <div style={{ marginBottom: 16 }}>
+                <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer", fontSize: 13.5, color: t.text }}>
+                    <input
+                        type="checkbox"
+                        checked={!!modal.data.inviteUser}
+                        onChange={e => setF("inviteUser", e.target.checked)}
+                        style={{ width: 18, height: 18, accentColor: t.accent }}
+                    />
+                    Invite user (Send verification email)
+                </label>
+            </div>
+
+            <FF label="INTERNAL NOTES" t={t}>
+                <textarea 
+                    value={modal.data.notes || ""} 
+                    onChange={e => setF("notes", e.target.value)} 
+                    placeholder="Private notes about this tenant/owner..." 
+                    style={{ background: isDark ? "rgba(255,255,255,0.04)" : "#fff", color: t.text, border: `1px solid ${t.border}`, borderRadius: 9, padding: "10px 13px", fontSize: 13.5, outline: "none", width: "100%", minHeight: 80, fontFamily: t.font, resize: "vertical" }} 
+                />
+            </FF>
         </Modal>
 
         <DelModal target={delT} onClose={() => setDelT(null)} onConfirm={handleDeleteTenant} label="This tenant" t={t} isDark={isDark} />
