@@ -20,9 +20,15 @@ export const getTenantColumns = (permissions, isDark, t, onEdit, onDel) => {
       ),
     },
     {
-      accessorKey: 'owner_name',
-      header: 'Owner Name',
-      size: 160,
+      accessorKey: 'owner_first_name',
+      header: 'First Name',
+      size: 140,
+      cell: ({ getValue }) => <span style={{ fontSize: '13px', fontWeight: 500, color: t.textSecondary }}>{getValue() || "—"}</span>,
+    },
+    {
+      accessorKey: 'owner_last_name',
+      header: 'Last Name',
+      size: 140,
       cell: ({ getValue }) => <span style={{ fontSize: '13px', fontWeight: 500, color: t.textSecondary }}>{getValue() || "—"}</span>,
     },
     {

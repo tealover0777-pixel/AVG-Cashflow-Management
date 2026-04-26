@@ -520,7 +520,6 @@ function AppContent() {
   const TENANTS = rawTenants.map(d => {
     const ownerId = d.owner_id || "";
     const ownerUser = globalUsers.find(u => u.uid === ownerId || u.id === ownerId);
-    const ownerName = ownerUser ? (ownerUser.displayName || [ownerUser.first_name, ownerUser.last_name].filter(Boolean).join(" ") || ownerUser.email) : "";
 
     return {
       id: d.id || d.tenant_id || "",
@@ -529,7 +528,8 @@ function AppContent() {
       name: d.tenant_name || "",
       logo: d.tenant_logo || "",
       owner_id: ownerId,
-      owner_name: ownerName,
+      owner_first_name: ownerUser?.first_name || "",
+      owner_last_name: ownerUser?.last_name || "",
       email: d.tenant_email || "",
       phone: d.tenant_phone || "",
       notes: d.Notes || "",
