@@ -121,7 +121,7 @@ export default function PageTenants({ t, isDark, TENANTS = [], collectionPath = 
     return (<>
         <div style={{ marginBottom: 28, display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
             <div>
-                <h1 style={{ fontFamily: t.titleFont, fontWeight: t.titleWeight, fontSize: t.titleSize, color: isDark ? "#fff" : "#1C1917", letterSpacing: t.titleTracking, lineHeight: 1, marginBottom: 6 }}>Tenants</h1>
+                <h1 style={{ fontFamily: t.titleFont, fontWeight: t.titleWeight, fontSize: t.titleSize, color: isDark ? "#fff" : "#1C1917", letterSpacing: t.titleTracking, lineHeight: 1, marginBottom: 6 }}>Platform Tenant Admin</h1>
                 <p style={{ fontSize: 13.5, color: t.textMuted }}>Manage platform tenants and owners</p>
             </div>
             {canCreate && (
