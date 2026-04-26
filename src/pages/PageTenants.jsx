@@ -3,7 +3,7 @@ import TanStackTable from "../components/TanStackTable";
 import { getTenantColumns } from "../components/TenantsTanStackConfig";
 import { db } from "../firebase";
 import { doc, setDoc, updateDoc, deleteDoc, serverTimestamp } from "firebase/firestore";
-import { StatCard, Modal, FF, FIn, DelModal, Tooltip } from "../components";
+import { StatCard, Modal, FF, FIn, FSel, DelModal, Tooltip } from "../components";
 import { useAuth } from "../AuthContext";
 import { uploadFile } from "../utils/storageUtils";
 
