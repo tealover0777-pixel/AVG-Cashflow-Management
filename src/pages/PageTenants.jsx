@@ -7,7 +7,7 @@ import { StatCard, Modal, FF, FIn, DelModal, Tooltip } from "../components";
 import { useAuth } from "../AuthContext";
 import { uploadFile } from "../utils/storageUtils";
 
-export default function PageTenants({ t, isDark, TENANTS = [], collectionPath = "" }) {
+export default function PageTenants({ t, isDark, TENANTS = [], GLOBAL_USERS = [], ROLES = [], collectionPath = "" }) {
     const { hasPermission, isSuperAdmin } = useAuth();
     const canCreate = isSuperAdmin || hasPermission("PLATFORM_TENANT_CREATE") || hasPermission("TENANT_CREATE");
     const canUpdate = isSuperAdmin || hasPermission("PLATFORM_TENANT_UPDATE") || hasPermission("TENANT_UPDATE");
@@ -48,10 +48,22 @@ export default function PageTenants({ t, isDark, TENANTS = [], collectionPath = 
         return "T" + (maxNum + 1);
     })();
 
+    const nextOwnerId = (() => {
+        const allUserIds = [
+            ...(GLOBAL_USERS || []).map(u => u.user_id || u.id),
+            ...TENANTS.map(t => t.owner_id)
+        ];
+        const maxNum = Math.max(...allUserIds.map(id => {
+            const m = String(id || "").match(/^O(\d+)$/);
+            return m ? Number(m[1]) : 0;
+        }), 10000); // Start from O10001 if none found
+        return "O" + (maxNum + 1);
+    })();
+
     const openAdd = () => setModal({
         open: true,
         mode: "add",
-        data: { id: nextTenantId, name: "", logo: "", owner_id: "", email: "", phone: "", notes: "" }
+        data: { id: nextTenantId, name: "", owner_id: nextOwnerId, first_name: "", last_name: "", email: "", phone: "", notes: "" }
     });
     const openEdit = r => setModal({ open: true, mode: "edit", data: { ...r } });
     const close = () => setModal(m => ({ ...m, open: false }));
@@ -59,50 +71,68 @@ export default function PageTenants({ t, isDark, TENANTS = [], collectionPath = 
 
     const handleSaveTenant = async () => {
         const d = modal.data;
+        const tenantId = d.id;
+        const ownerId = d.owner_id || "";
+        
         const payload = {
             tenant_name: d.name || "",
-            tenant_logo: d.logo || "",
-            owner_id: d.owner_id || "",
+            owner_id: ownerId,
             tenant_email: d.email || "",
             tenant_phone: d.phone || "",
             Notes: d.notes || "",
             updated_at: serverTimestamp(),
         };
+
         try {
             if (modal.mode === "edit" && d.docId) {
                 await updateDoc(doc(db, collectionPath, d.docId), payload);
             } else {
-                await setDoc(doc(db, collectionPath, d.id), {
+                // 1. Create Tenant
+                await setDoc(doc(db, collectionPath, tenantId), {
                     ...payload,
-                    tenant_id: d.id,
+                    tenant_id: tenantId,
                     created_at: serverTimestamp()
                 });
+
+                // 2. Create Owner User in global_users
+                const userPayload = {
+                    user_id: ownerId,
+                    first_name: d.first_name || "",
+                    last_name: d.last_name || "",
+                    email: d.email || "",
+                    role: "R10005", // Owner role ID
+                    status: "Active",
+                    notes: d.notes || "",
+                    created_at: serverTimestamp(),
+                    last_updated: serverTimestamp(),
+                    tenantId: tenantId
+                };
+                await setDoc(doc(db, "global_users", ownerId), userPayload);
+
+                // 3. Create Owner User in tenant users collection
+                await setDoc(doc(db, `tenants/${tenantId}/users`, ownerId), {
+                    user_id: ownerId,
+                    first_name: d.first_name || "",
+                    last_name: d.last_name || "",
+                    email: d.email || "",
+                    role_id: "R10005",
+                    status: "Active",
+                    phone: d.phone || "",
+                    notes: d.notes || "",
+                    created_at: serverTimestamp(),
+                    updated_at: serverTimestamp()
+                });
             }
+            showToast(`Tenant ${modal.mode === "add" ? "created" : "updated"} successfully.`, "success");
         } catch (err) {
             console.error("Failed to save tenant:", err);
+            showToast("Failed to save tenant profile.", "error");
         }
         close();
     };
 
     const handleFileChange = async (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-        
-        // Basic validation
-        if (file.size > 2 * 1024 * 1024) {
-            showToast("File is too large! Max size is 2MB for storage.", "error");
-            return;
-        }
-
-        try {
-            const tenantId = modal.data.id;
-            const path = `tenants/${tenantId}/branding/logo_${Date.now()}`;
-            const url = await uploadFile(file, path);
-            setF("logo", url);
-        } catch (err) {
-            console.error("Logo upload failed:", err);
-            showToast("Failed to upload logo to storage.", "error");
-        }
+        // ... kept for compatibility if needed elsewhere, but removed from UI
     };
 
     const handleDeleteTenant = async () => {
@@ -110,7 +140,8 @@ export default function PageTenants({ t, isDark, TENANTS = [], collectionPath = 
         try {
             await deleteDoc(doc(db, collectionPath, delT.docId));
             setDelT(null);
-        } catch (err) { console.error("Delete tenant error:", err); }
+            showToast("Tenant deleted successfully.", "success");
+        } catch (err) { console.error("Delete tenant error:", err); showToast("Delete failed.", "error"); }
     };
 
     const permissions = { canUpdate, canDelete };
@@ -151,29 +182,24 @@ export default function PageTenants({ t, isDark, TENANTS = [], collectionPath = 
 
 
         <Modal open={modal.open} onClose={close} title={modal.mode === "add" ? "New Tenant" : "Edit Tenant"} onSave={handleSaveTenant} width={580} t={t} isDark={isDark}>
-            <FF label="Tenant ID" t={t}>
+            <FF label="TENANT ID" t={t}>
                 <div style={{ fontFamily: t.mono, fontSize: 13, color: t.idText, background: isDark ? "rgba(255,255,255,0.04)" : "#F5F4F1", border: `1px solid ${t.surfaceBorder}`, borderRadius: 9, padding: "10px 13px", letterSpacing: "0.5px" }}>{modal.data.id}</div>
             </FF>
-            <FF label="Tenant Name" t={t}><FIn value={modal.data.name} onChange={e => setF("name", e.target.value)} placeholder="e.g. AVG Real Estate" t={t} /></FF>
-            <FF label="Tenant Logo" t={t}>
-                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                    {modal.data.logo && <img src={modal.data.logo} alt="Preview" style={{ width: 44, height: 44, borderRadius: 8, objectFit: "contain", background: isDark ? "rgba(255,255,255,0.05)" : "#F5F4F1", border: `1px solid ${t.surfaceBorder}` }} />}
-                    <div style={{ flex: 1 }}>
-                        <input type="file" accept="image/*" onChange={handleFileChange} style={{ display: "none" }} id="tenant-logo-upload" />
-                        <label htmlFor="tenant-logo-upload" style={{ display: "inline-block", background: isDark ? "rgba(255,255,255,0.08)" : "#F5F4F1", color: t.text, border: `1px solid ${t.border}`, borderRadius: 9, padding: "8px 16px", fontSize: 13, fontWeight: 500, cursor: "pointer" }}>
-                            {modal.data.logo ? "Change Photo" : "Upload Logo"}
-                        </label>
-                        <div style={{ fontSize: 11, color: t.textMuted, marginTop: 4 }}>Recommended: Square or horizontal image, PNG/JPG under 1MB.</div>
-                    </div>
-                    {modal.data.logo && <button onClick={() => setF("logo", "")} style={{ background: "none", border: "none", color: "#F87171", fontSize: 12, cursor: "pointer" }}>Remove</button>}
-                </div>
-            </FF>
-            <FF label="Owner ID" t={t}><FIn value={modal.data.owner_id} onChange={e => setF("owner_id", e.target.value)} placeholder="e.g. O10001" t={t} /></FF>
+            <FF label="TENANT NAME" t={t}><FIn value={modal.data.name} onChange={e => setF("name", e.target.value)} placeholder="e.g. AVG Real Estate" t={t} /></FF>
+            
+            <FF label="OWNER ID" t={t}><FIn value={modal.data.owner_id} onChange={e => setF("owner_id", e.target.value)} placeholder="e.g. O10001" t={t} /></FF>
+            
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
-                <FF label="Email" t={t}><FIn value={modal.data.email} onChange={e => setF("email", e.target.value)} placeholder="email@tenant.com" t={t} /></FF>
-                <FF label="Phone" t={t}><FIn value={modal.data.phone} onChange={e => setF("phone", e.target.value)} placeholder="e.g. +1 234 567 8900" t={t} /></FF>
+                <FF label="FIRST NAME" t={t}><FIn value={modal.data.first_name || ""} onChange={e => setF("first_name", e.target.value)} placeholder="e.g. Jane" t={t} /></FF>
+                <FF label="LAST NAME" t={t}><FIn value={modal.data.last_name || ""} onChange={e => setF("last_name", e.target.value)} placeholder="e.g. Doe" t={t} /></FF>
             </div>
-            <FF label="Notes" t={t}><FIn value={modal.data.notes} onChange={e => setF("notes", e.target.value)} placeholder="Internal remarks..." t={t} /></FF>
+
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+                <FF label="EMAIL" t={t}><FIn value={modal.data.email} onChange={e => setF("email", e.target.value)} placeholder="email@tenant.com" t={t} /></FF>
+                <FF label="PHONE" t={t}><FIn value={modal.data.phone} onChange={e => setF("phone", e.target.value)} placeholder="e.g. +1 234 567 8900" t={t} /></FF>
+            </div>
+            
+            <FF label="INTERNAL NOTES" t={t}><FIn value={modal.data.notes} onChange={e => setF("notes", e.target.value)} placeholder="Internal remarks..." t={t} /></FF>
         </Modal>
 
         <DelModal target={delT} onClose={() => setDelT(null)} onConfirm={handleDeleteTenant} label="This tenant" t={t} isDark={isDark} />
