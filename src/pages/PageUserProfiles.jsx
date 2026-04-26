@@ -22,7 +22,7 @@ const PERMISSIONS_LIST = [
 ];
 
 export default function PageUserProfiles({ t, isDark, USERS = [], GLOBAL_USERS = [], ROLES = [], collectionPath = "", DIMENSIONS = [], tenantId = "", TENANTS = [], CONTACTS = [] }) {
-    const { hasPermission, isSuperAdmin, user, profile } = useAuth();
+    const { hasPermission, isSuperAdmin, user, profile, isGlobalRole } = useAuth();
     const canCreate = isSuperAdmin || hasPermission("USER_PROFILE_CREATE") || hasPermission("USER_CREATE") || profile?.role_id === "R10005";
     const canInvite = isSuperAdmin || hasPermission("USER_PROFILE_CREATE") || hasPermission("USER_INVITE") || profile?.role_id === "R10005";
     const canUpdate = isSuperAdmin || hasPermission("USER_PROFILE_UPDATE") || hasPermission("USER_UPDATE") || profile?.role_id === "R10005";
@@ -393,7 +393,7 @@ export default function PageUserProfiles({ t, isDark, USERS = [], GLOBAL_USERS =
             <FF label="Role" t={t}>
                 <select value={modal.data.role_id || ""} onChange={e => setF("role_id", e.target.value)} style={{ background: isDark ? "rgba(255,255,255,0.04)" : "#fff", color: isDark ? "#fff" : "#000", border: `1px solid ${t.border}`, borderRadius: 9, padding: "10px 13px", fontSize: 13.5, outline: "none", width: "100%", fontFamily: t.font, appearance: "none" }}>
                     <option value="" disabled style={{ color: "#000" }}>Select a role...</option>
-                    {ROLES.filter(r => isSuperAdmin || !isSelectedRoleGlobal(r.id || r.role_id)).map(r => (
+                    {ROLES.filter(r => isGlobalRole || isSuperAdmin || (!isSelectedRoleGlobal(r.id || r.role_id) && (r.id || r.role_id) !== "R10005")).map(r => (
                         <option key={r.id || r.role_id} value={r.id || r.role_id} style={{ color: "#000" }}>{r.role_name || r.name || r.id}</option>
                     ))}
                 </select>
@@ -429,7 +429,7 @@ export default function PageUserProfiles({ t, isDark, USERS = [], GLOBAL_USERS =
             <FF label="Email" t={t}><FIn value={modal.data.email} onChange={e => setF("email", e.target.value)} t={t} /></FF>
             <FF label="Role" t={t}>
                 <select value={modal.data.role_id || ""} onChange={e => setF("role_id", e.target.value)} style={{ background: isDark ? "rgba(255,255,255,0.04)" : "#fff", color: isDark ? "#fff" : "#000", border: `1px solid ${t.border}`, borderRadius: 9, padding: "10px 13px", fontSize: 13.5, outline: "none", width: "100%", fontFamily: t.font, appearance: "none" }}>
-                    {ROLES.filter(r => isSuperAdmin || !isSelectedRoleGlobal(r.id || r.role_id)).map(r => (
+                    {ROLES.filter(r => isGlobalRole || isSuperAdmin || (!isSelectedRoleGlobal(r.id || r.role_id) && (r.id || r.role_id) !== "R10005")).map(r => (
                         <option key={r.id || r.role_id} value={r.id || r.role_id} style={{ color: "#000" }}>{r.role_name || r.name || r.id}</option>
                     ))}
                 </select>
