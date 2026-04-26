@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useRef, useEffect } from "react";
 import { ActBtns } from '../components';
 
-export const getTenantColumns = (permissions, isDark, t, onEdit, onDel) => {
+export const getTenantColumns = (permissions, isDark, t, onEdit, onDel, onInvite, invitingId) => {
   const cols = [
     {
       accessorKey: 'id',
@@ -84,6 +84,8 @@ export const getTenantColumns = (permissions, isDark, t, onEdit, onDel) => {
           t={t} 
           onEdit={permissions.canUpdate ? () => onEdit(row.original) : null} 
           onDel={permissions.canDelete ? () => onDel(row.original) : null} 
+          onInvite={onInvite ? () => onInvite(row.original) : null}
+          isInviting={invitingId === row.original.docId}
         />
       ),
     });

@@ -20,6 +20,34 @@ export default function PageTenants({ t, isDark, TENANTS = [], GLOBAL_USERS = []
     const showToast = (msg, type = "info") => { setToast({ msg, type }); setTimeout(() => setToast(null), 4000); };
     const gridRef = useRef(null);
     const [pageSize, setPageSize] = useState(30);
+    const [invitingId, setInvitingId] = useState(null);
+
+    const handleInviteOwner = async (row) => {
+        if (!row.email) {
+            showToast("Owner email is required for invite.", "error");
+            return;
+        }
+        setInvitingId(row.docId);
+        try {
+            const inviteUserFn = httpsCallable(functions, "inviteUser");
+            await inviteUserFn({
+                email: row.email,
+                role: row.role_id || "R10005",
+                tenantId: row.docId,
+                first_name: row.owner_first_name || "",
+                last_name: row.owner_last_name || "",
+                phone: row.phone || "",
+                notes: row.notes || `Invited from Platform Tenant Admin — ${row.email}`,
+                inviteUser: true
+            });
+            showToast(`Invite sent successfully to ${row.email}`, "success");
+        } catch (err) {
+            console.error("Invite error:", err);
+            showToast("Invite failed: " + (err.message || "Unknown error"), "error");
+        } finally {
+            setInvitingId(null);
+        }
+    };
 
     // Dynamically calculate page size based on available vertical space
     useEffect(() => {
@@ -166,8 +194,8 @@ export default function PageTenants({ t, isDark, TENANTS = [], GLOBAL_USERS = []
 
     const permissions = { canUpdate, canDelete };
     const columnDefs = useMemo(() => {
-        return getTenantColumns(permissions, isDark, t, openEdit, (target) => setDelT({ id: target.id, name: target.name, docId: target.docId }));
-    }, [permissions, isDark, t]);
+        return getTenantColumns(permissions, isDark, t, openEdit, (target) => setDelT({ id: target.id, name: target.name, docId: target.docId }), handleInviteOwner, invitingId);
+    }, [permissions, isDark, t, invitingId]);
 
     return (<>
         <div style={{ marginBottom: 28, display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
