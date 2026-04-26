@@ -2,7 +2,7 @@ import React, { useState, useMemo, useRef, useEffect } from "react";
 import TanStackTable from "../components/TanStackTable";
 import { getTenantColumns } from "../components/TenantsTanStackConfig";
 import { db, functions } from "../firebase";
-import { doc, setDoc, updateDoc, deleteDoc, serverTimestamp } from "firebase/firestore";
+import { doc, setDoc, updateDoc, deleteDoc, serverTimestamp, collection, query, where, getDocs } from "firebase/firestore";
 import { httpsCallable } from "firebase/functions";
 import { StatCard, Modal, FF, FIn, FSel, DelModal, Tooltip } from "../components";
 import { useAuth } from "../AuthContext";
@@ -89,16 +89,37 @@ export default function PageTenants({ t, isDark, TENANTS = [], GLOBAL_USERS = []
             if (modal.mode === "edit" && d.docId) {
                 await updateDoc(doc(db, collectionPath, d.docId), payload);
                 
-                // Also update the owner's global user record if we have their doc ID
+                // Also update the owner's global user record and tenant-specific user record
                 if (d.owner_doc_id) {
-                    await updateDoc(doc(db, "global_users", d.owner_doc_id), {
+                    const updateData = {
                         first_name: d.first_name || "",
                         last_name: d.last_name || "",
                         email: d.email || "",
                         phone: d.phone || "",
                         notes: d.notes || "",
+                    };
+
+                    await updateDoc(doc(db, "global_users", d.owner_doc_id), {
+                        ...updateData,
                         last_updated: serverTimestamp()
                     });
+
+                    // Update the record in the specific tenant's user list
+                    try {
+                        const usersRef = collection(db, "tenants", d.docId, "users");
+                        const q = query(usersRef, where("auth_uid", "==", d.owner_doc_id));
+                        const snapshot = await getDocs(q);
+                        const updates = [];
+                        snapshot.forEach((uDoc) => {
+                            updates.push(updateDoc(doc(db, "tenants", d.docId, "users", uDoc.id), {
+                                ...updateData,
+                                updated_at: serverTimestamp()
+                            }));
+                        });
+                        await Promise.all(updates);
+                    } catch (err) {
+                        console.error("Error updating tenant user record:", err);
+                    }
                 }
             } else {
                 // 1. Create Tenant

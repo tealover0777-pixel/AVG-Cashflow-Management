@@ -252,16 +252,28 @@ export default function PageUserProfiles({ t, isDark, USERS = [], GLOBAL_USERS =
                 await updateDoc(doc(db, collectionPath, d.id), payload);
                 const authUid = String(d.auth_uid || d.id);
                 if (authUid && !/^U\d+$/.test(authUid)) {
-                    await setDoc(doc(db, "global_users", authUid), {
+                    const globalData = {
                         user_id: String(d.user_id || ""),
                         first_name: String(d.first_name || ""),
                         last_name: String(d.last_name || ""),
                         email: String(d.email || ""),
+                        phone: String(d.phone || ""),
                         role: String(d.role_id || ""),
                         status: String(d.status || "Active"),
                         notes: String(d.notes || ""),
                         last_updated: serverTimestamp()
-                    }, { merge: true });
+                    };
+                    await setDoc(doc(db, "global_users", authUid), globalData, { merge: true });
+                }
+
+                // If this is the owner, update the tenant document too for Platform Tenant Admin visibility
+                if (d.role_id === "R10005") {
+                    await updateDoc(doc(db, "tenants", tenantId), {
+                        tenant_email: String(d.email || ""),
+                        tenant_phone: String(d.phone || ""),
+                        Notes: String(d.notes || ""),
+                        updated_at: serverTimestamp()
+                    });
                 }
             }
             close();
