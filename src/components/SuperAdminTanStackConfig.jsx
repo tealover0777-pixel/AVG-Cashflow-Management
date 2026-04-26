@@ -58,7 +58,14 @@ const UserTypeBadge = ({ isGlobal, t, isDark }) => {
 export const getSuperAdminColumns = (permissions, isDark, t, onEdit, onDel, getRoleName, getTenantName, onInvite, invitingId, ROLES = []) => {
   const isRoleGlobal = (roleId) => {
     const found = ROLES.find(r => (r.id || r.role_id) === roleId);
-    return found && found.IsGlobal === true;
+    if (found) return found.IsGlobal === true;
+    
+    // Fallback for well-known platform role IDs
+    const m = String(roleId || "").match(/^R(\d+)$/);
+    const rNum = m ? Number(m[1]) : 0;
+    if (rNum >= 10006 && rNum <= 10010) return true;
+
+    return false;
   };
 
   const cols = [
@@ -120,7 +127,7 @@ export const getSuperAdminColumns = (permissions, isDark, t, onEdit, onDel, getR
         const isGlobal = isRoleGlobal(row.original.role);
         return <UserTypeBadge isGlobal={isGlobal} t={t} isDark={isDark} />;
       },
-      filterFn: 'equalsString',
+      filterFn: 'includesString',
       enableColumnFilter: true,
     },
     {
