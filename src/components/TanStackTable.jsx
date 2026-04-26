@@ -134,6 +134,7 @@ const TanStackTable = React.forwardRef(({
                               {header.column.getIsSorted() === 'asc' ? <ArrowUp size={12} /> : <ArrowDown size={12} />}
                             </span>
                          ) : null}
+                      </div>
                       {header.column.getCanFilter() && (
                         <input 
                           value={(header.column.getFilterValue() ?? '')}
