@@ -97,12 +97,13 @@ export const getSuperAdminColumns = (permissions, isDark, t, onEdit, onDel, getR
       cell: ({ getValue }) => <span style={{ fontSize: 13, color: t.text }}>{getValue() || "—"}</span>,
     },
     {
-      accessorKey: 'role',
+      id: 'role',
       header: 'PLATFORM ROLE',
       size: 150,
-      cell: ({ getValue }) => {
-        const role_id = getValue();
-        const roleName = getRoleName(role_id);
+      accessorFn: (row) => getRoleName(row.role),
+      cell: ({ getValue, row }) => {
+        const roleName = getValue();
+        const role_id = row.original.role;
         return (
           <div style={{ fontSize: 12.5 }}>
             {roleName ? (
@@ -127,7 +128,6 @@ export const getSuperAdminColumns = (permissions, isDark, t, onEdit, onDel, getR
         const isGlobal = isRoleGlobal(row.original.role);
         return <UserTypeBadge isGlobal={isGlobal} t={t} isDark={isDark} />;
       },
-      filterFn: 'includesString',
       enableColumnFilter: true,
     },
     {

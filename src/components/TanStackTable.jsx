@@ -12,7 +12,8 @@ import {
   ArrowDown, 
   ChevronLeft, 
   ChevronRight, 
-  FilterX
+  FilterX,
+  Search
 } from 'lucide-react';
 
 /**
@@ -49,9 +50,26 @@ const TanStackTable = React.forwardRef(({
 
   // STABILITY FIX: Use docId primarily, then id/schedule_id, then index. 
   // NEVER use Math.random() in a getRowId function as it triggers endless render cycles (Error #185).
+  // Robust case-insensitive substring match that handles spaces correctly
+  const defaultColumn = useMemo(() => ({
+    filterFn: (row, columnId, filterValue) => {
+      const rowValue = row.getValue(columnId);
+      if (rowValue == null) return false;
+      const rowString = String(rowValue).toLowerCase();
+      const searchString = String(filterValue).toLowerCase();
+      return rowString.includes(searchString);
+    },
+  }), []);
+
   const table = useReactTable({
     data,
     columns,
+    defaultColumn,
+    globalFilterFn: (row, columnId, filterValue) => {
+      const value = row.getValue(columnId);
+      if (value == null) return false;
+      return String(value).toLowerCase().includes(String(filterValue).toLowerCase());
+    },
     state: {
       sorting,
       columnFilters,
@@ -103,6 +121,35 @@ const TanStackTable = React.forwardRef(({
       boxShadow: isDark ? '0 10px 30px rgba(0,0,0,0.3)' : '0 4px 20px rgba(0,0,0,0.05)',
       position: 'relative'
     }}>
+      {/* Global Search Bar */}
+      <div style={{ 
+        padding: '12px 16px', 
+        borderBottom: `1px solid ${t.surfaceBorder}`,
+        display: 'flex',
+        justifyContent: 'flex-end',
+        background: isDark ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.01)'
+      }}>
+        <div style={{ position: 'relative', width: '300px' }}>
+          <Search size={14} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: t.textMuted, pointerEvents: 'none' }} />
+          <input 
+            value={globalFilter ?? ''}
+            onChange={e => setGlobalFilter(e.target.value)}
+            placeholder="Search all columns..."
+            style={{
+              width: '100%',
+              padding: '7px 12px 7px 32px',
+              fontSize: '13px',
+              borderRadius: '8px',
+              border: `1px solid ${t.surfaceBorder}`,
+              background: isDark ? 'rgba(0,0,0,0.2)' : '#fff',
+              color: t.text,
+              outline: 'none',
+              transition: 'all 0.2s'
+            }}
+          />
+        </div>
+      </div>
+
       <div style={{ flex: 1, overflow: 'auto', position: 'relative', pointerEvents: 'auto' }} className="ts-scroller">
         <table style={{ width: table.getCenterTotalSize(), minWidth: '100%', borderCollapse: 'separate', borderSpacing: 0, fontSize: '13px', tableLayout: 'fixed' }}>
           <thead style={{ position: 'sticky', top: 0, zIndex: 10, background: isDark ? '#262626' : '#F9FAF9' }}>
@@ -129,6 +176,7 @@ const TanStackTable = React.forwardRef(({
                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                             {flexRender(header.column.columnDef.header, header.getContext())}
                          </div>
+
                          {(header.column.getIsSorted() || (header.column.id === 'select' && header.column.getCanSort())) ? (
                             <span style={{ color: header.column.getIsSorted() ? t.accent : t.textMuted, opacity: header.column.getIsSorted() ? 1 : 0.4 }}>
                               {header.column.getIsSorted() === 'asc' ? <ArrowUp size={12} /> : <ArrowDown size={12} />}

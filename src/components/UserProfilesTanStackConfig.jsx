@@ -65,12 +65,13 @@ export const getUserProfileColumns = (permissions, isDark, t, onEdit, onDel, onR
       cell: ({ getValue }) => <span style={{ fontSize: 12.5, color: t.accent }}>{getValue()}</span>,
     },
     {
-      accessorKey: 'role_id',
+      id: 'role',
       header: 'ROLE',
       size: 192,
-      cell: ({ getValue }) => {
-        const role_id = getValue();
-        const roleName = getRoleName(role_id, ROLES);
+      accessorFn: (row) => getRoleName(row.role_id, ROLES),
+      cell: ({ getValue, row }) => {
+        const roleName = getValue();
+        const role_id = row.original.role_id;
         return (
           <div style={{ fontSize: 12 }}>
             <span style={{ fontFamily: t.mono, fontSize: 11, color: t.textMuted }}>{role_id || "—"}</span>{" "}
