@@ -54,16 +54,16 @@ export default function PageTenants({ t, isDark, TENANTS = [], GLOBAL_USERS = []
             ...TENANTS.map(t => t.owner_id)
         ];
         const maxNum = Math.max(...allUserIds.map(id => {
-            const m = String(id || "").match(/^O(\d+)$/);
+            const m = String(id || "").match(/^[UO](\d+)$/);
             return m ? Number(m[1]) : 0;
-        }), 10000); // Start from O10001 if none found
-        return "O" + (maxNum + 1);
+        }), 10000); 
+        return "U" + (maxNum + 1);
     })();
 
     const openAdd = () => setModal({
         open: true,
         mode: "add",
-        data: { id: nextTenantId, name: "", owner_id: nextOwnerId, first_name: "", last_name: "", email: "", phone: "", notes: "" }
+        data: { id: nextTenantId, name: "", owner_id: nextOwnerId, first_name: "", last_name: "", email: "", phone: "", notes: "", role_id: "R10005" }
     });
     const openEdit = r => setModal({ open: true, mode: "edit", data: { ...r } });
     const close = () => setModal(m => ({ ...m, open: false }));
@@ -100,7 +100,7 @@ export default function PageTenants({ t, isDark, TENANTS = [], GLOBAL_USERS = []
                     first_name: d.first_name || "",
                     last_name: d.last_name || "",
                     email: d.email || "",
-                    role: "R10005", // Owner role ID
+                    role: d.role_id || "R10005", 
                     status: "Active",
                     notes: d.notes || "",
                     created_at: serverTimestamp(),
@@ -115,7 +115,7 @@ export default function PageTenants({ t, isDark, TENANTS = [], GLOBAL_USERS = []
                     first_name: d.first_name || "",
                     last_name: d.last_name || "",
                     email: d.email || "",
-                    role_id: "R10005",
+                    role_id: d.role_id || "R10005",
                     status: "Active",
                     phone: d.phone || "",
                     notes: d.notes || "",
@@ -187,7 +187,17 @@ export default function PageTenants({ t, isDark, TENANTS = [], GLOBAL_USERS = []
             </FF>
             <FF label="TENANT NAME" t={t}><FIn value={modal.data.name} onChange={e => setF("name", e.target.value)} placeholder="e.g. AVG Real Estate" t={t} /></FF>
             
-            <FF label="OWNER ID" t={t}><FIn value={modal.data.owner_id} onChange={e => setF("owner_id", e.target.value)} placeholder="e.g. O10001" t={t} /></FF>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+                <FF label="OWNER ID" t={t}><FIn value={modal.data.owner_id} onChange={e => setF("owner_id", e.target.value)} placeholder="e.g. U10001" t={t} /></FF>
+                <FF label="ROLE" t={t}>
+                    <FSel 
+                        value={modal.data.role_id || "R10005"} 
+                        onChange={e => setF("role_id", e.target.value)} 
+                        options={ROLES.map(r => ({ label: r.name, value: r.id || r.role_id }))} 
+                        t={t} 
+                    />
+                </FF>
+            </div>
             
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
                 <FF label="FIRST NAME" t={t}><FIn value={modal.data.first_name || ""} onChange={e => setF("first_name", e.target.value)} placeholder="e.g. Jane" t={t} /></FF>

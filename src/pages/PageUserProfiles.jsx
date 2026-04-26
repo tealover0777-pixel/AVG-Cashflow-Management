@@ -33,11 +33,7 @@ export default function PageUserProfiles({ t, isDark, USERS = [], GLOBAL_USERS =
     const [inviting, setInviting] = useState(false);
     const [processing, setProcessing] = useState(false);
     const [saving, setSaving] = useState(false);
-    const [fixing, setFixing] = useState(false);
-    const [inviteResult, setInviteResult] = useState(null);
-    const [inviteConfirm, setInviteConfirm] = useState(null);
     const [toast, setToast] = useState(null); // { msg, type: 'success'|'error'|'info' }
-    const [confirmFix, setConfirmFix] = useState(false);
 
     const showToast = (msg, type = "info") => {
         setToast({ msg, type });
@@ -107,7 +103,7 @@ export default function PageUserProfiles({ t, isDark, USERS = [], GLOBAL_USERS =
         return "U" + String(maxNum + 1).padStart(5, "0");
     }, [filteredUsers]);
 
-    const openInvite = () => setModal({ open: true, mode: "invite", data: { email: "", role_id: "", first_name: "", last_name: "" } });
+    const openInvite = () => setModal({ open: true, mode: "invite", data: { email: "", role_id: "", first_name: "", last_name: "", inviteUser: true } });
     const openEdit = r => {
         const tid = r.tenantId || r.tenant_id || r.Tenant_ID || tenantId;
         setModal({ open: true, mode: "edit", data: { ...r, role_id: r.role_id || "", tenantId: tid, _origTenantId: tid } });
@@ -151,7 +147,8 @@ export default function PageUserProfiles({ t, isDark, USERS = [], GLOBAL_USERS =
                 first_name: firstName,
                 last_name: lastName,
                 phone: party.phone || "",
-                notes: `Invited from User Profiles page — ${party.email}`
+                notes: `Created from User Profiles page — ${party.email}`,
+                inviteUser: party.inviteUser ?? true
             });
             close();
             setInviteConfirm(null);
@@ -182,24 +179,6 @@ export default function PageUserProfiles({ t, isDark, USERS = [], GLOBAL_USERS =
         }
     };
 
-    const handleFixStatuses = async () => {
-        setConfirmFix(true);
-    };
-
-    const executeFixStatuses = async () => {
-        setConfirmFix(false);
-        setFixing(true);
-        try {
-            const fixFn = httpsCallable(functions, "fixAllStatuses");
-            const res = await fixFn();
-            showToast(res.data.message || "Updated statuses successfully.", "success");
-        } catch (err) {
-            console.error("Fix statuses error:", err);
-            showToast("Failed to fix statuses: " + (err.message || "Unknown error"), "error");
-        } finally {
-            setFixing(false);
-        }
-    };
 
     const handleDeleteUser = async () => {
         if (!delT) return;
@@ -315,21 +294,15 @@ export default function PageUserProfiles({ t, isDark, USERS = [], GLOBAL_USERS =
             </div>
         )}
 
-        {/* Fix Statuses Confirm Modal */}
-        <Modal open={confirmFix} onClose={() => setConfirmFix(false)} title="Confirm Status Fix" onSave={executeFixStatuses} saveLabel={fixing ? "Updating..." : "Proceed"} t={t} isDark={isDark} loading={fixing}>
-            <p style={{ fontSize: 13.5, color: t.textMuted, lineHeight: 1.7 }}>
-                This will set all <strong>Pending</strong> users to <strong>Active</strong> (except L2 Admin). Are you sure you want to proceed?
-            </p>
-        </Modal>
 
         {/* Invite Confirm Modal */}
-        <Modal open={!!inviteConfirm} onClose={() => setInviteConfirm(null)} title="Confirm Invitation" onSave={executeInvite} saveLabel={processing ? "Sending..." : "Send Invite ✉️"} width={480} t={t} isDark={isDark} loading={processing}>
-            <div style={{ fontSize: 13.5, color: t.text, marginBottom: 12, fontWeight: 600 }}>Invite {inviteConfirm?.first_name || (inviteConfirm?.name || "").split(" ")[0] || "User"}?</div>
+        <Modal open={!!inviteConfirm} onClose={() => setInviteConfirm(null)} title="Confirm User Creation" onSave={executeInvite} saveLabel={processing ? "Processing..." : "Create User"} width={480} t={t} isDark={isDark} loading={processing}>
+            <div style={{ fontSize: 13.5, color: t.text, marginBottom: 12, fontWeight: 600 }}>Create {inviteConfirm?.first_name || (inviteConfirm?.name || "").split(" ")[0] || "User"}?</div>
             <div style={{ fontSize: 13, color: t.textMuted, lineHeight: 1.7 }}>
                 {inviteConfirm?.email} will be invited as a <strong>{getRoleInfo(inviteConfirm?.role_id).name}</strong>.
             </div>
             <div style={{ fontSize: 12, color: t.textSubtle, marginTop: 12, padding: 12, background: isDark ? "rgba(255,255,255,0.03)" : "#F9F8F6", borderRadius: 8, border: `1px solid ${t.surfaceBorder}` }}>
-                This will create a secure profile and send a verification email. They will be addressed as <strong>{inviteConfirm?.first_name || (inviteConfirm?.name || "").split(" ")[0] || "User"}</strong> in the greeting.
+                This will create a secure profile {inviteConfirm?.inviteUser ? "and send a verification email" : ""}. They will be addressed as <strong>{inviteConfirm?.first_name || (inviteConfirm?.name || "").split(" ")[0] || "User"}</strong> in the greeting.
             </div>
         </Modal>
 
@@ -386,12 +359,7 @@ export default function PageUserProfiles({ t, isDark, USERS = [], GLOBAL_USERS =
                 <p style={{ fontSize: 13.5, color: t.textMuted }}>Manage Users of your company</p>
             </div>
             <div style={{ display: "flex", gap: 12 }}>
-                {isSuperAdmin && (
-                    <button className="nav-item" onClick={handleFixStatuses} disabled={fixing} style={{ background: "none", border: `1px solid ${t.border}`, color: t.textSecondary, padding: "10px 16px", borderRadius: 10, fontSize: 13, cursor: "pointer" }}>
-                        {fixing ? "⏳ Fixing..." : "🔧 Fix All Statuses"}
-                    </button>
-                )}
-                {(canCreate || canInvite) && <Tooltip text="Send invitation to new user" t={t}><button className="primary-btn" onClick={openInvite} style={{ background: t.accentGrad, color: "#fff", padding: "11px 22px", borderRadius: 11, fontSize: 13.5, fontWeight: 600, boxShadow: `0 4px 16px ${t.accentShadow}` }}>✉️ Invite User</button></Tooltip>}
+                {(canCreate || canInvite) && <Tooltip text="Create a new user profile" t={t}><button className="primary-btn" onClick={openInvite} style={{ background: t.accentGrad, color: "#fff", padding: "11px 22px", borderRadius: 11, fontSize: 13.5, fontWeight: 600, boxShadow: `0 4px 16px ${t.accentShadow}` }}>➕ Create User</button></Tooltip>}
             </div>
         </div>
 
@@ -407,7 +375,7 @@ export default function PageUserProfiles({ t, isDark, USERS = [], GLOBAL_USERS =
         </div>
 
         {/* Invite Modal */}
-        <Modal open={modal.open && modal.mode === "invite"} onClose={close} title="Invite New User" onSave={handleInviteUser} saveLabel={inviting ? "Sending..." : "Send Invite ✉️"} width={520} t={t} isDark={isDark}>
+        <Modal open={modal.open && modal.mode === "invite"} onClose={close} title="Create New User" onSave={handleInviteUser} saveLabel={inviting ? "Processing..." : "Create User"} width={520} t={t} isDark={isDark}>
             <p style={{ fontSize: 12.5, color: t.textMuted, marginBottom: 16, lineHeight: 1.6 }}>
                 This will create a Firebase Auth account for the user (if they don't already have one), set their role/tenant permissions, and generate a secure invite link to share with them.
             </p>
@@ -426,14 +394,17 @@ export default function PageUserProfiles({ t, isDark, USERS = [], GLOBAL_USERS =
                     {ROLES.map(r => <option key={r.id || r.role_id} value={r.id || r.role_id} style={{ color: "#000" }}>{r.role_name || r.name || r.id}</option>)}
                 </select>
             </FF>
-            {isSuperAdmin && !isSelectedRoleGlobal(modal.data.role_id) && (
-                <FF label="Invite to Tenant (Override)" t={t}>
-                    <select value={modal.data.inviteTenantId || ""} onChange={e => setF("inviteTenantId", e.target.value)} style={{ background: isDark ? "rgba(255,255,255,0.04)" : "#fff", color: isDark ? "#fff" : "#000", border: `1px solid ${t.border}`, borderRadius: 9, padding: "10px 13px", fontSize: 13.5, outline: "none", width: "100%", fontFamily: t.font }}>
-                        <option value="">Current Tenant ({tenantId})</option>
-                        {TENANTS.map(ten => <option key={ten.id} value={ten.id} style={{ color: "#000" }}>{ten.name} ({ten.id})</option>)}
-                    </select>
-                </FF>
-            )}
+            <div style={{ marginBottom: 16 }}>
+                <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer", fontSize: 13.5, color: t.text }}>
+                    <input 
+                        type="checkbox" 
+                        checked={!!modal.data.inviteUser} 
+                        onChange={e => setF("inviteUser", e.target.checked)}
+                        style={{ width: 18, height: 18, accentColor: t.accent }}
+                    />
+                    Invite user (Send verification email)
+                </label>
+            </div>
             <FF label="Internal Notes" t={t}><textarea value={modal.data.notes || ""} onChange={e => setF("notes", e.target.value)} placeholder="Private notes about this user..." style={{ background: isDark ? "rgba(255,255,255,0.04)" : "#fff", color: t.text, border: `1px solid ${t.border}`, borderRadius: 9, padding: "10px 13px", fontSize: 13.5, outline: "none", width: "100%", minHeight: 80, fontFamily: t.font, resize: "vertical" }} /></FF>
         </Modal>
 
