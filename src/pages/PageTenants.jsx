@@ -9,7 +9,7 @@ import { useAuth } from "../AuthContext";
 import { uploadFile } from "../utils/storageUtils";
 
 export default function PageTenants({ t, isDark, TENANTS = [], GLOBAL_USERS = [], ROLES = [], collectionPath = "" }) {
-    const { hasPermission, isSuperAdmin, isGlobalRole } = useAuth();
+    const { hasPermission, isSuperAdmin, isGlobalRole, permissions: userPerms } = useAuth();
     const canCreate = isSuperAdmin || hasPermission("PLATFORM_TENANT_CREATE") || hasPermission("TENANT_CREATE");
     const canUpdate = isSuperAdmin || hasPermission("PLATFORM_TENANT_UPDATE") || hasPermission("TENANT_UPDATE");
     const canDelete = isSuperAdmin || hasPermission("PLATFORM_TENANT_DELETE") || hasPermission("TENANT_DELETE");
@@ -176,7 +176,7 @@ export default function PageTenants({ t, isDark, TENANTS = [], GLOBAL_USERS = []
 
             <FF label="EMAIL ADDRESS" t={t}><FIn value={modal.data.email} onChange={e => setF("email", e.target.value)} placeholder="owner@company.com" t={t} /></FF>
             
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
                 <FF label="FIRST NAME" t={t}><FIn value={modal.data.first_name || ""} onChange={e => setF("first_name", e.target.value)} placeholder="Jane" t={t} /></FF>
                 <FF label="LAST NAME" t={t}><FIn value={modal.data.last_name || ""} onChange={e => setF("last_name", e.target.value)} placeholder="Doe" t={t} /></FF>
             </div>
@@ -184,11 +184,17 @@ export default function PageTenants({ t, isDark, TENANTS = [], GLOBAL_USERS = []
             <FF label="PHONE" t={t}><FIn value={modal.data.phone || ""} onChange={e => setF("phone", e.target.value)} placeholder="+1 555 000 0000" t={t} /></FF>
 
             <FF label="ROLE" t={t}>
-                <select value={modal.data.role_id || "R10005"} onChange={e => setF("role_id", e.target.value)} style={{ background: isDark ? "rgba(255,255,255,0.04)" : "#fff", color: isDark ? "#fff" : "#000", border: `1px solid ${t.border}`, borderRadius: 9, padding: "10px 13px", fontSize: 13.5, outline: "none", width: "100%", fontFamily: t.font, appearance: "none" }}>
-                    {ROLES.filter(r => isGlobalRole || isSuperAdmin || (!isSelectedRoleGlobal(r.id || r.role_id) && (r.id || r.role_id) !== "R10005")).map(r => (
+                <select 
+                    value={modal.data.role_id || "R10005"} 
+                    onChange={e => setF("role_id", e.target.value)} 
+                    style={{ background: isDark ? "rgba(255,255,255,0.04)" : "#fff", color: isDark ? "#fff" : "#000", border: `1px solid ${t.border}`, borderRadius: 9, padding: "10px 13px", fontSize: 13.5, outline: "none", width: "100%", fontFamily: t.font, appearance: "none" }}
+                    disabled={modal.mode === "add"} // Primary owner is always Owner role on creation
+                >
+                    {ROLES.map(r => (
                         <option key={r.id || r.role_id} value={r.id || r.role_id} style={{ color: "#000" }}>{r.role_name || r.name || r.id}</option>
                     ))}
                 </select>
+                {modal.mode === "add" && <div style={{ fontSize: 11.5, color: t.textMuted, marginTop: 4 }}>Primary owner must be assigned the Owner role.</div>}
             </FF>
 
             <div style={{ marginBottom: 16 }}>

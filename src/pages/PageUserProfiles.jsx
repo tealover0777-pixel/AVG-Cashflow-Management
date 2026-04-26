@@ -74,6 +74,7 @@ export default function PageUserProfiles({ t, isDark, USERS = [], GLOBAL_USERS =
             // Merge: use global user's first_name/last_name if available, otherwise use tenant user's
             return {
                 ...u,
+                docId: u._path || u.docId || u.id, // Ensure uniqueness for TanStack Table, especially in GLOBAL view
                 first_name: globalUser?.first_name || u.first_name,
                 last_name: globalUser?.last_name || u.last_name
             };
@@ -372,7 +373,7 @@ export default function PageUserProfiles({ t, isDark, USERS = [], GLOBAL_USERS =
                 pageSize={pageSize}
                 t={t}
                 isDark={isDark}
-                onSelectionChange={(selected) => setSel(new Set(selected.map(r => r.id)))}
+                onSelectionChange={(selected) => setSel(new Set(selected.map(r => r.docId || r.id)))}
             />
         </div>
 
