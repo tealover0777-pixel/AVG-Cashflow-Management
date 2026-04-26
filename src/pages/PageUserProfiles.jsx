@@ -219,7 +219,7 @@ export default function PageUserProfiles({ t, isDark, USERS = [], GLOBAL_USERS =
                 // Check for Ownership transfer
                 const isPromotingToOwner = d.role_id === "R10005";
                 const wasAlreadyOwner = profile?.role_id === "R10005" || profile?.role === "R10005";
-                
+
                 if (isPromotingToOwner) {
                     if (!wasAlreadyOwner && !isSuperAdmin) {
                         showToast("Only the current Owner or a Super Admin can assign a new Owner.", "error");
@@ -378,9 +378,7 @@ export default function PageUserProfiles({ t, isDark, USERS = [], GLOBAL_USERS =
 
         {/* Invite Modal */}
         <Modal open={modal.open && modal.mode === "invite"} onClose={close} title="Create New User" onSave={handleInviteUser} saveLabel={inviting ? "Processing..." : "Create User"} width={520} t={t} isDark={isDark}>
-            <p style={{ fontSize: 12.5, color: t.textMuted, marginBottom: 16, lineHeight: 1.6 }}>
-                This will create a Firebase Auth account for the user (if they don't already have one), set their role/tenant permissions, and generate a secure invite link to share with them.
-            </p>
+
             <FF label="Upcoming User ID" t={t}>
                 <div style={{ fontFamily: t.mono, fontSize: 13, color: t.idText, background: isDark ? "rgba(255,255,255,0.04)" : "#F5F4F1", border: `1px solid ${t.surfaceBorder}`, borderRadius: 9, padding: "10px 13px" }}>{nextUserId}</div>
             </FF>
@@ -400,9 +398,9 @@ export default function PageUserProfiles({ t, isDark, USERS = [], GLOBAL_USERS =
             </FF>
             <div style={{ marginBottom: 16 }}>
                 <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer", fontSize: 13.5, color: t.text }}>
-                    <input 
-                        type="checkbox" 
-                        checked={!!modal.data.inviteUser} 
+                    <input
+                        type="checkbox"
+                        checked={!!modal.data.inviteUser}
                         onChange={e => setF("inviteUser", e.target.checked)}
                         style={{ width: 18, height: 18, accentColor: t.accent }}
                     />
