@@ -33,6 +33,8 @@ export default function PageUserProfiles({ t, isDark, USERS = [], GLOBAL_USERS =
     const [inviting, setInviting] = useState(false);
     const [processing, setProcessing] = useState(false);
     const [saving, setSaving] = useState(false);
+    const [inviteResult, setInviteResult] = useState(null);
+    const [inviteConfirm, setInviteConfirm] = useState(null);
     const [toast, setToast] = useState(null); // { msg, type: 'success'|'error'|'info' }
 
     const showToast = (msg, type = "info") => {
