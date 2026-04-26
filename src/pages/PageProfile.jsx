@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
+import { User } from "lucide-react";
 import { db, auth } from "../firebase";
 import { doc, setDoc, updateDoc, serverTimestamp, collection, query, where, getDocs, getDoc } from "firebase/firestore";
 import { sendPasswordResetEmail } from "firebase/auth";
