@@ -34,22 +34,47 @@ export const getDistributionColumns = (isDark, t, CONTACTS, DEALS, INVESTMENTS =
     enableSorting: false,
   },
   {
-    id: 'party',
-    header: 'Investor Name',
+    id: 'firstName',
+    header: 'First Name',
     accessorFn: (row) => {
       const cid = row.contact_id || row.party_id || "";
       const c = (CONTACTS || []).find(x => x.id === cid || x.docId === cid || x.contact_id === cid);
-      return c ? (c.name || c.contact_name || [c.first_name, c.last_name].filter(Boolean).join(" ")) : (row.contact || cid || "");
+      if (c && c.first_name) return c.first_name;
+      if (c && c.name) return c.name.split(" ")[0];
+      return row.first_name || (row.contact ? row.contact.split(" ")[0] : "");
     },
-    size: 180,
+    size: 110,
     cell: ({ getValue, row }) => {
-      const name = getValue() || "Unknown Contact";
+      const val = getValue() || "—";
       return (
         <div 
           onClick={() => callbacks.onContactClick?.(row.original.contact_id)}
           style={{ display: 'flex', alignItems: 'center', height: '100%', fontWeight: 600, color: isDark ? "#60A5FA" : "#4F46E5", cursor: 'pointer' }}
         >
-          {name}
+          {val}
+        </div>
+      );
+    },
+  },
+  {
+    id: 'lastName',
+    header: 'Last Name',
+    accessorFn: (row) => {
+      const cid = row.contact_id || row.party_id || "";
+      const c = (CONTACTS || []).find(x => x.id === cid || x.docId === cid || x.contact_id === cid);
+      if (c && c.last_name) return c.last_name;
+      if (c && c.name) return c.name.split(" ").slice(1).join(" ");
+      return row.last_name || (row.contact ? row.contact.split(" ").slice(1).join(" ") : "");
+    },
+    size: 110,
+    cell: ({ getValue, row }) => {
+      const val = getValue() || "—";
+      return (
+        <div 
+          onClick={() => callbacks.onContactClick?.(row.original.contact_id)}
+          style={{ display: 'flex', alignItems: 'center', height: '100%', fontWeight: 600, color: isDark ? "#60A5FA" : "#4F46E5", cursor: 'pointer' }}
+        >
+          {val}
         </div>
       );
     },

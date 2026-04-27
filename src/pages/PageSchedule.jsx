@@ -69,10 +69,11 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
   useEffect(() => { fetchDistMemos(); }, [fetchDistMemos]);
   const [showExportMenu, setShowExportMenu] = useState(false);
   const exportMenuRef = useRef(null);
-  const [pivotColWidths, setPivotColWidths] = useState([180, 130, 100, 100, 80, 70, 100, 120]); // Name, Type, Start, End, Freq, Rate, Schedule, Method
+  const [pivotColWidths, setPivotColWidths] = useState([120, 120, 130, 100, 100, 80, 70, 100, 120]); // First Name, Last Name, Type, Start, End, Freq, Rate, Schedule, Method
   const [pivotDateWidth, setPivotDateWidth] = useState(120);
   const [pivotFilters, setPivotFilters] = useState({
-    investor: "",
+    firstName: "",
+    lastName: "",
     type: "",
     startDate: "",
     endDate: "",
@@ -160,11 +161,12 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
     let title = `PaymentSchedule_${isPivot ? "Pivot" : "Table"}_${new Date().toISOString().split('T')[0]}`;
 
     if (isPivot) {
-      headers = ["Investor Name", "Type", "Start Date", "Payment Date", "Freq", "Rate", "Schedule", "Payment Method", ...pivotData.dates, "Total"];
+      headers = ["First Name", "Last Name", "Type", "Start Date", "Payment Date", "Freq", "Rate", "Schedule", "Payment Method", ...pivotData.dates, "Total"];
       data = filteredPivotRows.map(row => {
         let rowTotal = 0;
         const rowData = [
-          row.investor,
+          row.firstName,
+          row.lastName,
           (row.type || "").replace(/_/g, ' '),
           row.startDate,
           row.endDate,
@@ -182,12 +184,14 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
         return rowData;
       });
     } else {
-      headers = ["Investor Name", "Deal Name", "Start Date", "Payment Date", "Type", "Freq", "Amount", "Status", "Notes"];
+      headers = ["First Name", "Last Name", "Deal Name", "Start Date", "Payment Date", "Type", "Freq", "Amount", "Status", "Notes"];
       data = rowData.map(s => {
         const contact = CONTACTS.find(x => x.id === s.contact_id);
         const dealObj = DEALS.find(x => x.id === s.deal_id);
         const inv = INVESTMENTS.find(x => x.id === s.investment_id || x.id === s.investment);
         const investorName = contact ? contact.name : (s.contact_name || s.investor || "—");
+        const firstName = investorName?.split(' ')[0] || '';
+        const lastName = investorName?.split(' ').slice(1).join(' ') || '';
         const dealName = dealObj ? (dealObj.deal_name || dealObj.name) : (s.deal_id || "—");
         const type = (s.payment_type || s.type || "").replace(/_/g, ' ');
         const isPrincipalPayment = type.toLowerCase() === "investor principal payment";
