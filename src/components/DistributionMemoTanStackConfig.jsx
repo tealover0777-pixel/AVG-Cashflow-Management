@@ -11,7 +11,8 @@ export const getDistributionMemoColumns = (isDark, t, context) => {
     const types = toArr(memo.payment_type).map(x => x.toLowerCase());
     const statuses = toArr(memo.status).map(x => x.toLowerCase());
     return SCHEDULES.filter(s => {
-      if (s.deal_id !== dealId) return false;
+      const targetDealId = dealId || memo.deal_id;
+      if (targetDealId && s.deal_id !== targetDealId) return false;
       const sType = (s.type || s.payment_type || "").toLowerCase();
       if (types.length > 0 && !types.includes(sType)) return false;
       const due = s.dueDate || s.due_date || "";

@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect, useRef } from "react";
 import TanStackTable from "../components/TanStackTable";
 import { getScheduleColumns } from "../components/ScheduleTanStackConfig";
+import { getDistributionMemoColumns } from "../components/DistributionMemoTanStackConfig";
 import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
@@ -8,7 +9,7 @@ import { Document, Packer, Paragraph, Table, TableRow, TableCell, WidthType, Ali
 import { Download, ChevronDown, Table as TableIcon, LayoutPanelLeft } from "lucide-react";
 
 import { db } from "../firebase";
-import { collection, doc, addDoc, updateDoc, deleteDoc, serverTimestamp } from "firebase/firestore";
+import { collection, doc, addDoc, updateDoc, deleteDoc, serverTimestamp, getDocs } from "firebase/firestore";
 import { sortData, badge, initials, av, pmtCalculator_ACT360_30360, getFeeFrequencyString, normalizeDateAtNoon, mkId, fmtCurr as fmtCurrency } from "../utils";
 import { StatCard, Bdg, Pagination, Modal, FF, FIn, FSel, DelModal, Tooltip } from "../components";
 import { InvestorSummaryModal } from "../components/InvestorSummaryModal";
@@ -47,7 +48,25 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
   const [drillFee, setDrillFee] = useState(null);
   const [detailContact, setDetailContact] = useState(null);
 
-  const [scheduleView, setScheduleView] = useState("table"); // "table" or "pivot"
+  const [scheduleView, setScheduleView] = useState("table"); // "memo", "table" or "pivot"
+
+  // Distribution Memos
+  const [distMemos, setDistMemos] = useState([]);
+  const [distMemoDrillDown, setDistMemoDrillDown] = useState({ open: false, memo: null, schedules: [] });
+  const distMemoCollectionPath = tenantId ? `tenants/${tenantId}/distributionMemos` : null;
+
+  const fetchDistMemos = React.useCallback(async () => {
+    if (!distMemoCollectionPath) return;
+    try {
+      const snap = await getDocs(collection(db, distMemoCollectionPath));
+      const items = snap.docs.map(d => ({ docId: d.id, _path: `${distMemoCollectionPath}/${d.id}`, ...d.data() }));
+      setDistMemos(items);
+    } catch (err) {
+      console.error("Failed to fetch distribution memos:", err);
+    }
+  }, [distMemoCollectionPath]);
+
+  useEffect(() => { fetchDistMemos(); }, [fetchDistMemos]);
   const [showExportMenu, setShowExportMenu] = useState(false);
   const exportMenuRef = useRef(null);
   const [pivotColWidths, setPivotColWidths] = useState([180, 130, 100, 100, 80, 70, 100, 120]); // Name, Type, Start, End, Freq, Rate, Schedule, Method
@@ -1558,32 +1577,37 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
     <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 16, marginBottom: 28 }}>{statsData.map(s => <StatCard key={s.label} {...s} titleFont={t.titleFont} isDark={isDark} />)}</div>
 
     {/* Tab & Filter Consolidation Row */}
-    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20, gap: 20 }}>
+    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20, gap: 20, borderBottom: `1px solid ${t.surfaceBorder}` }}>
       {/* Tabs */}
-      <div style={{ display: "flex", gap: 0, background: isDark ? "rgba(255,255,255,0.05)" : "#F3F4F6", padding: 4, borderRadius: 10, border: `1px solid ${t.surfaceBorder}` }}>
+      <div style={{ display: "flex", gap: 24, alignSelf: "flex-end" }}>
         {[
-          { key: "table", label: "Table View", icon: <TableIcon size={14} /> },
-          { key: "pivot", label: "Pivot View", icon: <LayoutPanelLeft size={14} /> },
-        ].map(({ key, label, icon }) => (
-          <button
+          { key: "memo", label: "Distribution View" },
+          { key: "table", label: "Table View" },
+          { key: "pivot", label: "Pivot View" },
+        ].map(({ key, label }) => (
+          <div
             key={key}
             onClick={() => setScheduleView(key)}
             style={{
-              display: "flex", alignItems: "center", gap: 8, padding: "6px 16px", borderRadius: 8, border: "none", cursor: "pointer", fontSize: 13, fontWeight: 600,
-              background: scheduleView === key ? (isDark ? "#fff" : t.accent) : "transparent",
-              color: scheduleView === key ? (isDark ? "#000" : "#fff") : (isDark ? "rgba(255,255,255,0.6)" : "#6B7280"),
-              transition: "all 0.2s",
-              boxShadow: scheduleView === key ? "0 2px 4px rgba(0,0,0,0.1)" : "none"
+              padding: "10px 0 12px 0",
+              fontSize: 15,
+              fontWeight: 600,
+              color: scheduleView === key ? t.text : t.textMuted,
+              cursor: "pointer",
+              position: "relative",
+              transition: "all 0.2s ease"
             }}
           >
-            {icon} {label}
-          </button>
+            {label}
+            {scheduleView === key && <div style={{ position: "absolute", bottom: -1, left: 0, right: 0, height: 2, background: t.accent }} />}
+          </div>
         ))}
       </div>
 
       {/* Unified Filters */}
-      <div style={{ display: "flex", gap: 8, alignItems: "center", flex: 1, justifyContent: "center" }}>
-        <span style={{ fontSize: 12, fontWeight: 700, color: t.textMuted, marginRight: 8, textTransform: "uppercase", letterSpacing: "0.05em" }}>Filter By:</span>
+      {scheduleView !== "memo" && (
+        <div style={{ display: "flex", gap: 8, alignItems: "center", flex: 1, justifyContent: "center" }}>
+          <span style={{ fontSize: 12, fontWeight: 700, color: t.textMuted, marginRight: 8, textTransform: "uppercase", letterSpacing: "0.05em" }}>Filter By:</span>
         {["All", "Interest", "Principal", "Fee", "Due", "Withdrawal", "Missed"].map(f => {
           const isA = activeFilter === f;
           return (
@@ -1602,10 +1626,12 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
             </span>
           );
         })}
-      </div>
+        </div>
+      )}
 
       {/* Export Dropdown */}
-      <div style={{ position: "relative" }} ref={exportMenuRef}>
+      {scheduleView !== "memo" && (
+        <div style={{ position: "relative" }} ref={exportMenuRef}>
         <button
           onClick={() => setShowExportMenu(!showExportMenu)}
           style={{
@@ -1639,6 +1665,7 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
           </div>
         )}
       </div>
+      )}
     </div>
     <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", marginBottom: 16 }}>
       <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
@@ -1649,7 +1676,24 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
       </div>
     </div>
 
-    {scheduleView === "table" ? (
+    {scheduleView === "memo" ? (
+      <div style={{ height: "calc(100vh - 430px)", width: "100%" }}>
+        <TanStackTable
+          key="dist-memo-table"
+          data={distMemos}
+          columns={getDistributionMemoColumns(isDark, t, {
+            SCHEDULES,
+            dealId: null,
+            callbacks: {
+              onMemoClick: (memo, linked) => setDistMemoDrillDown({ open: true, memo, schedules: linked })
+            }
+          })}
+          pageSize={50}
+          t={t}
+          isDark={isDark}
+        />
+      </div>
+    ) : scheduleView === "table" ? (
       <div style={{ height: "calc(100vh - 430px)", width: "100%" }}>
         <TanStackTable
           data={rowData}
@@ -2668,5 +2712,44 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
         }
       }}
     />
+      {/* Distribution Memo Drilldown Modal */}
+      {distMemoDrillDown.open && (
+        <Modal
+          open={distMemoDrillDown.open}
+          onClose={() => setDistMemoDrillDown({ open: false, memo: null, schedules: [] })}
+          title={`Distribution Memo  ${distMemoDrillDown.memo?.period_start || ""}  ~  ${distMemoDrillDown.memo?.period_end || ""}`}
+          width={1350}
+          titleFont={t.titleFont}
+          t={t}
+          isDark={isDark}
+          showCancel={false}
+        >
+          <div>
+            <div style={{ display: "flex", gap: 16, marginBottom: 16 }}>
+              {[
+                { label: "Linked Schedules", val: distMemoDrillDown.schedules.length },
+                { label: "Total Amount", val: fmtCurr(distMemoDrillDown.schedules.reduce((s, r) => s + (Number(r.signed_payment_amount || r.payment_amount || 0) || 0), 0)) },
+                { label: "Period", val: `${distMemoDrillDown.memo?.period_start || "—"} → ${distMemoDrillDown.memo?.period_end || "—"}` },
+              ].map((stat, i) => (
+                <div key={i} style={{ flex: 1, padding: "14px 18px", background: isDark ? "rgba(255,255,255,0.03)" : "#F9FAFB", border: `1px solid ${t.surfaceBorder}`, borderRadius: 10 }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: t.textMuted, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 6 }}>{stat.label}</div>
+                  <div style={{ fontSize: 18, fontWeight: 700, color: t.text }}>{stat.val}</div>
+                </div>
+              ))}
+            </div>
+            <div style={{ height: 400 }}>
+              <TanStackTable
+                data={distMemoDrillDown.schedules}
+                columns={columnDefs}
+                pageSize={50}
+                t={t}
+                isDark={isDark}
+                initialSorting={[{ id: 'dueDate', desc: false }]}
+              />
+            </div>
+          </div>
+        </Modal>
+      )}
+
   </>);
 }
