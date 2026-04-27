@@ -34,7 +34,7 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
   const paymentStatusOpts = (DIMENSIONS.find(d => d.name === "ScheduleStatus" || d.name === "Schedule Status" || d.name === "Payment Status" || d.name === "PaymentStatus") || {}).items
     ?.map(i => String(i || "").trim())
     ?.filter(i => i !== "") || ["Due", "Paid", "Partial", "Missed", "Cancelled"];
-  const [hov, setHov] = useState(null); const [sel, setSel] = useState(new Set()); const [chip, setChip] = useState("All");
+  const [hov, setHov] = useState(null); const [sel, setSel] = useState(new Set()); const [activeFilter, setActiveFilter] = useState("All");
   const [showHistory, setShowHistory] = useState(false);
   const [modal, setModal] = useState({ open: false, mode: "add", data: {} });
   const [delT, setDelT] = useState(null);
@@ -48,7 +48,6 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
   const [detailContact, setDetailContact] = useState(null);
 
   const [scheduleView, setScheduleView] = useState("table"); // "table" or "pivot"
-  const [distFilter, setDistFilter] = useState("All");
   const [showExportMenu, setShowExportMenu] = useState(false);
   const exportMenuRef = useRef(null);
   const [pivotColWidths, setPivotColWidths] = useState([180, 130, 100, 100, 80, 70, 100, 120]); // Name, Type, Start, End, Freq, Rate, Schedule, Method
@@ -1281,20 +1280,26 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
     let filtered = SCHEDULES.filter(s => {
       // If history is OFF, only show active versions
       if (!showHistory && s.active_version === false) return false;
-      // Status chip filter
-      // Status chip filter
-      if (chip !== "All" && s.status !== chip) return false;
-
-      // Type Filter (Distribution logic)
-      const ty = (s.payment_type || s.type || "").toLowerCase();
-      if (distFilter === "Interest") {
-        if (!(ty.includes("interest") || ty.includes("distribution") || (ty.includes("payment") && !ty.includes("principal")))) return false;
-      } else if (distFilter === "Principal") {
-        if (!(ty.includes("principal") || ty.includes("deposit") || ty.includes("received") || ty.includes("disbursement"))) return false;
-      } else if (distFilter === "Fee") {
-        if (!(ty.includes("fee") || s.fee_id || s.feeId)) return false;
-      }
       
+      // Combined Filter Logic
+      const ty = (s.payment_type || s.type || "").toLowerCase();
+      const st = (s.status || "").toLowerCase();
+
+      if (activeFilter === "Interest") {
+        if (!(ty.includes("interest") || ty.includes("distribution") || (ty.includes("payment") && !ty.includes("principal")))) return false;
+      } else if (activeFilter === "Principal") {
+        if (!(ty.includes("principal") || ty.includes("deposit") || ty.includes("received") || ty.includes("disbursement"))) return false;
+      } else if (activeFilter === "Fee") {
+        if (!(ty.includes("fee") || s.fee_id || s.feeId)) return false;
+      } else if (activeFilter === "Due") {
+        if (st !== "due") return false;
+      } else if (activeFilter === "Withdrawal") {
+        const isWithdrawal = ty.includes("withdrawal") || ty.includes("withdrawl") || st.includes("withdrawal") || st.includes("withdrawl");
+        if (!isWithdrawal) return false;
+      } else if (activeFilter === "Missed") {
+        if (st !== "missed") return false;
+      }
+
       return true;
     });
 
@@ -1324,7 +1329,7 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
     }
 
     return filtered;
-  }, [SCHEDULES, showHistory, chip, distFilter]);
+  }, [SCHEDULES, showHistory, activeFilter]);
 
   // Pivot data for distribution chart view
   const pivotData = useMemo(() => {
@@ -1501,16 +1506,26 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
       if (!showHistory && s.active_version === false) return false;
       
       const ty = (s.payment_type || s.type || "").toLowerCase();
-      if (distFilter === "Interest") {
+      const st = (s.status || "").toLowerCase();
+
+      if (activeFilter === "Interest") {
         if (!(ty.includes("interest") || ty.includes("distribution") || (ty.includes("payment") && !ty.includes("principal")))) return false;
-      } else if (distFilter === "Principal") {
+      } else if (activeFilter === "Principal") {
         if (!(ty.includes("principal") || ty.includes("deposit") || ty.includes("received") || ty.includes("disbursement"))) return false;
-      } else if (distFilter === "Fee") {
+      } else if (activeFilter === "Fee") {
         if (!(ty.includes("fee") || s.fee_id || s.feeId)) return false;
+      } else if (activeFilter === "Due") {
+        if (st !== "due") return false;
+      } else if (activeFilter === "Withdrawal") {
+        const isWithdrawal = ty.includes("withdrawal") || ty.includes("withdrawl") || st.includes("withdrawal") || st.includes("withdrawl");
+        if (!isWithdrawal) return false;
+      } else if (activeFilter === "Missed") {
+        if (st !== "missed") return false;
       }
+
       return true;
     });
-  }, [SCHEDULES, showHistory, distFilter]);
+  }, [SCHEDULES, showHistory, activeFilter]);
 
   const statsData = [
     { label: "Total", value: statsBaseData.length, accent: isDark ? "#60A5FA" : "#3B82F6", bg: isDark ? "rgba(96,165,250,0.08)" : "#EFF6FF", border: isDark ? "rgba(96,165,250,0.15)" : "#BFDBFE" },
@@ -1527,6 +1542,7 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
       <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
         {sel.size > 0 && <div style={{ display: "flex", gap: 8, alignItems: "center", background: isDark ? "rgba(255,255,255,0.04)" : "#F9FAFB", padding: "8px 14px", borderRadius: 10, border: `1px solid ${t.surfaceBorder}` }}>
           <span style={{ fontSize: 12, fontWeight: 600, color: t.textSecondary }}>{sel.size} selected</span>
+          <button onClick={() => setSel(new Set())} style={{ fontSize: 11, fontWeight: 700, padding: "4px 10px", borderRadius: 6, background: isDark ? "rgba(255,255,255,0.05)" : "#fff", color: t.textMuted, border: `1px solid ${t.surfaceBorder}`, cursor: "pointer", marginRight: 8 }}>Clear</button>
           <select value={bulkStatus} onChange={e => setBulkStatus(e.target.value)} style={{ fontSize: 12, padding: "4px 8px", borderRadius: 7, border: `1px solid ${t.surfaceBorder}`, background: t.searchBg, color: t.searchText, cursor: "pointer" }}>
             <option value="" disabled>Update status...</option>
             {paymentStatusOpts.filter(s => s !== "Missed" && s !== "Partial" && s !== "").map(s => <option key={s} value={s}>{s}</option>)}
@@ -1539,78 +1555,81 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
       </div>
     </div>
 
-    <div style={{ borderBottom: `1px solid ${t.surfaceBorder}`, marginBottom: 20, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-      <div style={{ display: "flex", gap: 24 }}>
+    <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 16, marginBottom: 28 }}>{statsData.map(s => <StatCard key={s.label} {...s} titleFont={t.titleFont} isDark={isDark} />)}</div>
+
+    {/* Tab & Filter Consolidation Row */}
+    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20, gap: 20 }}>
+      {/* Tabs */}
+      <div style={{ display: "flex", gap: 0, background: isDark ? "rgba(255,255,255,0.05)" : "#F3F4F6", padding: 4, borderRadius: 10, border: `1px solid ${t.surfaceBorder}` }}>
         {[
-          { key: "table", label: "Table View", icon: <TableIcon size={16} /> },
-          { key: "pivot", label: "Pivot View", icon: <LayoutPanelLeft size={16} /> },
+          { key: "table", label: "Table View", icon: <TableIcon size={14} /> },
+          { key: "pivot", label: "Pivot View", icon: <LayoutPanelLeft size={14} /> },
         ].map(({ key, label, icon }) => (
-          <div
+          <button
             key={key}
             onClick={() => setScheduleView(key)}
             style={{
-              padding: "10px 0",
-              fontSize: 13,
-              fontWeight: 600,
-              color: scheduleView === key ? t.text : t.textMuted,
-              cursor: "pointer",
-              position: "relative",
-              transition: "all 0.2s ease",
-              display: "flex",
-              alignItems: "center",
-              gap: 8
+              display: "flex", alignItems: "center", gap: 8, padding: "6px 16px", borderRadius: 8, border: "none", cursor: "pointer", fontSize: 13, fontWeight: 600,
+              background: scheduleView === key ? (isDark ? "#fff" : t.accent) : "transparent",
+              color: scheduleView === key ? (isDark ? "#000" : "#fff") : (isDark ? "rgba(255,255,255,0.6)" : "#6B7280"),
+              transition: "all 0.2s",
+              boxShadow: scheduleView === key ? "0 2px 4px rgba(0,0,0,0.1)" : "none"
             }}
           >
             {icon} {label}
-            {scheduleView === key && <div style={{ position: "absolute", bottom: -1, left: 0, right: 0, height: 2, background: t.accent }} />}
-          </div>
-        ))}
-      </div>
-
-      <div style={{ display: "flex", alignItems: "center", gap: 10, flex: 1, justifyContent: "center" }}>
-        <span style={{ fontSize: 11, fontWeight: 800, color: t.textMuted, textTransform: "uppercase", letterSpacing: 1 }}>Filter By</span>
-        {["All", "Interest", "Principal", "Fee"].map(f => (
-          <button
-            key={f}
-            onClick={() => setDistFilter(f)}
-            style={{
-              padding: "6px 14px",
-              borderRadius: 20,
-              fontSize: 12,
-              fontWeight: 700,
-              cursor: "pointer",
-              border: "none",
-              background: distFilter === f ? (t.accentGrad || t.accent) : (isDark ? "rgba(255,255,255,0.05)" : "#f3f4f6"),
-              color: distFilter === f ? "#fff" : t.textMuted,
-              transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
-              boxShadow: distFilter === f ? `0 4px 10px ${t.accentShadow}` : "none",
-              transform: distFilter === f ? "translateY(-1px)" : "none"
-            }}
-          >
-            {f}
           </button>
         ))}
       </div>
 
+      {/* Unified Filters */}
+      <div style={{ display: "flex", gap: 8, alignItems: "center", flex: 1, justifyContent: "center" }}>
+        <span style={{ fontSize: 12, fontWeight: 700, color: t.textMuted, marginRight: 8, textTransform: "uppercase", letterSpacing: "0.05em" }}>Filter By:</span>
+        {["All", "Interest", "Principal", "Fee", "Due", "Withdrawal", "Missed"].map(f => {
+          const isA = activeFilter === f;
+          return (
+            <span
+              key={f}
+              onClick={() => setActiveFilter(f)}
+              style={{
+                fontSize: 12, fontWeight: isA ? 600 : 500, padding: "5px 14px", borderRadius: 20, cursor: "pointer", transition: "all 0.2s",
+                background: isA ? t.accent : t.chipBg,
+                color: isA ? "#fff" : t.textSecondary,
+                border: `1px solid ${isA ? t.accent : t.chipBorder}`,
+                boxShadow: isA ? `0 2px 8px ${t.accent}40` : "none"
+              }}
+            >
+              {f}
+            </span>
+          );
+        })}
+      </div>
+
+      {/* Export Dropdown */}
       <div style={{ position: "relative" }} ref={exportMenuRef}>
         <button
           onClick={() => setShowExportMenu(!showExportMenu)}
-          style={{ background: t.accentGrad || t.accent, color: "#fff", border: "none", padding: "8px 16px", borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", gap: 8, boxShadow: `0 4px 12px ${t.accentShadow || "none"}` }}
+          style={{
+            display: "flex", alignItems: "center", gap: 8, padding: "8px 16px", borderRadius: 10, background: isDark ? "rgba(255,255,255,0.05)" : "#fff",
+            color: t.text, border: `1px solid ${t.surfaceBorder}`, cursor: "pointer", fontSize: 13, fontWeight: 600, transition: "all 0.2s"
+          }}
         >
-          <Download size={16} /> Export <ChevronDown size={14} />
+          <Download size={16} /> Export <ChevronDown size={14} style={{ transform: showExportMenu ? "rotate(180deg)" : "rotate(0)", transition: "0.2s" }} />
         </button>
         {showExportMenu && (
-          <div style={{ position: "absolute", top: "100%", right: 0, marginTop: 8, background: t.surface, border: `1px solid ${t.border}`, borderRadius: 12, boxShadow: "0 10px 25px rgba(0,0,0,0.2)", zIndex: 1000, overflow: "hidden", minWidth: 160, transform: "translateY(0)" }}>
+          <div style={{
+            position: "absolute", top: "110%", right: 0, zIndex: 100, width: 220, background: isDark ? "#1A1A1A" : "#fff",
+            border: `1px solid ${t.surfaceBorder}`, borderRadius: 12, boxShadow: "0 10px 25px rgba(0,0,0,0.2)", padding: "8px 0", overflow: "hidden"
+          }}>
+            <div style={{ padding: "8px 16px", fontSize: 11, fontWeight: 700, color: t.textMuted, textTransform: "uppercase" }}>Export Data</div>
             {[
-              { id: 'csv', label: 'CSV File (.csv)' },
-              { id: 'xlsx', label: 'Excel File (.xlsx)' },
+              { id: 'excel', label: 'Excel File (.xlsx)' },
               { id: 'pdf', label: 'PDF Report (.pdf)' },
-              { id: 'docx', label: 'Word Document (.docx)' }
+              { id: 'word', label: 'Word Document (.docx)' }
             ].map(opt => (
               <div
                 key={opt.id}
                 onClick={() => { handleExport(opt.id); setShowExportMenu(false); }}
-                style={{ padding: "12px 16px", fontSize: 13, fontWeight: 600, color: t.text, cursor: "pointer", transition: "all 0.2s" }}
+                style={{ padding: "12px 16px", fontSize: 13, fontWeight: 600, color: t.text, cursor: "pointer", transition: "all 0.2s", display: "flex", alignItems: "center", gap: 10 }}
                 onMouseEnter={e => e.target.style.background = isDark ? "rgba(255,255,255,0.05)" : "#f3f4f6"}
                 onMouseLeave={e => e.target.style.background = "transparent"}
               >
@@ -1621,11 +1640,7 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
         )}
       </div>
     </div>
-    <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 16, marginBottom: 28 }}>{statsData.map(s => <StatCard key={s.label} {...s} titleFont={t.titleFont} isDark={isDark} />)}</div>
-    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-      <div style={{ display: "flex", gap: 8, alignItems: "center" }}>{["All", "Due", "Paid", "Missed"].map(f => { const isA = chip === f; return <span key={f} className="filter-chip" onClick={() => setChip(f)} style={{ fontSize: 12, fontWeight: isA ? 600 : 500, padding: "5px 14px", borderRadius: 20, background: isA ? t.accent : t.chipBg, color: isA ? "#fff" : t.textSecondary, border: `1px solid ${isA ? t.accent : t.chipBorder}`, cursor: "pointer" }}>{f}</span>; })}
-        {sel.size > 0 && <><div style={{ width: 1, height: 18, background: t.surfaceBorder, marginLeft: 4 }} /><span onClick={() => setSel(new Set())} style={{ fontSize: 12, fontWeight: 500, padding: "5px 14px", borderRadius: 20, background: isDark ? "rgba(248,113,113,0.12)" : "#FEF2F2", color: isDark ? "#F87171" : "#DC2626", border: `1px solid ${isDark ? "rgba(248,113,113,0.25)" : "#FECACA"}`, cursor: "pointer" }}>Clear</span></>}
-      </div>
+    <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", marginBottom: 16 }}>
       <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
         <span style={{ fontSize: 12, color: t.textMuted, fontWeight: 500 }}>Show Version History</span>
         <div onClick={() => setShowHistory(!showHistory)} style={{ width: 34, height: 18, borderRadius: 20, background: showHistory ? t.accent : (isDark ? "rgba(255,255,255,0.1)" : "#E5E7EB"), position: "relative", cursor: "pointer", transition: "all 0.2s" }}>
