@@ -26,7 +26,7 @@ export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [
   const drillContact = useMemo(() => {
     if (!drillInvestment) return null;
     const pId = drillInvestment.contact_id || "";
-    return CONTACTS.find(c => c.id === pId || c.docId === pId) || { name: drillInvestment.contact, id: pId };
+    return CONTACTS.find(c => c.id === pId || c.docId === pId) || { name: drillInvestment.contact_name || drillInvestment.contact, id: pId };
   }, [drillInvestment, CONTACTS]);
 
   const sortedContacts = useMemo(() => {
@@ -99,7 +99,9 @@ export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [
         source_of_funds: "New Principal",
         rollover_source_id: "",
         first_name: "",
-        last_name: ""
+        last_name: "",
+        contact_name: "",
+        contact_id: ""
       }
     });
   };
@@ -110,6 +112,8 @@ export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [
       mode: "edit",
       data: {
         ...r,
+        contact_name: r.contact_name || r.contact || "",
+        contact_id: r.contact_id || "",
         first_name: r.first_name || parts[0] || "",
         last_name: r.last_name || parts.slice(1).join(' ') || ""
       }
@@ -119,15 +123,15 @@ export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [
   async function handleSaveInvestment() {
     const d = modal.data;
     const dealObj = DEALS.find(p => p.name === d.deal);
-    const contactName = `${d.first_name || ""} ${d.last_name || ""}`.trim();
-    const contactObj = CONTACTS.find(p => p.name === contactName);
+    const contactName = d.contact_name || `${d.first_name || ""} ${d.last_name || ""}`.trim();
+    const contactObj = CONTACTS.find(p => p.id === d.contact_id || p.docId === d.contact_id || p.name === contactName);
     const payload = {
       deal_name: d.deal || "",
       deal_id: dealObj ? dealObj.id : (d.deal_id || ""),
       contact_name: contactName,
-      first_name: d.first_name || "",
-      last_name: d.last_name || "",
-      contact_id: contactObj ? contactObj.id : (d.contact_id || ""),
+      first_name: d.first_name || (contactObj?.name ? contactObj.name.split(' ')[0] : ""),
+      last_name: d.last_name || (contactObj?.name ? contactObj.name.split(' ').slice(1).join(' ') : ""),
+      contact_id: contactObj ? (contactObj.id || contactObj.docId) : (d.contact_id || ""),
       investment_type: d.type || "",
       amount: d.amount ? Number(String(d.amount).replace(/[^0-9.-]/g, "")) || null : null,
       interest_rate: d.rate ? Number(String(d.rate).replace(/[^0-9.-]/g, "")) || null : null,
@@ -581,6 +585,16 @@ export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [
   const setF = (k, v) => setModal(m => {
     const next = { ...m, data: { ...m.data, [k]: v } };
     
+    if (k === "contact_id") {
+      const c = CONTACTS.find(x => x.id === v || x.docId === v);
+      if (c) {
+        next.data.contact_name = c.name;
+        const parts = (c.name || "").split(' ');
+        next.data.first_name = parts[0] || "";
+        next.data.last_name = parts.slice(1).join(' ') || "";
+      }
+    }
+    
     // Logic for Source of Funds
     if (k === "source_of_funds") {
       if (v === "New Principal") {
@@ -634,7 +648,7 @@ export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [
   const investorNewTypeOpts = (DIMENSIONS.find(d => d.name === "InvestorInvestmentNewType") || {}).items || [];
   const borrowerNewTypeOpts = (DIMENSIONS.find(d => d.name === "BorrowerInvestmentNewType") || {}).items || [];
   const scheduleFrequencyOpts = (DIMENSIONS.find(d => d.name === "ScheduleFrequency" || d.name === "Schedule Frequency") || {}).items || ["Monthly", "Quarterly", "Semi-Annual", "Annual", "At Maturity"];
-  const selectedContact = CONTACTS.find(p => p.name === modal.data.contact);
+  const selectedContact = CONTACTS.find(p => p.id === modal.data.contact_id || p.docId === modal.data.contact_id || p.name === (modal.data.contact_name || modal.data.contact));
   const contactRole = selectedContact ? selectedContact.role : "";
   const getTypeOpts = () => {
     const isNew = modal.mode === "add";
@@ -786,9 +800,16 @@ export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [
         </div>
       )}
       <FF label="Deal name" t={t}><FSel value={modal.data.deal} onChange={e => setF("deal", e.target.value)} options={DEALS.map(p => p.name)} t={t} /></FF>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14 }}>
-        <FF label="First Name" t={t}><FIn value={modal.data.first_name} onChange={e => setF("first_name", e.target.value)} t={t} /></FF>
-        <FF label="Last Name" t={t}><FIn value={modal.data.last_name} onChange={e => setF("last_name", e.target.value)} t={t} /></FF>
+      <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 14 }}>
+        <FF label="Contact" t={t}>
+          <FSel 
+            value={modal.data.contact_id} 
+            onChange={e => setF("contact_id", e.target.value)} 
+            options={sortedContacts.map(c => ({ value: c.id || c.docId, label: c.name }))} 
+            t={t} 
+            placeholder="Select a contact..."
+          />
+        </FF>
         <FF label="Source of Funds" t={t}>
           <FSel 
             value={modal.data.source_of_funds} 
@@ -806,7 +827,7 @@ export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [
             onChange={e => setF("rollover_source_id", e.target.value)} 
             placeholder="Select investment to roll over..."
             options={INVESTMENTS
-              .filter(i => i.contact === modal.data.contact && i.rollover)
+              .filter(i => (i.contact_id === modal.data.contact_id || i.contact_name === modal.data.contact_name || i.contact === modal.data.contact_name) && i.rollover)
               .map(i => ({
                 value: i.id,
                 label: `${i.id} | ${i.deal} | ${fmtCurr(i.amount)}`
