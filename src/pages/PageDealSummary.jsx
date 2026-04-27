@@ -3330,8 +3330,16 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
           </select>
         </FF>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
-          <FF label="First Name" t={t}><FIn value={modal.data.first_name} onChange={e => setF("first_name", e.target.value)} t={t} /></FF>
-          <FF label="Last Name" t={t}><FIn value={modal.data.last_name} onChange={e => setF("last_name", e.target.value)} t={t} /></FF>
+          <FF label="First Name" t={t}>
+            <div style={{ fontSize: 13, color: modal.data.first_name ? t.text : t.textMuted, background: isDark ? "rgba(255,255,255,0.04)" : "#F5F4F1", border: `1px solid ${t.surfaceBorder}`, borderRadius: 9, padding: "10px 13px", minHeight: 41, display: 'flex', alignItems: 'center' }}>
+              {modal.data.first_name || "—"}
+            </div>
+          </FF>
+          <FF label="Last Name" t={t}>
+            <div style={{ fontSize: 13, color: modal.data.last_name ? t.text : t.textMuted, background: isDark ? "rgba(255,255,255,0.04)" : "#F5F4F1", border: `1px solid ${t.surfaceBorder}`, borderRadius: 9, padding: "10px 13px", minHeight: 41, display: 'flex', alignItems: 'center' }}>
+              {modal.data.last_name || "—"}
+            </div>
+          </FF>
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14 }}>
           <FF label="Type" t={t}><FSel value={modal.data.type} onChange={e => setF("type", e.target.value)} options={getTypeOpts()} t={t} /></FF>
