@@ -1,10 +1,14 @@
-import React, { useState, useMemo, useRef, useEffect } from "react";
 import TanStackTable from "../components/TanStackTable";
 import { getScheduleColumns } from "../components/ScheduleTanStackConfig";
+import * as XLSX from "xlsx";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
+import { Document, Packer, Paragraph, Table, TableRow, TableCell, WidthType, AlignmentType, HeadingLevel, TextRun } from "docx";
+import { Download, ChevronDown, Table as TableIcon, LayoutPanelLeft } from "lucide-react";
 
 import { db } from "../firebase";
 import { collection, doc, addDoc, updateDoc, deleteDoc, serverTimestamp } from "firebase/firestore";
-import { sortData, badge, initials, av, pmtCalculator_ACT360_30360, getFeeFrequencyString, normalizeDateAtNoon, mkId } from "../utils";
+import { sortData, badge, initials, av, pmtCalculator_ACT360_30360, getFeeFrequencyString, normalizeDateAtNoon, mkId, fmtCurr as fmtCurrency } from "../utils";
 import { StatCard, Bdg, Pagination, Modal, FF, FIn, FSel, DelModal, Tooltip } from "../components";
 import { InvestorSummaryModal } from "../components/InvestorSummaryModal";
 import { useAuth } from "../AuthContext";
@@ -41,6 +45,33 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
   const [drillInvestment, setDrillInvestment] = useState(null);
   const [drillFee, setDrillFee] = useState(null);
   const [detailContact, setDetailContact] = useState(null);
+
+  const [scheduleView, setScheduleView] = useState("table"); // "table" or "pivot"
+  const [distFilter, setDistFilter] = useState("All");
+  const [showExportMenu, setShowExportMenu] = useState(false);
+  const exportMenuRef = useRef(null);
+  const [pivotColWidths, setPivotColWidths] = useState([180, 130, 100, 100, 80, 70, 100, 120]); // Name, Type, Start, End, Freq, Rate, Schedule, Method
+  const [pivotDateWidth, setPivotDateWidth] = useState(120);
+  const [pivotFilters, setPivotFilters] = useState({
+    investor: "",
+    type: "",
+    startDate: "",
+    endDate: "",
+    freq: "",
+    rate: "",
+    schedule: "",
+    paymentMethod: ""
+  });
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (exportMenuRef.current && !exportMenuRef.current.contains(e.target)) {
+        setShowExportMenu(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [exportMenuRef]);
 
   const handleUpdateInvestment = async (inv) => {
     if (!inv.id) return;
@@ -102,6 +133,198 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
       return da - db;
     });
   };
+
+  const handleExport = (format) => {
+    const isPivot = scheduleView === "pivot";
+    let data = [];
+    let headers = [];
+    let title = `PaymentSchedule_${isPivot ? "Pivot" : "Table"}_${new Date().toISOString().split('T')[0]}`;
+
+    if (isPivot) {
+      headers = ["Investor Name", "Type", "Start Date", "Payment Date", "Freq", "Rate", "Schedule", "Payment Method", ...pivotData.dates, "Total"];
+      data = filteredPivotRows.map(row => {
+        let rowTotal = 0;
+        const rowData = [
+          row.investor,
+          (row.type || "").replace(/_/g, ' '),
+          row.startDate,
+          row.endDate,
+          row.freq,
+          (row.rate || 0) + "%",
+          row.scheduleId,
+          row.paymentMethod
+        ];
+        pivotData.dates.forEach(date => {
+          const val = pivotData.data[`${row.key}|||${date}`]?.amount || 0;
+          rowTotal += val;
+          rowData.push(fmtCurrency(val));
+        });
+        rowData.push(fmtCurrency(rowTotal));
+        return rowData;
+      });
+    } else {
+      headers = ["Investor Name", "Deal Name", "Start Date", "Payment Date", "Type", "Freq", "Amount", "Status", "Notes"];
+      data = rowData.map(s => {
+        const contact = CONTACTS.find(x => x.id === s.contact_id);
+        const dealObj = DEALS.find(x => x.id === s.deal_id);
+        const inv = INVESTMENTS.find(x => x.id === s.investment_id || x.id === s.investment);
+        const investorName = contact ? contact.name : (s.contact_name || s.investor || "—");
+        const dealName = dealObj ? (dealObj.deal_name || dealObj.name) : (s.deal_id || "—");
+        const type = (s.payment_type || s.type || "").replace(/_/g, ' ');
+        const isPrincipalPayment = type.toLowerCase() === "investor principal payment";
+        const startDate = isPrincipalPayment ? (s.dueDate || s.due_date || "—") : (() => {
+          const val = s.term_start || "—";
+          const start = inv?.start_date;
+          return (start && val !== "—" && val < start) ? start : val;
+        })();
+        const paymentDate = (() => {
+          const val = s.dueDate || s.due_date || "—";
+          const end = inv?.maturity_date;
+          return (end && val !== "—" && val > end) ? end : val;
+        })();
+        const freq = s.frequency || inv?.freq || inv?.payment_frequency || s.freq || "—";
+        return [
+          investorName,
+          dealName,
+          startDate,
+          paymentDate,
+          type,
+          freq,
+          fmtCurrency(s.signed_payment_amount || 0),
+          s.status || "—",
+          s.notes || "—"
+        ];
+      });
+    }
+
+    if (format === 'csv') {
+      const csvContent = [headers, ...data].map(e => e.map(f => `"${String(f || "").replace(/"/g, '""')}"`).join(",")).join("\n");
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.setAttribute("download", `${title}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } else if (format === 'xlsx') {
+      const ws = XLSX.utils.aoa_to_sheet([headers, ...data]);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Schedules");
+      XLSX.writeFile(wb, `${title}.xlsx`);
+    } else if (format === 'pdf') {
+      const doc = new jsPDF('l', 'mm', 'a4');
+      doc.setFontSize(16);
+      doc.text(`Payment Schedule (${isPivot ? "Pivot" : "Table"})`, 14, 15);
+      doc.setFontSize(10);
+      autoTable(doc, {
+        head: [headers],
+        body: data,
+        startY: 22,
+        styles: { fontSize: 8, cellPadding: 2 },
+        headStyles: { fillColor: [79, 70, 229], textColor: 255 },
+        margin: { top: 20 }
+      });
+      doc.save(`${title}.pdf`);
+    } else if (format === 'docx') {
+      const tableRows = data.map(rowData => new TableRow({
+        children: rowData.map(cell => new TableCell({
+          children: [new Paragraph({ children: [new TextRun({ text: String(cell || ""), size: 16 })] })],
+          width: { size: 100 / headers.length, type: WidthType.PERCENTAGE }
+        }))
+      }));
+
+      const headerRow = new TableRow({
+        children: headers.map(h => new TableCell({
+          children: [new Paragraph({ children: [new TextRun({ text: h, bold: true, size: 18, color: "FFFFFF" })], alignment: AlignmentType.CENTER })],
+          shading: { fill: "4F46E5" },
+          width: { size: 100 / headers.length, type: WidthType.PERCENTAGE }
+        }))
+      });
+
+      const docObj = new Document({
+        sections: [{
+          properties: { page: { size: { orientation: "landscape" } } },
+          children: [
+            new Paragraph({ text: `Payment Schedule`, heading: HeadingLevel.HEADING_1, spacing: { after: 200 } }),
+            new Table({
+              width: { size: 100, type: WidthType.PERCENTAGE },
+              rows: [headerRow, ...tableRows]
+            })
+          ]
+        }]
+      });
+
+      Packer.toBlob(docObj).then(blob => {
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.setAttribute("download", `${title}.docx`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      });
+    }
+  };
+
+  const pivotOffsets = useMemo(() => {
+    const offsets = [0];
+    let current = 0;
+    for (let i = 0; i < pivotColWidths.length - 1; i++) {
+      current += pivotColWidths[i];
+      offsets.push(current);
+    }
+    return offsets;
+  }, [pivotColWidths]);
+
+  const handleResize = (index, e) => {
+    e.preventDefault();
+    const startX = e.pageX;
+    const startWidth = pivotColWidths[index];
+
+    const onMouseMove = (moveEvent) => {
+      const newWidth = Math.max(50, startWidth + (moveEvent.pageX - startX));
+      setPivotColWidths(prev => {
+        const next = [...prev];
+        next[index] = newWidth;
+        return next;
+      });
+    };
+
+    const onMouseUp = () => {
+      document.removeEventListener('mousemove', onMouseMove);
+      document.removeEventListener('mouseup', onMouseUp);
+      document.body.style.cursor = 'default';
+      document.body.style.userSelect = 'auto';
+    };
+
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+    document.addEventListener('mousemove', onMouseMove);
+    document.addEventListener('mouseup', onMouseUp);
+  };
+
+  const handleDateResize = (e) => {
+    e.preventDefault();
+    const startX = e.pageX;
+    const startWidth = pivotDateWidth;
+
+    const onMouseMove = (moveEvent) => {
+      const newWidth = Math.max(60, startWidth + (moveEvent.pageX - startX));
+      setPivotDateWidth(newWidth);
+    };
+
+    const onMouseUp = () => {
+      document.removeEventListener('mousemove', onMouseMove);
+      document.removeEventListener('mouseup', onMouseUp);
+      document.body.style.cursor = 'default';
+      document.body.style.userSelect = 'auto';
+    };
+
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+    document.addEventListener('mousemove', onMouseMove);
+    document.addEventListener('mouseup', onMouseUp);
+  };
+
   const hasLink = (s) => s.linked || SCHEDULES.some(x => x.linked === s.schedule_id);
   const [sort, setSort] = useState({ key: "dueDate", direction: "asc" });
   const [page, setPage] = useState(1);
@@ -1058,7 +1281,19 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
       // If history is OFF, only show active versions
       if (!showHistory && s.active_version === false) return false;
       // Status chip filter
+      // Status chip filter
       if (chip !== "All" && s.status !== chip) return false;
+
+      // Type Filter (Distribution logic)
+      const ty = (s.payment_type || s.type || "").toLowerCase();
+      if (distFilter === "Interest") {
+        if (!(ty.includes("interest") || ty.includes("distribution") || (ty.includes("payment") && !ty.includes("principal")))) return false;
+      } else if (distFilter === "Principal") {
+        if (!(ty.includes("principal") || ty.includes("deposit") || ty.includes("received") || ty.includes("disbursement"))) return false;
+      } else if (distFilter === "Fee") {
+        if (!(ty.includes("fee") || s.fee_id || s.feeId)) return false;
+      }
+      
       return true;
     });
 
@@ -1088,7 +1323,128 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
     }
 
     return filtered;
-  }, [SCHEDULES, showHistory, chip]);
+  }, [SCHEDULES, showHistory, chip, distFilter]);
+
+  // Pivot data for distribution chart view
+  const pivotData = useMemo(() => {
+    if (!rowData.length) return { rows: [], dates: [], data: {} };
+
+    // Get unique investor+type combinations, dates, and data
+    const rowSet = new Set();
+    const dateSet = new Set();
+    const dataMap = {};
+    const rowMetadata = {};
+
+    // Helper function to parse currency string like "$8,000.00"
+    const parseCurrency = (value) => {
+      if (value === undefined || value === null || value === "") return 0;
+      if (typeof value === 'number') return value;
+      const cleaned = String(value).replace(/[$,\s]/g, '');
+      const parsed = parseFloat(cleaned);
+      return isNaN(parsed) ? 0 : parsed;
+    };
+
+    rowData.forEach(schedule => {
+      const investor = CONTACTS.find(c => c.id === schedule.contact_id);
+      const investorName = investor ? investor.name : schedule.contact_id || "Unknown";
+
+      const inv = INVESTMENTS.find(iv => iv.id === (schedule.investment_id || schedule.investment));
+      const invStart = inv?.start_date || "";
+      const invEnd = inv?.maturity_date || "";
+
+      let rawDueDate = schedule.dueDate || schedule.due_date || "No Date";
+      if (invEnd && rawDueDate !== "No Date" && rawDueDate > invEnd) rawDueDate = invEnd;
+      const dueDate = rawDueDate;
+      let paymentType = schedule.type || schedule.payment_type || "Unknown Type";
+      const hasFeeRef = schedule.fee_id || schedule.feeId || schedule.fee_name || schedule.feeName;
+      if (hasFeeRef) {
+        const fId = (schedule.fee_id || schedule.feeId || "");
+        const fee = fId ? (FEES_DATA.find(f => f.id === fId) || FEES_DATA.find(f => f.docId === fId)) : null;
+        let resolvedName = (schedule.fee_name || schedule.feeName || "").trim();
+        if (!resolvedName && fee) resolvedName = fee.name;
+        if (resolvedName) paymentType = resolvedName;
+      }
+
+      let amount = parseCurrency(schedule.signed_payment_amount || schedule.signedPaymentAmount || schedule.amount || schedule.payment_amount);
+
+      const scheduleId = schedule.investment_id || schedule.investment || "—";
+      const rowKey = `${investorName}|||${paymentType}|||${scheduleId}`;
+      rowSet.add(rowKey);
+      dateSet.add(dueDate);
+
+      if (!rowMetadata[rowKey]) {
+        rowMetadata[rowKey] = {
+          startDate: inv?.start_date || "—",
+          endDate: inv?.maturity_date || "—",
+          freq: inv?.freq || "—",
+          rate: (inv?.rate || schedule?.rate || "—"),
+          paymentMethod: inv?.payment_method || investor?.payment_method || "—",
+          scheduleId: scheduleId
+        };
+      }
+
+      const cellKey = `${rowKey}|||${dueDate}`;
+      if (!dataMap[cellKey]) dataMap[cellKey] = { amount: 0, records: [] };
+      dataMap[cellKey].amount += amount;
+      
+      let termStart = schedule.term_start || "—";
+      if (invStart && termStart !== "—" && termStart < invStart) termStart = invStart;
+
+      let finalTermStart = termStart;
+      const typeStr = (paymentType || "").toString().toLowerCase().replace(/_/g, " ");
+      if (typeStr === "investor principal payment") finalTermStart = dueDate;
+
+      dataMap[cellKey].records.push({
+        ...schedule,
+        startDate: finalTermStart,
+        rate: rowMetadata[rowKey].rate,
+        freq: rowMetadata[rowKey].freq
+      });
+    });
+
+    const rows = Array.from(rowSet).map(key => {
+      const parts = key.split('|||');
+      const investor = parts[0];
+      const type = parts[1];
+      return {
+        investor,
+        type,
+        key,
+        ...rowMetadata[key]
+      };
+    }).sort((a, b) => {
+      if (a.investor !== b.investor) return a.investor.localeCompare(b.investor);
+      return a.type.localeCompare(b.type);
+    });
+
+    const dates = Array.from(dateSet).sort();
+    return { rows, dates, data: dataMap };
+  }, [rowData, CONTACTS, INVESTMENTS, FEES_DATA]);
+
+  const filteredPivotRows = useMemo(() => {
+    const filtered = pivotData.rows.filter(row => {
+      const matchInvestor = !pivotFilters.investor || row.investor?.toLowerCase().includes(pivotFilters.investor.toLowerCase());
+      const matchType = !pivotFilters.type || row.type?.replace(/_/g, ' ').toLowerCase().includes(pivotFilters.type.replace(/_/g, ' ').toLowerCase());
+      const matchStart = !pivotFilters.startDate || row.startDate?.toLowerCase().includes(pivotFilters.startDate.toLowerCase());
+      const matchEnd = !pivotFilters.endDate || row.endDate?.toLowerCase().includes(pivotFilters.endDate.toLowerCase());
+      const matchFreq = !pivotFilters.freq || row.freq?.toLowerCase().includes(pivotFilters.freq.toLowerCase());
+      const matchRate = !pivotFilters.rate || String(row.rate)?.toLowerCase().includes(pivotFilters.rate.toLowerCase());
+      const matchSchedule = !pivotFilters.schedule || row.scheduleId?.toLowerCase().includes(pivotFilters.schedule.toLowerCase());
+      const matchMethod = !pivotFilters.paymentMethod || row.paymentMethod?.toLowerCase().includes(pivotFilters.paymentMethod.toLowerCase());
+
+      return matchInvestor && matchType && matchStart && matchEnd && matchFreq && matchRate && matchSchedule && matchMethod;
+    });
+
+    let currentInv = null;
+    let currentIdx = -1;
+    return filtered.map(r => {
+      if (r.investor !== currentInv) {
+        currentInv = r.investor;
+        currentIdx++;
+      }
+      return { ...r, groupIndex: currentIdx };
+    });
+  }, [pivotData.rows, pivotFilters]);
 
   // Column definitions
   const permissions = { canUpdate, canDelete };
@@ -1140,8 +1496,20 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
   }, [permissions, isDark, t, context]);
 
   const statsBaseData = useMemo(() => {
-    return SCHEDULES.filter(s => showHistory || s.active_version !== false);
-  }, [SCHEDULES, showHistory]);
+    return SCHEDULES.filter(s => {
+      if (!showHistory && s.active_version === false) return false;
+      
+      const ty = (s.payment_type || s.type || "").toLowerCase();
+      if (distFilter === "Interest") {
+        if (!(ty.includes("interest") || ty.includes("distribution") || (ty.includes("payment") && !ty.includes("principal")))) return false;
+      } else if (distFilter === "Principal") {
+        if (!(ty.includes("principal") || ty.includes("deposit") || ty.includes("received") || ty.includes("disbursement"))) return false;
+      } else if (distFilter === "Fee") {
+        if (!(ty.includes("fee") || s.fee_id || s.feeId)) return false;
+      }
+      return true;
+    });
+  }, [SCHEDULES, showHistory, distFilter]);
 
   const statsData = [
     { label: "Total", value: statsBaseData.length, accent: isDark ? "#60A5FA" : "#3B82F6", bg: isDark ? "rgba(96,165,250,0.08)" : "#EFF6FF", border: isDark ? "rgba(96,165,250,0.15)" : "#BFDBFE" },
@@ -1150,7 +1518,11 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
     { label: "Missed", value: statsBaseData.filter(s => s.status === "Missed").length, accent: isDark ? "#F87171" : "#DC2626", bg: isDark ? "rgba(248,113,113,0.08)" : "#FEF2F2", border: isDark ? "rgba(248,113,113,0.15)" : "#FECACA" }
   ];
   return (<>
-    <div style={{ marginBottom: 28, display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}><div><h1 style={{ fontFamily: t.titleFont, fontWeight: t.titleWeight, fontSize: t.titleSize, color: isDark ? "#fff" : "#1C1917", letterSpacing: t.titleTracking, lineHeight: 1, marginBottom: 6 }}>Payment Schedule</h1><p style={{ fontSize: 13.5, color: t.textMuted }}>Manage payment schedules and statuses</p></div>
+    <div style={{ marginBottom: 28, display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
+      <div>
+        <h1 style={{ fontFamily: t.titleFont, fontWeight: t.titleWeight, fontSize: t.titleSize, color: isDark ? "#fff" : "#1C1917", letterSpacing: t.titleTracking, lineHeight: 1, marginBottom: 6 }}>Payment Schedule</h1>
+        <p style={{ fontSize: 13.5, color: t.textMuted }}>Manage payment schedules and statuses</p>
+      </div>
       <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
         {sel.size > 0 && <div style={{ display: "flex", gap: 8, alignItems: "center", background: isDark ? "rgba(255,255,255,0.04)" : "#F9FAFB", padding: "8px 14px", borderRadius: 10, border: `1px solid ${t.surfaceBorder}` }}>
           <span style={{ fontSize: 12, fontWeight: 600, color: t.textSecondary }}>{sel.size} selected</span>
@@ -1165,6 +1537,89 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
         {canCreate && <Tooltip text="Add a manual payment schedule entry" t={t}><button className="primary-btn" onClick={openAdd} style={{ background: t.accentGrad, color: "#fff", padding: "11px 22px", borderRadius: 11, fontSize: 13.5, fontWeight: 600, boxShadow: `0 4px 16px ${t.accentShadow}`, display: "flex", alignItems: "center", gap: 7 }}><span style={{ fontSize: 18, lineHeight: 1 }}>+</span> New Schedule</button></Tooltip>}
       </div>
     </div>
+
+    <div style={{ borderBottom: `1px solid ${t.surfaceBorder}`, marginBottom: 20, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+      <div style={{ display: "flex", gap: 24 }}>
+        {[
+          { key: "table", label: "Table View", icon: <TableIcon size={16} /> },
+          { key: "pivot", label: "Pivot View", icon: <LayoutPanelLeft size={16} /> },
+        ].map(({ key, label, icon }) => (
+          <div
+            key={key}
+            onClick={() => setScheduleView(key)}
+            style={{
+              padding: "10px 0",
+              fontSize: 13,
+              fontWeight: 600,
+              color: scheduleView === key ? t.text : t.textMuted,
+              cursor: "pointer",
+              position: "relative",
+              transition: "all 0.2s ease",
+              display: "flex",
+              alignItems: "center",
+              gap: 8
+            }}
+          >
+            {icon} {label}
+            {scheduleView === key && <div style={{ position: "absolute", bottom: -1, left: 0, right: 0, height: 2, background: t.accent }} />}
+          </div>
+        ))}
+      </div>
+
+      <div style={{ display: "flex", alignItems: "center", gap: 10, flex: 1, justifyContent: "center" }}>
+        <span style={{ fontSize: 11, fontWeight: 800, color: t.textMuted, textTransform: "uppercase", letterSpacing: 1 }}>Filter By</span>
+        {["All", "Interest", "Principal", "Fee"].map(f => (
+          <button
+            key={f}
+            onClick={() => setDistFilter(f)}
+            style={{
+              padding: "6px 14px",
+              borderRadius: 20,
+              fontSize: 12,
+              fontWeight: 700,
+              cursor: "pointer",
+              border: "none",
+              background: distFilter === f ? (t.accentGrad || t.accent) : (isDark ? "rgba(255,255,255,0.05)" : "#f3f4f6"),
+              color: distFilter === f ? "#fff" : t.textMuted,
+              transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
+              boxShadow: distFilter === f ? `0 4px 10px ${t.accentShadow}` : "none",
+              transform: distFilter === f ? "translateY(-1px)" : "none"
+            }}
+          >
+            {f}
+          </button>
+        ))}
+      </div>
+
+      <div style={{ position: "relative" }} ref={exportMenuRef}>
+        <button
+          onClick={() => setShowExportMenu(!showExportMenu)}
+          style={{ background: t.accentGrad || t.accent, color: "#fff", border: "none", padding: "8px 16px", borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", gap: 8, boxShadow: `0 4px 12px ${t.accentShadow || "none"}` }}
+        >
+          <Download size={16} /> Export <ChevronDown size={14} />
+        </button>
+        {showExportMenu && (
+          <div style={{ position: "absolute", top: "100%", right: 0, marginTop: 8, background: t.surface, border: `1px solid ${t.border}`, borderRadius: 12, boxShadow: "0 10px 25px rgba(0,0,0,0.2)", zIndex: 1000, overflow: "hidden", minWidth: 160, transform: "translateY(0)" }}>
+            {[
+              { id: 'csv', label: 'CSV File (.csv)' },
+              { id: 'xlsx', label: 'Excel File (.xlsx)' },
+              { id: 'pdf', label: 'PDF Report (.pdf)' },
+              { id: 'docx', label: 'Word Document (.docx)' }
+            ].map(opt => (
+              <div
+                key={opt.id}
+                onClick={() => { handleExport(opt.id); setShowExportMenu(false); }}
+                style={{ padding: "12px 16px", fontSize: 13, fontWeight: 600, color: t.text, cursor: "pointer", transition: "all 0.2s" }}
+                onMouseEnter={e => e.target.style.background = isDark ? "rgba(255,255,255,0.05)" : "#f3f4f6"}
+                onMouseLeave={e => e.target.style.background = "transparent"}
+              >
+                {opt.label}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
     <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 16, marginBottom: 28 }}>{statsData.map(s => <StatCard key={s.label} {...s} titleFont={t.titleFont} isDark={isDark} />)}</div>
     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
       <div style={{ display: "flex", gap: 8, alignItems: "center" }}>{["All", "Due", "Paid", "Missed"].map(f => { const isA = chip === f; return <span key={f} className="filter-chip" onClick={() => setChip(f)} style={{ fontSize: 12, fontWeight: isA ? 600 : 500, padding: "5px 14px", borderRadius: 20, background: isA ? t.accent : t.chipBg, color: isA ? "#fff" : t.textSecondary, border: `1px solid ${isA ? t.accent : t.chipBorder}`, cursor: "pointer" }}>{f}</span>; })}
@@ -1177,29 +1632,495 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
         </div>
       </div>
     </div>
-    <div style={{ height: "calc(100vh - 430px)", width: "100%" }}>
-      <TanStackTable
-        data={rowData}
-        columns={columnDefs}
-        isDark={isDark}
-        t={t}
-        pageSize={pageSize}
-        initialSorting={[{ id: 'dueDate', desc: false }]}
-        rowStyle={(data) => {
-          if (data.active_version === false) {
-            return { 
-              opacity: 0.5, 
-              background: isDark ? 'rgba(255,255,255,0.01)' : '#F9F8F6',
-              fontStyle: 'italic'
-            };
-          }
-          return {};
-        }}
-        onSelectionChange={(selectedRows) => {
-          setSel(new Set(selectedRows.map(r => r.schedule_id)));
-        }}
-      />
-    </div>
+
+    {scheduleView === "table" ? (
+      <div style={{ height: "calc(100vh - 430px)", width: "100%" }}>
+        <TanStackTable
+          data={rowData}
+          columns={columnDefs}
+          isDark={isDark}
+          t={t}
+          pageSize={pageSize}
+          initialSorting={[{ id: 'dueDate', desc: false }]}
+          rowStyle={(data) => {
+            if (data.active_version === false) {
+              return { 
+                opacity: 0.5, 
+                background: isDark ? 'rgba(255,255,255,0.01)' : '#F9F8F6',
+                fontStyle: 'italic'
+              };
+            }
+            return {};
+          }}
+          onSelectionChange={(selectedRows) => {
+            setSel(new Set(selectedRows.map(r => r.schedule_id)));
+          }}
+        />
+      </div>
+    ) : (
+      <div style={{
+        background: isDark ? "rgba(255,255,255,0.03)" : "#fff",
+        border: `1px solid ${t.surfaceBorder}`,
+        borderRadius: 12,
+        padding: 24,
+        overflow: "auto",
+        maxHeight: "calc(100vh - 280px)",
+        position: "relative"
+      }}>
+        <h3 style={{ fontSize: 16, fontWeight: 700, color: t.text, marginBottom: 20 }}>
+          Payment Pivot Table
+        </h3>
+
+        {pivotData.rows.length > 0 ? (
+          <div style={{ overflow: "auto", maxHeight: "calc(100vh - 500px)", border: `1px solid ${t.surfaceBorder}`, borderRadius: 8, background: isDark ? "#121212" : "#fff" }}>
+            <table style={{
+              width: "max-content",
+              minWidth: "100%",
+              borderCollapse: "separate",
+              borderSpacing: 0,
+              fontSize: 12
+            }}>
+              <thead>
+                <tr style={{
+                  background: isDark ? "#262626" : "#F9FAFB",
+                }}>
+                  <th style={{
+                    padding: "10px 12px",
+                    textAlign: "left",
+                    fontWeight: 700,
+                    color: t.text,
+                    position: "sticky",
+                    left: pivotOffsets[0],
+                    top: 0,
+                    background: isDark ? "#262626" : "#F9FAFB",
+                    zIndex: 50,
+                    width: pivotColWidths[0],
+                    minWidth: pivotColWidths[0],
+                    maxWidth: pivotColWidths[0],
+                    borderBottom: `2px solid ${t.surfaceBorder}`,
+                    borderRight: `1px solid ${t.surfaceBorder}`,
+                  }}>
+                    <div style={{ marginBottom: 8 }}>Investor Name</div>
+                    <input
+                      type="text"
+                      placeholder="Filter..."
+                      value={pivotFilters.investor}
+                      onChange={(e) => setPivotFilters({ ...pivotFilters, investor: e.target.value })}
+                      style={{ width: "100%", fontSize: 10, padding: "4px 6px", borderRadius: 4, background: isDark ? "#1a1a1a" : "#fff", color: t.text, border: `1px solid ${t.surfaceBorder}` }}
+                    />
+                    <div onMouseDown={(e) => handleResize(0, e)} style={{ position: "absolute", right: -3, top: 0, bottom: 0, width: 6, cursor: "col-resize", zIndex: 60, transition: "background 0.2s" }} onMouseOver={(e) => e.target.style.background = t.accent} onMouseOut={(e) => e.target.style.background = "transparent"} />
+                  </th>
+                  <th style={{
+                    padding: "10px 12px",
+                    textAlign: "left",
+                    fontWeight: 700,
+                    color: t.text,
+                    position: "sticky",
+                    left: pivotOffsets[1],
+                    top: 0,
+                    background: isDark ? "#262626" : "#F9FAFB",
+                    zIndex: 50,
+                    width: pivotColWidths[1],
+                    minWidth: pivotColWidths[1],
+                    maxWidth: pivotColWidths[1],
+                    borderBottom: `2px solid ${t.surfaceBorder}`,
+                    borderRight: `1px solid ${t.surfaceBorder}`,
+                  }}>
+                    <div style={{ marginBottom: 8 }}>Type</div>
+                    <input
+                      type="text"
+                      placeholder="Filter..."
+                      value={pivotFilters.type}
+                      onChange={(e) => setPivotFilters({ ...pivotFilters, type: e.target.value })}
+                      style={{ width: "100%", fontSize: 10, padding: "4px 6px", borderRadius: 4, background: isDark ? "#1a1a1a" : "#fff", color: t.text, border: `1px solid ${t.surfaceBorder}` }}
+                    />
+                    <div onMouseDown={(e) => handleResize(1, e)} style={{ position: "absolute", right: -3, top: 0, bottom: 0, width: 6, cursor: "col-resize", zIndex: 60, transition: "background 0.2s" }} onMouseOver={(e) => e.target.style.background = t.accent} onMouseOut={(e) => e.target.style.background = "transparent"} />
+                  </th>
+                  <th style={{
+                    padding: "10px 12px",
+                    textAlign: "left",
+                    fontWeight: 700,
+                    color: t.text,
+                    position: "sticky",
+                    left: pivotOffsets[2],
+                    top: 0,
+                    background: isDark ? "#262626" : "#F9FAFB",
+                    zIndex: 50,
+                    width: pivotColWidths[2],
+                    minWidth: pivotColWidths[2],
+                    maxWidth: pivotColWidths[2],
+                    borderBottom: `2px solid ${t.surfaceBorder}`,
+                    borderRight: `1px solid ${t.surfaceBorder}`,
+                  }}>
+                    <div style={{ marginBottom: 8 }}>Start Date</div>
+                    <input
+                      type="text"
+                      placeholder="Filter..."
+                      value={pivotFilters.startDate}
+                      onChange={(e) => setPivotFilters({ ...pivotFilters, startDate: e.target.value })}
+                      style={{ width: "100%", fontSize: 10, padding: "4px 6px", borderRadius: 4, background: isDark ? "#1a1a1a" : "#fff", color: t.text, border: `1px solid ${t.surfaceBorder}` }}
+                    />
+                    <div onMouseDown={(e) => handleResize(2, e)} style={{ position: "absolute", right: -3, top: 0, bottom: 0, width: 6, cursor: "col-resize", zIndex: 60, transition: "background 0.2s" }} onMouseOver={(e) => e.target.style.background = t.accent} onMouseOut={(e) => e.target.style.background = "transparent"} />
+                  </th>
+                  <th style={{
+                    padding: "10px 12px",
+                    textAlign: "left",
+                    fontWeight: 700,
+                    color: t.text,
+                    position: "sticky",
+                    left: pivotOffsets[3],
+                    top: 0,
+                    background: isDark ? "#262626" : "#F9FAFB",
+                    zIndex: 50,
+                    width: pivotColWidths[3],
+                    minWidth: pivotColWidths[3],
+                    maxWidth: pivotColWidths[3],
+                    borderBottom: `2px solid ${t.surfaceBorder}`,
+                    borderRight: `1px solid ${t.surfaceBorder}`,
+                  }}>
+                    <div style={{ marginBottom: 8 }}>Maturity Date</div>
+                    <input
+                      type="text"
+                      placeholder="Filter..."
+                      value={pivotFilters.endDate}
+                      onChange={(e) => setPivotFilters({ ...pivotFilters, endDate: e.target.value })}
+                      style={{ width: "100%", fontSize: 10, padding: "4px 6px", borderRadius: 4, background: isDark ? "#1a1a1a" : "#fff", color: t.text, border: `1px solid ${t.surfaceBorder}` }}
+                    />
+                    <div onMouseDown={(e) => handleResize(3, e)} style={{ position: "absolute", right: -3, top: 0, bottom: 0, width: 6, cursor: "col-resize", zIndex: 60, transition: "background 0.2s" }} onMouseOver={(e) => e.target.style.background = t.accent} onMouseOut={(e) => e.target.style.background = "transparent"} />
+                  </th>
+                  <th style={{
+                    padding: "10px 12px",
+                    textAlign: "left",
+                    fontWeight: 700,
+                    color: t.text,
+                    position: "sticky",
+                    left: pivotOffsets[4],
+                    top: 0,
+                    background: isDark ? "#262626" : "#F9FAFB",
+                    zIndex: 50,
+                    width: pivotColWidths[4],
+                    minWidth: pivotColWidths[4],
+                    maxWidth: pivotColWidths[4],
+                    borderBottom: `2px solid ${t.surfaceBorder}`,
+                    borderRight: `1px solid ${t.surfaceBorder}`,
+                  }}>
+                    <div style={{ marginBottom: 8 }}>Freq</div>
+                    <input
+                      type="text"
+                      placeholder="Filter..."
+                      value={pivotFilters.freq}
+                      onChange={(e) => setPivotFilters({ ...pivotFilters, freq: e.target.value })}
+                      style={{ width: "100%", fontSize: 10, padding: "4px 6px", borderRadius: 4, background: isDark ? "#1a1a1a" : "#fff", color: t.text, border: `1px solid ${t.surfaceBorder}` }}
+                    />
+                    <div onMouseDown={(e) => handleResize(4, e)} style={{ position: "absolute", right: -3, top: 0, bottom: 0, width: 6, cursor: "col-resize", zIndex: 60, transition: "background 0.2s" }} onMouseOver={(e) => e.target.style.background = t.accent} onMouseOut={(e) => e.target.style.background = "transparent"} />
+                  </th>
+                  <th style={{
+                    padding: "10px 12px",
+                    textAlign: "left",
+                    fontWeight: 700,
+                    color: t.text,
+                    position: "sticky",
+                    left: pivotOffsets[5],
+                    top: 0,
+                    background: isDark ? "#262626" : "#F9FAFB",
+                    zIndex: 50,
+                    width: pivotColWidths[5],
+                    minWidth: pivotColWidths[5],
+                    maxWidth: pivotColWidths[5],
+                    borderBottom: `2px solid ${t.surfaceBorder}`,
+                    borderRight: `1px solid ${t.surfaceBorder}`,
+                  }}>
+                    <div style={{ marginBottom: 8 }}>Rate</div>
+                    <input
+                      type="text"
+                      placeholder="Filter..."
+                      value={pivotFilters.rate}
+                      onChange={(e) => setPivotFilters({ ...pivotFilters, rate: e.target.value })}
+                      style={{ width: "100%", fontSize: 10, padding: "4px 6px", borderRadius: 4, background: isDark ? "#1a1a1a" : "#fff", color: t.text, border: `1px solid ${t.surfaceBorder}` }}
+                    />
+                    <div onMouseDown={(e) => handleResize(5, e)} style={{ position: "absolute", right: -3, top: 0, bottom: 0, width: 6, cursor: "col-resize", zIndex: 60, transition: "background 0.2s" }} onMouseOver={(e) => e.target.style.background = t.accent} onMouseOut={(e) => e.target.style.background = "transparent"} />
+                  </th>
+                  <th style={{
+                    padding: "10px 12px",
+                    textAlign: "left",
+                    fontWeight: 700,
+                    color: t.text,
+                    position: "sticky",
+                    left: pivotOffsets[6],
+                    top: 0,
+                    background: isDark ? "#262626" : "#F9FAFB",
+                    zIndex: 50,
+                    width: pivotColWidths[6],
+                    minWidth: pivotColWidths[6],
+                    maxWidth: pivotColWidths[6],
+                    borderBottom: `2px solid ${t.surfaceBorder}`,
+                    borderRight: `1px solid ${t.surfaceBorder}`,
+                  }}>
+                    <div style={{ marginBottom: 8 }}>Schedule</div>
+                    <input
+                      type="text"
+                      placeholder="Filter..."
+                      value={pivotFilters.schedule}
+                      onChange={(e) => setPivotFilters({ ...pivotFilters, schedule: e.target.value })}
+                      style={{ width: "100%", fontSize: 10, padding: "4px 6px", borderRadius: 4, background: isDark ? "#1a1a1a" : "#fff", color: t.text, border: `1px solid ${t.surfaceBorder}` }}
+                    />
+                    <div onMouseDown={(e) => handleResize(6, e)} style={{ position: "absolute", right: -3, top: 0, bottom: 0, width: 6, cursor: "col-resize", zIndex: 60, transition: "background 0.2s" }} onMouseOver={(e) => e.target.style.background = t.accent} onMouseOut={(e) => e.target.style.background = "transparent"} />
+                  </th>
+                  <th style={{
+                    padding: "10px 12px",
+                    textAlign: "left",
+                    fontWeight: 700,
+                    color: t.text,
+                    position: "sticky",
+                    left: pivotOffsets[7],
+                    top: 0,
+                    background: isDark ? "#262626" : "#F9FAFB",
+                    zIndex: 50,
+                    width: pivotColWidths[7],
+                    minWidth: pivotColWidths[7],
+                    maxWidth: pivotColWidths[7],
+                    borderBottom: `2px solid ${t.surfaceBorder}`,
+                    borderRight: `2px solid ${t.surfaceBorder}`,
+                  }}>
+                    <div style={{ marginBottom: 8 }}>Method</div>
+                    <input
+                      type="text"
+                      placeholder="Filter..."
+                      value={pivotFilters.paymentMethod}
+                      onChange={(e) => setPivotFilters({ ...pivotFilters, paymentMethod: e.target.value })}
+                      style={{ width: "100%", fontSize: 10, padding: "4px 6px", borderRadius: 4, background: isDark ? "#1a1a1a" : "#fff", color: t.text, border: `1px solid ${t.surfaceBorder}` }}
+                    />
+                    <div onMouseDown={(e) => handleResize(7, e)} style={{ position: "absolute", right: -3, top: 0, bottom: 0, width: 6, cursor: "col-resize", zIndex: 60, transition: "background 0.2s" }} onMouseOver={(e) => e.target.style.background = t.accent} onMouseOut={(e) => e.target.style.background = "transparent"} />
+                  </th>
+
+                  {pivotData.dates.map((date, idx) => (
+                    <th key={date} style={{
+                      padding: "10px 12px",
+                      textAlign: "right",
+                      fontWeight: 700,
+                      color: t.text,
+                      background: isDark ? "#262626" : "#F9FAFB",
+                      borderBottom: `2px solid ${t.surfaceBorder}`,
+                      borderRight: `1px solid ${t.surfaceBorder}`,
+                      width: pivotDateWidth,
+                      minWidth: pivotDateWidth,
+                      maxWidth: pivotDateWidth,
+                      position: "sticky",
+                      top: 0,
+                      zIndex: 40
+                    }}>
+                      <div style={{ fontSize: 10, opacity: 0.7 }}>Payment Date</div>
+                      <div>{date}</div>
+                      {idx === pivotData.dates.length - 1 && (
+                        <div onMouseDown={handleDateResize} style={{ position: "absolute", right: -3, top: 0, bottom: 0, width: 6, cursor: "col-resize", zIndex: 60, transition: "background 0.2s" }} onMouseOver={(e) => e.target.style.background = t.accent} onMouseOut={(e) => e.target.style.background = "transparent"} />
+                      )}
+                    </th>
+                  ))}
+                  <th style={{
+                    padding: "10px 12px",
+                    textAlign: "right",
+                    fontWeight: 700,
+                    color: t.text,
+                    background: isDark ? "#262626" : "#F9FAFB",
+                    borderBottom: `2px solid ${t.surfaceBorder}`,
+                    width: 120,
+                    minWidth: 120,
+                    position: "sticky",
+                    top: 0,
+                    right: 0,
+                    zIndex: 50,
+                    boxShadow: "-2px 0 5px rgba(0,0,0,0.1)"
+                  }}>
+                    Total
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredPivotRows.map((row, idx) => {
+                  let rowTotal = 0;
+                  const isLastInGroup = idx === filteredPivotRows.length - 1 || filteredPivotRows[idx + 1].investor !== row.investor;
+
+                  return (
+                    <tr key={row.key} style={{
+                      background: isDark ? (idx % 2 === 0 ? "transparent" : "rgba(255,255,255,0.02)") : (idx % 2 === 0 ? "#fff" : "#F9FAFB"),
+                      transition: "background 0.2s"
+                    }}>
+                      <td style={{
+                        padding: "12px",
+                        fontWeight: 600,
+                        color: t.text,
+                        position: "sticky",
+                        left: pivotOffsets[0],
+                        background: isDark ? (idx % 2 === 0 ? "#121212" : "#1a1a1a") : (idx % 2 === 0 ? "#fff" : "#F9FAFB"),
+                        zIndex: 30,
+                        borderRight: `1px solid ${t.surfaceBorder}`,
+                        borderBottom: isLastInGroup ? `1.5px solid ${t.surfaceBorder}` : `1px solid ${t.surfaceBorder}`,
+                        width: pivotColWidths[0],
+                        minWidth: pivotColWidths[0],
+                        maxWidth: pivotColWidths[0],
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap"
+                      }}>
+                        {row.investor}
+                      </td>
+                      <td style={{
+                        padding: "12px",
+                        color: t.textSecondary,
+                        position: "sticky",
+                        left: pivotOffsets[1],
+                        background: isDark ? (idx % 2 === 0 ? "#121212" : "#1a1a1a") : (idx % 2 === 0 ? "#fff" : "#F9FAFB"),
+                        zIndex: 30,
+                        borderRight: `1px solid ${t.surfaceBorder}`,
+                        borderBottom: isLastInGroup ? `1.5px solid ${t.surfaceBorder}` : `1px solid ${t.surfaceBorder}`,
+                        width: pivotColWidths[1],
+                        minWidth: pivotColWidths[1],
+                        maxWidth: pivotColWidths[1],
+                        textTransform: "capitalize"
+                      }}>
+                        {row.type.replace(/_/g, ' ')}
+                      </td>
+                      <td style={{
+                        padding: "12px",
+                        color: t.textMuted,
+                        position: "sticky",
+                        left: pivotOffsets[2],
+                        background: isDark ? (idx % 2 === 0 ? "#121212" : "#1a1a1a") : (idx % 2 === 0 ? "#fff" : "#F9FAFB"),
+                        zIndex: 30,
+                        borderRight: `1px solid ${t.surfaceBorder}`,
+                        borderBottom: isLastInGroup ? `1.5px solid ${t.surfaceBorder}` : `1px solid ${t.surfaceBorder}`,
+                        width: pivotColWidths[2],
+                        minWidth: pivotColWidths[2],
+                        maxWidth: pivotColWidths[2]
+                      }}>
+                        {row.startDate}
+                      </td>
+                      <td style={{
+                        padding: "12px",
+                        color: t.textMuted,
+                        position: "sticky",
+                        left: pivotOffsets[3],
+                        background: isDark ? (idx % 2 === 0 ? "#121212" : "#1a1a1a") : (idx % 2 === 0 ? "#fff" : "#F9FAFB"),
+                        zIndex: 30,
+                        borderRight: `1px solid ${t.surfaceBorder}`,
+                        borderBottom: isLastInGroup ? `1.5px solid ${t.surfaceBorder}` : `1px solid ${t.surfaceBorder}`,
+                        width: pivotColWidths[3],
+                        minWidth: pivotColWidths[3],
+                        maxWidth: pivotColWidths[3]
+                      }}>
+                        {row.endDate}
+                      </td>
+                      <td style={{
+                        padding: "12px",
+                        color: t.textMuted,
+                        position: "sticky",
+                        left: pivotOffsets[4],
+                        background: isDark ? (idx % 2 === 0 ? "#121212" : "#1a1a1a") : (idx % 2 === 0 ? "#fff" : "#F9FAFB"),
+                        zIndex: 30,
+                        borderRight: `1px solid ${t.surfaceBorder}`,
+                        borderBottom: isLastInGroup ? `1.5px solid ${t.surfaceBorder}` : `1px solid ${t.surfaceBorder}`,
+                        width: pivotColWidths[4],
+                        minWidth: pivotColWidths[4],
+                        maxWidth: pivotColWidths[4]
+                      }}>
+                        {row.freq}
+                      </td>
+                      <td style={{
+                        padding: "12px",
+                        color: t.textMuted,
+                        position: "sticky",
+                        left: pivotOffsets[5],
+                        background: isDark ? (idx % 2 === 0 ? "#121212" : "#1a1a1a") : (idx % 2 === 0 ? "#fff" : "#F9FAFB"),
+                        zIndex: 30,
+                        borderRight: `1px solid ${t.surfaceBorder}`,
+                        borderBottom: isLastInGroup ? `1.5px solid ${t.surfaceBorder}` : `1px solid ${t.surfaceBorder}`,
+                        width: pivotColWidths[5],
+                        minWidth: pivotColWidths[5],
+                        maxWidth: pivotColWidths[5]
+                      }}>
+                        {row.rate}%
+                      </td>
+                      <td style={{
+                        padding: "12px",
+                        color: t.textMuted,
+                        position: "sticky",
+                        left: pivotOffsets[6],
+                        background: isDark ? (idx % 2 === 0 ? "#121212" : "#1a1a1a") : (idx % 2 === 0 ? "#fff" : "#F9FAFB"),
+                        zIndex: 30,
+                        borderRight: `1px solid ${t.surfaceBorder}`,
+                        borderBottom: isLastInGroup ? `1.5px solid ${t.surfaceBorder}` : `1px solid ${t.surfaceBorder}`,
+                        width: pivotColWidths[6],
+                        minWidth: pivotColWidths[6],
+                        maxWidth: pivotColWidths[6]
+                      }}>
+                        {row.scheduleId}
+                      </td>
+                      <td style={{
+                        padding: "12px",
+                        color: t.textMuted,
+                        position: "sticky",
+                        left: pivotOffsets[7],
+                        background: isDark ? (idx % 2 === 0 ? "#121212" : "#1a1a1a") : (idx % 2 === 0 ? "#fff" : "#F9FAFB"),
+                        zIndex: 30,
+                        borderRight: `2px solid ${t.surfaceBorder}`,
+                        borderBottom: isLastInGroup ? `1.5px solid ${t.surfaceBorder}` : `1px solid ${t.surfaceBorder}`,
+                        width: pivotColWidths[7],
+                        minWidth: pivotColWidths[7],
+                        maxWidth: pivotColWidths[7]
+                      }}>
+                        {row.paymentMethod}
+                      </td>
+
+                      {pivotData.dates.map(date => {
+                        const cell = pivotData.data[`${row.key}|||${date}`];
+                        const amount = cell?.amount || 0;
+                        rowTotal += amount;
+                        return (
+                          <td key={date} 
+                              onClick={() => cell?.records?.length > 0 && setDrillSchedule(cell.records[0])}
+                              style={{
+                            padding: "12px",
+                            textAlign: "right",
+                            color: amount === 0 ? t.textMuted : (amount < 0 ? "#ef4444" : (isDark ? "#34D399" : "#059669")),
+                            fontWeight: amount === 0 ? 400 : 700,
+                            fontFamily: t.mono,
+                            borderRight: `1px solid ${t.surfaceBorder}`,
+                            borderBottom: isLastInGroup ? `1.5px solid ${t.surfaceBorder}` : `1px solid ${t.surfaceBorder}`,
+                            cursor: cell?.records?.length > 0 ? "pointer" : "default",
+                            background: cell?.records?.length > 0 ? (isDark ? "rgba(96,165,250,0.05)" : "rgba(79,70,229,0.02)") : "transparent"
+                          }}>
+                            {amount === 0 ? "—" : fmtCurr(amount)}
+                          </td>
+                        );
+                      })}
+                      <td style={{
+                        padding: "12px",
+                        textAlign: "right",
+                        fontWeight: 800,
+                        color: rowTotal < 0 ? "#ef4444" : (isDark ? "#34D399" : "#059669"),
+                        fontFamily: t.mono,
+                        background: isDark ? "#1a1a1a" : "#F9FAFB",
+                        position: "sticky",
+                        right: 0,
+                        zIndex: 30,
+                        borderBottom: isLastInGroup ? `1.5px solid ${t.surfaceBorder}` : `1px solid ${t.surfaceBorder}`,
+                        boxShadow: "-2px 0 5px rgba(0,0,0,0.1)"
+                      }}>
+                        {fmtCurr(rowTotal)}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <div style={{ textAlign: "center", padding: "60px 0", color: t.textMuted }}>
+            No payment data available.
+          </div>
+        )}
+      </div>
+    )}
     <Modal open={modal.open} onClose={close} title={modal.mode === "add" ? "New Schedule Entry" : modal.mode === "add_late" ? "Replacement Payment Schedule" : modal.mode === "add_partial" ? "Partial Payment Schedule" : "Edit Schedule Entry"} onSave={handleSaveSchedule} width={620} t={t} isDark={isDark}>
       {(() => {
         const freeze = [...ZEROING_STATUSES, "Partial"].includes(modal.data.status);
