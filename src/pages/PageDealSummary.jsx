@@ -3306,6 +3306,29 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
           </div>
         )}
         <FF label="Deal name" t={t}><FSel value={modal.data.deal} onChange={e => setF("deal", e.target.value)} options={DEALS.map(p => p.name)} t={t} /></FF>
+        <FF label="Pick from Contacts" t={t}>
+          <select
+            value={modal.data.contact_id || ""}
+            onChange={e => {
+              const contact = CONTACTS.find(c => c.id === e.target.value || c.docId === e.target.value);
+              if (contact) {
+                const firstName = contact.first_name || (contact.name || "").split(" ")[0] || "";
+                const lastName = contact.last_name || (contact.name || "").split(" ").slice(1).join(" ") || "";
+                setModal(prev => ({ ...prev, data: { ...prev.data, contact_id: contact.id || contact.docId, first_name: firstName, last_name: lastName, payment_method: contact.payment_method || prev.data.payment_method } }));
+              } else {
+                setModal(prev => ({ ...prev, data: { ...prev.data, contact_id: "" } }));
+              }
+            }}
+            style={{ width: "100%", background: t.searchBg, border: `1px solid ${t.searchBorder}`, borderRadius: 9, padding: "10px 13px", color: t.searchText, fontSize: 13.5, fontFamily: "inherit", outline: "none", cursor: "pointer" }}
+          >
+            <option value="">— Select a contact —</option>
+            {sortedContacts.map(c => (
+              <option key={c.id || c.docId} value={c.id || c.docId}>
+                {c.name || [c.first_name, c.last_name].filter(Boolean).join(" ") || c.id}
+              </option>
+            ))}
+          </select>
+        </FF>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
           <FF label="First Name" t={t}><FIn value={modal.data.first_name} onChange={e => setF("first_name", e.target.value)} t={t} /></FF>
           <FF label="Last Name" t={t}><FIn value={modal.data.last_name} onChange={e => setF("last_name", e.target.value)} t={t} /></FF>
