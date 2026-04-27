@@ -1,3 +1,3 @@
-# AVG-Cashflow-Management
+
 # Automated DOM Verification
 Do not use automated DOM verification (e.g. browser subagents, puppeteer, etc.) unless explicitly requested by the user. Always ask the user before running any automated verification.
