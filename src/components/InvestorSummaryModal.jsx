@@ -120,6 +120,19 @@ export const InvestorSummaryModal = ({
       setTxSaving(false);
     }
   };
+
+  const handleUpdateStatus = async (row, newStatus) => {
+    if (!row?._path) { showToast("Cannot update: missing document path", "error"); return; }
+    try {
+      await updateDoc(doc(db, row._path), {
+        status: newStatus,
+        updated_at: serverTimestamp(),
+      });
+      showToast("Status updated", "success");
+    } catch (err) {
+      showToast("Failed to update status: " + err.message, "error");
+    }
+  };
   
   useEffect(() => {
     setViewMode(defaultView);
@@ -264,7 +277,13 @@ export const InvestorSummaryModal = ({
       const ty = (s.payment_type || s.type || "").toLowerCase();
       return ty.includes("interest") || ty.includes("distribution");
   });
-  const distributedAmount = distributions.reduce((sum, s) => sum + (Number(s.signed_payment_amount || s.payment_amount || String(s.amount || 0).replace(/[^0-9.-]/g,'')) || 0), 0);
+  const distributedAmount = distributions.reduce((sum, s) => {
+    const st = (s.status || s.PaymentStatus || "").trim();
+    if (st === "Paid" || st === "Partial") {
+      return sum + (Number(s.signed_payment_amount || s.payment_amount || String(s.amount || 0).replace(/[^0-9.-]/g,'')) || 0);
+    }
+    return sum;
+  }, 0);
   
   const tabs = ["Edit Investment", "Investment Documents", "Capital Transactions", "Distributions", "Notes", "Investment Changelog", "Investment Sharing"];
 
@@ -452,7 +471,12 @@ export const InvestorSummaryModal = ({
               <div style={{ height: 400 }}>
                 <TanStackTable
                   data={partySchedules}
-                  columns={getContactTransactionColumns(isDark, t, { DEALS, onEdit: (row) => setTxEditModal({ open: true, data: { ...row, status_edit: row.status, notes_edit: row.notes ?? "", payment_amount_edit: row.payment, due_date_edit: row.dueDate ?? "" } }) })}
+                  columns={getContactTransactionColumns(isDark, t, { 
+                    DEALS, 
+                    statusOptions: scheduleStatusOpts,
+                    onStatusChange: handleUpdateStatus,
+                    onEdit: (row) => setTxEditModal({ open: true, data: { ...row, status_edit: row.status, notes_edit: row.notes ?? "", payment_amount_edit: row.payment, due_date_edit: row.dueDate ?? "" } }) 
+                  })}
                   isDark={isDark}
                   t={t}
                   pageSize={50}
@@ -598,7 +622,13 @@ export const InvestorSummaryModal = ({
           if (distFilter === "Fee") return ty.includes("fee");
           return true;
         });
-        const filteredTotal = filteredDist.reduce((sum, s) => sum + (Number(s.signed_payment_amount || s.payment_amount || String(s.amount || 0).replace(/[^0-9.-]/g,'')) || 0), 0);
+        const filteredTotal = filteredDist.reduce((sum, s) => {
+          const st = (s.status || s.PaymentStatus || "").trim();
+          if (st === "Paid" || st === "Partial") {
+            return sum + (Number(s.signed_payment_amount || s.payment_amount || String(s.amount || 0).replace(/[^0-9.-]/g,'')) || 0);
+          }
+          return sum;
+        }, 0);
 
         return (
           <div>
@@ -635,7 +665,12 @@ export const InvestorSummaryModal = ({
               <div style={{ height: 400 }}>
                 <TanStackTable
                   data={filteredDist}
-                  columns={getContactTransactionColumns(isDark, t, { DEALS, onEdit: (row) => setTxEditModal({ open: true, data: { ...row, status_edit: row.status, notes_edit: row.notes ?? "", payment_amount_edit: row.payment, due_date_edit: row.dueDate ?? "" } }) })}
+                  columns={getContactTransactionColumns(isDark, t, { 
+                    DEALS, 
+                    statusOptions: scheduleStatusOpts,
+                    onStatusChange: handleUpdateStatus,
+                    onEdit: (row) => setTxEditModal({ open: true, data: { ...row, status_edit: row.status, notes_edit: row.notes ?? "", payment_amount_edit: row.payment, due_date_edit: row.dueDate ?? "" } }) 
+                  })}
                   isDark={isDark}
                   t={t}
                   pageSize={50}

@@ -76,9 +76,37 @@ export const getContactTransactionColumns = (isDark, t, context) => {
     {
       header: "Status",
       accessorKey: "status",
-      size: 110,
-      cell: ({ getValue }) => {
+      size: 130,
+      cell: ({ getValue, row }) => {
         const val = getValue();
+        const { onStatusChange, statusOptions = [] } = context;
+        
+        if (onStatusChange && statusOptions.length > 0) {
+          return (
+            <select
+              value={val || ""}
+              onChange={(e) => onStatusChange(row.original, e.target.value)}
+              style={{
+                width: '100%',
+                padding: '4px 8px',
+                borderRadius: '6px',
+                background: isDark ? 'rgba(255,255,255,0.05)' : '#F3F4F6',
+                border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : '#E5E7EB'}`,
+                color: isDark ? '#fff' : '#1C1917',
+                fontSize: '12px',
+                fontWeight: 600,
+                outline: 'none',
+                cursor: 'pointer'
+              }}
+            >
+              {!val && <option value="">Select Status</option>}
+              {statusOptions.map(opt => (
+                <option key={opt} value={opt}>{opt}</option>
+              ))}
+            </select>
+          );
+        }
+
         if (!val) return <span style={{ color: t.textMuted }}>—</span>;
         return <Bdg status={val} isDark={isDark} />;
       }
