@@ -89,7 +89,7 @@ export default function PageContacts({ t, isDark, CONTACTS = [], INVESTMENTS = [
   const handleSaveContact = async () => {
     const d = modal.data;
     const payload = {
-      contact_name: d.type === "Company" ? (d.company_name || "") : `${d.first_name || ""} ${d.last_name || ""}`.trim() || d.name || "",
+      contact_name: d.type === "Company" ? (d.company_name || "") : `${d.first_name || ""} ${d.last_name || ""}`.trim(),
       first_name: d.first_name || "",
       last_name: d.last_name || "",
       contact_type: d.type || "",
@@ -118,10 +118,7 @@ export default function PageContacts({ t, isDark, CONTACTS = [], INVESTMENTS = [
             if ((c.contact_type || c.type) === "Company") return false;
             const cFirst = (c.first_name || "").toLowerCase().trim();
             const cLast = (c.last_name || "").toLowerCase().trim();
-            if (!cFirst && !cLast && c.name) {
-              const parts = c.name.trim().toLowerCase().split(/\s+/);
-              return (parts[0] || "") === newFirst && (parts.slice(1).join(" ") || "") === newLast;
-            }
+            if (!cFirst && !cLast) return false;
             return cFirst === newFirst && cLast === newLast;
           });
           if (isDuplicate) {
@@ -172,7 +169,7 @@ export default function PageContacts({ t, isDark, CONTACTS = [], INVESTMENTS = [
   const handleUpdateContact = async (updatedData) => {
     const d = updatedData;
     const payload = {
-      contact_name: d.contact_type === "Company" || d.type === "Company" ? (d.company_name || "") : `${d.first_name || ""} ${d.last_name || ""}`.trim() || d.name || "",
+      contact_name: d.contact_type === "Company" || d.type === "Company" ? (d.company_name || "") : `${d.first_name || ""} ${d.last_name || ""}`.trim(),
       first_name: d.first_name || "",
       last_name: d.last_name || "",
       contact_type: d.contact_type || d.type || "",

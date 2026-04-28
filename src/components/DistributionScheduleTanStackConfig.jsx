@@ -39,9 +39,7 @@ export const getDistributionColumns = (isDark, t, CONTACTS, DEALS, INVESTMENTS =
     accessorFn: (row) => {
       const cid = row.contact_id || row.party_id || "";
       const c = (CONTACTS || []).find(x => x.id === cid || x.docId === cid || x.contact_id === cid);
-      if (c && c.first_name) return c.first_name;
-      if (c && c.name) return c.name.split(" ")[0];
-      return row.first_name || (row.contact ? row.contact.split(" ")[0] : "");
+      return (c && c.first_name) ? c.first_name : (row.first_name || "");
     },
     size: 110,
     cell: ({ getValue, row }) => {
@@ -62,9 +60,7 @@ export const getDistributionColumns = (isDark, t, CONTACTS, DEALS, INVESTMENTS =
     accessorFn: (row) => {
       const cid = row.contact_id || row.party_id || "";
       const c = (CONTACTS || []).find(x => x.id === cid || x.docId === cid || x.contact_id === cid);
-      if (c && c.last_name) return c.last_name;
-      if (c && c.name) return c.name.split(" ").slice(1).join(" ");
-      return row.last_name || (row.contact ? row.contact.split(" ").slice(1).join(" ") : "");
+      return (c && c.last_name) ? c.last_name : (row.last_name || "");
     },
     size: 110,
     cell: ({ getValue, row }) => {

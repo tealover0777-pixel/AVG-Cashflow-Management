@@ -119,7 +119,11 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
   }, [exportMenuRef]);
 
   const sortedContacts = useMemo(() => {
-    return [...CONTACTS].sort((a, b) => (a.name || "").localeCompare(b.name || ""));
+    return [...CONTACTS].sort((a, b) => {
+      const nameA = [a.first_name, a.last_name].filter(Boolean).join(" ");
+      const nameB = [b.first_name, b.last_name].filter(Boolean).join(" ");
+      return nameA.localeCompare(nameB);
+    });
   }, [CONTACTS]);
 
   // Distribution Memos
@@ -233,8 +237,8 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
         const dealObj = DEALS.find(x => x.id === s.deal_id);
         const inv = INVESTMENTS.find(x => x.id === s.investment_id || x.id === s.investment);
         
-        const firstName = contact?.first_name || (contact?.name || "").split(" ")[0] || s.first_name || (s.contact_name || "").split(" ")[0] || "—";
-        const lastName = contact?.last_name || (contact?.name || "").split(" ").slice(1).join(" ") || s.last_name || (s.contact_name || "").split(" ").slice(1).join(" ") || "—";
+        const firstName = contact?.first_name || s.first_name || "—";
+        const lastName = contact?.last_name || s.last_name || "—";
         const dealName = dealObj ? (dealObj.deal_name || dealObj.name) : (s.deal_id || "—");
         const type = (s.payment_type || s.type || "").replace(/_/g, ' ');
         const isPrincipalPayment = type.toLowerCase() === "investor principal payment";
@@ -540,12 +544,16 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
 
     filteredDealSchedules.forEach(schedule => {
 
-      const investor = CONTACTS.find(c => c.id === schedule.contact_id);
-      const investorName = investor ? investor.name : schedule.contact_id || "Unknown";
+      const investor = CONTACTS.find(c => c.id === schedule.contact_id || c.docId === schedule.contact_id);
+      const contactId = investor?.id || investor?.docId || schedule.contact_id || "unknown";
 
       const inv = INVESTMENTS.find(iv => iv.id === (schedule.investment_id || schedule.investment));
       const invStart = inv?.start_date || "";
       const invEnd = inv?.maturity_date || "";
+
+      const freq = inv?.freq || schedule?.freq || "—";
+      const rate = inv?.rate || schedule?.rate || "—";
+      const paymentMethod = inv?.payment_method || investor?.payment_method || "—";
 
       let rawDueDate = schedule.dueDate || schedule.due_date || "No Date";
       if (invEnd && rawDueDate !== "No Date" && rawDueDate > invEnd) rawDueDate = invEnd;
@@ -577,21 +585,28 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
         amount = parseCurrency(schedule.payment_amount);
       }
 
-      const scheduleId = schedule.investment_id || schedule.investment || "—";
-      const rowKey = `${investorName}|||${paymentType}|||${scheduleId}`;
+      // Key on contact+type+freq+rate+paymentMethod so same investor/investment combo merges into one row
+      const rowKey = `${contactId}|||${paymentType}|||${freq}|||${rate}|||${paymentMethod}`;
       rowSet.add(rowKey);
       dateSet.add(dueDate);
 
       if (!rowMetadata[rowKey]) {
+        const firstName = investor?.first_name || (investor?.name || "").split(" ")[0] || "";
+        const lastName = investor?.last_name || (investor?.name || "").split(" ").slice(1).join(" ") || "";
         rowMetadata[rowKey] = {
-          startDate: inv?.start_date || "—",
-          endDate: inv?.maturity_date || "—",
-          freq: inv?.freq || "—",
-          rate: (inv?.rate || schedule?.rate || "—"),
-          paymentMethod: inv?.payment_method || investor?.payment_method || "—",
-          scheduleId: scheduleId,
-          contactId: investor?.id || schedule.contact_id || null
+          firstName,
+          lastName,
+          startDate: invStart || "—",
+          endDate: invEnd || "—",
+          freq,
+          rate,
+          paymentMethod,
+          contactId
         };
+      } else {
+        const meta = rowMetadata[rowKey];
+        if (invStart && (meta.startDate === "—" || invStart < meta.startDate)) meta.startDate = invStart;
+        if (invEnd && (meta.endDate === "—" || invEnd > meta.endDate)) meta.endDate = invEnd;
       }
 
       const rowMeta = rowMetadata[rowKey];
@@ -617,20 +632,15 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
     });
 
     const rows = Array.from(rowSet).map(key => {
-      const parts = key.split('|||');
-      const investor = parts[0];
-      const type = parts[1];
-      const firstName = investor?.split(' ')[0] || '';
-      const lastName = investor?.split(' ').slice(1).join(' ') || '';
+      const meta = rowMetadata[key];
       return {
-        firstName,
-        lastName,
-        type,
+        firstName: meta.firstName,
+        lastName: meta.lastName,
+        type: key.split('|||')[1],
         key,
-        ...rowMetadata[key]
+        ...meta
       };
     }).sort((a, b) => {
-      // Sort by first name, then last name, then by type
       if (a.firstName !== b.firstName) return a.firstName.localeCompare(b.firstName);
       if (a.lastName !== b.lastName) return a.lastName.localeCompare(b.lastName);
       return a.type.localeCompare(b.type);
@@ -720,7 +730,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
   const borrowerNewTypeOpts = (DIMENSIONS.find(d => d.name === "BorrowerInvestmentNewType") || {}).items || [];
   const scheduleFrequencyOpts = (DIMENSIONS.find(d => d.name === "ScheduleFrequency" || d.name === "Schedule Frequency") || {}).items || ["Monthly", "Quarterly", "Semi-Annual", "Annual", "At Maturity"];
 
-  const selectedContact = CONTACTS.find(p => p.name === modal.data.contact);
+  const selectedContact = CONTACTS.find(p => p.id === modal.data.contact_id || p.docId === modal.data.contact_id);
   const contactRole = selectedContact ? selectedContact.role : "";
   const getTypeOpts = () => {
     const isLending = activeTab === "Lending";
@@ -889,10 +899,6 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
           if ((c.contact_type || c.type) === "Company") return false;
           const cFirst = (c.first_name || "").toLowerCase().trim();
           const cLast = (c.last_name || "").toLowerCase().trim();
-          if (!cFirst && !cLast && c.name) {
-            const parts = c.name.trim().toLowerCase().split(/\s+/);
-            return (parts[0] || "") === newFirst && (parts.slice(1).join(" ") || "") === newLast;
-          }
           return cFirst === newFirst && cLast === newLast;
         });
 
@@ -947,7 +953,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
         }
         contactId = contactModal.data.selectedContactId;
         const contact = CONTACTS.find(p => p.id === contactId || p.docId === contactId);
-        contactName = contact ? contact.name : contactId;
+        contactName = contact ? [contact.first_name, contact.last_name].filter(Boolean).join(" ") || contactId : contactId;
       }
 
       // Create $0 investment record
@@ -992,7 +998,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
     const d = modal.data;
     const dealObj = DEALS.find(p => p.name === d.deal);
     const contactName = `${d.first_name || ""} ${d.last_name || ""}`.trim();
-    const contactObj = CONTACTS.find(p => p.name === contactName);
+    const contactObj = CONTACTS.find(p => p.id === d.contact_id || p.docId === d.contact_id);
     const payload = {
       deal_name: d.deal || "",
       deal_id: dealObj ? dealObj.id : (d.deal_id || ""),
@@ -1859,7 +1865,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
     onEdit: openEdit,
     onDelete: setDelT,
     onContactClick: (r) => {
-      const cp = CONTACTS.find(x => x.name === r.contact || x.id === r.contact_id || x.docId === r.contact_id);
+      const cp = CONTACTS.find(x => x.id === r.contact_id || x.docId === r.contact_id);
       if (cp) setDetailContact({ data: cp, view: "simple" });
     },
     onClone: async (r) => {
@@ -3338,8 +3344,8 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
             onChange={e => {
               const contact = CONTACTS.find(c => c.id === e.target.value || c.docId === e.target.value);
               if (contact) {
-                const firstName = contact.first_name || (contact.name || "").split(" ")[0] || "";
-                const lastName = contact.last_name || (contact.name || "").split(" ").slice(1).join(" ") || "";
+                const firstName = contact.first_name || "";
+                const lastName = contact.last_name || "";
                 setModal(prev => ({ ...prev, data: { ...prev.data, contact_id: contact.id || contact.docId, first_name: firstName, last_name: lastName, payment_method: contact.payment_method || prev.data.payment_method } }));
               } else {
                 setModal(prev => ({ ...prev, data: { ...prev.data, contact_id: "" } }));
@@ -3350,7 +3356,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
             <option value="">— Select a contact —</option>
             {sortedContacts.map(c => (
               <option key={c.id || c.docId} value={c.id || c.docId}>
-                {c.name || [c.first_name, c.last_name].filter(Boolean).join(" ") || c.id}
+                {[c.first_name, c.last_name].filter(Boolean).join(" ") || c.id}
               </option>
             ))}
           </select>
@@ -3479,7 +3485,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
             >
               <option value="">Select an existing contact...</option>
               {sortedContacts.map(c => (
-                <option key={c.id} value={c.id}>{c.name} ({c.email || c.role || c.type || "Unknown"})</option>
+                <option key={c.id} value={c.id}>{[c.first_name, c.last_name].filter(Boolean).join(" ") || c.id} ({c.email || c.role || c.type || "Unknown"})</option>
               ))}
             </select>
           </FF>

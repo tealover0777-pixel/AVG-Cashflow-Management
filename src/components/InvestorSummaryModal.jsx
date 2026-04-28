@@ -49,6 +49,30 @@ export const InvestorSummaryModal = ({
   const [toast, setToast] = useState(null);
   const showToast = (msg, type = "info") => { setToast({ msg, type }); setTimeout(() => setToast(null), 4000); };
 
+  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+  const [isDraggingModal, setIsDraggingModal] = useState(false);
+  const dragOffsetRef = useRef({ x: 0, y: 0 });
+
+  const onHeaderMouseDown = React.useCallback((e) => {
+    if (e.button !== 0 || e.target.closest("button")) return;
+    e.preventDefault();
+    const startMx = e.clientX, startMy = e.clientY;
+    const startOx = dragOffsetRef.current.x, startOy = dragOffsetRef.current.y;
+    setIsDraggingModal(true);
+    const onMove = (e) => {
+      const next = { x: startOx + e.clientX - startMx, y: startOy + e.clientY - startMy };
+      dragOffsetRef.current = next;
+      setDragOffset(next);
+    };
+    const onUp = () => {
+      setIsDraggingModal(false);
+      document.removeEventListener("mousemove", onMove);
+      document.removeEventListener("mouseup", onUp);
+    };
+    document.addEventListener("mousemove", onMove);
+    document.addEventListener("mouseup", onUp);
+  }, []);
+
   const handleSaveTx = async () => {
     const s = txEditModal.data;
     if (!s?._path) { showToast("Cannot update: missing document path", "error"); return; }
@@ -82,15 +106,10 @@ export const InvestorSummaryModal = ({
     if (contact && contactId !== lastContactIdRef.current) {
       lastContactIdRef.current = contactId;
 
-      const fullName = contact.contact_name || contact.name || "";
-      const split = fullName.trim().split(/\s+/);
-      const firstNameFallback = split[0] || "";
-      const lastNameFallback = split.length > 1 ? split.slice(1).join(" ") : "";
-
       setEditData({
         ...contact,
-        first_name: contact.first_name || firstNameFallback,
-        last_name: contact.last_name || lastNameFallback,
+        first_name: contact.first_name || "",
+        last_name: contact.last_name || "",
         contact_type: contact.contact_type || contact.type || "Individual",
         role_type: contact.role_type || contact.role || "Investor",
         email: contact.email || "",
@@ -173,7 +192,7 @@ export const InvestorSummaryModal = ({
   const setED = (newVal) => {
     const next = { ...editData, ...newVal };
     if (newVal.hasOwnProperty('first_name') || newVal.hasOwnProperty('last_name')) {
-      next.contact_name = `${next.first_name || ""} ${next.last_name || ""}`.trim() || next.name || "";
+      next.contact_name = `${next.first_name || ""} ${next.last_name || ""}`.trim();
     }
     setEditData(next);
   };
@@ -277,7 +296,7 @@ export const InvestorSummaryModal = ({
         <div style={{ display: "flex", flexDirection: "column", gap: 24, maxWidth: 800 }}>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
             <FF label="First Name" t={t}>
-              {isEditing ? <FIn value={editData.first_name} onChange={e => setED({ first_name: e.target.value })} t={t} /> : <div style={{ padding: "12px 16px", background: isDark ? "rgba(255,255,255,0.03)" : "#fff", border: `1px solid ${t.surfaceBorder}`, borderRadius: 8, color: t.text, fontWeight: 500 }}>{showData.first_name || showData.contact_name || showData.name || "—"}</div>}
+              {isEditing ? <FIn value={editData.first_name} onChange={e => setED({ first_name: e.target.value })} t={t} /> : <div style={{ padding: "12px 16px", background: isDark ? "rgba(255,255,255,0.03)" : "#fff", border: `1px solid ${t.surfaceBorder}`, borderRadius: 8, color: t.text, fontWeight: 500 }}>{showData.first_name || "—"}</div>}
             </FF>
             <FF label="Last Name" t={t}>
               {isEditing ? <FIn value={editData.last_name} onChange={e => setED({ last_name: e.target.value })} t={t} /> : <div style={{ padding: "12px 16px", background: isDark ? "rgba(255,255,255,0.03)" : "#fff", border: `1px solid ${t.surfaceBorder}`, borderRadius: 8, color: t.text, fontWeight: 500 }}>{showData.last_name || "—"}</div>}
@@ -693,13 +712,13 @@ export const InvestorSummaryModal = ({
   return (
     <div style={{ position: "fixed", inset: 0, zIndex: 9999, background: "rgba(0,0,0,0.6)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center" }}>
       <div onClick={onClose} style={{ position: "absolute", inset: 0 }} />
-      <div style={{ position: "relative", background: isDark ? "#0F0F0F" : "#fff", borderRadius: 16, padding: 0, maxWidth: 1100, width: "95%", height: "90vh", display: "flex", flexDirection: "column", boxShadow: "0 24px 60px rgba(0,0,0,0.4)", border: `1px solid ${isDark ? "rgba(255,255,255,0.08)" : "#E5E7EB"}`, overflow: "hidden" }}>
-        
-        <div style={{ padding: "32px 40px 0 40px", flexShrink: 0 }}>
+      <div style={{ position: "relative", background: isDark ? "#0F0F0F" : "#fff", borderRadius: 16, padding: 0, maxWidth: 1100, width: "95%", height: "90vh", display: "flex", flexDirection: "column", boxShadow: "0 24px 60px rgba(0,0,0,0.4)", border: `1px solid ${isDark ? "rgba(255,255,255,0.08)" : "#E5E7EB"}`, overflow: "hidden", transform: `translate(${dragOffset.x}px, ${dragOffset.y}px)`, resize: "both", minWidth: 480, minHeight: 360 }}>
+
+        <div onMouseDown={onHeaderMouseDown} style={{ padding: "32px 40px 0 40px", flexShrink: 0, cursor: isDraggingModal ? "grabbing" : "grab", userSelect: "none" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 24 }}>
             <div>
               <div style={{ fontSize: 24, fontWeight: 700, color: isDark ? "#fff" : "#111827", marginBottom: 4 }}>
-                {showData.contact_name || showData.name || "—"}
+                {[showData.first_name, showData.last_name].filter(Boolean).join(" ") || "—"}
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 6 }}>

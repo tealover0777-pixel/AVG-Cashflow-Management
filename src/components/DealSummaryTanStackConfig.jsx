@@ -143,7 +143,7 @@ export const getDealInvestmentColumns = (permissions, isDark, t, context, viewTy
       id: "email",
       size: 180,
       accessorFn: (row) => {
-        const p = CONTACTS.find(x => x.name === row.contact || x.id === row.contact_id);
+        const p = CONTACTS.find(x => x.id === row.contact_id || x.docId === row.contact_id);
         return p?.email || "";
       },
       cell: ({ getValue }) => {
@@ -155,7 +155,7 @@ export const getDealInvestmentColumns = (permissions, isDark, t, context, viewTy
       id: "paymentMethod",
       size: 140,
       accessorFn: (row) => {
-        const p = CONTACTS.find(x => x.name === row.contact || x.id === row.contact_id);
+        const p = CONTACTS.find(x => x.id === row.contact_id || x.docId === row.contact_id);
         return row.payment_method || p?.payment_method || "";
       },
       cell: ({ getValue }) => {

@@ -30,7 +30,11 @@ export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [
   }, [drillInvestment, CONTACTS]);
 
   const sortedContacts = useMemo(() => {
-    return [...CONTACTS].sort((a, b) => (a.name || "").localeCompare(b.name || ""));
+    return [...CONTACTS].sort((a, b) => {
+      const nameA = [a.first_name, a.last_name].filter(Boolean).join(" ");
+      const nameB = [b.first_name, b.last_name].filter(Boolean).join(" ");
+      return nameA.localeCompare(nameB);
+    });
   }, [CONTACTS]);
 
   const handleUpdateInvestmentModal = async (updatedData) => {
@@ -106,16 +110,15 @@ export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [
     });
   };
   const openEdit = r => {
-    const parts = (r.contact_name || r.contact || "").split(' ');
     setModal({
       open: true,
       mode: "edit",
       data: {
         ...r,
-        contact_name: r.contact_name || r.contact || "",
+        contact_name: r.contact_name || "",
         contact_id: r.contact_id || "",
-        first_name: r.first_name || parts[0] || "",
-        last_name: r.last_name || parts.slice(1).join(' ') || ""
+        first_name: r.first_name || "",
+        last_name: r.last_name || ""
       }
     });
   };
@@ -123,14 +126,14 @@ export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [
   async function handleSaveInvestment() {
     const d = modal.data;
     const dealObj = DEALS.find(p => p.name === d.deal);
-    const contactName = d.contact_name || `${d.first_name || ""} ${d.last_name || ""}`.trim();
-    const contactObj = CONTACTS.find(p => p.id === d.contact_id || p.docId === d.contact_id || p.name === contactName);
+    const contactObj = CONTACTS.find(p => p.id === d.contact_id || p.docId === d.contact_id);
+    const contactName = `${d.first_name || ""} ${d.last_name || ""}`.trim();
     const payload = {
       deal_name: d.deal || "",
       deal_id: dealObj ? dealObj.id : (d.deal_id || ""),
       contact_name: contactName,
-      first_name: d.first_name || (contactObj?.name ? contactObj.name.split(' ')[0] : ""),
-      last_name: d.last_name || (contactObj?.name ? contactObj.name.split(' ').slice(1).join(' ') : ""),
+      first_name: d.first_name || "",
+      last_name: d.last_name || "",
       contact_id: contactObj ? (contactObj.id || contactObj.docId) : (d.contact_id || ""),
       investment_type: d.type || "",
       amount: d.amount ? Number(String(d.amount).replace(/[^0-9.-]/g, "")) || null : null,
@@ -588,10 +591,9 @@ export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [
     if (k === "contact_id") {
       const c = CONTACTS.find(x => x.id === v || x.docId === v);
       if (c) {
-        next.data.contact_name = c.name;
-        const parts = (c.name || "").split(' ');
-        next.data.first_name = parts[0] || "";
-        next.data.last_name = parts.slice(1).join(' ') || "";
+        next.data.first_name = c.first_name || "";
+        next.data.last_name = c.last_name || "";
+        next.data.contact_name = `${c.first_name || ""} ${c.last_name || ""}`.trim();
       }
     }
     
@@ -648,7 +650,7 @@ export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [
   const investorNewTypeOpts = (DIMENSIONS.find(d => d.name === "InvestorInvestmentNewType") || {}).items || [];
   const borrowerNewTypeOpts = (DIMENSIONS.find(d => d.name === "BorrowerInvestmentNewType") || {}).items || [];
   const scheduleFrequencyOpts = (DIMENSIONS.find(d => d.name === "ScheduleFrequency" || d.name === "Schedule Frequency") || {}).items || ["Monthly", "Quarterly", "Semi-Annual", "Annual", "At Maturity"];
-  const selectedContact = CONTACTS.find(p => p.id === modal.data.contact_id || p.docId === modal.data.contact_id || p.name === (modal.data.contact_name || modal.data.contact));
+  const selectedContact = CONTACTS.find(p => p.id === modal.data.contact_id || p.docId === modal.data.contact_id);
   const contactRole = selectedContact ? selectedContact.role : "";
   const getTypeOpts = () => {
     const isNew = modal.mode === "add";
@@ -805,7 +807,7 @@ export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [
           <FSel 
             value={modal.data.contact_id} 
             onChange={e => setF("contact_id", e.target.value)} 
-            options={sortedContacts.map(c => ({ value: c.id || c.docId, label: c.name }))} 
+            options={sortedContacts.map(c => ({ value: c.id || c.docId, label: [c.first_name, c.last_name].filter(Boolean).join(" ") || c.id }))}
             t={t} 
             placeholder="Select a contact..."
           />

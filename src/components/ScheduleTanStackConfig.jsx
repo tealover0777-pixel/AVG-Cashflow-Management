@@ -141,14 +141,14 @@ export const getScheduleColumns = (permissions, isDark, t, context) => {
       filterFn: (row, columnId, filterValue) => {
         const contactId = row.getValue(columnId) || "";
         const contact = CONTACTS.find(c => c.id === contactId);
-        const contactName = contact?.name || "";
+        const contactName = [contact?.first_name, contact?.last_name].filter(Boolean).join(" ");
         const search = filterValue.toLowerCase();
         return contactId.toLowerCase().includes(search) || contactName.toLowerCase().includes(search);
       },
       cell: ({ getValue, row }) => {
         const contactId = getValue();
         const contact = CONTACTS.find(c => c.id === contactId);
-        const contactName = contact?.name || "";
+        const contactName = [contact?.first_name, contact?.last_name].filter(Boolean).join(" ");
         return (
           <span
             onClick={() => callbacks.onContactClick?.(row.original.contact_id)}
