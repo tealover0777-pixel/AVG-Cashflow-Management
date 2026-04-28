@@ -1,9 +1,9 @@
-import { CornerDownRight, ExternalLink, RotateCcw } from 'lucide-react';
+import { CornerDownRight, ExternalLink, RotateCcw, Info } from 'lucide-react';
 import { Bdg, Tooltip, ActBtns } from '../components';
 import { fmtCurr } from '../utils';
 
 export const getScheduleColumns = (permissions, isDark, t, context) => {
-  const { callbacks, CONTACTS = [], DEALS = [] } = context;
+  const { callbacks, CONTACTS = [], DEALS = [], INVESTMENTS = [] } = context;
 
   const cols = [
     {
@@ -236,6 +236,32 @@ export const getScheduleColumns = (permissions, isDark, t, context) => {
       },
       size: 100,
       cell: ({ getValue }) => <span style={{ fontSize: '11px', color: t.textSecondary }}>{getValue()}</span>
+    },
+    {
+      header: "Payment Method",
+      id: "resolved_payment_method",
+      size: 140,
+      cell: ({ row }) => {
+        const s = row.original;
+        const inv = INVESTMENTS.find(iv => iv.id === s.investment_id || iv.docId === s.investment_id);
+        const contact = CONTACTS.find(c => c.id === s.contact_id || c.docId === s.contact_id);
+        const method = s.payment_method || inv?.payment_method || contact?.payment_method || "";
+        
+        if (!method) return <span style={{ color: t.textMuted }}>—</span>;
+        
+        const isDerived = !s.payment_method && (inv?.payment_method || contact?.payment_method);
+        
+        return (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span style={{ fontSize: '11px', fontWeight: 500, color: t.textSecondary }}>{method}</span>
+            {isDerived && (
+              <Tooltip text={`Derived from ${inv?.payment_method ? "Investment" : "Contact"}`} t={t}>
+                <Info size={12} style={{ color: t.textMuted, opacity: 0.7 }} />
+              </Tooltip>
+            )}
+          </div>
+        );
+      }
     },
     {
       header: "Period",

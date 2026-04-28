@@ -2711,7 +2711,7 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
       onClose={() => setDistMemoModal({ open: false, mode: "add", data: {} })}
       title={distMemoModal.mode === "edit" ? "Edit Distribution Memo" : "Add Distribution Memo"}
       onSave={handleSaveDistMemo}
-      width={520}
+      width={780}
       t={t}
       isDark={isDark}
     >
