@@ -203,7 +203,12 @@ export default function PagePayments({ t, isDark, PAYMENTS = [], INVESTMENTS = [
     let baseData = [];
     if (activeTab === "Payments") {
       // Include actual payments from the 'payments' collection
-      const payments = PAYMENTS.filter(p => (p.status || "").toLowerCase() === "paid");
+      const payments = PAYMENTS.filter(p => (p.status || "").toLowerCase() === "paid").map(p => ({
+        ...p,
+        id: p.id || p.docId,
+        batch_id: p.batch_id || "",
+        status: "Paid"
+      }));
       
       // Include all records from the 'schedules' collection that are marked as "Paid"
       const paidSchedules = SCHEDULES.filter(s => {
@@ -217,6 +222,7 @@ export default function PagePayments({ t, isDark, PAYMENTS = [], INVESTMENTS = [
         return {
           ...s,
           id: s.id || s.docId,
+          batch_id: s.batch_id || "",
           investment: s.investment_id || s.investment || "",
           contact_name: name,
           first_name: firstName,
@@ -237,7 +243,7 @@ export default function PagePayments({ t, isDark, PAYMENTS = [], INVESTMENTS = [
       baseData = LEDGER;
     }
     return baseData;
-  }, [activeTab, chip, PAYMENTS, SCHEDULES, ACH_BATCHES, LEDGER]);
+  }, [activeTab, chip, PAYMENTS, SCHEDULES, ACH_BATCHES, LEDGER, CONTACTS, splitInvestorName]);
 
   const handleBulkBatchAssign = async (batchId) => {
     if (!batchId) return;
