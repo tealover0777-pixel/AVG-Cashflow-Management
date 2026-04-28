@@ -5,11 +5,10 @@ import { db } from "../firebase";
 import { collection, doc, addDoc, updateDoc, deleteDoc, serverTimestamp, getDoc, onSnapshot, query, where } from "firebase/firestore";
 import { sortData, fmtCurr, fmtDate, splitInvestorName } from "../utils";
 import { Modal, FF, FIn, FSel, DelModal, Tooltip, Bdg } from "../components";
-import { getDistributionScheduleColumns } from "../components/DistributionScheduleTanStackConfig";
-import { AlertTriangle, FileCheck } from "lucide-react";
+import { InvestorSummaryModal } from "../components/InvestorSummaryModal";
 import { useAuth } from "../AuthContext";
 
-export default function PagePayments({ t, isDark, PAYMENTS = [], INVESTMENTS = [], CONTACTS = [], SCHEDULES = [], DEALS = [], DIMENSIONS = [], ACH_BATCHES = [], LEDGER = [], collectionPath = "", achBatchPath = "", ledgerPath = "" }) {
+export default function PagePayments({ t, isDark, PAYMENTS = [], INVESTMENTS = [], CONTACTS = [], SCHEDULES = [], DEALS = [], DIMENSIONS = [], ACH_BATCHES = [], LEDGER = [], USERS = [], collectionPath = "", achBatchPath = "", ledgerPath = "" }) {
   const { hasPermission, isSuperAdmin, user } = useAuth();
   const canCreate = isSuperAdmin || hasPermission("PAYMENT_CREATE") || hasPermission("PAYMENTS_CREATE");
   const canUpdate = isSuperAdmin || hasPermission("PAYMENT_UPDATE") || hasPermission("PAYMENTS_UPDATE");
@@ -29,6 +28,11 @@ export default function PagePayments({ t, isDark, PAYMENTS = [], INVESTMENTS = [
   const [confirmAction, setConfirmAction] = useState(null);
   const [delT, setDelT] = useState(null);
   const [sel, setSel] = useState(new Set());
+
+  // Drilldown states for Investment/Contact detail
+  const [drillInvestment, setDrillInvestment] = useState(null);
+  const [drillContact, setDrillContact] = useState(null);
+  const [drillOptions, setDrillOptions] = useState({ view: "summary", tab: "Details" });
   
   const gridRef = useRef(null);
   const [pageSize, setPageSize] = useState(30);
@@ -101,6 +105,35 @@ export default function PagePayments({ t, isDark, PAYMENTS = [], INVESTMENTS = [
         }
       }
     });
+  };
+
+  const handleInvestmentClick = (row) => {
+    const invId = row.investment_id || row.investment;
+    const inv = INVESTMENTS.find(i => i.id === invId || i.docId === invId || i.investment_id === invId);
+    const contact = CONTACTS.find(c => c.id === row.contact_id || c.docId === row.contact_id);
+    if (inv) {
+      setDrillInvestment(inv);
+      setDrillContact(contact || null);
+      setDrillOptions({ view: "summary", tab: "Details" });
+    }
+  };
+
+  const handleContactClick = (row) => {
+    const contact = CONTACTS.find(c => c.id === row.contact_id || c.docId === row.contact_id);
+    if (contact) {
+      setDrillContact(contact);
+      setDrillInvestment(null);
+      setDrillOptions({ view: "summary", tab: "Details" });
+    }
+  };
+
+  const handleUpdateInvestmentModal = async (invId, updates) => {
+    try {
+      const invRef = doc(db, `tenants/${activeTenantId}/investments`, invId);
+      await updateDoc(invRef, { ...updates, updated_at: serverTimestamp() });
+    } catch (err) {
+      console.error("Error updating investment from modal:", err);
+    }
   };
 
   const memoDrillDownColumnDefs = useMemo(() => {
@@ -284,7 +317,7 @@ export default function PagePayments({ t, isDark, PAYMENTS = [], INVESTMENTS = [
       setBatchSummary(batchId);
     };
 
-    if (activeTab === "Payments") return getPaymentColumns(permissions, isDark, t, editCb, delCb, batchSummaryCb);
+    if (activeTab === "Payments") return getPaymentColumns(permissions, isDark, t, editCb, delCb, batchSummaryCb, handleInvestmentClick, handleContactClick);
     if (activeTab === "ACH Batches") return getBatchColumns(permissions, isDark, t, editCb, delCb, batchSummaryCb);
     
     const ledgerPerms = { 
@@ -292,7 +325,7 @@ export default function PagePayments({ t, isDark, PAYMENTS = [], INVESTMENTS = [
       canDelete: isLedgerDeletable 
     };
     return getLedgerColumns(ledgerPerms, isDark, t, editCb, delCb);
-  }, [activeTab, permissions, isDark, t, openEditPayment, openEditBatch, openEditLedger, isLedgerEditable, isLedgerDeletable]);
+  }, [activeTab, permissions, isDark, t, openEditPayment, openEditBatch, openEditLedger, isLedgerEditable, isLedgerDeletable, handleInvestmentClick, handleContactClick]);
 
   const rowData = useMemo(() => {
     let baseData = [];
@@ -737,5 +770,7 @@ export default function PagePayments({ t, isDark, PAYMENTS = [], INVESTMENTS = [
         </div>
       </Modal>
     )}
+    <InvestorSummaryModal contact={drillContact} selectedInvestmentId={drillInvestment?.investment_id || drillInvestment?.id} defaultView={drillOptions.view} initialTab={drillOptions.tab} onClose={() => { setDrillInvestment(null); setDrillContact(null); }} isDark={isDark} t={t} INVESTMENTS={INVESTMENTS} SCHEDULES={SCHEDULES} DEALS={DEALS} DIMENSIONS={DIMENSIONS} LEDGER={LEDGER} USERS={USERS} onUpdateInvestment={handleUpdateInvestmentModal} />
+
   </>);
 }

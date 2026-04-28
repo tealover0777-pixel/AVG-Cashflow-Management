@@ -2,7 +2,7 @@ import React, { useState, useMemo, useRef, useEffect } from "react";
 import { ActBtns, Bdg } from '../components';
 import { fmtCurr, fmtDate } from '../utils';
 
-export const getPaymentColumns = (permissions, isDark, t, onEdit, onDel, onBatchClick) => {
+export const getPaymentColumns = (permissions, isDark, t, onEdit, onDel, onBatchClick, onInvestmentClick, onContactClick) => {
   return [
     {
       id: 'select',
@@ -46,8 +46,19 @@ export const getPaymentColumns = (permissions, isDark, t, onEdit, onDel, onBatch
       accessorKey: 'investment',
       header: 'Investment',
       size: 100,
-      cell: ({ getValue }) => (
-        <span style={{ fontFamily: t.mono, fontSize: '11.5px', color: isDark ? "#60A5FA" : "#4F46E5", fontWeight: 500 }}>
+      cell: ({ getValue, row }) => (
+        <span 
+          onClick={() => onInvestmentClick && onInvestmentClick(row.original)}
+          style={{ 
+            fontFamily: t.mono, 
+            fontSize: '11.5px', 
+            color: isDark ? "#60A5FA" : "#4F46E5", 
+            fontWeight: 500,
+            cursor: onInvestmentClick ? 'pointer' : 'default',
+            textDecoration: onInvestmentClick ? 'underline' : 'none',
+            textUnderlineOffset: '2px'
+          }}
+        >
           {getValue()}
         </span>
       ),
@@ -58,9 +69,21 @@ export const getPaymentColumns = (permissions, isDark, t, onEdit, onDel, onBatch
       size: 150,
       cell: ({ getValue, row }) => {
         const val = getValue();
-        if (val) return <span style={{ fontSize: '13px', fontWeight: 600, color: isDark ? "#60A5FA" : "#4F46E5" }}>{val}</span>;
         const parts = (row.original.contact_name || row.original.contact || "").split(' ');
-        return <span style={{ fontSize: '13px', fontWeight: 600, color: isDark ? "#60A5FA" : "#4F46E5" }}>{parts[0] || "—"}</span>;
+        const displayVal = val || parts[0] || "—";
+        return (
+          <span 
+            onClick={() => onContactClick && onContactClick(row.original)}
+            style={{ 
+              fontSize: '13px', 
+              fontWeight: 600, 
+              color: isDark ? "#60A5FA" : "#4F46E5",
+              cursor: onContactClick ? 'pointer' : 'default'
+            }}
+          >
+            {displayVal}
+          </span>
+        );
       },
     },
     {
@@ -69,9 +92,21 @@ export const getPaymentColumns = (permissions, isDark, t, onEdit, onDel, onBatch
       size: 150,
       cell: ({ getValue, row }) => {
         const val = getValue();
-        if (val) return <span style={{ fontSize: '13px', fontWeight: 500, color: isDark ? "rgba(255,255,255,0.85)" : "#1C1917" }}>{val}</span>;
         const parts = (row.original.contact_name || row.original.contact || "").split(' ');
-        return <span style={{ fontSize: '13px', fontWeight: 500, color: isDark ? "rgba(255,255,255,0.85)" : "#1C1917" }}>{parts.slice(1).join(' ') || "—"}</span>;
+        const displayVal = val || parts.slice(1).join(' ') || "—";
+        return (
+          <span 
+            onClick={() => onContactClick && onContactClick(row.original)}
+            style={{ 
+              fontSize: '13px', 
+              fontWeight: 600, 
+              color: isDark ? "#60A5FA" : "#4F46E5",
+              cursor: onContactClick ? 'pointer' : 'default'
+            }}
+          >
+            {displayVal}
+          </span>
+        );
       },
     },
     {
