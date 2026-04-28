@@ -2757,7 +2757,7 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
             options={paymentMethods.map(m => ({ label: m, value: m }))}
             onChange={e => setDistMemoModal(m => ({ ...m, data: { ...m.data, payment_method: e.target.value } }))}
             t={t}
-            placeholder="Select Payment Method..."
+            placeholder="All Methods (No Filter)"
           />
         </FF>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
