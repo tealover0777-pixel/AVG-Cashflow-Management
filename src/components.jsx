@@ -380,23 +380,51 @@ export const TblFilterRow = ({ cols, colFilters, onFilterChange, onClear, gridTe
 );
 
 export const Modal = ({ open, onClose, title, onSave, saveLabel, secondaryAction, secondaryLabel, danger, width, children, t, isDark, loading, showCancel = true, titleFont }) => {
+  const [offset, setOffset] = React.useState({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = React.useState(false);
+  const offsetRef = React.useRef({ x: 0, y: 0 });
+
+  React.useEffect(() => {
+    if (open) { setOffset({ x: 0, y: 0 }); offsetRef.current = { x: 0, y: 0 }; }
+  }, [open]);
+
+  const onHeaderMouseDown = React.useCallback((e) => {
+    if (e.button !== 0 || e.target.closest("button")) return;
+    e.preventDefault();
+    const startMx = e.clientX, startMy = e.clientY;
+    const startOx = offsetRef.current.x, startOy = offsetRef.current.y;
+    setIsDragging(true);
+    const onMove = (e) => {
+      const next = { x: startOx + e.clientX - startMx, y: startOy + e.clientY - startMy };
+      offsetRef.current = next;
+      setOffset(next);
+    };
+    const onUp = () => {
+      setIsDragging(false);
+      document.removeEventListener("mousemove", onMove);
+      document.removeEventListener("mouseup", onUp);
+    };
+    document.addEventListener("mousemove", onMove);
+    document.addEventListener("mouseup", onUp);
+  }, []);
+
   if (!open) return null;
   return (
     <div style={{ position: "fixed", inset: 0, zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center" }}>
       <div onClick={onClose} style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.55)", backdropFilter: "blur(6px)" }} />
-      <div style={{ position: "relative", zIndex: 1, background: isDark ? "#0b1929" : "#ffffff", borderRadius: 20, border: `1px solid ${t.surfaceBorder}`, width: width || 480, maxWidth: "92vw", maxHeight: "88vh", display: "flex", flexDirection: "column", boxShadow: isDark ? "0 40px 100px rgba(0,0,0,0.7)" : "0 24px 60px rgba(0,0,0,0.13)" }}>
-        <div style={{ padding: "22px 26px", borderBottom: `1px solid ${t.surfaceBorder}`, display: "flex", justifyContent: "space-between", alignItems: "center", background: isDark ? "rgba(255,255,255,0.02)" : "#FAFAF9", borderRadius: "20px 20px 0 0" }}>
+      <div style={{ position: "relative", zIndex: 1, background: isDark ? "#0b1929" : "#ffffff", borderRadius: 20, border: `1px solid ${t.surfaceBorder}`, width: width || 480, maxWidth: "92vw", maxHeight: "88vh", display: "flex", flexDirection: "column", boxShadow: isDark ? "0 40px 100px rgba(0,0,0,0.7)" : "0 24px 60px rgba(0,0,0,0.13)", transform: `translate(${offset.x}px, ${offset.y}px)`, resize: "both", overflow: "hidden", minWidth: 320, minHeight: 180 }}>
+        <div onMouseDown={onHeaderMouseDown} style={{ padding: "22px 26px", borderBottom: `1px solid ${t.surfaceBorder}`, display: "flex", justifyContent: "space-between", alignItems: "center", background: isDark ? "rgba(255,255,255,0.02)" : "#FAFAF9", borderRadius: "20px 20px 0 0", cursor: isDragging ? "grabbing" : "grab", userSelect: "none" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
             <span style={{ fontSize: 16, fontWeight: 700, color: isDark ? "#fff" : "#1C1917", fontFamily: titleFont || t.titleFont, letterSpacing: "-0.4px" }}>{title}</span>
           </div>
           <Tooltip text="Close this dialog" t={t}>
-            <button onClick={onClose} className="action-btn" style={{ width: 28, height: 28, borderRadius: 8, background: t.deleteBtn[0], color: t.deleteBtn[1], display: "flex", alignItems: "center", justifyContent: "center", border: "none" }}>
+            <button onClick={onClose} className="action-btn" style={{ width: 28, height: 28, borderRadius: 8, background: t.deleteBtn[0], color: t.deleteBtn[1], display: "flex", alignItems: "center", justifyContent: "center", border: "none", cursor: "pointer" }}>
               <X size={18} />
             </button>
           </Tooltip>
         </div>
         <div style={{ padding: "24px 26px", overflowY: "auto", flex: 1 }}>{children}</div>
-        <div style={{ padding: "16px 26px", borderTop: `1px solid ${t.surfaceBorder}`, display: "flex", justifyContent: "flex-end", gap: 10, background: isDark ? "rgba(255,255,255,0.02)" : "#FAFAF9", borderRadius: "0 0 20px 20px" }}>
+        <div style={{ padding: "16px 26px", borderTop: `1px solid ${t.surfaceBorder}`, display: "flex", justifyContent: "flex-end", gap: 10, background: isDark ? "rgba(255,255,255,0.02)" : "#FAFAF9", borderRadius: "0 0 20px 20px", flexShrink: 0 }}>
           {showCancel && (
             <Tooltip text="Cancel without saving" t={t}>
               <button onClick={onClose} disabled={loading} style={{ padding: "10px 22px", borderRadius: 11, fontSize: 13, fontWeight: 500, background: t.chipBg, color: t.textSecondary, border: `1px solid ${t.chipBorder}`, cursor: loading ? "default" : "pointer", opacity: loading ? 0.5 : 1 }}>Cancel</button>
