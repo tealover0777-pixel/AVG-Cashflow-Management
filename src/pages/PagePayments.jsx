@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useRef, useEffect } from "react";
 import TanStackTable from "../components/TanStackTable";
 import { getPaymentColumns, getBatchColumns, getLedgerColumns } from "../components/PaymentsTanStackConfig";
+import { getDistributionScheduleColumns } from "../components/DistributionScheduleTanStackConfig";
 import { db } from "../firebase";
 import { collection, doc, addDoc, updateDoc, deleteDoc, serverTimestamp, getDoc, onSnapshot, query, where } from "firebase/firestore";
 import { sortData, fmtCurr, fmtDate, splitInvestorName } from "../utils";
