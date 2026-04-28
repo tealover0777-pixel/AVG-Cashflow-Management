@@ -347,6 +347,8 @@ function AppContent() {
     })
     .map(d => ({
       id: d.id, docId: d.doc_id || d.id, _path: d._path, name: d.contact_name || d.party_name || "", type: d.contact_type || d.party_type || "", role: d.role_type || "",
+      party_id: d.party_id || d.contact_id || "", 
+      contact_id: d.contact_id || d.party_id || "",
       first_name: d.first_name || "", last_name: d.last_name || "",
       email: d.email || "", phone: d.phone || "", investor_type: d.investor_type || "",
       address: d.address || "", bank_information: d.bank_information || "",
@@ -368,9 +370,19 @@ function AppContent() {
     })
     .map(d => {
       const dealId = d.deal_id || "";
-      const contactId = d.contact_id || d.party_id || "";
+      const contactId = String(d.contact_id || d.party_id || "").trim();
+      const invContactName = String(d.contact_name || d.party_name || d.contact || "").trim();
       const dealMatch = rawDeals.find(deal => deal.id === dealId || deal.deal_id === dealId);
-      const contactMatch = rawContacts.find(c => c.id === contactId || c.doc_id === contactId || c.party_id === contactId || c.contact_id === contactId);
+      const contactMatch = rawContacts.find(c => {
+        const cId = String(c.id || "").trim();
+        const cDocId = String(c.doc_id || "").trim();
+        const cPartyId = String(c.party_id || "").trim();
+        const cContactId = String(c.contact_id || "").trim();
+        const cName = String(c.contact_name || c.party_name || "").trim();
+        
+        return (contactId && (cId === contactId || cDocId === contactId || cPartyId === contactId || cContactId === contactId)) ||
+               (invContactName && cName === invContactName);
+      });
 
       return {
         id: d.investment_id || d.id,
@@ -384,6 +396,8 @@ function AppContent() {
         first_name: contactMatch?.first_name || (contactMatch?.contact_name || contactMatch?.party_name || d.contact_name || d.party_name || "").split(" ")[0] || "",
         last_name: contactMatch?.last_name || (contactMatch?.contact_name || contactMatch?.party_name || d.contact_name || d.party_name || "").split(" ").slice(1).join(" ") || "",
         contact_id: d.contact_id || contactMatch?.id || "",
+        email: contactMatch?.email || d.email || "",
+        phone: contactMatch?.phone || d.phone || "",
         type: d.investment_type || "",
         amount: fmtCurr(d.amount),
         rate: d.interest_rate ? `${d.interest_rate}%` : "",
@@ -427,10 +441,26 @@ function AppContent() {
       const principalPTs = ["INVESTOR_PRINCIPAL_PAYMENT", "BORROWER_PRINCIPAL_RECEIVED", "BORROWER_DISBURSEMENT", "INVESTOR_PRINCIPAL_DEPOSIT", "REPAYMENT", "BORROWER_REPAYMENT"];
       const isPrincipal = principalPTs.includes(d.payment_type);
 
-      const dealId = d.deal_id || "";
-      const contactId = d.contact_id || d.party_id || "";
-      const dealMatch = rawDeals.find(deal => deal.id === dealId || deal.deal_id === dealId);
-      const contactMatch = rawContacts.find(c => c.id === contactId || c.doc_id === contactId || c.party_id === contactId || c.contact_id === contactId);
+      const dealId = String(d.deal_id || d.project || "").trim();
+      const contactId = String(d.contact_id || d.party_id || "").trim();
+      const schContactName = String(d.contact_name || d.party_name || d.contact || "").trim();
+      
+      const dealMatch = rawDeals.find(deal => 
+        String(deal.id || "").trim() === dealId || 
+        String(deal.deal_id || "").trim() === dealId ||
+        String(deal.deal_name || "").trim() === dealId
+      );
+      
+      const contactMatch = rawContacts.find(c => {
+        const cId = String(c.id || "").trim();
+        const cDocId = String(c.doc_id || "").trim();
+        const cPartyId = String(c.party_id || "").trim();
+        const cContactId = String(c.contact_id || "").trim();
+        const cName = String(c.contact_name || c.party_name || "").trim();
+        
+        return (contactId && (cId === contactId || cDocId === contactId || cPartyId === contactId || cContactId === contactId)) ||
+               (schContactName && cName === schContactName);
+      });
 
       return {
         schedule_id: d.schedule_id || d.id, docId: d.doc_id || d.id, _path: d._path, investment: d.investment_id || "", dueDate: fmtDate(d.due_date),

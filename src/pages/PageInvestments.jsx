@@ -26,8 +26,33 @@ export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [
   const [drillOptions, setDrillOptions] = useState({ view: "simple", tab: "Capital Transactions" });
   const drillContact = useMemo(() => {
     if (!drillInvestment) return null;
-    const pId = drillInvestment.contact_id || "";
-    return CONTACTS.find(c => c.id === pId || c.docId === pId) || { name: drillInvestment.contact_name || drillInvestment.contact, id: pId };
+    const pId = String(drillInvestment.contact_id || "").trim();
+    if (!pId) return { name: drillInvestment.contact_name || drillInvestment.contact || "Unknown", first_name: drillInvestment.first_name || "", last_name: drillInvestment.last_name || "" };
+    
+    // Improved lookup matching App.jsx logic
+    const found = CONTACTS.find(c => {
+      const cId = String(c.id || "").trim();
+      const cDocId = String(c.docId || "").trim();
+      const cPartyId = String(c.party_id || "").trim();
+      const cContactId = String(c.contact_id || "").trim();
+      const cName = String(c.name || "").trim();
+      const invName = String(drillInvestment.contact_name || drillInvestment.contact || "").trim();
+      
+      return (pId && (cId === pId || cDocId === pId || cPartyId === pId || cContactId === pId)) ||
+             (invName && cName === invName);
+    });
+    
+    if (found) return found;
+
+    // Fallback if not found in CONTACTS list
+    return { 
+      name: drillInvestment.contact_name || drillInvestment.contact || "Unknown", 
+      id: pId,
+      first_name: drillInvestment.first_name || "",
+      last_name: drillInvestment.last_name || "",
+      email: drillInvestment.email || "",
+      phone: drillInvestment.phone || ""
+    };
   }, [drillInvestment, CONTACTS]);
 
   const sortedContacts = useMemo(() => {
