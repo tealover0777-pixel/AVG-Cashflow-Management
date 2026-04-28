@@ -14,7 +14,7 @@ export default function PagePayments({ t, isDark, PAYMENTS = [], INVESTMENTS = [
   const canDelete = isSuperAdmin || hasPermission("PAYMENT_DELETE") || hasPermission("PAYMENTS_DELETE");
 
   const isLedgerEditable = isSuperAdmin || ["platform", "tenant_owner", "tenant_admin"].includes(user?.role);
-  const isLedgerDeletable = isSuperAdmin || ["platform", "tenant_owner"].includes(user?.role);
+  const isLedgerDeletable = isSuperAdmin || ["platform", "tenant_owner", "tenant_admin"].includes(user?.role);
 
   const [activeTab, setActiveTab] = useState("Payments");
   const [chip, setChip] = useState("All");
@@ -260,6 +260,33 @@ export default function PagePayments({ t, isDark, PAYMENTS = [], INVESTMENTS = [
     }
   };
 
+  const handleBulkDelete = async () => {
+    if (sel.size === 0) return;
+    const selectedIds = Array.from(sel);
+    const toDelete = rowData.filter(r => selectedIds.includes(r.id));
+    
+    if (!window.confirm(`Are you sure you want to delete ${sel.size} items?`)) return;
+
+    try {
+      const { writeBatch } = await import("firebase/firestore");
+      const batch = writeBatch(db);
+      
+      let path = collectionPath;
+      if (activeTab === "ACH Batches") path = achBatchPath;
+      if (activeTab === "Ledger") path = ledgerPath;
+
+      for (const item of toDelete) {
+        const ref = item._path ? doc(db, item._path) : doc(db, path, item.docId || item.id);
+        batch.delete(ref);
+      }
+      
+      await batch.commit();
+      setSel(new Set());
+    } catch (err) {
+      console.error("Bulk delete error:", err);
+    }
+  };
+
   return (<>
     <div style={{ marginBottom: 28, display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
       <div>
@@ -350,21 +377,34 @@ export default function PagePayments({ t, isDark, PAYMENTS = [], INVESTMENTS = [
       />
 
       {/* Bulk Actions Bar */}
-      {sel.size > 0 && activeTab === "Payments" && (
+      {sel.size > 0 && (activeTab === "Payments" || activeTab === "Ledger") && (
         <div style={{ position: "absolute", bottom: 24, left: "50%", transform: "translateX(-50%)", background: isDark ? "#1C1917" : "#fff", padding: "12px 24px", borderRadius: 12, boxShadow: "0 10px 25px rgba(0,0,0,0.2)", border: `1px solid ${t.surfaceBorder}`, display: "flex", alignItems: "center", gap: 20, zIndex: 100, animation: "slideUp 0.3s ease-out" }}>
           <div style={{ fontSize: 13, fontWeight: 600, color: t.text }}>{sel.size} selected</div>
           <div style={{ height: 20, width: 1, background: t.surfaceBorder }} />
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <span style={{ fontSize: 12, color: t.textMuted }}>Assign to Batch:</span>
-            <select 
-              onChange={(e) => handleBulkBatchAssign(e.target.value)}
-              value=""
-              style={{ padding: "6px 12px", borderRadius: 8, background: isDark ? "rgba(255,255,255,0.05)" : "#F3F4F6", border: `1px solid ${t.surfaceBorder}`, color: t.text, fontSize: 12, outline: "none" }}
+          
+          {activeTab === "Payments" && (
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              <span style={{ fontSize: 12, color: t.textMuted }}>Assign to Batch:</span>
+              <select 
+                onChange={(e) => handleBulkBatchAssign(e.target.value)}
+                value=""
+                style={{ padding: "6px 12px", borderRadius: 8, background: isDark ? "rgba(255,255,255,0.05)" : "#F3F4F6", border: `1px solid ${t.surfaceBorder}`, color: t.text, fontSize: 12, outline: "none" }}
+              >
+                <option value="" disabled>Select Batch...</option>
+                {ACH_BATCHES.map(b => <option key={b.id} value={b.batch_id}>{b.batch_id} ({b.status})</option>)}
+              </select>
+            </div>
+          )}
+
+          {((activeTab === "Ledger" && isLedgerDeletable) || (activeTab === "Payments" && canDelete)) && (
+            <button 
+              onClick={handleBulkDelete}
+              style={{ background: "#FEE2E2", color: "#DC2626", border: "1px solid #FECACA", padding: "6px 14px", borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: "pointer", transition: "all 0.2s" }}
             >
-              <option value="" disabled>Select Batch...</option>
-              {ACH_BATCHES.map(b => <option key={b.id} value={b.batch_id}>{b.batch_id} ({b.status})</option>)}
-            </select>
-          </div>
+              Delete Selected
+            </button>
+          )}
+
           <button onClick={() => setSel(new Set())} style={{ background: "none", border: "none", color: t.textMuted, fontSize: 12, cursor: "pointer", fontWeight: 500 }}>Cancel</button>
         </div>
       )}
