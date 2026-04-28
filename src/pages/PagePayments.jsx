@@ -111,20 +111,23 @@ export default function PagePayments({ t, isDark, PAYMENTS = [], INVESTMENTS = [
   const handleInvestmentClick = (row) => {
     const invId = row.investment_id || row.investment;
     const inv = INVESTMENTS.find(i => i.id === invId || i.docId === invId || i.investment_id === invId);
-    const contact = CONTACTS.find(c => c.id === row.contact_id || c.docId === row.contact_id);
     if (inv) {
+      // Improved lookup for contact
+      const cId = inv.contact_id || row.contact_id;
+      const contact = CONTACTS.find(c => c.id === cId || c.docId === cId);
       setDrillInvestment(inv);
       setDrillContact(contact || null);
-      setDrillOptions({ view: "summary", tab: "Details" });
+      setDrillOptions({ view: "simple", tab: "Edit Investment" });
     }
   };
 
   const handleContactClick = (row) => {
-    const contact = CONTACTS.find(c => c.id === row.contact_id || c.docId === row.contact_id);
+    const cId = row.contact_id;
+    const contact = CONTACTS.find(c => c.id === cId || c.docId === cId);
     if (contact) {
       setDrillContact(contact);
       setDrillInvestment(null);
-      setDrillOptions({ view: "summary", tab: "Details" });
+      setDrillOptions({ view: "detail", tab: "Details" });
     }
   };
 
@@ -138,8 +141,17 @@ export default function PagePayments({ t, isDark, PAYMENTS = [], INVESTMENTS = [
   };
 
   const memoDrillDownColumnDefs = useMemo(() => {
-    return getDistributionScheduleColumns(t, isDark, INVESTMENTS, CONTACTS, handleInlineScheduleStatus, DEALS);
-  }, [t, isDark, INVESTMENTS, CONTACTS, DEALS]);
+    return getDistributionScheduleColumns(
+      t, 
+      isDark, 
+      INVESTMENTS, 
+      CONTACTS, 
+      handleInlineScheduleStatus, 
+      handleInvestmentClick, 
+      handleContactClick, 
+      DEALS
+    );
+  }, [t, isDark, INVESTMENTS, CONTACTS, DEALS, handleInvestmentClick, handleContactClick]);
 
   const sortedContacts = useMemo(() => {
     return [...CONTACTS].sort((a, b) => (a.name || "").localeCompare(b.name || ""));
@@ -390,7 +402,7 @@ export default function PagePayments({ t, isDark, PAYMENTS = [], INVESTMENTS = [
       baseData = LEDGER;
     }
     return baseData;
-  }, [activeTab, chip, PAYMENTS, SCHEDULES, ACH_BATCHES, LEDGER, CONTACTS, splitInvestorName]);
+  }, [activeTab, chip, PAYMENTS, SCHEDULES, ACH_BATCHES, LEDGER, CONTACTS, distMemos, splitInvestorName]);
 
   const handleBulkBatchAssign = async (batchId) => {
     if (!batchId) return;
@@ -771,7 +783,24 @@ export default function PagePayments({ t, isDark, PAYMENTS = [], INVESTMENTS = [
         </div>
       </Modal>
     )}
-    <InvestorSummaryModal contact={drillContact} selectedInvestmentId={drillInvestment?.investment_id || drillInvestment?.id} defaultView={drillOptions.view} initialTab={drillOptions.tab} onClose={() => { setDrillInvestment(null); setDrillContact(null); }} isDark={isDark} t={t} INVESTMENTS={INVESTMENTS} SCHEDULES={SCHEDULES} DEALS={DEALS} DIMENSIONS={DIMENSIONS} LEDGER={LEDGER} USERS={USERS} onUpdateInvestment={handleUpdateInvestmentModal} />
+    {drillContact && (
+      <InvestorSummaryModal 
+        contact={drillContact} 
+        selectedInvestmentId={drillInvestment?.investment_id || drillInvestment?.id} 
+        defaultView={drillOptions.view} 
+        initialTab={drillOptions.tab} 
+        onClose={() => { setDrillInvestment(null); setDrillContact(null); }} 
+        isDark={isDark} 
+        t={t} 
+        INVESTMENTS={INVESTMENTS} 
+        SCHEDULES={SCHEDULES} 
+        DEALS={DEALS} 
+        DIMENSIONS={DIMENSIONS} 
+        LEDGER={LEDGER} 
+        USERS={USERS} 
+        onUpdateInvestment={handleUpdateInvestmentModal} 
+      />
+    )}
 
   </>);
 }

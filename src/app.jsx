@@ -519,11 +519,16 @@ function AppContent() {
       const contactId = d.contact_id || d.party_id || "";
       const contactMatch = rawContacts.find(c => c.id === contactId || c.doc_id === contactId || c.party_id === contactId || c.contact_id === contactId);
 
+      const batchMatch = rawACHBatches.find(b => b.batch_id === d.batch_id);
+
       return {
         id: d.id, docId: d.doc_id || d.id, _path: d._path,
+        display_id: d.schedule_id || d.display_id || d.id || "",
         investment: d.investment_id || "",
         contact: contactMatch?.contact_name || contactMatch?.party_name || d.contact_name || d.party_name || d.contact_id || d.party_id || "",
         contact_id: contactId,
+        first_name: contactMatch?.first_name || d.first_name || "",
+        last_name: contactMatch?.last_name || d.last_name || "",
         type: d.payment_type || "",
         amount: d.amount,
         date: fmtDate(d.payment_date),
@@ -531,6 +536,8 @@ function AppContent() {
         direction: dir,
         status: d.status || "Pending",
         batch_id: d.batch_id || "",
+        batch_status: batchMatch?.status || "",
+        dist_memo_name: batchMatch?.memo || "",
         note: d.notes || ""
       };
     });

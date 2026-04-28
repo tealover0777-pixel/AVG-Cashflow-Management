@@ -30,6 +30,29 @@ export const getDistributionColumns = (isDark, t, CONTACTS, DEALS, INVESTMENTS =
     enableSorting: false,
   },
   {
+    header: "Investment ID",
+    accessorKey: "investment_id",
+    id: "investment_id",
+    size: 110,
+    cell: ({ row, getValue }) => {
+      const val = getValue() || row.original.investment || "—";
+      return (
+        <span 
+          onClick={() => callbacks.onInvestmentClick?.(row.original)}
+          style={{ 
+            fontFamily: t.mono, 
+            fontSize: '11px', 
+            color: isDark ? "#60A5FA" : "#4F46E5",
+            fontWeight: 600,
+            cursor: 'pointer'
+          }}
+        >
+          {val}
+        </span>
+      );
+    }
+  },
+  {
     id: 'firstName',
     header: 'First Name',
     accessorFn: (row) => {
@@ -42,7 +65,7 @@ export const getDistributionColumns = (isDark, t, CONTACTS, DEALS, INVESTMENTS =
       const val = getValue() || "—";
       return (
         <div 
-          onClick={() => callbacks.onContactClick?.(row.original.contact_id)}
+          onClick={() => callbacks.onContactClick?.(row.original)}
           style={{ display: 'flex', alignItems: 'center', height: '100%', fontWeight: 600, color: isDark ? "#60A5FA" : "#4F46E5", cursor: 'pointer' }}
         >
           {val}
@@ -63,7 +86,7 @@ export const getDistributionColumns = (isDark, t, CONTACTS, DEALS, INVESTMENTS =
       const val = getValue() || "—";
       return (
         <div 
-          onClick={() => callbacks.onContactClick?.(row.original.contact_id)}
+          onClick={() => callbacks.onContactClick?.(row.original)}
           style={{ display: 'flex', alignItems: 'center', height: '100%', fontWeight: 600, color: isDark ? "#60A5FA" : "#4F46E5", cursor: 'pointer' }}
         >
           {val}
@@ -240,7 +263,7 @@ export const getDistributionColumns = (isDark, t, CONTACTS, DEALS, INVESTMENTS =
             t={t}
             onEdit={() => callbacks.onEdit?.(data)}
             onClone={() => callbacks.onClone?.(data)}
-            onDel={() => callbacks.onDelete?.(data)}
+            onDelete={() => callbacks.onDelete?.(data)}
             onUndo={data.version_num > 1 ? () => callbacks.onUndo?.(data) : null}
           />
         </div>
@@ -249,8 +272,9 @@ export const getDistributionColumns = (isDark, t, CONTACTS, DEALS, INVESTMENTS =
   }
 ];
 
-export const getDistributionScheduleColumns = (t, isDark, INVESTMENTS, CONTACTS, onStatusChange, DEALS = [], statusOpts = ["Paid", "Due", "Partial", "Hold", "Not Paid", "Reinvested"]) => {
-  const base = getDistributionColumns(isDark, t, CONTACTS, DEALS, INVESTMENTS);
+export const getDistributionScheduleColumns = (t, isDark, INVESTMENTS, CONTACTS, onStatusChange, onInvestmentClick, onContactClick, DEALS = [], statusOpts = ["Paid", "Due", "Partial", "Hold", "Not Paid", "Reinvested"]) => {
+  const callbacks = { onInvestmentClick, onContactClick };
+  const base = getDistributionColumns(isDark, t, CONTACTS, DEALS, INVESTMENTS, callbacks);
   return base.map(col => {
     if (col.accessorKey === 'status' || col.id === 'status') {
       return {
@@ -274,7 +298,7 @@ export const getDistributionScheduleColumns = (t, isDark, INVESTMENTS, CONTACTS,
                 appearance: 'none',
                 textAlign: 'center'
               }}
-              onChange={(e) => onStatusChange(row.original.id || row.original.docId, e.target.value)}
+              onChange={(e) => onStatusChange && onStatusChange(row.original.id || row.original.docId, e.target.value)}
               onClick={(e) => e.stopPropagation()}
             >
               {statusOpts.map(opt => (
