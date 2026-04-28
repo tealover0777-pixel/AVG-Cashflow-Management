@@ -193,6 +193,16 @@ export const getBatchColumns = (permissions, isDark, t, onEdit, onDel, onBatchCl
       ),
     },
     {
+      accessorKey: 'dist_memo_id',
+      header: 'Distribution Memo',
+      size: 150,
+      cell: ({ getValue }) => (
+        <span style={{ fontFamily: t.mono, fontSize: '10.5px', color: t.idText }}>
+          {getValue() || "—"}
+        </span>
+      ),
+    },
+    {
       accessorKey: 'status',
       header: 'Status',
       size: 160,

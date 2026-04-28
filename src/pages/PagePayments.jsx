@@ -4,7 +4,9 @@ import { getPaymentColumns, getBatchColumns, getLedgerColumns } from "../compone
 import { db } from "../firebase";
 import { collection, doc, addDoc, updateDoc, deleteDoc, serverTimestamp, getDoc } from "firebase/firestore";
 import { sortData, fmtCurr, fmtDate, splitInvestorName } from "../utils";
-import { Modal, FF, FIn, FSel, DelModal, Tooltip, Bdg } from "../components";
+import { Modal, FF, FIn, FSel, DelModal, Tooltip, Bdg, AlertTriangle } from "../components";
+import { getDistributionScheduleColumns } from "../components/DistributionScheduleTanStackConfig";
+import { AlertTriangle as AlertIcon, FileCheck } from "lucide-react";
 import { useAuth } from "../AuthContext";
 
 export default function PagePayments({ t, isDark, PAYMENTS = [], INVESTMENTS = [], CONTACTS = [], SCHEDULES = [], DIMENSIONS = [], ACH_BATCHES = [], LEDGER = [], collectionPath = "", achBatchPath = "", ledgerPath = "" }) {
@@ -20,6 +22,11 @@ export default function PagePayments({ t, isDark, PAYMENTS = [], INVESTMENTS = [
   const [chip, setChip] = useState("All");
   const [modal, setModal] = useState({ open: false, mode: "add", data: {}, type: "payment" });
   const [batchSummary, setBatchSummary] = useState(null); // Current Batch ID being viewed
+  const [distMemos, setDistMemos] = useState([]);
+  const [distMemoDrillDown, setDistMemoDrillDown] = useState({ open: false, memo: null, schedules: [] });
+  const [distMemoSel, setDistMemoSel] = useState(new Set());
+  const [distMemoBulkStatus, setDistMemoBulkStatus] = useState("");
+  const [confirmAction, setConfirmAction] = useState(null);
   const [delT, setDelT] = useState(null);
   const [sel, setSel] = useState(new Set());
   
@@ -42,6 +49,64 @@ export default function PagePayments({ t, isDark, PAYMENTS = [], INVESTMENTS = [
       }).finally(() => setLoadingAch(false));
     }
   }, [activeTenantId]);
+
+  useEffect(() => {
+    if (!activeTenantId) return;
+    const { onSnapshot, query, where } = require("firebase/firestore");
+    const q = query(collection(db, `tenants/${activeTenantId}/distributionMemos`));
+    const unsub = onSnapshot(q, (snap) => {
+      setDistMemos(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    });
+    return unsub;
+  }, [activeTenantId]);
+
+  // Sync drilldown schedules when prop SCHEDULES changes
+  useEffect(() => {
+    if (distMemoDrillDown.open && distMemoDrillDown.memo) {
+      const linked = SCHEDULES.filter(s => s.dist_memo_id === distMemoDrillDown.memo.id);
+      setDistMemoDrillDown(prev => ({ ...prev, schedules: linked }));
+    }
+  }, [SCHEDULES, distMemoDrillDown.open, distMemoDrillDown.memo?.id]);
+
+  const paymentStatusOpts = ["", "Pending", "Scheduled", "Processing", "Sent", "Paid", "Failed", "Cancelled", "Missed", "Partial"];
+
+  const handleInlineScheduleStatus = async (scheduleId, newStatus) => {
+    try {
+      const scheduleRef = doc(db, `tenants/${activeTenantId}/schedules`, scheduleId);
+      await updateDoc(scheduleRef, { 
+        payment_status: newStatus,
+        updated_at: serverTimestamp() 
+      });
+    } catch (err) {
+      console.error("Error updating schedule status:", err);
+    }
+  };
+
+  const handleDistMemoBulkStatus = (newStatus) => {
+    if (!newStatus || distMemoSel.size === 0) return;
+    setConfirmAction({
+      title: "Confirm Bulk Status Update",
+      message: `Are you sure you want to update ${distMemoSel.size} schedule(s) to "${newStatus}"?`,
+      onConfirm: async () => {
+        try {
+          const updates = Array.from(distMemoSel).map(id => {
+            const ref = doc(db, `tenants/${activeTenantId}/schedules`, id);
+            return updateDoc(ref, { payment_status: newStatus, updated_at: serverTimestamp() });
+          });
+          await Promise.all(updates);
+          setDistMemoSel(new Set());
+          setDistMemoBulkStatus("");
+          setConfirmAction(null);
+        } catch (err) {
+          console.error("Bulk update error:", err);
+        }
+      }
+    });
+  };
+
+  const memoDrillDownColumnDefs = useMemo(() => {
+    return getDistributionScheduleColumns(t, isDark, INVESTMENTS, CONTACTS, handleInlineScheduleStatus);
+  }, [t, isDark, INVESTMENTS, CONTACTS]);
 
   const sortedContacts = useMemo(() => {
     return [...CONTACTS].sort((a, b) => (a.name || "").localeCompare(b.name || ""));
@@ -187,7 +252,18 @@ export default function PagePayments({ t, isDark, PAYMENTS = [], INVESTMENTS = [
   const columnDefs = useMemo(() => {
     const editCb = activeTab === "Payments" ? openEditPayment : (activeTab === "ACH Batches" ? openEditBatch : openEditLedger);
     const delCb = (target) => setDelT(target);
-    const batchSummaryCb = (batchId) => setBatchSummary(batchId);
+    const batchSummaryCb = (batchId) => {
+      const batch = ACH_BATCHES.find(b => b.batch_id === batchId);
+      if (batch?.dist_memo_id) {
+        const memo = distMemos.find(m => m.id === batch.dist_memo_id);
+        if (memo) {
+          const linked = SCHEDULES.filter(s => s.dist_memo_id === memo.id);
+          setDistMemoDrillDown({ open: true, memo, schedules: linked });
+          return;
+        }
+      }
+      setBatchSummary(batchId);
+    };
 
     if (activeTab === "Payments") return getPaymentColumns(permissions, isDark, t, editCb, delCb, batchSummaryCb);
     if (activeTab === "ACH Batches") return getBatchColumns(permissions, isDark, t, editCb, delCb, batchSummaryCb);
@@ -532,5 +608,97 @@ export default function PagePayments({ t, isDark, PAYMENTS = [], INVESTMENTS = [
         </table>
       </div>
     </Modal>
+
+    {/* Distribution Memo Drilldown Modal */}
+    {distMemoDrillDown.open && (
+      <Modal
+        open={distMemoDrillDown.open}
+        onClose={() => {
+          setDistMemoDrillDown({ open: false, memo: null, schedules: [] });
+          setDistMemoSel(new Set());
+          setDistMemoBulkStatus("");
+        }}
+        title={`Distribution Memo  ${distMemoDrillDown.memo?.period_start || ""}  ~  ${distMemoDrillDown.memo?.period_end || ""}`}
+        width={1350}
+        titleFont={t.font}
+        t={t}
+        isDark={isDark}
+        showCancel={false}
+      >
+          <div style={{ display: "flex", gap: 16, marginBottom: 16 }}>
+            {[
+              { label: "Linked Schedules", val: distMemoDrillDown.schedules.length },
+              { label: "Total Amount", val: fmtCurr(distMemoDrillDown.schedules.reduce((s, r) => s + (Number(r.signed_payment_amount || r.payment_amount || 0) || 0), 0)) },
+              { label: "Period", val: `${distMemoDrillDown.memo?.period_start || "—"} → ${distMemoDrillDown.memo?.period_end || "—"}` },
+            ].map((stat, i) => (
+              <div key={i} style={{ flex: 1, padding: "14px 18px", background: isDark ? "rgba(255,255,255,0.03)" : "#F9FAFB", border: `1px solid ${t.surfaceBorder}`, borderRadius: 10 }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: t.textMuted, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 6 }}>{stat.label}</div>
+                <div style={{ fontSize: 18, fontWeight: 700, color: t.text }}>{stat.val}</div>
+              </div>
+            ))}
+          </div>
+          <div style={{ flex: 1, minHeight: 400, display: "flex", flexDirection: "column" }}>
+            <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 12 }}>
+              {distMemoSel.size > 0 && (
+                <div style={{ display: "flex", gap: 8, alignItems: "center", background: isDark ? "rgba(255,255,255,0.04)" : "#F9FAFB", padding: "6px 12px", borderRadius: 10, border: `1px solid ${t.surfaceBorder}` }}>
+                  <span style={{ fontSize: 11, fontWeight: 600, color: t.textSecondary }}>{distMemoSel.size} selected</span>
+                  <select 
+                    value={distMemoBulkStatus} 
+                    onChange={e => setDistMemoBulkStatus(e.target.value)} 
+                    style={{ fontSize: 11, padding: "4px 8px", borderRadius: 7, border: `1px solid ${t.surfaceBorder}`, background: t.searchBg, color: t.searchText, cursor: "pointer" }}
+                  >
+                    <option value="" disabled>Bulk status...</option>
+                    {paymentStatusOpts.filter(s => s !== "Missed" && s !== "Partial" && s !== "").map(s => <option key={s} value={s}>{s}</option>)}
+                  </select>
+                  <button 
+                    onClick={() => handleDistMemoBulkStatus(distMemoBulkStatus)} 
+                    disabled={!distMemoBulkStatus} 
+                    style={{ fontSize: 11, fontWeight: 700, padding: "6px 12px", borderRadius: 8, background: distMemoBulkStatus ? t.accentGrad : (isDark ? "rgba(255,255,255,0.06)" : "#E5E7EB"), color: distMemoBulkStatus ? "#fff" : t.textMuted, border: "none", cursor: distMemoBulkStatus ? "pointer" : "default" }}
+                  >
+                    Apply
+                  </button>
+                  <button onClick={() => setDistMemoSel(new Set())} style={{ fontSize: 11, fontWeight: 700, padding: "6px 12px", borderRadius: 8, background: "none", color: t.textMuted, border: `1px solid ${t.surfaceBorder}`, cursor: "pointer" }}>Clear</button>
+                </div>
+              )}
+            </div>
+            <TanStackTable
+              data={distMemoDrillDown.schedules}
+              columns={memoDrillDownColumnDefs}
+              pageSize={50}
+              t={t}
+              isDark={isDark}
+              initialSorting={[{ id: 'dueDate', desc: false }]}
+              onSelectionChange={(selectedRows) => {
+                setDistMemoSel(new Set(selectedRows.map(r => r.schedule_id)));
+              }}
+            />
+          </div>
+      </Modal>
+    )}
+
+    {/* Confirmation Modal for Bulk Actions */}
+    {confirmAction && (
+      <Modal
+        open={!!confirmAction}
+        onClose={() => setConfirmAction(null)}
+        title={confirmAction.title}
+        onSave={confirmAction.onConfirm}
+        t={t}
+        isDark={isDark}
+        width={450}
+        saveLabel="Confirm"
+      >
+        <div style={{ padding: "10px 0" }}>
+          <div style={{ display: "flex", gap: 16, alignItems: "flex-start", background: isDark ? "rgba(239,68,68,0.05)" : "#FEF2F2", padding: 16, borderRadius: 12, border: `1px solid ${isDark ? "rgba(239,68,68,0.2)" : "#FEE2E2"}` }}>
+            <AlertTriangle size={24} color="#EF4444" />
+            <div>
+              <p style={{ fontSize: 13, color: t.textSecondary, lineHeight: 1.5 }}>
+                {confirmAction.message}
+              </p>
+            </div>
+          </div>
+        </div>
+      </Modal>
+    )}
   </>);
 }
