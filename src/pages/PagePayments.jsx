@@ -212,7 +212,7 @@ export default function PagePayments({ t, isDark, PAYMENTS = [], INVESTMENTS = [
         // Check for withdrawal type or status and ensure it's not already "Paid" or "Completed"
         const isWithdrawal = type.includes("withdrawal") || type.includes("withdrawl")
           || status.includes("withdrawal") || status.includes("withdrawl");
-        return isWithdrawal && status !== "paid" && status !== "completed";
+        return isWithdrawal && (status === "paid" || status === "completed" || status === "pending");
       }).map(s => ({
         ...s,
         id: s.id || s.docId,
@@ -220,7 +220,7 @@ export default function PagePayments({ t, isDark, PAYMENTS = [], INVESTMENTS = [
         amount: s.payment || s.amount || 0,
         date: s.dueDate || s.date || "",
         direction: "Sent", // Withdrawals are always outgoing
-        status: s.status || "Pending",
+        status: (s.status || "").toLowerCase() === "completed" ? "Paid" : (s.status || "Pending"),
         _isSchedule: true // Flag to distinguish from actual payment record if needed
       }));
 
@@ -248,7 +248,8 @@ export default function PagePayments({ t, isDark, PAYMENTS = [], INVESTMENTS = [
         };
       });
 
-      const merged = [...payments, ...withdrawals, ...memoSchedules];
+      const merged = [...payments, ...withdrawals, ...memoSchedules]
+        .filter(p => (p.status || "").toLowerCase() === "paid");
       baseData = chip === "All" ? merged : merged.filter(p => p.direction === chip);
     } else if (activeTab === "ACH Batches") {
       baseData = ACH_BATCHES;

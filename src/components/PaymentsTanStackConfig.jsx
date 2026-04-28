@@ -32,7 +32,7 @@ export const getPaymentColumns = (permissions, isDark, t, onEdit, onDel, onBatch
     },
     {
       accessorKey: 'id',
-      header: 'Pay ID',
+      header: 'Schedule ID',
       size: 90,
       cell: ({ getValue }) => <span style={{ fontFamily: t.mono, fontSize: '10.5px', color: t.idText }}>{getValue()}</span>,
     },
