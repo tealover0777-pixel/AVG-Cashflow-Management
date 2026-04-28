@@ -11,7 +11,7 @@ import { Download, ChevronDown, Table as TableIcon, LayoutPanelLeft } from "luci
 import { db } from "../firebase";
 import { collection, doc, addDoc, updateDoc, deleteDoc, serverTimestamp, getDocs } from "firebase/firestore";
 import { sortData, badge, initials, av, pmtCalculator_ACT360_30360, getFeeFrequencyString, normalizeDateAtNoon, mkId, fmtCurr as fmtCurrency, splitInvestorName } from "../utils";
-import { StatCard, Bdg, Pagination, Modal, FF, FIn, FSel, DelModal, Tooltip } from "../components";
+import { StatCard, Bdg, Pagination, Modal, FF, FIn, FSel, FMultiSel, DelModal, Tooltip } from "../components";
 import { InvestorSummaryModal } from "../components/InvestorSummaryModal";
 import { useAuth } from "../AuthContext";
 
@@ -67,6 +67,133 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
   }, [distMemoCollectionPath]);
 
   useEffect(() => { fetchDistMemos(); }, [fetchDistMemos]);
+
+  const [distMemoModal, setDistMemoModal] = useState({ open: false, mode: "add", data: {} });
+  const [distMemoDelT, setDistMemoDelT] = useState(null);
+
+  const paymentTypeOpts = useMemo(() => {
+    const fromDim = [
+      ...((DIMENSIONS.find(d => d.name === "IN_PaymentType") || {}).items || []),
+      ...((DIMENSIONS.find(d => d.name === "OUT_PaymentType") || {}).items || []),
+    ].filter(Boolean);
+    if (fromDim.length) return [...new Set(fromDim)];
+    return [...new Set(SCHEDULES.map(s => s.type || s.payment_type || "").filter(Boolean))].sort();
+  }, [DIMENSIONS, SCHEDULES]);
+
+  const handleSaveDistMemo = async () => {
+    const d = distMemoModal.data;
+    if (!d.memo) { showToast("Memo name is required", "error"); return; }
+    if (!d.deal_id) { showToast("Deal selection is required", "error"); return; }
+    try {
+      const generatedBatchId = d.batch_id || `B${Date.now().toString().slice(-6)}`;
+      
+      const payload = {
+        deal_id: d.deal_id,
+        memo: d.memo || "",
+        status: d.status || "",
+        payment_type: d.payment_type || "",
+        period_start: d.period_start || "",
+        period_end: d.period_end || "",
+        batch_id: generatedBatchId,
+        updated_at: serverTimestamp(),
+        updated_by: user?.uid || "system",
+      };
+
+      let memoId;
+      if (distMemoModal.mode === "add") {
+        payload.created_at = serverTimestamp();
+        const docRef = await addDoc(collection(db, distMemoCollectionPath), payload);
+        memoId = docRef.id;
+        showToast("Distribution memo created", "success");
+      } else {
+        await updateDoc(doc(db, d._path), payload);
+        memoId = d.docId || d.id;
+        showToast("Distribution memo updated", "success");
+      }
+
+      // Link Matching Schedules
+      const types = Array.isArray(d.payment_type) ? d.payment_type.map(x => x.toLowerCase()) : (d.payment_type ? [d.payment_type.toLowerCase()] : []);
+      const statuses = Array.isArray(d.status) ? d.status.map(x => x.toLowerCase()) : (d.status ? [d.status.toLowerCase()] : []);
+      
+      const matchingSchedules = SCHEDULES.filter(s => {
+        if (s.deal_id !== d.deal_id) return false;
+        const sType = (s.type || s.payment_type || "").toLowerCase();
+        const due = s.dueDate || s.due_date || "";
+        const typeMatch = types.length === 0 || types.includes(sType);
+        const statusMatch = statuses.length === 0 || statuses.includes((s.status || "").toLowerCase());
+        return typeMatch && statusMatch && due >= d.period_start && due <= d.period_end;
+      });
+
+      // Update matching schedules
+      const schedulePath = `tenants/${tenantId}/paymentSchedules`;
+      for (const s of matchingSchedules) {
+        const sRef = s._path ? doc(db, s._path) : doc(db, schedulePath, s.docId || s.id);
+        await updateDoc(sRef, {
+          batch_id: generatedBatchId,
+          dist_memo_id: memoId,
+          updated_at: serverTimestamp()
+        });
+      }
+
+      // Sync with ACH Batches
+      const achBatchPath = `tenants/${tenantId}/achBatches`;
+      await addDoc(collection(db, achBatchPath), {
+        batch_id: generatedBatchId,
+        memo: d.memo,
+        status: "VERSION_CREATED",
+        deal_id: d.deal_id,
+        dist_memo_id: memoId,
+        notes: `Auto-generated from Distribution Memo: ${d.memo}`,
+        created_at: serverTimestamp(),
+        updated_at: serverTimestamp()
+      });
+
+      // Sync with Ledger
+      const ledgerPath = `tenants/${tenantId}/ledger`;
+      await addDoc(collection(db, ledgerPath), {
+        entity_type: "DistributionMemo",
+        entity_id: memoId,
+        batch_id: generatedBatchId,
+        deal_id: d.deal_id,
+        note: `Distribution Memo saved: ${d.memo}. ${matchingSchedules.length} schedules linked.`,
+        created_at: serverTimestamp()
+      });
+
+      setDistMemoModal({ open: false, mode: "add", data: {} });
+      fetchDistMemos();
+    } catch (err) {
+      showToast("Failed to save: " + err.message, "error");
+    }
+  };
+
+  const handleDeleteDistMemo = async () => {
+    if (!distMemoDelT?._path) return;
+    try {
+      await deleteDoc(doc(db, distMemoDelT._path));
+      showToast("Distribution memo deleted", "success");
+      setDistMemoDelT(null);
+      fetchDistMemos();
+    } catch (err) {
+      showToast("Failed to delete: " + err.message, "error");
+    }
+  };
+
+  const handleCloneDistMemo = async (memo) => {
+    try {
+      const { docId, _path, created_at, updated_at, ...rest } = memo;
+      await addDoc(collection(db, distMemoCollectionPath), {
+        ...rest,
+        memo: `${rest.memo} (Copy)`,
+        created_at: serverTimestamp(),
+        updated_at: serverTimestamp(),
+        updated_by: user?.uid || "system"
+      });
+      showToast("Memo cloned", "success");
+      fetchDistMemos();
+    } catch (err) {
+      showToast("Failed to clone: " + err.message, "error");
+    }
+  };
   const [showExportMenu, setShowExportMenu] = useState(false);
   const exportMenuRef = useRef(null);
   const [pivotColWidths, setPivotColWidths] = useState([120, 120, 130, 100, 100, 80, 70, 100, 120]); // First Name, Last Name, Type, Start, End, Freq, Rate, Schedule, Method
@@ -1618,7 +1745,7 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
       </div>
 
       {/* Unified Filters */}
-      {scheduleView !== "memo" && (
+      {scheduleView !== "memo" ? (
         <div style={{ display: "flex", gap: 8, alignItems: "center", flex: 1, justifyContent: "center" }}>
           <span style={{ fontSize: 12, fontWeight: 700, color: t.textMuted, marginRight: 8, textTransform: "uppercase", letterSpacing: "0.05em" }}>Filter By:</span>
         {["All", "Interest", "Principal", "Fee", "Due", "Withdrawal", "Missed"].map(f => {
@@ -1639,6 +1766,27 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
             </span>
           );
         })}
+        </div>
+      ) : (
+        <div style={{ display: "flex", gap: 10, alignItems: "center", flex: 1, justifyContent: "flex-end", marginRight: 20 }}>
+           <button 
+             onClick={() => setDistMemoModal({ open: true, mode: "add", data: {} })} 
+             style={{ 
+               background: t.accentGrad || t.accent, 
+               color: "#fff", 
+               border: "none", 
+               padding: "10px 20px", 
+               borderRadius: 11, 
+               fontSize: 13, 
+               fontWeight: 600, 
+               boxShadow: `0 4px 16px ${t.accentShadow || "none"}`, 
+               display: "flex", 
+               alignItems: "center", 
+               gap: 7 
+             }}
+           >
+             <span style={{ fontSize: 18, lineHeight: 1 }}>+</span> Add Distribution Memo
+           </button>
         </div>
       )}
 
@@ -1698,7 +1846,10 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
             SCHEDULES,
             dealId: null,
             callbacks: {
-              onMemoClick: (memo, linked) => setDistMemoDrillDown({ open: true, memo, schedules: linked })
+              onMemoClick: (memo, linked) => setDistMemoDrillDown({ open: true, memo, schedules: linked }),
+              onEdit: (row) => setDistMemoModal({ open: true, mode: "edit", data: { ...row } }),
+              onDelete: (row) => setDistMemoDelT(row),
+              onClone: (row) => handleCloneDistMemo(row),
             }
           })}
           pageSize={50}
@@ -2458,6 +2609,91 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
       })()}
     </Modal>
     <DelModal target={delT} onClose={() => setDelT(null)} onConfirm={handleDeleteSchedule} label="This schedule entry" t={t} isDark={isDark} />
+    <DelModal target={distMemoDelT} onClose={() => setDistMemoDelT(null)} onConfirm={handleDeleteDistMemo} label="this distribution memo" t={t} isDark={isDark} />
+
+    {/* Add / Edit Distribution Memo Modal */}
+    <Modal
+      open={distMemoModal.open}
+      onClose={() => setDistMemoModal({ open: false, mode: "add", data: {} })}
+      title={distMemoModal.mode === "edit" ? "Edit Distribution Memo" : "Add Distribution Memo"}
+      onSave={handleSaveDistMemo}
+      width={520}
+      t={t}
+      isDark={isDark}
+    >
+      <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+        <FF label="Select Deal" t={t}>
+          <FSel
+            value={distMemoModal.data.deal_id || ""}
+            options={DEALS.map(d => ({ label: d.deal_name || d.name || d.id, value: d.id }))}
+            onChange={v => setDistMemoModal(m => ({ ...m, data: { ...m.data, deal_id: v } }))}
+            t={t}
+            placeholder="Choose a deal..."
+          />
+        </FF>
+        <FF label="Memo" t={t}>
+          <FIn
+            value={distMemoModal.data.memo || ""}
+            onChange={e => setDistMemoModal(m => ({ ...m, data: { ...m.data, memo: e.target.value } }))}
+            placeholder="e.g. Q1 2025 Interest Distribution"
+            t={t}
+          />
+        </FF>
+        <FF label="Select Payment Status to Filter. Select none includeds all" t={t}>
+          <FMultiSel
+            value={Array.isArray(distMemoModal.data.status) ? distMemoModal.data.status : (distMemoModal.data.status ? [distMemoModal.data.status] : [])}
+            options={paymentStatusOpts}
+            onChange={v => setDistMemoModal(m => ({ ...m, data: { ...m.data, status: v } }))}
+            t={t}
+            showSelectAll
+          />
+        </FF>
+        <FF label="Select Payment Type to Filter. Select none includes all" t={t}>
+          <FMultiSel
+            value={Array.isArray(distMemoModal.data.payment_type) ? distMemoModal.data.payment_type : (distMemoModal.data.payment_type ? [distMemoModal.data.payment_type] : [])}
+            options={paymentTypeOpts}
+            onChange={v => setDistMemoModal(m => ({ ...m, data: { ...m.data, payment_type: v } }))}
+            t={t}
+            showSelectAll
+          />
+        </FF>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+          <FF label="Period Start Date" t={t}>
+            <FIn
+              type="date"
+              value={distMemoModal.data.period_start || ""}
+              onChange={e => setDistMemoModal(m => ({ ...m, data: { ...m.data, period_start: e.target.value } }))}
+              t={t}
+            />
+          </FF>
+          <FF label="Period End Date" t={t}>
+            <FIn
+              type="date"
+              value={distMemoModal.data.period_end || ""}
+              onChange={e => setDistMemoModal(m => ({ ...m, data: { ...m.data, period_end: e.target.value } }))}
+              t={t}
+            />
+          </FF>
+        </div>
+        {distMemoModal.data.period_start && distMemoModal.data.period_end && distMemoModal.data.deal_id && (
+          <div style={{ padding: "10px 14px", background: isDark ? "rgba(59,130,246,0.08)" : "#EFF6FF", border: `1px solid ${isDark ? "rgba(59,130,246,0.2)" : "#BFDBFE"}`, borderRadius: 8 }}>
+            <div style={{ fontSize: 12, fontWeight: 600, color: isDark ? "#93C5FD" : "#1D4ED8" }}>
+              {(() => {
+                const types = Array.isArray(distMemoModal.data.payment_type) ? distMemoModal.data.payment_type.map(x => x.toLowerCase()) : [];
+                const count = SCHEDULES.filter(s => {
+                  if (s.deal_id !== distMemoModal.data.deal_id) return false;
+                  const sType = (s.type || s.payment_type || "").toLowerCase();
+                  const due = s.dueDate || s.due_date || "";
+                  const typeMatch = types.length === 0 || types.includes(sType);
+                  return typeMatch && due >= distMemoModal.data.period_start && due <= distMemoModal.data.period_end;
+                }).length;
+                return `${count} schedule${count !== 1 ? "s" : ""} will be linked with these criteria`;
+              })()}
+            </div>
+          </div>
+        )}
+      </div>
+    </Modal>
     <Modal open={!!dialog} onClose={() => setDialog(null)} title={dialog?.title || "Notification"} onSave={dialog?.onConfirm || (() => setDialog(null))} saveLabel={dialog?.saveLabel || (dialog?.type === "confirm" ? "Confirm" : "OK")} showCancel={dialog?.type === "confirm"} t={t} isDark={isDark}>
       <div style={{ padding: "12px 0", fontSize: 14, color: t.textSecondary, lineHeight: 1.6, textAlign: "center" }}>{dialog?.message}</div>
     </Modal>
