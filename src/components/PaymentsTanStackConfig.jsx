@@ -95,7 +95,7 @@ export const getPaymentColumns = (permissions, isDark, t, onEdit, onDel, onBatch
     },
     {
       accessorKey: 'batch_id',
-      header: 'Batch',
+      header: 'Batch ID',
       size: 110,
       cell: ({ getValue }) => (
         <span 
