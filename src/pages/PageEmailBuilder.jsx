@@ -2175,7 +2175,15 @@ function SettingsPanel({ t, isDark, settings, onChange, profile, DIMENSIONS = []
   const recipientColumns = React.useMemo(() => [
     {
       id: "select",
-      header: ({ table }) => <input type="checkbox" className="ts-checkbox" checked={table.getIsAllPageRowsSelected()} onChange={table.getToggleAllPageRowsSelectedHandler()} />,
+      header: ({ table }) => (
+        <input 
+          type="checkbox" 
+          className="ts-checkbox" 
+          checked={table.getIsAllRowsSelected()} 
+          onChange={table.getToggleAllRowsSelectedHandler()} 
+          ref={el => { if (el) el.indeterminate = table.getIsSomeRowsSelected() && !table.getIsAllRowsSelected(); }}
+        />
+      ),
       cell: ({ row }) => <input type="checkbox" className="ts-checkbox" checked={row.getIsSelected()} disabled={!row.original.email || row.original.isAlreadyDoNotSend} onChange={row.getToggleSelectedHandler()} />,
       size: 50
     },
@@ -2198,7 +2206,15 @@ function SettingsPanel({ t, isDark, settings, onChange, profile, DIMENSIONS = []
   const doNotSendColumns = React.useMemo(() => [
     {
       id: "select",
-      header: ({ table }) => <input type="checkbox" className="ts-checkbox" checked={table.getIsAllPageRowsSelected()} onChange={table.getToggleAllPageRowsSelectedHandler()} />,
+      header: ({ table }) => (
+        <input 
+          type="checkbox" 
+          className="ts-checkbox" 
+          checked={table.getIsAllRowsSelected()} 
+          onChange={table.getToggleAllRowsSelectedHandler()} 
+          ref={el => { if (el) el.indeterminate = table.getIsSomeRowsSelected() && !table.getIsAllRowsSelected(); }}
+        />
+      ),
       cell: ({ row }) => <input type="checkbox" className="ts-checkbox" checked={row.getIsSelected()} disabled={!row.original.email || row.original.isAlreadyRecipient} onChange={row.getToggleSelectedHandler()} />,
       size: 50
     },

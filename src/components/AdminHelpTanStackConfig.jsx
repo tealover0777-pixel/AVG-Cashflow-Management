@@ -11,8 +11,9 @@ export const getAdminHelpColumns = (permissions, isDark, t, onEdit, onDel) => {
           <input
             className="ts-checkbox"
             type="checkbox"
-            checked={table.getIsAllPageRowsSelected()}
-            onChange={table.getToggleAllPageRowsSelectedHandler()}
+            checked={table.getIsAllRowsSelected()}
+            ref={el => { if (el) el.indeterminate = table.getIsSomeRowsSelected() && !table.getIsAllRowsSelected(); }}
+            onChange={table.getToggleAllRowsSelectedHandler()}
           />
         </div>
       ),

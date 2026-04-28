@@ -55,7 +55,13 @@ const getMarketingEmailColumns = (isDark, t, actions, activeTab) => {
     id: "select",
     header: ({ table }) => (
       <div style={{ display: "flex", alignItems: "center", justifyContent: "center", width: "100%", height: "100%" }}>
-        <input className="ts-checkbox" type="checkbox" checked={table.getIsAllPageRowsSelected()} onChange={table.getToggleAllPageRowsSelectedHandler()} />
+        <input 
+          className="ts-checkbox" 
+          type="checkbox" 
+          checked={table.getIsAllRowsSelected()} 
+          onChange={table.getToggleAllRowsSelectedHandler()} 
+          ref={el => { if (el) el.indeterminate = table.getIsSomeRowsSelected() && !table.getIsAllRowsSelected(); }}
+        />
       </div>
     ),
     cell: ({ row }) => (
@@ -399,7 +405,13 @@ export default function PageMarketingEmails({ t, isDark, setActivePage, MARKETIN
     id: "select",
     header: ({ table }) => (
       <div style={{ display: "flex", alignItems: "center", justifyContent: "center", width: "100%", height: "100%" }}>
-        <input className="ts-checkbox" type="checkbox" checked={table.getIsAllPageRowsSelected()} onChange={table.getToggleAllPageRowsSelectedHandler()} />
+        <input 
+          className="ts-checkbox" 
+          type="checkbox" 
+          checked={table.getIsAllRowsSelected()} 
+          onChange={table.getToggleAllRowsSelectedHandler()} 
+          ref={el => { if (el) el.indeterminate = table.getIsSomeRowsSelected() && !table.getIsAllRowsSelected(); }}
+        />
       </div>
     ),
     cell: ({ row }) => (
@@ -576,7 +588,13 @@ export default function PageMarketingEmails({ t, isDark, setActivePage, MARKETIN
     id: "select",
     header: ({ table }) => (
       <div style={{ display: "flex", alignItems: "center", justifyContent: "center", width: "100%", height: "100%" }}>
-        <input className="ts-checkbox" type="checkbox" checked={table.getIsAllPageRowsSelected()} onChange={table.getToggleAllPageRowsSelectedHandler()} />
+        <input 
+          className="ts-checkbox" 
+          type="checkbox" 
+          checked={table.getIsAllRowsSelected()} 
+          onChange={table.getToggleAllRowsSelectedHandler()} 
+          ref={el => { if (el) el.indeterminate = table.getIsSomeRowsSelected() && !table.getIsAllRowsSelected(); }}
+        />
       </div>
     ),
     cell: ({ row }) => (

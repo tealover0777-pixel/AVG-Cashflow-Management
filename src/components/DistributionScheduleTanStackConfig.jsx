@@ -5,28 +5,24 @@ import { Bdg, Tooltip, ActBtns } from '../components';
 export const getDistributionColumns = (isDark, t, CONTACTS, DEALS, INVESTMENTS = [], callbacks = {}) => [
   {
     id: 'select',
-    header: ({ table }) => {
-      const isAllSelected = table.getIsAllRowsSelected();
-      const isSomeSelected = table.getIsSomeRowsSelected();
-      return (
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%' }}>
-          <input
-            type="checkbox"
-            checked={isAllSelected}
-            ref={el => { if (el) el.indeterminate = isSomeSelected && !isAllSelected; }}
-            onChange={table.getToggleAllRowsSelectedHandler()}
-            style={{ cursor: 'pointer', width: '14px', height: '14px' }}
-          />
-        </div>
-      );
-    },
+    header: ({ table }) => (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%' }}>
+        <input
+          className="ts-checkbox"
+          type="checkbox"
+          checked={table.getIsAllRowsSelected()}
+          ref={el => { if (el) el.indeterminate = table.getIsSomeRowsSelected() && !table.getIsAllRowsSelected(); }}
+          onChange={table.getToggleAllRowsSelectedHandler()}
+        />
+      </div>
+    ),
     cell: ({ row }) => (
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%' }}>
         <input
+          className="ts-checkbox"
           type="checkbox"
           checked={row.getIsSelected()}
           onChange={row.getToggleSelectedHandler()}
-          style={{ cursor: 'pointer', width: '14px', height: '14px' }}
         />
       </div>
     ),

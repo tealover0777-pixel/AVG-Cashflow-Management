@@ -10,34 +10,28 @@ export const getContactColumns = (permissions, isDark, t, context) => {
   const cols = [
     {
       id: 'select',
-      header: ({ table }) => {
-        const rows = table.getFilteredRowModel().rows;
-        const allSelected = rows.length > 0 && rows.every(r => r.getIsSelected());
-        const someSelected = rows.some(r => r.getIsSelected());
-        return (
-          <label 
-            onClick={e => e.stopPropagation()} 
-            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', width: '100%', height: '32px' }}
-          >
-            <input
-              type="checkbox"
-              checked={allSelected}
-              ref={el => { if (el) el.indeterminate = someSelected && !allSelected; }}
-              onChange={() => {
-                const next = !allSelected;
-                rows.forEach(r => r.toggleSelected(next));
-              }}
-              style={{ accentColor: t.accent, cursor: 'pointer' }}
-            />
-          </label>
-        );
-      },
+      header: ({ table }) => (
+        <label 
+          onClick={e => e.stopPropagation()} 
+          style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', width: '100%', height: '32px' }}
+        >
+          <input
+            className="ts-checkbox"
+            type="checkbox"
+            checked={table.getIsAllRowsSelected()}
+            ref={el => { if (el) el.indeterminate = table.getIsSomeRowsSelected() && !table.getIsAllRowsSelected(); }}
+            onChange={table.getToggleAllRowsSelectedHandler()}
+            style={{ accentColor: t.accent, cursor: 'pointer' }}
+          />
+        </label>
+      ),
       cell: ({ row }) => (
         <label 
           onClick={e => e.stopPropagation()} 
           style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', width: '100%', height: '40px' }}
         >
           <input
+            className="ts-checkbox"
             type="checkbox"
             checked={row.getIsSelected()}
             onChange={row.getToggleSelectedHandler()}

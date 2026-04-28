@@ -9,20 +9,21 @@ export const getPaymentColumns = (permissions, isDark, t, onEdit, onDel, onBatch
       header: ({ table }) => (
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%' }}>
           <input
+            className="ts-checkbox"
             type="checkbox"
-            checked={table.getIsAllPageRowsSelected()}
-            onChange={table.getToggleAllPageRowsSelectedHandler()}
-            style={{ cursor: 'pointer', width: '14px', height: '14px' }}
+            checked={table.getIsAllRowsSelected()}
+            ref={el => { if (el) el.indeterminate = table.getIsSomeRowsSelected() && !table.getIsAllRowsSelected(); }}
+            onChange={table.getToggleAllRowsSelectedHandler()}
           />
         </div>
       ),
       cell: ({ row }) => (
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%' }}>
           <input
+            className="ts-checkbox"
             type="checkbox"
             checked={row.getIsSelected()}
             onChange={row.getToggleSelectedHandler()}
-            style={{ cursor: 'pointer', width: '14px', height: '14px' }}
           />
         </div>
       ),
@@ -149,20 +150,21 @@ export const getBatchColumns = (permissions, isDark, t, onEdit, onDel, onBatchCl
       header: ({ table }) => (
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%' }}>
           <input
+            className="ts-checkbox"
             type="checkbox"
-            checked={table.getIsAllPageRowsSelected()}
-            onChange={table.getToggleAllPageRowsSelectedHandler()}
-            style={{ cursor: 'pointer', width: '14px', height: '14px' }}
+            checked={table.getIsAllRowsSelected()}
+            ref={el => { if (el) el.indeterminate = table.getIsSomeRowsSelected() && !table.getIsAllRowsSelected(); }}
+            onChange={table.getToggleAllRowsSelectedHandler()}
           />
         </div>
       ),
       cell: ({ row }) => (
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%' }}>
           <input
+            className="ts-checkbox"
             type="checkbox"
             checked={row.getIsSelected()}
             onChange={row.getToggleSelectedHandler()}
-            style={{ cursor: 'pointer', width: '14px', height: '14px' }}
           />
         </div>
       ),
@@ -249,20 +251,21 @@ export const getLedgerColumns = (permissions, isDark, t, onEdit, onDel) => {
       header: ({ table }) => (
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%' }}>
           <input
+            className="ts-checkbox"
             type="checkbox"
-            checked={table.getIsAllPageRowsSelected()}
-            onChange={table.getToggleAllPageRowsSelectedHandler()}
-            style={{ cursor: 'pointer', width: '14px', height: '14px' }}
+            checked={table.getIsAllRowsSelected()}
+            ref={el => { if (el) el.indeterminate = table.getIsSomeRowsSelected() && !table.getIsAllRowsSelected(); }}
+            onChange={table.getToggleAllRowsSelectedHandler()}
           />
         </div>
       ),
       cell: ({ row }) => (
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%' }}>
           <input
+            className="ts-checkbox"
             type="checkbox"
             checked={row.getIsSelected()}
             onChange={row.getToggleSelectedHandler()}
-            style={{ cursor: 'pointer', width: '14px', height: '14px' }}
           />
         </div>
       ),
