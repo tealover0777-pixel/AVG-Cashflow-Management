@@ -4080,7 +4080,6 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
           isDark={isDark}
           showCancel={false}
         >
-          <div>
             <div style={{ display: "flex", gap: 16, marginBottom: 16 }}>
               {[
                 { label: "Linked Schedules", val: distMemoDrillDown.schedules.length },
@@ -4093,7 +4092,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
                 </div>
               ))}
             </div>
-            <div style={{ height: 400 }}>
+            <div style={{ flex: 1, minHeight: 400, display: "flex", flexDirection: "column" }}>
               <TanStackTable
                 data={distMemoDrillDown.schedules}
                 columns={scheduleColumnDefs}
@@ -4103,7 +4102,6 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
                 initialSorting={[{ id: 'dueDate', desc: false }]}
               />
             </div>
-          </div>
         </Modal>
       )}
 

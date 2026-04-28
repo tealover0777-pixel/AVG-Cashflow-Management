@@ -435,8 +435,11 @@ export const Modal = ({ open, onClose, title, onSave, saveLabel, secondaryAction
     <div style={{ position: "fixed", inset: 0, zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center" }}>
       <div onClick={onClose} style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.55)", backdropFilter: "blur(6px)" }} />
       <div ref={modalRef} style={{ position: "relative", zIndex: 1, background: isDark ? "#0b1929" : "#ffffff", borderRadius: 20, border: `1px solid ${t.surfaceBorder}`, width: resizeW || (width || 480), maxWidth: resizeW ? "none" : "92vw", height: resizeH || "auto", maxHeight: resizeH ? "none" : "88vh", display: "flex", flexDirection: "column", boxShadow: isDark ? "0 40px 100px rgba(0,0,0,0.7)" : "0 24px 60px rgba(0,0,0,0.13)", transform: `translate(${offset.x}px, ${offset.y}px)`, overflow: "hidden", minWidth: 320, minHeight: 180 }}>
-        <div onMouseDown={onHeaderMouseDown} style={{ padding: "22px 26px", borderBottom: `1px solid ${t.surfaceBorder}`, display: "flex", justifyContent: "space-between", alignItems: "center", background: isDark ? "rgba(255,255,255,0.02)" : "#FAFAF9", borderRadius: "20px 20px 0 0", cursor: isDragging ? "grabbing" : "grab", userSelect: "none" }}>
+        <div onMouseDown={onHeaderMouseDown} style={{ padding: "18px 26px", borderBottom: `1px solid ${t.surfaceBorder}`, display: "flex", justifyContent: "space-between", alignItems: "center", background: isDark ? "rgba(255,255,255,0.02)" : "#FAFAF9", borderRadius: "20px 20px 0 0", cursor: isDragging ? "grabbing" : "grab", userSelect: "none" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <div style={{ width: 12, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 2, opacity: 0.3 }}>
+              {[...Array(6)].map((_, i) => <div key={i} style={{ width: 2, height: 2, borderRadius: "50%", background: t.text }} />)}
+            </div>
             <span style={{ fontSize: 16, fontWeight: 700, color: isDark ? "#fff" : "#1C1917", fontFamily: titleFont || t.titleFont, letterSpacing: "-0.4px" }}>{title}</span>
           </div>
           <Tooltip text="Close this dialog" t={t}>
@@ -445,7 +448,7 @@ export const Modal = ({ open, onClose, title, onSave, saveLabel, secondaryAction
             </button>
           </Tooltip>
         </div>
-        <div style={{ padding: "24px 26px", overflowY: "auto", flex: 1 }}>{children}</div>
+        <div style={{ padding: "24px 26px", overflowY: "auto", flex: 1, display: "flex", flexDirection: "column" }}>{children}</div>
         <div style={{ padding: "16px 26px", borderTop: `1px solid ${t.surfaceBorder}`, display: "flex", justifyContent: "flex-end", gap: 10, background: isDark ? "rgba(255,255,255,0.02)" : "#FAFAF9", borderRadius: "0 0 20px 20px", flexShrink: 0 }}>
           {showCancel && (
             <Tooltip text="Cancel without saving" t={t}>

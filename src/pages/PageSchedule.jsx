@@ -2796,7 +2796,7 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
                 </div>
               ))}
             </div>
-            <div style={{ height: 400 }}>
+            <div style={{ flex: 1, minHeight: 400, display: "flex", flexDirection: "column" }}>
               <TanStackTable
                 data={distMemoDrillDown.schedules}
                 columns={columnDefs}
