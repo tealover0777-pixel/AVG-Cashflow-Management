@@ -63,6 +63,8 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
   const [delT, setDelT] = useState(null);
   const [assetDelT, setAssetDelT] = useState(null);
   const [sel, setSel] = useState(new Set());
+  const [distMemoSel, setDistMemoSel] = useState(new Set());
+  const [distMemoBulkStatus, setDistMemoBulkStatus] = useState("");
   const [rowSelection, setRowSelection] = useState({});
   const [pageSize, setPageSize] = useState(30);
   const [uploadedPhotos, setUploadedPhotos] = useState([]);
@@ -2098,7 +2100,80 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
       },
       onDealClick: (id) => setActivePage("Deals", { dealId: id })
     });
-  }, [isDark, t, CONTACTS, DEALS, INVESTMENTS, scheduleCollection]);
+  }, [isDark, t, CONTACTS, DEALS, INVESTMENTS, scheduleCollection, user?.uid]);
+
+  const memoDrillDownColumnDefs = useMemo(() => {
+    return scheduleColumnDefs.map(col => {
+      if (col.accessorKey === 'status') {
+        return {
+          ...col,
+          cell: ({ row }) => {
+            const val = row.original.status;
+            return (
+              <select
+                value={val || ""}
+                onChange={async (e) => {
+                  const newStatus = e.target.value;
+                  const s = row.original;
+                  if (s && s.docId) {
+                    try {
+                      const refPath = s._path || `${scheduleCollection}/${s.docId || s.id}`;
+                      const ref = doc(db, refPath);
+                      await updateDoc(ref, { status: newStatus, updated_at: serverTimestamp() });
+                    } catch (err) {
+                      console.error("Update error:", err);
+                    }
+                  }
+                }}
+                style={{ 
+                  fontSize: 11, 
+                  fontWeight: 600,
+                  padding: "4px 8px", 
+                  borderRadius: 6, 
+                  border: `1px solid ${t.surfaceBorder}`, 
+                  background: isDark ? "rgba(255,255,255,0.05)" : "#fff",
+                  color: t.text,
+                  cursor: "pointer",
+                  outline: "none"
+                }}
+              >
+                {paymentStatusOpts.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+              </select>
+            );
+          }
+        };
+      }
+      return col;
+    });
+  }, [scheduleColumnDefs, isDark, t, paymentStatusOpts, scheduleCollection]);
+
+  const handleDistMemoBulkStatus = (status) => {
+    if (!status || distMemoSel.size === 0) return;
+    setConfirmAction({
+      title: "Bulk Status Update",
+      message: `Update status to "${status}" for ${distMemoSel.size} selected schedule(s)?`,
+      onConfirm: async () => {
+        try {
+          await Promise.all([...distMemoSel].map(sid => {
+            const s = distMemoDrillDown.schedules.find(s => s.schedule_id === sid);
+            if (s && s.docId) {
+              const refPath = s._path || `${scheduleCollection}/${s.docId || s.id}`;
+              const ref = doc(db, refPath);
+              return updateDoc(ref, { status, updated_at: serverTimestamp() });
+            }
+            return Promise.resolve();
+          }));
+          setDistMemoSel(new Set());
+          setDistMemoBulkStatus("");
+          setConfirmAction(null);
+          showToast(`Statuses updated to ${status}.`, "success");
+        } catch (err) {
+          console.error("Bulk status update error:", err);
+          showToast("Failed to update statuses.", "error");
+        }
+      }
+    });
+  };
 
   const contactColumnDefs = useMemo(() => {
     // Standardized context for contact columns
@@ -4138,7 +4213,11 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
       {distMemoDrillDown.open && (
         <Modal
           open={distMemoDrillDown.open}
-          onClose={() => setDistMemoDrillDown({ open: false, memo: null, schedules: [] })}
+          onClose={() => {
+            setDistMemoDrillDown({ open: false, memo: null, schedules: [] });
+            setDistMemoSel(new Set());
+            setDistMemoBulkStatus("");
+          }}
           title={`Distribution Memo  ${distMemoDrillDown.memo?.period_start || ""}  ~  ${distMemoDrillDown.memo?.period_end || ""}`}
           width={1350}
           titleFont={t.font}
@@ -4159,13 +4238,39 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
               ))}
             </div>
             <div style={{ flex: 1, minHeight: 400, display: "flex", flexDirection: "column" }}>
+              <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 12 }}>
+                {distMemoSel.size > 0 && (
+                  <div style={{ display: "flex", gap: 8, alignItems: "center", background: isDark ? "rgba(255,255,255,0.04)" : "#F9FAFB", padding: "6px 12px", borderRadius: 10, border: `1px solid ${t.surfaceBorder}` }}>
+                    <span style={{ fontSize: 11, fontWeight: 600, color: t.textSecondary }}>{distMemoSel.size} selected</span>
+                    <select 
+                      value={distMemoBulkStatus} 
+                      onChange={e => setDistMemoBulkStatus(e.target.value)} 
+                      style={{ fontSize: 11, padding: "4px 8px", borderRadius: 7, border: `1px solid ${t.surfaceBorder}`, background: t.searchBg, color: t.searchText, cursor: "pointer" }}
+                    >
+                      <option value="" disabled>Bulk status...</option>
+                      {paymentStatusOpts.filter(s => s !== "Missed" && s !== "Partial" && s !== "").map(s => <option key={s} value={s}>{s}</option>)}
+                    </select>
+                    <button 
+                      onClick={() => handleDistMemoBulkStatus(distMemoBulkStatus)} 
+                      disabled={!distMemoBulkStatus} 
+                      style={{ fontSize: 11, fontWeight: 700, padding: "6px 12px", borderRadius: 8, background: distMemoBulkStatus ? t.accentGrad : (isDark ? "rgba(255,255,255,0.06)" : "#E5E7EB"), color: distMemoBulkStatus ? "#fff" : t.textMuted, border: "none", cursor: distMemoBulkStatus ? "pointer" : "default" }}
+                    >
+                      Apply
+                    </button>
+                    <button onClick={() => setDistMemoSel(new Set())} style={{ fontSize: 11, fontWeight: 700, padding: "6px 12px", borderRadius: 8, background: "none", color: t.textMuted, border: `1px solid ${t.surfaceBorder}`, cursor: "pointer" }}>Clear</button>
+                  </div>
+                )}
+              </div>
               <TanStackTable
                 data={distMemoDrillDown.schedules}
-                columns={scheduleColumnDefs}
+                columns={memoDrillDownColumnDefs}
                 pageSize={50}
                 t={t}
                 isDark={isDark}
                 initialSorting={[{ id: 'dueDate', desc: false }]}
+                onSelectionChange={(selectedRows) => {
+                  setDistMemoSel(new Set(selectedRows.map(r => r.schedule_id)));
+                }}
               />
             </div>
         </Modal>
