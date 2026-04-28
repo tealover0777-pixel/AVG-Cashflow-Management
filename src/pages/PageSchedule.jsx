@@ -166,7 +166,7 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
       if (achSnap.empty) {
         await addDoc(collection(db, achBatchPath), {
           ...achPayload,
-          status: "VERSION_CREATED",
+          status: "1. VERSION_CREATED",
           notes: `Auto-generated from Distribution Memo: ${d.memo}`,
           created_at: serverTimestamp()
         });

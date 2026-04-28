@@ -130,7 +130,7 @@ export default function PagePayments({ t, isDark, PAYMENTS = [], INVESTMENTS = [
     };
   }, []);
 
-  const achBatchStatusOpts = (DIMENSIONS.find(d => d.name === "ACHBatchStatus" || d.name === "ACH Batch Status") || {}).items || ["VERSION_CREATED", "STATUS_UPDATED", "PAYMENT_FAILED"];
+  const achBatchStatusOpts = (DIMENSIONS.find(d => d.name === "ACHBatchStatus" || d.name === "ACH Batch Status") || {}).items || ["1. VERSION_CREATED", "STATUS_UPDATED", "PAYMENT_FAILED"];
 
   const close = () => setModal(m => ({ ...m, open: false }));
   const setF = (k, v) => setModal(m => ({ ...m, data: { ...m.data, [k]: v } }));
@@ -151,7 +151,7 @@ export default function PagePayments({ t, isDark, PAYMENTS = [], INVESTMENTS = [
     } });
   };
   
-  const openAddBatch = () => setModal({ open: true, mode: "add", type: "batch", data: { batch_id: `B${Date.now().toString().slice(-6)}`, status: "VERSION_CREATED", notes: "" } });
+  const openAddBatch = () => setModal({ open: true, mode: "add", type: "batch", data: { batch_id: `B${Date.now().toString().slice(-6)}`, status: "1. VERSION_CREATED", notes: "" } });
   const openEditBatch = r => setModal({ open: true, mode: "edit", type: "batch", data: { ...r } });
 
   const openEditLedger = r => setModal({ open: true, mode: "edit", type: "ledger", data: { 
