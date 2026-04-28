@@ -104,8 +104,8 @@ export default function PagePayments({ t, isDark, PAYMENTS = [], INVESTMENTS = [
   };
 
   const memoDrillDownColumnDefs = useMemo(() => {
-    return getDistributionScheduleColumns(t, isDark, INVESTMENTS, CONTACTS, handleInlineScheduleStatus);
-  }, [t, isDark, INVESTMENTS, CONTACTS]);
+    return getDistributionScheduleColumns(t, isDark, INVESTMENTS, CONTACTS, handleInlineScheduleStatus, DEALS);
+  }, [t, isDark, INVESTMENTS, CONTACTS, DEALS]);
 
   const sortedContacts = useMemo(() => {
     return [...CONTACTS].sort((a, b) => (a.name || "").localeCompare(b.name || ""));
@@ -255,7 +255,10 @@ export default function PagePayments({ t, isDark, PAYMENTS = [], INVESTMENTS = [
       if (batch?.dist_memo_id) {
         const memo = distMemos.find(m => m.id === batch.dist_memo_id);
         if (memo) {
-          const linked = SCHEDULES.filter(s => s.dist_memo_id === memo.id);
+          const linked = SCHEDULES.filter(s => 
+            (s.dist_memo_id && s.dist_memo_id === memo.id) || 
+            (s.batch_id && (s.batch_id === batch.batch_id || s.batch_id === batch.id))
+          );
           setDistMemoDrillDown({ open: true, memo, schedules: linked });
           return;
         }

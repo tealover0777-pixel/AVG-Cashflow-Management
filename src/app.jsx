@@ -464,9 +464,10 @@ function AppContent() {
 
       return {
         schedule_id: d.schedule_id || d.id, docId: d.doc_id || d.id, _path: d._path, investment: d.investment_id || "", dueDate: fmtDate(d.due_date),
-        batch_id: d.batch_id || "",
+        batch_id: d.batch_id || d.ach_batch_id || "",
         type: d.payment_type || d.type || "",
         payment: d.payment_amount != null ? d.payment_amount : (Math.abs(d.signed_payment_amount || 0) || (isPrincipal ? d.principal_amount : 0)),
+        payment_method: d.payment_method || "",
         status: d.status || "", direction: dir, fee_id: d.fee_id || "", fee_name: d.fee_name || "",
         contact_id: contactId,
         contact: contactMatch?.contact_name || contactMatch?.party_name || d.contact_name || d.party_name || d.contact_id || d.party_id || "",
@@ -490,6 +491,8 @@ function AppContent() {
         updated_at: d.updated_at, 
         updated_by: d.updated_by || "",
         rollover: d.rollover || false,
+        dist_memo_id: d.dist_memo_id || "",
+        id: d.id,
       };
     });
 
