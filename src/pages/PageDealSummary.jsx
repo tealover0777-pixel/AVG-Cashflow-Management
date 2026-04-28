@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { db, storage } from "../firebase";
-import { doc, getDocs, collection, addDoc, updateDoc, setDoc, deleteDoc, serverTimestamp } from "firebase/firestore";
+import { doc, getDocs, collection, addDoc, updateDoc, setDoc, deleteDoc, serverTimestamp, query, where } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL, deleteObject } from "firebase/storage";
 import { Modal, FF, FIn, FSel, FMultiSel, DelModal, Bdg, ConfirmModal } from "../components";
 import { InvestorSummaryModal } from "../components/InvestorSummaryModal";
@@ -170,7 +170,8 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
         memoId = docRef.id;
         showToast("Distribution memo created", "success");
       } else {
-        await updateDoc(doc(db, d._path), payload);
+        const path = d._path || `${distMemoCollectionPath}/${d.docId || d.id}`;
+        await updateDoc(doc(db, path), payload);
         memoId = d.docId || d.id;
         showToast("Distribution memo updated", "success");
       }
@@ -198,18 +199,27 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
         });
       }
 
-      // 3. Sync with ACH Batches
+      // 3. Sync with ACH Batches (Update existing or create new)
       const achBatchPath = `tenants/${tenantId}/achBatches`;
-      await addDoc(collection(db, achBatchPath), {
+      const q = query(collection(db, achBatchPath), where("dist_memo_id", "==", memoId));
+      const qSnap = await getDocs(q);
+      
+      const achPayload = {
         batch_id: generatedBatchId,
         memo: d.memo,
         status: "VERSION_CREATED",
         deal_id: dealId,
         dist_memo_id: memoId,
         notes: `Auto-generated from Distribution Memo: ${d.memo}`,
-        created_at: serverTimestamp(),
         updated_at: serverTimestamp()
-      });
+      };
+
+      if (!qSnap.empty) {
+        await updateDoc(qSnap.docs[0].ref, achPayload);
+      } else {
+        achPayload.created_at = serverTimestamp();
+        await addDoc(collection(db, achBatchPath), achPayload);
+      }
 
       // 4. Sync with Ledger
       const ledgerPath = `tenants/${tenantId}/ledger`;

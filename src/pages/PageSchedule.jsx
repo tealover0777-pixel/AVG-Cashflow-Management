@@ -9,7 +9,7 @@ import { Document, Packer, Paragraph, Table, TableRow, TableCell, WidthType, Ali
 import { Download, ChevronDown, Table as TableIcon, LayoutPanelLeft } from "lucide-react";
 
 import { db } from "../firebase";
-import { collection, doc, addDoc, updateDoc, deleteDoc, serverTimestamp, getDocs } from "firebase/firestore";
+import { collection, doc, addDoc, updateDoc, deleteDoc, serverTimestamp, getDocs, query, where } from "firebase/firestore";
 import { sortData, badge, initials, av, pmtCalculator_ACT360_30360, getFeeFrequencyString, normalizeDateAtNoon, mkId, fmtCurr as fmtCurrency, splitInvestorName } from "../utils";
 import { StatCard, Bdg, Pagination, Modal, FF, FIn, FSel, FMultiSel, DelModal, Tooltip } from "../components";
 import { InvestorSummaryModal } from "../components/InvestorSummaryModal";
@@ -70,6 +70,8 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
 
   const [distMemoModal, setDistMemoModal] = useState({ open: false, mode: "add", data: {} });
   const [distMemoDelT, setDistMemoDelT] = useState(null);
+  const [toast, setToast] = useState(null);
+  const showToast = (msg, type = "info") => { setToast({ msg, type }); setTimeout(() => setToast(null), 4000); };
 
   const paymentTypeOpts = useMemo(() => {
     const fromDim = [
@@ -82,8 +84,11 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
 
   const handleSaveDistMemo = async () => {
     const d = distMemoModal.data;
+    console.log("handleSaveDistMemo data:", d);
+    
     if (!d.memo) { showToast("Memo name is required", "error"); return; }
     if (!d.deal_id) { showToast("Deal selection is required", "error"); return; }
+    
     try {
       const generatedBatchId = d.batch_id || `B${Date.now().toString().slice(-6)}`;
       
@@ -99,15 +104,16 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
         updated_by: user?.uid || "system",
       };
 
-      let memoId;
+      let memoId = d.docId || d.id;
       if (distMemoModal.mode === "add") {
         payload.created_at = serverTimestamp();
         const docRef = await addDoc(collection(db, distMemoCollectionPath), payload);
         memoId = docRef.id;
         showToast("Distribution memo created", "success");
       } else {
-        await updateDoc(doc(db, d._path), payload);
-        memoId = d.docId || d.id;
+        const path = d._path || `${distMemoCollectionPath}/${memoId}`;
+        console.log("Updating memo at path:", path);
+        await updateDoc(doc(db, path), payload);
         showToast("Distribution memo updated", "success");
       }
 
@@ -137,16 +143,26 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
 
       // Sync with ACH Batches
       const achBatchPath = `tenants/${tenantId}/achBatches`;
-      await addDoc(collection(db, achBatchPath), {
+      const achSnap = await getDocs(query(collection(db, achBatchPath), where("dist_memo_id", "==", memoId)));
+      
+      const achPayload = {
         batch_id: generatedBatchId,
         memo: d.memo,
-        status: "VERSION_CREATED",
         deal_id: d.deal_id,
         dist_memo_id: memoId,
-        notes: `Auto-generated from Distribution Memo: ${d.memo}`,
-        created_at: serverTimestamp(),
         updated_at: serverTimestamp()
-      });
+      };
+
+      if (achSnap.empty) {
+        await addDoc(collection(db, achBatchPath), {
+          ...achPayload,
+          status: "VERSION_CREATED",
+          notes: `Auto-generated from Distribution Memo: ${d.memo}`,
+          created_at: serverTimestamp()
+        });
+      } else {
+        await updateDoc(doc(db, achBatchPath, achSnap.docs[0].id), achPayload);
+      }
 
       // Sync with Ledger
       const ledgerPath = `tenants/${tenantId}/ledger`;
@@ -162,6 +178,7 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
       setDistMemoModal({ open: false, mode: "add", data: {} });
       fetchDistMemos();
     } catch (err) {
+      console.error("handleSaveDistMemo error:", err);
       showToast("Failed to save: " + err.message, "error");
     }
   };
@@ -3046,5 +3063,12 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
         </Modal>
       )}
 
+      {toast && (
+        <div style={{ position: "fixed", bottom: 28, right: 28, zIndex: 9999, background: toast.type === "success" ? (isDark ? "#052e16" : "#f0fdf4") : (isDark ? "#450a0a" : "#fef2f2"), border: `1px solid ${toast.type === "success" ? "#22c55e" : "#ef4444"}`, color: toast.type === "success" ? "#22c55e" : "#ef4444", borderRadius: 12, padding: "14px 20px", fontSize: 13.5, fontWeight: 600, boxShadow: "0 8px 32px rgba(0,0,0,0.18)", display: "flex", alignItems: "center", gap: 10, maxWidth: 380 }}>
+          <span>{toast.type === "success" ? "✅" : "❌"}</span>
+          <span>{toast.msg}</span>
+          <button onClick={() => setToast(null)} style={{ background: "none", border: "none", color: "inherit", cursor: "pointer", fontSize: 16, marginLeft: 8, opacity: 0.7 }}>✕</button>
+        </div>
+      )}
   </>);
 }
