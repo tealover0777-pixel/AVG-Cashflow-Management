@@ -5,7 +5,7 @@ import { fmtCurr } from '../utils';
 const toArr = (v) => Array.isArray(v) ? v : (v ? [v] : []);
 
 export const getDistributionMemoColumns = (isDark, t, context) => {
-  const { SCHEDULES = [], dealId, callbacks } = context;
+  const { SCHEDULES = [], INVESTMENTS = [], CONTACTS = [], dealId, callbacks } = context;
 
   const getLinkedSchedules = (memo) => {
     const types = toArr(memo.payment_type).map(x => x.toLowerCase());
@@ -22,6 +22,13 @@ export const getDistributionMemoColumns = (isDark, t, context) => {
       if (statuses.length > 0) {
         const sSt = (s.status || "").toLowerCase();
         if (!statuses.includes(sSt)) return false;
+      }
+      const methods = toArr(memo.payment_method).map(x => x.toLowerCase());
+      if (methods.length > 0) {
+        const inv = INVESTMENTS.find(iv => iv.id === s.investment_id || iv.docId === s.investment_id);
+        const investor = CONTACTS.find(c => c.id === s.contact_id || c.docId === s.contact_id);
+        const sMethod = (s.payment_method || inv?.payment_method || investor?.payment_method || "").toLowerCase();
+        if (!methods.includes(sMethod)) return false;
       }
       return true;
     });
@@ -94,6 +101,24 @@ export const getDistributionMemoColumns = (isDark, t, context) => {
             {val.map((v, i) => (
               <span key={i} style={{ fontSize: 11, color: t.textSecondary, background: isDark ? "rgba(255,255,255,0.05)" : "#F3F4F6", padding: "1px 6px", borderRadius: 4, display: "inline-block" }}>
                 {v}
+              </span>
+            ))}
+          </div>
+        );
+      }
+    },
+    {
+      header: "Payment Method",
+      accessorKey: "payment_method",
+      size: 150,
+      cell: ({ getValue }) => {
+        const val = toArr(getValue());
+        if (val.length === 0) return <span style={{ color: t.textMuted }}>—</span>;
+        return (
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
+            {val.map(m => (
+              <span key={m} style={{ fontSize: 11, color: t.textSecondary, background: isDark ? "rgba(255,255,255,0.05)" : "#F3F4F6", padding: "1px 6px", borderRadius: 4 }}>
+                {m}
               </span>
             ))}
           </div>

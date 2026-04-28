@@ -158,6 +158,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
         memo: d.memo || "",
         status: d.status || "",
         payment_type: d.payment_type || "",
+        payment_method: d.payment_method || "",
         period_start: d.period_start || "",
         period_end: d.period_end || "",
         batch_id: generatedBatchId,
@@ -181,13 +182,19 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
       // 2. Link Matching Schedules
       const types = Array.isArray(d.payment_type) ? d.payment_type.map(x => x.toLowerCase()) : (d.payment_type ? [d.payment_type.toLowerCase()] : []);
       const statuses = Array.isArray(d.status) ? d.status.map(x => x.toLowerCase()) : (d.status ? [d.status.toLowerCase()] : []);
+      const methods = Array.isArray(d.payment_method) ? d.payment_method.map(x => x.toLowerCase()) : (d.payment_method ? [d.payment_method.toLowerCase()] : []);
       
       const matchingSchedules = activeDealSchedules.filter(s => {
         const sType = (s.type || s.payment_type || "").toLowerCase();
         const due = s.dueDate || s.due_date || "";
+        const inv = INVESTMENTS.find(iv => iv.id === s.investment_id || iv.docId === s.investment_id);
+        const investor = CONTACTS.find(c => c.id === s.contact_id || c.docId === s.contact_id);
+        const sMethod = (s.payment_method || inv?.payment_method || investor?.payment_method || "").toLowerCase();
+
         const typeMatch = types.length === 0 || types.includes(sType);
         const statusMatch = statuses.length === 0 || statuses.includes((s.status || "").toLowerCase());
-        return typeMatch && statusMatch && due >= d.period_start && due <= d.period_end;
+        const methodMatch = methods.length === 0 || methods.includes(sMethod);
+        return typeMatch && statusMatch && methodMatch && due >= d.period_start && due <= d.period_end;
       });
 
       // Update matching schedules with batch_id and dist_memo_id
@@ -2399,7 +2406,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
             )}
             {canAssetCreate && activeTab === "Assets" && <button onClick={openAddAsset} style={{ background: t.accentGrad || t.accent, color: "#fff", border: "none", padding: "11px 20px", borderRadius: 11, fontSize: 13, fontWeight: 600, boxShadow: `0 4px 16px ${t.accentShadow || "none"}`, display: "flex", alignItems: "center", gap: 7 }}><span style={{ fontSize: 18, lineHeight: 1 }}>+</span> Add asset</button>}
             {canCreate && activeTab === "Contacts" && <button onClick={openAddContactModal} style={{ background: t.accentGrad || t.accent, color: "#fff", border: "none", padding: "11px 20px", borderRadius: 11, fontSize: 13, fontWeight: 600, boxShadow: `0 4px 16px ${t.accentShadow || "none"}`, display: "flex", alignItems: "center", gap: 7 }}><span style={{ fontSize: 18, lineHeight: 1 }}>+</span> New Contact</button>}
-            {activeTab === "Distributions" && distributionView === "memo" && <button onClick={() => setDistMemoModal({ open: true, mode: "add", data: { deal_id: dealId } })} style={{ background: t.accentGrad || t.accent, color: "#fff", border: "none", padding: "11px 20px", borderRadius: 11, fontSize: 13, fontWeight: 600, boxShadow: `0 4px 16px ${t.accentShadow || "none"}`, display: "flex", alignItems: "center", gap: 7 }}><span style={{ fontSize: 18, lineHeight: 1 }}>+</span> Add Distribution Memo</button>}
+            {activeTab === "Distributions" && distributionView === "memo" && <button onClick={() => setDistMemoModal({ open: true, mode: "add", data: { deal_id: dealId, status: paymentStatusOpts, payment_method: "" } })} style={{ background: t.accentGrad || t.accent, color: "#fff", border: "none", padding: "11px 20px", borderRadius: 11, fontSize: 13, fontWeight: 600, boxShadow: `0 4px 16px ${t.accentShadow || "none"}`, display: "flex", alignItems: "center", gap: 7 }}><span style={{ fontSize: 18, lineHeight: 1 }}>+</span> Add Distribution Memo</button>}
           </div>
         </div>
       </div>
@@ -2624,6 +2631,8 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
                 data={filteredDistMemos}
                 columns={getDistributionMemoColumns(isDark, t, {
                   SCHEDULES: activeDealSchedules,
+                  INVESTMENTS,
+                  CONTACTS,
                   dealId,
                   callbacks: {
                     onMemoClick: (memo, linked) => setDistMemoDrillDown({ open: true, memo, schedules: linked }),
@@ -3565,7 +3574,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
           <FF label="Start Date" t={t}><FIn value={modal.data.start_date || ""} onChange={e => setF("start_date", e.target.value)} t={t} type="date" /></FF>
           <FF label="Maturity Date" t={t}><FIn value={modal.data.maturity_date || ""} onChange={e => setF("maturity_date", e.target.value)} t={t} type="date" /></FF>
         </div>
-        <FF label="Payment Method" t={t}><FSel value={modal.data.payment_method} onChange={e => setF("payment_method", e.target.value)} options={paymentMethods} t={t} /></FF>
+        <FF label="Payment Method" t={t}><FSel value={modal.data.payment_method || ""} onChange={e => setF("payment_method", e.target.value)} options={paymentMethods} t={t} /></FF>
         {FEES_DATA.filter(f => f.name !== "Late Fee").length > 0 && (
           <FF label="Applicable Fees" t={t}>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
@@ -4170,6 +4179,15 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
               onChange={v => setDistMemoModal(m => ({ ...m, data: { ...m.data, payment_type: v } }))}
               t={t}
               showSelectAll
+            />
+          </FF>
+          <FF label="Select Payment Method to Filter" t={t}>
+            <FSel
+              value={distMemoModal.data.payment_method || ""}
+              options={paymentMethods.map(m => ({ label: m, value: m }))}
+              onChange={e => setDistMemoModal(m => ({ ...m, data: { ...m.data, payment_method: e.target.value } }))}
+              t={t}
+              placeholder="Select Payment Method..."
             />
           </FF>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>

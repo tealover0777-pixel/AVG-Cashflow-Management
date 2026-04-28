@@ -35,6 +35,7 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
   const paymentStatusOpts = (DIMENSIONS.find(d => d.name === "ScheduleStatus" || d.name === "Schedule Status" || d.name === "Payment Status" || d.name === "PaymentStatus") || {}).items
     ?.map(i => String(i || "").trim())
     ?.filter(i => i !== "") || ["Paid", "Due", "Partial", "Hold", "Not Paid", "Reinvested"];
+  const paymentMethods = (DIMENSIONS.find(d => d.name === "Payment Method" || d.name === "PaymentMethod") || {}).items || [];
   const [hov, setHov] = useState(null); const [sel, setSel] = useState(new Set()); const [activeFilter, setActiveFilter] = useState("All");
   const [distMemoSel, setDistMemoSel] = useState(new Set());
   const [distMemoBulkStatus, setDistMemoBulkStatus] = useState("");
@@ -99,6 +100,7 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
         memo: d.memo || "",
         status: d.status || "",
         payment_type: d.payment_type || "",
+        payment_method: d.payment_method || "",
         period_start: d.period_start || "",
         period_end: d.period_end || "",
         batch_id: generatedBatchId,
@@ -122,14 +124,20 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
       // Link Matching Schedules
       const types = Array.isArray(d.payment_type) ? d.payment_type.map(x => x.toLowerCase()) : (d.payment_type ? [d.payment_type.toLowerCase()] : []);
       const statuses = Array.isArray(d.status) ? d.status.map(x => x.toLowerCase()) : (d.status ? [d.status.toLowerCase()] : []);
+      const methods = Array.isArray(d.payment_method) ? d.payment_method.map(x => x.toLowerCase()) : (d.payment_method ? [d.payment_method.toLowerCase()] : []);
       
       const matchingSchedules = SCHEDULES.filter(s => {
         if (s.deal_id !== d.deal_id) return false;
         const sType = (s.type || s.payment_type || "").toLowerCase();
         const due = s.dueDate || s.due_date || "";
+        const inv = INVESTMENTS.find(iv => iv.id === s.investment_id || iv.docId === s.investment_id);
+        const investor = CONTACTS.find(c => c.id === s.contact_id || c.docId === s.contact_id);
+        const sMethod = (s.payment_method || inv?.payment_method || investor?.payment_method || "").toLowerCase();
+
         const typeMatch = types.length === 0 || types.includes(sType);
         const statusMatch = statuses.length === 0 || statuses.includes((s.status || "").toLowerCase());
-        return typeMatch && statusMatch && due >= d.period_start && due <= d.period_end;
+        const methodMatch = methods.length === 0 || methods.includes(sMethod);
+        return typeMatch && statusMatch && methodMatch && due >= d.period_start && due <= d.period_end;
       });
 
       // Update matching schedules
@@ -1855,7 +1863,7 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
       ) : (
         <div style={{ display: "flex", gap: 10, alignItems: "center", flex: 1, justifyContent: "flex-end", marginRight: 20 }}>
            <button 
-             onClick={() => setDistMemoModal({ open: true, mode: "add", data: {} })} 
+             onClick={() => setDistMemoModal({ open: true, mode: "add", data: { deal_id: selectedDealId, status: paymentStatusOpts, payment_method: "" } })} 
              style={{ 
                background: t.accentGrad || t.accent, 
                color: "#fff", 
@@ -1929,7 +1937,8 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
           data={distMemos}
           columns={getDistributionMemoColumns(isDark, t, {
             SCHEDULES,
-            dealId: null,
+            INVESTMENTS,
+            CONTACTS,
             callbacks: {
               onMemoClick: (memo, linked) => setDistMemoDrillDown({ open: true, memo, schedules: linked }),
               onEdit: (row) => setDistMemoModal({ open: true, mode: "edit", data: { ...row } }),
@@ -2711,7 +2720,7 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
           <FSel
             value={distMemoModal.data.deal_id || ""}
             options={DEALS.map(d => ({ label: d.deal_name || d.name || d.id, value: d.id }))}
-            onChange={v => setDistMemoModal(m => ({ ...m, data: { ...m.data, deal_id: v } }))}
+            onChange={e => setDistMemoModal(m => ({ ...m, data: { ...m.data, deal_id: e.target.value } }))}
             t={t}
             placeholder="Choose a deal..."
           />
@@ -2740,6 +2749,15 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
             onChange={v => setDistMemoModal(m => ({ ...m, data: { ...m.data, payment_type: v } }))}
             t={t}
             showSelectAll
+          />
+        </FF>
+        <FF label="Select Payment Method to Filter" t={t}>
+          <FSel
+            value={distMemoModal.data.payment_method || ""}
+            options={paymentMethods.map(m => ({ label: m, value: m }))}
+            onChange={e => setDistMemoModal(m => ({ ...m, data: { ...m.data, payment_method: e.target.value } }))}
+            t={t}
+            placeholder="Select Payment Method..."
           />
         </FF>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
