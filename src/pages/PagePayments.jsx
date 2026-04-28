@@ -155,13 +155,30 @@ export default function PagePayments({ t, isDark, PAYMENTS = [], INVESTMENTS = [
   };
 
   const handleDelete = async () => {
-    if (!delT || !delT.docId) return;
+    if (!delT) return;
+    
     let path = collectionPath;
     if (activeTab === "ACH Batches") path = achBatchPath;
     if (activeTab === "Ledger") path = ledgerPath;
-    
+
     try {
-      await deleteDoc(doc(db, path, delT.docId));
+      if (delT.bulk) {
+        const { writeBatch } = await import("firebase/firestore");
+        const batch = writeBatch(db);
+        const selectedIds = delT.ids;
+        const toDelete = rowData.filter(r => selectedIds.includes(r.id));
+        
+        for (const item of toDelete) {
+          const ref = item._path ? doc(db, item._path) : doc(db, path, item.docId || item.id);
+          batch.delete(ref);
+        }
+        await batch.commit();
+        setSel(new Set());
+      } else {
+        const dId = delT.docId || delT.id;
+        if (!dId) return;
+        await deleteDoc(doc(db, path, dId));
+      }
       setDelT(null);
     } catch (err) { console.error(`Delete ${activeTab} error:`, err); }
   };
@@ -262,29 +279,7 @@ export default function PagePayments({ t, isDark, PAYMENTS = [], INVESTMENTS = [
 
   const handleBulkDelete = async () => {
     if (sel.size === 0) return;
-    const selectedIds = Array.from(sel);
-    const toDelete = rowData.filter(r => selectedIds.includes(r.id));
-    
-    if (!window.confirm(`Are you sure you want to delete ${sel.size} items?`)) return;
-
-    try {
-      const { writeBatch } = await import("firebase/firestore");
-      const batch = writeBatch(db);
-      
-      let path = collectionPath;
-      if (activeTab === "ACH Batches") path = achBatchPath;
-      if (activeTab === "Ledger") path = ledgerPath;
-
-      for (const item of toDelete) {
-        const ref = item._path ? doc(db, item._path) : doc(db, path, item.docId || item.id);
-        batch.delete(ref);
-      }
-      
-      await batch.commit();
-      setSel(new Set());
-    } catch (err) {
-      console.error("Bulk delete error:", err);
-    }
+    setDelT({ bulk: true, count: sel.size, ids: Array.from(sel) });
   };
 
   return (<>
@@ -463,7 +458,15 @@ export default function PagePayments({ t, isDark, PAYMENTS = [], INVESTMENTS = [
         </>
       )}
     </Modal>
-    <DelModal target={delT} onClose={() => setDelT(null)} onConfirm={handleDelete} label={`This ${activeTab.slice(0, -1)}`} t={t} isDark={isDark} />
+    <DelModal 
+      target={delT} 
+      onClose={() => setDelT(null)} 
+      onConfirm={handleDelete} 
+      title={delT?.bulk ? `Delete ${delT.count} items?` : null}
+      label={delT?.bulk ? `These ${delT.count} selected items` : `This ${activeTab.slice(0, -1)}`} 
+      t={t} 
+      isDark={isDark} 
+    />
 
     {/* Batch Summary Modal */}
     <Modal 
