@@ -89,6 +89,26 @@ export const getDistributionColumns = (isDark, t, CONTACTS, DEALS, INVESTMENTS =
     ),
   },
   {
+    id: 'paymentMethod',
+    header: 'Payment Method',
+    accessorFn: (row) => {
+      const cid = row.contact_id || row.party_id || "";
+      const c = (CONTACTS || []).find(x => x.id === cid || x.docId === cid || x.contact_id === cid);
+      const inv = (INVESTMENTS || []).find(x => x.id === row.investment_id || x.id === row.investment);
+      return row.payment_method || inv?.payment_method || c?.payment_method || "";
+    },
+    size: 140,
+    cell: ({ getValue }) => {
+      const val = getValue();
+      if (!val) return <span style={{ color: t.textMuted }}>—</span>;
+      return (
+        <span style={{ fontSize: '11px', fontWeight: 500, color: t.textSecondary }}>
+          {val}
+        </span>
+      );
+    }
+  },
+  {
     accessorKey: 'term_start',
     header: 'START DATE',
     size: 110,

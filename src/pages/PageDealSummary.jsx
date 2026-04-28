@@ -4213,11 +4213,21 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
               <div style={{ fontSize: 12, fontWeight: 600, color: isDark ? "#93C5FD" : "#1D4ED8" }}>
                 {(() => {
                   const types = Array.isArray(distMemoModal.data.payment_type) ? distMemoModal.data.payment_type.map(x => x.toLowerCase()) : [];
+                  const statuses = Array.isArray(distMemoModal.data.status) ? distMemoModal.data.status.map(x => x.toLowerCase()) : [];
+                  const methods = distMemoModal.data.payment_method ? [distMemoModal.data.payment_method.toLowerCase()] : [];
+
                   const count = activeDealSchedules.filter(s => {
                     const sType = (s.type || s.payment_type || "").toLowerCase();
                     const due = s.dueDate || s.due_date || "";
+                    const inv = INVESTMENTS.find(iv => iv.id === s.investment_id || iv.docId === s.investment_id);
+                    const investor = CONTACTS.find(c => c.id === s.contact_id || c.docId === s.contact_id);
+                    const sMethod = (s.payment_method || inv?.payment_method || investor?.payment_method || "").toLowerCase();
+
                     const typeMatch = types.length === 0 || types.includes(sType);
-                    return typeMatch && due >= distMemoModal.data.period_start && due <= distMemoModal.data.period_end;
+                    const statusMatch = statuses.length === 0 || statuses.includes((s.status || "").toLowerCase());
+                    const methodMatch = methods.length === 0 || methods.includes(sMethod);
+
+                    return typeMatch && statusMatch && methodMatch && due >= distMemoModal.data.period_start && due <= distMemoModal.data.period_end;
                   }).length;
                   return `${count} schedule${count !== 1 ? "s" : ""} will be linked with these criteria`;
                 })()}
