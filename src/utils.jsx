@@ -24,6 +24,14 @@ export const fmtDate = (val) => {
   return d.toISOString().split('T')[0];
 };
 
+export const splitInvestorName = (name) => {
+  const parts = (name || "").trim().split(/\s+/);
+  if (parts.length <= 1) return { firstName: name || "", lastName: "" };
+  const lastName = parts.pop();
+  const firstName = parts.join(" ");
+  return { firstName, lastName };
+};
+
 
 export const mkId = (pre = "S") => `${pre}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
 

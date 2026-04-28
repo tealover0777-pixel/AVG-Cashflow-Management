@@ -10,7 +10,7 @@ import { Download, ChevronDown, Table as TableIcon, LayoutPanelLeft } from "luci
 
 import { db } from "../firebase";
 import { collection, doc, addDoc, updateDoc, deleteDoc, serverTimestamp, getDocs } from "firebase/firestore";
-import { sortData, badge, initials, av, pmtCalculator_ACT360_30360, getFeeFrequencyString, normalizeDateAtNoon, mkId, fmtCurr as fmtCurrency } from "../utils";
+import { sortData, badge, initials, av, pmtCalculator_ACT360_30360, getFeeFrequencyString, normalizeDateAtNoon, mkId, fmtCurr as fmtCurrency, splitInvestorName } from "../utils";
 import { StatCard, Bdg, Pagination, Modal, FF, FIn, FSel, DelModal, Tooltip } from "../components";
 import { InvestorSummaryModal } from "../components/InvestorSummaryModal";
 import { useAuth } from "../AuthContext";
@@ -34,7 +34,7 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
   const getNextScheduleId = () => mkId("S");
   const paymentStatusOpts = (DIMENSIONS.find(d => d.name === "ScheduleStatus" || d.name === "Schedule Status" || d.name === "Payment Status" || d.name === "PaymentStatus") || {}).items
     ?.map(i => String(i || "").trim())
-    ?.filter(i => i !== "") || ["Due", "Paid", "Partial", "Missed", "Cancelled"];
+    ?.filter(i => i !== "") || ["Paid", "Due", "Partial", "Hold", "Not Paid", "Reinvested"];
   const [hov, setHov] = useState(null); const [sel, setSel] = useState(new Set()); const [activeFilter, setActiveFilter] = useState("All");
   const [showHistory, setShowHistory] = useState(false);
   const [modal, setModal] = useState({ open: false, mode: "add", data: {} });
@@ -189,8 +189,8 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
         const contact = CONTACTS.find(x => x.id === s.contact_id);
         const dealObj = DEALS.find(x => x.id === s.deal_id);
         const inv = INVESTMENTS.find(x => x.id === s.investment_id || x.id === s.investment);
-        const firstName = contact ? (contact.first_name || "") : (s.first_name || "—");
-        const lastName = contact ? (contact.last_name || "") : (s.last_name || "—");
+        const name = contact?.name || s.contact_name || s.investor || "";
+        const { firstName, lastName } = contact?.first_name ? { firstName: contact.first_name, lastName: contact.last_name || "" } : splitInvestorName(name);
         const dealName = dealObj ? (dealObj.deal_name || dealObj.name) : (s.deal_id || "—");
         const type = (s.payment_type || s.type || "").replace(/_/g, ' ');
         const isPrincipalPayment = type.toLowerCase() === "investor principal payment";
@@ -1396,21 +1396,25 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
 
       let amount = parseCurrency(schedule.signed_payment_amount || schedule.signedPaymentAmount || schedule.amount || schedule.payment_amount);
 
-      const scheduleId = schedule.investment_id || schedule.investment || "—";
-      const rowKey = `${contactId}|||${paymentType}|||${scheduleId}`;
+      const freq = inv?.freq || "—";
+      const rate = (inv?.rate || schedule?.rate || "—");
+      const paymentMethod = inv?.payment_method || investor?.payment_method || "—";
+
+      const rowKey = `${String(contactId).trim()}|||${String(paymentType).trim()}|||${String(freq).trim()}|||${String(rate).trim()}|||${String(paymentMethod).trim()}`;
       rowSet.add(rowKey);
       dateSet.add(dueDate);
 
       if (!rowMetadata[rowKey]) {
+        const { firstName, lastName } = investor?.first_name ? { firstName: investor.first_name, lastName: investor.last_name || "" } : splitInvestorName(investor?.name || schedule.contact_id || "");
         rowMetadata[rowKey] = {
-          firstName: investor?.first_name || "",
-          lastName: investor?.last_name || "",
+          firstName,
+          lastName,
           startDate: inv?.start_date || "—",
           endDate: inv?.maturity_date || "—",
-          freq: inv?.freq || "—",
-          rate: (inv?.rate || schedule?.rate || "—"),
-          paymentMethod: inv?.payment_method || investor?.payment_method || "—",
-          scheduleId: scheduleId,
+          freq,
+          rate,
+          paymentMethod,
+          scheduleId: schedule.investment_id || schedule.investment || "—",
           contactId
         };
       }

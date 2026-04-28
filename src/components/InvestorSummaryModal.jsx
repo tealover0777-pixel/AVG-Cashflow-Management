@@ -275,7 +275,7 @@ export const InvestorSummaryModal = ({
   const scheduleFrequencyOpts = (DIMENSIONS.find(d => d.name === "ScheduleFrequency" || d.name === "Schedule Frequency") || {}).items || ["Monthly", "Quarterly", "Semi-Annual", "Annual", "At Maturity"];
   const calculatorOpts = (DIMENSIONS.find(d => d.name === "CalculatorType") || {}).items || ["ACT/360", "30/360", "ACT/ACT", "ACT/365"];
   const FEES_DATA = (DIMENSIONS.find(d => d.name === "Fees") || {}).items || [];
-  const scheduleStatusOpts = (DIMENSIONS.find(d => d.name === "ScheduleStatus" || d.name === "Schedule Status" || d.name === "PaymentStatus" || d.name === "Payment Status") || {}).items?.map(i => String(i || "").trim()).filter(Boolean) || ["Due", "Paid", "Partial", "Missed", "Cancelled", "VOID", "WAIVED"];
+  const scheduleStatusOpts = (DIMENSIONS.find(d => d.name === "ScheduleStatus" || d.name === "Schedule Status" || d.name === "PaymentStatus" || d.name === "Payment Status") || {}).items?.map(i => String(i || "").trim()).filter(Boolean) || ["Paid", "Due", "Partial", "Hold", "Not Paid", "Reinvested"];
 
   const renderDealTable = (items, emptyMsg) => {
       if (!items || items.length === 0) return <div style={{ fontSize: 13, color: t.textMuted, padding: "16px 24px" }}>{emptyMsg}</div>;

@@ -63,7 +63,7 @@ export default function PagePayments({ t, isDark, PAYMENTS = [], INVESTMENTS = [
     };
   }, []);
 
-  const paymentStatusOpts = (DIMENSIONS.find(d => d.name === "PaymentStatus" || d.name === "Payment Status") || {}).items || ["Pending", "Paid", "Failed"];
+  const paymentStatusOpts = (DIMENSIONS.find(d => d.name === "PaymentStatus" || d.name === "Payment Status") || {}).items || ["Paid", "Due", "Partial", "Hold", "Not Paid", "Reinvested"];
   const achBatchStatusOpts = (DIMENSIONS.find(d => d.name === "ACHBatchStatus" || d.name === "ACH Batch Status") || {}).items || ["VERSION_CREATED", "STATUS_UPDATED", "PAYMENT_FAILED"];
 
   const close = () => setModal(m => ({ ...m, open: false }));

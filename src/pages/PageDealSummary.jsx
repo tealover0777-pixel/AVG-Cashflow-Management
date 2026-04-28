@@ -13,7 +13,7 @@ import { getDistributionMemoColumns } from "../components/DistributionMemoTanSta
 import TanStackTable from "../components/TanStackTable";
 import DocumentsTab from "../components/DocumentsTab";
 import { X, Check, Plus, Construction, AlertTriangle, FileCheck, Download, ChevronDown } from "lucide-react";
-import { normalizeDateAtNoon, getFrequencyValue, pmtCalculator_ACT360_30360, feeCalculator_ACT360_30360, fmtCurr, initials, av, badge } from "../utils";
+import { normalizeDateAtNoon, getFrequencyValue, pmtCalculator_ACT360_30360, feeCalculator_ACT360_30360, fmtCurr, initials, av, badge, splitInvestorName } from "../utils";
 
 import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
@@ -32,7 +32,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
   const canAssetDelete = isSuperAdmin || hasPermission("DEAL_DELETE");
   const paymentMethods = (DIMENSIONS.find(d => d.name === "Payment Method" || d.name === "PaymentMethod") || {}).items || [];
   const investmentStatusOpts = (DIMENSIONS.find(d => d.name === "InvestmentStatus" || d.name === "Investment Status") || {}).items?.filter(i => i) || ["Open", "Active", "Closed"];
-  const paymentStatusOpts = (DIMENSIONS.find(d => d.name === "PaymentStatus" || d.name === "Payment Status" || d.name === "ScheduleStatus" || d.name === "Schedule Status") || {}).items?.filter(i => i) || ["Due", "Paid", "Partial", "Missed", "Cancelled"];
+  const paymentStatusOpts = (DIMENSIONS.find(d => d.name === "PaymentStatus" || d.name === "Payment Status" || d.name === "ScheduleStatus" || d.name === "Schedule Status") || {}).items?.filter(i => i) || ["Paid", "Due", "Partial", "Hold", "Not Paid", "Reinvested"];
   const paymentTypeOpts = useMemo(() => {
     const fromDim = [
       ...((DIMENSIONS.find(d => d.name === "IN_PaymentType") || {}).items || []),
@@ -237,8 +237,8 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
         const dealObj = DEALS.find(x => x.id === s.deal_id);
         const inv = INVESTMENTS.find(x => x.id === s.investment_id || x.id === s.investment);
         
-        const firstName = contact?.first_name || s.first_name || "—";
-        const lastName = contact?.last_name || s.last_name || "—";
+        const name = contact?.name || s.contact_name || s.investor || "";
+        const { firstName, lastName } = contact?.first_name ? { firstName: contact.first_name, lastName: contact.last_name || "" } : splitInvestorName(name);
         const dealName = dealObj ? (dealObj.deal_name || dealObj.name) : (s.deal_id || "—");
         const type = (s.payment_type || s.type || "").replace(/_/g, ' ');
         const isPrincipalPayment = type.toLowerCase() === "investor principal payment";
@@ -586,13 +586,13 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
       }
 
       // Key on contact+type+freq+rate+paymentMethod so same investor/investment combo merges into one row
-      const rowKey = `${contactId}|||${paymentType}|||${freq}|||${rate}|||${paymentMethod}`;
+      // We trim and normalize to ensure they merge correctly
+      const rowKey = `${String(contactId).trim()}|||${String(paymentType).trim()}|||${String(freq).trim()}|||${String(rate).trim()}|||${String(paymentMethod).trim()}`;
       rowSet.add(rowKey);
       dateSet.add(dueDate);
 
       if (!rowMetadata[rowKey]) {
-        const firstName = investor?.first_name || (investor?.name || "").split(" ")[0] || "";
-        const lastName = investor?.last_name || (investor?.name || "").split(" ").slice(1).join(" ") || "";
+        const { firstName, lastName } = investor?.first_name ? { firstName: investor.first_name, lastName: investor.last_name || "" } : splitInvestorName(investor?.name || schedule.contact_id || "");
         rowMetadata[rowKey] = {
           firstName,
           lastName,
