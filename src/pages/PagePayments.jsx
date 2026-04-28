@@ -3,7 +3,7 @@ import TanStackTable from "../components/TanStackTable";
 import { getPaymentColumns, getBatchColumns, getLedgerColumns } from "../components/PaymentsTanStackConfig";
 import { db } from "../firebase";
 import { collection, doc, addDoc, updateDoc, deleteDoc, serverTimestamp, getDoc } from "firebase/firestore";
-import { sortData, fmtCurr, fmtDate } from "../utils";
+import { sortData, fmtCurr, fmtDate, splitInvestorName } from "../utils";
 import { Modal, FF, FIn, FSel, DelModal, Tooltip, Bdg } from "../components";
 import { useAuth } from "../AuthContext";
 
@@ -177,7 +177,31 @@ export default function PagePayments({ t, isDark, PAYMENTS = [], INVESTMENTS = [
         _isSchedule: true // Flag to distinguish from actual payment record if needed
       }));
 
-      const merged = [...payments, ...withdrawals];
+      // Include "Paid" or "Partial" schedules that are part of a distribution memo
+      const memoSchedules = SCHEDULES.filter(s => {
+        const sStatus = (s.status || "").toLowerCase();
+        return (sStatus === "paid" || sStatus === "partial") && s.dist_memo_id;
+      }).map(s => {
+        const contact = CONTACTS.find(c => c.id === s.contact_id || c.docId === s.contact_id);
+        const name = contact?.name || s.contact_name || s.investor || "";
+        const { firstName, lastName } = contact?.first_name ? { firstName: contact.first_name, lastName: contact.last_name || "" } : splitInvestorName(name);
+        
+        return {
+          ...s,
+          id: s.id || s.docId,
+          investment: s.investment_id || s.investment || "",
+          contact_name: name,
+          first_name: firstName,
+          last_name: lastName,
+          amount: s.signed_payment_amount || s.payment_amount || s.payment || 0,
+          date: s.due_date || s.dueDate || "",
+          direction: "Sent",
+          status: s.status || "Paid",
+          _isSchedule: true
+        };
+      });
+
+      const merged = [...payments, ...withdrawals, ...memoSchedules];
       baseData = chip === "All" ? merged : merged.filter(p => p.direction === chip);
     } else if (activeTab === "ACH Batches") {
       baseData = ACH_BATCHES;
@@ -389,8 +413,25 @@ export default function PagePayments({ t, isDark, PAYMENTS = [], INVESTMENTS = [
                 const isWithdrawal = t2.includes("withdrawal") || t2.includes("withdrawl") || st.includes("withdrawal") || st.includes("withdrawl");
                 return isWithdrawal && s.batch_id === batchSummary;
               });
+              const matchedMemoSchedules = SCHEDULES.filter(s => {
+                const sStatus = (s.status || "").toLowerCase();
+                return (sStatus === "paid" || sStatus === "partial") && s.dist_memo_id && s.batch_id === batchSummary;
+              });
               
-              const allItems = [...matchedPayments, ...matchedWithdrawals].sort((a, b) => new Date(a.date || a.dueDate) - new Date(b.date || b.dueDate));
+              // Map memo schedules to match the payment/withdrawal row structure
+              const mappedMemoSchedules = matchedMemoSchedules.map(s => {
+                const contact = CONTACTS.find(c => c.id === s.contact_id || c.docId === s.contact_id);
+                return {
+                  ...s,
+                  date: s.due_date || s.dueDate,
+                  contact: contact?.name || s.contact_name || s.investor || s.contact_id,
+                  investment: s.investment_id || s.investment,
+                  type: s.payment_type || s.type,
+                  amount: s.signed_payment_amount || s.payment_amount || s.payment || 0
+                };
+              });
+              
+              const allItems = [...matchedPayments, ...matchedWithdrawals, ...mappedMemoSchedules].sort((a, b) => new Date(a.date || a.dueDate) - new Date(b.date || b.dueDate));
               
               if (allItems.length === 0) return <tr><td colSpan="5" style={{ padding: 24, textAlign: 'center', color: t.textSubtle }}>No payments assigned to this batch.</td></tr>;
               

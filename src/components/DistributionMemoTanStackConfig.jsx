@@ -123,6 +123,16 @@ export const getDistributionMemoColumns = (isDark, t, context) => {
       sortingFn: 'datetime'
     },
     {
+      header: "Batch ID",
+      accessorKey: "batch_id",
+      size: 130,
+      cell: ({ getValue }) => {
+        const val = getValue();
+        if (!val) return <span style={{ color: t.textMuted }}>—</span>;
+        return <span style={{ fontFamily: t.mono, fontSize: 12, fontWeight: 600, color: t.accent }}>{val}</span>;
+      }
+    },
+    {
       header: "Actions",
       id: "actions",
       size: 90,

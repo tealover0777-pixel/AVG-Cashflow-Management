@@ -148,6 +148,9 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
     const d = distMemoModal.data;
     if (!d.memo) { showToast("Memo name is required", "error"); return; }
     try {
+      // 1. Generate Batch ID if it doesn't exist
+      const generatedBatchId = d.batch_id || `B${Date.now().toString().slice(-6)}`;
+      
       const payload = {
         deal_id: dealId,
         memo: d.memo || "",
@@ -155,17 +158,70 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
         payment_type: d.payment_type || "",
         period_start: d.period_start || "",
         period_end: d.period_end || "",
+        batch_id: generatedBatchId,
         updated_at: serverTimestamp(),
         updated_by: user?.uid || "system",
       };
+
+      let memoId;
       if (distMemoModal.mode === "add") {
         payload.created_at = serverTimestamp();
-        await addDoc(collection(db, distMemoCollectionPath), payload);
+        const docRef = await addDoc(collection(db, distMemoCollectionPath), payload);
+        memoId = docRef.id;
         showToast("Distribution memo created", "success");
       } else {
         await updateDoc(doc(db, d._path), payload);
+        memoId = d.docId || d.id;
         showToast("Distribution memo updated", "success");
       }
+
+      // 2. Link Matching Schedules
+      const types = Array.isArray(d.payment_type) ? d.payment_type.map(x => x.toLowerCase()) : (d.payment_type ? [d.payment_type.toLowerCase()] : []);
+      const statuses = Array.isArray(d.status) ? d.status.map(x => x.toLowerCase()) : (d.status ? [d.status.toLowerCase()] : []);
+      
+      const matchingSchedules = activeDealSchedules.filter(s => {
+        const sType = (s.type || s.payment_type || "").toLowerCase();
+        const due = s.dueDate || s.due_date || "";
+        const typeMatch = types.length === 0 || types.includes(sType);
+        const statusMatch = statuses.length === 0 || statuses.includes((s.status || "").toLowerCase());
+        return typeMatch && statusMatch && due >= d.period_start && due <= d.period_end;
+      });
+
+      // Update matching schedules with batch_id and dist_memo_id
+      const schedulePath = `tenants/${tenantId}/${scheduleCollection}`;
+      for (const s of matchingSchedules) {
+        const sRef = s._path ? doc(db, s._path) : doc(db, schedulePath, s.docId || s.id);
+        await updateDoc(sRef, {
+          batch_id: generatedBatchId,
+          dist_memo_id: memoId,
+          updated_at: serverTimestamp()
+        });
+      }
+
+      // 3. Sync with ACH Batches
+      const achBatchPath = `tenants/${tenantId}/achBatches`;
+      await addDoc(collection(db, achBatchPath), {
+        batch_id: generatedBatchId,
+        memo: d.memo,
+        status: "VERSION_CREATED",
+        deal_id: dealId,
+        dist_memo_id: memoId,
+        notes: `Auto-generated from Distribution Memo: ${d.memo}`,
+        created_at: serverTimestamp(),
+        updated_at: serverTimestamp()
+      });
+
+      // 4. Sync with Ledger
+      const ledgerPath = `tenants/${tenantId}/ledger`;
+      await addDoc(collection(db, ledgerPath), {
+        entity_type: "DistributionMemo",
+        entity_id: memoId,
+        batch_id: generatedBatchId,
+        deal_id: dealId,
+        note: `Distribution Memo saved: ${d.memo}. ${matchingSchedules.length} schedules linked.`,
+        created_at: serverTimestamp()
+      });
+
       setDistMemoModal({ open: false, mode: "add", data: {} });
       fetchDistMemos();
     } catch (err) {
