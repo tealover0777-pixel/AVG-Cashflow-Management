@@ -4,9 +4,9 @@ import { getPaymentColumns, getBatchColumns, getLedgerColumns } from "../compone
 import { db } from "../firebase";
 import { collection, doc, addDoc, updateDoc, deleteDoc, serverTimestamp, getDoc, onSnapshot, query, where } from "firebase/firestore";
 import { sortData, fmtCurr, fmtDate, splitInvestorName } from "../utils";
-import { Modal, FF, FIn, FSel, DelModal, Tooltip, Bdg, AlertTriangle } from "../components";
+import { Modal, FF, FIn, FSel, DelModal, Tooltip, Bdg } from "../components";
 import { getDistributionScheduleColumns } from "../components/DistributionScheduleTanStackConfig";
-import { AlertTriangle as AlertIcon, FileCheck } from "lucide-react";
+import { AlertTriangle, FileCheck } from "lucide-react";
 import { useAuth } from "../AuthContext";
 
 export default function PagePayments({ t, isDark, PAYMENTS = [], INVESTMENTS = [], CONTACTS = [], SCHEDULES = [], DIMENSIONS = [], ACH_BATCHES = [], LEDGER = [], collectionPath = "", achBatchPath = "", ledgerPath = "" }) {

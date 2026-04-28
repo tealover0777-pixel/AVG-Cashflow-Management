@@ -248,3 +248,44 @@ export const getDistributionColumns = (isDark, t, CONTACTS, DEALS, INVESTMENTS =
     }
   }
 ];
+
+export const getDistributionScheduleColumns = (t, isDark, INVESTMENTS, CONTACTS, onStatusChange, DEALS = [], statusOpts = ["Paid", "Due", "Partial", "Hold", "Not Paid", "Reinvested"]) => {
+  const base = getDistributionColumns(isDark, t, CONTACTS, DEALS, INVESTMENTS);
+  return base.map(col => {
+    if (col.accessorKey === 'status' || col.id === 'status') {
+      return {
+        ...col,
+        cell: ({ row }) => {
+          const val = row.original.status || row.original.payment_status;
+          return (
+            <select
+              value={val || ""}
+              style={{
+                width: '100%',
+                padding: '4px 8px',
+                borderRadius: '6px',
+                fontSize: '11px',
+                fontWeight: 600,
+                border: `1px solid ${isDark ? '#374151' : '#E5E7EB'}`,
+                backgroundColor: isDark ? '#1F2937' : '#FFFFFF',
+                color: isDark ? '#F3F4F6' : '#111827',
+                cursor: 'pointer',
+                outline: 'none',
+                appearance: 'none',
+                textAlign: 'center'
+              }}
+              onChange={(e) => onStatusChange(row.original.id || row.original.docId, e.target.value)}
+              onClick={(e) => e.stopPropagation()}
+            >
+              {statusOpts.map(opt => (
+                <option key={opt} value={opt}>{opt}</option>
+              ))}
+            </select>
+          );
+        }
+      };
+    }
+    return col;
+  });
+};
+
