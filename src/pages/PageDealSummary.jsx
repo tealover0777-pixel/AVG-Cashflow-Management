@@ -589,7 +589,8 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
           freq: inv?.freq || "—",
           rate: (inv?.rate || schedule?.rate || "—"),
           paymentMethod: inv?.payment_method || investor?.payment_method || "—",
-          scheduleId: scheduleId
+          scheduleId: scheduleId,
+          contactId: investor?.id || schedule.contact_id || null
         };
       }
 
@@ -2807,13 +2808,13 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
                             }}>
                               <span
                                 onClick={() => {
-                                  // Can update logic later if needed
-                                  // const inv = CONTACTS.find(c => c.first_name === row.firstName && c.last_name === row.lastName);
-                                  // if (inv) setDetailContact({ data: inv, view: "simple" });
+                                  const c = CONTACTS.find(x => x.id === row.contactId || x.docId === row.contactId);
+                                  if (c) setDetailContact({ data: c, view: "simple" });
                                 }}
                                 style={{
                                   color: isDark ? "#60A5FA" : "#4F46E5",
-                                  fontWeight: 600
+                                  fontWeight: 600,
+                                  cursor: row.contactId ? "pointer" : "default"
                                 }}
                               >
                                 {row.firstName}
@@ -2837,9 +2838,14 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
                               whiteSpace: "nowrap"
                             }}>
                               <span
+                                onClick={() => {
+                                  const c = CONTACTS.find(x => x.id === row.contactId || x.docId === row.contactId);
+                                  if (c) setDetailContact({ data: c, view: "simple" });
+                                }}
                                 style={{
                                   color: isDark ? "#60A5FA" : "#4F46E5",
-                                  fontWeight: 600
+                                  fontWeight: 600,
+                                  cursor: row.contactId ? "pointer" : "default"
                                 }}
                               >
                                 {row.lastName}
