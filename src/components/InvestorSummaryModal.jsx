@@ -52,6 +52,9 @@ export const InvestorSummaryModal = ({
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const [isDraggingModal, setIsDraggingModal] = useState(false);
   const dragOffsetRef = useRef({ x: 0, y: 0 });
+  const [resizeW, setResizeW] = useState(null);
+  const [resizeH, setResizeH] = useState(null);
+  const modalContainerRef = useRef(null);
 
   const onHeaderMouseDown = React.useCallback((e) => {
     if (e.button !== 0 || e.target.closest("button")) return;
@@ -66,6 +69,25 @@ export const InvestorSummaryModal = ({
     };
     const onUp = () => {
       setIsDraggingModal(false);
+      document.removeEventListener("mousemove", onMove);
+      document.removeEventListener("mouseup", onUp);
+    };
+    document.addEventListener("mousemove", onMove);
+    document.addEventListener("mouseup", onUp);
+  }, []);
+
+  const onResizeStart = React.useCallback((e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const el = modalContainerRef.current;
+    if (!el) return;
+    const { width: startW, height: startH } = el.getBoundingClientRect();
+    const startMx = e.clientX, startMy = e.clientY;
+    const onMove = (e) => {
+      setResizeW(Math.max(480, startW + e.clientX - startMx));
+      setResizeH(Math.max(360, startH + e.clientY - startMy));
+    };
+    const onUp = () => {
       document.removeEventListener("mousemove", onMove);
       document.removeEventListener("mouseup", onUp);
     };
@@ -712,7 +734,7 @@ export const InvestorSummaryModal = ({
   return (
     <div style={{ position: "fixed", inset: 0, zIndex: 9999, background: "rgba(0,0,0,0.6)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center" }}>
       <div onClick={onClose} style={{ position: "absolute", inset: 0 }} />
-      <div style={{ position: "relative", background: isDark ? "#0F0F0F" : "#fff", borderRadius: 16, padding: 0, maxWidth: 1100, width: "95%", height: "90vh", display: "flex", flexDirection: "column", boxShadow: "0 24px 60px rgba(0,0,0,0.4)", border: `1px solid ${isDark ? "rgba(255,255,255,0.08)" : "#E5E7EB"}`, overflow: "hidden", transform: `translate(${dragOffset.x}px, ${dragOffset.y}px)`, resize: "both", minWidth: 480, minHeight: 360 }}>
+      <div ref={modalContainerRef} style={{ position: "relative", background: isDark ? "#0F0F0F" : "#fff", borderRadius: 16, padding: 0, width: resizeW || "95%", maxWidth: resizeW ? "none" : 1100, height: resizeH || "90vh", display: "flex", flexDirection: "column", boxShadow: "0 24px 60px rgba(0,0,0,0.4)", border: `1px solid ${isDark ? "rgba(255,255,255,0.08)" : "#E5E7EB"}`, overflow: "hidden", transform: `translate(${dragOffset.x}px, ${dragOffset.y}px)`, minWidth: 480, minHeight: 360 }}>
 
         <div onMouseDown={onHeaderMouseDown} style={{ padding: "32px 40px 0 40px", flexShrink: 0, cursor: isDraggingModal ? "grabbing" : "grab", userSelect: "none" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 24 }}>
@@ -812,6 +834,13 @@ export const InvestorSummaryModal = ({
 
         <div style={{ flex: 1, overflow: "auto", padding: "32px 40px", background: isDark ? "#141414" : "#F9FAFB" }}>
           {renderTabContent()}
+        </div>
+        <div onMouseDown={onResizeStart} style={{ position: "absolute", right: 0, bottom: 0, width: 22, height: 22, cursor: "nwse-resize", zIndex: 10, display: "flex", alignItems: "flex-end", justifyContent: "flex-end", padding: 4 }}>
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+            <line x1="2" y1="13" x2="13" y2="2" stroke={isDark ? "#6B7280" : "#94A3B8"} strokeWidth="2" strokeLinecap="round"/>
+            <line x1="7" y1="13" x2="13" y2="7" stroke={isDark ? "#6B7280" : "#94A3B8"} strokeWidth="2" strokeLinecap="round"/>
+            <line x1="12" y1="13" x2="13" y2="12" stroke={isDark ? "#6B7280" : "#94A3B8"} strokeWidth="2" strokeLinecap="round"/>
+          </svg>
         </div>
       </div>
       <Modal

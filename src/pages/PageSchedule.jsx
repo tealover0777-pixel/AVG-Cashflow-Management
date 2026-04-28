@@ -189,9 +189,8 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
         const contact = CONTACTS.find(x => x.id === s.contact_id);
         const dealObj = DEALS.find(x => x.id === s.deal_id);
         const inv = INVESTMENTS.find(x => x.id === s.investment_id || x.id === s.investment);
-        const investorName = contact ? contact.name : (s.contact_name || s.investor || "—");
-        const firstName = investorName?.split(' ')[0] || '';
-        const lastName = investorName?.split(' ').slice(1).join(' ') || '';
+        const firstName = contact ? (contact.first_name || "") : (s.first_name || "—");
+        const lastName = contact ? (contact.last_name || "") : (s.last_name || "—");
         const dealName = dealObj ? (dealObj.deal_name || dealObj.name) : (s.deal_id || "—");
         const type = (s.payment_type || s.type || "").replace(/_/g, ' ');
         const isPrincipalPayment = type.toLowerCase() === "investor principal payment";
@@ -207,7 +206,8 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
         })();
         const freq = s.frequency || inv?.freq || inv?.payment_frequency || s.freq || "—";
         return [
-          investorName,
+          firstName,
+          lastName,
           dealName,
           startDate,
           paymentDate,
@@ -1374,8 +1374,8 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
     };
 
     rowData.forEach(schedule => {
-      const investor = CONTACTS.find(c => c.id === schedule.contact_id);
-      const investorName = investor ? investor.name : schedule.contact_id || "Unknown";
+      const investor = CONTACTS.find(c => c.id === schedule.contact_id || c.docId === schedule.contact_id);
+      const contactId = investor?.id || investor?.docId || schedule.contact_id || "unknown";
 
       const inv = INVESTMENTS.find(iv => iv.id === (schedule.investment_id || schedule.investment));
       const invStart = inv?.start_date || "";
@@ -1397,25 +1397,28 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
       let amount = parseCurrency(schedule.signed_payment_amount || schedule.signedPaymentAmount || schedule.amount || schedule.payment_amount);
 
       const scheduleId = schedule.investment_id || schedule.investment || "—";
-      const rowKey = `${investorName}|||${paymentType}|||${scheduleId}`;
+      const rowKey = `${contactId}|||${paymentType}|||${scheduleId}`;
       rowSet.add(rowKey);
       dateSet.add(dueDate);
 
       if (!rowMetadata[rowKey]) {
         rowMetadata[rowKey] = {
+          firstName: investor?.first_name || "",
+          lastName: investor?.last_name || "",
           startDate: inv?.start_date || "—",
           endDate: inv?.maturity_date || "—",
           freq: inv?.freq || "—",
           rate: (inv?.rate || schedule?.rate || "—"),
           paymentMethod: inv?.payment_method || investor?.payment_method || "—",
-          scheduleId: scheduleId
+          scheduleId: scheduleId,
+          contactId
         };
       }
 
       const cellKey = `${rowKey}|||${dueDate}`;
       if (!dataMap[cellKey]) dataMap[cellKey] = { amount: 0, records: [] };
       dataMap[cellKey].amount += amount;
-      
+
       let termStart = schedule.term_start || "—";
       if (invStart && termStart !== "—" && termStart < invStart) termStart = invStart;
 
@@ -1432,17 +1435,17 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
     });
 
     const rows = Array.from(rowSet).map(key => {
-      const parts = key.split('|||');
-      const investor = parts[0];
-      const type = parts[1];
+      const meta = rowMetadata[key];
       return {
-        investor,
-        type,
+        firstName: meta.firstName,
+        lastName: meta.lastName,
+        type: key.split('|||')[1],
         key,
-        ...rowMetadata[key]
+        ...meta
       };
     }).sort((a, b) => {
-      if (a.investor !== b.investor) return a.investor.localeCompare(b.investor);
+      if (a.firstName !== b.firstName) return a.firstName.localeCompare(b.firstName);
+      if (a.lastName !== b.lastName) return a.lastName.localeCompare(b.lastName);
       return a.type.localeCompare(b.type);
     });
 
@@ -1452,7 +1455,8 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
 
   const filteredPivotRows = useMemo(() => {
     const filtered = pivotData.rows.filter(row => {
-      const matchInvestor = !pivotFilters.investor || row.investor?.toLowerCase().includes(pivotFilters.investor.toLowerCase());
+      const matchFirstName = !pivotFilters.firstName || row.firstName?.toLowerCase().includes(pivotFilters.firstName.toLowerCase());
+      const matchLastName = !pivotFilters.lastName || row.lastName?.toLowerCase().includes(pivotFilters.lastName.toLowerCase());
       const matchType = !pivotFilters.type || row.type?.replace(/_/g, ' ').toLowerCase().includes(pivotFilters.type.replace(/_/g, ' ').toLowerCase());
       const matchStart = !pivotFilters.startDate || row.startDate?.toLowerCase().includes(pivotFilters.startDate.toLowerCase());
       const matchEnd = !pivotFilters.endDate || row.endDate?.toLowerCase().includes(pivotFilters.endDate.toLowerCase());
@@ -1461,14 +1465,15 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
       const matchSchedule = !pivotFilters.schedule || row.scheduleId?.toLowerCase().includes(pivotFilters.schedule.toLowerCase());
       const matchMethod = !pivotFilters.paymentMethod || row.paymentMethod?.toLowerCase().includes(pivotFilters.paymentMethod.toLowerCase());
 
-      return matchInvestor && matchType && matchStart && matchEnd && matchFreq && matchRate && matchSchedule && matchMethod;
+      return matchFirstName && matchLastName && matchType && matchStart && matchEnd && matchFreq && matchRate && matchSchedule && matchMethod;
     });
 
     let currentInv = null;
     let currentIdx = -1;
     return filtered.map(r => {
-      if (r.investor !== currentInv) {
-        currentInv = r.investor;
+      const fullName = r.firstName + " " + r.lastName;
+      if (fullName !== currentInv) {
+        currentInv = fullName;
         currentIdx++;
       }
       return { ...r, groupIndex: currentIdx };
@@ -1764,12 +1769,12 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
                     borderBottom: `2px solid ${t.surfaceBorder}`,
                     borderRight: `1px solid ${t.surfaceBorder}`,
                   }}>
-                    <div style={{ marginBottom: 8 }}>Investor Name</div>
+                    <div style={{ marginBottom: 8 }}>First Name</div>
                     <input
                       type="text"
                       placeholder="Filter..."
-                      value={pivotFilters.investor}
-                      onChange={(e) => setPivotFilters({ ...pivotFilters, investor: e.target.value })}
+                      value={pivotFilters.firstName}
+                      onChange={(e) => setPivotFilters({ ...pivotFilters, firstName: e.target.value })}
                       style={{ width: "100%", fontSize: 10, padding: "4px 6px", borderRadius: 4, background: isDark ? "#1a1a1a" : "#fff", color: t.text, border: `1px solid ${t.surfaceBorder}` }}
                     />
                     <div onMouseDown={(e) => handleResize(0, e)} style={{ position: "absolute", right: -3, top: 0, bottom: 0, width: 6, cursor: "col-resize", zIndex: 60, transition: "background 0.2s" }} onMouseOver={(e) => e.target.style.background = t.accent} onMouseOut={(e) => e.target.style.background = "transparent"} />
@@ -1790,12 +1795,12 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
                     borderBottom: `2px solid ${t.surfaceBorder}`,
                     borderRight: `1px solid ${t.surfaceBorder}`,
                   }}>
-                    <div style={{ marginBottom: 8 }}>Type</div>
+                    <div style={{ marginBottom: 8 }}>Last Name</div>
                     <input
                       type="text"
                       placeholder="Filter..."
-                      value={pivotFilters.type}
-                      onChange={(e) => setPivotFilters({ ...pivotFilters, type: e.target.value })}
+                      value={pivotFilters.lastName}
+                      onChange={(e) => setPivotFilters({ ...pivotFilters, lastName: e.target.value })}
                       style={{ width: "100%", fontSize: 10, padding: "4px 6px", borderRadius: 4, background: isDark ? "#1a1a1a" : "#fff", color: t.text, border: `1px solid ${t.surfaceBorder}` }}
                     />
                     <div onMouseDown={(e) => handleResize(1, e)} style={{ position: "absolute", right: -3, top: 0, bottom: 0, width: 6, cursor: "col-resize", zIndex: 60, transition: "background 0.2s" }} onMouseOver={(e) => e.target.style.background = t.accent} onMouseOut={(e) => e.target.style.background = "transparent"} />
@@ -1816,12 +1821,12 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
                     borderBottom: `2px solid ${t.surfaceBorder}`,
                     borderRight: `1px solid ${t.surfaceBorder}`,
                   }}>
-                    <div style={{ marginBottom: 8 }}>Start Date</div>
+                    <div style={{ marginBottom: 8 }}>Type</div>
                     <input
                       type="text"
                       placeholder="Filter..."
-                      value={pivotFilters.startDate}
-                      onChange={(e) => setPivotFilters({ ...pivotFilters, startDate: e.target.value })}
+                      value={pivotFilters.type}
+                      onChange={(e) => setPivotFilters({ ...pivotFilters, type: e.target.value })}
                       style={{ width: "100%", fontSize: 10, padding: "4px 6px", borderRadius: 4, background: isDark ? "#1a1a1a" : "#fff", color: t.text, border: `1px solid ${t.surfaceBorder}` }}
                     />
                     <div onMouseDown={(e) => handleResize(2, e)} style={{ position: "absolute", right: -3, top: 0, bottom: 0, width: 6, cursor: "col-resize", zIndex: 60, transition: "background 0.2s" }} onMouseOver={(e) => e.target.style.background = t.accent} onMouseOut={(e) => e.target.style.background = "transparent"} />
@@ -1842,12 +1847,12 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
                     borderBottom: `2px solid ${t.surfaceBorder}`,
                     borderRight: `1px solid ${t.surfaceBorder}`,
                   }}>
-                    <div style={{ marginBottom: 8 }}>Maturity Date</div>
+                    <div style={{ marginBottom: 8 }}>Start Date</div>
                     <input
                       type="text"
                       placeholder="Filter..."
-                      value={pivotFilters.endDate}
-                      onChange={(e) => setPivotFilters({ ...pivotFilters, endDate: e.target.value })}
+                      value={pivotFilters.startDate}
+                      onChange={(e) => setPivotFilters({ ...pivotFilters, startDate: e.target.value })}
                       style={{ width: "100%", fontSize: 10, padding: "4px 6px", borderRadius: 4, background: isDark ? "#1a1a1a" : "#fff", color: t.text, border: `1px solid ${t.surfaceBorder}` }}
                     />
                     <div onMouseDown={(e) => handleResize(3, e)} style={{ position: "absolute", right: -3, top: 0, bottom: 0, width: 6, cursor: "col-resize", zIndex: 60, transition: "background 0.2s" }} onMouseOver={(e) => e.target.style.background = t.accent} onMouseOut={(e) => e.target.style.background = "transparent"} />
@@ -1868,12 +1873,12 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
                     borderBottom: `2px solid ${t.surfaceBorder}`,
                     borderRight: `1px solid ${t.surfaceBorder}`,
                   }}>
-                    <div style={{ marginBottom: 8 }}>Freq</div>
+                    <div style={{ marginBottom: 8 }}>Maturity Date</div>
                     <input
                       type="text"
                       placeholder="Filter..."
-                      value={pivotFilters.freq}
-                      onChange={(e) => setPivotFilters({ ...pivotFilters, freq: e.target.value })}
+                      value={pivotFilters.endDate}
+                      onChange={(e) => setPivotFilters({ ...pivotFilters, endDate: e.target.value })}
                       style={{ width: "100%", fontSize: 10, padding: "4px 6px", borderRadius: 4, background: isDark ? "#1a1a1a" : "#fff", color: t.text, border: `1px solid ${t.surfaceBorder}` }}
                     />
                     <div onMouseDown={(e) => handleResize(4, e)} style={{ position: "absolute", right: -3, top: 0, bottom: 0, width: 6, cursor: "col-resize", zIndex: 60, transition: "background 0.2s" }} onMouseOver={(e) => e.target.style.background = t.accent} onMouseOut={(e) => e.target.style.background = "transparent"} />
@@ -1894,12 +1899,12 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
                     borderBottom: `2px solid ${t.surfaceBorder}`,
                     borderRight: `1px solid ${t.surfaceBorder}`,
                   }}>
-                    <div style={{ marginBottom: 8 }}>Rate</div>
+                    <div style={{ marginBottom: 8 }}>Freq</div>
                     <input
                       type="text"
                       placeholder="Filter..."
-                      value={pivotFilters.rate}
-                      onChange={(e) => setPivotFilters({ ...pivotFilters, rate: e.target.value })}
+                      value={pivotFilters.freq}
+                      onChange={(e) => setPivotFilters({ ...pivotFilters, freq: e.target.value })}
                       style={{ width: "100%", fontSize: 10, padding: "4px 6px", borderRadius: 4, background: isDark ? "#1a1a1a" : "#fff", color: t.text, border: `1px solid ${t.surfaceBorder}` }}
                     />
                     <div onMouseDown={(e) => handleResize(5, e)} style={{ position: "absolute", right: -3, top: 0, bottom: 0, width: 6, cursor: "col-resize", zIndex: 60, transition: "background 0.2s" }} onMouseOver={(e) => e.target.style.background = t.accent} onMouseOut={(e) => e.target.style.background = "transparent"} />
@@ -1920,12 +1925,12 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
                     borderBottom: `2px solid ${t.surfaceBorder}`,
                     borderRight: `1px solid ${t.surfaceBorder}`,
                   }}>
-                    <div style={{ marginBottom: 8 }}>Schedule</div>
+                    <div style={{ marginBottom: 8 }}>Rate</div>
                     <input
                       type="text"
                       placeholder="Filter..."
-                      value={pivotFilters.schedule}
-                      onChange={(e) => setPivotFilters({ ...pivotFilters, schedule: e.target.value })}
+                      value={pivotFilters.rate}
+                      onChange={(e) => setPivotFilters({ ...pivotFilters, rate: e.target.value })}
                       style={{ width: "100%", fontSize: 10, padding: "4px 6px", borderRadius: 4, background: isDark ? "#1a1a1a" : "#fff", color: t.text, border: `1px solid ${t.surfaceBorder}` }}
                     />
                     <div onMouseDown={(e) => handleResize(6, e)} style={{ position: "absolute", right: -3, top: 0, bottom: 0, width: 6, cursor: "col-resize", zIndex: 60, transition: "background 0.2s" }} onMouseOver={(e) => e.target.style.background = t.accent} onMouseOut={(e) => e.target.style.background = "transparent"} />
@@ -1944,6 +1949,32 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
                     minWidth: pivotColWidths[7],
                     maxWidth: pivotColWidths[7],
                     borderBottom: `2px solid ${t.surfaceBorder}`,
+                    borderRight: `1px solid ${t.surfaceBorder}`,
+                  }}>
+                    <div style={{ marginBottom: 8 }}>Schedule</div>
+                    <input
+                      type="text"
+                      placeholder="Filter..."
+                      value={pivotFilters.schedule}
+                      onChange={(e) => setPivotFilters({ ...pivotFilters, schedule: e.target.value })}
+                      style={{ width: "100%", fontSize: 10, padding: "4px 6px", borderRadius: 4, background: isDark ? "#1a1a1a" : "#fff", color: t.text, border: `1px solid ${t.surfaceBorder}` }}
+                    />
+                    <div onMouseDown={(e) => handleResize(7, e)} style={{ position: "absolute", right: -3, top: 0, bottom: 0, width: 6, cursor: "col-resize", zIndex: 60, transition: "background 0.2s" }} onMouseOver={(e) => e.target.style.background = t.accent} onMouseOut={(e) => e.target.style.background = "transparent"} />
+                  </th>
+                  <th style={{
+                    padding: "10px 12px",
+                    textAlign: "left",
+                    fontWeight: 700,
+                    color: t.text,
+                    position: "sticky",
+                    left: pivotOffsets[8],
+                    top: 0,
+                    background: isDark ? "#262626" : "#F9FAFB",
+                    zIndex: 50,
+                    width: pivotColWidths[8],
+                    minWidth: pivotColWidths[8],
+                    maxWidth: pivotColWidths[8],
+                    borderBottom: `2px solid ${t.surfaceBorder}`,
                     borderRight: `2px solid ${t.surfaceBorder}`,
                   }}>
                     <div style={{ marginBottom: 8 }}>Method</div>
@@ -1954,7 +1985,7 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
                       onChange={(e) => setPivotFilters({ ...pivotFilters, paymentMethod: e.target.value })}
                       style={{ width: "100%", fontSize: 10, padding: "4px 6px", borderRadius: 4, background: isDark ? "#1a1a1a" : "#fff", color: t.text, border: `1px solid ${t.surfaceBorder}` }}
                     />
-                    <div onMouseDown={(e) => handleResize(7, e)} style={{ position: "absolute", right: -3, top: 0, bottom: 0, width: 6, cursor: "col-resize", zIndex: 60, transition: "background 0.2s" }} onMouseOver={(e) => e.target.style.background = t.accent} onMouseOut={(e) => e.target.style.background = "transparent"} />
+                    <div onMouseDown={(e) => handleResize(8, e)} style={{ position: "absolute", right: -3, top: 0, bottom: 0, width: 6, cursor: "col-resize", zIndex: 60, transition: "background 0.2s" }} onMouseOver={(e) => e.target.style.background = t.accent} onMouseOut={(e) => e.target.style.background = "transparent"} />
                   </th>
 
                   {pivotData.dates.map((date, idx) => (
@@ -2002,7 +2033,8 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
               <tbody>
                 {filteredPivotRows.map((row, idx) => {
                   let rowTotal = 0;
-                  const isLastInGroup = idx === filteredPivotRows.length - 1 || filteredPivotRows[idx + 1].investor !== row.investor;
+                  const nextRow = filteredPivotRows[idx + 1];
+                  const isLastInGroup = idx === filteredPivotRows.length - 1 || (nextRow.firstName + " " + nextRow.lastName) !== (row.firstName + " " + row.lastName);
 
                   return (
                     <tr key={row.key} style={{
@@ -2026,11 +2058,12 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
                         textOverflow: "ellipsis",
                         whiteSpace: "nowrap"
                       }}>
-                        {row.investor}
+                        {row.firstName}
                       </td>
                       <td style={{
                         padding: "12px",
-                        color: t.textSecondary,
+                        fontWeight: 600,
+                        color: t.text,
                         position: "sticky",
                         left: pivotOffsets[1],
                         background: isDark ? (idx % 2 === 0 ? "#121212" : "#1a1a1a") : (idx % 2 === 0 ? "#fff" : "#F9FAFB"),
@@ -2040,13 +2073,15 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
                         width: pivotColWidths[1],
                         minWidth: pivotColWidths[1],
                         maxWidth: pivotColWidths[1],
-                        textTransform: "capitalize"
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap"
                       }}>
-                        {row.type.replace(/_/g, ' ')}
+                        {row.lastName}
                       </td>
                       <td style={{
                         padding: "12px",
-                        color: t.textMuted,
+                        color: t.textSecondary,
                         position: "sticky",
                         left: pivotOffsets[2],
                         background: isDark ? (idx % 2 === 0 ? "#121212" : "#1a1a1a") : (idx % 2 === 0 ? "#fff" : "#F9FAFB"),
@@ -2055,9 +2090,10 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
                         borderBottom: isLastInGroup ? `1.5px solid ${t.surfaceBorder}` : `1px solid ${t.surfaceBorder}`,
                         width: pivotColWidths[2],
                         minWidth: pivotColWidths[2],
-                        maxWidth: pivotColWidths[2]
+                        maxWidth: pivotColWidths[2],
+                        textTransform: "capitalize"
                       }}>
-                        {row.startDate}
+                        {row.type.replace(/_/g, ' ')}
                       </td>
                       <td style={{
                         padding: "12px",
@@ -2072,7 +2108,7 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
                         minWidth: pivotColWidths[3],
                         maxWidth: pivotColWidths[3]
                       }}>
-                        {row.endDate}
+                        {row.startDate}
                       </td>
                       <td style={{
                         padding: "12px",
@@ -2087,7 +2123,7 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
                         minWidth: pivotColWidths[4],
                         maxWidth: pivotColWidths[4]
                       }}>
-                        {row.freq}
+                        {row.endDate}
                       </td>
                       <td style={{
                         padding: "12px",
@@ -2102,7 +2138,7 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
                         minWidth: pivotColWidths[5],
                         maxWidth: pivotColWidths[5]
                       }}>
-                        {row.rate}%
+                        {row.freq}
                       </td>
                       <td style={{
                         padding: "12px",
@@ -2117,7 +2153,7 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
                         minWidth: pivotColWidths[6],
                         maxWidth: pivotColWidths[6]
                       }}>
-                        {row.scheduleId}
+                        {row.rate}%
                       </td>
                       <td style={{
                         padding: "12px",
@@ -2126,11 +2162,26 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
                         left: pivotOffsets[7],
                         background: isDark ? (idx % 2 === 0 ? "#121212" : "#1a1a1a") : (idx % 2 === 0 ? "#fff" : "#F9FAFB"),
                         zIndex: 30,
-                        borderRight: `2px solid ${t.surfaceBorder}`,
+                        borderRight: `1px solid ${t.surfaceBorder}`,
                         borderBottom: isLastInGroup ? `1.5px solid ${t.surfaceBorder}` : `1px solid ${t.surfaceBorder}`,
                         width: pivotColWidths[7],
                         minWidth: pivotColWidths[7],
                         maxWidth: pivotColWidths[7]
+                      }}>
+                        {row.scheduleId}
+                      </td>
+                      <td style={{
+                        padding: "12px",
+                        color: t.textMuted,
+                        position: "sticky",
+                        left: pivotOffsets[8],
+                        background: isDark ? (idx % 2 === 0 ? "#121212" : "#1a1a1a") : (idx % 2 === 0 ? "#fff" : "#F9FAFB"),
+                        zIndex: 30,
+                        borderRight: `2px solid ${t.surfaceBorder}`,
+                        borderBottom: isLastInGroup ? `1.5px solid ${t.surfaceBorder}` : `1px solid ${t.surfaceBorder}`,
+                        width: pivotColWidths[8],
+                        minWidth: pivotColWidths[8],
+                        maxWidth: pivotColWidths[8]
                       }}>
                         {row.paymentMethod}
                       </td>

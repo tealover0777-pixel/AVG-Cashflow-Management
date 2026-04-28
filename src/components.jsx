@@ -383,9 +383,12 @@ export const Modal = ({ open, onClose, title, onSave, saveLabel, secondaryAction
   const [offset, setOffset] = React.useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = React.useState(false);
   const offsetRef = React.useRef({ x: 0, y: 0 });
+  const [resizeW, setResizeW] = React.useState(null);
+  const [resizeH, setResizeH] = React.useState(null);
+  const modalRef = React.useRef(null);
 
   React.useEffect(() => {
-    if (open) { setOffset({ x: 0, y: 0 }); offsetRef.current = { x: 0, y: 0 }; }
+    if (open) { setOffset({ x: 0, y: 0 }); offsetRef.current = { x: 0, y: 0 }; setResizeW(null); setResizeH(null); }
   }, [open]);
 
   const onHeaderMouseDown = React.useCallback((e) => {
@@ -408,11 +411,30 @@ export const Modal = ({ open, onClose, title, onSave, saveLabel, secondaryAction
     document.addEventListener("mouseup", onUp);
   }, []);
 
+  const onResizeStart = React.useCallback((e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const el = modalRef.current;
+    if (!el) return;
+    const { width: startW, height: startH } = el.getBoundingClientRect();
+    const startMx = e.clientX, startMy = e.clientY;
+    const onMove = (e) => {
+      setResizeW(Math.max(320, startW + e.clientX - startMx));
+      setResizeH(Math.max(180, startH + e.clientY - startMy));
+    };
+    const onUp = () => {
+      document.removeEventListener("mousemove", onMove);
+      document.removeEventListener("mouseup", onUp);
+    };
+    document.addEventListener("mousemove", onMove);
+    document.addEventListener("mouseup", onUp);
+  }, []);
+
   if (!open) return null;
   return (
     <div style={{ position: "fixed", inset: 0, zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center" }}>
       <div onClick={onClose} style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.55)", backdropFilter: "blur(6px)" }} />
-      <div style={{ position: "relative", zIndex: 1, background: isDark ? "#0b1929" : "#ffffff", borderRadius: 20, border: `1px solid ${t.surfaceBorder}`, width: width || 480, maxWidth: "92vw", maxHeight: "88vh", display: "flex", flexDirection: "column", boxShadow: isDark ? "0 40px 100px rgba(0,0,0,0.7)" : "0 24px 60px rgba(0,0,0,0.13)", transform: `translate(${offset.x}px, ${offset.y}px)`, resize: "both", overflow: "hidden", minWidth: 320, minHeight: 180 }}>
+      <div ref={modalRef} style={{ position: "relative", zIndex: 1, background: isDark ? "#0b1929" : "#ffffff", borderRadius: 20, border: `1px solid ${t.surfaceBorder}`, width: resizeW || (width || 480), maxWidth: resizeW ? "none" : "92vw", height: resizeH || "auto", maxHeight: resizeH ? "none" : "88vh", display: "flex", flexDirection: "column", boxShadow: isDark ? "0 40px 100px rgba(0,0,0,0.7)" : "0 24px 60px rgba(0,0,0,0.13)", transform: `translate(${offset.x}px, ${offset.y}px)`, overflow: "hidden", minWidth: 320, minHeight: 180 }}>
         <div onMouseDown={onHeaderMouseDown} style={{ padding: "22px 26px", borderBottom: `1px solid ${t.surfaceBorder}`, display: "flex", justifyContent: "space-between", alignItems: "center", background: isDark ? "rgba(255,255,255,0.02)" : "#FAFAF9", borderRadius: "20px 20px 0 0", cursor: isDragging ? "grabbing" : "grab", userSelect: "none" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
             <span style={{ fontSize: 16, fontWeight: 700, color: isDark ? "#fff" : "#1C1917", fontFamily: titleFont || t.titleFont, letterSpacing: "-0.4px" }}>{title}</span>
@@ -444,6 +466,13 @@ export const Modal = ({ open, onClose, title, onSave, saveLabel, secondaryAction
               </button>
             </Tooltip>
           )}
+        </div>
+        <div onMouseDown={onResizeStart} style={{ position: "absolute", right: 0, bottom: 0, width: 22, height: 22, cursor: "nwse-resize", zIndex: 10, display: "flex", alignItems: "flex-end", justifyContent: "flex-end", padding: 4 }}>
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+            <line x1="2" y1="13" x2="13" y2="2" stroke={isDark ? "#6B7280" : "#94A3B8"} strokeWidth="2" strokeLinecap="round"/>
+            <line x1="7" y1="13" x2="13" y2="7" stroke={isDark ? "#6B7280" : "#94A3B8"} strokeWidth="2" strokeLinecap="round"/>
+            <line x1="12" y1="13" x2="13" y2="12" stroke={isDark ? "#6B7280" : "#94A3B8"} strokeWidth="2" strokeLinecap="round"/>
+          </svg>
         </div>
       </div>
     </div>
