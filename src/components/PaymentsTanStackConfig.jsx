@@ -120,16 +120,22 @@ export const getPaymentColumns = (permissions, isDark, t, onEdit, onDel, onBatch
       ),
     },
     {
-      accessorKey: 'status',
+      accessorKey: 'batch_status',
       header: 'Status',
-      size: 120,
+      size: 130,
       cell: ({ getValue }) => {
         const val = getValue();
+        if (!val || val === "—") return <span style={{ color: t.textSubtle }}>—</span>;
+        
         let bg = "rgba(107, 114, 128, 0.1)";
         let text = "#6B7280";
-        if (val === "Cleared" || val === "Sent") { bg = "rgba(16, 185, 129, 0.1)"; text = "#10B981"; }
-        else if (val === "Pending") { bg = "rgba(245, 158, 11, 0.1)"; text = "#F59E0B"; }
-        else if (val === "Failed") { bg = "rgba(244, 63, 128, 0.1)"; text = "#F43F5E"; }
+        
+        // Match ACH Batch status patterns
+        if (val.includes("CREATED") || val === "Pending") { bg = "rgba(99, 102, 241, 0.1)"; text = "#6366F1"; }
+        else if (val.includes("GENERATED") || val === "Sent") { bg = "rgba(59, 130, 246, 0.1)"; text = "#3B82F6"; }
+        else if (val.includes("COMPLETED") || val === "Cleared" || val === "Paid") { bg = "rgba(16, 185, 129, 0.1)"; text = "#10B981"; }
+        else if (val.includes("FAILED") || val === "Failed") { bg = "rgba(244, 63, 128, 0.1)"; text = "#F43F5E"; }
+        
         return <Bdg label={val} bg={bg} text={text} t={t} />;
       },
     },

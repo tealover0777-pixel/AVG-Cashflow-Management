@@ -338,7 +338,8 @@ export default function PagePayments({ t, isDark, PAYMENTS = [], INVESTMENTS = [
         const memo = distMemos.find(m => m.id === (batch?.dist_memo_id || item.dist_memo_id));
         return {
           ...item,
-          dist_memo_name: memo ? memo.memo : (item.dist_memo_id || "—")
+          dist_memo_name: memo ? memo.memo : (batch?.memo || "—"),
+          batch_status: batch ? batch.status : (item.status || "—")
         };
       });
 
