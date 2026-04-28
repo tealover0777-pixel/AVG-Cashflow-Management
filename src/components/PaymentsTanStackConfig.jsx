@@ -31,10 +31,16 @@ export const getPaymentColumns = (permissions, isDark, t, onEdit, onDel, onBatch
       enableSorting: false,
     },
     {
-      accessorKey: 'id',
+      accessorKey: 'display_id',
       header: 'Schedule ID',
       size: 90,
-      cell: ({ getValue }) => <span style={{ fontFamily: t.mono, fontSize: '10.5px', color: t.idText }}>{getValue()}</span>,
+      cell: ({ getValue, row }) => <span style={{ fontFamily: t.mono, fontSize: '10.5px', color: t.idText }}>{getValue() || row.original.id}</span>,
+    },
+    {
+      accessorKey: 'dist_memo_name',
+      header: 'Distribution Memo',
+      size: 140,
+      cell: ({ getValue }) => <span style={{ fontFamily: t.mono, fontSize: '10.5px', color: t.idText }}>{getValue() || "—"}</span>,
     },
     {
       accessorKey: 'investment',

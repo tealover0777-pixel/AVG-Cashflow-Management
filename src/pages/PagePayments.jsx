@@ -71,9 +71,9 @@ export default function PagePayments({ t, isDark, PAYMENTS = [], INVESTMENTS = [
 
   const handleInlineScheduleStatus = async (scheduleId, newStatus) => {
     try {
-      const scheduleRef = doc(db, `tenants/${activeTenantId}/schedules`, scheduleId);
+      const scheduleRef = doc(db, `tenants/${activeTenantId}/paymentSchedules`, scheduleId);
       await updateDoc(scheduleRef, { 
-        payment_status: newStatus,
+        status: newStatus,
         updated_at: serverTimestamp() 
       });
     } catch (err) {
@@ -89,8 +89,8 @@ export default function PagePayments({ t, isDark, PAYMENTS = [], INVESTMENTS = [
       onConfirm: async () => {
         try {
           const updates = Array.from(distMemoSel).map(id => {
-            const ref = doc(db, `tenants/${activeTenantId}/schedules`, id);
-            return updateDoc(ref, { payment_status: newStatus, updated_at: serverTimestamp() });
+            const ref = doc(db, `tenants/${activeTenantId}/paymentSchedules`, id);
+            return updateDoc(ref, { status: newStatus, updated_at: serverTimestamp() });
           });
           await Promise.all(updates);
           setDistMemoSel(new Set());
@@ -130,7 +130,7 @@ export default function PagePayments({ t, isDark, PAYMENTS = [], INVESTMENTS = [
     };
   }, []);
 
-  const achBatchStatusOpts = (DIMENSIONS.find(d => d.name === "ACHBatchStatus" || d.name === "ACH Batch Status") || {}).items || ["1. VERSION_CREATED", "STATUS_UPDATED", "PAYMENT_FAILED"];
+  const achBatchStatusOpts = (DIMENSIONS.find(d => d.name === "ACHBatchStatus" || d.name === "ACH Batch Status") || {}).items || ["1. VERSION_CREATED", "2. FILE_GENERATED", "3. PROCESS_COMPLETED", "4. PAYMENT_FAILED"];
 
   const close = () => setModal(m => ({ ...m, open: false }));
   const setF = (k, v) => setModal(m => ({ ...m, data: { ...m.data, [k]: v } }));
@@ -210,6 +210,24 @@ export default function PagePayments({ t, isDark, PAYMENTS = [], INVESTMENTS = [
       if (modal.mode === "edit" && d.docId) {
         const docRef = d._path ? doc(db, d._path) : doc(db, path, d.docId);
         await updateDoc(docRef, payload);
+
+        // If ACH batch is updated to "Processed", update linked schedules to "Paid"
+        if (type === "batch" && d.batch_id && (payload.status.toLowerCase().includes("process") || payload.status.toLowerCase().includes("complete"))) {
+          const linkedSchedules = SCHEDULES.filter(s => s.batch_id === d.batch_id);
+          const linkedPayments = PAYMENTS.filter(p => p.batch_id === d.batch_id);
+
+          const schUpdates = linkedSchedules.map(s => {
+            const ref = s._path ? doc(db, s._path) : doc(db, `tenants/${activeTenantId}/paymentSchedules`, s.docId || s.id);
+            return updateDoc(ref, { status: "Paid", updated_at: serverTimestamp() });
+          });
+
+          const payUpdates = linkedPayments.map(p => {
+            const ref = p._path ? doc(db, p._path) : doc(db, `tenants/${activeTenantId}/payments`, p.docId || p.id);
+            return updateDoc(ref, { status: "Cleared", updated_at: serverTimestamp() });
+          });
+
+          await Promise.all([...schUpdates, ...payUpdates]);
+        }
       } else {
         await addDoc(collection(db, path), { ...payload, created_at: serverTimestamp() });
       }
@@ -283,6 +301,7 @@ export default function PagePayments({ t, isDark, PAYMENTS = [], INVESTMENTS = [
       const payments = PAYMENTS.map(p => ({
         ...p,
         id: p.id || p.docId,
+        display_id: p.schedule_id || p.payment_id || p.id || p.docId,
         batch_id: p.batch_id || "",
       }));
       
@@ -300,6 +319,7 @@ export default function PagePayments({ t, isDark, PAYMENTS = [], INVESTMENTS = [
         return {
           ...s,
           id: s.id || s.docId,
+          display_id: s.schedule_id || s.id || s.docId,
           batch_id: s.batch_id || "",
           investment: s.investment_id || s.investment || "",
           contact_name: name,
@@ -313,7 +333,15 @@ export default function PagePayments({ t, isDark, PAYMENTS = [], INVESTMENTS = [
         };
       });
 
-      const merged = [...payments, ...paidSchedules];
+      const merged = [...payments, ...paidSchedules].map(item => {
+        const batch = ACH_BATCHES.find(b => b.batch_id === item.batch_id);
+        const memo = distMemos.find(m => m.id === (batch?.dist_memo_id || item.dist_memo_id));
+        return {
+          ...item,
+          dist_memo_name: memo ? memo.memo : (item.dist_memo_id || "—")
+        };
+      });
+
       baseData = chip === "All" ? merged : merged.filter(p => p.direction === chip);
     } else if (activeTab === "ACH Batches") {
       baseData = ACH_BATCHES.map(b => {
