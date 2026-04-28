@@ -280,17 +280,18 @@ export default function PagePayments({ t, isDark, PAYMENTS = [], INVESTMENTS = [
     let baseData = [];
     if (activeTab === "Payments") {
       // Include actual payments from the 'payments' collection
-      const payments = PAYMENTS.filter(p => (p.status || "").toLowerCase() === "paid").map(p => ({
+      const payments = PAYMENTS.map(p => ({
         ...p,
         id: p.id || p.docId,
         batch_id: p.batch_id || "",
-        status: "Paid"
       }));
       
-      // Include all records from the 'schedules' collection that are marked as "Paid"
+      // Include all records from the 'schedules' collection that are either "Paid" OR have a Batch ID
       const paidSchedules = SCHEDULES.filter(s => {
         const sStatus = (s.status || "").toLowerCase();
-        return sStatus === "paid" || sStatus === "completed";
+        const isPaid = sStatus === "paid" || sStatus === "completed";
+        const hasBatch = !!s.batch_id;
+        return isPaid || hasBatch;
       }).map(s => {
         const contact = CONTACTS.find(c => c.id === s.contact_id || c.docId === s.contact_id);
         const name = contact?.name || s.contact_name || s.investor || "";
@@ -307,7 +308,7 @@ export default function PagePayments({ t, isDark, PAYMENTS = [], INVESTMENTS = [
           amount: s.signed_payment_amount || s.payment_amount || s.payment || s.amount || 0,
           date: s.due_date || s.dueDate || s.date || "",
           direction: "Sent", // Distributions and withdrawals are outgoing
-          status: "Paid",
+          status: s.status || "Paid",
           _isSchedule: true
         };
       });
