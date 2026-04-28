@@ -2,7 +2,7 @@ import React, { useState, useMemo, useRef, useEffect } from "react";
 import TanStackTable from "../components/TanStackTable";
 import { getPaymentColumns, getBatchColumns, getLedgerColumns } from "../components/PaymentsTanStackConfig";
 import { db } from "../firebase";
-import { collection, doc, addDoc, updateDoc, deleteDoc, serverTimestamp, getDoc } from "firebase/firestore";
+import { collection, doc, addDoc, updateDoc, deleteDoc, serverTimestamp, getDoc, onSnapshot, query, where } from "firebase/firestore";
 import { sortData, fmtCurr, fmtDate, splitInvestorName } from "../utils";
 import { Modal, FF, FIn, FSel, DelModal, Tooltip, Bdg, AlertTriangle } from "../components";
 import { getDistributionScheduleColumns } from "../components/DistributionScheduleTanStackConfig";
@@ -52,7 +52,6 @@ export default function PagePayments({ t, isDark, PAYMENTS = [], INVESTMENTS = [
 
   useEffect(() => {
     if (!activeTenantId) return;
-    const { onSnapshot, query, where } = require("firebase/firestore");
     const q = query(collection(db, `tenants/${activeTenantId}/distributionMemos`));
     const unsub = onSnapshot(q, (snap) => {
       setDistMemos(snap.docs.map(d => ({ id: d.id, ...d.data() })));
@@ -68,7 +67,7 @@ export default function PagePayments({ t, isDark, PAYMENTS = [], INVESTMENTS = [
     }
   }, [SCHEDULES, distMemoDrillDown.open, distMemoDrillDown.memo?.id]);
 
-  const paymentStatusOpts = ["", "Pending", "Scheduled", "Processing", "Sent", "Paid", "Failed", "Cancelled", "Missed", "Partial"];
+  const paymentStatusOpts = (DIMENSIONS.find(d => d.name === "PaymentStatus" || d.name === "Payment Status") || {}).items || ["Paid", "Due", "Partial", "Hold", "Not Paid", "Reinvested", "Pending", "Scheduled", "Processing", "Sent", "Failed", "Cancelled", "Missed"];
 
   const handleInlineScheduleStatus = async (scheduleId, newStatus) => {
     try {
@@ -131,7 +130,6 @@ export default function PagePayments({ t, isDark, PAYMENTS = [], INVESTMENTS = [
     };
   }, []);
 
-  const paymentStatusOpts = (DIMENSIONS.find(d => d.name === "PaymentStatus" || d.name === "Payment Status") || {}).items || ["Paid", "Due", "Partial", "Hold", "Not Paid", "Reinvested"];
   const achBatchStatusOpts = (DIMENSIONS.find(d => d.name === "ACHBatchStatus" || d.name === "ACH Batch Status") || {}).items || ["VERSION_CREATED", "STATUS_UPDATED", "PAYMENT_FAILED"];
 
   const close = () => setModal(m => ({ ...m, open: false }));
