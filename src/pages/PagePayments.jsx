@@ -202,32 +202,13 @@ export default function PagePayments({ t, isDark, PAYMENTS = [], INVESTMENTS = [
   const rowData = useMemo(() => {
     let baseData = [];
     if (activeTab === "Payments") {
-      // Include actual payments
-      const payments = PAYMENTS;
+      // Include actual payments from the 'payments' collection
+      const payments = PAYMENTS.filter(p => (p.status || "").toLowerCase() === "paid");
       
-      // Include "Withdrawal" schedules that aren't processed yet
-      const withdrawals = SCHEDULES.filter(s => {
-        const type = (s.type || "").toLowerCase();
-        const status = (s.status || "").toLowerCase();
-        // Check for withdrawal type or status and ensure it's not already "Paid" or "Completed"
-        const isWithdrawal = type.includes("withdrawal") || type.includes("withdrawl")
-          || status.includes("withdrawal") || status.includes("withdrawl");
-        return isWithdrawal && (status === "paid" || status === "completed" || status === "pending");
-      }).map(s => ({
-        ...s,
-        id: s.id || s.docId,
-        investment: s.investment || s.investment_id || "",
-        amount: s.payment || s.amount || 0,
-        date: s.dueDate || s.date || "",
-        direction: "Sent", // Withdrawals are always outgoing
-        status: (s.status || "").toLowerCase() === "completed" ? "Paid" : (s.status || "Pending"),
-        _isSchedule: true // Flag to distinguish from actual payment record if needed
-      }));
-
-      // Include "Paid" or "Partial" schedules that are part of a distribution memo
-      const memoSchedules = SCHEDULES.filter(s => {
+      // Include all records from the 'schedules' collection that are marked as "Paid"
+      const paidSchedules = SCHEDULES.filter(s => {
         const sStatus = (s.status || "").toLowerCase();
-        return (sStatus === "paid" || sStatus === "partial") && s.dist_memo_id;
+        return sStatus === "paid" || sStatus === "completed";
       }).map(s => {
         const contact = CONTACTS.find(c => c.id === s.contact_id || c.docId === s.contact_id);
         const name = contact?.name || s.contact_name || s.investor || "";
@@ -240,16 +221,15 @@ export default function PagePayments({ t, isDark, PAYMENTS = [], INVESTMENTS = [
           contact_name: name,
           first_name: firstName,
           last_name: lastName,
-          amount: s.signed_payment_amount || s.payment_amount || s.payment || 0,
-          date: s.due_date || s.dueDate || "",
-          direction: "Sent",
-          status: s.status || "Paid",
+          amount: s.signed_payment_amount || s.payment_amount || s.payment || s.amount || 0,
+          date: s.due_date || s.dueDate || s.date || "",
+          direction: "Sent", // Distributions and withdrawals are outgoing
+          status: "Paid",
           _isSchedule: true
         };
       });
 
-      const merged = [...payments, ...withdrawals, ...memoSchedules]
-        .filter(p => (p.status || "").toLowerCase() === "paid");
+      const merged = [...payments, ...paidSchedules];
       baseData = chip === "All" ? merged : merged.filter(p => p.direction === chip);
     } else if (activeTab === "ACH Batches") {
       baseData = ACH_BATCHES;
