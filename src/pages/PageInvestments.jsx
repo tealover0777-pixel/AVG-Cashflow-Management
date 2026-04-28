@@ -23,6 +23,7 @@ export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [
   const [genConfirm, setGenConfirm] = useState(null);
   const [genResult, setGenResult] = useState(null); // { title, message }
   const [drillInvestment, setDrillInvestment] = useState(null);
+  const [drillOptions, setDrillOptions] = useState({ view: "simple", tab: "Capital Transactions" });
   const drillContact = useMemo(() => {
     if (!drillInvestment) return null;
     const pId = drillInvestment.contact_id || "";
@@ -686,7 +687,13 @@ export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [
       callbacks: {
         onEdit: openEdit,
         onDelete: (target) => setDelT({ id: target.id, name: target.id, docId: target.docId, _path: target._path }),
-        onDrillDown: (investment) => setDrillInvestment(investment),
+        onDrillDown: (investment, options = {}) => {
+          setDrillInvestment(investment);
+          setDrillOptions({ 
+            view: options.view || "simple", 
+            tab: options.tab || "Capital Transactions" 
+          });
+        },
         onClone: async (r) => {
           try {
             const prefix = (r.investment_id || r.id || "").startsWith("L") ? "L" : "I";
@@ -1023,6 +1030,8 @@ export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [
     <InvestorSummaryModal 
       contact={drillContact}
       selectedInvestmentId={drillInvestment?.investment_id || drillInvestment?.id}
+      defaultView={drillOptions.view}
+      initialTab={drillOptions.tab}
       onClose={() => setDrillInvestment(null)}
       isDark={isDark}
       t={t}

@@ -13,6 +13,8 @@ import { getContactTransactionColumns } from "./ContactTransactionsTanStackConfi
 export const InvestorSummaryModal = ({ 
   contact, 
   defaultView = "simple", 
+  selectedInvestmentId: initialInvestmentId = "",
+  initialTab = "Capital Transactions",
   onClose, 
   isDark, 
   t, 
@@ -28,7 +30,7 @@ export const InvestorSummaryModal = ({
   USERS = [],
   currentUser = null
 }) => {
-  const [activeTab, setActiveTab] = useState("Capital Transactions");
+  const [activeTab, setActiveTab] = useState(initialTab);
   const [viewMode, setViewMode] = useState(defaultView);
   const [isEditing, setIsEditing] = useState(false);
   const [editData, setEditData] = useState({});
@@ -36,7 +38,7 @@ export const InvestorSummaryModal = ({
 
   const lastContactIdRef = useRef("");
 
-  const [selectedInvestmentId, setSelectedInvestmentId] = useState("");
+  const [selectedInvestmentId, setSelectedInvestmentId] = useState(initialInvestmentId);
   const [investmentEditData, setInvestmentEditData] = useState({});
   const [savingInvestment, setSavingInvestment] = useState(false);
 
@@ -122,6 +124,16 @@ export const InvestorSummaryModal = ({
   useEffect(() => {
     setViewMode(defaultView);
   }, [defaultView]);
+
+  useEffect(() => {
+    setActiveTab(initialTab);
+  }, [initialTab]);
+
+  useEffect(() => {
+    if (initialInvestmentId) {
+      setSelectedInvestmentId(initialInvestmentId);
+    }
+  }, [initialInvestmentId]);
 
   useEffect(() => {
     const contactId = contact?.id || contact?.docId || "";

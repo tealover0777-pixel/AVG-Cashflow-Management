@@ -59,7 +59,7 @@ export const getInvestmentColumns = (permissions, isDark, t, context) => {
         const val = getValue();
         return (
           <span 
-            onClick={() => callbacks.onDrillDown?.(row.original)}
+            onClick={() => callbacks.onDrillDown?.(row.original, { view: "simple", tab: "Edit Investment" })}
             style={{ 
               fontFamily: t.mono, 
               fontSize: '11px', 
@@ -99,9 +99,20 @@ export const getInvestmentColumns = (permissions, isDark, t, context) => {
       size: 150,
       cell: ({ getValue, row }) => {
         const val = getValue();
-        if (val) return <span style={{ fontSize: '11.5px', fontWeight: 600, color: isDark ? "#60A5FA" : "#4F46E5" }}>{val}</span>;
-        const parts = (row.original.contact_name || row.original.contact || "").split(' ');
-        return <span style={{ fontSize: '11.5px', fontWeight: 600, color: isDark ? "#60A5FA" : "#4F46E5" }}>{parts[0] || "—"}</span>;
+        const displayVal = val || (row.original.contact_name || row.original.contact || "").split(' ')[0] || "—";
+        return (
+          <span 
+            onClick={() => callbacks.onDrillDown?.(row.original, { view: "detail" })}
+            style={{ 
+              fontSize: '11.5px', 
+              fontWeight: 600, 
+              color: isDark ? "#60A5FA" : "#4F46E5",
+              cursor: 'pointer'
+            }}
+          >
+            {displayVal}
+          </span>
+        );
       }
     },
     {
@@ -110,9 +121,21 @@ export const getInvestmentColumns = (permissions, isDark, t, context) => {
       size: 150,
       cell: ({ getValue, row }) => {
         const val = getValue();
-        if (val) return <span style={{ fontSize: '11.5px', fontWeight: 500, color: isDark ? 'rgba(255,255,255,0.85)' : '#1C1917' }}>{val}</span>;
         const parts = (row.original.contact_name || row.original.contact || "").split(' ');
-        return <span style={{ fontSize: '11.5px', fontWeight: 500, color: isDark ? 'rgba(255,255,255,0.85)' : '#1C1917' }}>{parts.slice(1).join(' ') || "—"}</span>;
+        const displayVal = val || parts.slice(1).join(' ') || "—";
+        return (
+          <span 
+            onClick={() => callbacks.onDrillDown?.(row.original, { view: "detail" })}
+            style={{ 
+              fontSize: '11.5px', 
+              fontWeight: 500, 
+              color: isDark ? 'rgba(255,255,255,0.85)' : '#1C1917',
+              cursor: 'pointer'
+            }}
+          >
+            {displayVal}
+          </span>
+        );
       }
     },
     {
