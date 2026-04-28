@@ -242,8 +242,33 @@ export const getBatchColumns = (permissions, isDark, t, onEdit, onDel, onBatchCl
   ];
 };
 
-export const getLedgerColumns = (permissions, isDark, t) => {
+export const getLedgerColumns = (permissions, isDark, t, onEdit, onDel) => {
   return [
+    {
+      id: 'select',
+      header: ({ table }) => (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%' }}>
+          <input
+            type="checkbox"
+            checked={table.getIsAllPageRowsSelected()}
+            onChange={table.getToggleAllPageRowsSelectedHandler()}
+            style={{ cursor: 'pointer', width: '14px', height: '14px' }}
+          />
+        </div>
+      ),
+      cell: ({ row }) => (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%' }}>
+          <input
+            type="checkbox"
+            checked={row.getIsSelected()}
+            onChange={row.getToggleSelectedHandler()}
+            style={{ cursor: 'pointer', width: '14px', height: '14px' }}
+          />
+        </div>
+      ),
+      size: 40,
+      enableSorting: false,
+    },
     {
       accessorKey: 'created_at',
       header: 'Date',
@@ -283,6 +308,19 @@ export const getLedgerColumns = (permissions, isDark, t) => {
         <span style={{ fontSize: '12px', color: t.textMuted }}>
           {getValue()}
         </span>
+      ),
+    },
+    {
+      id: 'actions',
+      header: 'Actions',
+      size: 100,
+      cell: ({ row }) => (
+        <ActBtns 
+          show={true} 
+          t={t} 
+          onEdit={permissions.canUpdate ? () => onEdit(row.original) : null} 
+          onDel={permissions.canDelete ? () => onDel(row.original) : null} 
+        />
       ),
     },
   ];

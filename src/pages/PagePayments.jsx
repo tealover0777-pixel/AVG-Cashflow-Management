@@ -8,10 +8,13 @@ import { Modal, FF, FIn, FSel, DelModal, Tooltip, Bdg } from "../components";
 import { useAuth } from "../AuthContext";
 
 export default function PagePayments({ t, isDark, PAYMENTS = [], INVESTMENTS = [], CONTACTS = [], SCHEDULES = [], DIMENSIONS = [], ACH_BATCHES = [], LEDGER = [], collectionPath = "", achBatchPath = "", ledgerPath = "" }) {
-  const { hasPermission, isSuperAdmin } = useAuth();
+  const { hasPermission, isSuperAdmin, user } = useAuth();
   const canCreate = isSuperAdmin || hasPermission("PAYMENT_CREATE") || hasPermission("PAYMENTS_CREATE");
   const canUpdate = isSuperAdmin || hasPermission("PAYMENT_UPDATE") || hasPermission("PAYMENTS_UPDATE");
   const canDelete = isSuperAdmin || hasPermission("PAYMENT_DELETE") || hasPermission("PAYMENTS_DELETE");
+
+  const isLedgerEditable = isSuperAdmin || ["platform", "tenant_owner", "tenant_admin"].includes(user?.role);
+  const isLedgerDeletable = isSuperAdmin || ["platform", "tenant_owner"].includes(user?.role);
 
   const [activeTab, setActiveTab] = useState("Payments");
   const [chip, setChip] = useState("All");
@@ -88,6 +91,15 @@ export default function PagePayments({ t, isDark, PAYMENTS = [], INVESTMENTS = [
   const openAddBatch = () => setModal({ open: true, mode: "add", type: "batch", data: { batch_id: `B${Date.now().toString().slice(-6)}`, status: "VERSION_CREATED", notes: "" } });
   const openEditBatch = r => setModal({ open: true, mode: "edit", type: "batch", data: { ...r } });
 
+  const openEditLedger = r => setModal({ open: true, mode: "edit", type: "ledger", data: { 
+    ...r,
+    amount: r.amount || 0,
+    note: r.note || "",
+    entity_type: r.entity_type || "",
+    entity_id: r.entity_id || "",
+    created_at: r.created_at ? (typeof r.created_at.toDate === 'function' ? r.created_at.toDate().toISOString().split('T')[0] : r.created_at) : ""
+  } });
+
   const handleSave = async () => {
     const d = modal.data;
     const type = modal.type;
@@ -119,6 +131,16 @@ export default function PagePayments({ t, isDark, PAYMENTS = [], INVESTMENTS = [
         updated_at: serverTimestamp(),
       };
       path = achBatchPath;
+    } else if (type === "ledger") {
+      payload = {
+        entity_type: d.entity_type || "",
+        entity_id: d.entity_id || "",
+        amount: d.amount ? Number(String(d.amount).replace(/[^0-9.-]/g, "")) || 0 : 0,
+        note: d.note || "",
+        created_at: d.created_at ? new Date(d.created_at) : serverTimestamp(),
+        updated_at: serverTimestamp(),
+      };
+      path = ledgerPath;
     }
 
     try {
@@ -134,7 +156,10 @@ export default function PagePayments({ t, isDark, PAYMENTS = [], INVESTMENTS = [
 
   const handleDelete = async () => {
     if (!delT || !delT.docId) return;
-    const path = activeTab === "Payments" ? collectionPath : achBatchPath;
+    let path = collectionPath;
+    if (activeTab === "ACH Batches") path = achBatchPath;
+    if (activeTab === "Ledger") path = ledgerPath;
+    
     try {
       await deleteDoc(doc(db, path, delT.docId));
       setDelT(null);
@@ -143,14 +168,19 @@ export default function PagePayments({ t, isDark, PAYMENTS = [], INVESTMENTS = [
 
   const permissions = { canUpdate, canDelete };
   const columnDefs = useMemo(() => {
-    const editCb = activeTab === "Payments" ? openEditPayment : openEditBatch;
+    const editCb = activeTab === "Payments" ? openEditPayment : (activeTab === "ACH Batches" ? openEditBatch : openEditLedger);
     const delCb = (target) => setDelT(target);
     const batchSummaryCb = (batchId) => setBatchSummary(batchId);
 
     if (activeTab === "Payments") return getPaymentColumns(permissions, isDark, t, editCb, delCb, batchSummaryCb);
     if (activeTab === "ACH Batches") return getBatchColumns(permissions, isDark, t, editCb, delCb, batchSummaryCb);
-    return getLedgerColumns(permissions, isDark, t);
-  }, [activeTab, permissions, isDark, t, openEditPayment, openEditBatch]);
+    
+    const ledgerPerms = { 
+      canUpdate: isLedgerEditable, 
+      canDelete: isLedgerDeletable 
+    };
+    return getLedgerColumns(ledgerPerms, isDark, t, editCb, delCb);
+  }, [activeTab, permissions, isDark, t, openEditPayment, openEditBatch, openEditLedger, isLedgerEditable, isLedgerDeletable]);
 
   const rowData = useMemo(() => {
     let baseData = [];
@@ -373,11 +403,23 @@ export default function PagePayments({ t, isDark, PAYMENTS = [], INVESTMENTS = [
             <FF label="Notes" t={t}><FIn value={modal.data.notes} onChange={e => setF("notes", e.target.value)} placeholder="Optional note..." t={t} /></FF>
           </div>
         </>
-      ) : (
+      ) : modal.type === "batch" ? (
         <>
           <FF label="Batch ID" t={t}><FIn value={modal.data.batch_id} onChange={e => setF("batch_id", e.target.value)} t={t} /></FF>
           <FF label="Status" t={t}><FSel value={modal.data.status} onChange={e => setF("status", e.target.value)} options={achBatchStatusOpts} t={t} /></FF>
           <FF label="Notes" t={t}><FIn value={modal.data.notes} onChange={e => setF("notes", e.target.value)} placeholder="Batch notes..." t={t} /></FF>
+        </>
+      ) : (
+        <>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+            <FF label="Entity Type" t={t}><FIn value={modal.data.entity_type} onChange={e => setF("entity_type", e.target.value)} t={t} /></FF>
+            <FF label="Entity ID" t={t}><FIn value={modal.data.entity_id} onChange={e => setF("entity_id", e.target.value)} t={t} /></FF>
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+            <FF label="Amount" t={t}><FIn value={modal.data.amount} onChange={e => setF("amount", e.target.value)} placeholder="0.00" t={t} /></FF>
+            <FF label="Date" t={t}><FIn value={modal.data.created_at} onChange={e => setF("created_at", e.target.value)} type="date" t={t} /></FF>
+          </div>
+          <FF label="Note" t={t}><FIn value={modal.data.note} onChange={e => setF("note", e.target.value)} placeholder="Ledger entry note..." t={t} /></FF>
         </>
       )}
     </Modal>
