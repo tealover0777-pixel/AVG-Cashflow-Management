@@ -193,7 +193,7 @@ export const getBatchColumns = (permissions, isDark, t, onEdit, onDel, onBatchCl
       ),
     },
     {
-      accessorKey: 'dist_memo_id',
+      accessorKey: 'dist_memo_name',
       header: 'Distribution Memo',
       size: 150,
       cell: ({ getValue }) => (

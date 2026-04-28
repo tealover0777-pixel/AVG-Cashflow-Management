@@ -312,7 +312,13 @@ export default function PagePayments({ t, isDark, PAYMENTS = [], INVESTMENTS = [
       const merged = [...payments, ...paidSchedules];
       baseData = chip === "All" ? merged : merged.filter(p => p.direction === chip);
     } else if (activeTab === "ACH Batches") {
-      baseData = ACH_BATCHES;
+      baseData = ACH_BATCHES.map(b => {
+        const memo = distMemos.find(m => m.id === b.dist_memo_id);
+        return { 
+          ...b, 
+          dist_memo_name: memo ? memo.memo : (b.dist_memo_id || "—")
+        };
+      });
     } else {
       baseData = LEDGER;
     }
