@@ -4,35 +4,43 @@ import { fmtCurr } from '../utils';
 
 const toArr = (v) => Array.isArray(v) ? v : (v ? [v] : []);
 
+export const calculateLinkedSchedules = (memo, SCHEDULES = [], INVESTMENTS = [], CONTACTS = [], dealId = null) => {
+  const types = toArr(memo.payment_type).map(x => x.toLowerCase());
+  const statuses = toArr(memo.status).map(x => x.toLowerCase());
+  
+  return SCHEDULES.filter(s => {
+    // Explicit linkage
+    if (s.dist_memo_id && (s.dist_memo_id === memo.id || s.dist_memo_id === memo.docId)) return true;
+    if (s.batch_id && memo.batch_id && s.batch_id === memo.batch_id) return true;
+
+    // Filter logic
+    const targetDealId = dealId || memo.deal_id;
+    if (targetDealId && s.deal_id !== targetDealId) return false;
+    const sType = (s.type || s.payment_type || "").toLowerCase();
+    if (types.length > 0 && !types.includes(sType)) return false;
+    const due = s.dueDate || s.due_date || "";
+    if (!due) return false;
+    if (memo.period_start && due < memo.period_start) return false;
+    if (memo.period_end && due > memo.period_end) return false;
+    if (statuses.length > 0) {
+      const sSt = (s.status || "").toLowerCase();
+      if (!statuses.includes(sSt)) return false;
+    }
+    const methods = toArr(memo.payment_method).map(x => x.toLowerCase());
+    if (methods.length > 0) {
+      const inv = INVESTMENTS.find(iv => iv.id === s.investment_id || iv.docId === s.investment_id);
+      const investor = CONTACTS.find(c => c.id === s.contact_id || c.docId === s.contact_id);
+      const sMethod = (s.payment_method || inv?.payment_method || investor?.payment_method || "").toLowerCase();
+      if (!methods.includes(sMethod)) return false;
+    }
+    return true;
+  });
+};
+
 export const getDistributionMemoColumns = (isDark, t, context) => {
   const { SCHEDULES = [], INVESTMENTS = [], CONTACTS = [], DEALS = [], dealId, callbacks } = context;
 
-  const getLinkedSchedules = (memo) => {
-    const types = toArr(memo.payment_type).map(x => x.toLowerCase());
-    const statuses = toArr(memo.status).map(x => x.toLowerCase());
-    return SCHEDULES.filter(s => {
-      const targetDealId = dealId || memo.deal_id;
-      if (targetDealId && s.deal_id !== targetDealId) return false;
-      const sType = (s.type || s.payment_type || "").toLowerCase();
-      if (types.length > 0 && !types.includes(sType)) return false;
-      const due = s.dueDate || s.due_date || "";
-      if (!due) return false;
-      if (memo.period_start && due < memo.period_start) return false;
-      if (memo.period_end && due > memo.period_end) return false;
-      if (statuses.length > 0) {
-        const sSt = (s.status || "").toLowerCase();
-        if (!statuses.includes(sSt)) return false;
-      }
-      const methods = toArr(memo.payment_method).map(x => x.toLowerCase());
-      if (methods.length > 0) {
-        const inv = INVESTMENTS.find(iv => iv.id === s.investment_id || iv.docId === s.investment_id);
-        const investor = CONTACTS.find(c => c.id === s.contact_id || c.docId === s.contact_id);
-        const sMethod = (s.payment_method || inv?.payment_method || investor?.payment_method || "").toLowerCase();
-        if (!methods.includes(sMethod)) return false;
-      }
-      return true;
-    });
-  };
+  const getLinkedSchedules = (memo) => calculateLinkedSchedules(memo, SCHEDULES, INVESTMENTS, CONTACTS, dealId);
 
   return [
     {

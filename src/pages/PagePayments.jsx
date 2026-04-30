@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useRef, useEffect } from "react";
 import TanStackTable from "../components/TanStackTable";
 import { getPaymentColumns, getBatchColumns, getLedgerColumns } from "../components/PaymentsTanStackConfig";
+import { calculateLinkedSchedules } from "../components/DistributionMemoTanStackConfig";
 import { getDistributionScheduleColumns } from "../components/DistributionScheduleTanStackConfig";
 import { db } from "../firebase";
 import { collection, doc, addDoc, updateDoc, deleteDoc, serverTimestamp, getDoc, onSnapshot, query, where } from "firebase/firestore";
@@ -393,10 +394,10 @@ export default function PagePayments({ t, isDark, PAYMENTS = [], INVESTMENTS = [
     } else if (activeTab === "ACH Batches") {
       baseData = ACH_BATCHES.map(b => {
         const memo = distMemos.find(m => m.id === b.dist_memo_id);
-        const linkedSchedules = SCHEDULES.filter(s => 
-          (s.dist_memo_id && s.dist_memo_id === b.dist_memo_id) || 
-          (s.batch_id && (s.batch_id === b.batch_id || s.batch_id === b.id))
-        );
+        const linkedSchedules = memo 
+          ? calculateLinkedSchedules(memo, SCHEDULES, INVESTMENTS, CONTACTS)
+          : SCHEDULES.filter(s => s.batch_id && (s.batch_id === b.batch_id || s.batch_id === b.id));
+        
         const deal = DEALS.find(d => d.id === (memo?.deal_id || b.deal_id));
         return { 
           ...b, 
