@@ -91,11 +91,6 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
     if (selectedDistMemoId && distMemos.length > 0) {
       const memo = distMemos.find(m => m.id === selectedDistMemoId || m.docId === selectedDistMemoId || m.batch_id === selectedDistMemoId);
       if (memo) {
-        const linked = SCHEDULES.filter(s => 
-          (s.dist_memo_id && s.dist_memo_id === memo.docId) || 
-          (s.batch_id && (s.batch_id === memo.batch_id || s.batch_id === memo.docId))
-        );
-        setDistMemoDrillDown({ open: true, memo, schedules: linked });
         setActiveTab("Distributions");
         setDistributionView("memo");
         // Clear the selection
