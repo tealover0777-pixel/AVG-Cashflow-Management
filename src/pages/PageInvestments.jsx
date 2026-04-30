@@ -130,16 +130,29 @@ export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [
         rollover_source_id: "",
         first_name: "",
         last_name: "",
-        contact_id: ""
+        contact_id: "",
+        lag_enabled: false,
+        lag_type: "Days",
+        lag_value: 0
       }
     });
   };
   const openEdit = r => {
+    const lag = r.payment_lag_config || {};
     setModal({
       open: true,
       mode: "edit",
       data: {
         ...r,
+        id: r.investment_id || r.id,
+        deal: r.deal_name || r.deal || "",
+        rate: r.interest_rate || r.rate || "",
+        freq: r.payment_frequency || r.freq || "Quarterly",
+        start_date: r.start_date || "",
+        maturity_date: r.maturity_date || "",
+        lag_enabled: !!lag.enabled,
+        lag_type: lag.type || "Days",
+        lag_value: lag.value || 0,
         contact_id: r.contact_id || "",
         first_name: r.first_name || "",
         last_name: r.last_name || ""
@@ -171,6 +184,11 @@ export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [
       investment_name: d.investment_name || "",
       source_of_funds: d.source_of_funds || "New Principal",
       rollover_source_id: d.rollover_source_id || "",
+      payment_lag_config: {
+        enabled: !!d.lag_enabled,
+        type: d.lag_type || "Days",
+        value: Number(d.lag_value) || 0
+      },
       updated_at: serverTimestamp(),
     };
     try {
@@ -918,26 +936,44 @@ export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [
         <FF label="Start Date" t={t}><FIn value={modal.data.start_date || ""} onChange={e => setF("start_date", e.target.value)} t={t} type="date" /></FF>
         <FF label="Maturity Date" t={t}><FIn value={modal.data.maturity_date || ""} onChange={e => setF("maturity_date", e.target.value)} t={t} type="date" /></FF>
       </div>
-      {FEES_DATA.filter(f => f.name !== "Late Fee").length > 0 && (
-        <FF label="Applicable Fees" t={t}>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-            {FEES_DATA.filter(f => f.name !== "Late Fee").map(f => {
-              const selected = (modal.data.feeIds || []).includes(f.id);
-              const toggleFee = () => {
-                const cur = modal.data.feeIds || [];
-                setF("feeIds", selected ? cur.filter(x => x !== f.id) : [...cur, f.id]);
-              };
-              return (
-                <div key={f.id} onClick={toggleFee} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12.5, fontWeight: selected ? 600 : 400, padding: "5px 12px", borderRadius: 20, cursor: "pointer", transition: "all 0.15s ease", background: selected ? (isDark ? "rgba(52,211,153,0.15)" : "#ECFDF5") : t.chipBg, color: selected ? (isDark ? "#34D399" : "#059669") : t.textSecondary, border: `1px solid ${selected ? (isDark ? "rgba(52,211,153,0.4)" : "#A7F3D0") : t.chipBorder}` }}>
-                  <span style={{ fontSize: 11, fontWeight: 700, lineHeight: 1 }}>{selected ? "✓" : "+"}</span>
-                  {f.name}
-                  <span style={{ fontFamily: t.mono, fontSize: 10.5, opacity: 0.7 }}>({f.rate})</span>
-                </div>
-              );
-            })}
+      <div style={{ marginTop: 24, padding: "16px 20px", background: isDark ? "rgba(255,255,255,0.03)" : "#f9fafb", borderRadius: 14, border: `1px solid ${t.surfaceBorder}` }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <div style={{ width: 32, height: 32, borderRadius: 8, background: isDark ? "rgba(99,102,241,0.15)" : "#EEF2FF", display: "flex", alignItems: "center", justifyContent: "center", color: t.accent }}>
+              <CreditCard size={16} />
+            </div>
+            <span style={{ fontSize: 13.5, fontWeight: 700, color: t.text }}>Default Payment Lag</span>
           </div>
-        </FF>
-      )}
+          <input 
+            type="checkbox" 
+            checked={!!modal.data.lag_enabled} 
+            onChange={e => setF("lag_enabled", e.target.checked)} 
+            style={{ width: 18, height: 18, cursor: "pointer", accentColor: t.accent }} 
+          />
+        </div>
+        {modal.data.lag_enabled && (
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+            <FF label="Lag Type" t={t}>
+              <FSel 
+                value={modal.data.lag_type || "Days"} 
+                onChange={e => setF("lag_type", e.target.value)} 
+                options={(DIMENSIONS.find(d => d.name === "PaymentLag")?.items || ["Days", "Months", "Specific Day of the following Month", "Quater-End"]).map(opt => ({ id: opt, display: opt }))} 
+                t={t} 
+              />
+            </FF>
+            {(modal.data.lag_type?.toLowerCase() === "days" || modal.data.lag_type?.toLowerCase() === "months" || modal.data.lag_type?.toLowerCase() === "quater-end" || modal.data.lag_type?.toLowerCase() === "quarter-end" || modal.data.lag_type?.toLowerCase() === "specific day of the following month") && (
+              <FF label={
+                modal.data.lag_type?.toLowerCase() === "months" ? "Number of Months" : 
+                modal.data.lag_type?.toLowerCase() === "specific day of the following month" ? "Day of Month" :
+                modal.data.lag_type?.toLowerCase() === "quater-end" || modal.data.lag_type?.toLowerCase() === "quarter-end" ? "Day Offset" :
+                "Number of Days"
+              } t={t}>
+                <FIn type="number" value={modal.data.lag_value || ""} onChange={e => setF("lag_value", e.target.value)} placeholder="e.g. 30" t={t} />
+              </FF>
+            )}
+          </div>
+        )}
+      </div>
     </Modal>
     <DelModal target={delT} onClose={() => setDelT(null)} onConfirm={handleDeleteInvestment} label="This investment" t={t} isDark={isDark} />
 
