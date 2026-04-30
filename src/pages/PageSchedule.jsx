@@ -137,7 +137,8 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
         const typeMatch = types.length === 0 || types.includes(sType);
         const statusMatch = statuses.length === 0 || statuses.includes((s.status || "").toLowerCase());
         const methodMatch = methods.length === 0 || methods.includes(sMethod);
-        return typeMatch && statusMatch && methodMatch && due >= d.period_start && due <= d.period_end;
+        const checkDate = s.scheduled_payment_date || due;
+        return typeMatch && statusMatch && methodMatch && checkDate >= d.period_start && checkDate <= d.period_end;
       });
 
       // Update matching schedules

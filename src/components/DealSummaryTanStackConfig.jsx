@@ -273,6 +273,32 @@ export const getDealInvestmentColumns = (permissions, isDark, t, context, viewTy
       }
     },
     {
+      header: "Payment Lag",
+      id: "payment_lag",
+      size: 150,
+      accessorFn: (row) => {
+        const lag = row.payment_lag_config;
+        if (!lag || !lag.enabled) return "None";
+        if (lag.type === "DAYS") return `${lag.value} Days`;
+        if (lag.type === "MONTHS") return `${lag.value} Months`;
+        if (lag.type === "SPECIFIC_DAY") return `Day ${lag.specific_day} next month`;
+        if (lag.type === "QUARTER_OFFSET") return `Qtr Offset (${lag.specific_day}th)`;
+        return "Custom";
+      },
+      cell: ({ getValue, row }) => {
+        const val = getValue();
+        const isOverride = !!row.original.payment_lag_config;
+        return (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+            <span style={{ fontSize: '11px', fontWeight: 600, color: val === "None" ? t.textMuted : (isDark ? "#34D399" : "#059669") }}>
+              {val}
+            </span>
+            {isOverride && <span style={{ fontSize: '9px', fontWeight: 800, color: t.accent, textTransform: 'uppercase' }}>Override</span>}
+          </div>
+        );
+      }
+    },
+    {
       header: "Actions",
       id: "actions",
       size: 100,

@@ -579,6 +579,7 @@ function AppContent() {
       email: d.tenant_email || ownerUser?.email || "",
       phone: d.tenant_phone || ownerUser?.phone || ownerUser?.phone_number || "",
       notes: d.Notes || d.notes || ownerUser?.notes || "",
+      features: d.features || { show_payment_lag: true, show_scheduled_payment_date: true },
       created_at: fmtDate(d.created_at),
       updated_at: fmtDate(d.updated_at),
     };
@@ -598,7 +599,7 @@ function AppContent() {
     getDoc(doc(db, "tenants", activeTenantId)).then(snap => {
       if (snap.exists()) {
         const d = snap.data();
-        setMyTenant({ id: snap.id, name: d.tenant_name || "", logo: d.tenant_logo || "" });
+        setMyTenant({ id: snap.id, name: d.tenant_name || "", logo: d.tenant_logo || "", features: d.features || { show_payment_lag: true, show_scheduled_payment_date: true } });
       }
     }).catch(() => { });
   }, [activeTenantId, isSuperAdmin, activeTenant]);
@@ -606,6 +607,7 @@ function AppContent() {
   const resolvedTenant = activeTenant || myTenant;
   const determinedLogo = resolvedTenant?.logo || null;
   const determinedTenantName = resolvedTenant?.name || "";
+  const tenantFeatures = resolvedTenant?.features || { show_payment_lag: true, show_scheduled_payment_date: true };
 
   // Merge Firestore dimensions with local styling
   const DIMENSIONS = rawDimensions.map(d => {
@@ -851,8 +853,8 @@ function AppContent() {
               : (
                 <>
                   {activePage === "Dashboard" && <PageDashboard t={t} isDark={isDark} DEALS={DEALS} INVESTMENTS={INVESTMENTS} CONTACTS={CONTACTS} SCHEDULES={SCHEDULES} PAYMENTS={PAYMENTS} MONTHLY={MONTHLY} DIMENSIONS={DIMENSIONS} setActivePage={setActivePage} />}
-                  {activePage === "Deals" && <PageDeals t={t} isDark={isDark} DEALS={DEALS} INVESTMENTS={INVESTMENTS} SCHEDULES={SCHEDULES} FEES_DATA={FEES_DATA} DIMENSIONS={DIMENSIONS} collectionPath={isGlobalConsolidated ? "GROUP:deals" : fetchPaths.deals} setActivePage={setActivePage} setSelectedDealId={setSelectedDealId} />}
-                  {activePage === "Deal Summary" && <PageDealSummary t={t} isDark={isDark} dealId={selectedDealId} DEALS={DEALS} INVESTMENTS={INVESTMENTS} CONTACTS={CONTACTS} DIMENSIONS={DIMENSIONS} FEES_DATA={FEES_DATA} SCHEDULES={SCHEDULES} USERS={rawUsers} LEDGER={LEDGER} setActivePage={setActivePage} investmentCollection={isGlobalConsolidated ? "investments" : fetchPaths.investments} scheduleCollection={isGlobalConsolidated ? "paymentSchedules" : fetchPaths.paymentSchedules} tenantId={activeTenantId} />}
+                  {activePage === "Deals" && <PageDeals t={t} isDark={isDark} DEALS={DEALS} INVESTMENTS={INVESTMENTS} SCHEDULES={SCHEDULES} FEES_DATA={FEES_DATA} DIMENSIONS={DIMENSIONS} collectionPath={isGlobalConsolidated ? "GROUP:deals" : fetchPaths.deals} setActivePage={setActivePage} setSelectedDealId={setSelectedDealId} tenantFeatures={tenantFeatures} />}
+                  {activePage === "Deal Summary" && <PageDealSummary t={t} isDark={isDark} dealId={selectedDealId} DEALS={DEALS} INVESTMENTS={INVESTMENTS} CONTACTS={CONTACTS} DIMENSIONS={DIMENSIONS} FEES_DATA={FEES_DATA} SCHEDULES={SCHEDULES} USERS={rawUsers} LEDGER={LEDGER} setActivePage={setActivePage} investmentCollection={isGlobalConsolidated ? "investments" : fetchPaths.investments} scheduleCollection={isGlobalConsolidated ? "paymentSchedules" : fetchPaths.paymentSchedules} tenantId={activeTenantId} tenantFeatures={tenantFeatures} />}
                   {activePage === "Contacts" && <PageContacts t={t} isDark={isDark} CONTACTS={CONTACTS} INVESTMENTS={INVESTMENTS} SCHEDULES={SCHEDULES} DEALS={DEALS} collectionPath={isGlobalConsolidated ? "GROUP:contacts" : fetchPaths.contacts} DIMENSIONS={DIMENSIONS} tenantId={activeTenantId} LEDGER={LEDGER} USERS={rawUsers} ROLES={rawRoles} />}
                   {activePage === "Investments" && <PageInvestments t={t} isDark={isDark} INVESTMENTS={INVESTMENTS} DEALS={DEALS} CONTACTS={CONTACTS} DIMENSIONS={DIMENSIONS} FEES_DATA={FEES_DATA} SCHEDULES={SCHEDULES} LEDGER={LEDGER} USERS={rawUsers} collectionPath={isGlobalConsolidated ? "GROUP:investments" : fetchPaths.investments} schedulePath={isGlobalConsolidated ? "GROUP:paymentSchedules" : fetchPaths.paymentSchedules} tenantId={activeTenantId} />}
                   {activePage === "Payment Schedule" && <PageSchedule t={t} isDark={isDark} SCHEDULES={SCHEDULES} INVESTMENTS={INVESTMENTS} CONTACTS={CONTACTS} DEALS={DEALS} DIMENSIONS={DIMENSIONS} FEES_DATA={FEES_DATA} USERS={rawUsers} LEDGER={LEDGER} collectionPath={isGlobalConsolidated ? "GROUP:paymentSchedules" : fetchPaths.paymentSchedules} setActivePage={setActivePage} setSelectedDealId={setSelectedDealId} tenantId={activeTenantId} />}

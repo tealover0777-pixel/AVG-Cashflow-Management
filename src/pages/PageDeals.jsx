@@ -17,7 +17,7 @@ const PT_BOR_DISBURSEMENT = "BORROWER_DISBURSEMENT";
 const PT_BOR_RECEIVED = "BORROWER_PRINCIPAL_RECEIVED";
 const PT_BOR_INTEREST = "BORROWER_INTEREST_PAYMENT";
 
-export default function PageDeals({ t, isDark, DEALS = [], INVESTMENTS = [], SCHEDULES = [], FEES_DATA = [], DIMENSIONS = [], collectionPath = "", setActivePage, setSelectedDealId }) {
+export default function PageDeals({ t, isDark, DEALS = [], INVESTMENTS = [], SCHEDULES = [], FEES_DATA = [], DIMENSIONS = [], collectionPath = "", setActivePage, setSelectedDealId, tenantFeatures = {} }) {
   const { hasPermission, isSuperAdmin } = useAuth();
   const canCreate = isSuperAdmin || hasPermission("DEAL_CREATE");
   const canUpdate = isSuperAdmin || hasPermission("DEAL_UPDATE");
@@ -74,6 +74,11 @@ export default function PageDeals({ t, isDark, DEALS = [], INVESTMENTS = [], SCH
         city: "",
         state: "",
         zip: "",
+        // Lag config
+        lag_enabled: false,
+        lag_type: "DAYS",
+        lag_value: 0,
+        lag_day: 15,
       }
     });
   };
@@ -81,7 +86,14 @@ export default function PageDeals({ t, isDark, DEALS = [], INVESTMENTS = [], SCH
     setAssetImages([]);
     setNewFiles([]);
     fetchImages(r.id, r._path);
-    setModal({ open: true, mode: "edit", step: 1, data: { ...r } });
+    const lag = r.payment_lag_config || {};
+    setModal({ open: true, mode: "edit", step: 1, data: { 
+      ...r,
+      lag_enabled: !!lag.enabled,
+      lag_type: lag.type || "DAYS",
+      lag_value: lag.value || 0,
+      lag_day: lag.specific_day || 15,
+    } });
   };
   const close = () => {
     setModal(m => ({ ...m, open: false }));
@@ -109,6 +121,12 @@ export default function PageDeals({ t, isDark, DEALS = [], INVESTMENTS = [], SCH
       asset_city: d.city || "",
       asset_state: d.state || "",
       asset_zip: d.zip || "",
+      payment_lag_config: {
+        enabled: !!d.lag_enabled,
+        type: d.lag_type || "DAYS",
+        value: Number(d.lag_value) || 0,
+        specific_day: Number(d.lag_day) || 15,
+      },
       updated_at: serverTimestamp(),
     };
     try {
@@ -330,6 +348,51 @@ export default function PageDeals({ t, isDark, DEALS = [], INVESTMENTS = [], SCH
           </div>
         </FF>
       )}
+
+        {/* Payment Lag Configuration */}
+        {tenantFeatures.show_payment_lag && (
+          <div style={{ marginTop: 8, padding: "14px 16px", borderRadius: 12, background: isDark ? "rgba(255,255,255,0.03)" : "#F9FAFB", border: `1px solid ${t.surfaceBorder}` }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: modal.data.lag_enabled ? 16 : 0 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <CreditCard size={16} style={{ color: t.accent }} />
+                <span style={{ fontSize: 13.5, fontWeight: 600, color: isDark ? "#fff" : "#1C1917" }}>Default Payment Lag</span>
+              </div>
+              <input 
+                type="checkbox" 
+                checked={!!modal.data.lag_enabled} 
+                onChange={e => setF("lag_enabled", e.target.checked)} 
+                style={{ width: 18, height: 18, cursor: "pointer", accentColor: t.accent }} 
+              />
+            </div>
+            {modal.data.lag_enabled && (
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+                <FF label="Lag Type" t={t}>
+                  <FSel 
+                    value={modal.data.lag_type || "DAYS"} 
+                    onChange={e => setF("lag_type", e.target.value)} 
+                    options={[
+                      { id: "DAYS", display: "Fixed Days" },
+                      { id: "MONTHS", display: "Fixed Months" },
+                      { id: "SPECIFIC_DAY", display: "Specific Day" },
+                      { id: "QUARTER_OFFSET", display: "Qtr Offset (15th)" }
+                    ]} 
+                    t={t} 
+                  />
+                </FF>
+                {(modal.data.lag_type === "DAYS" || modal.data.lag_type === "MONTHS") && (
+                  <FF label={modal.data.lag_type === "DAYS" ? "Number of Days" : "Number of Months"} t={t}>
+                    <FIn type="number" value={modal.data.lag_value || ""} onChange={e => setF("lag_value", e.target.value)} placeholder="e.g. 30" t={t} />
+                  </FF>
+                )}
+                {(modal.data.lag_type === "SPECIFIC_DAY" || modal.data.lag_type === "QUARTER_OFFSET") && (
+                  <FF label="Disbursement Day" t={t}>
+                    <FIn type="number" value={modal.data.lag_day || "15"} onChange={e => setF("lag_day", e.target.value)} placeholder="e.g. 15" t={t} />
+                  </FF>
+                )}
+              </div>
+            )}
+          </div>
+        )}
     </Modal>
     <DelModal target={delT} onClose={() => setDelT(null)} onConfirm={handleDeleteDeal} label="This deal" t={t} isDark={isDark} />
 

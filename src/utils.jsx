@@ -331,6 +331,39 @@ export const normalizeDateAtNoon = (date) => {
   return d;
 };
 
+export const calculateScheduledDate = (baseDateStr, config) => {
+  if (!baseDateStr || !config || config.enabled === false) return baseDateStr;
+  const baseDate = normalizeDateAtNoon(baseDateStr);
+  if (!baseDate) return baseDateStr;
+
+  let result = new Date(baseDate);
+
+  switch (config.type) {
+    case "DAYS":
+      result.setDate(result.getDate() + (Number(config.value) || 0));
+      break;
+    case "MONTHS":
+      result.setMonth(result.getMonth() + (Number(config.value) || 0));
+      break;
+    case "SPECIFIC_DAY": {
+      // e.g. 15th of next month
+      const offset = Number(config.month_offset) || 1;
+      result.setMonth(result.getMonth() + offset);
+      result.setDate(Number(config.specific_day) || 15);
+      break;
+    }
+    case "QUARTER_OFFSET": {
+      // 15th following the quarter-end.
+      result.setMonth(result.getMonth() + 1);
+      result.setDate(Number(config.specific_day) || 15);
+      break;
+    }
+    default:
+      break;
+  }
+  return result.toISOString().split('T')[0];
+};
+
 export const hybridDays = (startDate, endDate) => {
   if (!startDate || !endDate) return 0;
 

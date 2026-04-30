@@ -85,7 +85,7 @@ export default function PageTenants({ t, isDark, TENANTS = [], GLOBAL_USERS = []
     const openAdd = () => setModal({
         open: true,
         mode: "add",
-        data: { id: nextTenantId, name: "", owner_id: "U10001", first_name: "", last_name: "", email: "", phone: "", notes: "", role_id: "R10005", inviteUser: true }
+        data: { id: nextTenantId, name: "", owner_id: "U10001", first_name: "", last_name: "", email: "", phone: "", notes: "", role_id: "R10005", inviteUser: true, show_payment_lag: true, show_scheduled_payment_date: true }
     });
     const openEdit = r => setModal({ 
         open: true, 
@@ -93,7 +93,9 @@ export default function PageTenants({ t, isDark, TENANTS = [], GLOBAL_USERS = []
         data: { 
             ...r, 
             first_name: r.owner_first_name || "", 
-            last_name: r.owner_last_name || "" 
+            last_name: r.owner_last_name || "",
+            show_payment_lag: !!r.features?.show_payment_lag,
+            show_scheduled_payment_date: !!r.features?.show_scheduled_payment_date
         } 
     });
     const close = () => setModal(m => ({ ...m, open: false }));
@@ -110,6 +112,10 @@ export default function PageTenants({ t, isDark, TENANTS = [], GLOBAL_USERS = []
             tenant_email: d.email || "",
             tenant_phone: d.phone || "",
             Notes: d.notes || "",
+            features: {
+                show_payment_lag: !!d.show_payment_lag,
+                show_scheduled_payment_date: !!d.show_scheduled_payment_date,
+            },
             updated_at: serverTimestamp(),
         };
 
@@ -250,7 +256,21 @@ export default function PageTenants({ t, isDark, TENANTS = [], GLOBAL_USERS = []
                 <FF label="LAST NAME" t={t}><FIn value={modal.data.last_name || ""} onChange={e => setF("last_name", e.target.value)} placeholder="Doe" t={t} /></FF>
             </div>
 
-            <FF label="PHONE" t={t}><FIn value={modal.data.phone || ""} onChange={e => setF("phone", e.target.value)} placeholder="+1 555 000 0000" t={t} /></FF>
+            <FF label="Notes" t={t}><FIn value={modal.data.notes} onChange={e => setF("notes", e.target.value)} placeholder="Tenant notes..." t={t} /></FF>
+            
+            <div style={{ marginTop: 12, padding: "14px 16px", borderRadius: 12, background: isDark ? "rgba(255,255,255,0.03)" : "#F9FAFB", border: `1px solid ${t.surfaceBorder}` }}>
+                <span style={{ fontSize: 13.5, fontWeight: 600, color: isDark ? "#fff" : "#1C1917", display: "block", marginBottom: 16 }}>Feature Permissions</span>
+                <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                    <label style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 13.5, cursor: "pointer", color: t.textSecondary }}>
+                        <input type="checkbox" checked={!!modal.data.show_payment_lag} onChange={e => setF("show_payment_lag", e.target.checked)} style={{ width: 18, height: 18, accentColor: t.accent }} />
+                        Enable Payment Lag Configuration
+                    </label>
+                    <label style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 13.5, cursor: "pointer", color: t.textSecondary }}>
+                        <input type="checkbox" checked={!!modal.data.show_scheduled_payment_date} onChange={e => setF("show_scheduled_payment_date", e.target.checked)} style={{ width: 18, height: 18, accentColor: t.accent }} />
+                        Show Scheduled Payment Date Columns
+                    </label>
+                </div>
+            </div>
 
             <FF label="ROLE" t={t}>
                 <select 

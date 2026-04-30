@@ -149,16 +149,19 @@ export const getDistributionColumns = (isDark, t, CONTACTS, DEALS, INVESTMENTS =
     sortingFn: 'datetime'
   },
   {
-    accessorKey: 'dueDate',
-    header: 'Payment Date',
+    id: 'accrualDate',
+    header: 'Accrual Date',
+    accessorFn: row => row.due_date || row.dueDate || "—",
     size: 110,
-    cell: ({ getValue, row }) => {
-      const inv = (INVESTMENTS || []).find(x => x.id === row.original.investment_id || x.id === row.original.investment);
-      const val = getValue();
-      const end = inv?.maturity_date;
-      const displayVal = (end && val && val > end) ? end : (val || "—");
-      return <span style={{ fontFamily: t.mono, fontSize: '11px' }}>{displayVal}</span>;
-    },
+    cell: ({ getValue }) => <span style={{ fontFamily: t.mono, fontSize: '11px' }}>{getValue()}</span>,
+    sortingFn: 'datetime'
+  },
+  {
+    id: 'scheduledDate',
+    header: 'Scheduled Date',
+    accessorFn: row => row.scheduled_payment_date || row.due_date || row.dueDate || "—",
+    size: 110,
+    cell: ({ getValue }) => <span style={{ fontFamily: t.mono, fontSize: '11px', color: isDark ? "#34D399" : "#059669", fontWeight: 600 }}>{getValue()}</span>,
     sortingFn: 'datetime'
   },
   {

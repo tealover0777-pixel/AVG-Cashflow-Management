@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { db, storage } from "../firebase";
-import { doc, getDocs, collection, addDoc, updateDoc, setDoc, deleteDoc, serverTimestamp, query, where } from "firebase/firestore";
+import { doc, getDocs, collection, addDoc, updateDoc, setDoc, deleteDoc, serverTimestamp, query, where, deleteField } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL, deleteObject } from "firebase/storage";
 import { Modal, FF, FIn, FSel, FMultiSel, DelModal, Bdg, ConfirmModal } from "../components";
 import { InvestorSummaryModal } from "../components/InvestorSummaryModal";
@@ -12,15 +12,15 @@ import { getAssetColumns } from "../components/AssetsTanStackConfig";
 import { getDistributionMemoColumns } from "../components/DistributionMemoTanStackConfig";
 import TanStackTable from "../components/TanStackTable";
 import DocumentsTab from "../components/DocumentsTab";
-import { X, Check, Plus, Construction, AlertTriangle, FileCheck, Download, ChevronDown } from "lucide-react";
-import { normalizeDateAtNoon, getFrequencyValue, pmtCalculator_ACT360_30360, feeCalculator_ACT360_30360, fmtCurr, initials, av, badge, splitInvestorName } from "../utils";
+import { X, Check, Plus, Construction, AlertTriangle, FileCheck, Download, ChevronDown, CreditCard } from "lucide-react";
+import { normalizeDateAtNoon, getFrequencyValue, pmtCalculator_ACT360_30360, feeCalculator_ACT360_30360, calculateScheduledDate, fmtCurr, initials, av, badge, splitInvestorName } from "../utils";
 
 import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { Document, Packer, Paragraph, Table, TableRow, TableCell, WidthType, AlignmentType, HeadingLevel, TextRun } from "docx";
 
-export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTMENTS = [], CONTACTS = [], DIMENSIONS = [], FEES_DATA = [], SCHEDULES = [], USERS = [], LEDGER = [], setActivePage, investmentCollection = "investments", scheduleCollection = "paymentSchedules", tenantId }) {
+export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTMENTS = [], CONTACTS = [], DIMENSIONS = [], FEES_DATA = [], SCHEDULES = [], USERS = [], LEDGER = [], setActivePage, investmentCollection = "investments", scheduleCollection = "paymentSchedules", tenantId, tenantFeatures = {} }) {
   const { hasPermission, isSuperAdmin, user } = useAuth();
   const canUpdate = isSuperAdmin || hasPermission("INVESTMENT_UPDATE");
   const canDelete = isSuperAdmin || hasPermission("INVESTMENT_DELETE") || hasPermission("INVESTMENTS_DELETE");
@@ -875,7 +875,12 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
         investment_name: "",
         first_name: "",
         last_name: "",
-        payment_method: (CONTACTS.find(p => p.name === "")?.payment_method || (paymentMethods[0] || ""))
+        payment_method: (CONTACTS.find(p => p.name === "")?.payment_method || (paymentMethods[0] || "")),
+        lag_override: false,
+        lag_enabled: !!(deal.payment_lag_config?.enabled),
+        lag_type: deal.payment_lag_config?.type || "DAYS",
+        lag_value: deal.payment_lag_config?.value || 0,
+        lag_day: deal.payment_lag_config?.specific_day || 15,
       }
     });
   };
@@ -891,7 +896,13 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
         id: r.investment_id || r.id, 
         feeIds,
         first_name: r.first_name || parts[0] || "",
-        last_name: r.last_name || parts.slice(1).join(' ') || ""
+        first_name: r.first_name || parts[0] || "",
+        last_name: r.last_name || parts.slice(1).join(' ') || "",
+        lag_override: !!r.payment_lag_config,
+        lag_enabled: r.payment_lag_config ? !!r.payment_lag_config.enabled : !!(deal.payment_lag_config?.enabled),
+        lag_type: r.payment_lag_config ? (r.payment_lag_config.type || "DAYS") : (deal.payment_lag_config?.type || "DAYS"),
+        lag_value: r.payment_lag_config ? (r.payment_lag_config.value || 0) : (deal.payment_lag_config?.value || 0),
+        lag_day: r.payment_lag_config ? (r.payment_lag_config.specific_day || 15) : (deal.payment_lag_config?.specific_day || 15),
       } 
     });
   };
@@ -1095,6 +1106,12 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
       fees: (d.feeIds || []).join(","),
       rollover: !!d.rollover,
       investment_name: d.investment_name || "",
+      payment_lag_config: d.lag_override ? {
+        enabled: !!d.lag_enabled,
+        type: d.lag_type || "DAYS",
+        value: Number(d.lag_value) || 0,
+        specific_day: Number(d.lag_day) || 15,
+      } : deleteField(),
       updated_at: serverTimestamp(),
     };
     try {
@@ -1443,6 +1460,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
         const entries = [];
         const cTypeUpper = (c.type || "").toUpperCase();
         const isDisbursement = cTypeUpper.includes("DISBURSEMENT") || (c.investment_id || c.id || "").startsWith("L");
+        const lagConfig = c.payment_lag_config || deal.payment_lag_config || { enabled: false };
 
         // --- 1. Initial Deposit/Disbursement ---
         const initialPaymentType = isDisbursement ? PT_BOR_DISBURSEMENT : PT_DEPOSIT;
@@ -1455,7 +1473,9 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
           payment_id: sId1,
           active_version: true,
           investment_id: c.investment_id || c.id, deal_id: dealId, contact_id: c.contact_id || "",
-          due_date: startDate.toISOString().slice(0, 10), payment_type: initialPaymentType, type: initialPaymentType, fee_id: "",
+          due_date: startDate.toISOString().slice(0, 10), 
+          scheduled_payment_date: calculateScheduledDate(startDate.toISOString().slice(0, 10), lagConfig),
+          payment_type: initialPaymentType, type: initialPaymentType, fee_id: "",
           period_number: 1, principal_amount: principal, payment_amount: principal,
           signed_payment_amount: ds1.signed, direction_from_company: ds1.direction,
           original_payment_amount: principal,
@@ -1502,7 +1522,9 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
             entries.push({
               schedule_id: sIdFee, version_num: 1, version_id: `${sIdFee}-V1`, payment_id: sIdFee, active_version: true,
               investment_id: c.investment_id || c.id, deal_id: dealId, contact_id: c.contact_id || "",
-              due_date: dDate.toISOString().slice(0, 10), payment_type: PT_FEE, type: PT_FEE, fee_id: fid,
+              due_date: dDate.toISOString().slice(0, 10), 
+              scheduled_payment_date: calculateScheduledDate(dDate.toISOString().slice(0, 10), lagConfig),
+              payment_type: PT_FEE, type: PT_FEE, fee_id: fid,
               period_number: 1, principal_amount: principal, payment_amount: feeAmt,
               signed_payment_amount: signedFeeAmt, direction_from_company: feeDir,
               original_payment_amount: feeAmt, term_start: startDate.toISOString().slice(0, 10), term_end: dDate.toISOString().slice(0, 10),
@@ -1559,7 +1581,9 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
             entries.push({
               schedule_id: sIdInt, version_num: 1, version_id: `${sIdInt}-V1`, payment_id: sIdInt, active_version: true,
               investment_id: c.investment_id || c.id, deal_id: dealId, contact_id: c.contact_id || "",
-              due_date: pEnd.toISOString().slice(0, 10), payment_type: interestPT, type: interestPT, fee_id: "",
+              due_date: pEnd.toISOString().slice(0, 10), 
+              scheduled_payment_date: calculateScheduledDate(pEnd.toISOString().slice(0, 10), lagConfig),
+              payment_type: interestPT, type: interestPT, fee_id: "",
               period_number: periodNum, principal_amount: principal, payment_amount: roundedInterest,
               signed_payment_amount: ds2.signed, direction_from_company: ds2.direction,
               original_payment_amount: roundedInterest, term_start: pStart.toISOString().slice(0, 10), term_end: pEnd.toISOString().slice(0, 10),
@@ -1596,7 +1620,9 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
                   entries.push({
                     schedule_id: sIdRecFee, version_num: 1, version_id: `${sIdRecFee}-V1`, payment_id: sIdRecFee, active_version: true,
                     investment_id: c.investment_id || c.id, deal_id: dealId, contact_id: c.contact_id || "",
-                    due_date: feeDueDate.toISOString().slice(0, 10), payment_type: PT_FEE, type: PT_FEE, fee_id: fid,
+                    due_date: feeDueDate.toISOString().slice(0, 10), 
+                    scheduled_payment_date: calculateScheduledDate(feeDueDate.toISOString().slice(0, 10), lagConfig),
+                    payment_type: PT_FEE, type: PT_FEE, fee_id: fid,
                     period_number: periodNum, principal_amount: principal, payment_amount: roundedFeeAmt,
                     signed_payment_amount: signedFeeAmt, direction_from_company: feeDir,
                     original_payment_amount: roundedFeeAmt, term_start: pStart.toISOString().slice(0, 10), term_end: pEnd.toISOString().slice(0, 10),
@@ -1619,7 +1645,9 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
         entries.push({
           schedule_id: sIdRepay, version_num: 1, version_id: `${sIdRepay}-V1`, payment_id: sIdRepay, active_version: true,
           investment_id: c.investment_id || c.id, deal_id: dealId, contact_id: c.contact_id || "",
-          due_date: matDate.toISOString().slice(0, 10), payment_type: repaymentPT, type: repaymentPT, fee_id: "",
+          due_date: matDate.toISOString().slice(0, 10), 
+          scheduled_payment_date: calculateScheduledDate(matDate.toISOString().slice(0, 10), lagConfig),
+          payment_type: repaymentPT, type: repaymentPT, fee_id: "",
           period_number: periodNum, principal_amount: principal, payment_amount: principal,
           signed_payment_amount: ds3.signed, direction_from_company: ds3.direction,
           original_payment_amount: principal, term_start: startDate.toISOString().slice(0, 10), term_end: matDate.toISOString().slice(0, 10),
@@ -2001,7 +2029,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
   }, [isDark]);
 
   const scheduleColumnDefs = useMemo(() => {
-    return getDistributionColumns(isDark, t, CONTACTS, DEALS, INVESTMENTS, {
+    let cols = getDistributionColumns(isDark, t, CONTACTS, DEALS, INVESTMENTS, {
       onEdit: (s) => setScheduleModal({ open: true, data: { ...s } }),
       onClone: async (s) => {
         try {
@@ -2107,7 +2135,11 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
       },
       onDealClick: (id) => setActivePage("Deals", { dealId: id })
     });
-  }, [isDark, t, CONTACTS, DEALS, INVESTMENTS, scheduleCollection, user?.uid]);
+    if (!tenantFeatures?.show_scheduled_payment_date) {
+      cols = cols.filter(c => c.id !== 'scheduledDate');
+    }
+    return cols;
+  }, [isDark, t, CONTACTS, DEALS, INVESTMENTS, scheduleCollection, user?.uid, tenantFeatures?.show_scheduled_payment_date]);
 
   const memoDrillDownColumnDefs = useMemo(() => {
     return scheduleColumnDefs.map(col => {
@@ -3575,6 +3607,74 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
           <FF label="Maturity Date" t={t}><FIn value={modal.data.maturity_date || ""} onChange={e => setF("maturity_date", e.target.value)} t={t} type="date" /></FF>
         </div>
         <FF label="Payment Method" t={t}><FSel value={modal.data.payment_method || ""} onChange={e => setF("payment_method", e.target.value)} options={paymentMethods} t={t} /></FF>
+
+        {/* Payment Lag Section */}
+        {tenantFeatures.show_payment_lag && (
+        <div style={{ marginTop: 8, padding: "14px 16px", borderRadius: 12, background: isDark ? "rgba(255,255,255,0.03)" : "#F9FAFB", border: `1px solid ${t.surfaceBorder}` }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: modal.data.lag_override ? 16 : 0 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <CreditCard size={16} style={{ color: t.accent }} />
+              <span style={{ fontSize: 13.5, fontWeight: 600, color: isDark ? "#fff" : "#1C1917" }}>Investment Payment Lag</span>
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <span style={{ fontSize: 12, color: t.textSecondary }}>Override Deal Default</span>
+              <input 
+                type="checkbox" 
+                checked={!!modal.data.lag_override} 
+                onChange={e => setF("lag_override", e.target.checked)} 
+                style={{ width: 17, height: 17, cursor: "pointer", accentColor: t.accent }} 
+              />
+            </div>
+          </div>
+          
+          {modal.data.lag_override ? (
+            <>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14, padding: "8px 10px", borderRadius: 8, background: isDark ? "rgba(255,255,255,0.02)" : "rgba(0,0,0,0.02)" }}>
+                <span style={{ fontSize: 12.5, color: t.textMuted, flex: 1 }}>Enable Lag for this Investment</span>
+                <input 
+                  type="checkbox" 
+                  checked={!!modal.data.lag_enabled} 
+                  onChange={e => setF("lag_enabled", e.target.checked)} 
+                  style={{ width: 16, height: 16, cursor: "pointer" }} 
+                />
+              </div>
+              {modal.data.lag_enabled && (
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+                  <FF label="Lag Type" t={t}>
+                    <FSel 
+                      value={modal.data.lag_type || "DAYS"} 
+                      onChange={e => setF("lag_type", e.target.value)} 
+                      options={[
+                        { id: "DAYS", display: "Fixed Days" },
+                        { id: "MONTHS", display: "Fixed Months" },
+                        { id: "SPECIFIC_DAY", display: "Specific Day" },
+                        { id: "QUARTER_OFFSET", display: "Qtr Offset (15th)" }
+                      ]} 
+                      t={t} 
+                    />
+                  </FF>
+                  {(modal.data.lag_type === "DAYS" || modal.data.lag_type === "MONTHS") && (
+                    <FF label={modal.data.lag_type === "DAYS" ? "Number of Days" : "Number of Months"} t={t}>
+                      <FIn type="number" value={modal.data.lag_value || ""} onChange={e => setF("lag_value", e.target.value)} placeholder="e.g. 30" t={t} />
+                    </FF>
+                  )}
+                  {(modal.data.lag_type === "SPECIFIC_DAY" || modal.data.lag_type === "QUARTER_OFFSET") && (
+                    <FF label="Disbursement Day" t={t}>
+                      <FIn type="number" value={modal.data.lag_day || "15"} onChange={e => setF("lag_day", e.target.value)} placeholder="e.g. 15" t={t} />
+                    </FF>
+                  )}
+                </div>
+              )}
+            </>
+          ) : (
+            <div style={{ fontSize: 12.5, color: t.textMuted, fontStyle: "italic", marginTop: deal.payment_lag_config?.enabled ? 4 : 0 }}>
+              {deal.payment_lag_config?.enabled 
+                ? `Inheriting Deal Default: ${deal.payment_lag_config.type === 'DAYS' ? deal.payment_lag_config.value + ' Days' : (deal.payment_lag_config.type === 'MONTHS' ? deal.payment_lag_config.value + ' Months' : 'Day ' + deal.payment_lag_config.specific_day + ' following period')}`
+                : "No payment lag configured for this deal."}
+            </div>
+          )}
+        </div>
+        )}
         {FEES_DATA.filter(f => f.name !== "Late Fee").length > 0 && (
           <FF label="Applicable Fees" t={t}>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>

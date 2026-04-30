@@ -86,7 +86,10 @@ export function useDashboardData({ DEALS = [], INVESTMENTS = [], CONTACTS = [], 
         const thisMonthStrStart = startOfThisMonth.toISOString().slice(0, 10);
         const thisMonthStrEnd = endOfThisMonth.toISOString().slice(0, 10);
 
-        const thisMonthSchedules = liveSchedules.filter(s => s.dueDate && s.dueDate >= thisMonthStrStart && s.dueDate <= thisMonthStrEnd);
+        const thisMonthSchedules = liveSchedules.filter(s => {
+            const checkDate = s.scheduled_payment_date || s.dueDate;
+            return checkDate && checkDate >= thisMonthStrStart && checkDate <= thisMonthStrEnd;
+        });
 
         const dueThisMonthCount = thisMonthSchedules.length;
         const projectedMonthlyIncome = thisMonthSchedules
@@ -101,7 +104,7 @@ export function useDashboardData({ DEALS = [], INVESTMENTS = [], CONTACTS = [], 
         const qLabel = `Q${Math.floor(now.getMonth() / 3) + 1} Wrap`;
 
         // 3. Prepare Chart Data (Quarterly View)
-        const scheduleDates = liveSchedules.map(s => s.dueDate).filter(Boolean);
+        const scheduleDates = liveSchedules.map(s => s.scheduled_payment_date || s.dueDate).filter(Boolean);
 
         // Find date range
         const firstDate = scheduleDates.length
@@ -129,7 +132,10 @@ export function useDashboardData({ DEALS = [], INVESTMENTS = [], CONTACTS = [], 
             const qStartStr = qStart.toISOString().slice(0, 10);
             const qEndStr = qEnd.toISOString().slice(0, 10);
 
-            const qSchedules = liveSchedules.filter(s => s.dueDate && s.dueDate >= qStartStr && s.dueDate <= qEndStr);
+            const qSchedules = liveSchedules.filter(s => {
+                const checkDate = s.scheduled_payment_date || s.dueDate;
+                return checkDate && checkDate >= qStartStr && checkDate <= qEndStr;
+            });
 
             const projectedIn = qSchedules
                 .filter(s => s.direction === 'IN')
@@ -196,8 +202,8 @@ export function useDashboardData({ DEALS = [], INVESTMENTS = [], CONTACTS = [], 
                     };
                 })
                 .sort((a, b) => {
-                    const da = a.dueDate ? new Date(a.dueDate).getTime() : 0;
-                    const db = b.dueDate ? new Date(b.dueDate).getTime() : 0;
+                    const da = (a.scheduled_payment_date || a.dueDate) ? new Date(a.scheduled_payment_date || a.dueDate).getTime() : 0;
+                    const db = (b.scheduled_payment_date || b.dueDate) ? new Date(b.scheduled_payment_date || b.dueDate).getTime() : 0;
                     return da - db;
                 }),
             investments: filteredInvestments.map(inv => {
