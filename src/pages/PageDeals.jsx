@@ -79,6 +79,7 @@ export default function PageDeals({ t, isDark, DEALS = [], INVESTMENTS = [], SCH
         lag_type: "DAYS",
         lag_value: 0,
         lag_day: 15,
+        lag_month_offset: 1,
       }
     });
   };
@@ -89,6 +90,11 @@ export default function PageDeals({ t, isDark, DEALS = [], INVESTMENTS = [], SCH
     const lag = r.payment_lag_config || {};
     setModal({ open: true, mode: "edit", step: 1, data: { 
       ...r,
+      name: r.name || r.deal_name || "",
+      startDate: r.startDate || r.start_date || "",
+      endDate: r.endDate || r.end_date || "",
+      valuation: r.valuation || r.valuation_amount || "",
+      feeIds: typeof r.fees === 'string' ? r.fees.split(',').filter(Boolean) : (Array.isArray(r.fees) ? r.fees : []),
       lag_enabled: !!lag.enabled,
       lag_type: lag.type || "DAYS",
       lag_value: lag.value || 0,

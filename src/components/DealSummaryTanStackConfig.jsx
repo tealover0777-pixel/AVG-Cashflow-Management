@@ -1,5 +1,5 @@
-import React from 'react';
 import { Bdg, ActBtns } from '../components';
+import { formatPaymentLag } from '../utils';
 
 export const getDealInvestmentColumns = (permissions, isDark, t, context, viewType = 'investment') => {
   const { CONTACTS, FEES_DATA, SCHEDULES, callbacks } = context;
@@ -169,14 +169,22 @@ export const getDealInvestmentColumns = (permissions, isDark, t, context, viewTy
       cell: ({ getValue }) => <span style={{ fontSize: '11.5px' }}>{getValue() || "—"}</span>
     },
     {
-      header: "Term",
-      accessorKey: "term_months",
-      size: 80,
-      cell: ({ getValue }) => (
-        <span style={{ fontFamily: t.mono, fontSize: '11px', color: isDark ? '#FFFFFF' : '#292524' }}>
-          {getValue() ? `${getValue()}mo` : "—"}
-        </span>
-      )
+      header: "Payment Lag",
+      id: "payment_lag",
+      size: 150,
+      accessorFn: (row) => formatPaymentLag(row.payment_lag_config),
+      cell: ({ getValue, row }) => {
+        const val = getValue();
+        const isOverride = !!row.original.payment_lag_config;
+        return (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+            <span style={{ fontSize: '11px', fontWeight: 600, color: val === "None" ? t.textMuted : (isDark ? "#34D399" : "#059669") }}>
+              {val}
+            </span>
+            {isOverride && <span style={{ fontSize: '9px', fontWeight: 800, color: t.accent, textTransform: 'uppercase' }}>Override</span>}
+          </div>
+        );
+      }
     },
     {
       header: "Type",
@@ -268,32 +276,6 @@ export const getDealInvestmentColumns = (permissions, isDark, t, context, viewTy
         return (
           <div title={val} style={{ fontSize: '11.5px', color: t.textSecondary, maxWidth: '180px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {val}
-          </div>
-        );
-      }
-    },
-    {
-      header: "Payment Lag",
-      id: "payment_lag",
-      size: 150,
-      accessorFn: (row) => {
-        const lag = row.payment_lag_config;
-        if (!lag || !lag.enabled) return "None";
-        if (lag.type === "DAYS") return `${lag.value} Days`;
-        if (lag.type === "MONTHS") return `${lag.value} Months`;
-        if (lag.type === "SPECIFIC_DAY") return `Day ${lag.specific_day} next month`;
-        if (lag.type === "QUARTER_OFFSET") return `Qtr Offset (${lag.specific_day}th)`;
-        return "Custom";
-      },
-      cell: ({ getValue, row }) => {
-        const val = getValue();
-        const isOverride = !!row.original.payment_lag_config;
-        return (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-            <span style={{ fontSize: '11px', fontWeight: 600, color: val === "None" ? t.textMuted : (isDark ? "#34D399" : "#059669") }}>
-              {val}
-            </span>
-            {isOverride && <span style={{ fontSize: '9px', fontWeight: 800, color: t.accent, textTransform: 'uppercase' }}>Override</span>}
           </div>
         );
       }

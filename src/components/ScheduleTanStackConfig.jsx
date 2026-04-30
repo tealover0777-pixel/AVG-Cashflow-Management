@@ -186,14 +186,14 @@ export const getScheduleColumns = (permissions, isDark, t, context) => {
       sortingFn: 'datetime'
     },
     {
-      header: "Accrual Date",
+      header: "End Date",
       accessorFn: (row) => row.due_date || row.dueDate || "",
       size: 100,
       cell: ({ getValue }) => <span style={{ fontFamily: t.mono, fontSize: '12px' }}>{getValue()}</span>,
       sortingFn: 'datetime'
     },
     {
-      header: "Payment Day",
+      header: "Payment Date",
       accessorFn: (row) => row.scheduled_payment_date || row.due_date || row.dueDate || "",
       size: 100,
       cell: ({ getValue }) => <span style={{ fontFamily: t.mono, fontSize: '12px', color: isDark ? "#34D399" : "#059669", fontWeight: 600 }}>{getValue()}</span>,

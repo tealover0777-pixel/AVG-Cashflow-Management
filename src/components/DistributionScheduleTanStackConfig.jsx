@@ -150,7 +150,7 @@ export const getDistributionColumns = (isDark, t, CONTACTS, DEALS, INVESTMENTS =
   },
   {
     id: 'accrualDate',
-    header: 'Accrual Date',
+    header: 'End Date',
     accessorFn: row => row.due_date || row.dueDate || "—",
     size: 110,
     cell: ({ getValue }) => <span style={{ fontFamily: t.mono, fontSize: '11px' }}>{getValue()}</span>,
@@ -158,7 +158,7 @@ export const getDistributionColumns = (isDark, t, CONTACTS, DEALS, INVESTMENTS =
   },
   {
     id: 'scheduledDate',
-    header: 'Payment Day',
+    header: 'Payment Date',
     accessorFn: row => row.scheduled_payment_date || row.due_date || row.dueDate || "—",
     size: 110,
     cell: ({ getValue }) => <span style={{ fontFamily: t.mono, fontSize: '11px', color: isDark ? "#34D399" : "#059669", fontWeight: 600 }}>{getValue()}</span>,
