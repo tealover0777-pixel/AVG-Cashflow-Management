@@ -8,13 +8,16 @@ import { Modal, FF, FIn, DelModal } from "../components";
 import TanStackTable from "../components/TanStackTable";
 import { getSuperAdminColumns } from "../components/SuperAdminTanStackConfig";
 
-export default function PageSuperAdmin({ t, isDark, ROLES = [], TENANTS = [] }) {
+export default function PageSuperAdmin({ t, isDark, ROLES = [], TENANTS = [], USERS = [], tenantId = "" }) {
     const { hasPermission, isSuperAdmin, user } = useAuth();
     const canCreate = isSuperAdmin || hasPermission("PLATFORM_USER_CREATE");
     const canView = isSuperAdmin || hasPermission("PLATFORM_USER_VIEW");
     const canUpdate = isSuperAdmin || hasPermission("PLATFORM_USER_UPDATE");
     const canDelete = isSuperAdmin || hasPermission("PLATFORM_USER_DELETE");
-    const { data: rawUsers = [], loading, error } = useFirestoreCollection("global_users");
+    
+    // Fetch global users list
+    const { data: globalUsers = [], loading, error } = useFirestoreCollection("global_users");
+    
     const [modal, setModal] = useState({ open: false, mode: "add", data: {} });
     const [delT, setDelT] = useState(null);
     const [inviting, setInviting] = useState(false);
@@ -28,14 +31,82 @@ export default function PageSuperAdmin({ t, isDark, ROLES = [], TENANTS = [] }) 
         const found = ROLES.find(r => r.id === role_id || r.role_id === role_id);
         return found ? (found.role_name || found.name || role_id) : null;
     };
-    const getTenantName = (tenantId) => {
-        const found = TENANTS.find(t2 => t2.id === tenantId);
-        return found ? (found.name || tenantId) : null;
+    const getTenantName = (tid) => {
+        const found = TENANTS.find(tn => tn.id === tid);
+        return found ? (found.name || tid) : null;
     };
     const isRoleGlobal = (roleId) => {
         const found = ROLES.find(r => (r.id || r.role_id) === roleId);
         return found && found.IsGlobal === true;
     };
+
+    // Merge tenant users with global users data and include standalone Global users
+    const mergedUsers = useMemo(() => {
+        // 1. Process Tenant Users (from the 'users' collection or collection group passed as USERS)
+        const tUsers = USERS.map(u => {
+            const globalUser = globalUsers.find(gu =>
+                (u.auth_uid && gu.id === u.auth_uid) ||
+                (u.email && gu.email && gu.email.toLowerCase() === u.email.toLowerCase())
+            );
+            
+            // Extract tenantId from path if not present (for collection group)
+            let tid = u.tenantId || u.tenant_id || u.Tenant_ID;
+            if (!tid && u._path) {
+                const parts = u._path.split('/');
+                if (parts[0] === 'tenants' && parts[1]) tid = parts[1];
+            }
+            if (!tid) tid = tenantId;
+
+            return {
+                ...u,
+                docId: u._path || u.docId || u.id,
+                first_name: globalUser?.first_name || u.first_name || "",
+                last_name: globalUser?.last_name || u.last_name || "",
+                displayName: globalUser?.displayName || u.displayName || "",
+                role: u.role_id || globalUser?.role || "", // SuperAdmin config uses 'role'
+                tenantId: tid
+            };
+        });
+
+        // 2. Add Global Users who aren't already represented in the tenant-user list
+        const missingGlobal = globalUsers.filter(gu => {
+            return !tUsers.some(tu => 
+                (tu.auth_uid && tu.auth_uid === gu.id) || 
+                (tu.email && gu.email && tu.email.toLowerCase() === gu.email.toLowerCase())
+            );
+        }).map(gu => ({
+            ...gu,
+            id: gu.id,
+            docId: gu.id,
+            auth_uid: gu.id,
+            first_name: gu.first_name || "",
+            last_name: gu.last_name || "",
+            email: gu.email || "",
+            role: gu.role || "",
+            status: gu.status || "Active",
+            tenantId: gu.tenantId || "GLOBAL",
+            _isGlobalOnly: true
+        }));
+
+        return [...tUsers, ...missingGlobal];
+    }, [USERS, globalUsers, tenantId]);
+
+    // Filter logic: Include all unless it's the secret admin (for non-owners)
+    const filteredUsers = useMemo(() => {
+        const currentUserEmail = user?.email?.toLowerCase();
+        const isSecretAdmin = currentUserEmail === 'kyuahn@yahoo.com';
+
+        return mergedUsers.filter(u => {
+            // Filter out secret admin from other users
+            if (!isSecretAdmin && u.email?.toLowerCase() === 'kyuahn@yahoo.com') {
+                return false;
+            }
+            // Requirements: 
+            // 2. If "Consolidated" selected, display all users for every tenant + Global users
+            // 3. If specific tenant selected, display users from that tenant + Global users
+            return true;
+        });
+    }, [mergedUsers, user]);
 
     // Get role options from ROLES collection
     const roleOptions = useMemo(() => {
@@ -170,18 +241,6 @@ export default function PageSuperAdmin({ t, isDark, ROLES = [], TENANTS = [] }) 
             showToast("Delete failed: " + (err.message || "Unknown error"), "error");
         }
     };
-
-    // Filter out secret admin from display (unless current user IS the secret admin)
-    const filteredUsers = useMemo(() => {
-        const currentUserEmail = user?.email?.toLowerCase();
-        const isSecretAdmin = currentUserEmail === 'kyuahn@yahoo.com';
-
-        if (isSecretAdmin) {
-            return rawUsers; // Secret admin sees everyone
-        }
-
-        return rawUsers.filter(u => u.email?.toLowerCase() !== 'kyuahn@yahoo.com');
-    }, [rawUsers, user]);
 
     const permissions = { canUpdate, canDelete, canCreate };
     const columnDefs = useMemo(() => {

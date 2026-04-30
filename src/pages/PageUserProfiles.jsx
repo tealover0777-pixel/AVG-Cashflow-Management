@@ -62,26 +62,48 @@ export default function PageUserProfiles({ t, isDark, USERS = [], GLOBAL_USERS =
         return r ? { name: r.role_name || r.name || id, id } : { name: "Member", id: "R10001" };
     };
 
-    // Merge tenant users with global users data (for first_name/last_name)
+    // Merge tenant users with global users data and include standalone Global users
     const mergedUsers = useMemo(() => {
-        return USERS.map(u => {
-            // Find matching global user by auth_uid or email
+        // 1. Process Tenant Users (from the 'users' collection or collection group)
+        const tUsers = USERS.map(u => {
             const globalUser = GLOBAL_USERS.find(gu =>
                 (u.auth_uid && gu.id === u.auth_uid) ||
                 (u.email && gu.email && gu.email.toLowerCase() === u.email.toLowerCase())
             );
-
-            // Merge: use global user's first_name/last_name if available, otherwise use tenant user's
             return {
                 ...u,
-                docId: u._path || u.docId || u.id, // Ensure uniqueness for TanStack Table, especially in GLOBAL view
-                first_name: globalUser?.first_name || u.first_name,
-                last_name: globalUser?.last_name || u.last_name
+                docId: u._path || u.docId || u.id,
+                first_name: globalUser?.first_name || u.first_name || "",
+                last_name: globalUser?.last_name || u.last_name || "",
+                displayName: globalUser?.displayName || u.displayName || "",
+                role_id: u.role_id || globalUser?.role || ""
             };
         });
+
+        // 2. Add Global Users who aren't already represented in the tenant-user list
+        const missingGlobal = GLOBAL_USERS.filter(gu => {
+            return !tUsers.some(tu => 
+                (tu.auth_uid && tu.auth_uid === gu.id) || 
+                (tu.email && gu.email && tu.email.toLowerCase() === gu.email.toLowerCase())
+            );
+        }).map(gu => ({
+            ...gu,
+            id: gu.id,
+            docId: gu.id,
+            auth_uid: gu.id,
+            first_name: gu.first_name || "",
+            last_name: gu.last_name || "",
+            email: gu.email || "",
+            role_id: gu.role || "",
+            status: gu.status || "Active",
+            tenant_id: "GLOBAL",
+            _isGlobalOnly: true
+        }));
+
+        return [...tUsers, ...missingGlobal];
     }, [USERS, GLOBAL_USERS]);
 
-    // Filter out platform/global users AND secret admin (unless current user IS the secret admin)
+    // Filter logic: Include all unless it's the secret admin (for non-owners)
     const filteredUsers = useMemo(() => {
         const currentUserEmail = user?.email?.toLowerCase();
         const isSecretAdmin = currentUserEmail === 'kyuahn@yahoo.com';
@@ -91,14 +113,13 @@ export default function PageUserProfiles({ t, isDark, USERS = [], GLOBAL_USERS =
             if (!isSecretAdmin && u.email?.toLowerCase() === 'kyuahn@yahoo.com') {
                 return false;
             }
-
-            // Filter out users with global roles
-            const roleId = u.role_id;
-            if (!roleId) return true; // Include users without role
-            const isGlobal = isSelectedRoleGlobal(roleId);
-            return !isGlobal; // Exclude users with global roles
+            // Requirements: 
+            // 2. If "Consolidated" selected, display all users for every tenant + Global users
+            // 3. If specific tenant selected, display users from that tenant + Global users
+            // Since mergedUsers already contains (tenant users + missing global), we show all.
+            return true;
         });
-    }, [mergedUsers, ROLES, user]);
+    }, [mergedUsers, user]);
 
     const nextUserId = useMemo(() => {
         if (filteredUsers.length === 0) return "U10001";
