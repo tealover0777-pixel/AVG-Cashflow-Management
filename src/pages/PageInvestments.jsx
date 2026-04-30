@@ -130,7 +130,6 @@ export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [
         rollover_source_id: "",
         first_name: "",
         last_name: "",
-        contact_name: "",
         contact_id: ""
       }
     });
@@ -141,7 +140,6 @@ export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [
       mode: "edit",
       data: {
         ...r,
-        contact_name: r.contact_name || "",
         contact_id: r.contact_id || "",
         first_name: r.first_name || "",
         last_name: r.last_name || ""
@@ -153,11 +151,9 @@ export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [
     const d = modal.data;
     const dealObj = DEALS.find(p => p.name === d.deal);
     const contactObj = CONTACTS.find(p => p.id === d.contact_id || p.docId === d.contact_id);
-    const contactName = `${d.first_name || ""} ${d.last_name || ""}`.trim();
     const payload = {
       deal_name: d.deal || "",
       deal_id: dealObj ? dealObj.id : (d.deal_id || ""),
-      contact_name: contactName,
       first_name: d.first_name || "",
       last_name: d.last_name || "",
       contact_id: contactObj ? (contactObj.id || contactObj.docId) : (d.contact_id || ""),
@@ -619,7 +615,6 @@ export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [
       if (c) {
         next.data.first_name = c.first_name || "";
         next.data.last_name = c.last_name || "";
-        next.data.contact_name = `${c.first_name || ""} ${c.last_name || ""}`.trim();
       }
     }
     

@@ -183,14 +183,11 @@ export default function PagePayments({ t, isDark, PAYMENTS = [], INVESTMENTS = [
 
   const openAddPayment = () => setModal({ open: true, mode: "add", type: "payment", data: { investment_id: "", contact_name: "", first_name: "", last_name: "", payment_type: "Principal", amount: "", payment_date: "", payment_method: "Wire", direction: "Received", status: "Pending", notes: "" } });
   const openEditPayment = r => {
-    const contactName = r.contact_name || r.contact || r.party_name || r.party || "";
-    const parts = contactName.split(' ');
     setModal({ open: true, mode: "edit", type: "payment", data: {
       ...r,
       investment_id: r.investment_id || r.investment || "",
-      contact_name: contactName,
-      first_name: r.first_name || parts[0] || "",
-      last_name: r.last_name || parts.slice(1).join(' ') || "",
+      first_name: r.first_name || "",
+      last_name: r.last_name || "",
       payment_type: r.payment_type || r.type || "",
       payment_date: r.payment_date || r.date || "",
       payment_method: r.payment_method || r.method || "",
@@ -218,7 +215,6 @@ export default function PagePayments({ t, isDark, PAYMENTS = [], INVESTMENTS = [
     if (type === "payment") {
       payload = {
         investment_id: d.investment_id || "",
-        contact_name: `${d.first_name || ""} ${d.last_name || ""}`.trim(),
         first_name: d.first_name || "",
         last_name: d.last_name || "",
         payment_type: d.payment_type || "",

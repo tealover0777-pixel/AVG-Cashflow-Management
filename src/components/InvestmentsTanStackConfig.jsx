@@ -93,7 +93,7 @@ export const getInvestmentColumns = (permissions, isDark, t, context) => {
       size: 150,
       cell: ({ getValue, row }) => {
         const val = getValue();
-        const displayVal = val || (row.original.contact_name || row.original.contact || "").split(' ')[0] || "—";
+        const displayVal = val || "—";
         return (
           <span 
             onClick={() => callbacks.onDrillDown?.(row.original, { view: "detail" })}
@@ -115,8 +115,7 @@ export const getInvestmentColumns = (permissions, isDark, t, context) => {
       size: 150,
       cell: ({ getValue, row }) => {
         const val = getValue();
-        const parts = (row.original.contact_name || row.original.contact || "").split(' ');
-        const displayVal = val || parts.slice(1).join(' ') || "—";
+        const displayVal = val || "—";
         return (
           <span 
             onClick={() => callbacks.onDrillDown?.(row.original, { view: "detail" })}

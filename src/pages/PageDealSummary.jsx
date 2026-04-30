@@ -887,7 +887,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
 
   const openEdit = (r) => {
     const feeIds = r.fees ? String(r.fees).split(",").filter(Boolean) : [];
-    const parts = (r.contact_name || r.contact || "").split(' ');
+    const contact = (CONTACTS || []).find(c => c.id === r.contact_id || c.docId === r.contact_id);
     setModal({ 
       open: true, 
       mode: "edit", 
@@ -895,9 +895,8 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
         ...r, 
         id: r.investment_id || r.id, 
         feeIds,
-        first_name: r.first_name || parts[0] || "",
-        first_name: r.first_name || parts[0] || "",
-        last_name: r.last_name || parts.slice(1).join(' ') || "",
+        first_name: contact?.first_name || r.first_name || "",
+        last_name: contact?.last_name || r.last_name || "",
         lag_override: !!r.payment_lag_config,
         lag_enabled: r.payment_lag_config ? !!r.payment_lag_config.enabled : !!(deal.payment_lag_config?.enabled),
         lag_type: r.payment_lag_config ? (r.payment_lag_config.type || "DAYS") : (deal.payment_lag_config?.type || "DAYS"),
@@ -1088,7 +1087,6 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
     const payload = {
       deal_name: d.deal || "",
       deal_id: dealObj ? dealObj.id : (d.deal_id || ""),
-      contact_name: contactName,
       first_name: d.first_name || "",
       last_name: d.last_name || "",
       contact_id: contactObj ? contactObj.id : (d.contact_id || ""),
@@ -4548,7 +4546,6 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
         onUpdate={async (updatedData) => {
           const d = updatedData;
           const payload = {
-            contact_name: `${d.first_name || ""} ${d.last_name || ""}`.trim() || d.name || "",
             first_name: d.first_name || "",
             last_name: d.last_name || "",
             contact_type: d.contact_type || d.type || "Individual",

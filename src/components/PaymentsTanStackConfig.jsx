@@ -69,8 +69,7 @@ export const getPaymentColumns = (permissions, isDark, t, onEdit, onDel, onBatch
       size: 150,
       cell: ({ getValue, row }) => {
         const val = getValue();
-        const parts = (row.original.contact_name || row.original.contact || "").split(' ');
-        const displayVal = val || parts[0] || "—";
+        const displayVal = val || "—";
         return (
           <span 
             onClick={() => onContactClick && onContactClick(row.original)}
@@ -92,8 +91,7 @@ export const getPaymentColumns = (permissions, isDark, t, onEdit, onDel, onBatch
       size: 150,
       cell: ({ getValue, row }) => {
         const val = getValue();
-        const parts = (row.original.contact_name || row.original.contact || "").split(' ');
-        const displayVal = val || parts.slice(1).join(' ') || "—";
+        const displayVal = val || "—";
         return (
           <span 
             onClick={() => onContactClick && onContactClick(row.original)}
