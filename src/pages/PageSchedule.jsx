@@ -120,6 +120,7 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
         payment_method: d.payment_method || "",
         period_start: d.period_start || "",
         period_end: d.period_end || "",
+        use_payment_day_filter: !!d.use_payment_day_filter,
         batch_id: generatedBatchId,
         updated_at: serverTimestamp(),
         updated_by: user?.uid || "system",
@@ -154,7 +155,8 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
         const typeMatch = types.length === 0 || types.includes(sType);
         const statusMatch = statuses.length === 0 || statuses.includes((s.status || "").toLowerCase());
         const methodMatch = methods.length === 0 || methods.includes(sMethod);
-        const checkDate = s.scheduled_payment_date || due;
+        const usePaymentDay = !!d.use_payment_day_filter;
+        const checkDate = usePaymentDay ? (s.scheduled_payment_date || due) : due;
         return typeMatch && statusMatch && methodMatch && checkDate >= d.period_start && checkDate <= d.period_end;
       });
 
@@ -251,7 +253,7 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
     endDate: "",
     freq: "",
     rate: "",
-    schedule: "",
+    paymentLag: "",
     paymentMethod: ""
   });
 
@@ -1587,6 +1589,11 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
           rate,
           paymentMethod,
           scheduleId: schedule.investment_id || schedule.investment || "—",
+          paymentLag: (() => {
+            const d = (DEALS || []).find(x => x.id === inv?.deal_id);
+            const config = (inv?.payment_lag_config?.enabled) ? inv.payment_lag_config : (d?.payment_lag_config || null);
+            return formatPaymentLag(config);
+          })(),
           contactId
         };
       }
@@ -1638,10 +1645,10 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
       const matchEnd = !pivotFilters.endDate || row.endDate?.toLowerCase().includes(pivotFilters.endDate.toLowerCase());
       const matchFreq = !pivotFilters.freq || row.freq?.toLowerCase().includes(pivotFilters.freq.toLowerCase());
       const matchRate = !pivotFilters.rate || String(row.rate)?.toLowerCase().includes(pivotFilters.rate.toLowerCase());
-      const matchSchedule = !pivotFilters.schedule || row.scheduleId?.toLowerCase().includes(pivotFilters.schedule.toLowerCase());
+      const matchLag = !pivotFilters.paymentLag || row.paymentLag?.toLowerCase().includes(pivotFilters.paymentLag.toLowerCase());
       const matchMethod = !pivotFilters.paymentMethod || row.paymentMethod?.toLowerCase().includes(pivotFilters.paymentMethod.toLowerCase());
 
-      return matchFirstName && matchLastName && matchType && matchStart && matchEnd && matchFreq && matchRate && matchSchedule && matchMethod;
+      return matchFirstName && matchLastName && matchType && matchStart && matchEnd && matchFreq && matchRate && matchLag && matchMethod;
     });
 
     let currentInv = null;
@@ -1881,7 +1888,7 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
       ) : (
         <div style={{ display: "flex", gap: 10, alignItems: "center", flex: 1, justifyContent: "flex-end", marginRight: 20 }}>
            <button 
-             onClick={() => setDistMemoModal({ open: true, mode: "add", data: { deal_id: selectedDealId, status: paymentStatusOpts, payment_method: "" } })} 
+             onClick={() => setDistMemoModal({ open: true, mode: "add", data: { deal_id: selectedDealId, status: paymentStatusOpts, payment_method: "", use_payment_day_filter: true } })} 
              style={{ 
                background: t.accentGrad || t.accent, 
                color: "#fff", 
@@ -2219,12 +2226,12 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
                     borderBottom: `2px solid ${t.surfaceBorder}`,
                     borderRight: `1px solid ${t.surfaceBorder}`,
                   }}>
-                    <div style={{ marginBottom: 8 }}>Schedule</div>
+                    <div style={{ marginBottom: 8 }}>Payment Lag</div>
                     <input
                       type="text"
                       placeholder="Filter..."
-                      value={pivotFilters.schedule}
-                      onChange={(e) => setPivotFilters({ ...pivotFilters, schedule: e.target.value })}
+                      value={pivotFilters.paymentLag}
+                      onChange={(e) => setPivotFilters({ ...pivotFilters, paymentLag: e.target.value })}
                       style={{ width: "100%", fontSize: 10, padding: "4px 6px", borderRadius: 4, background: isDark ? "#1a1a1a" : "#fff", color: t.text, border: `1px solid ${t.surfaceBorder}` }}
                     />
                     <div onMouseDown={(e) => handleResize(7, e)} style={{ position: "absolute", right: -3, top: 0, bottom: 0, width: 6, cursor: "col-resize", zIndex: 60, transition: "background 0.2s" }} onMouseOver={(e) => e.target.style.background = t.accent} onMouseOut={(e) => e.target.style.background = "transparent"} />
@@ -2272,7 +2279,7 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
                       top: 0,
                       zIndex: 40
                     }}>
-                      <div style={{ fontSize: 10, opacity: 0.7 }}>Payment Date</div>
+                      <div style={{ fontSize: 10, opacity: 0.7 }}>Payment Day</div>
                       <div>{date}</div>
                       {idx === pivotData.dates.length - 1 && (
                         <div onMouseDown={handleDateResize} style={{ position: "absolute", right: -3, top: 0, bottom: 0, width: 6, cursor: "col-resize", zIndex: 60, transition: "background 0.2s" }} onMouseOver={(e) => e.target.style.background = t.accent} onMouseOut={(e) => e.target.style.background = "transparent"} />
@@ -2436,7 +2443,7 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
                         minWidth: pivotColWidths[7],
                         maxWidth: pivotColWidths[7]
                       }}>
-                        {row.scheduleId}
+                        {row.paymentLag}
                       </td>
                       <td style={{
                         padding: "12px",
@@ -2779,8 +2786,22 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
             placeholder=" "
           />
         </FF>
+        <FF label="" t={t}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 0' }}>
+            <input 
+              type="checkbox" 
+              id="use_payment_day_filter"
+              checked={!!distMemoModal.data.use_payment_day_filter}
+              onChange={e => setDistMemoModal(m => ({ ...m, data: { ...m.data, use_payment_day_filter: e.target.checked } }))}
+              style={{ width: 16, height: 16, accentColor: t.accent, cursor: 'pointer' }}
+            />
+            <label htmlFor="use_payment_day_filter" style={{ fontSize: 13, fontWeight: 600, color: t.text, cursor: 'pointer' }}>
+              Use Payment Day (Scheduled Date) to replace Accrual Date filter
+            </label>
+          </div>
+        </FF>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-          <FF label="Period Start Date" t={t}>
+          <FF label={distMemoModal.data.use_payment_day_filter ? "Payment Start Date" : "Accrual Start Date"} t={t}>
             <FIn
               type="date"
               value={distMemoModal.data.period_start || ""}
@@ -2788,7 +2809,7 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
               t={t}
             />
           </FF>
-          <FF label="Period End Date" t={t}>
+          <FF label={distMemoModal.data.use_payment_day_filter ? "Payment End Date" : "Accrual End Date"} t={t}>
             <FIn
               type="date"
               value={distMemoModal.data.period_end || ""}

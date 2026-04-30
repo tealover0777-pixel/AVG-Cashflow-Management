@@ -7,6 +7,7 @@ const toArr = (v) => Array.isArray(v) ? v : (v ? [v] : []);
 export const calculateLinkedSchedules = (memo, SCHEDULES = [], INVESTMENTS = [], CONTACTS = [], dealId = null) => {
   const types = toArr(memo.payment_type).map(x => x.toLowerCase());
   const statuses = toArr(memo.status).map(x => x.toLowerCase());
+  const usePaymentDay = !!memo.use_payment_day_filter;
   
   return SCHEDULES.filter(s => {
     // Explicit linkage
@@ -18,10 +19,15 @@ export const calculateLinkedSchedules = (memo, SCHEDULES = [], INVESTMENTS = [],
     if (targetDealId && s.deal_id !== targetDealId) return false;
     const sType = (s.type || s.payment_type || "").toLowerCase();
     if (types.length > 0 && !types.includes(sType)) return false;
+    
     const due = s.dueDate || s.due_date || "";
-    if (!due) return false;
-    if (memo.period_start && due < memo.period_start) return false;
-    if (memo.period_end && due > memo.period_end) return false;
+    const scheduled = s.scheduled_payment_date || "";
+    const checkDate = usePaymentDay ? (scheduled || due) : due;
+
+    if (!checkDate) return false;
+    if (memo.period_start && checkDate < memo.period_start) return false;
+    if (memo.period_end && checkDate > memo.period_end) return false;
+    
     if (statuses.length > 0) {
       const sSt = (s.status || "").toLowerCase();
       if (!statuses.includes(sSt)) return false;
@@ -145,9 +151,9 @@ export const getDistributionMemoColumns = (isDark, t, context) => {
       }
     },
     {
-      header: "Period Start",
+      header: "Payment Start Date",
       accessorKey: "period_start",
-      size: 120,
+      size: 130,
       cell: ({ getValue }) => {
         const val = getValue();
         if (!val) return <span style={{ color: t.textMuted }}>—</span>;
@@ -156,9 +162,9 @@ export const getDistributionMemoColumns = (isDark, t, context) => {
       sortingFn: 'datetime'
     },
     {
-      header: "Period End",
+      header: "Payment End Date",
       accessorKey: "period_end",
-      size: 120,
+      size: 130,
       cell: ({ getValue }) => {
         const val = getValue();
         if (!val) return <span style={{ color: t.textMuted }}>—</span>;

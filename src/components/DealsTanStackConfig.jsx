@@ -115,7 +115,7 @@ export const getDealColumns = (permissions, isDark, t, context) => {
       cell: ({ getValue }) => <span style={{ fontFamily: t.mono, fontSize: '11px', color: t.idText }}>{getValue() || "—"}</span>
     },
     {
-      header: "Lag",
+      header: "Payment Lag",
       accessorKey: "payment_lag_config",
       size: 110,
       cell: ({ getValue }) => {
