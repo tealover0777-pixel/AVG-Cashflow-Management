@@ -9,7 +9,7 @@ import { Modal, FF, FIn, FSel, DelModal, Tooltip, Bdg } from "../components";
 import { InvestorSummaryModal } from "../components/InvestorSummaryModal";
 import { useAuth } from "../AuthContext";
 
-export default function PagePayments({ t, isDark, PAYMENTS = [], INVESTMENTS = [], CONTACTS = [], SCHEDULES = [], DEALS = [], DIMENSIONS = [], ACH_BATCHES = [], LEDGER = [], USERS = [], collectionPath = "", achBatchPath = "", ledgerPath = "", setActivePage, setSelectedDistMemoId }) {
+export default function PagePayments({ t, isDark, PAYMENTS = [], INVESTMENTS = [], CONTACTS = [], SCHEDULES = [], DEALS = [], DIMENSIONS = [], ACH_BATCHES = [], LEDGER = [], USERS = [], collectionPath = "", achBatchPath = "", ledgerPath = "", setActivePage, setSelectedDistMemoId, setSelectedDealId }) {
   const { hasPermission, isSuperAdmin, user } = useAuth();
   const canCreate = isSuperAdmin || hasPermission("PAYMENT_CREATE") || hasPermission("PAYMENTS_CREATE");
   const canUpdate = isSuperAdmin || hasPermission("PAYMENT_UPDATE") || hasPermission("PAYMENTS_UPDATE");
