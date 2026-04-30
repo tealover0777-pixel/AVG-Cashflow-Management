@@ -2676,6 +2676,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
                   SCHEDULES: activeDealSchedules,
                   INVESTMENTS,
                   CONTACTS,
+                  DEALS,
                   dealId,
                   callbacks: {
                     onMemoClick: (memo, linked) => setDistMemoDrillDown({ open: true, memo, schedules: linked }),

@@ -5,7 +5,7 @@ import { fmtCurr } from '../utils';
 const toArr = (v) => Array.isArray(v) ? v : (v ? [v] : []);
 
 export const getDistributionMemoColumns = (isDark, t, context) => {
-  const { SCHEDULES = [], INVESTMENTS = [], CONTACTS = [], dealId, callbacks } = context;
+  const { SCHEDULES = [], INVESTMENTS = [], CONTACTS = [], DEALS = [], dealId, callbacks } = context;
 
   const getLinkedSchedules = (memo) => {
     const types = toArr(memo.payment_type).map(x => x.toLowerCase());
@@ -36,7 +36,18 @@ export const getDistributionMemoColumns = (isDark, t, context) => {
 
   return [
     {
+      header: "Deal",
+      accessorKey: "deal_id",
+      size: 150,
+      cell: ({ getValue }) => {
+        const dId = getValue();
+        const deal = DEALS.find(d => d.id === dId || d.docId === dId);
+        return <span style={{ fontSize: 13, fontWeight: 500 }}>{deal ? (deal.deal_name || deal.name) : (dId || "—")}</span>;
+      }
+    },
+    {
       header: "Distribution Memo",
+// ...
       accessorKey: "memo",
       size: 220,
       cell: ({ getValue, row }) => {

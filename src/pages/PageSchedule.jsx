@@ -1957,6 +1957,7 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
             SCHEDULES,
             INVESTMENTS,
             CONTACTS,
+            DEALS,
             callbacks: {
               onMemoClick: (memo, linked) => setDistMemoDrillDown({ open: true, memo, schedules: linked }),
               onEdit: (row) => setDistMemoModal({ open: true, mode: "edit", data: { ...row } }),
