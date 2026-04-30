@@ -188,7 +188,7 @@ export const getPaymentColumns = (permissions, isDark, t, onEdit, onDel, onBatch
   ];
 };
 
-export const getBatchColumns = (permissions, isDark, t, onEdit, onDel, onBatchClick) => {
+export const getBatchColumns = (permissions, isDark, t, onEdit, onDel, onBatchClick, onMemoClick) => {
   return [
     {
       id: 'select',
@@ -238,13 +238,37 @@ export const getBatchColumns = (permissions, isDark, t, onEdit, onDel, onBatchCl
       ),
     },
     {
+      accessorKey: 'deal_name',
+      header: 'Deal Name',
+      size: 150,
+      cell: ({ getValue }) => <span style={{ fontSize: '12px', color: t.textSecondary }}>{getValue() || "—"}</span>,
+    },
+    {
       accessorKey: 'dist_memo_name',
       header: 'Distribution Memo',
-      size: 150,
-      cell: ({ getValue }) => (
-        <span style={{ fontFamily: t.mono, fontSize: '10.5px', color: t.idText }}>
-          {getValue() || "—"}
-        </span>
+      size: 200,
+      cell: ({ getValue, row }) => (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+          <span 
+            onClick={() => onMemoClick && row.original.dist_memo_id && onMemoClick(row.original.dist_memo_id)}
+            style={{ 
+              fontFamily: t.mono, 
+              fontSize: '10.5px', 
+              color: (onMemoClick && row.original.dist_memo_id) ? (isDark ? "#60A5FA" : "#4F46E5") : t.idText, 
+              fontWeight: 600,
+              cursor: (onMemoClick && row.original.dist_memo_id) ? 'pointer' : 'default',
+              textDecoration: (onMemoClick && row.original.dist_memo_id) ? 'underline' : 'none',
+              textUnderlineOffset: '2px'
+            }}
+          >
+            {getValue() || "—"}
+          </span>
+          {row.original.schedule_count > 0 && (
+            <span style={{ fontSize: '11px', color: t.textMuted, marginTop: '2px' }}>
+              {row.original.schedule_count} schedule{row.original.schedule_count !== 1 ? "s" : ""} linked
+            </span>
+          )}
+        </div>
       ),
     },
     {

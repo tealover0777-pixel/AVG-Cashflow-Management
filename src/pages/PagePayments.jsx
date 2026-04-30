@@ -9,7 +9,7 @@ import { Modal, FF, FIn, FSel, DelModal, Tooltip, Bdg } from "../components";
 import { InvestorSummaryModal } from "../components/InvestorSummaryModal";
 import { useAuth } from "../AuthContext";
 
-export default function PagePayments({ t, isDark, PAYMENTS = [], INVESTMENTS = [], CONTACTS = [], SCHEDULES = [], DEALS = [], DIMENSIONS = [], ACH_BATCHES = [], LEDGER = [], USERS = [], collectionPath = "", achBatchPath = "", ledgerPath = "" }) {
+export default function PagePayments({ t, isDark, PAYMENTS = [], INVESTMENTS = [], CONTACTS = [], SCHEDULES = [], DEALS = [], DIMENSIONS = [], ACH_BATCHES = [], LEDGER = [], USERS = [], collectionPath = "", achBatchPath = "", ledgerPath = "", setActivePage, setSelectedDistMemoId }) {
   const { hasPermission, isSuperAdmin, user } = useAuth();
   const canCreate = isSuperAdmin || hasPermission("PAYMENT_CREATE") || hasPermission("PAYMENTS_CREATE");
   const canUpdate = isSuperAdmin || hasPermission("PAYMENT_UPDATE") || hasPermission("PAYMENTS_UPDATE");
@@ -327,7 +327,10 @@ export default function PagePayments({ t, isDark, PAYMENTS = [], INVESTMENTS = [
     };
 
     if (activeTab === "Payments") return getPaymentColumns(permissions, isDark, t, editCb, delCb, batchSummaryCb, handleInvestmentClick, handleContactClick);
-    if (activeTab === "ACH Batches") return getBatchColumns(permissions, isDark, t, editCb, delCb, batchSummaryCb);
+    if (activeTab === "ACH Batches") return getBatchColumns(permissions, isDark, t, editCb, delCb, batchSummaryCb, (memoId) => {
+      setSelectedDistMemoId(memoId);
+      setActivePage("Payment Schedule");
+    });
     
     const ledgerPerms = { 
       canUpdate: isLedgerEditable, 
@@ -389,9 +392,16 @@ export default function PagePayments({ t, isDark, PAYMENTS = [], INVESTMENTS = [
     } else if (activeTab === "ACH Batches") {
       baseData = ACH_BATCHES.map(b => {
         const memo = distMemos.find(m => m.id === b.dist_memo_id);
+        const linkedSchedules = SCHEDULES.filter(s => 
+          (s.dist_memo_id && s.dist_memo_id === b.dist_memo_id) || 
+          (s.batch_id && (s.batch_id === b.batch_id || s.batch_id === b.id))
+        );
+        const deal = DEALS.find(d => d.id === (memo?.deal_id || b.deal_id));
         return { 
           ...b, 
-          dist_memo_name: memo ? memo.memo : (b.dist_memo_id || "—")
+          dist_memo_name: memo ? memo.memo : (b.dist_memo_id || "—"),
+          deal_name: deal ? (deal.deal_name || deal.name) : "—",
+          schedule_count: linkedSchedules.length
         };
       });
     } else {

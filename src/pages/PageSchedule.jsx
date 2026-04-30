@@ -25,7 +25,7 @@ const fmtCurr = v => {
 
 const ZEROING_STATUSES = ["Missed", "Cancelled", "VOID", "WAIVED", "REPLACED", "Rollover"];
 
-export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = [], CONTACTS = [], DEALS = [], DIMENSIONS = [], FEES_DATA = [], USERS = [], LEDGER = [], collectionPath = "", setActivePage, setSelectedDealId, tenantId }) {
+export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = [], CONTACTS = [], DEALS = [], DIMENSIONS = [], FEES_DATA = [], USERS = [], LEDGER = [], collectionPath = "", setActivePage, setSelectedDealId, selectedDistMemoId, setSelectedDistMemoId, tenantId }) {
 
   const { user, hasPermission, isSuperAdmin } = useAuth();
   const canCreate = isSuperAdmin || hasPermission("PAYMENT_SCHEDULE_CREATE");
@@ -70,6 +70,23 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
   }, [distMemoCollectionPath]);
 
   useEffect(() => { fetchDistMemos(); }, [fetchDistMemos]);
+  
+  // Auto-drilldown for linked distribution memos
+  useEffect(() => {
+    if (selectedDistMemoId && distMemos.length > 0) {
+      const memo = distMemos.find(m => m.id === selectedDistMemoId || m.docId === selectedDistMemoId || m.batch_id === selectedDistMemoId);
+      if (memo) {
+        const linked = SCHEDULES.filter(s => 
+          (s.dist_memo_id && s.dist_memo_id === memo.docId) || 
+          (s.batch_id && (s.batch_id === memo.batch_id || s.batch_id === memo.docId))
+        );
+        setDistMemoDrillDown({ open: true, memo, schedules: linked });
+        setScheduleView("memo");
+        // Clear the selection so it doesn't re-trigger on every render
+        setSelectedDistMemoId(null);
+      }
+    }
+  }, [selectedDistMemoId, distMemos, SCHEDULES, setSelectedDistMemoId]);
 
   const [distMemoModal, setDistMemoModal] = useState({ open: false, mode: "add", data: {} });
   const [distMemoDelT, setDistMemoDelT] = useState(null);
