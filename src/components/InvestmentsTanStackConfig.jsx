@@ -1,6 +1,7 @@
 import React from 'react';
 import { ExternalLink, Edit2, Trash2, Info, RotateCcw } from 'lucide-react';
 import { Bdg, Tooltip, ActBtns } from '../components';
+import { formatPaymentLag } from '../utils';
 
 export const getInvestmentColumns = (permissions, isDark, t, context) => {
   const { callbacks } = context;
@@ -217,6 +218,21 @@ export const getInvestmentColumns = (permissions, isDark, t, context) => {
       accessorKey: "term_months",
       size: 80,
       cell: ({ getValue }) => <span style={{ fontFamily: t.mono, fontSize: '11px' }}>{getValue() ? `${getValue()}mo` : "—"}</span>
+    },
+    {
+      header: "Lag",
+      accessorKey: "payment_lag_config",
+      size: 110,
+      cell: ({ getValue }) => {
+        const val = getValue();
+        const label = formatPaymentLag(val);
+        if (label === "None") return <span style={{ color: t.textMuted }}>—</span>;
+        return (
+          <span style={{ fontSize: '10.5px', fontWeight: 600, color: isDark ? "#A78BFA" : "#7C3AED" }}>
+            {label}
+          </span>
+        );
+      }
     },
     {
       header: "Fees",

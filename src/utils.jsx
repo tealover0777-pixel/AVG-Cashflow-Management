@@ -378,6 +378,33 @@ export const calculateScheduledDate = (baseDateStr, config) => {
   return result.toISOString().split('T')[0];
 };
 
+export const formatPaymentLag = (config) => {
+  if (!config || config.enabled === false) return "None";
+  const type = (config.type || "").toUpperCase().replace(/ /g, "_").replace(/-/g, "_");
+  const val = Number(config.value) || 0;
+
+  switch (type) {
+    case "DAYS":
+      return `${val} ${val === 1 ? "Day" : "Days"}`;
+    case "MONTHS":
+      return `${val} ${val === 1 ? "Month" : "Months"}`;
+    case "SPECIFIC_DAY":
+    case "SPECIFIC_DAY_OF_THE_FOLLOWING_MONTH": {
+      const day = Number(config.specific_day || val) || 15;
+      const offset = Number(config.month_offset) || 1;
+      return `Day ${day}, M+${offset}`;
+    }
+    case "QUARTER_END":
+    case "QUATER_END":
+    case "QUARTER_OFFSET": {
+      const offset = Number(config.value) || 15;
+      return `Qtr End +${offset}d`;
+    }
+    default:
+      return "Enabled";
+  }
+};
+
 export const hybridDays = (startDate, endDate) => {
   if (!startDate || !endDate) return 0;
 

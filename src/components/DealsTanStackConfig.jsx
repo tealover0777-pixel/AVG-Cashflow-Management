@@ -1,7 +1,7 @@
 import React from 'react';
 import { Edit2, Trash2, PieChart } from 'lucide-react';
 import { Bdg, ActBtns, Tooltip } from '../components';
-import { fmtCurr } from '../utils';
+import { fmtCurr, formatPaymentLag } from '../utils';
 
 export const getDealColumns = (permissions, isDark, t, context) => {
   const { callbacks, feesData } = context;
@@ -113,6 +113,21 @@ export const getDealColumns = (permissions, isDark, t, context) => {
       accessorKey: "endDate",
       size: 95,
       cell: ({ getValue }) => <span style={{ fontFamily: t.mono, fontSize: '11px', color: t.idText }}>{getValue() || "—"}</span>
+    },
+    {
+      header: "Lag",
+      accessorKey: "payment_lag_config",
+      size: 110,
+      cell: ({ getValue }) => {
+        const val = getValue();
+        const label = formatPaymentLag(val);
+        if (label === "None") return <span style={{ color: t.textMuted }}>—</span>;
+        return (
+          <span style={{ fontSize: '10.5px', fontWeight: 600, color: isDark ? "#A78BFA" : "#7C3AED" }}>
+            {label}
+          </span>
+        );
+      }
     },
     {
       header: "Fees",

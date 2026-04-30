@@ -1,6 +1,6 @@
 import { CornerDownRight, ExternalLink, RotateCcw, Info } from 'lucide-react';
 import { Bdg, Tooltip, ActBtns } from '../components';
-import { fmtCurr } from '../utils';
+import { fmtCurr, formatPaymentLag } from '../utils';
 
 export const getScheduleColumns = (permissions, isDark, t, context) => {
   const { callbacks, CONTACTS = [], DEALS = [], INVESTMENTS = [] } = context;
@@ -236,6 +236,26 @@ export const getScheduleColumns = (permissions, isDark, t, context) => {
       },
       size: 100,
       cell: ({ getValue }) => <span style={{ fontSize: '11px', color: t.textSecondary }}>{getValue()}</span>
+    },
+    {
+      header: "Lag",
+      id: "lag",
+      size: 110,
+      accessorFn: (row) => {
+        const inv = (INVESTMENTS || []).find(x => x.id === row.investment_id || x.id === row.investment);
+        const deal = (DEALS || []).find(x => x.id === row.deal_id);
+        const config = (inv?.payment_lag_config?.enabled) ? inv.payment_lag_config : (deal?.payment_lag_config || null);
+        return formatPaymentLag(config);
+      },
+      cell: ({ getValue }) => {
+        const label = getValue();
+        if (label === "None") return <span style={{ color: t.textMuted }}>—</span>;
+        return (
+          <span style={{ fontSize: '10.5px', fontWeight: 600, color: isDark ? "#A78BFA" : "#7C3AED" }}>
+            {label}
+          </span>
+        );
+      }
     },
     {
       header: "Payment Method",
