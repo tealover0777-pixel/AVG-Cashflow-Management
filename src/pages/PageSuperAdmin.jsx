@@ -70,6 +70,9 @@ export default function PageSuperAdmin({ t, isDark, ROLES = [], TENANTS = [], US
 
         // 2. Add Global Users who aren't already represented in the tenant-user list
         const missingGlobal = globalUsers.filter(gu => {
+            // Only include if they have a Global Role
+            if (!isRoleGlobal(gu.role)) return false;
+
             return !tUsers.some(tu => 
                 (tu.auth_uid && tu.auth_uid === gu.id) || 
                 (tu.email && gu.email && tu.email.toLowerCase() === gu.email.toLowerCase())
