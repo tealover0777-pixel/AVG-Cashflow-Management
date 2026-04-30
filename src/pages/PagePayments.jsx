@@ -327,9 +327,10 @@ export default function PagePayments({ t, isDark, PAYMENTS = [], INVESTMENTS = [
     };
 
     if (activeTab === "Payments") return getPaymentColumns(permissions, isDark, t, editCb, delCb, batchSummaryCb, handleInvestmentClick, handleContactClick);
-    if (activeTab === "ACH Batches") return getBatchColumns(permissions, isDark, t, editCb, delCb, batchSummaryCb, (memoId) => {
+    if (activeTab === "ACH Batches") return getBatchColumns(permissions, isDark, t, editCb, delCb, batchSummaryCb, (memoId, dealId) => {
+      setSelectedDealId(dealId);
       setSelectedDistMemoId(memoId);
-      setActivePage("Payment Schedule");
+      setActivePage("Deal Summary");
     });
     
     const ledgerPerms = { 
@@ -401,6 +402,7 @@ export default function PagePayments({ t, isDark, PAYMENTS = [], INVESTMENTS = [
           ...b, 
           dist_memo_name: memo ? memo.memo : (b.dist_memo_id || "—"),
           deal_name: deal ? (deal.deal_name || deal.name) : "—",
+          deal_id: deal?.id || memo?.deal_id || b.deal_id || "",
           schedule_count: linkedSchedules.length
         };
       });

@@ -20,7 +20,7 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { Document, Packer, Paragraph, Table, TableRow, TableCell, WidthType, AlignmentType, HeadingLevel, TextRun } from "docx";
 
-export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTMENTS = [], CONTACTS = [], DIMENSIONS = [], FEES_DATA = [], SCHEDULES = [], USERS = [], LEDGER = [], setActivePage, investmentCollection = "investments", scheduleCollection = "paymentSchedules", tenantId, tenantFeatures = {} }) {
+export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTMENTS = [], CONTACTS = [], DIMENSIONS = [], FEES_DATA = [], SCHEDULES = [], USERS = [], LEDGER = [], setActivePage, selectedDistMemoId, setSelectedDistMemoId, investmentCollection = "investments", scheduleCollection = "paymentSchedules", tenantId, tenantFeatures = {} }) {
   const { hasPermission, isSuperAdmin, user } = useAuth();
   const canUpdate = isSuperAdmin || hasPermission("INVESTMENT_UPDATE");
   const canDelete = isSuperAdmin || hasPermission("INVESTMENT_DELETE") || hasPermission("INVESTMENTS_DELETE");
@@ -85,6 +85,24 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
   const [confirmAction, setConfirmAction] = useState(null); // { title: string, message: string, onConfirm: () => void }
   const [toast, setToast] = useState(null);
   const showToast = (msg, type = "info") => { setToast({ msg, type }); setTimeout(() => setToast(null), 4000); };
+  
+  // Auto-drilldown for linked distribution memos (from ACH Batches)
+  useEffect(() => {
+    if (selectedDistMemoId && distMemos.length > 0) {
+      const memo = distMemos.find(m => m.id === selectedDistMemoId || m.docId === selectedDistMemoId || m.batch_id === selectedDistMemoId);
+      if (memo) {
+        const linked = SCHEDULES.filter(s => 
+          (s.dist_memo_id && s.dist_memo_id === memo.docId) || 
+          (s.batch_id && (s.batch_id === memo.batch_id || s.batch_id === memo.docId))
+        );
+        setDistMemoDrillDown({ open: true, memo, schedules: linked });
+        setActiveTab("Distributions");
+        setDistributionView("memo");
+        // Clear the selection
+        setSelectedDistMemoId(null);
+      }
+    }
+  }, [selectedDistMemoId, distMemos, SCHEDULES, setSelectedDistMemoId]);
 
   const roleOpts = (DIMENSIONS.find(d => d.name === "ContactRole") || {}).items || ["Investor", "Borrower"];
   const contactTypeOpts = (DIMENSIONS.find(d => d.name === "ContactType") || {}).items || ["Individual", "Company", "Trust", "Partnership"];

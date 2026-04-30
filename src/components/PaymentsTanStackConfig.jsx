@@ -250,7 +250,7 @@ export const getBatchColumns = (permissions, isDark, t, onEdit, onDel, onBatchCl
       cell: ({ getValue, row }) => (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
           <span 
-            onClick={() => onMemoClick && row.original.dist_memo_id && onMemoClick(row.original.dist_memo_id)}
+            onClick={() => onMemoClick && row.original.dist_memo_id && onMemoClick(row.original.dist_memo_id, row.original.deal_id)}
             style={{ 
               fontFamily: t.mono, 
               fontSize: '10.5px', 
