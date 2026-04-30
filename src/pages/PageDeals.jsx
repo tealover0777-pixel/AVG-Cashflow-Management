@@ -93,6 +93,7 @@ export default function PageDeals({ t, isDark, DEALS = [], INVESTMENTS = [], SCH
       lag_type: lag.type || "DAYS",
       lag_value: lag.value || 0,
       lag_day: lag.specific_day || 15,
+      lag_month_offset: lag.month_offset || 1,
     } });
   };
   const close = () => {
@@ -126,6 +127,7 @@ export default function PageDeals({ t, isDark, DEALS = [], INVESTMENTS = [], SCH
         type: d.lag_type || "DAYS",
         value: Number(d.lag_value) || 0,
         specific_day: Number(d.lag_day) || 15,
+        month_offset: Number(d.lag_month_offset) || 1,
       },
       updated_at: serverTimestamp(),
     };
@@ -370,19 +372,29 @@ export default function PageDeals({ t, isDark, DEALS = [], INVESTMENTS = [], SCH
                   <FSel 
                     value={modal.data.lag_type || "Days"} 
                     onChange={e => setF("lag_type", e.target.value)} 
-                    options={(DIMENSIONS.find(d => d.name === "PaymentLag")?.items || ["Days", "Months", "Specific Day of the following Month", "Quater-End"]).map(opt => ({ id: opt, display: opt }))} 
+                    options={(DIMENSIONS.find(d => d.name === "PaymentLag")?.items || ["Days", "Months", "Specific Day of the following Month", "Quarter-End"]).map(opt => ({ value: opt, label: opt }))} 
                     t={t} 
                   />
                 </FF>
-                {(modal.data.lag_type?.toLowerCase() === "days" || modal.data.lag_type?.toLowerCase() === "months" || modal.data.lag_type?.toLowerCase() === "quater-end" || modal.data.lag_type?.toLowerCase() === "quarter-end" || modal.data.lag_type?.toLowerCase() === "specific day of the following month") && (
-                  <FF label={
-                    modal.data.lag_type?.toLowerCase() === "months" ? "Number of Months" : 
-                    modal.data.lag_type?.toLowerCase() === "specific day of the following month" ? "Day of Month" :
-                    modal.data.lag_type?.toLowerCase() === "quater-end" || modal.data.lag_type?.toLowerCase() === "quarter-end" ? "Day Offset" :
-                    "Number of Days"
-                  } t={t}>
-                    <FIn type="number" value={modal.data.lag_value || ""} onChange={e => setF("lag_value", e.target.value)} placeholder="e.g. 30" t={t} />
-                  </FF>
+                {modal.data.lag_type?.toLowerCase().replace(/-/g, " ") === "specific day of the following month" ? (
+                  <>
+                    <FF label="Day of Month" t={t}>
+                      <FIn type="number" value={modal.data.lag_day || ""} onChange={e => setF("lag_day", e.target.value)} placeholder="e.g. 15" t={t} />
+                    </FF>
+                    <FF label="Month Offset" t={t}>
+                      <FIn type="number" value={modal.data.lag_month_offset || ""} onChange={e => setF("lag_month_offset", e.target.value)} placeholder="e.g. 1" t={t} />
+                    </FF>
+                  </>
+                ) : (
+                  (modal.data.lag_type?.toLowerCase() === "days" || modal.data.lag_type?.toLowerCase() === "months" || modal.data.lag_type?.toLowerCase().includes("quater") || modal.data.lag_type?.toLowerCase().includes("quarter")) && (
+                    <FF label={
+                      modal.data.lag_type?.toLowerCase() === "months" ? "Number of Months" : 
+                      modal.data.lag_type?.toLowerCase().includes("quater") || modal.data.lag_type?.toLowerCase().includes("quarter") ? "Day Offset" :
+                      "Number of Days"
+                    } t={t}>
+                      <FIn type="number" value={modal.data.lag_value || ""} onChange={e => setF("lag_value", e.target.value)} placeholder="e.g. 30" t={t} />
+                    </FF>
+                  )
                 )}
               </div>
             )}

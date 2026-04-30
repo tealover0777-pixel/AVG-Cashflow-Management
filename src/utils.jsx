@@ -337,25 +337,39 @@ export const calculateScheduledDate = (baseDateStr, config) => {
   if (!baseDate) return baseDateStr;
 
   let result = new Date(baseDate);
+  const type = (config.type || "").toUpperCase().replace(/ /g, "_").replace(/-/g, "_");
 
-  switch (config.type) {
+  switch (type) {
     case "DAYS":
       result.setDate(result.getDate() + (Number(config.value) || 0));
       break;
     case "MONTHS":
       result.setMonth(result.getMonth() + (Number(config.value) || 0));
       break;
-    case "SPECIFIC_DAY": {
-      // e.g. 15th of next month
+    case "SPECIFIC_DAY":
+    case "SPECIFIC_DAY_OF_THE_FOLLOWING_MONTH": {
+      // Move to the next month first, then set the specific day
       const offset = Number(config.month_offset) || 1;
       result.setMonth(result.getMonth() + offset);
-      result.setDate(Number(config.specific_day) || 15);
+      const day = Number(config.specific_day || config.value) || 15;
+      // Handle end of month (e.g. Feb 30 -> Feb 28/29)
+      const lastDay = new Date(result.getFullYear(), result.getMonth() + 1, 0).getDate();
+      result.setDate(Math.min(day, lastDay));
       break;
     }
-    case "QUARTER_OFFSET": {
-      // 15th following the quarter-end.
-      result.setMonth(result.getMonth() + 1);
-      result.setDate(Number(config.specific_day) || 15);
+    case "QUARTER_END":
+    case "QUARTER_OFFSET":
+    case "QUATER_END": {
+      // Find the end of the current quarter
+      const month = result.getMonth();
+      const quarterEndMonth = Math.floor(month / 3) * 3 + 2; // 2 (Mar), 5 (Jun), 8 (Sep), 11 (Dec)
+      result.setMonth(quarterEndMonth);
+      const lastDayOfQuarter = new Date(result.getFullYear(), quarterEndMonth + 1, 0).getDate();
+      result.setDate(lastDayOfQuarter);
+      
+      // Apply offset (e.g. 15 days after quarter end)
+      const dayOffset = Number(config.value) || 15;
+      result.setDate(result.getDate() + dayOffset);
       break;
     }
     default:

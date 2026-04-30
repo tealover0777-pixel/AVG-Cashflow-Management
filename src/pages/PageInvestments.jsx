@@ -3,7 +3,7 @@ import { getInvestmentColumns } from '../components/InvestmentsTanStackConfig';
 import TanStackTable from '../components/TanStackTable';
 import { db } from "../firebase";
 import { collection, doc, addDoc, updateDoc, deleteDoc, serverTimestamp } from "firebase/firestore";
-import { normalizeDateAtNoon, hybridDays, pmtCalculator_ACT360_30360, feeCalculator_ACT360_30360, getFrequencyValue, fmtCurr } from "../utils";
+import { normalizeDateAtNoon, hybridDays, pmtCalculator_ACT360_30360, feeCalculator_ACT360_30360, getFrequencyValue, fmtCurr, calculateScheduledDate } from "../utils";
 import { StatCard, Bdg, Pagination, Modal, FF, FIn, FSel, DelModal, Tooltip } from "../components";
 import { InvestorSummaryModal } from "../components/InvestorSummaryModal";
 import { useAuth } from "../AuthContext";
@@ -153,6 +153,8 @@ export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [
         lag_enabled: !!lag.enabled,
         lag_type: lag.type || "Days",
         lag_value: lag.value || 0,
+        lag_day: lag.specific_day || 15,
+        lag_month_offset: lag.month_offset || 1,
         contact_id: r.contact_id || "",
         first_name: r.first_name || "",
         last_name: r.last_name || ""
@@ -187,7 +189,9 @@ export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [
       payment_lag_config: {
         enabled: !!d.lag_enabled,
         type: d.lag_type || "Days",
-        value: Number(d.lag_value) || 0
+        value: Number(d.lag_value) || 0,
+        specific_day: Number(d.lag_day) || 15,
+        month_offset: Number(d.lag_month_offset) || 1,
       },
       updated_at: serverTimestamp(),
     };
@@ -344,6 +348,18 @@ export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [
         const startDate = normalizeDateAtNoon(c.start_date);
         const matDate = normalizeDateAtNoon(c.maturity_date);
 
+        // --- 1a. Payment Lag Strategy ---
+        // Investment config overrides Deal config if enabled.
+        const deal = DEALS.find(d => d.id === c.deal_id);
+        const lagConfig = (c.payment_lag_config?.enabled) 
+          ? c.payment_lag_config 
+          : (deal?.payment_lag_config?.enabled ? deal.payment_lag_config : null);
+
+        const applyLag = (dateStr) => {
+          if (!lagConfig) return dateStr;
+          return calculateScheduledDate(dateStr, lagConfig);
+        };
+
         if (!startDate || !matDate || matDate <= startDate || principal <= 0) {
           totalSkipped++;
           continue;
@@ -364,7 +380,7 @@ export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [
           payment_id: sId1,
           active_version: true,
           investment_id: c.id, deal_id: c.deal_id || "", contact_id: c.contact_id || "",
-          due_date: startDate.toISOString().slice(0, 10), payment_type: initialPaymentType, fee_id: "",
+          due_date: applyLag(startDate.toISOString().slice(0, 10)), payment_type: initialPaymentType, fee_id: "",
           period_number: 1, principal_amount: principal, payment_amount: principal,
           signed_payment_amount: ds1.signed, direction_from_company: ds1.direction,
           original_payment_amount: principal,
@@ -412,7 +428,7 @@ export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [
             entries.push({
               schedule_id: sIdFee, version_num: 1, version_id: `${sIdFee}-V1`, payment_id: sIdFee, active_version: true,
               investment_id: c.id, deal_id: c.deal_id || "", contact_id: c.contact_id || "",
-              due_date: dDate.toISOString().slice(0, 10), payment_type: PT_FEE, fee_id: fid,
+              due_date: applyLag(dDate.toISOString().slice(0, 10)), payment_type: PT_FEE, fee_id: fid,
               period_number: 1, principal_amount: principal, payment_amount: feeAmt,
               signed_payment_amount: signedFeeAmt, direction_from_company: feeDir,
               original_payment_amount: feeAmt, term_start: startDate.toISOString().slice(0, 10), term_end: dDate.toISOString().slice(0, 10),
@@ -470,7 +486,7 @@ export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [
             entries.push({
               schedule_id: sIdInt, version_num: 1, version_id: `${sIdInt}-V1`, payment_id: sIdInt, active_version: true,
               investment_id: c.id, deal_id: c.deal_id || "", contact_id: c.contact_id || "",
-              due_date: pEnd.toISOString().slice(0, 10), payment_type: interestPT, fee_id: "",
+              due_date: applyLag(pEnd.toISOString().slice(0, 10)), payment_type: interestPT, fee_id: "",
               period_number: periodNum, principal_amount: principal, payment_amount: roundedInterest,
               signed_payment_amount: ds2.signed, direction_from_company: ds2.direction,
               original_payment_amount: roundedInterest, term_start: pStart.toISOString().slice(0, 10), term_end: pEnd.toISOString().slice(0, 10),
@@ -508,7 +524,7 @@ export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [
                   entries.push({
                     schedule_id: sIdRecFee, version_num: 1, version_id: `${sIdRecFee}-V1`, payment_id: sIdRecFee, active_version: true,
                     investment_id: c.id, deal_id: c.deal_id || "", contact_id: c.contact_id || "",
-                    due_date: feeDueDate.toISOString().slice(0, 10), payment_type: PT_FEE, fee_id: fid,
+                    due_date: applyLag(feeDueDate.toISOString().slice(0, 10)), payment_type: PT_FEE, fee_id: fid,
                     period_number: periodNum, principal_amount: principal, payment_amount: roundedFeeAmt,
                     signed_payment_amount: signedFeeAmt, direction_from_company: feeDir,
                     original_payment_amount: roundedFeeAmt, term_start: pStart.toISOString().slice(0, 10), term_end: pEnd.toISOString().slice(0, 10),
@@ -531,7 +547,7 @@ export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [
         entries.push({
           schedule_id: sIdRepay, version_num: 1, version_id: `${sIdRepay}-V1`, payment_id: sIdRepay, active_version: true,
           investment_id: c.id, deal_id: c.deal_id || "", contact_id: c.contact_id || "",
-          due_date: matDate.toISOString().slice(0, 10), payment_type: repaymentPT, fee_id: "",
+          due_date: applyLag(matDate.toISOString().slice(0, 10)), payment_type: repaymentPT, fee_id: "",
           period_number: periodNum, principal_amount: principal, payment_amount: principal,
           signed_payment_amount: ds3.signed, direction_from_company: ds3.direction,
           original_payment_amount: principal, term_start: startDate.toISOString().slice(0, 10), term_end: matDate.toISOString().slice(0, 10),
@@ -957,20 +973,30 @@ export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [
               <FSel 
                 value={modal.data.lag_type || "Days"} 
                 onChange={e => setF("lag_type", e.target.value)} 
-                options={(DIMENSIONS.find(d => d.name === "PaymentLag")?.items || ["Days", "Months", "Specific Day of the following Month", "Quater-End"]).map(opt => ({ id: opt, display: opt }))} 
+                options={(DIMENSIONS.find(d => d.name === "PaymentLag")?.items || ["Days", "Months", "Specific Day of the following Month", "Quarter-End"]).map(opt => ({ value: opt, label: opt }))} 
                 t={t} 
               />
             </FF>
-            {(modal.data.lag_type?.toLowerCase() === "days" || modal.data.lag_type?.toLowerCase() === "months" || modal.data.lag_type?.toLowerCase() === "quater-end" || modal.data.lag_type?.toLowerCase() === "quarter-end" || modal.data.lag_type?.toLowerCase() === "specific day of the following month") && (
-              <FF label={
-                modal.data.lag_type?.toLowerCase() === "months" ? "Number of Months" : 
-                modal.data.lag_type?.toLowerCase() === "specific day of the following month" ? "Day of Month" :
-                modal.data.lag_type?.toLowerCase() === "quater-end" || modal.data.lag_type?.toLowerCase() === "quarter-end" ? "Day Offset" :
-                "Number of Days"
-              } t={t}>
-                <FIn type="number" value={modal.data.lag_value || ""} onChange={e => setF("lag_value", e.target.value)} placeholder="e.g. 30" t={t} />
-              </FF>
-            )}
+                {modal.data.lag_type?.toLowerCase().replace(/-/g, " ") === "specific day of the following month" ? (
+                  <>
+                    <FF label="Day of Month" t={t}>
+                      <FIn type="number" value={modal.data.lag_day || ""} onChange={e => setF("lag_day", e.target.value)} placeholder="e.g. 15" t={t} />
+                    </FF>
+                    <FF label="Month Offset" t={t}>
+                      <FIn type="number" value={modal.data.lag_month_offset || ""} onChange={e => setF("lag_month_offset", e.target.value)} placeholder="e.g. 1" t={t} />
+                    </FF>
+                  </>
+                ) : (
+                  (modal.data.lag_type?.toLowerCase() === "days" || modal.data.lag_type?.toLowerCase() === "months" || modal.data.lag_type?.toLowerCase().includes("quater") || modal.data.lag_type?.toLowerCase().includes("quarter")) && (
+                    <FF label={
+                      modal.data.lag_type?.toLowerCase() === "months" ? "Number of Months" : 
+                      modal.data.lag_type?.toLowerCase().includes("quater") || modal.data.lag_type?.toLowerCase().includes("quarter") ? "Day Offset" :
+                      "Number of Days"
+                    } t={t}>
+                      <FIn type="number" value={modal.data.lag_value || ""} onChange={e => setF("lag_value", e.target.value)} placeholder="e.g. 30" t={t} />
+                    </FF>
+                  )
+                )}
           </div>
         )}
       </div>
