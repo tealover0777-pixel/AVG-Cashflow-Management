@@ -4,7 +4,7 @@ import { Bdg, Tooltip, ActBtns } from '../components';
 import { formatPaymentLag } from '../utils';
 
 export const getInvestmentColumns = (permissions, isDark, t, context) => {
-  const { callbacks } = context;
+  const { callbacks, DEALS = [] } = context;
 
   const cols = [
     {
@@ -217,7 +217,13 @@ export const getInvestmentColumns = (permissions, isDark, t, context) => {
     {
       header: "Payment Lag",
       id: "payment_lag",
-      accessorFn: (row) => formatPaymentLag(row.payment_lag_config),
+      accessorFn: (row) => {
+        const deal = DEALS.find(d => d.id === row.deal_id);
+        const config = row.payment_lag_config?.enabled
+          ? row.payment_lag_config
+          : (deal?.payment_lag_config || null);
+        return formatPaymentLag(config);
+      },
       size: 110,
       cell: ({ getValue }) => {
         const label = getValue();

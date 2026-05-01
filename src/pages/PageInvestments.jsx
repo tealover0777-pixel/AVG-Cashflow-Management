@@ -764,6 +764,7 @@ export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [
   const columnDefs = useMemo(() => {
     return getInvestmentColumns(permissions, isDark, t, {
       feesData: FEES_DATA,
+      DEALS,
       callbacks: {
         onEdit: openEdit,
         onDelete: (target) => setDelT({ id: target.id, name: target.id, docId: target.docId, _path: target._path }),
@@ -807,7 +808,8 @@ export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [
         },
       }
     });
-  }, [permissions, isDark, t, FEES_DATA]);
+  }, [permissions, isDark, t, FEES_DATA, DEALS]);
+
   return (<>
     <div style={{ marginBottom: 28, display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}><div><h1 style={{ fontFamily: t.titleFont, fontWeight: t.titleWeight, fontSize: t.titleSize, color: isDark ? "#fff" : "#1C1917", letterSpacing: t.titleTracking, lineHeight: 1, marginBottom: 6 }}>Investments</h1><p style={{ fontSize: 13.5, color: t.textMuted }}>Manage investments</p></div>
       <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
