@@ -1515,21 +1515,39 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
           : s
       );
 
-      // Group by schedule_id, then sort by version_num DESC within each group
-      // Keep the active version at the top of its schedule group
-      filtered.sort((a, b) => {
-        if (a.schedule_id !== b.schedule_id) {
-          return a.schedule_id.localeCompare(b.schedule_id);
+      // Build a due_date lookup per schedule_id (from the active version)
+      // so that groups are ordered by payment date, not alphabetically by ID
+      const groupDueDate = {};
+      filtered.forEach(s => {
+        if (s.active_version !== false) {
+          groupDueDate[s.schedule_id] = s.dueDate || s.due_date || "";
         }
-        // Within same schedule_id group
+      });
+
+      // Sort: primary = group due_date ASC, secondary = active version first,
+      // tertiary = version_num DESC within the group
+      filtered.sort((a, b) => {
+        const dA = groupDueDate[a.schedule_id] || a.dueDate || a.due_date || "";
+        const dB = groupDueDate[b.schedule_id] || b.dueDate || b.due_date || "";
+        if (dA !== dB) return dA.localeCompare(dB);
+        if (a.schedule_id !== b.schedule_id) return a.schedule_id.localeCompare(b.schedule_id);
         if (a.active_version && !b.active_version) return -1;
         if (!a.active_version && b.active_version) return 1;
         return (b.version_num || 0) - (a.version_num || 0);
+      });
+    } else {
+      // Consistent default sort: by due_date ASC (natural payment schedule order)
+      filtered.sort((a, b) => {
+        const dA = a.dueDate || a.due_date || "";
+        const dB = b.dueDate || b.due_date || "";
+        if (dA !== dB) return dA.localeCompare(dB);
+        return (a.schedule_id || "").localeCompare(b.schedule_id || "");
       });
     }
 
     return filtered;
   }, [SCHEDULES, showHistory, activeFilter]);
+
 
   // Pivot data for distribution chart view
   const pivotData = useMemo(() => {
