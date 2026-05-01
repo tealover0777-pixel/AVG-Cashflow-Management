@@ -926,10 +926,10 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
         feeIds,
         first_name: contact?.first_name || r.first_name || "",
         last_name: contact?.last_name || r.last_name || "",
-        lag_override: !!r.payment_lag_config,
-        lag_enabled: r.payment_lag_config ? !!r.payment_lag_config.enabled : !!(deal.payment_lag_config?.enabled),
-        lag_type: r.payment_lag_config ? (r.payment_lag_config.type || "Days") : (deal.payment_lag_config?.type || "Days"),
-        lag_value: r.payment_lag_config ? (r.payment_lag_config.value || 0) : (deal.payment_lag_config?.value || 0),
+        lag_override: 'enabled' in (r.payment_lag_config || {}),
+        lag_enabled: r.payment_lag_config?.enabled != null ? !!r.payment_lag_config.enabled : !!(deal.payment_lag_config?.enabled),
+        lag_type: r.payment_lag_config?.enabled != null ? (r.payment_lag_config.type || "Days") : (deal.payment_lag_config?.type || "Days"),
+        lag_value: r.payment_lag_config?.enabled != null ? (r.payment_lag_config.value || 0) : (deal.payment_lag_config?.value || 0),
       } 
     });
   };
