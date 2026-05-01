@@ -280,7 +280,7 @@ export const getScheduleColumns = (permissions, isDark, t, context) => {
       }
     },
     {
-      header: "Period",
+      header: "Period Number",
       accessorKey: "period_number",
       size: 70,
       cell: ({ getValue }) => <span style={{ fontSize: '11px', color: t.textSecondary, fontFamily: t.mono }}>{getValue() || "—"}</span>
