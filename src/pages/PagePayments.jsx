@@ -68,7 +68,7 @@ export default function PagePayments({ t, isDark, PAYMENTS = [], INVESTMENTS = [
   // Sync drilldown schedules when prop SCHEDULES changes
   useEffect(() => {
     if (distMemoDrillDown.open && distMemoDrillDown.memo) {
-      const linked = SCHEDULES.filter(s => s.dist_memo_id === distMemoDrillDown.memo.id);
+      const linked = calculateLinkedSchedules(distMemoDrillDown.memo, SCHEDULES, INVESTMENTS, CONTACTS);
       setDistMemoDrillDown(prev => ({ ...prev, schedules: linked }));
     }
   }, [SCHEDULES, distMemoDrillDown.open, distMemoDrillDown.memo?.id]);
