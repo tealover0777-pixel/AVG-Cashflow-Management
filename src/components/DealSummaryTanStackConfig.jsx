@@ -173,12 +173,13 @@ export const getDealInvestmentColumns = (permissions, isDark, t, context, viewTy
       id: "payment_lag",
       size: 150,
       accessorFn: (row) => {
-        const config = row.payment_lag_config?.enabled ? row.payment_lag_config : (deal?.payment_lag_config || null);
+        const hasOverride = 'enabled' in (row.payment_lag_config || {});
+        const config = hasOverride ? row.payment_lag_config : (deal?.payment_lag_config || null);
         return formatPaymentLag(config);
       },
       cell: ({ getValue, row }) => {
         const val = getValue();
-        const isOverride = !!row.original.payment_lag_config?.enabled;
+        const isOverride = 'enabled' in (row.original.payment_lag_config || {});
         return (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
             <span style={{ fontSize: '11px', fontWeight: 600, color: val === "None" ? t.textMuted : (isDark ? "#34D399" : "#059669") }}>
