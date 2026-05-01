@@ -165,6 +165,26 @@ export const getDistributionColumns = (isDark, t, CONTACTS, DEALS, INVESTMENTS =
     sortingFn: 'datetime'
   },
   {
+    header: "Payment Lag",
+    id: "lag",
+    size: 110,
+    accessorFn: (row) => {
+      const inv = (INVESTMENTS || []).find(x => x.id === row.investment_id || x.id === row.investment);
+      const deal = (DEALS || []).find(x => x.id === row.deal_id);
+      const config = (inv?.payment_lag_config?.enabled) ? inv.payment_lag_config : (deal?.payment_lag_config || null);
+      return formatPaymentLag(config);
+    },
+    cell: ({ getValue }) => {
+      const label = getValue();
+      if (label === "None") return <span style={{ color: t.textMuted }}>—</span>;
+      return (
+        <span style={{ fontSize: '10.5px', fontWeight: 600, color: isDark ? "#A78BFA" : "#7C3AED" }}>
+          {label}
+        </span>
+      );
+    }
+  },
+  {
     id: 'type',
     accessorFn: (row) => (row.type || "").toString().replace(/_/g, " "),
     header: 'TYPE',
@@ -208,26 +228,6 @@ export const getDistributionColumns = (isDark, t, CONTACTS, DEALS, INVESTMENTS =
     },
     size: 100,
     cell: ({ getValue }) => <span style={{ fontSize: 11, color: t.textSecondary }}>{getValue()}</span>,
-  },
-  {
-    header: "Payment Lag",
-    id: "lag",
-    size: 110,
-    accessorFn: (row) => {
-      const inv = (INVESTMENTS || []).find(x => x.id === row.investment_id || x.id === row.investment);
-      const deal = (DEALS || []).find(x => x.id === row.deal_id);
-      const config = (inv?.payment_lag_config?.enabled) ? inv.payment_lag_config : (deal?.payment_lag_config || null);
-      return formatPaymentLag(config);
-    },
-    cell: ({ getValue }) => {
-      const label = getValue();
-      if (label === "None") return <span style={{ color: t.textMuted }}>—</span>;
-      return (
-        <span style={{ fontSize: '10.5px', fontWeight: 600, color: isDark ? "#A78BFA" : "#7C3AED" }}>
-          {label}
-        </span>
-      );
-    }
   },
   {
     accessorKey: 'signed_payment_amount',
