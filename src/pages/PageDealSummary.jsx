@@ -4335,7 +4335,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
           </div>
 
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-            <FF label="Payment Start Date" t={t}>
+            <FF label={distMemoModal.data.use_payment_day_filter ? "Payment Start Date" : "Start Date"} t={t}>
               <FIn
                 type="date"
                 value={distMemoModal.data.period_start || ""}
@@ -4343,7 +4343,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
                 t={t}
               />
             </FF>
-            <FF label="Payment End Date" t={t}>
+            <FF label={distMemoModal.data.use_payment_day_filter ? "Payment End Date" : "End Date"} t={t}>
               <FIn
                 type="date"
                 value={distMemoModal.data.period_end || ""}

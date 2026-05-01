@@ -31,11 +31,11 @@ export const getDistributionColumns = (isDark, t, CONTACTS, DEALS, INVESTMENTS =
   },
   {
     header: "Investment ID",
-    accessorKey: "investment_id",
     id: "investment_id",
+    accessorFn: (row) => row.investment_id || row.investment || "",
     size: 110,
     cell: ({ row, getValue }) => {
-      const val = getValue() || row.original.investment || "—";
+      const val = getValue() || "—";
       return (
         <span 
           onClick={() => callbacks.onInvestmentClick?.(row.original)}
