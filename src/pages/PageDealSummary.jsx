@@ -2170,8 +2170,12 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
     if (!tenantFeatures?.show_scheduled_payment_date) {
       cols = cols.filter(c => c.id !== 'scheduledDate');
     }
+    if (!tenantFeatures?.show_payment_lag) {
+      cols = cols.filter(c => c.id !== 'lag');
+    }
     return cols;
-  }, [isDark, t, CONTACTS, DEALS, INVESTMENTS, scheduleCollection, user?.uid, tenantFeatures?.show_scheduled_payment_date]);
+  }, [isDark, t, CONTACTS, DEALS, INVESTMENTS, scheduleCollection, user?.uid, tenantFeatures?.show_scheduled_payment_date, tenantFeatures?.show_payment_lag]);
+
 
   const memoDrillDownColumnDefs = useMemo(() => {
     return scheduleColumnDefs.map(col => {
