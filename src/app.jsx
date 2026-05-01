@@ -489,6 +489,10 @@ function AppContent() {
         version_num: d.version_num || 1,
         version_id: d.version_id || `${d.schedule_id || d.id}-V${d.version_num || 1}`,
         term_start: fmtDate(d.term_start), term_end: fmtDate(d.term_end),
+        due_date: fmtDate(d.due_date),
+        scheduled_payment_date: d.scheduled_payment_date || "",
+        investment_id: d.investment_id || "",
+        payment_type: d.payment_type || d.type || "",
         _undo_snapshot: d._undo_snapshot || null,
         previous_version_id: d.previous_version_id || "",
         updated_at: d.updated_at, 
@@ -498,6 +502,7 @@ function AppContent() {
         id: d.id,
       };
     });
+
 
   const PAYMENTS = rawPayments
     .filter(d => {

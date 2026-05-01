@@ -1723,7 +1723,8 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
             handledIds.add(existing.docId || existing.id);
             const amtChanged = Math.abs(existing.payment_amount - newEntry.payment_amount) > 0.01;
             const princChanged = Math.abs(existing.principal_amount - newEntry.principal_amount) > 0.01;
-            if (amtChanged || princChanged) {
+            const scheduledDateChanged = (existing.scheduled_payment_date || "") !== (newEntry.scheduled_payment_date || "");
+            if (amtChanged || princChanged || scheduledDateChanged) {
               const vNum = (existing.version_num || 1) + 1;
               const vId = `${existing.schedule_id}-V${vNum}`;
               const docRef = existing._path ? doc(db, existing._path) : doc(db, schedulePath, existing.docId || existing.id);
@@ -1746,6 +1747,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
             }
           }
         }
+
 
         // Cleanup: Delete orphans
         for (const orphan of dueSchedules) {
