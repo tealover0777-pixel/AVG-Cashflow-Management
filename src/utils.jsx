@@ -346,17 +346,6 @@ export const calculateScheduledDate = (baseDateStr, config) => {
     case "MONTHS":
       result.setMonth(result.getMonth() + (Number(config.value) || 0));
       break;
-    case "SPECIFIC_DAY":
-    case "SPECIFIC_DAY_OF_THE_FOLLOWING_MONTH": {
-      // Move to the next month first, then set the specific day
-      const offset = Number(config.month_offset) || 1;
-      result.setMonth(result.getMonth() + offset);
-      const day = Number(config.specific_day || config.value) || 15;
-      // Handle end of month (e.g. Feb 30 -> Feb 28/29)
-      const lastDay = new Date(result.getFullYear(), result.getMonth() + 1, 0).getDate();
-      result.setDate(Math.min(day, lastDay));
-      break;
-    }
     case "QUARTER_END":
     case "QUARTER_OFFSET":
     case "QUATER_END": {
@@ -388,12 +377,6 @@ export const formatPaymentLag = (config) => {
       return `${val} ${val === 1 ? "Day" : "Days"}`;
     case "MONTHS":
       return `${val} ${val === 1 ? "Month" : "Months"}`;
-    case "SPECIFIC_DAY":
-    case "SPECIFIC_DAY_OF_THE_FOLLOWING_MONTH": {
-      const day = Number(config.specific_day || val) || 15;
-      const offset = Number(config.month_offset) || 1;
-      return `Day ${day}, M+${offset}`;
-    }
     case "QUARTER_END":
     case "QUATER_END":
     case "QUARTER_OFFSET": {
