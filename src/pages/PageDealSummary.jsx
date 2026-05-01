@@ -1124,13 +1124,18 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
       fees: (d.feeIds || []).join(","),
       rollover: !!d.rollover,
       investment_name: d.investment_name || "",
-      payment_lag_config: d.lag_override ? {
+      updated_at: serverTimestamp(),
+    };
+
+    if (d.lag_override) {
+      payload.payment_lag_config = {
         enabled: !!d.lag_enabled,
         type: d.lag_type || "Days",
         value: Number(d.lag_value) || 0,
-      } : deleteField(),
-      updated_at: serverTimestamp(),
-    };
+      };
+    } else if (modal.mode === "edit") {
+      payload.payment_lag_config = deleteField();
+    }
     try {
       let safeInvestmentCollection = investmentCollection;
       if (safeInvestmentCollection === "investments" && dealPath && dealPath.startsWith("tenants/")) {

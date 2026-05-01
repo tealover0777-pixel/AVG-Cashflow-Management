@@ -2,7 +2,7 @@ import React, { useState, useMemo, useRef, useEffect } from "react";
 import { getInvestmentColumns } from '../components/InvestmentsTanStackConfig';
 import TanStackTable from '../components/TanStackTable';
 import { db } from "../firebase";
-import { collection, doc, addDoc, updateDoc, deleteDoc, serverTimestamp } from "firebase/firestore";
+import { collection, doc, addDoc, updateDoc, deleteDoc, serverTimestamp, deleteField } from "firebase/firestore";
 import { normalizeDateAtNoon, hybridDays, pmtCalculator_ACT360_30360, feeCalculator_ACT360_30360, getFrequencyValue, fmtCurr, calculateScheduledDate } from "../utils";
 import { StatCard, Bdg, Pagination, Modal, FF, FIn, FSel, DelModal, Tooltip } from "../components";
 import { InvestorSummaryModal } from "../components/InvestorSummaryModal";
@@ -131,6 +131,7 @@ export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [
         first_name: "",
         last_name: "",
         contact_id: "",
+        lag_override: false,
         lag_enabled: false,
         lag_type: "Days",
         lag_value: 0
@@ -149,9 +150,10 @@ export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [
         freq: r.payment_frequency || r.freq || "Quarterly",
         start_date: r.start_date || "",
         maturity_date: r.maturity_date || "",
-        lag_enabled: r.payment_lag_config?.enabled ?? false,
-        lag_type: r.payment_lag_config?.type || "Days",
-        lag_value: r.payment_lag_config?.value || 0,
+        lag_override: !!r.payment_lag_config,
+        lag_enabled: r.payment_lag_config ? !!r.payment_lag_config.enabled : false,
+        lag_type: r.payment_lag_config ? (r.payment_lag_config.type || "Days") : "Days",
+        lag_value: r.payment_lag_config ? (r.payment_lag_config.value || 0) : 0,
         contact_id: r.contact_id || "",
         first_name: r.first_name || "",
         last_name: r.last_name || ""
@@ -183,13 +185,18 @@ export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [
       investment_name: d.investment_name || "",
       source_of_funds: d.source_of_funds || "New Principal",
       rollover_source_id: d.rollover_source_id || "",
-      payment_lag_config: {
+      updated_at: serverTimestamp(),
+    };
+
+    if (d.lag_override) {
+      payload.payment_lag_config = {
         enabled: !!d.lag_enabled,
         type: d.lag_type || "Days",
         value: Number(d.lag_value) || 0,
-      },
-      updated_at: serverTimestamp(),
-    };
+      };
+    } else if (modal.mode === "edit") {
+      payload.payment_lag_config = deleteField();
+    }
     try {
       if (modal.mode === "edit" && d.docId) {
         const docRef = d._path ? doc(db, d._path) : doc(db, collectionPath, d.docId);
@@ -639,6 +646,11 @@ export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [
   const setF = (k, v) => setModal(m => {
     const next = { ...m, data: { ...m.data, [k]: v } };
     
+    if (k === "deal") {
+      const dealObj = DEALS.find(x => x.name === v);
+      if (dealObj) next.data.deal_id = dealObj.id || dealObj.docId || "";
+    }
+    
     if (k === "contact_id") {
       const c = CONTACTS.find(x => x.id === v || x.docId === v);
       if (c) {
@@ -948,30 +960,64 @@ export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [
         <FF label="Maturity Date" t={t}><FIn value={modal.data.maturity_date || ""} onChange={e => setF("maturity_date", e.target.value)} t={t} type="date" /></FF>
       </div>
       <div style={{ marginTop: 24, padding: "16px 20px", background: isDark ? "rgba(255,255,255,0.03)" : "#f9fafb", borderRadius: 14, border: `1px solid ${t.surfaceBorder}` }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: modal.data.lag_override ? 16 : 0 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <div style={{ width: 32, height: 32, borderRadius: 8, background: isDark ? "rgba(99,102,241,0.15)" : "#EEF2FF", display: "flex", alignItems: "center", justifyContent: "center", color: t.accent }}>
               <CreditCard size={16} />
             </div>
-            <span style={{ fontSize: 13.5, fontWeight: 700, color: t.text }}>Default Payment Lag</span>
+            <span style={{ fontSize: 13.5, fontWeight: 700, color: t.text }}>Investment Payment Lag</span>
           </div>
-          <input 
-            type="checkbox" 
-            checked={!!modal.data.lag_enabled} 
-            onChange={e => setF("lag_enabled", e.target.checked)} 
-            style={{ width: 18, height: 18, cursor: "pointer", accentColor: t.accent }} 
-          />
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <span style={{ fontSize: 12, color: t.textSecondary }}>Override Deal Default</span>
+            <input 
+              type="checkbox" 
+              checked={!!modal.data.lag_override} 
+              onChange={e => {
+                const checked = e.target.checked;
+                setF("lag_override", checked);
+                if (checked && !modal.data.lag_enabled) {
+                   // If turning on override, default to deal's settings if available
+                   const dealObj = DEALS.find(p => p.name === modal.data.deal);
+                   if (dealObj?.payment_lag_config) {
+                     setModal(prev => ({
+                       ...prev,
+                       data: {
+                         ...prev.data,
+                         lag_override: true,
+                         lag_enabled: !!dealObj.payment_lag_config.enabled,
+                         lag_type: dealObj.payment_lag_config.type || "Days",
+                         lag_value: dealObj.payment_lag_config.value || 0
+                       }
+                     }));
+                   }
+                }
+              }} 
+              style={{ width: 18, height: 18, cursor: "pointer", accentColor: t.accent }} 
+            />
+          </div>
         </div>
-        {modal.data.lag_enabled && (
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
-            <FF label="Lag Type" t={t}>
-              <FSel 
-                value={modal.data.lag_type || "Days"} 
-                onChange={e => setF("lag_type", e.target.value)} 
-                options={(DIMENSIONS.find(d => d.name === "PaymentLag")?.items || ["Days", "Months", "Quarter-End"]).map(opt => ({ value: opt, label: opt }))} 
-                t={t} 
+        
+        {modal.data.lag_override ? (
+          <>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14, padding: "8px 10px", borderRadius: 8, background: isDark ? "rgba(255,255,255,0.02)" : "rgba(0,0,0,0.02)" }}>
+              <span style={{ fontSize: 12.5, color: t.textSecondary, flex: 1 }}>Enable Lag for this Investment</span>
+              <input 
+                type="checkbox" 
+                checked={!!modal.data.lag_enabled} 
+                onChange={e => setF("lag_enabled", e.target.checked)} 
+                style={{ width: 16, height: 16, cursor: "pointer" }} 
               />
-            </FF>
+            </div>
+            {modal.data.lag_enabled && (
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+                <FF label="Lag Type" t={t}>
+                  <FSel 
+                    value={modal.data.lag_type || "Days"} 
+                    onChange={e => setF("lag_type", e.target.value)} 
+                    options={(DIMENSIONS.find(d => d.name === "PaymentLag")?.items || ["Days", "Months", "Quarter-End"]).map(opt => ({ value: opt, label: opt }))} 
+                    t={t} 
+                  />
+                </FF>
                 { (modal.data.lag_type?.toLowerCase() === "days" || modal.data.lag_type?.toLowerCase() === "months" || modal.data.lag_type?.toLowerCase().includes("quater") || modal.data.lag_type?.toLowerCase().includes("quarter")) && (
                   <FF label={
                     modal.data.lag_type?.toLowerCase() === "months" ? "Number of Months" : 
@@ -981,6 +1027,20 @@ export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [
                     <FIn type="number" value={modal.data.lag_value || ""} onChange={e => setF("lag_value", e.target.value)} placeholder="e.g. 30" t={t} />
                   </FF>
                 )}
+              </div>
+            )}
+          </>
+        ) : (
+          <div style={{ fontSize: 12.5, color: t.textSecondary, fontStyle: "italic" }}>
+            {(() => {
+              const dealObj = DEALS.find(p => p.name === modal.data.deal);
+              if (dealObj?.payment_lag_config?.enabled) {
+                const cfg = dealObj.payment_lag_config;
+                const typeLabel = cfg.type === "Quarter-End" ? "Quarter-End" : (cfg.type?.charAt(0).toUpperCase() + cfg.type?.slice(1).toLowerCase());
+                return `Inheriting Deal Default: ${cfg.value} ${typeLabel}`;
+              }
+              return "No payment lag configured for this deal.";
+            })()}
           </div>
         )}
       </div>
