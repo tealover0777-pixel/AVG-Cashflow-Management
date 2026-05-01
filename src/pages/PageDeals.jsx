@@ -78,8 +78,6 @@ export default function PageDeals({ t, isDark, DEALS = [], INVESTMENTS = [], SCH
         lag_enabled: false,
         lag_type: "Days",
         lag_value: 0,
-        lag_day: 15,
-        lag_month_offset: 1,
       }
     });
   };
@@ -98,8 +96,6 @@ export default function PageDeals({ t, isDark, DEALS = [], INVESTMENTS = [], SCH
       lag_enabled: !!lag.enabled,
       lag_type: lag.type || "Days",
       lag_value: lag.value || 0,
-      lag_day: lag.specific_day || 15,
-      lag_month_offset: lag.month_offset || 1,
     } });
   };
   const close = () => {
@@ -132,8 +128,6 @@ export default function PageDeals({ t, isDark, DEALS = [], INVESTMENTS = [], SCH
         enabled: !!d.lag_enabled,
         type: d.lag_type || "Days",
         value: Number(d.lag_value) || 0,
-        specific_day: Number(d.lag_day) || 15,
-        month_offset: Number(d.lag_month_offset) || 1,
       },
       updated_at: serverTimestamp(),
     };

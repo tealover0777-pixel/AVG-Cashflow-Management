@@ -138,7 +138,6 @@ export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [
     });
   };
   const openEdit = r => {
-    const lag = r.payment_lag_config || {};
     setModal({
       open: true,
       mode: "edit",
@@ -150,11 +149,9 @@ export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [
         freq: r.payment_frequency || r.freq || "Quarterly",
         start_date: r.start_date || "",
         maturity_date: r.maturity_date || "",
-        lag_enabled: !!lag.enabled,
-        lag_type: lag.type || "Days",
-        lag_value: lag.value || 0,
-        lag_day: lag.specific_day || 15,
-        lag_month_offset: lag.month_offset || 1,
+        lag_enabled: r.payment_lag_config?.enabled ?? false,
+        lag_type: r.payment_lag_config?.type || "Days",
+        lag_value: r.payment_lag_config?.value || 0,
         contact_id: r.contact_id || "",
         first_name: r.first_name || "",
         last_name: r.last_name || ""
@@ -190,8 +187,6 @@ export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [
         enabled: !!d.lag_enabled,
         type: d.lag_type || "Days",
         value: Number(d.lag_value) || 0,
-        specific_day: Number(d.lag_day) || 15,
-        month_offset: Number(d.lag_month_offset) || 1,
       },
       updated_at: serverTimestamp(),
     };
