@@ -4411,7 +4411,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
               {[
                 { label: "Linked Schedules", val: distMemoDrillDown.schedules.length },
                 { label: "Total Amount", val: fmtCurr(distMemoDrillDown.schedules.reduce((s, r) => s + (Number(r.signed_payment_amount || r.payment_amount || 0) || 0), 0)) },
-                { label: "Period", val: `${distMemoDrillDown.memo?.period_start || "—"} → ${distMemoDrillDown.memo?.period_end || "—"}` },
+                { label: distMemoDrillDown.memo?.use_payment_day_filter ? "Payment Date Period" : "End Date Period", val: `${distMemoDrillDown.memo?.period_start || "—"} → ${distMemoDrillDown.memo?.period_end || "—"}` },
               ].map((stat, i) => (
                 <div key={i} style={{ flex: 1, padding: "14px 18px", background: isDark ? "rgba(255,255,255,0.03)" : "#F9FAFB", border: `1px solid ${t.surfaceBorder}`, borderRadius: 10 }}>
                   <div style={{ fontSize: 11, fontWeight: 700, color: t.textMuted, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 6 }}>{stat.label}</div>
