@@ -343,10 +343,7 @@ export default function PagePayments({ t, isDark, PAYMENTS = [], INVESTMENTS = [
       (memoId) => {
         const memo = distMemos.find(m => m.id === memoId);
         if (memo) {
-          const linked = SCHEDULES.filter(s =>
-            (s.dist_memo_id && s.dist_memo_id === memo.id) ||
-            (s.batch_id && ACH_BATCHES.find(b => b.dist_memo_id === memoId && b.batch_id === s.batch_id))
-          );
+          const linked = calculateLinkedSchedules(memo, SCHEDULES, INVESTMENTS, CONTACTS);
           setDistMemoDrillDown({ open: true, memo, schedules: linked });
         }
       }
