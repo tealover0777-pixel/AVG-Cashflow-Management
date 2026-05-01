@@ -213,12 +213,7 @@ export const getInvestmentColumns = (permissions, isDark, t, context) => {
       size: 100,
       cell: ({ getValue }) => <span style={{ fontSize: '11px', color: t.textMuted }}>{getValue()}</span>
     },
-    {
-      header: "Term",
-      accessorKey: "term_months",
-      size: 80,
-      cell: ({ getValue }) => <span style={{ fontFamily: t.mono, fontSize: '11px' }}>{getValue() ? `${getValue()}mo` : "—"}</span>
-    },
+
     {
       header: "Payment Lag",
       accessorKey: "payment_lag_config",

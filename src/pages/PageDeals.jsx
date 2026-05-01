@@ -76,7 +76,7 @@ export default function PageDeals({ t, isDark, DEALS = [], INVESTMENTS = [], SCH
         zip: "",
         // Lag config
         lag_enabled: false,
-        lag_type: "DAYS",
+        lag_type: "Days",
         lag_value: 0,
         lag_day: 15,
         lag_month_offset: 1,
@@ -96,7 +96,7 @@ export default function PageDeals({ t, isDark, DEALS = [], INVESTMENTS = [], SCH
       valuation: r.valuation || r.valuation_amount || "",
       feeIds: typeof r.fees === 'string' ? r.fees.split(',').filter(Boolean) : (Array.isArray(r.fees) ? r.fees : []),
       lag_enabled: !!lag.enabled,
-      lag_type: lag.type || "DAYS",
+      lag_type: lag.type || "Days",
       lag_value: lag.value || 0,
       lag_day: lag.specific_day || 15,
       lag_month_offset: lag.month_offset || 1,
@@ -130,7 +130,7 @@ export default function PageDeals({ t, isDark, DEALS = [], INVESTMENTS = [], SCH
       asset_zip: d.zip || "",
       payment_lag_config: {
         enabled: !!d.lag_enabled,
-        type: d.lag_type || "DAYS",
+        type: d.lag_type || "Days",
         value: Number(d.lag_value) || 0,
         specific_day: Number(d.lag_day) || 15,
         month_offset: Number(d.lag_month_offset) || 1,
@@ -385,10 +385,10 @@ export default function PageDeals({ t, isDark, DEALS = [], INVESTMENTS = [], SCH
                 {modal.data.lag_type?.toLowerCase().replace(/-/g, " ") === "specific day of the following month" ? (
                   <>
                     <FF label="Day of Month" t={t}>
-                      <FIn type="number" value={modal.data.lag_day || ""} onChange={e => setF("lag_day", e.target.value)} placeholder="e.g. 15" t={t} />
+                      <FIn type="number" value={modal.data.lag_day ?? ""} onChange={e => setF("lag_day", e.target.value)} placeholder="e.g. 15" t={t} />
                     </FF>
                     <FF label="Month Offset" t={t}>
-                      <FIn type="number" value={modal.data.lag_month_offset || ""} onChange={e => setF("lag_month_offset", e.target.value)} placeholder="e.g. 1" t={t} />
+                      <FIn type="number" value={modal.data.lag_month_offset ?? ""} onChange={e => setF("lag_month_offset", e.target.value)} placeholder="e.g. 1" t={t} />
                     </FF>
                   </>
                 ) : (
@@ -398,7 +398,7 @@ export default function PageDeals({ t, isDark, DEALS = [], INVESTMENTS = [], SCH
                       modal.data.lag_type?.toLowerCase().includes("quater") || modal.data.lag_type?.toLowerCase().includes("quarter") ? "Day Offset" :
                       "Number of Days"
                     } t={t}>
-                      <FIn type="number" value={modal.data.lag_value || ""} onChange={e => setF("lag_value", e.target.value)} placeholder="e.g. 30" t={t} />
+                      <FIn type="number" value={modal.data.lag_value ?? ""} onChange={e => setF("lag_value", e.target.value)} placeholder="e.g. 30" t={t} />
                     </FF>
                   )
                 )}

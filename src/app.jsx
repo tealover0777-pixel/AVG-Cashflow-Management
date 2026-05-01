@@ -336,6 +336,7 @@ function AppContent() {
         fundBalanceRaw: fundBalance,
         type: d.deal_type || "",
         feeIds: typeof d.fees === "string" && d.fees ? d.fees.split(",").map(s => s.trim()) : [],
+        payment_lag_config: d.payment_lag_config || {},
       };
     })
     .sort((a, b) => (a.name || "").localeCompare(b.name || ""));
@@ -414,6 +415,7 @@ function AppContent() {
         updated_at: fmtDate(d.updated_at),
         payment_method: d.payment_method || "",
         rollover: d.rollover || false,
+        payment_lag_config: d.payment_lag_config || {},
       };
     })
     .sort((a, b) => (a.investment_name || a.id || "").localeCompare(b.investment_name || b.id || ""));

@@ -335,7 +335,7 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
     let title = `PaymentSchedule_${isPivot ? "Pivot" : "Table"}_${new Date().toISOString().split('T')[0]}`;
 
     if (isPivot) {
-      headers = ["First Name", "Last Name", "Type", "Start Date", "Payment Date", "Freq", "Rate", "Schedule", "Payment Method", ...pivotData.dates, "Total"];
+      headers = ["First Name", "Last Name", "Type", "Start Date", "End Date", "Payment Date", "Freq", "Rate", "Schedule", "Payment Method", ...pivotData.dates, "Total"];
       data = filteredPivotRows.map(row => {
         let rowTotal = 0;
         const rowData = [
@@ -344,6 +344,7 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
           (row.type || "").replace(/_/g, ' '),
           row.startDate,
           row.endDate,
+          row.scheduledDate || row.endDate || "—",
           row.freq,
           (row.rate || 0) + "%",
           row.scheduleId,
@@ -358,7 +359,7 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
         return rowData;
       });
     } else {
-      headers = ["First Name", "Last Name", "Deal Name", "Start Date", "Payment Date", "Type", "Freq", "Amount", "Status", "Notes"];
+      headers = ["First Name", "Last Name", "Deal Name", "Start Date", "End Date", "Payment Date", "Type", "Freq", "Amount", "Status", "Notes"];
       data = rowData.map(s => {
         const contact = CONTACTS.find(x => x.id === s.contact_id);
         const dealObj = DEALS.find(x => x.id === s.deal_id);
@@ -373,17 +374,19 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
           const start = inv?.start_date;
           return (start && val !== "—" && val < start) ? start : val;
         })();
-        const paymentDate = (() => {
+        const endDate = (() => {
           const val = s.dueDate || s.due_date || "—";
           const end = inv?.maturity_date;
           return (end && val !== "—" && val > end) ? end : val;
         })();
+        const paymentDate = s.scheduled_payment_date || endDate || "—";
         const freq = s.frequency || inv?.freq || inv?.payment_frequency || s.freq || "—";
         return [
           firstName,
           lastName,
           dealName,
           startDate,
+          endDate,
           paymentDate,
           type,
           freq,
@@ -2279,7 +2282,7 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
                       top: 0,
                       zIndex: 40
                     }}>
-                      <div style={{ fontSize: 10, opacity: 0.7 }}>Payment Day</div>
+                      <div style={{ fontSize: 10, opacity: 0.7 }}>Payment Date</div>
                       <div>{date}</div>
                       {idx === pivotData.dates.length - 1 && (
                         <div onMouseDown={handleDateResize} style={{ position: "absolute", right: -3, top: 0, bottom: 0, width: 6, cursor: "col-resize", zIndex: 60, transition: "background 0.2s" }} onMouseOver={(e) => e.target.style.background = t.accent} onMouseOut={(e) => e.target.style.background = "transparent"} />
@@ -2796,12 +2799,12 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
               style={{ width: 16, height: 16, accentColor: t.accent, cursor: 'pointer' }}
             />
             <label htmlFor="use_payment_day_filter" style={{ fontSize: 13, fontWeight: 600, color: t.text, cursor: 'pointer' }}>
-              Use Payment Day (Scheduled Date) to replace Accrual Date filter
+              Use Payment Date (Scheduled Date) to replace Period Date filter
             </label>
           </div>
         </FF>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-          <FF label={distMemoModal.data.use_payment_day_filter ? "Payment Start Date" : "Accrual Start Date"} t={t}>
+          <FF label="Payment Start Date" t={t}>
             <FIn
               type="date"
               value={distMemoModal.data.period_start || ""}
@@ -2809,7 +2812,7 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
               t={t}
             />
           </FF>
-          <FF label={distMemoModal.data.use_payment_day_filter ? "Payment End Date" : "Accrual End Date"} t={t}>
+          <FF label="Payment End Date" t={t}>
             <FIn
               type="date"
               value={distMemoModal.data.period_end || ""}
@@ -2834,11 +2837,10 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
                   const investor = CONTACTS.find(c => c.id === s.contact_id || c.docId === s.contact_id);
                   const sMethod = (s.payment_method || inv?.payment_method || investor?.payment_method || "").toLowerCase();
 
-                  const typeMatch = types.length === 0 || types.includes(sType);
-                  const statusMatch = statuses.length === 0 || statuses.includes((s.status || "").toLowerCase());
-                  const methodMatch = methods.length === 0 || methods.includes(sMethod);
+                  const usePaymentDay = !!distMemoModal.data.use_payment_day_filter;
+                  const checkDate = usePaymentDay ? (s.scheduled_payment_date || due) : due;
 
-                  return typeMatch && statusMatch && methodMatch && due >= distMemoModal.data.period_start && due <= distMemoModal.data.period_end;
+                  return typeMatch && statusMatch && methodMatch && checkDate >= distMemoModal.data.period_start && checkDate <= distMemoModal.data.period_end;
                 }).length;
                 return `${count} schedule${count !== 1 ? "s" : ""} will be linked with these criteria`;
               })()}

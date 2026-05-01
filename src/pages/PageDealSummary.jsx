@@ -174,6 +174,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
         payment_method: d.payment_method || "",
         period_start: d.period_start || "",
         period_end: d.period_end || "",
+        use_payment_day_filter: !!d.use_payment_day_filter,
         batch_id: generatedBatchId,
         updated_at: serverTimestamp(),
         updated_by: user?.uid || "system",
@@ -200,6 +201,9 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
       const matchingSchedules = activeDealSchedules.filter(s => {
         const sType = (s.type || s.payment_type || "").toLowerCase();
         const due = s.dueDate || s.due_date || "";
+        const scheduled = s.scheduled_payment_date || "";
+        const checkDate = d.use_payment_day_filter ? (scheduled || due) : due;
+
         const inv = INVESTMENTS.find(iv => iv.id === s.investment_id || iv.docId === s.investment_id);
         const investor = CONTACTS.find(c => c.id === s.contact_id || c.docId === s.contact_id);
         const sMethod = (s.payment_method || inv?.payment_method || investor?.payment_method || "").toLowerCase();
@@ -207,7 +211,9 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
         const typeMatch = types.length === 0 || types.includes(sType);
         const statusMatch = statuses.length === 0 || statuses.includes((s.status || "").toLowerCase());
         const methodMatch = methods.length === 0 || methods.includes(sMethod);
-        return typeMatch && statusMatch && methodMatch && due >= d.period_start && due <= d.period_end;
+        
+        if (!checkDate) return false;
+        return typeMatch && statusMatch && methodMatch && checkDate >= d.period_start && checkDate <= d.period_end;
       });
 
       // Update matching schedules with batch_id and dist_memo_id
@@ -297,7 +303,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
     let title = `Distributions_${deal.name || "Deal"}_${isPivot ? "Pivot" : "Table"}_${new Date().toISOString().split('T')[0]}`;
 
     if (isPivot) {
-      headers = ["First Name", "Last Name", "Type", "Start Date", "End Date", "Freq", "Rate", "Payment Method", ...pivotData.dates, "Total"];
+      headers = ["First Name", "Last Name", "Type", "Start Date", "End Date", "Payment Date", "Freq", "Rate", "Payment Method", ...pivotData.dates, "Total"];
       data = filteredPivotRows.map(row => {
         let rowTotal = 0;
         const rowData = [
@@ -306,6 +312,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
           (row.type || "").replace(/_/g, ' '),
           row.startDate,
           row.endDate,
+          row.scheduledDate || row.endDate || "—",
           row.freq,
           (row.rate || 0) + "%",
           row.paymentMethod
@@ -319,7 +326,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
         return rowData;
       });
     } else {
-      headers = ["First Name", "Last Name", "Deal Name", "Start Date", "Payment Date", "Type", "Freq", "Amount", "Status", "Notes"];
+      headers = ["First Name", "Last Name", "Deal Name", "Start Date", "End Date", "Payment Date", "Type", "Freq", "Amount", "Status", "Notes"];
       data = filteredDealSchedules.map(s => {
         const contact = CONTACTS.find(x => x.id === s.contact_id);
         const dealObj = DEALS.find(x => x.id === s.deal_id);
@@ -335,17 +342,19 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
           const start = inv?.start_date;
           return (start && val !== "—" && val < start) ? start : val;
         })();
-        const paymentDate = (() => {
+        const endDate = (() => {
           const val = s.dueDate || s.due_date || "—";
           const end = inv?.maturity_date;
           return (end && val !== "—" && val > end) ? end : val;
         })();
+        const paymentDate = s.scheduled_payment_date || endDate || "—";
         const freq = s.frequency || inv?.freq || inv?.payment_frequency || s.freq || "—";
         return [
           firstName,
           lastName,
           dealName,
           startDate,
+          endDate,
           paymentDate,
           type,
           freq,
@@ -2451,7 +2460,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
             )}
             {canAssetCreate && activeTab === "Assets" && <button onClick={openAddAsset} style={{ background: t.accentGrad || t.accent, color: "#fff", border: "none", padding: "11px 20px", borderRadius: 11, fontSize: 13, fontWeight: 600, boxShadow: `0 4px 16px ${t.accentShadow || "none"}`, display: "flex", alignItems: "center", gap: 7 }}><span style={{ fontSize: 18, lineHeight: 1 }}>+</span> Add asset</button>}
             {canCreate && activeTab === "Contacts" && <button onClick={openAddContactModal} style={{ background: t.accentGrad || t.accent, color: "#fff", border: "none", padding: "11px 20px", borderRadius: 11, fontSize: 13, fontWeight: 600, boxShadow: `0 4px 16px ${t.accentShadow || "none"}`, display: "flex", alignItems: "center", gap: 7 }}><span style={{ fontSize: 18, lineHeight: 1 }}>+</span> New Contact</button>}
-            {activeTab === "Distributions" && distributionView === "memo" && <button onClick={() => setDistMemoModal({ open: true, mode: "add", data: { deal_id: dealId, status: paymentStatusOpts, payment_method: "" } })} style={{ background: t.accentGrad || t.accent, color: "#fff", border: "none", padding: "11px 20px", borderRadius: 11, fontSize: 13, fontWeight: 600, boxShadow: `0 4px 16px ${t.accentShadow || "none"}`, display: "flex", alignItems: "center", gap: 7 }}><span style={{ fontSize: 18, lineHeight: 1 }}>+</span> Add Distribution Memo</button>}
+            {activeTab === "Distributions" && distributionView === "memo" && <button onClick={() => setDistMemoModal({ open: true, mode: "add", data: { deal_id: dealId, status: paymentStatusOpts, payment_method: "", use_payment_day_filter: true } })} style={{ background: t.accentGrad || t.accent, color: "#fff", border: "none", padding: "11px 20px", borderRadius: 11, fontSize: 13, fontWeight: 600, boxShadow: `0 4px 16px ${t.accentShadow || "none"}`, display: "flex", alignItems: "center", gap: 7 }}><span style={{ fontSize: 18, lineHeight: 1 }}>+</span> Add Distribution Memo</button>}
           </div>
         </div>
       </div>
@@ -4315,8 +4324,21 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
               placeholder="All Methods (No Filter)"
             />
           </FF>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 0" }}>
+            <input 
+              type="checkbox" 
+              id="use_payment_day_filter"
+              checked={!!distMemoModal.data.use_payment_day_filter} 
+              onChange={e => setDistMemoModal(m => ({ ...m, data: { ...m.data, use_payment_day_filter: e.target.checked } }))} 
+              style={{ width: 18, height: 18, cursor: "pointer", accentColor: t.accent }} 
+            />
+            <label htmlFor="use_payment_day_filter" style={{ fontSize: 13.5, fontWeight: 500, color: t.text, cursor: "pointer" }}>
+              Enable "Payment Date" to replace date filter
+            </label>
+          </div>
+
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-            <FF label="Period Start Date" t={t}>
+            <FF label="Payment Start Date" t={t}>
               <FIn
                 type="date"
                 value={distMemoModal.data.period_start || ""}
@@ -4324,7 +4346,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
                 t={t}
               />
             </FF>
-            <FF label="Period End Date" t={t}>
+            <FF label="Payment End Date" t={t}>
               <FIn
                 type="date"
                 value={distMemoModal.data.period_end || ""}
@@ -4344,6 +4366,9 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
                   const count = activeDealSchedules.filter(s => {
                     const sType = (s.type || s.payment_type || "").toLowerCase();
                     const due = s.dueDate || s.due_date || "";
+                    const scheduled = s.scheduled_payment_date || "";
+                    const checkDate = distMemoModal.data.use_payment_day_filter ? (scheduled || due) : due;
+
                     const inv = INVESTMENTS.find(iv => iv.id === s.investment_id || iv.docId === s.investment_id);
                     const investor = CONTACTS.find(c => c.id === s.contact_id || c.docId === s.contact_id);
                     const sMethod = (s.payment_method || inv?.payment_method || investor?.payment_method || "").toLowerCase();
@@ -4352,7 +4377,8 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
                     const statusMatch = statuses.length === 0 || statuses.includes((s.status || "").toLowerCase());
                     const methodMatch = methods.length === 0 || methods.includes(sMethod);
 
-                    return typeMatch && statusMatch && methodMatch && due >= distMemoModal.data.period_start && due <= distMemoModal.data.period_end;
+                    if (!checkDate) return false;
+                    return typeMatch && statusMatch && methodMatch && checkDate >= distMemoModal.data.period_start && checkDate <= distMemoModal.data.period_end;
                   }).length;
                   return `${count} schedule${count !== 1 ? "s" : ""} will be linked with these criteria`;
                 })()}
