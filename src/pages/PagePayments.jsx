@@ -328,11 +328,29 @@ export default function PagePayments({ t, isDark, PAYMENTS = [], INVESTMENTS = [
     };
 
     if (activeTab === "Payments") return getPaymentColumns(permissions, isDark, t, editCb, delCb, batchSummaryCb, handleInvestmentClick, handleContactClick);
-    if (activeTab === "ACH Batches") return getBatchColumns(permissions, isDark, t, editCb, delCb, batchSummaryCb, (memoId, dealId) => {
-      setSelectedDealId(dealId);
-      setSelectedDistMemoId(memoId);
-      setActivePage("Deal Summary");
-    });
+    if (activeTab === "ACH Batches") return getBatchColumns(permissions, isDark, t, editCb, delCb,
+      // Batch ID click → navigate to deal's Distribution view
+      (batch) => {
+        const dealId = batch.deal_id;
+        const memoId = batch.dist_memo_id;
+        if (dealId) {
+          setSelectedDealId(dealId);
+          if (memoId) setSelectedDistMemoId(memoId);
+          setActivePage("Deal Summary");
+        }
+      },
+      // Distribution Memo click → show schedules drilldown
+      (memoId) => {
+        const memo = distMemos.find(m => m.id === memoId);
+        if (memo) {
+          const linked = SCHEDULES.filter(s =>
+            (s.dist_memo_id && s.dist_memo_id === memo.id) ||
+            (s.batch_id && ACH_BATCHES.find(b => b.dist_memo_id === memoId && b.batch_id === s.batch_id))
+          );
+          setDistMemoDrillDown({ open: true, memo, schedules: linked });
+        }
+      }
+    );
     
     const ledgerPerms = { 
       canUpdate: isLedgerEditable, 

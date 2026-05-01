@@ -222,7 +222,7 @@ export const getBatchColumns = (permissions, isDark, t, onEdit, onDel, onBatchCl
       size: 130,
       cell: ({ getValue, row }) => (
         <span 
-          onClick={() => onBatchClick && onBatchClick(row.original.batch_id)}
+          onClick={() => onBatchClick && onBatchClick(row.original)}
           style={{ 
             fontFamily: t.mono, 
             fontSize: '11px', 
