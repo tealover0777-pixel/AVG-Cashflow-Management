@@ -1,5 +1,5 @@
-import { CornerDownRight, ExternalLink, RotateCcw, Info } from 'lucide-react';
-import { Bdg, Tooltip, ActBtns } from '../components';
+import { CornerDownRight, ExternalLink, RotateCcw } from 'lucide-react';
+import { Bdg, ActBtns } from '../components';
 import { fmtCurr, formatPaymentLag } from '../utils';
 
 export const getScheduleColumns = (permissions, isDark, t, context) => {
@@ -200,6 +200,26 @@ export const getScheduleColumns = (permissions, isDark, t, context) => {
       sortingFn: 'datetime'
     },
     {
+      header: "Payment Lag",
+      id: "lag",
+      size: 110,
+      accessorFn: (row) => {
+        const inv = (INVESTMENTS || []).find(x => x.id === row.investment_id || x.id === row.investment);
+        const deal = (DEALS || []).find(x => x.id === row.deal_id);
+        const config = (inv?.payment_lag_config?.enabled) ? inv.payment_lag_config : (deal?.payment_lag_config || null);
+        return formatPaymentLag(config);
+      },
+      cell: ({ getValue }) => {
+        const label = getValue();
+        if (!label || label === "None") return <span style={{ color: t.textMuted }}>—</span>;
+        return (
+          <span style={{ fontSize: '10.5px', fontWeight: 600, color: isDark ? "#A78BFA" : "#7C3AED" }}>
+            {label}
+          </span>
+        );
+      }
+    },
+    {
       header: "Type",
       id: "type",
       accessorFn: (row) => row.type || row.payment_type || "",
@@ -245,49 +265,18 @@ export const getScheduleColumns = (permissions, isDark, t, context) => {
       cell: ({ getValue }) => <span style={{ fontSize: '11px', color: t.textSecondary }}>{getValue()}</span>
     },
     {
-      header: "Payment Lag",
-      id: "lag",
-      size: 110,
-      accessorFn: (row) => {
-        const inv = (INVESTMENTS || []).find(x => x.id === row.investment_id || x.id === row.investment);
-        const deal = (DEALS || []).find(x => x.id === row.deal_id);
-        const config = (inv?.payment_lag_config?.enabled) ? inv.payment_lag_config : (deal?.payment_lag_config || null);
-        return formatPaymentLag(config);
-      },
-      cell: ({ getValue }) => {
-        const label = getValue();
-        if (label === "None") return <span style={{ color: t.textMuted }}>—</span>;
-        return (
-          <span style={{ fontSize: '10.5px', fontWeight: 600, color: isDark ? "#A78BFA" : "#7C3AED" }}>
-            {label}
-          </span>
-        );
-      }
-    },
-    {
       header: "Payment Method",
       id: "resolved_payment_method",
       size: 140,
-      cell: ({ row }) => {
-        const s = row.original;
-        const inv = INVESTMENTS.find(iv => iv.id === s.investment_id || iv.docId === s.investment_id);
-        const contact = CONTACTS.find(c => c.id === s.contact_id || c.docId === s.contact_id);
-        const method = s.payment_method || inv?.payment_method || contact?.payment_method || "";
-        
+      accessorFn: (row) => {
+        const inv = INVESTMENTS.find(iv => iv.id === row.investment_id || iv.docId === row.investment_id);
+        const contact = CONTACTS.find(c => c.id === row.contact_id || c.docId === row.contact_id);
+        return row.payment_method || inv?.payment_method || contact?.payment_method || "";
+      },
+      cell: ({ getValue }) => {
+        const method = getValue();
         if (!method) return <span style={{ color: t.textMuted }}>—</span>;
-        
-        const isDerived = !s.payment_method && (inv?.payment_method || contact?.payment_method);
-        
-        return (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <span style={{ fontSize: '11px', fontWeight: 500, color: t.textSecondary }}>{method}</span>
-            {isDerived && (
-              <Tooltip text={`Derived from ${inv?.payment_method ? "Investment" : "Contact"}`} t={t}>
-                <Info size={12} style={{ color: t.textMuted, opacity: 0.7 }} />
-              </Tooltip>
-            )}
-          </div>
-        );
+        return <span style={{ fontSize: '11px', fontWeight: 500, color: t.textSecondary }}>{method}</span>;
       }
     },
     {
