@@ -8,26 +8,36 @@ export const calculateLinkedSchedules = (memo, SCHEDULES = [], INVESTMENTS = [],
   const types = toArr(memo.payment_type).map(x => x.toLowerCase());
   const statuses = toArr(memo.status).map(x => x.toLowerCase());
   const usePaymentDay = !!memo.use_payment_day_filter;
-  
-  return SCHEDULES.filter(s => {
-    // Explicit linkage
-    if (s.dist_memo_id && (s.dist_memo_id === memo.id || s.dist_memo_id === memo.docId)) return true;
-    if (s.batch_id && memo.batch_id && s.batch_id === memo.batch_id) return true;
 
-    // Filter logic
-    const targetDealId = dealId || memo.deal_id;
-    if (targetDealId && s.deal_id !== targetDealId) return false;
-    const sType = (s.type || s.payment_type || "").toLowerCase();
-    if (types.length > 0 && !types.includes(sType)) return false;
-    
+  return SCHEDULES.filter(s => {
     const due = s.dueDate || s.due_date || "";
     const scheduled = s.scheduled_payment_date || "";
     const checkDate = usePaymentDay ? (scheduled || due) : due;
 
+    // Explicit linkage: always include, but when using payment date filter
+    // still enforce the period so lagged dates outside the window are excluded.
+    const isExplicitlyLinked =
+      (s.dist_memo_id && (s.dist_memo_id === memo.id || s.dist_memo_id === memo.docId)) ||
+      (s.batch_id && memo.batch_id && s.batch_id === memo.batch_id);
+
+    if (isExplicitlyLinked) {
+      if (usePaymentDay && checkDate) {
+        if (memo.period_start && checkDate < memo.period_start) return false;
+        if (memo.period_end && checkDate > memo.period_end) return false;
+      }
+      return true;
+    }
+
+    // Filter logic for non-explicitly-linked schedules
+    const targetDealId = dealId || memo.deal_id;
+    if (targetDealId && s.deal_id !== targetDealId) return false;
+    const sType = (s.type || s.payment_type || "").toLowerCase();
+    if (types.length > 0 && !types.includes(sType)) return false;
+
     if (!checkDate) return false;
     if (memo.period_start && checkDate < memo.period_start) return false;
     if (memo.period_end && checkDate > memo.period_end) return false;
-    
+
     if (statuses.length > 0) {
       const sSt = (s.status || "").toLowerCase();
       if (!statuses.includes(sSt)) return false;
@@ -42,6 +52,7 @@ export const calculateLinkedSchedules = (memo, SCHEDULES = [], INVESTMENTS = [],
     return true;
   });
 };
+
 
 export const getDistributionMemoColumns = (isDark, t, context) => {
   const { SCHEDULES = [], INVESTMENTS = [], CONTACTS = [], DEALS = [], dealId, callbacks } = context;
