@@ -216,12 +216,12 @@ export const getInvestmentColumns = (permissions, isDark, t, context) => {
 
     {
       header: "Payment Lag",
-      accessorKey: "payment_lag_config",
+      id: "payment_lag",
+      accessorFn: (row) => formatPaymentLag(row.payment_lag_config),
       size: 110,
       cell: ({ getValue }) => {
-        const val = getValue();
-        const label = formatPaymentLag(val);
-        if (label === "None") return <span style={{ color: t.textMuted }}>—</span>;
+        const label = getValue();
+        if (!label || label === "None") return <span style={{ color: t.textMuted }}>—</span>;
         return (
           <span style={{ fontSize: '10.5px', fontWeight: 600, color: isDark ? "#A78BFA" : "#7C3AED" }}>
             {label}
