@@ -2033,7 +2033,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
       }
     }
   };
-  const context = { CONTACTS, FEES_DATA, SCHEDULES, callbacks, permissions, isDark, t };
+  const context = { CONTACTS, FEES_DATA, SCHEDULES, deal, callbacks, permissions, isDark, t };
   const columnDefs = useMemo(() => {
     return getDealInvestmentColumns(permissions, isDark, t, context, 'investment');
   }, [permissions, isDark, t, CONTACTS, FEES_DATA, SCHEDULES]);

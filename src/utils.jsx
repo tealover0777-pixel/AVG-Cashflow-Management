@@ -368,7 +368,7 @@ export const calculateScheduledDate = (baseDateStr, config) => {
 };
 
 export const formatPaymentLag = (config) => {
-  if (!config || config.enabled === false) return "None";
+  if (!config || !config.enabled) return "None";
   const type = (config.type || "").toUpperCase().replace(/ /g, "_").replace(/-/g, "_");
   const val = Number(config.value) || 0;
 

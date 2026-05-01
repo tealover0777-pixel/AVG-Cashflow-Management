@@ -2,7 +2,7 @@ import { Bdg, ActBtns } from '../components';
 import { formatPaymentLag } from '../utils';
 
 export const getDealInvestmentColumns = (permissions, isDark, t, context, viewType = 'investment') => {
-  const { CONTACTS, FEES_DATA, SCHEDULES, callbacks } = context;
+  const { CONTACTS, FEES_DATA, SCHEDULES, deal, callbacks } = context;
   const isLending = viewType === 'lending';
 
   const fmtCurrency = (val) => {
@@ -172,10 +172,13 @@ export const getDealInvestmentColumns = (permissions, isDark, t, context, viewTy
       header: "Payment Lag",
       id: "payment_lag",
       size: 150,
-      accessorFn: (row) => formatPaymentLag(row.payment_lag_config),
+      accessorFn: (row) => {
+        const config = row.payment_lag_config?.enabled ? row.payment_lag_config : (deal?.payment_lag_config || null);
+        return formatPaymentLag(config);
+      },
       cell: ({ getValue, row }) => {
         const val = getValue();
-        const isOverride = !!row.original.payment_lag_config;
+        const isOverride = !!row.original.payment_lag_config?.enabled;
         return (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
             <span style={{ fontSize: '11px', fontWeight: 600, color: val === "None" ? t.textMuted : (isDark ? "#34D399" : "#059669") }}>
