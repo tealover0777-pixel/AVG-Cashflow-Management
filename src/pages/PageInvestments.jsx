@@ -7,7 +7,7 @@ import { normalizeDateAtNoon, hybridDays, pmtCalculator_ACT360_30360, feeCalcula
 import { StatCard, Bdg, Pagination, Modal, FF, FIn, FSel, DelModal, Tooltip } from "../components";
 import { InvestorSummaryModal } from "../components/InvestorSummaryModal";
 import { useAuth } from "../AuthContext";
-import { Check, Plus, Construction, AlertTriangle, FileCheck } from "lucide-react";
+import { Check, Plus, Construction, AlertTriangle, FileCheck, CreditCard } from "lucide-react";
 
 export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [], CONTACTS = [], DIMENSIONS = [], FEES_DATA = [], SCHEDULES = [], LEDGER = [], USERS = [], collectionPath = "", schedulePath = "", tenantId = "" }) {
   const { hasPermission, isSuperAdmin } = useAuth();
