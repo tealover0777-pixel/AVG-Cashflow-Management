@@ -332,7 +332,7 @@ export const normalizeDateAtNoon = (date) => {
 };
 
 export const calculateScheduledDate = (baseDateStr, config) => {
-  if (!baseDateStr || !config || config.enabled === false) return baseDateStr;
+  if (!baseDateStr || !config || !config.enabled) return baseDateStr;
   const baseDate = normalizeDateAtNoon(baseDateStr);
   if (!baseDate) return baseDateStr;
 

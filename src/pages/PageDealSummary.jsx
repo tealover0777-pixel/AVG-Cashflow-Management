@@ -1490,7 +1490,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
         const entries = [];
         const cTypeUpper = (c.type || "").toUpperCase();
         const isDisbursement = cTypeUpper.includes("DISBURSEMENT") || (c.investment_id || c.id || "").startsWith("L");
-        const lagConfig = c.payment_lag_config || deal.payment_lag_config || { enabled: false };
+        const lagConfig = ('enabled' in (c.payment_lag_config || {})) ? c.payment_lag_config : (deal.payment_lag_config || { enabled: false });
 
         // --- 1. Initial Deposit/Disbursement ---
         const initialPaymentType = isDisbursement ? PT_BOR_DISBURSEMENT : PT_DEPOSIT;
