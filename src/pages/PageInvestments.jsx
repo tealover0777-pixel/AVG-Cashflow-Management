@@ -646,6 +646,25 @@ export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [
   const setF = (k, v) => setModal(m => {
     const next = { ...m, data: { ...m.data, [k]: v } };
     
+    // Auto-calculate maturity_date from start_date + term_months
+    if ((k === "start_date" || k === "term_months") && next.data.start_date && next.data.term_months) {
+      const sd = new Date(next.data.start_date);
+      const term = parseInt(next.data.term_months, 10);
+      if (!isNaN(sd) && !isNaN(term)) {
+        sd.setMonth(sd.getMonth() + term);
+        next.data.maturity_date = sd.toISOString().slice(0, 10);
+      }
+    }
+    // Auto-calculate term_months from maturity_date - start_date
+    if (k === "maturity_date" && v && next.data.start_date) {
+      const sd = new Date(next.data.start_date);
+      const md = new Date(v);
+      if (!isNaN(sd) && !isNaN(md)) {
+        const months = (md.getFullYear() - sd.getFullYear()) * 12 + (md.getMonth() - sd.getMonth());
+        next.data.term_months = String(months);
+      }
+    }
+    
     if (k === "deal") {
       const dealObj = DEALS.find(x => x.name === v);
       if (dealObj) next.data.deal_id = dealObj.id || dealObj.docId || "";
