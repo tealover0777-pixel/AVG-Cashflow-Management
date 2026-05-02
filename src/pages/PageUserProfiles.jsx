@@ -310,7 +310,7 @@ export default function PageUserProfiles({ t, isDark, USERS = [], GLOBAL_USERS =
         }
     };
 
-    const permissions = { canUpdate, canDelete, canInvite };
+    const permissions = { canUpdate, canDelete, canInvite, isSuperAdmin };
     const columnDefs = useMemo(() => {
         return getUserProfileColumns(permissions, isDark, t, openEdit, setDelT, openResendInvite, ROLES);
     }, [permissions, isDark, t, ROLES]);

@@ -38,6 +38,11 @@ const getRoleName = (role_id, ROLES) => {
     return found ? (found.role_name || found.name || role_id) : (role_id || "—");
 };
 
+const isRoleGlobal = (role_id, ROLES) => {
+    const found = ROLES.find(r => r.id === role_id || r.role_id === role_id);
+    return found?.IsGlobal === true;
+};
+
 export const getUserProfileColumns = (permissions, isDark, t, onEdit, onDel, onResend, ROLES) => {
   const cols = [
     {
@@ -72,10 +77,27 @@ export const getUserProfileColumns = (permissions, isDark, t, onEdit, onDel, onR
       cell: ({ getValue, row }) => {
         const roleName = getValue();
         const role_id = row.original.role_id;
+        const isGlobal = isRoleGlobal(role_id, ROLES) || row.original.isGlobal === true;
         return (
-          <div style={{ fontSize: 12 }}>
-            <span style={{ fontFamily: t.mono, fontSize: 11, color: t.textMuted }}>{role_id || "—"}</span>{" "}
-            {roleName}
+          <div style={{ fontSize: 12, display: "flex", alignItems: "center", gap: 6 }}>
+            <div style={{ display: "flex", flexDirection: "column" }}>
+              <span style={{ fontFamily: t.mono, fontSize: 11, color: t.textMuted }}>{role_id || "—"}</span>
+              <span>{roleName}</span>
+            </div>
+            {isGlobal && (
+              <span style={{ 
+                padding: '2px 8px', 
+                borderRadius: 20, 
+                background: t.tagBg, 
+                color: t.tagColor, 
+                border: `1px solid ${t.tagBorder}`,
+                fontSize: 10, 
+                fontWeight: 700,
+                letterSpacing: "0.03em"
+              }}>
+                GLOBAL
+              </span>
+            )}
           </div>
         );
       },
@@ -124,14 +146,21 @@ export const getUserProfileColumns = (permissions, isDark, t, onEdit, onDel, onR
       size: 100,
       cell: ({ row }) => {
         const p = row.original;
+        const isGlobalOnly = p._isGlobalOnly === true;
+        const canModifyGlobal = permissions.isSuperAdmin; // Only super admins can modify global-only users
+        
+        const showEdit = permissions.canUpdate && (!isGlobalOnly || canModifyGlobal);
+        const showDel = permissions.canDelete && (!isGlobalOnly || canModifyGlobal);
+        const showInvite = permissions.canInvite && p.email && (!isGlobalOnly || canModifyGlobal);
+
         return (
           <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
             <ActBtns 
               show={true} 
               t={t} 
-              onEdit={permissions.canUpdate ? () => onEdit(p) : null} 
-              onDel={permissions.canDelete ? () => onDel(p) : null} 
-              onInvite={permissions.canInvite && p.email ? () => onResend(p) : null}
+              onEdit={showEdit ? () => onEdit(p) : null} 
+              onDel={showDel ? () => onDel(p) : null} 
+              onInvite={showInvite ? () => onResend(p) : null}
             />
           </div>
         );
