@@ -233,13 +233,13 @@ function AppContent() {
   // Super admins/Global roles can fetch "GLOBAL" which uses group queries.
   const fetchPaths = getCollectionPaths(isGlobalConsolidated ? "" : (activeTenantId || "T_PENDING"));
 
-  const { data: rawDeals, loading: l1, error: e1 } = useFirestoreCollection(isGlobalConsolidated ? "deals" : (activeTenantId ? fetchPaths.deals : null), isGlobalConsolidated);
-  const { data: rawContacts, loading: l2, error: e2 } = useFirestoreCollection(isGlobalConsolidated ? "contacts" : (activeTenantId ? fetchPaths.contacts : null), isGlobalConsolidated);
-  const { data: rawInvestments, loading: l3, error: e3 } = useFirestoreCollection(isGlobalConsolidated ? "investments" : (activeTenantId ? fetchPaths.investments : null), isGlobalConsolidated);
-  const { data: rawSchedules, loading: l4, error: e4 } = useFirestoreCollection(isGlobalConsolidated ? "paymentSchedules" : (activeTenantId ? fetchPaths.paymentSchedules : null), isGlobalConsolidated);
-  const { data: rawPayments, loading: l5, error: e5 } = useFirestoreCollection(isGlobalConsolidated ? "payments" : (activeTenantId ? fetchPaths.payments : null), isGlobalConsolidated);
-  const { data: rawFees, loading: l6, error: e6 } = useFirestoreCollection(isGlobalConsolidated ? "fees" : (activeTenantId ? fetchPaths.fees : null), isGlobalConsolidated);
-  const { data: rawTenants, loading: l8, error: e8 } = useFirestoreCollection(isSuperAdmin ? getCollectionPaths("").tenants : null);
+  const { data: rawDeals, loading: l1, error: e1 } = useFirestoreCollection(isGlobalConsolidated ? "deals" : (activeTenantId && activeTenantId !== "GLOBAL" ? fetchPaths.deals : null), isGlobalConsolidated);
+  const { data: rawContacts, loading: l2, error: e2 } = useFirestoreCollection(isGlobalConsolidated ? "contacts" : (activeTenantId && activeTenantId !== "GLOBAL" ? fetchPaths.contacts : null), isGlobalConsolidated);
+  const { data: rawInvestments, loading: l3, error: e3 } = useFirestoreCollection(isGlobalConsolidated ? "investments" : (activeTenantId && activeTenantId !== "GLOBAL" ? fetchPaths.investments : null), isGlobalConsolidated);
+  const { data: rawSchedules, loading: l4, error: e4 } = useFirestoreCollection(isGlobalConsolidated ? "paymentSchedules" : (activeTenantId && activeTenantId !== "GLOBAL" ? fetchPaths.paymentSchedules : null), isGlobalConsolidated);
+  const { data: rawPayments, loading: l5, error: e5 } = useFirestoreCollection(isGlobalConsolidated ? "payments" : (activeTenantId && activeTenantId !== "GLOBAL" ? fetchPaths.payments : null), isGlobalConsolidated);
+  const { data: rawFees, loading: l6, error: e6 } = useFirestoreCollection(isGlobalConsolidated ? "fees" : (activeTenantId && activeTenantId !== "GLOBAL" ? fetchPaths.fees : null), isGlobalConsolidated);
+  const { data: rawTenants, loading: l8, error: e8 } = useFirestoreCollection((isSuperAdmin && user) ? getCollectionPaths("").tenants : null);
   
   // User Profiles: Always use tenant-specific path (no platform users)
   // Only use collection group in GLOBAL consolidated mode
@@ -249,13 +249,13 @@ function AppContent() {
   const { data: rawUsers, loading: l9, error: e9 } = useFirestoreCollection(userFetchPath, isGlobalConsolidated);
 
   // Fetch global_users to get first_name/last_name for User Profiles
-  const { data: globalUsers, loading: l13, error: e13 } = useFirestoreCollection("global_users");
+  const { data: globalUsers, loading: l13, error: e13 } = useFirestoreCollection(user ? "global_users" : null);
 
-  const { data: rawRoles, loading: l10, error: e10 } = useFirestoreCollection((activeTenantId && (isSuperAdmin || isTenantAdmin || hasPermission("ROLE_TYPE_*") || hasPermission("USER_PROFILE_*"))) ? (isGlobalConsolidated ? "roles" : fetchPaths.roles) : null);
+  const { data: rawRoles, loading: l10, error: e10 } = useFirestoreCollection((activeTenantId && (isSuperAdmin || isTenantAdmin || hasPermission("ROLE_TYPE_*") || hasPermission("USER_PROFILE_*"))) ? (isGlobalConsolidated ? "roles" : (activeTenantId !== "GLOBAL" ? fetchPaths.roles : null)) : null);
   const { data: rawDimensions, loading: l7, error: e7 } = useFirestoreCollection(user ? fetchPaths.dimensions : null);
-  const { data: rawACHBatches, loading: l11, error: e11 } = useFirestoreCollection(isGlobalConsolidated ? "achBatches" : (activeTenantId ? fetchPaths.achBatches : null), isGlobalConsolidated);
-  const { data: rawLedger, loading: l12, error: e12 } = useFirestoreCollection(isGlobalConsolidated ? "ledger" : (activeTenantId ? fetchPaths.ledger : null), isGlobalConsolidated);
-  const { data: rawMarketingEmails, loading: l14, error: e14 } = useFirestoreCollection(isGlobalConsolidated ? "marketingEmails" : (activeTenantId ? fetchPaths.marketingEmails : null), isGlobalConsolidated);
+  const { data: rawACHBatches, loading: l11, error: e11 } = useFirestoreCollection(isGlobalConsolidated ? "achBatches" : (activeTenantId && activeTenantId !== "GLOBAL" ? fetchPaths.achBatches : null), isGlobalConsolidated);
+  const { data: rawLedger, loading: l12, error: e12 } = useFirestoreCollection(isGlobalConsolidated ? "ledger" : (activeTenantId && activeTenantId !== "GLOBAL" ? fetchPaths.ledger : null), isGlobalConsolidated);
+  const { data: rawMarketingEmails, loading: l14, error: e14 } = useFirestoreCollection(isGlobalConsolidated ? "marketingEmails" : (activeTenantId && activeTenantId !== "GLOBAL" ? fetchPaths.marketingEmails : null), isGlobalConsolidated);
 
 
   const shouldFetch = !!activeTenantId || isGlobalRole;
