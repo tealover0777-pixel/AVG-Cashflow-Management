@@ -1,4 +1,4 @@
-import { ref, uploadBytes, getDownloadURL, uploadString, deleteObject } from "firebase/storage";
+import { ref, uploadBytes, getDownloadURL, uploadString, deleteObject, listAll } from "firebase/storage";
 import { storage } from "../firebase";
 
 /**
@@ -53,5 +53,25 @@ export const uploadBase64 = async (base64String, path) => {
     } catch (error) {
         console.error("Storage base64 upload error:", error);
         throw error;
+    }
+};
+
+/**
+ * Lists all files in a specified directory in Firebase Storage.
+ * @param {string} path - The storage directory path.
+ * @returns {Promise<Array<{name: string, url: string}>>}
+ */
+export const listFiles = async (path) => {
+    try {
+        const listRef = ref(storage, path);
+        const res = await listAll(listRef);
+        const files = await Promise.all(res.items.map(async (item) => ({
+            name: item.name,
+            url: await getDownloadURL(item)
+        })));
+        return files;
+    } catch (error) {
+        console.error("Storage list error:", error);
+        return [];
     }
 };

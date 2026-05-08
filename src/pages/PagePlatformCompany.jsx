@@ -3,7 +3,7 @@ import { db } from "../firebase";
 import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
 import { useAuth } from "../AuthContext";
 import { FF, FIn } from "../components";
-import { uploadFile } from "../utils/storageUtils";
+import { uploadFile, listFiles } from "../utils/storageUtils";
 import { ChevronDown, Send } from "lucide-react";
 import { functions } from "../firebase";
 import { httpsCallable } from "firebase/functions";
@@ -16,6 +16,8 @@ export default function PagePlatformCompany({ t, isDark, USERS = [], CONTACTS = 
     const [showOwnerSearch, setShowOwnerSearch] = React.useState(false);
     const [ownerSearch, setOwnerSearch] = React.useState("");
     const [testingEmail, setTestingEmail] = React.useState(false);
+    const [existingLogos, setExistingLogos] = React.useState([]);
+    const [loadingLogos, setLoadingLogos] = React.useState(false);
 
     const showToast = (msg, type = "success") => {
         setToast({ msg, type });
@@ -133,6 +135,13 @@ export default function PagePlatformCompany({ t, isDark, USERS = [], CONTACTS = 
         }).catch(e => console.error("Error fetching platform company data:", e));
     }, [user?.email]);
 
+    React.useEffect(() => {
+        setLoadingLogos(true);
+        listFiles("platform/branding").then(files => {
+            setExistingLogos(files);
+        }).finally(() => setLoadingLogos(false));
+    }, []);
+
     // Auto-resolve TimeZone based on Info folder (State/Zip) and persist to Firestore
     React.useEffect(() => {
         if (!data.emailSetup.timeZone && (data.state || data.zip)) {
@@ -176,9 +185,11 @@ export default function PagePlatformCompany({ t, isDark, USERS = [], CONTACTS = 
             return;
         }
         try {
-            const path = `platform/branding/logo_${Date.now()}`;
+            const path = `platform/branding/logo_${Date.now()}_${file.name}`;
             const url = await uploadFile(file, path);
             setData(s => ({ ...s, logo: url }));
+            // Refresh list
+            listFiles("platform/branding").then(setExistingLogos);
             showToast("Logo uploaded. Click Save to apply changes.");
         } catch (err) {
             console.error("Logo upload error:", err);
@@ -366,20 +377,41 @@ export default function PagePlatformCompany({ t, isDark, USERS = [], CONTACTS = 
                         <div style={{ display: "grid", gap: 24 }}>
                             <FF label="Platform Company Name" t={t}><FIn value={data.name} onChange={e => setData(p => ({ ...p, name: e.target.value }))} placeholder="Platform Company Name" t={t} /></FF>
                             <FF label="Platform Logo" t={t}>
-                                <div style={{ background: isDark ? "rgba(255,255,255,0.02)" : "#FAFAF9", border: `1px dashed ${t.border}`, borderRadius: 16, padding: 32, display: "flex", flexDirection: "column", alignItems: "center", gap: 16, textAlign: "center" }}>
-                                    {data.logo ? (
-                                        <div style={{ position: "relative" }}>
-                                            <img src={data.logo} alt="Logo" style={{ maxWidth: "100%", maxHeight: 120, borderRadius: 8, boxShadow: "0 8px 24px rgba(0,0,0,0.12)" }} />
-                                            <button onClick={() => setData(p => ({ ...p, logo: "" }))} style={{ position: "absolute", top: -12, right: -12, background: "#EF4444", color: "#fff", border: "2px solid #fff", borderRadius: "50%", width: 26, height: 26, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15, fontWeight: 800 }}>×</button>
+                                <div style={{ display: "grid", gap: 16 }}>
+                                    <div style={{ background: isDark ? "rgba(255,255,255,0.02)" : "#FAFAF9", border: `1px dashed ${t.border}`, borderRadius: 16, padding: 32, display: "flex", flexDirection: "column", alignItems: "center", gap: 16, textAlign: "center" }}>
+                                        {data.logo ? (
+                                            <div style={{ position: "relative" }}>
+                                                <img src={data.logo} alt="Logo" style={{ maxWidth: "100%", maxHeight: 120, borderRadius: 8, boxShadow: "0 8px 24px rgba(0,0,0,0.12)" }} />
+                                                <button onClick={() => setData(p => ({ ...p, logo: "" }))} style={{ position: "absolute", top: -12, right: -12, background: "#EF4444", color: "#fff", border: "2px solid #fff", borderRadius: "50%", width: 26, height: 26, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15, fontWeight: 800 }}>×</button>
+                                            </div>
+                                        ) : (
+                                            <div style={{ width: 90, height: 90, borderRadius: 20, background: isDark ? "rgba(255,255,255,0.05)" : "#F3F4F6", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 40 }}>🌐</div>
+                                        )}
+                                        <div style={{ marginTop: 8 }}>
+                                            <input type="file" id="platform-logo-upload" accept="image/*" onChange={handlePhotoChange} style={{ display: "none" }} />
+                                            <label htmlFor="platform-logo-upload" style={{ background: t.accentGrad, color: "#fff", padding: "10px 22px", borderRadius: 10, fontSize: 13.5, fontWeight: 600, cursor: "pointer", display: "inline-block" }}>{data.logo ? "Upload New Logo" : "Upload Logo"}</label>
+                                            <p style={{ fontSize: 11, color: t.textMuted, marginTop: 12, fontWeight: 500 }}>High resolution PNG/JPEG (Max 2MB)</p>
                                         </div>
-                                    ) : (
-                                        <div style={{ width: 90, height: 90, borderRadius: 20, background: isDark ? "rgba(255,255,255,0.05)" : "#F3F4F6", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 40 }}>🌐</div>
-                                    )}
-                                    <div style={{ marginTop: 8 }}>
-                                        <input type="file" id="platform-logo-upload" accept="image/*" onChange={handlePhotoChange} style={{ display: "none" }} />
-                                        <label htmlFor="platform-logo-upload" style={{ background: t.accentGrad, color: "#fff", padding: "10px 22px", borderRadius: 10, fontSize: 13.5, fontWeight: 600, cursor: "pointer", display: "inline-block" }}>{data.logo ? "Replace Logo" : "Upload Logo"}</label>
-                                        <p style={{ fontSize: 11, color: t.textMuted, marginTop: 12, fontWeight: 500 }}>High resolution PNG/JPEG (Max 2MB)</p>
                                     </div>
+
+                                    {existingLogos.length > 0 && (
+                                        <div style={{ display: "grid", gap: 8 }}>
+                                            <div style={{ fontSize: 12, fontWeight: 600, color: t.textMuted }}>Or select from previously uploaded logos:</div>
+                                            <div style={{ position: "relative" }}>
+                                                <select 
+                                                    value={data.logo} 
+                                                    onChange={e => setData(s => ({ ...s, logo: e.target.value }))}
+                                                    style={{ width: "100%", padding: "10px 14px", borderRadius: 9, border: `1px solid ${t.border}`, background: isDark ? "rgba(255,255,255,0.05)" : "#fff", color: t.text, cursor: "pointer", fontSize: 13.5, appearance: "none", outline: "none" }}
+                                                >
+                                                    <option value="">-- Choose existing logo --</option>
+                                                    {existingLogos.map(logo => (
+                                                        <option key={logo.url} value={logo.url}>{logo.name}</option>
+                                                    ))}
+                                                </select>
+                                                <ChevronDown size={14} style={{ position: "absolute", right: 14, top: "50%", transform: "translateY(-50%)", pointerEvents: "none", opacity: 0.5 }} />
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                             </FF>
                         </div>
