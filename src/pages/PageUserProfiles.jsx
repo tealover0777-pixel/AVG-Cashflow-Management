@@ -80,30 +80,7 @@ export default function PageUserProfiles({ t, isDark, USERS = [], GLOBAL_USERS =
             };
         });
 
-        // 2. Add Global Users who aren't already represented in the tenant-user list
-        const missingGlobal = GLOBAL_USERS.filter(gu => {
-            // Only include if they have a Global Role
-            if (!isSelectedRoleGlobal(gu.role)) return false;
-
-            return !tUsers.some(tu => 
-                (tu.auth_uid && tu.auth_uid === gu.id) || 
-                (tu.email && gu.email && tu.email.toLowerCase() === gu.email.toLowerCase())
-            );
-        }).map(gu => ({
-            ...gu,
-            id: gu.id,
-            docId: gu.id,
-            auth_uid: gu.id,
-            first_name: gu.first_name || "",
-            last_name: gu.last_name || "",
-            email: gu.email || "",
-            role_id: gu.role || "",
-            status: gu.status || "Active",
-            tenant_id: "GLOBAL",
-            _isGlobalOnly: true
-        }));
-
-        return [...tUsers, ...missingGlobal];
+        return tUsers;
     }, [USERS, GLOBAL_USERS, ROLES]);
 
     // Filter logic: Include all unless it's the secret admin (for non-owners)
@@ -117,15 +94,14 @@ export default function PageUserProfiles({ t, isDark, USERS = [], GLOBAL_USERS =
                 return false;
             }
 
-            // Hide Global users from anyone who is not a Super Admin
-            const isUserGlobal = u.tenant_id === "GLOBAL" || u._isGlobalOnly || isSelectedRoleGlobal(u.role_id);
-            if (!isSuperAdmin && isUserGlobal && u.email?.toLowerCase() !== currentUserEmail) {
+            // Exclusive: User profiles only show tenant users (non-global roles)
+            if (isSelectedRoleGlobal(u.role_id)) {
                 return false;
             }
 
             return true;
         });
-    }, [mergedUsers, user, isSuperAdmin, isGlobalRole, ROLES]);
+    }, [mergedUsers, user, ROLES]);
 
     const nextUserId = useMemo(() => {
         if (filteredUsers.length === 0) return "U10001";

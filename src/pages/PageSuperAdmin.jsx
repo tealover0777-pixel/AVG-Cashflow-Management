@@ -8,7 +8,7 @@ import { Modal, FF, FIn, DelModal } from "../components";
 import TanStackTable from "../components/TanStackTable";
 import { getSuperAdminColumns } from "../components/SuperAdminTanStackConfig";
 
-export default function PageSuperAdmin({ t, isDark, ROLES = [], TENANTS = [], USERS = [], tenantId = "" }) {
+export default function PageSuperAdmin({ t, isDark, ROLES = [], TENANTS = [] }) {
     const { hasPermission, isSuperAdmin, user } = useAuth();
     const canCreate = isSuperAdmin || hasPermission("PLATFORM_USER_CREATE");
     const canView = isSuperAdmin || hasPermission("PLATFORM_USER_VIEW");
@@ -40,44 +40,8 @@ export default function PageSuperAdmin({ t, isDark, ROLES = [], TENANTS = [], US
         return found && found.IsGlobal === true;
     };
 
-    // Merge tenant users with global users data and include standalone Global users
     const mergedUsers = useMemo(() => {
-        // 1. Process Tenant Users (from the 'users' collection or collection group passed as USERS)
-        const tUsers = USERS.map(u => {
-            const globalUser = globalUsers.find(gu =>
-                (u.auth_uid && gu.id === u.auth_uid) ||
-                (u.email && gu.email && gu.email.toLowerCase() === u.email.toLowerCase())
-            );
-            
-            // Extract tenantId from path if not present (for collection group)
-            let tid = u.tenantId || u.tenant_id || u.Tenant_ID;
-            if (!tid && u._path) {
-                const parts = u._path.split('/');
-                if (parts[0] === 'tenants' && parts[1]) tid = parts[1];
-            }
-            if (!tid) tid = tenantId;
-
-            return {
-                ...u,
-                docId: u._path || u.docId || u.id,
-                first_name: globalUser?.first_name || u.first_name || "",
-                last_name: globalUser?.last_name || u.last_name || "",
-                displayName: globalUser?.displayName || u.displayName || "",
-                role: u.role_id || globalUser?.role || "", // SuperAdmin config uses 'role'
-                tenantId: tid
-            };
-        });
-
-        // 2. Add Global Users who aren't already represented in the tenant-user list
-        const missingGlobal = globalUsers.filter(gu => {
-            // Only include if they have a Global Role
-            if (!isRoleGlobal(gu.role)) return false;
-
-            return !tUsers.some(tu => 
-                (tu.auth_uid && tu.auth_uid === gu.id) || 
-                (tu.email && gu.email && tu.email.toLowerCase() === gu.email.toLowerCase())
-            );
-        }).map(gu => ({
+        return globalUsers.map(gu => ({
             ...gu,
             id: gu.id,
             docId: gu.id,
@@ -90,9 +54,7 @@ export default function PageSuperAdmin({ t, isDark, ROLES = [], TENANTS = [], US
             tenantId: gu.tenantId || "GLOBAL",
             _isGlobalOnly: true
         }));
-
-        return [...tUsers, ...missingGlobal];
-    }, [USERS, globalUsers, tenantId]);
+    }, [globalUsers]);
 
     // Filter logic: Include all unless it's the secret admin (for non-owners)
     const filteredUsers = useMemo(() => {
