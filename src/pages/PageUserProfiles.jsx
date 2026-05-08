@@ -104,7 +104,7 @@ export default function PageUserProfiles({ t, isDark, USERS = [], GLOBAL_USERS =
         }));
 
         return [...tUsers, ...missingGlobal];
-    }, [USERS, GLOBAL_USERS]);
+    }, [USERS, GLOBAL_USERS, ROLES]);
 
     // Filter logic: Include all unless it's the secret admin (for non-owners)
     const filteredUsers = useMemo(() => {
@@ -116,13 +116,16 @@ export default function PageUserProfiles({ t, isDark, USERS = [], GLOBAL_USERS =
             if (!isSecretAdmin && u.email?.toLowerCase() === 'kyuahn@yahoo.com') {
                 return false;
             }
-            // Requirements: 
-            // 2. If "Consolidated" selected, display all users for every tenant + Global users
-            // 3. If specific tenant selected, display users from that tenant + Global users
-            // Since mergedUsers already contains (tenant users + missing global), we show all.
+
+            // Hide Global users from Platform users (non-Global roles / non-Super Admins)
+            const isUserGlobal = u.tenant_id === "GLOBAL" || u._isGlobalOnly || isSelectedRoleGlobal(u.role_id);
+            if (!isSuperAdmin && !isGlobalRole && isUserGlobal) {
+                return false;
+            }
+
             return true;
         });
-    }, [mergedUsers, user]);
+    }, [mergedUsers, user, isSuperAdmin, isGlobalRole, ROLES]);
 
     const nextUserId = useMemo(() => {
         if (filteredUsers.length === 0) return "U10001";
