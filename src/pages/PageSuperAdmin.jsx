@@ -283,8 +283,8 @@ export default function PageSuperAdmin({ t, isDark, ROLES = [], TENANTS = [], US
 
         <div style={{ marginBottom: 28, display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
             <div>
-                <h1 style={{ fontFamily: t.titleFont, fontWeight: t.titleWeight, fontSize: t.titleSize, color: isDark ? "#fff" : "#1C1917", letterSpacing: t.titleTracking, lineHeight: 1, marginBottom: 6 }}>User Admin</h1>
-                <p style={{ fontSize: 13.5, color: t.textMuted }}>Manage global user permissions and tenant associations</p>
+                <h1 style={{ fontFamily: t.titleFont, fontWeight: t.titleWeight, fontSize: t.titleSize, color: isDark ? "#fff" : "#1C1917", letterSpacing: t.titleTracking, lineHeight: 1, marginBottom: 6 }}>Platform User Admin</h1>
+                <p style={{ fontSize: 13.5, color: t.textMuted }}>Manage global platform users and administrative access</p>
             </div>
             {canCreate && <button className="primary-btn" onClick={openInvite} style={{ background: t.accentGrad, color: "#fff", padding: "11px 22px", borderRadius: 11, fontSize: 13.5, fontWeight: 600, boxShadow: `0 4px 16px ${t.accentShadow}` }}>✉️ Invite Global User</button>}
         </div>
@@ -300,21 +300,21 @@ export default function PageSuperAdmin({ t, isDark, ROLES = [], TENANTS = [], US
         </div>
 
         {/* Edit Modal */}
-        <Modal open={modal.open && modal.mode === "edit"} onClose={close} title="Edit User Mapping" onSave={handleSaveUser} width={520} t={t} isDark={isDark}>
-            <FF label="Email" t={t}><FIn value={modal.data.email} disabled t={t} /></FF>
-            <FF label="Firebase UID" t={t}><FIn value={modal.data.uid} disabled t={t} /></FF>
+        <Modal open={modal.open && modal.mode === "edit"} onClose={close} title="Edit User Profile" onSave={handleSaveUser} saveLabel={processing ? "Saving..." : "Save Changes"} width={520} t={t} isDark={isDark}>
+            <FF label="Auth UID (Firebase)" t={t}><FIn value={modal.data.uid} disabled t={t} /></FF>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
               <FF label="First Name" t={t}><FIn value={modal.data.first_name || ""} onChange={e => setF("first_name", e.target.value)} placeholder="Jane" t={t} /></FF>
               <FF label="Last Name" t={t}><FIn value={modal.data.last_name || ""} onChange={e => setF("last_name", e.target.value)} placeholder="Doe" t={t} /></FF>
             </div>
+            <FF label="Email" t={t}><FIn value={modal.data.email} onChange={e => setF("email", e.target.value)} t={t} /></FF>
             <FF label="Global Role" t={t}>
-                <select value={modal.data.role || ""} onChange={e => setF("role", e.target.value)} style={{ background: isDark ? "rgba(255,255,255,0.05)" : "#fff", color: t.text, border: `1px solid ${t.border}`, borderRadius: 10, padding: 12, fontSize: 14, outline: "none", width: "100%" }}>
-                    <option value="">Select Role</option>
+                <select value={modal.data.role || ""} onChange={e => setF("role", e.target.value)} style={{ background: isDark ? "rgba(255,255,255,0.04)" : "#fff", color: isDark ? "#fff" : "#000", border: `1px solid ${t.border}`, borderRadius: 9, padding: "10px 13px", fontSize: 13.5, outline: "none", width: "100%", fontFamily: t.font, appearance: "none" }}>
+                    <option value="" disabled style={{ color: "#000" }}>Select a role...</option>
                     {roleOptions.map(r => <option key={r.id} value={r.id} style={{ color: "#000" }}>{r.display}</option>)}
                 </select>
             </FF>
             <FF label="Status" t={t}>
-                <select value={modal.data.status || "Active"} onChange={e => setF("status", e.target.value)} style={{ background: isDark ? "rgba(255,255,255,0.05)" : "#fff", color: t.text, border: `1px solid ${t.border}`, borderRadius: 10, padding: 12, fontSize: 14, outline: "none", width: "100%" }}>
+                <select value={modal.data.status || "Active"} onChange={e => setF("status", e.target.value)} style={{ background: isDark ? "rgba(255,255,255,0.04)" : "#fff", color: isDark ? "#fff" : "#000", border: `1px solid ${t.border}`, borderRadius: 9, padding: "10px 13px", fontSize: 13.5, outline: "none", width: "100%", fontFamily: t.font, appearance: "none" }}>
                     <option value="Active" style={{ color: "#000" }}>Active</option>
                     <option value="Pending" style={{ color: "#000" }}>Pending</option>
                     <option value="Inactive" style={{ color: "#000" }}>Inactive</option>
@@ -322,12 +322,12 @@ export default function PageSuperAdmin({ t, isDark, ROLES = [], TENANTS = [], US
             </FF>
             <FF label="Tenant Assignment" t={t}>
                 {!isRoleGlobal(modal.data.role) ? (
-                    <select value={modal.data.tenantId || ""} onChange={e => setF("tenantId", e.target.value)} style={{ background: isDark ? "rgba(255,255,255,0.05)" : "#fff", color: t.text, border: `1px solid ${t.border}`, borderRadius: 10, padding: 12, fontSize: 14, outline: "none", width: "100%" }}>
+                    <select value={modal.data.tenantId || ""} onChange={e => setF("tenantId", e.target.value)} style={{ background: isDark ? "rgba(255,255,255,0.04)" : "#fff", color: isDark ? "#fff" : "#000", border: `1px solid ${t.border}`, borderRadius: 9, padding: "10px 13px", fontSize: 13.5, outline: "none", width: "100%", fontFamily: t.font, appearance: "none" }}>
                         <option value="">No Tenant</option>
                         {TENANTS.map(tn => <option key={tn.id} value={tn.id} style={{ color: "#000" }}>{tn.name} ({tn.id})</option>)}
                     </select>
                 ) : (
-                    <div style={{ padding: "12px 14px", borderRadius: 10, background: isDark ? "rgba(255,255,255,0.04)" : "#F3F4F6", fontSize: 13, color: t.textMuted, border: `1px solid ${t.surfaceBorder}` }}>Tenant mapping not required for Global roles.</div>
+                    <div style={{ padding: "10px 13px", borderRadius: 9, background: isDark ? "rgba(255,255,255,0.04)" : "#F3F4F6", fontSize: 13, color: t.textMuted, border: `1px solid ${t.surfaceBorder}` }}>Tenant mapping not required for Global roles.</div>
                 )}
             </FF>
         </Modal>

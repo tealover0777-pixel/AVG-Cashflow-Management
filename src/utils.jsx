@@ -167,7 +167,7 @@ const NAV_ITEMS = [
     children: [
       { label: "AI Admin", icon: "Bot" },
       { label: "Dimensions", icon: "Box" },
-      { label: "User Admin", icon: "UserPlus" },
+      { label: "Platform User Admin", icon: "UserPlus" },
       { label: "Platform Tenant Admin", icon: "Building2" },
       { label: "Platform Company", icon: "Building2" },
     ]
@@ -180,8 +180,8 @@ export const getNav = (isSuper, _isAdmin, hasPermission, isR10010) => {
   const isItemVisible = (item) => {
     if (item.hidden) return false;
 
-    // User Admin section requires PLATFORM_USER_VIEW permission (or R10010 legacy role)
-    if (item.label === "User Admin") return isR10010;
+    // Platform User Admin section requires PLATFORM_USER_VIEW permission (or R10010 legacy role)
+    if (item.label === "Platform User Admin") return isR10010;
 
     // AI Admin restricted to Super Admins (you can change this to global roles if needed)
     if (item.label === "AI Admin") return isSuper;
