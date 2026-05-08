@@ -121,7 +121,9 @@ export default function PageSuperAdmin({ t, isDark, ROLES = [], TENANTS = [], US
 
     const openInvite = () => setModal({ open: true, mode: "invite", data: { email: "", first_name: "", last_name: "", role: "", tenantId: "" } });
     const openEdit = r => {
-        setModal({ open: true, mode: "edit", data: { ...r, uid: r.id } });
+        // Use auth_uid or id for global_users key
+        const targetUid = r.auth_uid || r.uid || r.id;
+        setModal({ open: true, mode: "edit", data: { ...r, uid: targetUid } });
     };
     const close = () => setModal(m => ({ ...m, open: false }));
     const setF = (k, v) => {
@@ -189,7 +191,11 @@ export default function PageSuperAdmin({ t, isDark, ROLES = [], TENANTS = [], US
     // Edit existing role/tenant mapping in global_users + sync to tenant user doc
     const handleSaveUser = async () => {
         const d = modal.data;
-        if (!d.uid) return;
+        if (!d.uid) {
+            showToast("Missing User ID (UID). Cannot save.", "error");
+            return;
+        }
+        setProcessing(true);
 
         // Ensure all values are plain strings, not Firestore objects
         const payload = {
@@ -206,9 +212,9 @@ export default function PageSuperAdmin({ t, isDark, ROLES = [], TENANTS = [], US
 
         try {
             await setDoc(doc(db, "global_users", d.uid), payload, { merge: true });
-            // Sync to tenant user doc
+            // Sync to tenant user doc if it's a real tenant (not GLOBAL)
             const tid = String(d.tenantId || "");
-            if (tid) {
+            if (tid && tid !== "GLOBAL") {
                 const q = query(collection(db, `tenants/${tid}/users`), where("auth_uid", "==", d.uid));
                 const snap = await getDocs(q);
                 if (!snap.empty) {
@@ -227,6 +233,8 @@ export default function PageSuperAdmin({ t, isDark, ROLES = [], TENANTS = [], US
         } catch (err) {
             console.error("Save global user error:", err);
             showToast("Save failed: " + (err.message || "Unknown error"), "error");
+        } finally {
+            setProcessing(false);
         }
     };
 
