@@ -253,7 +253,7 @@ export default function PageContacts({ t, isDark, CONTACTS = [], INVESTMENTS = [
         last_name: lastName,
         phone: party.phone || "",
         contactId: party.id || "",
-        notes: `Invited from Contacts page — ${party.id}`,
+        notes: party.notes || "",
       });
       setInviteResult({ email: party.email, user_id: result.data.user_id, link: result.data.link, roleName: roleInfo.name });
     } catch (err) {

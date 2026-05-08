@@ -37,7 +37,7 @@ export default function PageTenants({ t, isDark, TENANTS = [], GLOBAL_USERS = []
                 first_name: row.owner_first_name || "",
                 last_name: row.owner_last_name || "",
                 phone: row.phone || "",
-                notes: row.notes || `Invited from Platform Tenant Admin — ${row.email}`,
+                notes: row.notes || "",
                 inviteUser: true
             });
             showToast(`Invite sent successfully to ${row.email}`, "success");
@@ -173,7 +173,7 @@ export default function PageTenants({ t, isDark, TENANTS = [], GLOBAL_USERS = []
                     first_name: d.first_name || "",
                     last_name: d.last_name || "",
                     phone: d.phone || "",
-                    notes: d.notes || `Created with New Tenant: ${tenantId}`,
+                    notes: d.notes || "",
                     inviteUser: d.inviteUser ?? true
                 });
             }

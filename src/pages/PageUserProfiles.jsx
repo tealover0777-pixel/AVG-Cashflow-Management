@@ -177,7 +177,7 @@ export default function PageUserProfiles({ t, isDark, USERS = [], GLOBAL_USERS =
                 first_name: firstName,
                 last_name: lastName,
                 phone: party.phone || "",
-                notes: `Created from User Profiles page — ${party.email}`,
+                notes: party.notes || "",
                 inviteUser: party.inviteUser ?? true
             });
             close();
