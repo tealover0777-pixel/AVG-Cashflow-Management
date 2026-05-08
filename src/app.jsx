@@ -6,7 +6,7 @@ import React, { useState, useMemo, useEffect } from "react";
 import { AuthProvider, useAuth } from "./AuthContext";
 import { createRoot } from "react-dom/client";
 import { auth, db, storage } from "./firebase";
-import { doc, getDoc } from "firebase/firestore";
+import { doc, getDoc, onSnapshot } from "firebase/firestore";
 import { ref, listAll, getDownloadURL } from "firebase/storage";
 import { useFirestoreCollection } from "./useFirestoreCollection";
 import { mkTheme, getNav, getCollectionPaths, DIM_STYLES, DEFAULT_DIM_STYLE, MONTHLY, initials, av, fmtCurr, fmtDate, parseTemplateJson } from "./utils";
@@ -156,9 +156,10 @@ function AppContent() {
   const [platformConfig, setPlatformConfig] = useState(null);
 
   useEffect(() => {
-    getDoc(doc(db, "platform_config", "company")).then(snap => {
+    const unsub = onSnapshot(doc(db, "platform_config", "company"), (snap) => {
       if (snap.exists()) setPlatformConfig(snap.data());
     });
+    return () => unsub();
   }, []);
 
   const fetchTemplates = async (force = false) => {
