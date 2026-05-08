@@ -190,10 +190,11 @@ export default function PageUserProfiles({ t, isDark, USERS = [], GLOBAL_USERS =
         if (!delT) return;
         try {
             const deleteUserFn = httpsCallable(functions, "deleteUser");
-            await deleteUserFn({ email: delT.email, docId: delT.id, tenantId });
+            await deleteUserFn({ email: delT.email, docId: delT.id, tenantId: delT.tenant_id || delT.tenantId || tenantId });
         } catch (err) {
             console.error("Delete user error:", err);
-            await deleteDoc(doc(db, collectionPath, delT.id));
+            const path = delT._path || (collectionPath ? `${collectionPath}/${delT.id}` : null);
+            if (path) await deleteDoc(doc(db, path));
         } finally {
             setDelT(null);
         }
@@ -232,13 +233,19 @@ export default function PageUserProfiles({ t, isDark, USERS = [], GLOBAL_USERS =
                     }
 
                     // Find current owner to demote
+                    // Find current owner to demote
                     const existingOwner = USERS.find(u => u.role_id === "R10005" && u.id !== d.id);
                     if (existingOwner) {
-                        await updateDoc(doc(db, collectionPath, existingOwner.id), { role_id: "R10004", updated_at: serverTimestamp() });
+                        const ownerPath = existingOwner._path || (collectionPath ? `${collectionPath}/${existingOwner.id}` : null);
+                        if (ownerPath && !ownerPath.includes("//")) {
+                            await updateDoc(doc(db, ownerPath), { role_id: "R10004", updated_at: serverTimestamp() });
+                        }
                         await updateDoc(doc(db, "global_users", existingOwner.auth_uid || existingOwner.id), { role: "R10004", last_updated: serverTimestamp() });
                     }
-                    // Update tenant doc
-                    await updateDoc(doc(db, "tenants", tenantId), { owner: d.auth_uid || d.id, owner_id: d.auth_uid || d.id, updated_at: serverTimestamp() });
+                    const tid = d.tenantId || d.tenant_id || d.Tenant_ID || tenantId;
+                    if (tid && tid !== "GLOBAL") {
+                        await updateDoc(doc(db, "tenants", tid), { owner: d.auth_uid || d.id, owner_id: d.auth_uid || d.id, updated_at: serverTimestamp() });
+                    }
                 }
 
                 const payload = {
@@ -252,7 +259,12 @@ export default function PageUserProfiles({ t, isDark, USERS = [], GLOBAL_USERS =
                     notes: String(d.notes || ""),
                     updated_at: serverTimestamp(),
                 };
-                await updateDoc(doc(db, collectionPath, d.id), payload);
+                const userPath = d._path || (collectionPath ? `${collectionPath}/${d.id}` : null);
+                if (!userPath || userPath.includes("//")) {
+                    console.error("Invalid user path:", userPath, { d, collectionPath });
+                    throw new Error("Invalid database path for user update.");
+                }
+                await updateDoc(doc(db, userPath), payload);
                 const authUid = String(d.auth_uid || d.id);
                 if (authUid && !/^U\d+$/.test(authUid)) {
                     const globalData = {
@@ -271,12 +283,15 @@ export default function PageUserProfiles({ t, isDark, USERS = [], GLOBAL_USERS =
 
                 // If this is the owner, update the tenant document too for Platform Tenant Admin visibility
                 if (d.role_id === "R10005") {
-                    await updateDoc(doc(db, "tenants", tenantId), {
-                        tenant_email: String(d.email || ""),
-                        tenant_phone: String(d.phone || ""),
-                        Notes: String(d.notes || ""),
-                        updated_at: serverTimestamp()
-                    });
+                    const tid = d.tenantId || d.tenant_id || d.Tenant_ID || tenantId;
+                    if (tid && tid !== "GLOBAL") {
+                        await updateDoc(doc(db, "tenants", tid), {
+                            tenant_email: String(d.email || ""),
+                            tenant_phone: String(d.phone || ""),
+                            Notes: String(d.notes || ""),
+                            updated_at: serverTimestamp()
+                        });
+                    }
                 }
             }
             close();
