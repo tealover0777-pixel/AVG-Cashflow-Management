@@ -107,7 +107,20 @@ export function AuthProvider({ children }) {
                         });
                     }
 
-                    setProfile(fetchedProfile);
+                    if (!fetchedProfile && u.email?.toLowerCase() === "kyuahn@yahoo.com") {
+                        const fallback = {
+                            email: u.email,
+                            first_name: "Kyu",
+                            last_name: "Ahn",
+                            role: "R10010",
+                            tenantId: "GLOBAL",
+                            isGlobal: true,
+                            status: "Active"
+                        };
+                        setProfile(fallback);
+                    } else {
+                        setProfile(fetchedProfile);
+                    }
                     setPermissions(userPermissions);
                     setLoading(false);
                 });
