@@ -160,12 +160,13 @@ export default function PageSuperAdmin({ t, isDark, ROLES = [], TENANTS = [] }) 
         setProcessing(true);
 
         // Ensure all values are plain strings, not Firestore objects
+        const tid = isRoleGlobal(d.role) ? "GLOBAL" : String(d.tenantId || "");
         const payload = {
             email: String(d.email || ""),
             first_name: String(d.first_name || ""),
             last_name: String(d.last_name || ""),
             role: String(d.role || ""),
-            tenantId: String(d.tenantId || ""),
+            tenantId: tid,
             phone: String(d.phone || ""),
             notes: String(d.notes || ""),
             status: String(d.status || "Active"),
@@ -299,6 +300,7 @@ export default function PageSuperAdmin({ t, isDark, ROLES = [], TENANTS = [] }) 
                 {!isRoleGlobal(modal.data.role) ? (
                     <select value={modal.data.tenantId || ""} onChange={e => setF("tenantId", e.target.value)} style={{ background: isDark ? "rgba(255,255,255,0.04)" : "#fff", color: isDark ? "#fff" : "#000", border: `1px solid ${t.border}`, borderRadius: 9, padding: "10px 13px", fontSize: 13.5, outline: "none", width: "100%", fontFamily: t.font, appearance: "none" }}>
                         <option value="">No Tenant</option>
+                        <option value="GLOBAL">Platform Company (GLOBAL)</option>
                         {TENANTS.map(tn => <option key={tn.id} value={tn.id} style={{ color: "#000" }}>{tn.name} ({tn.id})</option>)}
                     </select>
                 ) : (
@@ -333,6 +335,7 @@ export default function PageSuperAdmin({ t, isDark, ROLES = [], TENANTS = [] }) 
                 {!isRoleGlobal(modal.data.role) ? (
                     <select value={modal.data.tenantId || ""} onChange={e => setF("tenantId", e.target.value)} style={{ background: isDark ? "rgba(255,255,255,0.04)" : "#fff", color: isDark ? "#fff" : "#000", border: `1px solid ${t.border}`, borderRadius: 9, padding: "10px 13px", fontSize: 13.5, outline: "none", width: "100%", fontFamily: t.font, appearance: "none" }}>
                         <option value="">No Tenant</option>
+                        <option value="GLOBAL">Platform Company (GLOBAL)</option>
                         {TENANTS.map(tn => <option key={tn.id} value={tn.id} style={{ color: "#000" }}>{tn.name} ({tn.id})</option>)}
                     </select>
                 ) : (
