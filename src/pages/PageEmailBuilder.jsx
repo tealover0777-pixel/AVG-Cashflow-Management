@@ -3319,7 +3319,7 @@ function ImagesTab({ t, isDark, setActiveRightTab, hasImageSelected, onInsertIma
   const rawRole = (profile?.role || "").toLowerCase();
   const isAdmin = isSuperAdmin || isGlobalRole || isR10010 ||
     ["super admin", "platform admin", "r10009", "r10010"].includes(rawRole) ||
-    rawRole.includes("admin") || user?.email?.toLowerCase() === "kyuahn@yahoo.com";
+    rawRole.includes("admin");
 
   const [query, setQuery] = useState("");
   const [images, setImages] = useState([]);

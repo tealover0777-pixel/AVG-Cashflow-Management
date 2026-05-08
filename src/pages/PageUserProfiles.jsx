@@ -85,23 +85,14 @@ export default function PageUserProfiles({ t, isDark, USERS = [], GLOBAL_USERS =
 
     // Filter logic: Include all unless it's the secret admin (for non-owners)
     const filteredUsers = useMemo(() => {
-        const currentUserEmail = user?.email?.toLowerCase();
-        const isSecretAdmin = currentUserEmail === 'kyuahn@yahoo.com';
-
         return mergedUsers.filter(u => {
-            // Filter out secret admin from other users
-            if (!isSecretAdmin && u.email?.toLowerCase() === 'kyuahn@yahoo.com') {
-                return false;
-            }
-
             // Exclusive: User profiles only show tenant users (non-global roles)
             if (isSelectedRoleGlobal(u.role_id)) {
                 return false;
             }
-
             return true;
         });
-    }, [mergedUsers, user, ROLES]);
+    }, [mergedUsers, ROLES]);
 
     const nextUserId = useMemo(() => {
         if (filteredUsers.length === 0) return "U10001";

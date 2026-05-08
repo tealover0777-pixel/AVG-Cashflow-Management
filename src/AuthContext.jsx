@@ -52,10 +52,7 @@ export function AuthProvider({ children }) {
                         if (globalData.isGlobal) fetchedProfile.isGlobalRole = true;
                     }
 
-                    // Kyuahn is always Super Admin
-                    if (u.email && u.email.toLowerCase() === "kyuahn@yahoo.com") {
-                        fetchedProfile.role = "L2 Admin";
-                    }
+
 
                     const role = fetchedProfile.role;
                     const tenantId = fetchedProfile.tenantId || fetchedProfile.tenant_id || "";
@@ -154,7 +151,7 @@ export function AuthProvider({ children }) {
             return role === "r10001" || roleName.includes("member");
         })(),
         isSuperAdmin: (() => {
-            if (user?.email?.toLowerCase() === "kyuahn@yahoo.com") return true;
+
             const role = (profile?.role || "").toLowerCase();
             const roleName = (profile?.roleName || "").toLowerCase();
             if (role === "r10001" || roleName.includes("member")) return false; // Members are never super admins
@@ -169,7 +166,7 @@ export function AuthProvider({ children }) {
         isR10010: (() => {
             const role = (profile?.role || "").toUpperCase();
             // R10010 legacy role OR any role with PLATFORM_USER_VIEW permission
-            return role === "R10010" || user?.email?.toLowerCase() === "kyuahn@yahoo.com" || permissions.includes("PLATFORM_USER_VIEW");
+            return role === "R10010" || permissions.includes("PLATFORM_USER_VIEW");
         })(),
         tenantId: profile?.tenantId || ""
     };

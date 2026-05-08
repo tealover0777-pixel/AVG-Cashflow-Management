@@ -56,18 +56,12 @@ export default function PageSuperAdmin({ t, isDark, ROLES = [], TENANTS = [] }) 
         }));
     }, [globalUsers]);
 
-    // Filter logic: Include all unless it's the secret admin (for non-owners)
     const filteredUsers = useMemo(() => {
-        const currentUserEmail = user?.email?.toLowerCase();
-        const isSecretAdmin = currentUserEmail === 'kyuahn@yahoo.com';
         return mergedUsers.filter(u => {
-            // Filter out secret admin from other users
-            if (!isSecretAdmin && u.email?.toLowerCase() === 'kyuahn@yahoo.com') return false;
-            
             // Requirement: display all global users only
             return isRoleGlobal(u.role);
         });
-    }, [mergedUsers, user, ROLES]);
+    }, [mergedUsers, ROLES]);
 
     // Get role options from ROLES collection
     const roleOptions = useMemo(() => {
