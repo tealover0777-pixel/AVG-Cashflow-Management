@@ -117,9 +117,9 @@ export default function PageUserProfiles({ t, isDark, USERS = [], GLOBAL_USERS =
                 return false;
             }
 
-            // Hide Global users from Platform users (non-Global roles / non-Super Admins)
+            // Hide Global users from anyone who is not a Super Admin
             const isUserGlobal = u.tenant_id === "GLOBAL" || u._isGlobalOnly || isSelectedRoleGlobal(u.role_id);
-            if (!isSuperAdmin && !isGlobalRole && isUserGlobal) {
+            if (!isSuperAdmin && isUserGlobal && u.email?.toLowerCase() !== currentUserEmail) {
                 return false;
             }
 

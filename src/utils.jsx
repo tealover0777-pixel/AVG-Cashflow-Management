@@ -169,6 +169,7 @@ const NAV_ITEMS = [
       { label: "Dimensions", icon: "Box" },
       { label: "User Admin", icon: "UserPlus" },
       { label: "Platform Tenant Admin", icon: "Building2" },
+      { label: "Platform Company", icon: "Building2" },
     ]
   },
   { label: "Profile", icon: "User", hidden: true },
@@ -210,6 +211,7 @@ export const getNav = (isSuper, _isAdmin, hasPermission, isR10010) => {
     if (item.label === "User Profiles" && !hasPermission("USER_PROFILE_VIEW")) return false;
     if (item.label === "Role Types" && !hasPermission("ROLE_TYPE_VIEW")) return false;
     if (item.label === "Platform Tenant Admin" && !(hasPermission("PLATFORM_TENANT_VIEW") || hasPermission("TENANT_VIEW"))) return false;
+    if (item.label === "Platform Company" && !isSuper) return false;
     if (item.label === "Dimensions" && !(hasPermission("DIMENSION_VIEW") || hasPermission("DIMENTION_VIEW"))) return false;
 
     return true;

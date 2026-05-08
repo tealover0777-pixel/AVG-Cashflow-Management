@@ -29,6 +29,7 @@ import PageManageTemplates from "./pages/PageManageTemplates";
 import PageSelectTemplate from "./pages/PageSelectTemplate";
 import PageEmailBuilder from "./pages/PageEmailBuilder";
 import PageCompany from "./pages/PageCompany";
+import PagePlatformCompany from "./pages/PagePlatformCompany";
 import {
   LayoutDashboard, Briefcase, Users, PieChart, Calendar, 
   CreditCard, BarChart3, Settings, Shield, UserCircle, 
@@ -151,6 +152,14 @@ function AppContent() {
   const [allTemplates, setAllTemplates] = useState([]);
   const [loadingTemplates, setLoadingTemplates] = useState(false);
   const [templatesFetched, setTemplatesFetched] = useState(false);
+
+  const [platformConfig, setPlatformConfig] = useState(null);
+
+  useEffect(() => {
+    getDoc(doc(db, "platform_config", "company")).then(snap => {
+      if (snap.exists()) setPlatformConfig(snap.data());
+    });
+  }, []);
 
   const fetchTemplates = async (force = false) => {
     if (templatesFetched && !force) return;
@@ -613,7 +622,7 @@ function AppContent() {
   }, [activeTenantId, isSuperAdmin, activeTenant]);
 
   const resolvedTenant = activeTenant || myTenant;
-  const determinedLogo = resolvedTenant?.logo || null;
+  const determinedLogo = (isGlobalConsolidated && platformConfig?.logo) ? platformConfig.logo : (resolvedTenant?.logo || null);
   const determinedTenantName = resolvedTenant?.name || "";
   const tenantFeatures = resolvedTenant?.features || { show_payment_lag: true, show_scheduled_payment_date: true };
 
@@ -881,7 +890,8 @@ function AppContent() {
                   {activePage === "Manage Templates" && <PageManageTemplates t={t} isDark={isDark} setActivePage={setActivePage} setActiveEmailTemplate={setActiveEmailTemplate} allTemplates={allTemplates} loading={loadingTemplates} fetchTemplates={fetchTemplates} />}
                   {activePage === "Email Builder" && <PageEmailBuilder t={t} isDark={isDark} setActivePage={setActivePage} activeEmailTemplate={activeEmailTemplate} setActiveEmailTemplate={setActiveEmailTemplate} refreshTemplates={() => fetchTemplates(true)} activeTenantId={activeTenantId} backTo={prevPage} USERS={rawUsers} CONTACTS={CONTACTS} DIMENSIONS={DIMENSIONS} organizationName={determinedTenantName} />}
                   {activePage === "AI Admin" && <PageAdminHelp t={t} isDark={isDark} />}
-                  {activePage === "Company" && <PageCompany t={t} isDark={isDark} activeTenantId={activeTenantId} USERS={rawUsers.sort((a, b) => (a.displayName || a.name || "").localeCompare(b.displayName || b.name || ""))} CONTACTS={CONTACTS} />}
+                  {activePage === "Company" && <PageCompany t={t} isDark={isDark} activeTenantId={activeTenantId} USERS={rawUsers} CONTACTS={rawContacts} />}
+                  {activePage === "Platform Company" && <PagePlatformCompany t={t} isDark={isDark} USERS={globalUsers} CONTACTS={rawContacts} />}
                 </>
               )}
         </div>
