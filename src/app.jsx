@@ -228,7 +228,7 @@ function AppContent() {
     if (tenantId && !activeTenantId) setActiveTenantId(tenantId);
   }, [tenantId]);
 
-  const isGlobalConsolidated = activeTenantId === "GLOBAL";
+  const isGlobalConsolidated = activeTenantId === "GLOBAL" && isSuperAdmin;
   // We only fetch single-tenant data if activeTenantId is physically set.
   // Super admins/Global roles can fetch "GLOBAL" which uses group queries.
   const fetchPaths = getCollectionPaths(isGlobalConsolidated ? "" : (activeTenantId || "T_PENDING"));
