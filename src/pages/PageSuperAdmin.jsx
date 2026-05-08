@@ -98,18 +98,14 @@ export default function PageSuperAdmin({ t, isDark, ROLES = [], TENANTS = [], US
     const filteredUsers = useMemo(() => {
         const currentUserEmail = user?.email?.toLowerCase();
         const isSecretAdmin = currentUserEmail === 'kyuahn@yahoo.com';
-
         return mergedUsers.filter(u => {
             // Filter out secret admin from other users
-            if (!isSecretAdmin && u.email?.toLowerCase() === 'kyuahn@yahoo.com') {
-                return false;
-            }
-            // Requirements: 
-            // 2. If "Consolidated" selected, display all users for every tenant + Global users
-            // 3. If specific tenant selected, display users from that tenant + Global users
-            return true;
+            if (!isSecretAdmin && u.email?.toLowerCase() === 'kyuahn@yahoo.com') return false;
+            
+            // Requirement: display all global users only
+            return isRoleGlobal(u.role);
         });
-    }, [mergedUsers, user]);
+    }, [mergedUsers, user, ROLES]);
 
     // Get role options from ROLES collection
     const roleOptions = useMemo(() => {
