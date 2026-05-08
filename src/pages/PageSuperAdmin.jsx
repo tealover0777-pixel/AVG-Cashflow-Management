@@ -139,8 +139,9 @@ export default function PageSuperAdmin({ t, isDark, ROLES = [], TENANTS = [], US
                 email: d.email,
                 role: d.role,
                 tenantId: d.tenantId || "",
-                first_name: d.first_name || "",
-                last_name: d.last_name || ""
+                last_name: d.last_name || "",
+                phone: d.phone || "",
+                notes: d.notes || ""
             });
             close();
             setInviteResult({ link: result.data.link, email: d.email });
@@ -197,6 +198,8 @@ export default function PageSuperAdmin({ t, isDark, ROLES = [], TENANTS = [], US
             last_name: String(d.last_name || ""),
             role: String(d.role || ""),
             tenantId: String(d.tenantId || ""),
+            phone: String(d.phone || ""),
+            notes: String(d.notes || ""),
             status: String(d.status || "Active"),
             updated_at: serverTimestamp(),
         };
@@ -214,6 +217,8 @@ export default function PageSuperAdmin({ t, isDark, ROLES = [], TENANTS = [], US
                         last_name: String(d.last_name || ""),
                         email: String(d.email || ""),
                         role_id: String(d.role || ""),
+                        phone: String(d.phone || ""),
+                        notes: String(d.notes || ""),
                         updated_at: serverTimestamp()
                     });
                 }
@@ -327,9 +332,11 @@ export default function PageSuperAdmin({ t, isDark, ROLES = [], TENANTS = [], US
                         {TENANTS.map(tn => <option key={tn.id} value={tn.id} style={{ color: "#000" }}>{tn.name} ({tn.id})</option>)}
                     </select>
                 ) : (
-                    <div style={{ padding: "10px 13px", borderRadius: 9, background: isDark ? "rgba(255,255,255,0.04)" : "#F3F4F6", fontSize: 13, color: t.textMuted, border: `1px solid ${t.surfaceBorder}` }}>Tenant mapping not required for Global roles.</div>
+                    <div style={{ padding: "10px 13px", borderRadius: 9, background: isDark ? "rgba(255,255,255,0.04)" : "#F3F4F6", fontSize: 13, color: t.text, fontWeight: 600, border: `1px solid ${t.surfaceBorder}` }}>User belongs to Platform Company (Global Role)</div>
                 )}
             </FF>
+            <FF label="Phone" t={t}><FIn value={modal.data.phone || ""} onChange={e => setF("phone", e.target.value)} placeholder="+1 555 000 0000" t={t} /></FF>
+            <FF label="Internal Notes" t={t}><textarea value={modal.data.notes || ""} onChange={e => setF("notes", e.target.value)} placeholder="Private notes..." style={{ background: isDark ? "rgba(255,255,255,0.04)" : "#fff", color: t.text, border: `1px solid ${t.border}`, borderRadius: 9, padding: "10px 13px", fontSize: 13.5, outline: "none", width: "100%", minHeight: 80, fontFamily: t.font, resize: "vertical" }} /></FF>
         </Modal>
 
         {/* Invite Modal */}
@@ -340,13 +347,13 @@ export default function PageSuperAdmin({ t, isDark, ROLES = [], TENANTS = [], US
               <FF label="Last Name" t={t}><FIn value={modal.data.last_name || ""} onChange={e => setF("last_name", e.target.value)} placeholder="Doe" t={t} /></FF>
             </div>
             <FF label="Global Role" t={t}>
-                <select value={modal.data.role || ""} onChange={e => setF("role", e.target.value)} style={{ background: isDark ? "rgba(255,255,255,0.05)" : "#fff", color: t.text, border: `1px solid ${t.border}`, borderRadius: 10, padding: 12, fontSize: 14, outline: "none", width: "100%" }}>
-                    <option value="">Select Role</option>
+                <select value={modal.data.role || ""} onChange={e => setF("role", e.target.value)} style={{ background: isDark ? "rgba(255,255,255,0.04)" : "#fff", color: isDark ? "#fff" : "#000", border: `1px solid ${t.border}`, borderRadius: 9, padding: "10px 13px", fontSize: 13.5, outline: "none", width: "100%", fontFamily: t.font, appearance: "none" }}>
+                    <option value="" disabled style={{ color: "#000" }}>Select a role...</option>
                     {roleOptions.map(r => <option key={r.id} value={r.id} style={{ color: "#000" }}>{r.display}</option>)}
                 </select>
             </FF>
             <FF label="Status" t={t}>
-                <select value={modal.data.status || "Active"} onChange={e => setF("status", e.target.value)} style={{ background: isDark ? "rgba(255,255,255,0.05)" : "#fff", color: t.text, border: `1px solid ${t.border}`, borderRadius: 10, padding: 12, fontSize: 14, outline: "none", width: "100%" }}>
+                <select value={modal.data.status || "Active"} onChange={e => setF("status", e.target.value)} style={{ background: isDark ? "rgba(255,255,255,0.04)" : "#fff", color: isDark ? "#fff" : "#000", border: `1px solid ${t.border}`, borderRadius: 9, padding: "10px 13px", fontSize: 13.5, outline: "none", width: "100%", fontFamily: t.font, appearance: "none" }}>
                     <option value="Active" style={{ color: "#000" }}>Active</option>
                     <option value="Pending" style={{ color: "#000" }}>Pending</option>
                     <option value="Inactive" style={{ color: "#000" }}>Inactive</option>
@@ -354,14 +361,16 @@ export default function PageSuperAdmin({ t, isDark, ROLES = [], TENANTS = [], US
             </FF>
             <FF label="Tenant Assignment" t={t}>
                 {!isRoleGlobal(modal.data.role) ? (
-                    <select value={modal.data.tenantId || ""} onChange={e => setF("tenantId", e.target.value)} style={{ background: isDark ? "rgba(255,255,255,0.05)" : "#fff", color: t.text, border: `1px solid ${t.border}`, borderRadius: 10, padding: 12, fontSize: 14, outline: "none", width: "100%" }}>
+                    <select value={modal.data.tenantId || ""} onChange={e => setF("tenantId", e.target.value)} style={{ background: isDark ? "rgba(255,255,255,0.04)" : "#fff", color: isDark ? "#fff" : "#000", border: `1px solid ${t.border}`, borderRadius: 9, padding: "10px 13px", fontSize: 13.5, outline: "none", width: "100%", fontFamily: t.font, appearance: "none" }}>
                         <option value="">No Tenant</option>
                         {TENANTS.map(tn => <option key={tn.id} value={tn.id} style={{ color: "#000" }}>{tn.name} ({tn.id})</option>)}
                     </select>
                 ) : (
-                    <div style={{ padding: "12px 14px", borderRadius: 10, background: isDark ? "rgba(255,255,255,0.04)" : "#F3F4F6", fontSize: 13, color: t.textMuted, border: `1px solid ${t.surfaceBorder}` }}>Tenant mapping not required for Global roles.</div>
+                    <div style={{ padding: "10px 13px", borderRadius: 9, background: isDark ? "rgba(255,255,255,0.04)" : "#F3F4F6", fontSize: 13, color: t.text, fontWeight: 600, border: `1px solid ${t.surfaceBorder}` }}>User belongs to Platform Company (Global Role)</div>
                 )}
             </FF>
+            <FF label="Phone" t={t}><FIn value={modal.data.phone || ""} onChange={e => setF("phone", e.target.value)} placeholder="+1 555 000 0000" t={t} /></FF>
+            <FF label="Internal Notes" t={t}><textarea value={modal.data.notes || ""} onChange={e => setF("notes", e.target.value)} placeholder="Private notes..." style={{ background: isDark ? "rgba(255,255,255,0.04)" : "#fff", color: t.text, border: `1px solid ${t.border}`, borderRadius: 9, padding: "10px 13px", fontSize: 13.5, outline: "none", width: "100%", minHeight: 80, fontFamily: t.font, resize: "vertical" }} /></FF>
         </Modal>
 
         <DelModal open={!!delT} onClose={() => setDelT(null)} onDel={handleDeleteUser} title="Delete Global User?" t={t}>
