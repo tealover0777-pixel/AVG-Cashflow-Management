@@ -177,24 +177,41 @@ export default function PagePlatformCompany({ t, isDark, USERS = [], CONTACTS = 
         }).slice(0, 50);
     }, [ownerSearch, USERS, CONTACTS]);
 
-    const handlePhotoChange = async (e) => {
-        const file = e.target.files[0];
+    const [logoUploading, setLogoUploading] = React.useState(false);
+    const [dragOver, setDragOver] = React.useState(false);
+
+    const uploadLogoFile = async (file) => {
         if (!file) return;
+        if (!file.type.startsWith("image/")) {
+            showToast("Please select an image file.", "error");
+            return;
+        }
         if (file.size > 2 * 1024 * 1024) {
             showToast("File is too large! Please choose an image under 2MB.", "error");
             return;
         }
+        setLogoUploading(true);
         try {
             const path = `platform/branding/logo_${Date.now()}_${file.name}`;
             const url = await uploadFile(file, path);
             setData(s => ({ ...s, logo: url }));
-            // Refresh list
+            await setDoc(doc(db, "platform_config", "company"), { logo: url }, { merge: true });
             listFiles("platform/branding").then(setExistingLogos);
-            showToast("Logo uploaded. Click Save to apply changes.");
+            showToast("Logo saved successfully.");
         } catch (err) {
             console.error("Logo upload error:", err);
             showToast("Failed to upload logo.", "error");
+        } finally {
+            setLogoUploading(false);
         }
+    };
+
+    const handlePhotoChange = (e) => uploadLogoFile(e.target.files[0]);
+
+    const handleDrop = (e) => {
+        e.preventDefault();
+        setDragOver(false);
+        uploadLogoFile(e.dataTransfer.files[0]);
     };
 
     const handleSave = async () => {
@@ -378,8 +395,17 @@ export default function PagePlatformCompany({ t, isDark, USERS = [], CONTACTS = 
                             <FF label="Platform Company Name" t={t}><FIn value={data.name} onChange={e => setData(p => ({ ...p, name: e.target.value }))} placeholder="Platform Company Name" t={t} /></FF>
                             <FF label="Platform Logo" t={t}>
                                 <div style={{ display: "grid", gap: 16 }}>
-                                    <div style={{ background: isDark ? "rgba(255,255,255,0.02)" : "#FAFAF9", border: `1px dashed ${t.border}`, borderRadius: 16, padding: 32, display: "flex", flexDirection: "column", alignItems: "center", gap: 16, textAlign: "center" }}>
-                                        {data.logo ? (
+                                    <div
+                                        onDragOver={e => { e.preventDefault(); setDragOver(true); }}
+                                        onDragLeave={() => setDragOver(false)}
+                                        onDrop={handleDrop}
+                                        style={{ background: dragOver ? (isDark ? "rgba(52,211,153,0.08)" : "rgba(79,70,229,0.06)") : (isDark ? "rgba(255,255,255,0.02)" : "#FAFAF9"), border: `2px dashed ${dragOver ? t.accent : t.surfaceBorder}`, borderRadius: 16, padding: 32, display: "flex", flexDirection: "column", alignItems: "center", gap: 16, textAlign: "center", transition: "all 0.2s" }}>
+                                        {logoUploading ? (
+                                            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}>
+                                                <div style={{ width: 40, height: 40, border: `3px solid ${t.accent}`, borderTopColor: "transparent", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
+                                                <span style={{ fontSize: 13, color: t.textMuted }}>Uploading...</span>
+                                            </div>
+                                        ) : data.logo ? (
                                             <div style={{ position: "relative" }}>
                                                 <img src={data.logo} alt="Logo" style={{ maxWidth: "100%", maxHeight: 120, borderRadius: 8, boxShadow: "0 8px 24px rgba(0,0,0,0.12)" }} />
                                                 <button onClick={() => setData(p => ({ ...p, logo: "" }))} style={{ position: "absolute", top: -12, right: -12, background: "#EF4444", color: "#fff", border: "2px solid #fff", borderRadius: "50%", width: 26, height: 26, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15, fontWeight: 800 }}>×</button>
@@ -389,8 +415,8 @@ export default function PagePlatformCompany({ t, isDark, USERS = [], CONTACTS = 
                                         )}
                                         <div style={{ marginTop: 8 }}>
                                             <input type="file" id="platform-logo-upload" accept="image/*" onChange={handlePhotoChange} style={{ display: "none" }} />
-                                            <label htmlFor="platform-logo-upload" style={{ background: t.accentGrad, color: "#fff", padding: "10px 22px", borderRadius: 10, fontSize: 13.5, fontWeight: 600, cursor: "pointer", display: "inline-block" }}>{data.logo ? "Upload New Logo" : "Upload Logo"}</label>
-                                            <p style={{ fontSize: 11, color: t.textMuted, marginTop: 12, fontWeight: 500 }}>High resolution PNG/JPEG (Max 2MB)</p>
+                                            <label htmlFor="platform-logo-upload" style={{ background: logoUploading ? t.surfaceBorder : t.accentGrad, color: "#fff", padding: "10px 22px", borderRadius: 10, fontSize: 13.5, fontWeight: 600, cursor: logoUploading ? "not-allowed" : "pointer", display: "inline-block", opacity: logoUploading ? 0.6 : 1 }}>{data.logo ? "Upload New Logo" : "Upload Logo"}</label>
+                                            <p style={{ fontSize: 11, color: t.textMuted, marginTop: 12, fontWeight: 500 }}>Drag & drop or click to upload · PNG/JPEG · Max 2MB</p>
                                         </div>
                                     </div>
 
