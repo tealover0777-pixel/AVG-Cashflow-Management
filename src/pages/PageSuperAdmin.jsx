@@ -97,6 +97,7 @@ export default function PageSuperAdmin({ t, isDark, ROLES = [], TENANTS = [] }) 
                 email: d.email,
                 role: d.role,
                 tenantId: d.tenantId || "",
+                first_name: d.first_name || "",
                 last_name: d.last_name || "",
                 phone: d.phone || "",
                 notes: d.notes || ""
