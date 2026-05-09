@@ -404,7 +404,7 @@ export default function PageCompany({ t, isDark, activeTenantId = "", USERS = []
                 })}
             </div>
 
-            {activeTab === "Branding" && (
+            {activeTab === "Branding" ? (
                 <div style={{ maxWidth: 800, margin: "0 auto" }}>
                     <div style={{ background: t.surface, borderRadius: 16, border: `1px solid ${t.surfaceBorder}`, padding: 32, boxShadow: t.tableShadow }}>
                         <div style={{ marginBottom: 24 }}>
