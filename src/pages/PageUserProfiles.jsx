@@ -22,6 +22,11 @@ const PERMISSIONS_LIST = [
 ];
 
 export default function PageUserProfiles({ t, isDark, USERS = [], GLOBAL_USERS = [], ROLES = [], collectionPath = "", DIMENSIONS = [], tenantId = "", TENANTS = [], CONTACTS = [] }) {
+    const US_STATES = [
+        "AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", "FL", "GA", "HI", "ID", "IL", "IN", "IA", "KS", "KY", "LA", "ME", "MD", 
+        "MA", "MI", "MN", "MS", "MO", "MT", "NE", "NV", "NH", "NJ", "NM", "NY", "NC", "ND", "OH", "OK", "OR", "PA", "RI", "SC", 
+        "SD", "TN", "TX", "UT", "VT", "VA", "WA", "WV", "WI", "WY"
+    ];
     const { hasPermission, isSuperAdmin, user, profile, isGlobalRole } = useAuth();
     const canCreate = isSuperAdmin || hasPermission("USER_PROFILE_CREATE") || hasPermission("USER_CREATE") || profile?.role_id === "R10005";
     const canInvite = isSuperAdmin || hasPermission("USER_PROFILE_CREATE") || hasPermission("USER_INVITE") || profile?.role_id === "R10005";
@@ -100,7 +105,7 @@ export default function PageUserProfiles({ t, isDark, USERS = [], GLOBAL_USERS =
         return "U" + String(maxNum + 1).padStart(5, "0");
     }, [filteredUsers]);
 
-    const openInvite = () => setModal({ open: true, mode: "invite", data: { email: "", role_id: "", first_name: "", last_name: "", inviteUser: true } });
+    const openInvite = () => setModal({ open: true, mode: "invite", data: { email: "", role_id: "", first_name: "", last_name: "", street1: "", street2: "", city: "", state: "", zip: "", inviteUser: true } });
     const openEdit = r => {
         const tid = r.tenantId || r.tenant_id || r.Tenant_ID || tenantId;
         setModal({ open: true, mode: "edit", data: { ...r, role_id: r.role_id || "", tenantId: tid, _origTenantId: tid } });
@@ -145,6 +150,11 @@ export default function PageUserProfiles({ t, isDark, USERS = [], GLOBAL_USERS =
                 last_name: lastName,
                 phone: party.phone || "",
                 notes: party.notes || "",
+                street1: party.street1 || "",
+                street2: party.street2 || "",
+                city: party.city || "",
+                state: party.state || "",
+                zip: party.zip || "",
                 inviteUser: party.inviteUser ?? true
             });
             close();
@@ -248,6 +258,11 @@ export default function PageUserProfiles({ t, isDark, USERS = [], GLOBAL_USERS =
                     status: String(d.status || "Active"),
                     phone: String(d.phone || ""),
                     notes: String(d.notes || ""),
+                    street1: String(d.street1 || ""),
+                    street2: String(d.street2 || ""),
+                    city: String(d.city || ""),
+                    state: String(d.state || ""),
+                    zip: String(d.zip || ""),
                     updated_at: serverTimestamp(),
                 };
                 const userPath = d._path || (collectionPath ? `${collectionPath}/${d.id}` : null);
@@ -267,6 +282,11 @@ export default function PageUserProfiles({ t, isDark, USERS = [], GLOBAL_USERS =
                         role: String(d.role_id || ""),
                         status: String(d.status || "Active"),
                         notes: String(d.notes || ""),
+                        street1: String(d.street1 || ""),
+                        street2: String(d.street2 || ""),
+                        city: String(d.city || ""),
+                        state: String(d.state || ""),
+                        zip: String(d.zip || ""),
                         last_updated: serverTimestamp()
                     };
                     await setDoc(doc(db, "global_users", authUid), globalData, { merge: true });
@@ -412,6 +432,20 @@ export default function PageUserProfiles({ t, isDark, USERS = [], GLOBAL_USERS =
                 <FF label="Last Name (optional)" t={t}><FIn value={modal.data.last_name || ""} onChange={e => setF("last_name", e.target.value)} placeholder="Doe" t={t} /></FF>
             </div>
             <FF label="Phone (optional)" t={t}><FIn value={modal.data.phone || ""} onChange={e => setF("phone", e.target.value)} placeholder="+1 555 000 0000" t={t} /></FF>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginTop: 8 }}>
+              <FF label="Street 1" t={t}><FIn value={modal.data.street1 || ""} onChange={e => setF("street1", e.target.value)} placeholder="123 Main St" t={t} /></FF>
+              <FF label="Street 2" t={t}><FIn value={modal.data.street2 || ""} onChange={e => setF("street2", e.target.value)} placeholder="Apt 4B" t={t} /></FF>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "1.5fr 1fr 1fr", gap: 16 }}>
+              <FF label="City" t={t}><FIn value={modal.data.city || ""} onChange={e => setF("city", e.target.value)} placeholder="New York" t={t} /></FF>
+              <FF label="State" t={t}>
+                <select value={modal.data.state || ""} onChange={e => setF("state", e.target.value)} style={{ background: isDark ? "rgba(255,255,255,0.04)" : "#fff", color: isDark ? "#fff" : "#000", border: `1px solid ${t.border}`, borderRadius: 9, padding: "10px 13px", fontSize: 13.5, outline: "none", width: "100%", fontFamily: t.font }}>
+                    <option value="">Select...</option>
+                    {US_STATES.map(s => <option key={s} value={s}>{s}</option>)}
+                </select>
+              </FF>
+              <FF label="Zip" t={t}><FIn value={modal.data.zip || ""} onChange={e => setF("zip", e.target.value)} placeholder="10001" t={t} /></FF>
+            </div>
             <FF label="Role" t={t}>
                 <select value={modal.data.role_id || ""} onChange={e => setF("role_id", e.target.value)} style={{ background: isDark ? "rgba(255,255,255,0.04)" : "#fff", color: isDark ? "#fff" : "#000", border: `1px solid ${t.border}`, borderRadius: 9, padding: "10px 13px", fontSize: 13.5, outline: "none", width: "100%", fontFamily: t.font, appearance: "none" }}>
                     <option value="" disabled style={{ color: "#000" }}>Select a role...</option>
@@ -471,6 +505,20 @@ export default function PageUserProfiles({ t, isDark, USERS = [], GLOBAL_USERS =
                 </FF>
             )}
             <FF label="Phone" t={t}><FIn value={modal.data.phone || ""} onChange={e => setF("phone", e.target.value)} t={t} /></FF>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginTop: 8 }}>
+              <FF label="Street 1" t={t}><FIn value={modal.data.street1 || ""} onChange={e => setF("street1", e.target.value)} placeholder="123 Main St" t={t} /></FF>
+              <FF label="Street 2" t={t}><FIn value={modal.data.street2 || ""} onChange={e => setF("street2", e.target.value)} placeholder="Apt 4B" t={t} /></FF>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "1.5fr 1fr 1fr", gap: 16 }}>
+              <FF label="City" t={t}><FIn value={modal.data.city || ""} onChange={e => setF("city", e.target.value)} placeholder="New York" t={t} /></FF>
+              <FF label="State" t={t}>
+                <select value={modal.data.state || ""} onChange={e => setF("state", e.target.value)} style={{ background: isDark ? "rgba(255,255,255,0.04)" : "#fff", color: isDark ? "#fff" : "#000", border: `1px solid ${t.border}`, borderRadius: 9, padding: "10px 13px", fontSize: 13.5, outline: "none", width: "100%", fontFamily: t.font }}>
+                    <option value="">Select...</option>
+                    {US_STATES.map(s => <option key={s} value={s}>{s}</option>)}
+                </select>
+              </FF>
+              <FF label="Zip" t={t}><FIn value={modal.data.zip || ""} onChange={e => setF("zip", e.target.value)} placeholder="10001" t={t} /></FF>
+            </div>
             <FF label="Internal Notes" t={t}><textarea value={modal.data.notes || ""} onChange={e => setF("notes", e.target.value)} placeholder="Private notes..." style={{ background: isDark ? "rgba(255,255,255,0.04)" : "#fff", color: t.text, border: `1px solid ${t.border}`, borderRadius: 9, padding: "10px 13px", fontSize: 13.5, outline: "none", width: "100%", minHeight: 80, fontFamily: t.font, resize: "vertical" }} /></FF>
         </Modal>
 

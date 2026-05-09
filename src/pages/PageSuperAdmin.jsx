@@ -15,6 +15,12 @@ export default function PageSuperAdmin({ t, isDark, ROLES = [], TENANTS = [] }) 
     const canUpdate = isSuperAdmin || hasPermission("PLATFORM_USER_UPDATE");
     const canDelete = isSuperAdmin || hasPermission("PLATFORM_USER_DELETE");
     
+    const US_STATES = [
+        "AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", "FL", "GA", "HI", "ID", "IL", "IN", "IA", "KS", "KY", "LA", "ME", "MD", 
+        "MA", "MI", "MN", "MS", "MO", "MT", "NE", "NV", "NH", "NJ", "NM", "NY", "NC", "ND", "OH", "OK", "OR", "PA", "RI", "SC", 
+        "SD", "TN", "TX", "UT", "VT", "VA", "WA", "WV", "WI", "WY"
+    ];
+    
     // Fetch global users list
     const { data: globalUsers = [], loading, error } = useFirestoreCollection("global_users");
     
@@ -75,7 +81,7 @@ export default function PageSuperAdmin({ t, isDark, ROLES = [], TENANTS = [] }) 
         }).sort((a, b) => a.display.localeCompare(b.display));
     }, [ROLES]);
 
-    const openInvite = () => setModal({ open: true, mode: "invite", data: { email: "", first_name: "", last_name: "", role: "", tenantId: "" } });
+    const openInvite = () => setModal({ open: true, mode: "invite", data: { email: "", first_name: "", last_name: "", role: "", tenantId: "", street1: "", street2: "", city: "", state: "", zip: "" } });
     const openEdit = r => {
         // Use auth_uid or id for global_users key
         const targetUid = r.auth_uid || r.uid || r.id;
@@ -100,7 +106,12 @@ export default function PageSuperAdmin({ t, isDark, ROLES = [], TENANTS = [] }) 
                 first_name: d.first_name || "",
                 last_name: d.last_name || "",
                 phone: d.phone || "",
-                notes: d.notes || ""
+                notes: d.notes || "",
+                street1: d.street1 || "",
+                street2: d.street2 || "",
+                city: d.city || "",
+                state: d.state || "",
+                zip: d.zip || ""
             });
             close();
             setInviteResult({ link: result.data.link, email: d.email });
@@ -165,6 +176,11 @@ export default function PageSuperAdmin({ t, isDark, ROLES = [], TENANTS = [] }) 
             phone: String(d.phone || ""),
             notes: String(d.notes || ""),
             status: String(d.status || "Active"),
+            street1: String(d.street1 || ""),
+            street2: String(d.street2 || ""),
+            city: String(d.city || ""),
+            state: String(d.state || ""),
+            zip: String(d.zip || ""),
             updated_at: serverTimestamp(),
         };
 
@@ -303,6 +319,21 @@ export default function PageSuperAdmin({ t, isDark, ROLES = [], TENANTS = [] }) 
                 )}
             </FF>
             <FF label="Phone" t={t}><FIn value={modal.data.phone || ""} onChange={e => setF("phone", e.target.value)} placeholder="+1 555 000 0000" t={t} /></FF>
+            
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginTop: 8 }}>
+              <FF label="Street 1" t={t}><FIn value={modal.data.street1 || ""} onChange={e => setF("street1", e.target.value)} placeholder="123 Main St" t={t} /></FF>
+              <FF label="Street 2" t={t}><FIn value={modal.data.street2 || ""} onChange={e => setF("street2", e.target.value)} placeholder="Apt 4B" t={t} /></FF>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "1.5fr 1fr 1fr", gap: 16 }}>
+              <FF label="City" t={t}><FIn value={modal.data.city || ""} onChange={e => setF("city", e.target.value)} placeholder="New York" t={t} /></FF>
+              <FF label="State" t={t}>
+                <select value={modal.data.state || ""} onChange={e => setF("state", e.target.value)} style={{ background: isDark ? "rgba(255,255,255,0.04)" : "#fff", color: isDark ? "#fff" : "#000", border: `1px solid ${t.border}`, borderRadius: 9, padding: "10px 13px", fontSize: 13.5, outline: "none", width: "100%", fontFamily: t.font }}>
+                    <option value="">Select...</option>
+                    {US_STATES.map(s => <option key={s} value={s}>{s}</option>)}
+                </select>
+              </FF>
+              <FF label="Zip" t={t}><FIn value={modal.data.zip || ""} onChange={e => setF("zip", e.target.value)} placeholder="10001" t={t} /></FF>
+            </div>
             <FF label="Internal Notes" t={t}><textarea value={modal.data.notes || ""} onChange={e => setF("notes", e.target.value)} placeholder="Private notes..." style={{ background: isDark ? "rgba(255,255,255,0.04)" : "#fff", color: t.text, border: `1px solid ${t.border}`, borderRadius: 9, padding: "10px 13px", fontSize: 13.5, outline: "none", width: "100%", minHeight: 80, fontFamily: t.font, resize: "vertical" }} /></FF>
         </Modal>
 
@@ -338,6 +369,21 @@ export default function PageSuperAdmin({ t, isDark, ROLES = [], TENANTS = [] }) 
                 )}
             </FF>
             <FF label="Phone" t={t}><FIn value={modal.data.phone || ""} onChange={e => setF("phone", e.target.value)} placeholder="+1 555 000 0000" t={t} /></FF>
+            
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginTop: 8 }}>
+              <FF label="Street 1" t={t}><FIn value={modal.data.street1 || ""} onChange={e => setF("street1", e.target.value)} placeholder="123 Main St" t={t} /></FF>
+              <FF label="Street 2" t={t}><FIn value={modal.data.street2 || ""} onChange={e => setF("street2", e.target.value)} placeholder="Apt 4B" t={t} /></FF>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "1.5fr 1fr 1fr", gap: 16 }}>
+              <FF label="City" t={t}><FIn value={modal.data.city || ""} onChange={e => setF("city", e.target.value)} placeholder="New York" t={t} /></FF>
+              <FF label="State" t={t}>
+                <select value={modal.data.state || ""} onChange={e => setF("state", e.target.value)} style={{ background: isDark ? "rgba(255,255,255,0.04)" : "#fff", color: isDark ? "#fff" : "#000", border: `1px solid ${t.border}`, borderRadius: 9, padding: "10px 13px", fontSize: 13.5, outline: "none", width: "100%", fontFamily: t.font }}>
+                    <option value="">Select...</option>
+                    {US_STATES.map(s => <option key={s} value={s}>{s}</option>)}
+                </select>
+              </FF>
+              <FF label="Zip" t={t}><FIn value={modal.data.zip || ""} onChange={e => setF("zip", e.target.value)} placeholder="10001" t={t} /></FF>
+            </div>
             <FF label="Internal Notes" t={t}><textarea value={modal.data.notes || ""} onChange={e => setF("notes", e.target.value)} placeholder="Private notes..." style={{ background: isDark ? "rgba(255,255,255,0.04)" : "#fff", color: t.text, border: `1px solid ${t.border}`, borderRadius: 9, padding: "10px 13px", fontSize: 13.5, outline: "none", width: "100%", minHeight: 80, fontFamily: t.font, resize: "vertical" }} /></FF>
         </Modal>
 

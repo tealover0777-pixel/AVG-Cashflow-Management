@@ -27,7 +27,7 @@ exports.inviteUser = functions.https.onCall(async (data, context) => {
     throw new functions.https.HttpsError('unauthenticated', 'The function must be called while authenticated.');
   }
 
-  const { email, role, tenantId, phone, notes, user_id: providedUserId, contactId, partyId, first_name: initialFirstName, last_name: initialLastName } = data;
+  const { email, role, tenantId, phone, notes, user_id: providedUserId, contactId, partyId, first_name: initialFirstName, last_name: initialLastName, street1, street2, city, state, zip } = data;
   const db = admin.firestore();
 
   let first_name = initialFirstName;
@@ -102,6 +102,11 @@ exports.inviteUser = functions.https.onCall(async (data, context) => {
       isGlobal,
       status: 'Pending',
       contact_id: contactId || partyId || '',
+      street1: street1 || '',
+      street2: street2 || '',
+      city: city || '',
+      state: state || '',
+      zip: zip || '',
       last_updated: admin.firestore.FieldValue.serverTimestamp()
     }, { merge: true });
 
@@ -146,6 +151,11 @@ exports.inviteUser = functions.https.onCall(async (data, context) => {
         tenantId,
         auth_uid: uid,
         contact_id: contactId || partyId || '',
+        street1: street1 || '',
+        street2: street2 || '',
+        city: city || '',
+        state: state || '',
+        zip: zip || '',
         created_at: admin.firestore.FieldValue.serverTimestamp()
       }, { merge: true });
     }
@@ -444,7 +454,7 @@ exports.updateUserTenant = functions.https.onCall(async (data, context) => {
     throw new functions.https.HttpsError('unauthenticated', 'Must be authenticated.');
   }
 
-  const { uid, email, newTenantId, oldTenantId, role, user_id, first_name, last_name, phone, notes } = data;
+  const { uid, email, newTenantId, oldTenantId, role, user_id, first_name, last_name, phone, notes, street1, street2, city, state, zip } = data;
   if (!uid || !email || !newTenantId) {
     throw new functions.https.HttpsError('invalid-argument', 'Missing required fields: uid, email, newTenantId.');
   }
@@ -469,13 +479,18 @@ exports.updateUserTenant = functions.https.onCall(async (data, context) => {
       last_name: last_name || '',
       tenantId: newTenantId,
       role: role,
+      street1: street1 || '',
+      street2: street2 || '',
+      city: city || '',
+      state: state || '',
+      zip: zip || '',
       last_updated: admin.firestore.FieldValue.serverTimestamp()
     }, { merge: true });
 
     // 4. Move Tenant Profile
     if (user_id) {
       // 4a. Read existing profile if not fully provided (though UI should provide it)
-      let profileData = { user_id, first_name: first_name || '', last_name: last_name || '', email, role_id: role, phone, notes, auth_uid: uid };
+      let profileData = { user_id, first_name: first_name || '', last_name: last_name || '', email, role_id: role, phone, notes, street1, street2, city, state, zip, auth_uid: uid };
 
       if (oldTenantId && oldTenantId !== newTenantId) {
         // Optionally read from old location if data is missing
