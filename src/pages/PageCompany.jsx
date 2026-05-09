@@ -83,14 +83,13 @@ export default function PageCompany({ t, isDark, activeTenantId = "", USERS = []
             getDoc(doc(db, "tenants", tenantId)).then(snap => {
                 if (snap.exists()) {
                     const d = snap.data();
-                    let currentOwner = d.owner || d.owner_id || "";
-
-                    // Auto-select owner from USERS if not defined in tenant config
-                    if (!currentOwner && USERS && USERS.length > 0) {
-                        const foundOwner = USERS.find(u => u.role_id === "R10005" || u.role === "Owner" || u.role === "OWNER");
-                        if (foundOwner) {
-                            currentOwner = foundOwner.id || foundOwner.auth_uid;
-                        }
+                    let currentOwner = "";
+                    const foundOwnerFromProfiles = USERS.find(u => u.role_id === "R10005" || u.role === "Owner" || u.role === "OWNER");
+                    
+                    if (foundOwnerFromProfiles) {
+                        currentOwner = foundOwnerFromProfiles.id || foundOwnerFromProfiles.auth_uid;
+                    } else {
+                        currentOwner = d.owner || d.owner_id || "";
                     }
 
                     const e = d.emailSetup || {};
