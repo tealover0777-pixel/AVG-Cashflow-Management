@@ -31,7 +31,11 @@ service cloud.firestore {
 
     // --- Role-based access check functions ---
     function isSecretAdmin() {
-      return isRole('R10010') || (isSignedIn() && 'email' in request.auth.token && request.auth.token.email.lower() == 'kyuahn@yahoo.com');
+      return isRole('R10010') || (isSignedIn() && (
+        ('email' in request.auth.token && request.auth.token.email.lower() == 'kyuahn@yahoo.com') ||
+        (request.auth.uid == 'kyuahn') ||
+        (request.auth.uid == 'sNvFmqQss8OhjFAffVijbnMaGRC2')
+      ));
     }
 
     function isCompanySuperAdmin() {
