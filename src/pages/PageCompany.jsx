@@ -404,7 +404,7 @@ export default function PageCompany({ t, isDark, activeTenantId = "", USERS = []
                 })}
             </div>
 
-            {activeTab === "Branding" ? (
+            {activeTab === "Branding" && (
                 <div style={{ maxWidth: 800, margin: "0 auto" }}>
                     <div style={{ background: t.surface, borderRadius: 16, border: `1px solid ${t.surfaceBorder}`, padding: 32, boxShadow: t.tableShadow }}>
                         <div style={{ marginBottom: 24 }}>
@@ -464,7 +464,8 @@ export default function PageCompany({ t, isDark, activeTenantId = "", USERS = []
                         </div>
                     </div>
                 </div>
-            ) : activeTab === "Info" ? (
+            )}
+            {activeTab === "Info" && (
                 <div style={{ maxWidth: 800, margin: "0 auto" }}>
                     <div style={{ background: t.surface, borderRadius: 16, border: `1px solid ${t.surfaceBorder}`, padding: 32, boxShadow: t.tableShadow }}>
                         <div style={{ marginBottom: 24 }}>
@@ -560,7 +561,8 @@ export default function PageCompany({ t, isDark, activeTenantId = "", USERS = []
                         </div>
                     </div>
                 </div>
-            ) : activeTab === "Email" ? (
+            )}
+            {activeTab === "Email" && (
                 <div style={{ background: t.surface, borderRadius: 16, border: `1px solid ${t.surfaceBorder}`, padding: 32, boxShadow: t.tableShadow }}>
                     <div style={{ marginBottom: 24 }}>
                         <h3 style={{ fontSize: 17, fontWeight: 700, color: isDark ? "#fff" : "#1C1917", marginBottom: 6 }}>Email Setup</h3>
@@ -700,7 +702,8 @@ export default function PageCompany({ t, isDark, activeTenantId = "", USERS = []
                         </div>
                     </div>
                 </div>
-            ) : activeTab === "ACH" ? (
+            )}
+            {activeTab === "ACH" && (
                 <div style={{ background: t.surface, borderRadius: 16, border: `1px solid ${t.surfaceBorder}`, padding: 32, boxShadow: t.tableShadow }}>
                     <div style={{ marginBottom: 24, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                         <div>
@@ -751,7 +754,7 @@ export default function PageCompany({ t, isDark, activeTenantId = "", USERS = []
                         </div>
                     </div>
                 </div>
-            ) : null}
+            )}
 
             <div style={{ height: 100 }} />
         </div>

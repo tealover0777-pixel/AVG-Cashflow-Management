@@ -157,6 +157,20 @@ export default function PageTenants({ t, isDark, TENANTS = [], GLOBAL_USERS = []
                                 role_id: "R10005",
                                 updated_at: serverTimestamp()
                             });
+                        } else {
+                            // User not in tenant's users collection - create them for immediate visibility in User Profiles
+                            const newOwner = GLOBAL_USERS.find(u => u.id === d.selectedOwnerId);
+                            if (newOwner) {
+                                await setDoc(doc(db, "tenants", d.docId, "users", d.selectedOwnerId), {
+                                    auth_uid: d.selectedOwnerId,
+                                    email: newOwner.email || "",
+                                    first_name: newOwner.first_name || "",
+                                    last_name: newOwner.last_name || "",
+                                    role_id: "R10005",
+                                    created_at: serverTimestamp(),
+                                    updated_at: serverTimestamp()
+                                });
+                            }
                         }
 
                         // 2. Demote old owner (if exists and different)

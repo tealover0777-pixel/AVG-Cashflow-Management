@@ -165,10 +165,11 @@ export default function PagePlatformCompany({ t, isDark, USERS = [], CONTACTS = 
     }, [data.owner, USERS, CONTACTS]);
 
     const filteredOwnerResults = React.useMemo(() => {
-        const all = [...USERS, ...CONTACTS];
-        if (!ownerSearch) return all.slice(0, 50);
+        // Only include users with role R10005 (OWNER) from global directory
+        const owners = USERS.filter(u => (u.role_id === "R10005" || u.role === "R10005" || u.role === "Owner" || u.role === "OWNER"));
+        if (!ownerSearch) return owners.slice(0, 50);
         const q = ownerSearch.toLowerCase();
-        return all.filter(u => {
+        return owners.filter(u => {
             const name = [u.first_name, u.last_name].filter(Boolean).join(" ") || u.name || u.contact_name || u.email || "";
             return name.toLowerCase().includes(q) || (u.email && u.email.toLowerCase().includes(q));
         }).sort((a, b) => {
@@ -176,7 +177,7 @@ export default function PagePlatformCompany({ t, isDark, USERS = [], CONTACTS = 
             const nameB = [b.first_name, b.last_name].filter(Boolean).join(" ") || b.name || b.contact_name || b.email || "";
             return nameA.localeCompare(nameB);
         }).slice(0, 50);
-    }, [ownerSearch, USERS, CONTACTS]);
+    }, [ownerSearch, USERS]);
 
     const [logoUploading, setLogoUploading] = React.useState(false);
     const [dragOver, setDragOver] = React.useState(false);
@@ -466,7 +467,7 @@ export default function PagePlatformCompany({ t, isDark, USERS = [], CONTACTS = 
                                 </div>
                             </div>
                             <div style={{ height: 1, background: t.border, opacity: 0.5, margin: "8px 0" }} />
-                            <FF label="Platform Administrator" t={t}>
+                            <FF label="OWNER" t={t}>
                                 <div style={{ position: "relative" }}>
                                     <div onClick={() => setShowOwnerSearch(!showOwnerSearch)} style={{ width: "100%", padding: "10px 14px", borderRadius: 9, border: `1px solid ${t.border}`, background: isDark ? "rgba(255,255,255,0.05)" : "#fff", color: t.text, cursor: "pointer", fontSize: 14, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                                         <span>{resolvedOwnerName}</span><span style={{ fontSize: 10, opacity: 0.5 }}>▼</span>
@@ -501,13 +502,20 @@ export default function PagePlatformCompany({ t, isDark, USERS = [], CONTACTS = 
                                 🕒
                             </div>
                             <div>
-                                <h4 style={{ margin: 0, fontSize: 14, fontWeight: 700, color: t.text }}>Platform Time Zone</h4>
-                                <p style={{ margin: 0, fontSize: 11.5, color: t.textMuted }}>Used for platform-wide calculations.</p>
+                                <h4 style={{ margin: 0, fontSize: 14, fontWeight: 700, color: t.text }}>Scheduling & Delivery Context</h4>
+                                <p style={{ margin: 0, fontSize: 11.5, color: t.textMuted }}>Used for calculating "Time of Day" for automated marketing campaigns.</p>
                             </div>
                         </div>
 
                         <div style={{ maxWidth: 400 }}>
-                            <FF label="Primary Time Zone" t={t}>
+                            <FF label={
+                                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                                    <span>Primary Time Zone</span>
+                                    {(!data.emailSetup.timeZone || data.emailSetup.timeZone === resolveTimeZone(data.state, data.zip)) && (data.state || data.zip) && (
+                                        <span style={{ fontSize: 10, background: isDark ? "rgba(52,211,153,0.15)" : "#F0FDF4", color: "#22C55E", padding: "2px 8px", borderRadius: 6, fontWeight: 700, border: "1px solid rgba(34,197,94,0.3)" }}>SUGGESTED</span>
+                                    )}
+                                </div>
+                            } t={t}>
                                 <div style={{ position: "relative" }}>
                                     <select 
                                         value={data.emailSetup.timeZone} 
@@ -519,6 +527,9 @@ export default function PagePlatformCompany({ t, isDark, USERS = [], CONTACTS = 
                                     </select>
                                     <ChevronDown size={14} style={{ position: "absolute", right: 14, top: "50%", transform: "translateY(-50%)", pointerEvents: "none", opacity: 0.5 }} />
                                 </div>
+                                <p style={{ fontSize: 11, color: t.textMuted, marginTop: 8, lineHeight: 1.4 }}>
+                                    {data.emailSetup.timeZone ? `Campaigns will be scheduled in ${US_TIMEZONES.find(z => z.value === data.emailSetup.timeZone)?.label || data.emailSetup.timeZone}.` : "If left unset, campaigns will use UTC by default."}
+                                </p>
                             </FF>
                         </div>
                     </div>
@@ -529,7 +540,7 @@ export default function PagePlatformCompany({ t, isDark, USERS = [], CONTACTS = 
                 <div style={{ background: t.surface, borderRadius: 16, border: `1px solid ${t.surfaceBorder}`, padding: 32, boxShadow: t.tableShadow }}>
                     <div style={{ marginBottom: 24 }}>
                         <h3 style={{ fontSize: 17, fontWeight: 700, color: isDark ? "#fff" : "#1C1917", marginBottom: 6 }}>Email Setup</h3>
-                        <p style={{ fontSize: 12.5, color: t.textMuted, lineHeight: 1.5 }}>Configure global platform email infrastructure.</p>
+                        <p style={{ fontSize: 12.5, color: t.textMuted, lineHeight: 1.5 }}>Configure organization-level email infrastructure.</p>
                     </div>
 
                     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 32, marginBottom: 32, paddingBottom: 32, borderBottom: `1px solid ${t.border}` }}>
