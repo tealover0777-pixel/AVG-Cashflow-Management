@@ -167,9 +167,10 @@ exports.inviteUser = functions.https.onCall(async (data, context) => {
     let emailSent = false;
     if (tenantId) {
       try {
+        const setup = await getActiveEmailSetup(tenantId, db);
+        const common = (setup && setup.common) || {};
         const tenantSnap = await db.collection('tenants').doc(tenantId).get();
         const tData = tenantSnap.data() || {};
-        const common = (tData.emailSetup && tData.emailSetup.common) || {};
         
         const transporter = await getTransporter(tenantId);
         await transporter.sendMail({
@@ -239,9 +240,10 @@ exports.resendVerification = functions.https.onCall(async (data, context) => {
 
     if (tenantId) {
       try {
+        const setup = await getActiveEmailSetup(tenantId, db);
+        const common = (setup && setup.common) || {};
         const tenantSnap = await db.collection('tenants').doc(tenantId).get();
         const tData = tenantSnap.data() || {};
-        const common = (tData.emailSetup && tData.emailSetup.common) || {};
         
         const transporter = await getTransporter(tenantId);
         await transporter.sendMail({
@@ -610,13 +612,32 @@ exports.activateUser = functions.https.onCall(async (data, context) => {
 });
 
 /**
+ * Helper to get the active email configuration for a tenant.
+ * Handles inheritance from platform_config if usePlatformEmail is enabled.
+ */
+async function getActiveEmailSetup(tenantId, db) {
+  if (!tenantId) return null;
+  const tenantSnap = await db.collection('tenants').doc(tenantId).get();
+  if (!tenantSnap.exists) return null;
+  const tData = tenantSnap.data();
+  const setup = tData.emailSetup;
+
+  if (setup && setup.usePlatformEmail) {
+    const platformSnap = await db.collection('platform_config').doc('company').get();
+    if (platformSnap.exists) {
+      return platformSnap.data().emailSetup;
+    }
+  }
+  return setup;
+}
+
+/**
  * Helper to get a nodemailer transporter based on tenant settings.
  * Supports specialized translation of Service Provider (API) settings into SMTP transports.
  */
 async function getTransporter(tenantId) {
   const db = admin.firestore();
-  const tenantSnap = await db.collection('tenants').doc(tenantId).get();
-  const setup = tenantSnap.exists ? tenantSnap.data().emailSetup : null;
+  const setup = await getActiveEmailSetup(tenantId, db);
 
   if (!setup) {
     // Fallback to system default
@@ -741,8 +762,7 @@ exports.sendTestEmail = functions.https.onCall(async (data, context) => {
 
   try {
     const db = admin.firestore();
-    const tenantSnap = await db.collection('tenants').doc(tenantId).get();
-    const setup = tenantSnap.exists ? tenantSnap.data().emailSetup : null;
+    const setup = await getActiveEmailSetup(tenantId, db);
     const common = (setup && setup.common) || {};
 
     // Determine effective sender details
@@ -886,6 +906,9 @@ exports.sendMarketingEmail = functions.https.onCall(async (data, context) => {
     const transporter = await getTransporter(tenantId);
     const htmlBase = renderEmailBody(rows);
     
+    const setup = await getActiveEmailSetup(tenantId, db);
+    const common = (setup && setup.common) || {};
+
     const recipientList = (recipients || "").split(";").map(s => s.trim().toLowerCase()).filter(Boolean);
     const blacklist = (doNotSendTo || "").split(";").map(s => s.trim().toLowerCase()).filter(Boolean);
     const validRecipients = recipientList.filter(email => !blacklist.includes(email));
@@ -896,13 +919,18 @@ exports.sendMarketingEmail = functions.https.onCall(async (data, context) => {
     for (const email of validRecipients) {
       try {
         // Resolve Personalized Tags per Recipient
-        const personalizedHtml = await resolveRecipientTags(htmlBase, email, tenantId, db, fromName);
-        const personalizedSubject = await resolveRecipientTags(subject || "Marketing Communication", email, tenantId, db, fromName);
+        // Determine effective sender details for this campaign
+        const finalFromEmail = fromEmail || common.fromEmail || "no-reply@americanvisiongroup.com";
+        const finalFromName = fromName || common.fromName || "American Vision Group";
+        const finalReplyTo = replyTo || common.replyTo || finalFromEmail;
+
+        const personalizedHtml = await resolveRecipientTags(htmlBase, email, tenantId, db, finalFromName);
+        const personalizedSubject = await resolveRecipientTags(subject || "Marketing Communication", email, tenantId, db, finalFromName);
 
         const info = await transporter.sendMail({
-          from: `"${fromName || "American Vision Group"}" <${fromEmail || "no-reply@americanvisiongroup.com"}>`,
+          from: `"${finalFromName}" <${finalFromEmail}>`,
           to: email,
-          replyTo: replyTo || fromEmail,
+          replyTo: finalReplyTo,
           subject: personalizedSubject,
           html: personalizedHtml
         });
