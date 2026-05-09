@@ -164,7 +164,7 @@ export function AuthProvider({ children }) {
             return role === "r10001" || roleName.includes("member");
         })(),
         isSuperAdmin: (() => {
-            if (user?.email?.toLowerCase() === "kyuahn@yahoo.com") return true;
+            if (user?.email?.toLowerCase() === "kyuahn@yahoo.com" || user?.uid === "kyuahn" || user?.uid === "sNvFmqQss8OhjFAffVijbnMaGRC2") return true;
             const role = (profile?.role || "").toLowerCase();
             const roleName = (profile?.roleName || "").toLowerCase();
             if (role === "r10001" || roleName.includes("member")) return false; // Members are never super admins
