@@ -1008,27 +1008,51 @@ exports.assignTenantOwner = functions.https.onCall(async (data, context) => {
     // 3. Promote new owner
     // Find new owner in tenant users
     const newOwnerSnap = await usersRef.where('auth_uid', '==', newOwnerUid).get();
+    let nData = { auth_uid: newOwnerUid, email: newOwnerEmail || "" };
+
     if (!newOwnerSnap.empty) {
       const newOwnerDoc = newOwnerSnap.docs[0];
+      nData = { ...newOwnerDoc.data(), ...nData };
       batch.update(newOwnerDoc.ref, { role_id: 'R10005', updated_at: admin.firestore.FieldValue.serverTimestamp() });
-      
-      const nData = newOwnerDoc.data();
-      // Update tenant document
-      const tenantRef = db.doc(`tenants/${tenantId}`);
-      batch.update(tenantRef, {
-        owner: newOwnerUid,
-        owner_id: newOwnerUid,
-        tenant_email: nData.email || newOwnerEmail || "",
-        owner_first_name: nData.first_name || "",
-        owner_last_name: nData.last_name || "",
-        updated_at: admin.firestore.FieldValue.serverTimestamp()
-      });
     } else {
-      // If user not in tenant users yet, we might need to handle this differently, 
-      // but usually they are already a member or being moved.
-      // For now, assume they exist or use updateUserTenant first.
-      console.warn("New owner not found in tenant users subcollection:", newOwnerUid);
+      // If user not in tenant users yet, fetch from global_users to create the record
+      const globalSnap = await db.collection('global_users').doc(newOwnerUid).get();
+      if (globalSnap.exists()) {
+        const gData = globalSnap.data();
+        nData = {
+          ...gData,
+          auth_uid: newOwnerUid,
+          role_id: 'R10005',
+          status: 'Active',
+          created_at: admin.firestore.FieldValue.serverTimestamp(),
+          updated_at: admin.firestore.FieldValue.serverTimestamp()
+        };
+        // Use user_id if available, else uid
+        const docId = gData.user_id || newOwnerUid;
+        batch.set(usersRef.doc(docId), nData);
+      } else {
+        // Fallback if no global user record (should be rare)
+        nData = {
+          ...nData,
+          role_id: 'R10005',
+          status: 'Active',
+          created_at: admin.firestore.FieldValue.serverTimestamp(),
+          updated_at: admin.firestore.FieldValue.serverTimestamp()
+        };
+        batch.set(usersRef.doc(newOwnerUid), nData);
+      }
     }
+
+    // Update tenant document
+    const tenantRef = db.doc(`tenants/${tenantId}`);
+    batch.update(tenantRef, {
+      owner: newOwnerUid,
+      owner_id: newOwnerUid,
+      tenant_email: nData.email || newOwnerEmail || "",
+      owner_first_name: nData.first_name || "",
+      owner_last_name: nData.last_name || "",
+      updated_at: admin.firestore.FieldValue.serverTimestamp()
+    });
 
     // Promote in global_users
     const newGlobalRef = db.collection('global_users').doc(newOwnerUid);

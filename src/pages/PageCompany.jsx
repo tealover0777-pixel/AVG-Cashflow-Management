@@ -3,7 +3,7 @@ import { db } from "../firebase";
 import { doc, getDoc, updateDoc, serverTimestamp } from "firebase/firestore";
 import { useAuth } from "../AuthContext";
 import { FF, FIn } from "../components";
-import { uploadFile } from "../utils/storageUtils";
+import { uploadFile, listFiles } from "../utils/storageUtils";
 import { ChevronDown, Send } from "lucide-react";
 import { functions } from "../firebase";
 import { httpsCallable } from "firebase/functions";
@@ -17,6 +17,10 @@ export default function PageCompany({ t, isDark, activeTenantId = "", USERS = []
     const [showOwnerSearch, setShowOwnerSearch] = React.useState(false);
     const [ownerSearch, setOwnerSearch] = React.useState("");
     const [testingEmail, setTestingEmail] = React.useState(false);
+    const [existingLogos, setExistingLogos] = React.useState([]);
+    const [loadingLogos, setLoadingLogos] = React.useState(false);
+    const [logoUploading, setLogoUploading] = React.useState(false);
+    const [dragOver, setDragOver] = React.useState(false);
 
     const showToast = (msg, type = "success") => {
         setToast({ msg, type });
@@ -148,6 +152,15 @@ export default function PageCompany({ t, isDark, activeTenantId = "", USERS = []
         }
     }, [data.state, data.zip, tenantId]);
 
+    React.useEffect(() => {
+        if (tenantId) {
+            setLoadingLogos(true);
+            listFiles(`tenants/${tenantId}/branding`).then(files => {
+                setExistingLogos(files);
+            }).finally(() => setLoadingLogos(false));
+        }
+    }, [tenantId]);
+
     const resolvedOwnerName = React.useMemo(() => {
         if (!data.owner) return "—";
         const all = [...USERS, ...CONTACTS];
@@ -172,22 +185,40 @@ export default function PageCompany({ t, isDark, activeTenantId = "", USERS = []
         }).slice(0, 50);
     }, [ownerSearch, USERS, CONTACTS]);
 
-    const handlePhotoChange = async (e) => {
-        const file = e.target.files[0];
+    const uploadLogoFile = async (file) => {
         if (!file) return;
+        if (!file.type.startsWith("image/")) {
+            showToast("Please select an image file.", "error");
+            return;
+        }
         if (file.size > 2 * 1024 * 1024) {
             showToast("File is too large! Please choose an image under 2MB.", "error");
             return;
         }
+        setLogoUploading(true);
         try {
-            const path = `tenants/${tenantId}/branding/logo_${Date.now()}`;
+            const path = `tenants/${tenantId}/branding/logo_${Date.now()}_${file.name}`;
             const url = await uploadFile(file, path);
             setData(s => ({ ...s, logo: url }));
-            showToast("Logo uploaded. Click Save to apply changes.");
+            if (tenantId) {
+                await updateDoc(doc(db, "tenants", tenantId), { tenant_logo: url });
+                listFiles(`tenants/${tenantId}/branding`).then(setExistingLogos);
+            }
+            showToast("Logo saved successfully.");
         } catch (err) {
             console.error("Logo upload error:", err);
             showToast("Failed to upload logo.", "error");
+        } finally {
+            setLogoUploading(false);
         }
+    };
+
+    const handlePhotoChange = (e) => uploadLogoFile(e.target.files[0]);
+
+    const handleDrop = (e) => {
+        e.preventDefault();
+        setDragOver(false);
+        uploadLogoFile(e.dataTransfer.files[0]);
     };
 
     const handleSave = async () => {
@@ -267,42 +298,32 @@ export default function PageCompany({ t, isDark, activeTenantId = "", USERS = []
         }
     };
 
-    const updES = (patch) => {
-        setData(s => ({
-            ...s,
-            emailSetup: { ...s.emailSetup, ...patch }
-        }));
-    };
+    const updES = (updates) => setData(prev => {
+        const { method, timeZone, ...commonUpdates } = updates;
+        const newES = { ...prev.emailSetup };
+        if (method !== undefined) newES.method = method;
+        if (timeZone !== undefined) newES.timeZone = timeZone;
+        if (Object.keys(commonUpdates).length > 0) {
+            newES.common = { ...newES.common, ...commonUpdates };
+        }
+        return { ...prev, emailSetup: newES };
+    });
 
-    const updCommon = (patch) => {
-        setData(s => ({
-            ...s,
-            emailSetup: {
-                ...s.emailSetup,
-                common: { ...s.emailSetup.common, ...patch }
-            }
-        }));
-    };
+    const updAPI = (updates) => setData(prev => ({
+        ...prev,
+        emailSetup: {
+            ...prev.emailSetup,
+            api: { ...prev.emailSetup.api, ...updates }
+        }
+    }));
 
-    const updAPI = (patch) => {
-        setData(s => ({
-            ...s,
-            emailSetup: {
-                ...s.emailSetup,
-                api: { ...s.emailSetup.api, ...patch }
-            }
-        }));
-    };
-
-    const updSMTP = (patch) => {
-        setData(s => ({
-            ...s,
-            emailSetup: {
-                ...s.emailSetup,
-                smtp: { ...s.emailSetup.smtp, ...patch }
-            }
-        }));
-    };
+    const updSMTP = (updates) => setData(prev => ({
+        ...prev,
+        emailSetup: {
+            ...prev.emailSetup,
+            smtp: { ...prev.emailSetup.smtp, ...updates }
+        }
+    }));
 
     const updACH = (patch) => {
         setData(s => ({
@@ -387,34 +408,63 @@ export default function PageCompany({ t, isDark, activeTenantId = "", USERS = []
                 <div style={{ maxWidth: 800, margin: "0 auto" }}>
                     <div style={{ background: t.surface, borderRadius: 16, border: `1px solid ${t.surfaceBorder}`, padding: 32, boxShadow: t.tableShadow }}>
                         <div style={{ marginBottom: 24 }}>
-                            <h3 style={{ fontSize: 17, fontWeight: 700, color: isDark ? "#fff" : "#1C1917", marginBottom: 6 }}>Organization Branding</h3>
-                            <p style={{ fontSize: 12.5, color: t.textMuted, lineHeight: 1.5 }}>Set your corporate identity across the platform.</p>
+                            <h3 style={{ fontSize: 17, fontWeight: 700, color: isDark ? "#fff" : "#1C1917", marginBottom: 6 }}>Branding</h3>
+                            <p style={{ fontSize: 12.5, color: t.textMuted, lineHeight: 1.5 }}>Set your organization's corporate identity across the platform.</p>
                         </div>
                         <div style={{ display: "grid", gap: 24 }}>
                             <FF label="Organization Name" t={t}><FIn value={data.name} onChange={e => setData(p => ({ ...p, name: e.target.value }))} placeholder="Organization Name" t={t} /></FF>
-                            <FF label="Organization Logo" t={t}>
-                                <div style={{ background: isDark ? "rgba(255,255,255,0.02)" : "#FAFAF9", border: `1px dashed ${t.border}`, borderRadius: 16, padding: 32, display: "flex", flexDirection: "column", alignItems: "center", gap: 16, textAlign: "center" }}>
-                                    {data.logo ? (
-                                        <div style={{ position: "relative" }}>
-                                            <img src={data.logo} alt="Logo" style={{ maxWidth: "100%", maxHeight: 120, borderRadius: 8, boxShadow: "0 8px 24px rgba(0,0,0,0.12)" }} />
-                                            <button onClick={() => setData(p => ({ ...p, logo: "" }))} style={{ position: "absolute", top: -12, right: -12, background: "#EF4444", color: "#fff", border: "2px solid #fff", borderRadius: "50%", width: 26, height: 26, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15, fontWeight: 800 }}>×</button>
+                            <FF label="Company Logo" t={t}>
+                                <div style={{ display: "grid", gap: 16 }}>
+                                    <div 
+                                        onDragOver={e => { e.preventDefault(); setDragOver(true); }}
+                                        onDragLeave={() => setDragOver(false)}
+                                        onDrop={handleDrop}
+                                        style={{ background: dragOver ? (isDark ? "rgba(52,211,153,0.08)" : "rgba(79,70,229,0.06)") : (isDark ? "rgba(255,255,255,0.02)" : "#FAFAF9"), border: `2px dashed ${dragOver ? t.accent : t.surfaceBorder}`, borderRadius: 16, padding: 32, display: "flex", flexDirection: "column", alignItems: "center", gap: 16, textAlign: "center", transition: "all 0.2s" }}
+                                    >
+                                        {logoUploading ? (
+                                            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}>
+                                                <div style={{ width: 40, height: 40, border: `3px solid ${t.accent}`, borderTopColor: "transparent", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
+                                                <span style={{ fontSize: 13, color: t.textMuted }}>Uploading...</span>
+                                            </div>
+                                        ) : data.logo ? (
+                                            <div style={{ position: "relative" }}>
+                                                <img src={data.logo} alt="Logo" style={{ maxWidth: "100%", maxHeight: 120, borderRadius: 8, boxShadow: "0 8px 24px rgba(0,0,0,0.12)" }} />
+                                                <button onClick={() => setData(p => ({ ...p, logo: "" }))} style={{ position: "absolute", top: -12, right: -12, background: "#EF4444", color: "#fff", border: "2px solid #fff", borderRadius: "50%", width: 26, height: 26, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15, fontWeight: 800 }}>×</button>
+                                            </div>
+                                        ) : (
+                                            <div style={{ width: 90, height: 90, borderRadius: 20, background: isDark ? "rgba(255,255,255,0.05)" : "#F3F4F6", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 40 }}>🏢</div>
+                                        )}
+                                        <div style={{ marginTop: 8 }}>
+                                            <input type="file" id="tenant-logo-upload" accept="image/*" onChange={handlePhotoChange} style={{ display: "none" }} />
+                                            <label htmlFor="tenant-logo-upload" style={{ background: logoUploading ? t.surfaceBorder : t.accentGrad, color: "#fff", padding: "10px 22px", borderRadius: 10, fontSize: 13.5, fontWeight: 600, cursor: logoUploading ? "not-allowed" : "pointer", display: "inline-block", opacity: logoUploading ? 0.6 : 1 }}>{data.logo ? "Upload New Logo" : "Upload Logo"}</label>
+                                            <p style={{ fontSize: 11, color: t.textMuted, marginTop: 12, fontWeight: 500 }}>Drag & drop or click to upload · PNG/JPEG · Max 2MB</p>
                                         </div>
-                                    ) : (
-                                        <div style={{ width: 90, height: 90, borderRadius: 20, background: isDark ? "rgba(255,255,255,0.05)" : "#F3F4F6", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 40 }}>🏢</div>
-                                    )}
-                                    <div style={{ marginTop: 8 }}>
-                                        <input type="file" id="company-logo-upload" accept="image/*" onChange={handlePhotoChange} style={{ display: "none" }} />
-                                        <label htmlFor="company-logo-upload" style={{ background: t.accentGrad, color: "#fff", padding: "10px 22px", borderRadius: 10, fontSize: 13.5, fontWeight: 600, cursor: "pointer", display: "inline-block" }}>{data.logo ? "Replace Logo" : "Upload Logo"}</label>
-                                        <p style={{ fontSize: 11, color: t.textMuted, marginTop: 12, fontWeight: 500 }}>High resolution PNG/JPEG (Max 2MB)</p>
                                     </div>
+
+                                    {existingLogos.length > 0 && (
+                                        <div style={{ display: "grid", gap: 8 }}>
+                                            <div style={{ fontSize: 12, fontWeight: 600, color: t.textMuted }}>Or select from previously uploaded logos:</div>
+                                            <div style={{ position: "relative" }}>
+                                                <select 
+                                                    value={data.logo} 
+                                                    onChange={e => setData(s => ({ ...s, logo: e.target.value }))}
+                                                    style={{ width: "100%", padding: "10px 14px", borderRadius: 9, border: `1px solid ${t.border}`, background: isDark ? "rgba(255,255,255,0.05)" : "#fff", color: t.text, cursor: "pointer", fontSize: 13.5, appearance: "none", outline: "none" }}
+                                                >
+                                                    <option value="">-- Choose existing logo --</option>
+                                                    {existingLogos.map(logo => (
+                                                        <option key={logo.url} value={logo.url}>{logo.name}</option>
+                                                    ))}
+                                                </select>
+                                                <ChevronDown size={14} style={{ position: "absolute", right: 14, top: "50%", transform: "translateY(-50%)", pointerEvents: "none", opacity: 0.5 }} />
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                             </FF>
                         </div>
                     </div>
                 </div>
-            )}
-
-            {activeTab === "Info" && (
+            ) : activeTab === "Info" ? (
                 <div style={{ maxWidth: 800, margin: "0 auto" }}>
                     <div style={{ background: t.surface, borderRadius: 16, border: `1px solid ${t.surfaceBorder}`, padding: 32, boxShadow: t.tableShadow }}>
                         <div style={{ marginBottom: 24 }}>
@@ -510,25 +560,23 @@ export default function PageCompany({ t, isDark, activeTenantId = "", USERS = []
                         </div>
                     </div>
                 </div>
-            )}
-
-            {activeTab === "Email" && (
+            ) : activeTab === "Email" ? (
                 <div style={{ background: t.surface, borderRadius: 16, border: `1px solid ${t.surfaceBorder}`, padding: 32, boxShadow: t.tableShadow }}>
                     <div style={{ marginBottom: 24 }}>
                         <h3 style={{ fontSize: 17, fontWeight: 700, color: isDark ? "#fff" : "#1C1917", marginBottom: 6 }}>Email Setup</h3>
-                        <p style={{ fontSize: 12.5, color: t.textMuted, lineHeight: 1.5 }}>Configure how your marketing and system emails are delivered.</p>
+                        <p style={{ fontSize: 12.5, color: t.textMuted, lineHeight: 1.5 }}>Configure organization-level email infrastructure.</p>
                     </div>
 
                     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 32, marginBottom: 32, paddingBottom: 32, borderBottom: `1px solid ${t.border}` }}>
                         <div style={{ display: "grid", gap: 16 }}>
                             <div style={{ fontSize: 13, fontWeight: 700, color: t.text }}>Common Fields (Required)</div>
-                            <FF label="From Email Address" t={t}><FIn value={data.emailSetup.common.fromEmail} onChange={e => updCommon({ fromEmail: e.target.value })} placeholder="no-reply@yourapp.com" t={t} /></FF>
-                            <FF label="From Name" t={t}><FIn value={data.emailSetup.common.fromName} onChange={e => updCommon({ fromName: e.target.value })} placeholder="American Vision Group Notifications" t={t} /></FF>
+                            <FF label="From Email" t={t}><FIn value={data.emailSetup.common.fromEmail} onChange={e => updES({ fromEmail: e.target.value })} placeholder="noreply@company.com" t={t} /></FF>
+                            <FF label="From Name" t={t}><FIn value={data.emailSetup.common.fromName} onChange={e => updES({ fromName: e.target.value })} placeholder="Company Name" t={t} /></FF>
                         </div>
                         <div style={{ display: "grid", gap: 16 }}>
                             <div style={{ fontSize: 13, fontWeight: 700, color: t.text }}>Optional / Testing</div>
-                            <FF label="Reply-To Email" t={t}><FIn value={data.emailSetup.common.replyTo} onChange={e => updCommon({ replyTo: e.target.value })} placeholder="support@yourapp.com" t={t} /></FF>
-                            <FF label="Test Email Address" t={t}><FIn value={data.emailSetup.common.testEmail} onChange={e => updCommon({ testEmail: e.target.value })} placeholder="Your testing email" t={t} /></FF>
+                            <FF label="Reply-To" t={t}><FIn value={data.emailSetup.common.replyTo} onChange={e => updES({ replyTo: e.target.value })} placeholder="support@company.com" t={t} /></FF>
+                            <FF label="Test Email Address" t={t}><FIn value={data.emailSetup.common.testEmail} onChange={e => updES({ testEmail: e.target.value })} placeholder="test@company.com" t={t} /></FF>
                         </div>
                     </div>
 
@@ -652,14 +700,12 @@ export default function PageCompany({ t, isDark, activeTenantId = "", USERS = []
                         </div>
                     </div>
                 </div>
-            )}
-
-            {activeTab === "ACH" && (
+            ) : activeTab === "ACH" ? (
                 <div style={{ background: t.surface, borderRadius: 16, border: `1px solid ${t.surfaceBorder}`, padding: 32, boxShadow: t.tableShadow }}>
                     <div style={{ marginBottom: 24, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                         <div>
-                            <h3 style={{ fontSize: 17, fontWeight: 700, color: isDark ? "#fff" : "#1C1917", marginBottom: 6 }}>ACH Payment Setup</h3>
-                            <p style={{ fontSize: 12.5, color: t.textMuted, lineHeight: 1.5 }}>Configure banking credentials for NACHA file generation and automated payments.</p>
+                            <h3 style={{ fontSize: 17, fontWeight: 700, color: isDark ? "#fff" : "#1C1917", marginBottom: 6 }}>ACH Setup</h3>
+                            <p style={{ fontSize: 12.5, color: t.textMuted, lineHeight: 1.5 }}>Banking credentials for organization-level ACH operations.</p>
                         </div>
                         <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer", background: isDark ? "rgba(255,255,255,0.05)" : "#F3F4F6", padding: "8px 16px", borderRadius: 10, border: `1px solid ${data.achSetup.enabled ? t.accent : t.border}` }}>
                             <span style={{ fontSize: 13, fontWeight: 600, color: data.achSetup.enabled ? (isDark ? "#34D399" : "#059669") : t.textMuted }}>{data.achSetup.enabled ? "ACH Generation Enabled" : "ACH Generation Disabled"}</span>
@@ -671,7 +717,7 @@ export default function PageCompany({ t, isDark, activeTenantId = "", USERS = []
                         <div style={{ display: "grid", gap: 20 }}>
                             <div style={{ fontSize: 13, fontWeight: 700, color: t.text }}>Originator Information</div>
                             <FF label="Originator Name" t={t}><FIn value={data.achSetup.originatorName} onChange={e => updACH({ originatorName: e.target.value })} placeholder="Company Name" t={t} /></FF>
-                            <FF label="Originator ID (Company ID)" t={t}><FIn value={data.achSetup.originatorId} onChange={e => updACH({ originatorId: e.target.value })} placeholder="9-digit Tax ID" t={t} /></FF>
+                            <FF label="Originator ID" t={t}><FIn value={data.achSetup.originatorId} onChange={e => updACH({ originatorId: e.target.value })} placeholder="Tax ID" t={t} /></FF>
                             
                             <div style={{ height: 1, background: t.border, opacity: 0.5, margin: "8px 0" }} />
                             <div style={{ fontSize: 13, fontWeight: 700, color: t.text }}>Banking Institution (ODFI)</div>
@@ -681,7 +727,7 @@ export default function PageCompany({ t, isDark, activeTenantId = "", USERS = []
 
                         <div style={{ display: "grid", gap: 20 }}>
                             <div style={{ fontSize: 13, fontWeight: 700, color: t.text }}>Account Details</div>
-                            <FF label="Account Number" t={t}><FIn type="password" value={data.achSetup.accountNumber} onChange={e => updACH({ accountNumber: e.target.value })} placeholder="Your Account Number" t={t} /></FF>
+                            <FF label="Account Number" t={t}><FIn type="password" value={data.achSetup.accountNumber} onChange={e => updACH({ accountNumber: e.target.value })} placeholder="Account Number" t={t} /></FF>
                             <FF label="Account Type" t={t}>
                                 <div style={{ position: "relative" }}>
                                     <select 
@@ -705,7 +751,7 @@ export default function PageCompany({ t, isDark, activeTenantId = "", USERS = []
                         </div>
                     </div>
                 </div>
-            )}
+            ) : null}
 
             <div style={{ height: 100 }} />
         </div>

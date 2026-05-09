@@ -88,11 +88,12 @@ export default function PageUserProfiles({ t, isDark, USERS = [], GLOBAL_USERS =
         return tUsers;
     }, [USERS, GLOBAL_USERS, ROLES]);
 
-    // Filter logic: Include all unless it's the secret admin (for non-owners)
+    // Filter logic: Include all unless it's a global role (except for the Owner role R10005)
     const filteredUsers = useMemo(() => {
         return mergedUsers.filter(u => {
             // Exclusive: User profiles only show tenant users (non-global roles)
-            if (isSelectedRoleGlobal(u.role_id)) {
+            // However, we explicitly allow the Owner role (R10005) as it's the primary tenant user
+            if (isSelectedRoleGlobal(u.role_id) && u.role_id !== "R10005") {
                 return false;
             }
             return true;

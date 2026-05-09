@@ -58,6 +58,7 @@ export default function PagePlatformCompany({ t, isDark, USERS = [], CONTACTS = 
                 port: "587",
                 user: "",
                 pass: "",
+                has2FA: false,
                 secure: true
             },
             timeZone: ""
@@ -253,6 +254,7 @@ export default function PagePlatformCompany({ t, isDark, USERS = [], CONTACTS = 
         try {
             const sendFn = httpsCallable(functions, "sendTestEmail");
             await sendFn({
+                tenantId: "PLATFORM",
                 recipientEmail: target,
                 subject: "Platform Configuration Test - American Vision Group",
                 rows: [
@@ -268,42 +270,32 @@ export default function PagePlatformCompany({ t, isDark, USERS = [], CONTACTS = 
         }
     };
 
-    const updES = (patch) => {
-        setData(s => ({
-            ...s,
-            emailSetup: { ...s.emailSetup, ...patch }
-        }));
-    };
+    const updES = (updates) => setData(prev => {
+        const { method, timeZone, ...commonUpdates } = updates;
+        const newES = { ...prev.emailSetup };
+        if (method !== undefined) newES.method = method;
+        if (timeZone !== undefined) newES.timeZone = timeZone;
+        if (Object.keys(commonUpdates).length > 0) {
+            newES.common = { ...newES.common, ...commonUpdates };
+        }
+        return { ...prev, emailSetup: newES };
+    });
 
-    const updCommon = (patch) => {
-        setData(s => ({
-            ...s,
-            emailSetup: {
-                ...s.emailSetup,
-                common: { ...s.emailSetup.common, ...patch }
-            }
-        }));
-    };
+    const updAPI = (updates) => setData(prev => ({
+        ...prev,
+        emailSetup: {
+            ...prev.emailSetup,
+            api: { ...prev.emailSetup.api, ...updates }
+        }
+    }));
 
-    const updAPI = (patch) => {
-        setData(s => ({
-            ...s,
-            emailSetup: {
-                ...s.emailSetup,
-                api: { ...s.emailSetup.api, ...patch }
-            }
-        }));
-    };
-
-    const updSMTP = (patch) => {
-        setData(s => ({
-            ...s,
-            emailSetup: {
-                ...s.emailSetup,
-                smtp: { ...s.emailSetup.smtp, ...patch }
-            }
-        }));
-    };
+    const updSMTP = (updates) => setData(prev => ({
+        ...prev,
+        emailSetup: {
+            ...prev.emailSetup,
+            smtp: { ...prev.emailSetup.smtp, ...updates }
+        }
+    }));
 
     const updACH = (patch) => {
         setData(s => ({
@@ -542,14 +534,14 @@ export default function PagePlatformCompany({ t, isDark, USERS = [], CONTACTS = 
 
                     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 32, marginBottom: 32, paddingBottom: 32, borderBottom: `1px solid ${t.border}` }}>
                         <div style={{ display: "grid", gap: 16 }}>
-                            <div style={{ fontSize: 13, fontWeight: 700, color: t.text }}>Common Fields</div>
-                            <FF label="From Email Address" t={t}><FIn value={data.emailSetup.common.fromEmail} onChange={e => updCommon({ fromEmail: e.target.value })} placeholder="no-reply@platform.com" t={t} /></FF>
-                            <FF label="From Name" t={t}><FIn value={data.emailSetup.common.fromName} onChange={e => updCommon({ fromName: e.target.value })} placeholder="Platform Notifications" t={t} /></FF>
+                            <div style={{ fontSize: 13, fontWeight: 700, color: t.text }}>Common Fields (Required)</div>
+                            <FF label="From Email" t={t}><FIn value={data.emailSetup.common.fromEmail} onChange={e => updES({ fromEmail: e.target.value })} placeholder="noreply@company.com" t={t} /></FF>
+                            <FF label="From Name" t={t}><FIn value={data.emailSetup.common.fromName} onChange={e => updES({ fromName: e.target.value })} placeholder="Company Name" t={t} /></FF>
                         </div>
                         <div style={{ display: "grid", gap: 16 }}>
-                            <div style={{ fontSize: 13, fontWeight: 700, color: t.text }}>Testing</div>
-                            <FF label="Reply-To Email" t={t}><FIn value={data.emailSetup.common.replyTo} onChange={e => updCommon({ replyTo: e.target.value })} placeholder="support@platform.com" t={t} /></FF>
-                            <FF label="Test Email Address" t={t}><FIn value={data.emailSetup.common.testEmail} onChange={e => updCommon({ testEmail: e.target.value })} placeholder="Your testing email" t={t} /></FF>
+                            <div style={{ fontSize: 13, fontWeight: 700, color: t.text }}>Optional / Testing</div>
+                            <FF label="Reply-To" t={t}><FIn value={data.emailSetup.common.replyTo} onChange={e => updES({ replyTo: e.target.value })} placeholder="support@company.com" t={t} /></FF>
+                            <FF label="Test Email Address" t={t}><FIn value={data.emailSetup.common.testEmail} onChange={e => updES({ testEmail: e.target.value })} placeholder="test@company.com" t={t} /></FF>
                         </div>
                     </div>
 
@@ -558,41 +550,115 @@ export default function PagePlatformCompany({ t, isDark, USERS = [], CONTACTS = 
                             <FF label="Delivery Method" t={t}>
                                 <div style={{ display: "flex", gap: 8, background: isDark ? "rgba(255,255,255,0.05)" : "#F3F4F6", padding: 4, borderRadius: 10 }}>
                                     <button onClick={() => updES({ method: "ESP" })}
-                                        style={{ flex: 1, padding: "8px 0", borderRadius: 8, border: "none", fontSize: 13, fontWeight: 600, cursor: "pointer", background: data.emailSetup.method === "ESP" ? t.accentGrad : "transparent", color: data.emailSetup.method === "ESP" ? "#fff" : t.textMuted }}>
+                                        style={{ flex: 1, padding: "8px 0", borderRadius: 8, border: "none", fontSize: 13, fontWeight: 600, cursor: "pointer", background: data.emailSetup.method === "ESP" ? t.accentGrad : "transparent", color: data.emailSetup.method === "ESP" ? "#fff" : t.textMuted, position: "relative" }}>
                                         Service Provider (API)
+                                        {data.emailSetup.method === "ESP" && <span style={{ position: "absolute", top: -8, right: 4, background: "#34D399", color: "#fff", fontSize: 8, padding: "2px 6px", borderRadius: 6, fontWeight: 800 }}>ACTIVE</span>}
                                     </button>
                                     <button onClick={() => updES({ method: "SMTP" })}
-                                        style={{ flex: 1, padding: "8px 0", borderRadius: 8, border: "none", fontSize: 13, fontWeight: 600, cursor: "pointer", background: data.emailSetup.method === "SMTP" ? t.accentGrad : "transparent", color: data.emailSetup.method === "SMTP" ? "#fff" : t.textMuted }}>
+                                        style={{ flex: 1, padding: "8px 0", borderRadius: 8, border: "none", fontSize: 13, fontWeight: 600, cursor: "pointer", background: data.emailSetup.method === "SMTP" ? t.accentGrad : "transparent", color: data.emailSetup.method === "SMTP" ? "#fff" : t.textMuted, position: "relative" }}>
                                         Custom SMTP
+                                        {data.emailSetup.method === "SMTP" && <span style={{ position: "absolute", top: -8, right: 4, background: "#34D399", color: "#fff", fontSize: 8, padding: "2px 6px", borderRadius: 6, fontWeight: 800 }}>ACTIVE</span>}
                                     </button>
                                 </div>
                             </FF>
-                            <div style={{ marginTop: 40 }}>
-                                <button onClick={handleTestEmail} disabled={testingEmail || saving} style={{ width: "100%", padding: "10px", borderRadius: 8, background: isDark ? "rgba(255,255,255,0.08)" : "#fff", border: `1px solid ${t.border}`, color: t.text, fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
+
+                            <div style={{ marginTop: 40, padding: 24, borderRadius: 16, border: `1px solid ${t.border}`, background: isDark ? "rgba(255,255,255,0.02)" : "#FAFAF9" }}>
+                                <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
+                                    <div style={{ width: 32, height: 32, borderRadius: "50%", background: "#34D39933", display: "flex", alignItems: "center", justifyContent: "center", color: "#059669" }}>
+                                        <Send size={16} />
+                                    </div>
+                                    <h4 style={{ margin: 0, fontSize: 14, fontWeight: 700, color: t.text }}>Test Verification</h4>
+                                </div>
+                                <p style={{ fontSize: 12, color: t.textMuted, marginBottom: 20, lineHeight: 1.5 }}>Verify your credentials by sending a test message to the configured test address.</p>
+                                <button 
+                                    onClick={handleTestEmail}
+                                    disabled={testingEmail || saving}
+                                    style={{ width: "100%", padding: "10px", borderRadius: 8, background: isDark ? "rgba(255,255,255,0.08)" : "#fff", border: `1px solid ${t.border}`, color: t.text, fontSize: 13, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, transition: "all 0.2s" }}
+                                    onMouseEnter={e => e.currentTarget.style.background = isDark ? "rgba(255,255,255,0.12)" : "#F3F4F6"}
+                                    onMouseLeave={e => e.currentTarget.style.background = isDark ? "rgba(255,255,255,0.08)" : "#fff"}
+                                >
                                     {testingEmail ? "Verifying..." : "Send Verification Email"}
                                 </button>
+                                {data.emailSetup.common.testEmail && (
+                                    <p style={{ fontSize: 11, color: t.textMuted, marginTop: 12, textAlign: "center" }}>Target: <b>{data.emailSetup.common.testEmail}</b></p>
+                                )}
                             </div>
                         </div>
 
                         <div style={{ display: "grid", gap: 16 }}>
                             {data.emailSetup.method === "ESP" && (
                                 <>
+                                    <div style={{ fontSize: 13, fontWeight: 700, color: t.text }}>Provider Settings</div>
                                     <FF label="Provider" t={t}>
-                                        <select value={data.emailSetup.api.provider} onChange={e => updAPI({ provider: e.target.value })} style={{ width: "100%", padding: "10px 14px", borderRadius: 9, border: `1px solid ${t.border}`, background: isDark ? "rgba(255,255,255,0.05)" : "#fff", color: t.text }}>
-                                            {PROVIDERS.map(p => <option key={p} value={p}>{p}</option>)}
-                                        </select>
+                                        <div style={{ position: "relative" }}>
+                                            <select 
+                                                value={data.emailSetup.api.provider} 
+                                                onChange={e => updAPI({ provider: e.target.value })}
+                                                style={{ width: "100%", padding: "10px 14px", borderRadius: 9, border: `1px solid ${t.border}`, background: isDark ? "rgba(255,255,255,0.05)" : "#fff", color: t.text, cursor: "pointer", fontSize: 14, outline: "none", appearance: "none" }}
+                                            >
+                                                {PROVIDERS.map(p => <option key={p} value={p}>{p}</option>)}
+                                            </select>
+                                            <ChevronDown size={14} style={{ position: "absolute", right: 14, top: "50%", transform: "translateY(-50%)", pointerEvents: "none", opacity: 0.5 }} />
+                                        </div>
                                     </FF>
                                     <FF label="API Key 🔐" t={t}><FIn type="password" value={data.emailSetup.api.apiKey} onChange={e => updAPI({ apiKey: e.target.value })} placeholder="Your API key" t={t} /></FF>
+                                    {data.emailSetup.api.provider === "Mailgun" && (
+                                        <FF label="Domain" t={t}><FIn value={data.emailSetup.api.domain} onChange={e => updAPI({ domain: e.target.value })} placeholder="mg.yourdomain.com" t={t} /></FF>
+                                    )}
+                                    {data.emailSetup.api.provider === "Amazon SES" && (
+                                        <FF label="Region" t={t}><FIn value={data.emailSetup.api.region} onChange={e => updAPI({ region: e.target.value })} placeholder="us-east-1" t={t} /></FF>
+                                    )}
+                                    <FF label="API Base URL (Optional)" t={t}><FIn value={data.emailSetup.api.baseUrl} onChange={e => updAPI({ baseUrl: e.target.value })} placeholder="https://api.provider.com" t={t} /></FF>
                                 </>
                             )}
                             {data.emailSetup.method === "SMTP" && (
                                 <>
+                                    <div style={{ fontSize: 13, fontWeight: 700, color: t.text }}>SMTP Relay Configuration</div>
+                                    
+                                    <FF label="Email Service" t={t}>
+                                        <div style={{ position: "relative" }}>
+                                            <select 
+                                                onChange={e => {
+                                                    const profile = SMTP_PROFILES.find(p => p.label === e.target.value);
+                                                    if (profile && profile.label !== "Select Service") {
+                                                        updSMTP({ host: profile.host, port: profile.port });
+                                                    }
+                                                }}
+                                                style={{ width: "100%", padding: "10px 14px", borderRadius: 9, border: `1px solid ${t.border}`, background: isDark ? "rgba(255,255,255,0.05)" : "#fff", color: t.text, cursor: "pointer", fontSize: 14, outline: "none", appearance: "none" }}
+                                            >
+                                                {SMTP_PROFILES.map(p => <option key={p.label} value={p.label}>{p.label}</option>)}
+                                            </select>
+                                            <ChevronDown size={14} style={{ position: "absolute", right: 14, top: "50%", transform: "translateY(-50%)", pointerEvents: "none", opacity: 0.5 }} />
+                                        </div>
+                                        <p style={{ fontSize: 11, color: t.textMuted, marginTop: 6 }}>Selecting a service will auto-populate host and port details.</p>
+                                    </FF>
+
                                     <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 12 }}>
                                         <FF label="SMTP Host" t={t}><FIn value={data.emailSetup.smtp.host} onChange={e => updSMTP({ host: e.target.value })} placeholder="smtp.provider.com" t={t} /></FF>
                                         <FF label="Port" t={t}><FIn value={data.emailSetup.smtp.port} onChange={e => updSMTP({ port: e.target.value })} placeholder="587" t={t} /></FF>
                                     </div>
                                     <FF label="SMTP Username" t={t}><FIn value={data.emailSetup.smtp.user} onChange={e => updSMTP({ user: e.target.value })} placeholder="username@provider.com" t={t} /></FF>
-                                    <FF label="SMTP Password" t={t}><FIn type="password" value={data.emailSetup.smtp.pass} onChange={e => updSMTP({ pass: e.target.value })} placeholder="••••••••" t={t} /></FF>
+                                    
+                                    <div style={{ marginBottom: 16 }}>
+                                        <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer", marginBottom: 12 }}>
+                                            <input type="checkbox" checked={data.emailSetup.smtp.has2FA} onChange={e => updSMTP({ has2FA: e.target.checked })} style={{ width: 16, height: 16, accentColor: t.accent }} />
+                                            <span style={{ fontSize: 13, fontWeight: 700, color: t.text }}>My account has 2FA enabled (requires App Password)</span>
+                                        </label>
+                                        
+                                        {data.emailSetup.smtp.has2FA ? (
+                                            <FF label="App Password 🔐" t={t}>
+                                                <FIn type="password" value={data.emailSetup.smtp.pass} onChange={e => updSMTP({ pass: e.target.value })} placeholder="16-character app password" t={t} />
+                                                <p style={{ fontSize: 11, color: t.textMuted, marginTop: 8, lineHeight: 1.4 }}>Generate this in your Google Account Security settings. Use it instead of your regular password.</p>
+                                            </FF>
+                                        ) : (
+                                            <FF label="SMTP Password" t={t}><FIn type="password" value={data.emailSetup.smtp.pass} onChange={e => updSMTP({ pass: e.target.value })} placeholder="••••••••" t={t} /></FF>
+                                        )}
+                                    </div>
+
+                                    <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer", marginTop: 4 }}>
+                                        <input type="checkbox" checked={data.emailSetup.smtp.secure} onChange={e => updSMTP({ secure: e.target.checked })} style={{ width: 16, height: 16, accentColor: t.accent }} />
+                                        <span style={{ fontSize: 13, fontWeight: 500, color: t.text }}>Use TLS / SSL for secure connection</span>
+                                    </label>
                                 </>
                             )}
                         </div>
@@ -602,18 +668,52 @@ export default function PagePlatformCompany({ t, isDark, USERS = [], CONTACTS = 
 
             {activeTab === "ACH" && (
                 <div style={{ background: t.surface, borderRadius: 16, border: `1px solid ${t.surfaceBorder}`, padding: 32, boxShadow: t.tableShadow }}>
-                    <div style={{ marginBottom: 24 }}>
-                        <h3 style={{ fontSize: 17, fontWeight: 700, color: isDark ? "#fff" : "#1C1917", marginBottom: 6 }}>Platform ACH Setup</h3>
-                        <p style={{ fontSize: 12.5, color: t.textMuted, lineHeight: 1.5 }}>Banking credentials for platform-level ACH operations.</p>
+                    <div style={{ marginBottom: 24, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                        <div>
+                            <h3 style={{ fontSize: 17, fontWeight: 700, color: isDark ? "#fff" : "#1C1917", marginBottom: 6 }}>Platform ACH Setup</h3>
+                            <p style={{ fontSize: 12.5, color: t.textMuted, lineHeight: 1.5 }}>Banking credentials for platform-level ACH operations.</p>
+                        </div>
+                        <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer", background: isDark ? "rgba(255,255,255,0.05)" : "#F3F4F6", padding: "8px 16px", borderRadius: 10, border: `1px solid ${data.achSetup.enabled ? t.accent : t.border}` }}>
+                            <span style={{ fontSize: 13, fontWeight: 600, color: data.achSetup.enabled ? (isDark ? "#34D399" : "#059669") : t.textMuted }}>{data.achSetup.enabled ? "ACH Generation Enabled" : "ACH Generation Disabled"}</span>
+                            <input type="checkbox" checked={data.achSetup.enabled} onChange={e => updACH({ enabled: e.target.checked })} style={{ width: 18, height: 18, accentColor: t.accent }} />
+                        </label>
                     </div>
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 32 }}>
+
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 32, opacity: data.achSetup.enabled ? 1 : 0.6, pointerEvents: data.achSetup.enabled ? "auto" : "none", transition: "opacity 0.2s" }}>
                         <div style={{ display: "grid", gap: 20 }}>
+                            <div style={{ fontSize: 13, fontWeight: 700, color: t.text }}>Originator Information</div>
                             <FF label="Originator Name" t={t}><FIn value={data.achSetup.originatorName} onChange={e => updACH({ originatorName: e.target.value })} placeholder="Platform Name" t={t} /></FF>
                             <FF label="Originator ID" t={t}><FIn value={data.achSetup.originatorId} onChange={e => updACH({ originatorId: e.target.value })} placeholder="Tax ID" t={t} /></FF>
+                            
+                            <div style={{ height: 1, background: t.border, opacity: 0.5, margin: "8px 0" }} />
+                            <div style={{ fontSize: 13, fontWeight: 700, color: t.text }}>Banking Institution (ODFI)</div>
+                            <FF label="Bank Name" t={t}><FIn value={data.achSetup.odfiName} onChange={e => updACH({ odfiName: e.target.value })} placeholder="Your Bank Name" t={t} /></FF>
+                            <FF label="ODFI Routing Number" t={t}><FIn value={data.achSetup.odfiRouting} onChange={e => updACH({ odfiRouting: e.target.value })} placeholder="9-digit Routing" t={t} /></FF>
                         </div>
+
                         <div style={{ display: "grid", gap: 20 }}>
+                            <div style={{ fontSize: 13, fontWeight: 700, color: t.text }}>Account Details</div>
                             <FF label="Account Number" t={t}><FIn type="password" value={data.achSetup.accountNumber} onChange={e => updACH({ accountNumber: e.target.value })} placeholder="Account Number" t={t} /></FF>
-                            <FF label="Routing Number" t={t}><FIn value={data.achSetup.odfiRouting} onChange={e => updACH({ odfiRouting: e.target.value })} placeholder="Routing Number" t={t} /></FF>
+                            <FF label="Account Type" t={t}>
+                                <div style={{ position: "relative" }}>
+                                    <select 
+                                        value={data.achSetup.accountType} 
+                                        onChange={e => updACH({ accountType: e.target.value })}
+                                        style={{ width: "100%", padding: "10px 14px", borderRadius: 9, border: `1px solid ${t.border}`, background: isDark ? "rgba(255,255,255,0.05)" : "#fff", color: t.text, cursor: "pointer", fontSize: 14, outline: "none", appearance: "none" }}
+                                    >
+                                        <option value="Checking">Checking</option>
+                                        <option value="Savings">Savings</option>
+                                    </select>
+                                    <ChevronDown size={14} style={{ position: "absolute", right: 14, top: "50%", transform: "translateY(-50%)", pointerEvents: "none", opacity: 0.5 }} />
+                                </div>
+                            </FF>
+
+                            <div style={{ height: 1, background: t.border, opacity: 0.5, margin: "8px 0" }} />
+                            <div style={{ fontSize: 13, fontWeight: 700, color: t.text }}>NACHA File Header Metadata</div>
+                            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+                                <FF label="Immediate Origin" t={t}><FIn value={data.achSetup.immediateOrigin} onChange={e => updACH({ immediateOrigin: e.target.value })} placeholder="e.g. TTNNNNNNN" t={t} /></FF>
+                                <FF label="Immediate Destination" t={t}><FIn value={data.achSetup.immediateDestination} onChange={e => updACH({ immediateDestination: e.target.value })} placeholder="Bank's Routing" t={t} /></FF>
+                            </div>
                         </div>
                     </div>
                 </div>

@@ -144,6 +144,35 @@ export default function PageTenants({ t, isDark, TENANTS = [], GLOBAL_USERS = []
                         newOwnerUid: d.selectedOwnerId, 
                         newOwnerEmail: payload.tenant_email 
                     });
+
+                    // Sync role in tenant's users subcollection for immediate consistency in User Profiles
+                    try {
+                        const usersRef = collection(db, "tenants", d.docId, "users");
+                        
+                        // 1. Promote new owner
+                        const qNew = query(usersRef, where("auth_uid", "==", d.selectedOwnerId));
+                        const snapNew = await getDocs(qNew);
+                        if (!snapNew.empty) {
+                            await updateDoc(doc(db, "tenants", d.docId, "users", snapNew.docs[0].id), {
+                                role_id: "R10005",
+                                updated_at: serverTimestamp()
+                            });
+                        }
+
+                        // 2. Demote old owner (if exists and different)
+                        if (d.owner_id && d.owner_id !== d.selectedOwnerId) {
+                            const qOld = query(usersRef, where("auth_uid", "==", d.owner_id));
+                            const snapOld = await getDocs(qOld);
+                            if (!snapOld.empty) {
+                                await updateDoc(doc(db, "tenants", d.docId, "users", snapOld.docs[0].id), {
+                                    role_id: "R10001",
+                                    updated_at: serverTimestamp()
+                                });
+                            }
+                        }
+                    } catch (err) {
+                        console.error("Error syncing owner role in tenant subcollection:", err);
+                    }
                 } 
                 // Case B: Create BRAND NEW Owner User for Existing Tenant
                 else if (!d.selectedOwnerId && d.email && d.email !== d.tenant_email) {
