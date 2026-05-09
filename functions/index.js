@@ -487,23 +487,68 @@ exports.updateUserTenant = functions.https.onCall(async (data, context) => {
       last_updated: admin.firestore.FieldValue.serverTimestamp()
     }, { merge: true });
 
-    // 4. Move Tenant Profile
-    if (user_id) {
+    // 4. Move/Update Tenant Profile
+    let effectiveUserId = user_id;
+
+    // If user_id not provided, try to find it in new tenant or old tenant
+    if (!effectiveUserId) {
+      // Search in new tenant first
+      const newTenantUserSnap = await db.collection(`tenants/${newTenantId}/users`).where('auth_uid', '==', uid).get();
+      if (!newTenantUserSnap.empty) {
+        effectiveUserId = newTenantUserSnap.docs[0].id;
+      } else if (oldTenantId) {
+        // Search in old tenant
+        const oldTenantUserSnap = await db.collection(`tenants/${oldTenantId}/users`).where('auth_uid', '==', uid).get();
+        if (!oldTenantUserSnap.empty) {
+          effectiveUserId = oldTenantUserSnap.docs[0].id;
+        }
+      }
+    }
+
+    // If still no user_id, generate one if we have a tenant context
+    if (!effectiveUserId && newTenantId) {
+      const usersSnap = await db.collection(`tenants/${newTenantId}/users`).get();
+      let maxNum = 10000;
+      usersSnap.forEach(d => {
+        const m = (d.id || '').match(/^U(\d+)$/);
+        if (m) {
+          const num = parseInt(m[1]);
+          if (num > maxNum) maxNum = num;
+        }
+      });
+      effectiveUserId = 'U' + (maxNum + 1);
+    }
+
+    if (effectiveUserId) {
       // 4a. Read existing profile if not fully provided (though UI should provide it)
-      let profileData = { user_id, first_name: first_name || '', last_name: last_name || '', email, role_id: role, phone, notes, street1, street2, city, state, zip, auth_uid: uid };
+      let profileData = { 
+        user_id: effectiveUserId, 
+        first_name: first_name || '', 
+        last_name: last_name || '', 
+        email, 
+        role_id: role, 
+        phone: phone || '', 
+        notes: notes || '', 
+        street1: street1 || '', 
+        street2: street2 || '', 
+        city: city || '', 
+        state: state || '', 
+        zip: zip || '', 
+        auth_uid: uid 
+      };
 
       if (oldTenantId && oldTenantId !== newTenantId) {
         // Optionally read from old location if data is missing
-        const oldDoc = await db.doc(`tenants/${oldTenantId}/users/${user_id}`).get();
+        const oldDoc = await db.doc(`tenants/${oldTenantId}/users/${effectiveUserId}`).get();
         if (oldDoc.exists()) {
           profileData = { ...oldDoc.data(), ...profileData, tenantId: newTenantId };
           // Delete from old location
-          await db.doc(`tenants/${oldTenantId}/users/${user_id}`).delete();
+          await db.doc(`tenants/${oldTenantId}/users/${effectiveUserId}`).delete();
         }
       }
 
       // 4b. Write to new location
-      await db.doc(`tenants/${newTenantId}/users/${user_id}`).set({
+      await db.doc(`tenants/${newTenantId}/users/${effectiveUserId}`).set({
         ...profileData,
         tenantId: newTenantId,
         updated_at: admin.firestore.FieldValue.serverTimestamp()

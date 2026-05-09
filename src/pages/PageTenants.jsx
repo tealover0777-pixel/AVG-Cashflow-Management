@@ -99,7 +99,8 @@ export default function PageTenants({ t, isDark, TENANTS = [], GLOBAL_USERS = []
                 first_name: r.owner_first_name || "", 
                 last_name: r.owner_last_name || "",
                 show_payment_lag: !!r.features?.show_payment_lag,
-                show_scheduled_payment_date: !!r.features?.show_scheduled_payment_date
+                show_scheduled_payment_date: !!r.features?.show_scheduled_payment_date,
+                old_owner_id: r.owner_id || r.owner || ""
             } 
         });
     };
