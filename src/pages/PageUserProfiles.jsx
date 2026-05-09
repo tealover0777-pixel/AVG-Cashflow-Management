@@ -245,7 +245,14 @@ export default function PageUserProfiles({ t, isDark, USERS = [], GLOBAL_USERS =
                     }
                     const tid = d.tenantId || d.tenant_id || d.Tenant_ID || tenantId;
                     if (tid && tid !== "GLOBAL") {
-                        await updateDoc(doc(db, "tenants", tid), { owner: d.auth_uid || d.id, owner_id: d.auth_uid || d.id, updated_at: serverTimestamp() });
+                        await updateDoc(doc(db, "tenants", tid), { 
+                            owner: d.auth_uid || d.id, 
+                            owner_id: d.auth_uid || d.id, 
+                            tenant_email: String(d.email || ""),
+                            owner_first_name: String(d.first_name || ""),
+                            owner_last_name: String(d.last_name || ""),
+                            updated_at: serverTimestamp() 
+                        });
                     }
                 }
 

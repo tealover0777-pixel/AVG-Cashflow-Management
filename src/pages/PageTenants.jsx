@@ -92,6 +92,7 @@ export default function PageTenants({ t, isDark, TENANTS = [], GLOBAL_USERS = []
         mode: "edit", 
         data: { 
             ...r, 
+            email: r.tenant_email || "",
             first_name: r.owner_first_name || "", 
             last_name: r.owner_last_name || "",
             show_payment_lag: !!r.features?.show_payment_lag,
@@ -121,10 +122,44 @@ export default function PageTenants({ t, isDark, TENANTS = [], GLOBAL_USERS = []
 
         try {
             if (modal.mode === "edit" && d.docId) {
+                // Case A: Select Existing User as Owner
+                if (d.selectedOwnerId && d.selectedOwnerId !== d.owner_id) {
+                    payload.owner_id = d.selectedOwnerId;
+                    payload.owner = d.selectedOwnerId;
+                    const newOwner = GLOBAL_USERS.find(u => u.id === d.selectedOwnerId);
+                    if (newOwner) {
+                        payload.tenant_email = newOwner.email || "";
+                        payload.owner_first_name = newOwner.first_name || "";
+                        payload.owner_last_name = newOwner.last_name || "";
+                    }
+                    const updateTenantFn = httpsCallable(functions, "updateUserTenant");
+                    await updateTenantFn({ uid: d.selectedOwnerId, email: payload.tenant_email, newTenantId: d.docId, role: "R10005", first_name: payload.owner_first_name, last_name: payload.owner_last_name });
+                } 
+                // Case B: Create BRAND NEW Owner User for Existing Tenant
+                else if (!d.selectedOwnerId && d.email && d.email !== d.tenant_email) {
+                   const inviteUserFn = httpsCallable(functions, "inviteUser");
+                   const inviteRes = await inviteUserFn({
+                       email: d.email,
+                       role: "R10005",
+                       tenantId: d.docId,
+                       user_id: d.owner_id || "U10001",
+                       first_name: d.first_name || "",
+                       last_name: d.last_name || "",
+                       phone: d.phone || "",
+                       notes: d.notes || "",
+                       inviteUser: d.inviteUser ?? true
+                   });
+                   payload.owner_id = inviteRes.data.uid || d.owner_id;
+                   payload.owner = inviteRes.data.uid || d.owner_id;
+                   payload.tenant_email = d.email;
+                   payload.owner_first_name = d.first_name;
+                   payload.owner_last_name = d.last_name;
+                }
+                
                 await updateDoc(doc(db, collectionPath, d.docId), payload);
                 
-                // Also update the owner's global user record and tenant-specific user record
-                if (d.owner_doc_id) {
+                // Case C: Just edit the name/phone of the CURRENT owner
+                if (!d.selectedOwnerId && d.owner_doc_id && d.email === d.tenant_email) {
                     const updateData = {
                         first_name: d.first_name || "",
                         last_name: d.last_name || "",
@@ -245,7 +280,42 @@ export default function PageTenants({ t, isDark, TENANTS = [], GLOBAL_USERS = []
                 <span style={{ fontSize: 11, fontWeight: 700, color: t.textMuted, letterSpacing: "0.5px" }}>PRIMARY OWNER DETAILS</span>
             </div>
 
-            <FF label="OWNER ID (UPCOMING)" t={t}>
+            {modal.mode === "edit" && (
+                <FF label="SELECT EXISTING OWNER" t={t}>
+                    <select 
+                        value={modal.data.selectedOwnerId || ""} 
+                        onChange={e => {
+                            const val = e.target.value;
+                            if (!val) {
+                                setF("selectedOwnerId", "");
+                                return;
+                            }
+                            const found = GLOBAL_USERS.find(u => u.id === val);
+                            if (found) {
+                                setModal(m => ({
+                                    ...m,
+                                    data: {
+                                        ...m.data,
+                                        selectedOwnerId: val,
+                                        email: found.email || "",
+                                        first_name: found.first_name || "",
+                                        last_name: found.last_name || "",
+                                        owner_id: val
+                                    }
+                                }));
+                            }
+                        }} 
+                        style={{ background: isDark ? "rgba(255,255,255,0.04)" : "#fff", color: isDark ? "#fff" : "#000", border: `1px solid ${t.border}`, borderRadius: 9, padding: "10px 13px", fontSize: 13.5, outline: "none", width: "100%", fontFamily: t.font, appearance: "none" }}
+                    >
+                        <option value="">-- No Change (Edit Current) --</option>
+                        {GLOBAL_USERS.filter(u => !u.isSuperAdmin).map(u => (
+                            <option key={u.id} value={u.id} style={{ color: "#000" }}>{u.email} ({u.first_name} {u.last_name})</option>
+                        ))}
+                    </select>
+                </FF>
+            )}
+
+            <FF label="OWNER ID" t={t}>
                 <div style={{ fontFamily: t.mono, fontSize: 13, color: t.idText, background: isDark ? "rgba(255,255,255,0.04)" : "#F5F4F1", border: `1px solid ${t.surfaceBorder}`, borderRadius: 9, padding: "10px 13px" }}>{modal.data.owner_id || "U10001"}</div>
             </FF>
 
