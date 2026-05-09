@@ -83,6 +83,16 @@ export default function PageCompany({ t, isDark, activeTenantId = "", USERS = []
             getDoc(doc(db, "tenants", tenantId)).then(snap => {
                 if (snap.exists()) {
                     const d = snap.data();
+                    let currentOwner = d.owner || d.owner_id || "";
+
+                    // Auto-select owner from USERS if not defined in tenant config
+                    if (!currentOwner && USERS && USERS.length > 0) {
+                        const foundOwner = USERS.find(u => u.role_id === "R10005" || u.role === "Owner" || u.role === "OWNER");
+                        if (foundOwner) {
+                            currentOwner = foundOwner.id || foundOwner.auth_uid;
+                        }
+                    }
+
                     const e = d.emailSetup || {};
                     // Migration / Defaulting
                     setData({
@@ -97,8 +107,8 @@ export default function PageCompany({ t, isDark, activeTenantId = "", USERS = []
                         zip: d.zip || "",
                         country: d.country || "",
                         home_page: d.home_page || "",
-                        owner: d.owner || d.owner_id || "",
-                        _origOwner: d.owner || d.owner_id || "",
+                        owner: currentOwner,
+                        _origOwner: currentOwner,
                         emailSetup: {
                             method: e.method || (e.provider === "SMTP" ? "SMTP" : "ESP"),
                             common: e.common || {
@@ -139,7 +149,7 @@ export default function PageCompany({ t, isDark, activeTenantId = "", USERS = []
                 }
             }).catch(e => console.error("Error fetching tenant data:", e));
         }
-    }, [tenantId, user?.email]);
+    }, [tenantId, USERS, user?.email]);
 
     // Auto-resolve TimeZone based on Info folder (State/Zip) and persist to Firestore
     React.useEffect(() => {
@@ -163,16 +173,16 @@ export default function PageCompany({ t, isDark, activeTenantId = "", USERS = []
 
     const resolvedOwnerName = React.useMemo(() => {
         if (!data.owner) return "—";
-        const all = [...USERS, ...CONTACTS];
-        const found = all.find(u => u.id === data.owner || u.auth_uid === data.owner || u.email === data.owner);
+        const found = USERS.find(u => u.id === data.owner || u.auth_uid === data.owner || u.email === data.owner);
         if (found) {
             return [found.first_name, found.last_name].filter(Boolean).join(" ") || found.name || found.contact_name || found.email || data.owner;
         }
         return data.owner;
-    }, [data.owner, USERS, CONTACTS]);
+    }, [data.owner, USERS]);
 
     const filteredOwnerResults = React.useMemo(() => {
-        const all = [...USERS, ...CONTACTS];
+        // Dropdown menu list only the users from User Profiles
+        const all = USERS;
         if (!ownerSearch) return all.slice(0, 50);
         const q = ownerSearch.toLowerCase();
         return all.filter(u => {
@@ -183,7 +193,7 @@ export default function PageCompany({ t, isDark, activeTenantId = "", USERS = []
             const nameB = [b.first_name, b.last_name].filter(Boolean).join(" ") || b.name || b.contact_name || b.email || "";
             return nameA.localeCompare(nameB);
         }).slice(0, 50);
-    }, [ownerSearch, USERS, CONTACTS]);
+    }, [ownerSearch, USERS]);
 
     const uploadLogoFile = async (file) => {
         if (!file) return;
@@ -494,7 +504,7 @@ export default function PageCompany({ t, isDark, activeTenantId = "", USERS = []
                                 </div>
                             </div>
                             <div style={{ height: 1, background: t.border, opacity: 0.5, margin: "8px 0" }} />
-                            <FF label="Owner / Principal" t={t}>
+                            <FF label="OWNER" t={t}>
                                 <div style={{ position: "relative" }}>
                                     <div onClick={() => setShowOwnerSearch(!showOwnerSearch)} style={{ width: "100%", padding: "10px 14px", borderRadius: 9, border: `1px solid ${t.border}`, background: isDark ? "rgba(255,255,255,0.05)" : "#fff", color: t.text, cursor: "pointer", fontSize: 14, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                                         <span>{resolvedOwnerName}</span><span style={{ fontSize: 10, opacity: 0.5 }}>▼</span>
