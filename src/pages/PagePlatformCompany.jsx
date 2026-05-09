@@ -142,6 +142,19 @@ export default function PagePlatformCompany({ t, isDark, USERS = [], CONTACTS = 
             setExistingLogos(files);
         }).finally(() => setLoadingLogos(false));
     }, []);
+    
+    // Sync owner from USERS if role is R10005
+    React.useEffect(() => {
+        if (USERS.length > 0 && (!data.owner || data.owner === data._origOwner)) {
+            const found = USERS.find(u => u.role_id === "R10005" || u.role === "R10005");
+            if (found) {
+                const uId = found.id || found.auth_uid;
+                if (uId && uId !== data.owner) {
+                    setData(s => ({ ...s, owner: uId, _origOwner: uId }));
+                }
+            }
+        }
+    }, [USERS]);
 
     // Auto-resolve TimeZone based on Info folder (State/Zip) and persist to Firestore
     React.useEffect(() => {
@@ -165,9 +178,11 @@ export default function PagePlatformCompany({ t, isDark, USERS = [], CONTACTS = 
     }, [data.owner, USERS, CONTACTS]);
 
     const filteredOwnerResults = React.useMemo(() => {
-        if (!ownerSearch) return USERS.slice(0, 50);
+        // Show all users so the platform admin can pick any of them to be the new platform owner
+        const all = (USERS || []);
+        if (!ownerSearch) return all.slice(0, 50);
         const q = ownerSearch.toLowerCase();
-        return USERS.filter(u => {
+        return all.filter(u => {
             const name = [u.first_name, u.last_name].filter(Boolean).join(" ") || u.name || u.contact_name || u.email || "";
             return name.toLowerCase().includes(q) || (u.email && u.email.toLowerCase().includes(q));
         }).sort((a, b) => {
@@ -217,6 +232,29 @@ export default function PagePlatformCompany({ t, isDark, USERS = [], CONTACTS = 
     const handleSave = async () => {
         setSaving(true);
         try {
+            // 1. Handle Ownership Transfer if it changed
+            if (data.owner && data.owner !== data._origOwner) {
+                const prevOwner = USERS.find(u => u.id === data._origOwner || u.auth_uid === data._origOwner);
+                const newOwner = USERS.find(u => u.id === data.owner || u.auth_uid === data.owner);
+
+                // Demote previous owner to Admin (R10004) if they exist
+                if (prevOwner) {
+                    const pid = prevOwner.id || prevOwner.auth_uid;
+                    if (pid) {
+                        await setDoc(doc(db, "global_users", pid), { role: "R10004", last_updated: serverTimestamp() }, { merge: true });
+                    }
+                }
+
+                // Promote new owner to Owner (R10005)
+                if (newOwner) {
+                    const nid = newOwner.id || newOwner.auth_uid;
+                    if (nid) {
+                        await setDoc(doc(db, "global_users", nid), { role: "R10005", last_updated: serverTimestamp() }, { merge: true });
+                    }
+                }
+            }
+
+            // 2. Save Platform Company Data
             await setDoc(doc(db, "platform_config", "company"), {
                 name: data.name,
                 logo: data.logo,
@@ -234,6 +272,7 @@ export default function PagePlatformCompany({ t, isDark, USERS = [], CONTACTS = 
                 achSetup: data.achSetup,
                 updated_at: serverTimestamp()
             }, { merge: true });
+
             setData(s => ({ ...s, _origOwner: data.owner }));
             showToast(`Platform company settings updated successfully.`);
         } catch (err) {

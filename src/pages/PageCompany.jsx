@@ -159,9 +159,17 @@ export default function PageCompany({ t, isDark, activeTenantId = "", USERS = []
             }).catch(e => console.error("Error fetching tenant data:", e));
 
             // Fetch platform email configuration
-            getDoc(doc(db, "platform_config", "company")).then(snap => {
-                if (snap.exists()) setPlatformEmailSetup(snap.data().emailSetup || null);
-            }).catch(e => console.error("Error fetching platform email config:", e));
+            try {
+                getDoc(doc(db, "platform_config", "company")).then(pSnap => {
+                    if (pSnap.exists()) {
+                        const pd = pSnap.data();
+                        setPlatformEmailSetup(pd.emailSetup || null);
+                    }
+                });
+            } catch (err) {
+                console.warn("Could not fetch platform email config (likely permissions):", err);
+                setPlatformEmailSetup(null);
+            }
         }
     }, [tenantId]); // Only run when tenantId changes to avoid overwriting edits
 
@@ -176,7 +184,7 @@ export default function PageCompany({ t, isDark, activeTenantId = "", USERS = []
                 }
             }
         }
-    }, [mergedUsers, tenantId]);
+    }, [mergedUsers, tenantId, data.owner, data._origOwner]);
 
     // Auto-resolve TimeZone based on Info folder (State/Zip) and persist to Firestore
     React.useEffect(() => {
@@ -208,7 +216,8 @@ export default function PageCompany({ t, isDark, activeTenantId = "", USERS = []
     }, [data.owner, mergedUsers]);
 
     const filteredOwnerResults = React.useMemo(() => {
-        const all = mergedUsers || [];
+        // Show all users so the admin can pick any of them to be the new owner
+        const all = (mergedUsers || []);
         if (!ownerSearch) return all.slice(0, 50);
         const q = ownerSearch.toLowerCase();
         return all.filter(u => {
@@ -262,29 +271,49 @@ export default function PageCompany({ t, isDark, activeTenantId = "", USERS = []
         setSaving(true);
         try {
             const isNewOwner = data.owner && data.owner !== data._origOwner;
+            
+            // 1. Handle Ownership Transfer if it changed
             if (isNewOwner) {
                 const iAmOwner = profile?.role_id === "R10005" || profile?.role === "R10005";
                 if (!iAmOwner && !isSuperAdmin) {
                     showToast("Only the current Owner or a Super Admin can transfer ownership.", "error");
-                    setSaving(false); return;
+                    setSaving(false); 
+                    return;
                 }
+
+                const newOwner = mergedUsers.find(u => u.id === data.owner || u.auth_uid === data.owner);
+                if (!newOwner) {
+                    showToast("Selected owner not found in user directory.", "error");
+                    setSaving(false);
+                    return;
+                }
+
+                // Demote existing owners
                 const existingOwners = mergedUsers.filter(u => u.role_id === "R10005" && u.id !== data.owner);
                 for (const old of existingOwners) {
-                    await updateDoc(doc(db, "tenants", tenantId, "users", old.id), { role_id: "R10004", updated_at: serverTimestamp() });
-                    await updateDoc(doc(db, "global_users", old.auth_uid || old.id), { role: "R10004", last_updated: serverTimestamp() });
+                    const oldId = old.id || old.auth_uid;
+                    if (oldId) {
+                        await updateDoc(doc(db, "tenants", tenantId, "users", oldId), { role_id: "R10004", updated_at: serverTimestamp() });
+                        await updateDoc(doc(db, "global_users", old.auth_uid || oldId), { role: "R10004", last_updated: serverTimestamp() });
+                    }
                 }
-                const newOwnerInTenant = mergedUsers.find(u => u.id === data.owner || u.auth_uid === data.owner);
-                if (newOwnerInTenant) {
-                    await updateDoc(doc(db, "tenants", tenantId, "users", newOwnerInTenant.id), { role_id: "R10005", updated_at: serverTimestamp() });
-                    await updateDoc(doc(db, "global_users", newOwnerInTenant.auth_uid || newOwnerInTenant.id), { role: "R10005", last_updated: serverTimestamp() });
-                }
+
+                // Promote new owner
+                const newId = newOwner.id || newOwner.auth_uid;
+                await updateDoc(doc(db, "tenants", tenantId, "users", newId), { role_id: "R10005", updated_at: serverTimestamp() });
+                await updateDoc(doc(db, "global_users", newOwner.auth_uid || newId), { role: "R10005", last_updated: serverTimestamp() });
+                
+                // Update local state to reflect change
+                setData(s => ({ ...s, _origOwner: data.owner }));
             }
-            await updateDoc(doc(db, "tenants", tenantId), {
+
+            // 2. Prepare payload for tenant document
+            const payload = {
                 tenant_name: data.name,
                 tenant_logo: data.logo,
                 tenant_email: data.email,
                 tenant_phone: data.phone,
-                address: data.address1,
+                address1: data.address1,
                 address2: data.address2,
                 city: data.city,
                 state: data.state,
@@ -292,17 +321,16 @@ export default function PageCompany({ t, isDark, activeTenantId = "", USERS = []
                 country: data.country,
                 home_page: data.home_page,
                 owner: data.owner,
-                owner_id: data.owner,
                 emailSetup: data.emailSetup,
                 achSetup: data.achSetup,
                 updated_at: serverTimestamp()
-            });
-            setData(s => ({ ...s, _origOwner: data.owner }));
-            const methodLabel = data.emailSetup.method === "SMTP" ? "Custom SMTP" : "Service Provider (API)";
-            showToast(`Company settings and ${methodLabel} configuration updated successfully.`);
+            };
+
+            await updateDoc(doc(db, "tenants", tenantId), payload);
+            showToast("Company settings saved successfully.", "success");
         } catch (err) {
-            console.error("Save company error:", err);
-            showToast("Failed to save changes: " + (err.message || "Unknown error"), "error");
+            console.error("Save error:", err);
+            showToast("Failed to save: " + (err.message || "Unknown error"), "error");
         } finally {
             setSaving(false);
         }
@@ -607,50 +635,56 @@ export default function PageCompany({ t, isDark, activeTenantId = "", USERS = []
                             <h3 style={{ fontSize: 17, fontWeight: 700, color: isDark ? "#fff" : "#1C1917", marginBottom: 6 }}>Email Setup</h3>
                             <p style={{ fontSize: 12.5, color: t.textMuted, lineHeight: 1.5 }}>Configure organization-level email infrastructure.</p>
                         </div>
-                        <div style={{ display: "flex", alignItems: "center", gap: 12, background: data.emailSetup.usePlatformEmail ? (isDark ? "rgba(59,130,246,0.15)" : "#EFF6FF") : (isDark ? "rgba(255,255,255,0.05)" : "#F5F5F4"), padding: "10px 16px", borderRadius: 12, border: `1px solid ${data.emailSetup.usePlatformEmail ? "rgba(59,130,246,0.3)" : t.border}`, transition: "all 0.2s" }}>
+                        <div 
+                            onClick={() => updES({ usePlatformEmail: !data.emailSetup.usePlatformEmail })}
+                            style={{ 
+                                display: "flex", alignItems: "center", gap: 12, cursor: "pointer",
+                                background: data.emailSetup.usePlatformEmail ? (isDark ? "rgba(59,130,246,0.15)" : "#EFF6FF") : (isDark ? "rgba(255,255,255,0.05)" : "#F5F5F4"), 
+                                padding: "10px 16px", borderRadius: 12, transition: "all 0.2s",
+                                border: `1px solid ${data.emailSetup.usePlatformEmail ? "rgba(59,130,246,0.3)" : t.border}` 
+                            }}>
                             <div style={{ display: "grid" }}>
                                 <span style={{ fontSize: 12, fontWeight: 700, color: data.emailSetup.usePlatformEmail ? (isDark ? "#60A5FA" : "#2563EB") : t.text }}>USE PLATFORM EMAIL SERVICE</span>
                                 <span style={{ fontSize: 10, color: t.textMuted }}>Inherit settings from global config</span>
                             </div>
-                            <label style={{ position: "relative", display: "inline-block", width: 44, height: 22, cursor: "pointer" }}>
-                                <input 
-                                    type="checkbox" 
-                                    checked={!!data.emailSetup.usePlatformEmail} 
-                                    onChange={e => updES({ usePlatformEmail: e.target.checked })}
-                                    style={{ position: "absolute", opacity: 0, width: "100%", height: "100%", cursor: "pointer", zIndex: 1 }} 
-                                />
-                                <span style={{ position: "absolute", cursor: "pointer", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: data.emailSetup.usePlatformEmail ? "#3B82F6" : "#E5E7EB", transition: "0.3s", borderRadius: 22 }}>
-                                    <span style={{ position: "absolute", content: '""', height: 18, width: 18, left: 2, bottom: 2, backgroundColor: "white", transition: "0.3s", borderRadius: "50%", transform: data.emailSetup.usePlatformEmail ? "translateX(22px)" : "translateX(0)" }}></span>
-                                </span>
-                            </label>
+                            <div 
+                                style={{ 
+                                    width: 40, height: 20, borderRadius: 10, background: data.emailSetup.usePlatformEmail ? t.accentGrad : (isDark ? "rgba(255,255,255,0.1)" : "#E5E7EB"), 
+                                    position: "relative", transition: "all 0.3s",
+                                    border: `1px solid ${data.emailSetup.usePlatformEmail ? "transparent" : t.border}`
+                                }}>
+                                <div style={{ 
+                                    position: "absolute", top: 2, left: data.emailSetup.usePlatformEmail ? 22 : 2, 
+                                    width: 14, height: 14, borderRadius: "50%", background: "#fff", 
+                                    boxShadow: "0 2px 4px rgba(0,0,0,0.2)", transition: "all 0.3s" 
+                                }} />
+                            </div>
                         </div>
                     </div>
 
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 32, marginBottom: 32, paddingBottom: 32, borderBottom: `1px solid ${t.border}`, opacity: data.emailSetup.usePlatformEmail ? 0.6 : 1, pointerEvents: data.emailSetup.usePlatformEmail ? "none" : "auto" }}>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 32, marginBottom: 32, paddingBottom: 32, borderBottom: `1px solid ${t.border}` }}>
                         <div style={{ display: "grid", gap: 16 }}>
                             <div style={{ fontSize: 13, fontWeight: 700, color: t.text }}>Common Fields (Required)</div>
-                            <FF label="From Email" t={t}><FIn value={data.emailSetup.usePlatformEmail ? (platformEmailSetup?.common?.fromEmail || "") : data.emailSetup.common.fromEmail} onChange={e => updES({ fromEmail: e.target.value })} placeholder="noreply@company.com" t={t} disabled={data.emailSetup.usePlatformEmail} /></FF>
-                            <FF label="From Name" t={t}><FIn value={data.emailSetup.usePlatformEmail ? (platformEmailSetup?.common?.fromName || "") : data.emailSetup.common.fromName} onChange={e => updES({ fromName: e.target.value })} placeholder="Company Name" t={t} disabled={data.emailSetup.usePlatformEmail} /></FF>
+                            <FF label="From Email" t={t}><FIn disabled={data.emailSetup.usePlatformEmail} value={data.emailSetup.usePlatformEmail ? (platformEmailSetup?.common?.fromEmail || "") : data.emailSetup.common.fromEmail} onChange={e => updES({ fromEmail: e.target.value })} placeholder="noreply@company.com" t={t} /></FF>
+                            <FF label="From Name" t={t}><FIn disabled={data.emailSetup.usePlatformEmail} value={data.emailSetup.usePlatformEmail ? (platformEmailSetup?.common?.fromName || "") : data.emailSetup.common.fromName} onChange={e => updES({ fromName: e.target.value })} placeholder="Company Name" t={t} /></FF>
                         </div>
                         <div style={{ display: "grid", gap: 16 }}>
                             <div style={{ fontSize: 13, fontWeight: 700, color: t.text }}>Optional / Testing</div>
-                            <FF label="Reply-To" t={t}><FIn value={data.emailSetup.usePlatformEmail ? (platformEmailSetup?.common?.replyTo || "") : data.emailSetup.common.replyTo} onChange={e => updES({ replyTo: e.target.value })} placeholder="support@company.com" t={t} disabled={data.emailSetup.usePlatformEmail} /></FF>
-                            <FF label="Test Email Address" t={t}><FIn value={data.emailSetup.common.testEmail} onChange={e => updES({ testEmail: e.target.value })} placeholder="test@company.com" t={t} /></FF>
+                            <FF label="Reply-To" t={t}><FIn disabled={data.emailSetup.usePlatformEmail} value={data.emailSetup.usePlatformEmail ? (platformEmailSetup?.common?.replyTo || "") : data.emailSetup.common.replyTo} onChange={e => updES({ replyTo: e.target.value })} placeholder="support@company.com" t={t} /></FF>
+                            <FF label="Test Email Address" t={t}><FIn disabled={data.emailSetup.usePlatformEmail} value={data.emailSetup.usePlatformEmail ? (platformEmailSetup?.common?.testEmail || "") : data.emailSetup.common.testEmail} onChange={e => updES({ testEmail: e.target.value })} placeholder="test@company.com" t={t} /></FF>
                         </div>
                     </div>
 
                     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 32 }}>
                         <div>
                             <FF label="Delivery Method" t={t}>
-                                <div style={{ display: "flex", gap: 8, background: isDark ? "rgba(255,255,255,0.05)" : "#F3F4F6", padding: 4, borderRadius: 10, opacity: data.emailSetup.usePlatformEmail ? 0.6 : 1, pointerEvents: data.emailSetup.usePlatformEmail ? "none" : "auto" }}>
+                                <div style={{ display: "flex", gap: 8, background: isDark ? "rgba(255,255,255,0.05)" : "#F3F4F6", padding: 4, borderRadius: 10 }}>
                                     <button onClick={() => updES({ method: "ESP" })}
-                                        disabled={data.emailSetup.usePlatformEmail}
                                         style={{ flex: 1, padding: "8px 0", borderRadius: 8, border: "none", fontSize: 13, fontWeight: 600, cursor: "pointer", background: (data.emailSetup.usePlatformEmail ? platformEmailSetup?.method === "ESP" : data.emailSetup.method === "ESP") ? t.accentGrad : "transparent", color: (data.emailSetup.usePlatformEmail ? platformEmailSetup?.method === "ESP" : data.emailSetup.method === "ESP") ? "#fff" : t.textMuted, position: "relative" }}>
                                         Service Provider (API)
                                         {(data.emailSetup.usePlatformEmail ? platformEmailSetup?.method === "ESP" : data.emailSetup.method === "ESP") && <span style={{ position: "absolute", top: -8, right: 4, background: "#34D399", color: "#fff", fontSize: 8, padding: "2px 6px", borderRadius: 6, fontWeight: 800 }}>ACTIVE</span>}
                                     </button>
                                     <button onClick={() => updES({ method: "SMTP" })}
-                                        disabled={data.emailSetup.usePlatformEmail}
                                         style={{ flex: 1, padding: "8px 0", borderRadius: 8, border: "none", fontSize: 13, fontWeight: 600, cursor: "pointer", background: (data.emailSetup.usePlatformEmail ? platformEmailSetup?.method === "SMTP" : data.emailSetup.method === "SMTP") ? t.accentGrad : "transparent", color: (data.emailSetup.usePlatformEmail ? platformEmailSetup?.method === "SMTP" : data.emailSetup.method === "SMTP") ? "#fff" : t.textMuted, position: "relative" }}>
                                         Custom SMTP
                                         {(data.emailSetup.usePlatformEmail ? platformEmailSetup?.method === "SMTP" : data.emailSetup.method === "SMTP") && <span style={{ position: "absolute", top: -8, right: 4, background: "#34D399", color: "#fff", fontSize: 8, padding: "2px 6px", borderRadius: 6, fontWeight: 800 }}>ACTIVE</span>}

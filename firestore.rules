@@ -111,6 +111,12 @@ service cloud.firestore {
       allow write: if isSecretAdmin() || isGlobalRole() || isCompanySuperAdmin() || isTenantAdmin(request.auth.token.tenantId);
     }
 
+    // Platform-level configuration
+    match /platform_config/{docId} {
+      allow read: if request.auth != null;
+      allow write: if isSecretAdmin() || isGlobalRole();
+    }
+
     // Global dimensions mapping
     match /dimensions/{dimensionId} {
       allow read: if request.auth != null;
@@ -120,6 +126,11 @@ service cloud.firestore {
     // === AI Assistant / Help System Rules ===
     match /system/{docId} {
       allow read: if request.auth != null;
+      allow write: if isCompanySuperAdmin() || isGlobalRole();
+    }
+
+    match /platform_config/{docId} {
+      allow read: if isCompanySuperAdmin() || isGlobalRole() || (isSignedIn() && (getRole() == 'R10004' || getRole() == 'R10005' || getRole() == 'Tenant Admin' || getRole() == 'Tenant Owner'));
       allow write: if isCompanySuperAdmin() || isGlobalRole();
     }
 
