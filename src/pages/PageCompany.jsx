@@ -336,10 +336,11 @@ export default function PageCompany({ t, isDark, activeTenantId = "", USERS = []
     };
 
     const updES = (updates) => setData(prev => {
-        const { method, timeZone, ...commonUpdates } = updates;
+        const { method, timeZone, usePlatformEmail, ...commonUpdates } = updates;
         const newES = { ...prev.emailSetup };
         if (method !== undefined) newES.method = method;
         if (timeZone !== undefined) newES.timeZone = timeZone;
+        if (usePlatformEmail !== undefined) newES.usePlatformEmail = usePlatformEmail;
         if (Object.keys(commonUpdates).length > 0) {
             newES.common = { ...newES.common, ...commonUpdates };
         }
@@ -616,7 +617,7 @@ export default function PageCompany({ t, isDark, activeTenantId = "", USERS = []
                                     type="checkbox" 
                                     checked={!!data.emailSetup.usePlatformEmail} 
                                     onChange={e => updES({ usePlatformEmail: e.target.checked })}
-                                    style={{ opacity: 0, width: 0, height: 0 }} 
+                                    style={{ position: "absolute", opacity: 0, width: "100%", height: "100%", cursor: "pointer", zIndex: 1 }} 
                                 />
                                 <span style={{ position: "absolute", cursor: "pointer", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: data.emailSetup.usePlatformEmail ? "#3B82F6" : "#E5E7EB", transition: "0.3s", borderRadius: 22 }}>
                                     <span style={{ position: "absolute", content: '""', height: 18, width: 18, left: 2, bottom: 2, backgroundColor: "white", transition: "0.3s", borderRadius: "50%", transform: data.emailSetup.usePlatformEmail ? "translateX(22px)" : "translateX(0)" }}></span>
