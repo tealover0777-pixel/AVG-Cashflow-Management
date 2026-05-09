@@ -165,11 +165,9 @@ export default function PagePlatformCompany({ t, isDark, USERS = [], CONTACTS = 
     }, [data.owner, USERS, CONTACTS]);
 
     const filteredOwnerResults = React.useMemo(() => {
-        // Only include users with role R10005 (OWNER) from global directory
-        const owners = USERS.filter(u => (u.role_id === "R10005" || u.role === "R10005" || u.role === "Owner" || u.role === "OWNER"));
-        if (!ownerSearch) return owners.slice(0, 50);
+        if (!ownerSearch) return USERS.slice(0, 50);
         const q = ownerSearch.toLowerCase();
-        return owners.filter(u => {
+        return USERS.filter(u => {
             const name = [u.first_name, u.last_name].filter(Boolean).join(" ") || u.name || u.contact_name || u.email || "";
             return name.toLowerCase().includes(q) || (u.email && u.email.toLowerCase().includes(q));
         }).sort((a, b) => {
