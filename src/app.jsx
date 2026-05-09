@@ -596,7 +596,7 @@ function AppContent() {
       owner_doc_id: ownerUser?.doc_id || ownerUser?.id || "",
       email: d.tenant_email || ownerUser?.email || "",
       phone: d.tenant_phone || ownerUser?.phone || ownerUser?.phone_number || "",
-      notes: d.Notes || d.notes || ownerUser?.notes || "",
+      notes: d.notes || d.Notes || ownerUser?.notes || "",
       features: d.features || { show_payment_lag: true, show_scheduled_payment_date: true },
       created_at: fmtDate(d.created_at),
       updated_at: fmtDate(d.updated_at),

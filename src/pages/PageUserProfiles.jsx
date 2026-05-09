@@ -105,7 +105,7 @@ export default function PageUserProfiles({ t, isDark, USERS = [], GLOBAL_USERS =
         return "U" + String(maxNum + 1).padStart(5, "0");
     }, [filteredUsers]);
 
-    const openInvite = () => setModal({ open: true, mode: "invite", data: { email: "", role_id: "", first_name: "", last_name: "", street1: "", street2: "", city: "", state: "", zip: "", inviteUser: true } });
+    const openInvite = () => setModal({ open: true, mode: "invite", data: { email: "", role_id: "", first_name: "", last_name: "", street1: "", street2: "", city: "", state: "", zip: "", inviteUser: true, notes: "" } });
     const openEdit = r => {
         const tid = r.tenantId || r.tenant_id || r.Tenant_ID || tenantId;
         setModal({ open: true, mode: "edit", data: { ...r, role_id: r.role_id || "", tenantId: tid, _origTenantId: tid } });
@@ -306,7 +306,7 @@ export default function PageUserProfiles({ t, isDark, USERS = [], GLOBAL_USERS =
                         await updateDoc(doc(db, "tenants", tid), {
                             tenant_email: String(d.email || ""),
                             tenant_phone: String(d.phone || ""),
-                            Notes: String(d.notes || ""),
+                            notes: String(d.notes || ""),
                             updated_at: serverTimestamp()
                         });
                     }
@@ -472,7 +472,7 @@ export default function PageUserProfiles({ t, isDark, USERS = [], GLOBAL_USERS =
                     Invite user (Send verification email)
                 </label>
             </div>
-            <FF label="Internal Notes" t={t}><textarea value={modal.data.notes || ""} onChange={e => setF("notes", e.target.value)} placeholder="Private notes about this user..." style={{ background: isDark ? "rgba(255,255,255,0.04)" : "#fff", color: t.text, border: `1px solid ${t.border}`, borderRadius: 9, padding: "10px 13px", fontSize: 13.5, outline: "none", width: "100%", minHeight: 80, fontFamily: t.font, resize: "vertical" }} /></FF>
+            <FF label="Notes" t={t}><textarea value={modal.data.notes || ""} onChange={e => setF("notes", e.target.value)} placeholder="Private notes about this user..." style={{ background: isDark ? "rgba(255,255,255,0.04)" : "#fff", color: t.text, border: `1px solid ${t.border}`, borderRadius: 9, padding: "10px 13px", fontSize: 13.5, outline: "none", width: "100%", minHeight: 80, fontFamily: t.font, resize: "vertical" }} /></FF>
         </Modal>
 
         {/* Resend Invite Modal */}
@@ -526,7 +526,7 @@ export default function PageUserProfiles({ t, isDark, USERS = [], GLOBAL_USERS =
               </FF>
               <FF label="Zip" t={t}><FIn value={modal.data.zip || ""} onChange={e => setF("zip", e.target.value)} placeholder="10001" t={t} /></FF>
             </div>
-            <FF label="Internal Notes" t={t}><textarea value={modal.data.notes || ""} onChange={e => setF("notes", e.target.value)} placeholder="Private notes..." style={{ background: isDark ? "rgba(255,255,255,0.04)" : "#fff", color: t.text, border: `1px solid ${t.border}`, borderRadius: 9, padding: "10px 13px", fontSize: 13.5, outline: "none", width: "100%", minHeight: 80, fontFamily: t.font, resize: "vertical" }} /></FF>
+            <FF label="Notes" t={t}><textarea value={modal.data.notes || ""} onChange={e => setF("notes", e.target.value)} placeholder="Private notes..." style={{ background: isDark ? "rgba(255,255,255,0.04)" : "#fff", color: t.text, border: `1px solid ${t.border}`, borderRadius: 9, padding: "10px 13px", fontSize: 13.5, outline: "none", width: "100%", minHeight: 80, fontFamily: t.font, resize: "vertical" }} /></FF>
         </Modal>
 
         <DelModal open={!!delT} onClose={() => setDelT(null)} onDel={handleDeleteUser} title="Delete User?" t={t}>

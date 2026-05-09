@@ -81,7 +81,7 @@ export default function PageSuperAdmin({ t, isDark, ROLES = [], TENANTS = [] }) 
         }).sort((a, b) => a.display.localeCompare(b.display));
     }, [ROLES]);
 
-    const openInvite = () => setModal({ open: true, mode: "invite", data: { email: "", first_name: "", last_name: "", role: "", tenantId: "", street1: "", street2: "", city: "", state: "", zip: "" } });
+    const openInvite = () => setModal({ open: true, mode: "invite", data: { email: "", first_name: "", last_name: "", role: "", tenantId: "", street1: "", street2: "", city: "", state: "", zip: "", notes: "" } });
     const openEdit = r => {
         // Use auth_uid or id for global_users key
         const targetUid = r.auth_uid || r.uid || r.id;
@@ -334,7 +334,7 @@ export default function PageSuperAdmin({ t, isDark, ROLES = [], TENANTS = [] }) 
               </FF>
               <FF label="Zip" t={t}><FIn value={modal.data.zip || ""} onChange={e => setF("zip", e.target.value)} placeholder="10001" t={t} /></FF>
             </div>
-            <FF label="Internal Notes" t={t}><textarea value={modal.data.notes || ""} onChange={e => setF("notes", e.target.value)} placeholder="Private notes..." style={{ background: isDark ? "rgba(255,255,255,0.04)" : "#fff", color: t.text, border: `1px solid ${t.border}`, borderRadius: 9, padding: "10px 13px", fontSize: 13.5, outline: "none", width: "100%", minHeight: 80, fontFamily: t.font, resize: "vertical" }} /></FF>
+            <FF label="Notes" t={t}><textarea value={modal.data.notes || ""} onChange={e => setF("notes", e.target.value)} placeholder="Private notes..." style={{ background: isDark ? "rgba(255,255,255,0.04)" : "#fff", color: t.text, border: `1px solid ${t.border}`, borderRadius: 9, padding: "10px 13px", fontSize: 13.5, outline: "none", width: "100%", minHeight: 80, fontFamily: t.font, resize: "vertical" }} /></FF>
         </Modal>
 
         {/* Invite Modal */}
@@ -384,7 +384,7 @@ export default function PageSuperAdmin({ t, isDark, ROLES = [], TENANTS = [] }) 
               </FF>
               <FF label="Zip" t={t}><FIn value={modal.data.zip || ""} onChange={e => setF("zip", e.target.value)} placeholder="10001" t={t} /></FF>
             </div>
-            <FF label="Internal Notes" t={t}><textarea value={modal.data.notes || ""} onChange={e => setF("notes", e.target.value)} placeholder="Private notes..." style={{ background: isDark ? "rgba(255,255,255,0.04)" : "#fff", color: t.text, border: `1px solid ${t.border}`, borderRadius: 9, padding: "10px 13px", fontSize: 13.5, outline: "none", width: "100%", minHeight: 80, fontFamily: t.font, resize: "vertical" }} /></FF>
+            <FF label="Notes" t={t}><textarea value={modal.data.notes || ""} onChange={e => setF("notes", e.target.value)} placeholder="Private notes..." style={{ background: isDark ? "rgba(255,255,255,0.04)" : "#fff", color: t.text, border: `1px solid ${t.border}`, borderRadius: 9, padding: "10px 13px", fontSize: 13.5, outline: "none", width: "100%", minHeight: 80, fontFamily: t.font, resize: "vertical" }} /></FF>
         </Modal>
 
         <DelModal open={!!delT} onClose={() => setDelT(null)} onDel={handleDeleteUser} title="Delete Global User?" t={t}>

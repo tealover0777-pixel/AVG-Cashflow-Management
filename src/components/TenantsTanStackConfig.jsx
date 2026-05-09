@@ -41,6 +41,7 @@ export const getTenantColumns = (permissions, isDark, t, onEdit, onDel, onInvite
       accessorKey: 'email',
       header: 'Email',
       size: 180,
+      accessorFn: r => r.email || r.tenant_email || "",
       cell: ({ getValue }) => <span style={{ fontSize: '12px', color: t.textSecondary }}>{getValue() || "—"}</span>,
     },
     {
@@ -53,6 +54,7 @@ export const getTenantColumns = (permissions, isDark, t, onEdit, onDel, onInvite
       accessorKey: 'notes',
       header: 'Notes',
       size: 180,
+      accessorFn: r => r.notes || r.Notes || "",
       cell: ({ getValue }) => (
         <span style={{ fontSize: '12px', color: t.textMuted, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {getValue() || "—"}

@@ -114,9 +114,10 @@ export default function PageTenants({ t, isDark, TENANTS = [], GLOBAL_USERS = []
         const payload = {
             tenant_name: d.name || "",
             owner_id: ownerId,
+            email: d.email || "",
             tenant_email: d.email || "",
             tenant_phone: d.phone || "",
-            Notes: d.notes || "",
+            notes: d.notes || "",
             features: {
                 show_payment_lag: !!d.show_payment_lag,
                 show_scheduled_payment_date: !!d.show_scheduled_payment_date,
@@ -335,7 +336,7 @@ export default function PageTenants({ t, isDark, TENANTS = [], GLOBAL_USERS = []
                     value={modal.data.notes || ""} 
                     onChange={e => setF("notes", e.target.value)} 
                     placeholder="Tenant notes..." 
-                    style={{ background: isDark ? "rgba(255,255,255,0.04)" : "#fff", color: t.text, border: `1px solid ${t.border}`, borderRadius: 9, padding: "10px 13px", fontSize: 13.5, outline: "none", width: "100%", minHeight: 60, fontFamily: t.font, resize: "vertical" }} 
+                    style={{ background: isDark ? "rgba(255,255,255,0.04)" : "#fff", color: t.text, border: `1px solid ${t.border}`, borderRadius: 9, padding: "10px 13px", fontSize: 13.5, outline: "none", width: "100%", minHeight: 80, fontFamily: t.font, resize: "vertical" }} 
                 />
             </FF>
             
