@@ -615,14 +615,12 @@ exports.activateUser = functions.https.onCall(async (data, context) => {
  * Helper to get the active email configuration for a tenant.
  * Handles inheritance from platform_config if usePlatformEmail is enabled.
  */
-async function getActiveEmailSetup(tenantId, db) {
+async function getActiveEmailSetup(tenantId, db, forcePlatform = false) {
   if (!tenantId) return null;
   const tenantSnap = await db.collection('tenants').doc(tenantId).get();
-  if (!tenantSnap.exists) return null;
-  const tData = tenantSnap.data();
-  const setup = tData.emailSetup;
+  const setup = tenantSnap.exists ? tenantSnap.data().emailSetup : null;
 
-  if (setup && setup.usePlatformEmail) {
+  if (forcePlatform || (setup && setup.usePlatformEmail)) {
     const platformSnap = await db.collection('platform_config').doc('company').get();
     if (platformSnap.exists) {
       return platformSnap.data().emailSetup;
@@ -635,9 +633,9 @@ async function getActiveEmailSetup(tenantId, db) {
  * Helper to get a nodemailer transporter based on tenant settings.
  * Supports specialized translation of Service Provider (API) settings into SMTP transports.
  */
-async function getTransporter(tenantId) {
+async function getTransporter(tenantId, forcePlatform = false) {
   const db = admin.firestore();
-  const setup = await getActiveEmailSetup(tenantId, db);
+  const setup = await getActiveEmailSetup(tenantId, db, forcePlatform);
 
   if (!setup) {
     // Fallback to system default
@@ -757,12 +755,12 @@ function renderEmailBody(rows) {
 exports.sendTestEmail = functions.https.onCall(async (data, context) => {
   if (!context.auth) throw new functions.https.HttpsError('unauthenticated', 'Login required.');
   
-  const { tenantId, recipientEmail, subject, rows, fromName: overrideFromName, fromEmail: overrideFromEmail, replyTo: overrideReplyTo } = data;
+  const { tenantId, recipientEmail, subject, rows, fromName: overrideFromName, fromEmail: overrideFromEmail, replyTo: overrideReplyTo, usePlatformEmail } = data;
   if (!tenantId || !recipientEmail) throw new functions.https.HttpsError('invalid-argument', 'Missing tenantId or recipientEmail.');
 
   try {
     const db = admin.firestore();
-    const setup = await getActiveEmailSetup(tenantId, db);
+    const setup = await getActiveEmailSetup(tenantId, db, !!usePlatformEmail);
     const common = (setup && setup.common) || {};
 
     // Determine effective sender details
@@ -770,7 +768,7 @@ exports.sendTestEmail = functions.https.onCall(async (data, context) => {
     const finalFromName = overrideFromName || common.fromName || "American Vision Group";
     const finalReplyTo = overrideReplyTo || common.replyTo || finalFromEmail;
 
-    const transporter = await getTransporter(tenantId);
+    const transporter = await getTransporter(tenantId, !!usePlatformEmail);
     const htmlBody = renderEmailBody(rows);
     const personalizedSubject = await resolveRecipientTags(subject || "Test Email", recipientEmail, tenantId, db, finalFromName);
     const personalizedHtml = await resolveRecipientTags(htmlBody, recipientEmail, tenantId, db, finalFromName);

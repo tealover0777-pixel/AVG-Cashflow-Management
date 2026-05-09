@@ -344,9 +344,10 @@ export default function PageCompany({ t, isDark, activeTenantId = "", USERS = []
             await sendFn({
                 tenantId,
                 recipientEmail: target,
+                usePlatformEmail: !!data.emailSetup.usePlatformEmail,
                 subject: "Test Configuration - American Vision Group",
                 rows: [
-                    { type: "paragraph", content: { html: `<h3>Configuration Test Success</h3><p>Your email infrastructure was verified by <b>${user?.displayName || user?.email}</b>.</p><p>Relay: ${es.method === "SMTP" ? es.smtp.host : es.api.provider}</p>${data.emailSetup.usePlatformEmail ? "<p><i>Using Platform Email Service</i></p>" : ""}` } }
+                    { type: "paragraph", content: { html: `<h3>Configuration Test Success</h3><p>Your email infrastructure was verified by <b>${user?.displayName || user?.email}</b>.</p><p>Relay: ${es.method === "SMTP" ? es.smtp?.host : es.api?.provider}</p>${data.emailSetup.usePlatformEmail ? "<p><i>Using Platform Email Service</i></p>" : ""}` } }
                 ]
             });
             showToast(`Test email sent to ${target}. Please check your inbox.`);
