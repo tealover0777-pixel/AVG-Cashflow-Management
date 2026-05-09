@@ -156,11 +156,14 @@ function AppContent() {
   const [platformConfig, setPlatformConfig] = useState(null);
 
   useEffect(() => {
-    const unsub = onSnapshot(doc(db, "platform_config", "company"), (snap) => {
-      if (snap.exists()) setPlatformConfig(snap.data());
-    });
+    if (!user) return;
+    const unsub = onSnapshot(
+      doc(db, "platform_config", "company"),
+      (snap) => { if (snap.exists()) setPlatformConfig(snap.data()); },
+      (err) => console.warn("platform_config listener:", err.code)
+    );
     return () => unsub();
-  }, []);
+  }, [user?.uid]);
 
   const fetchTemplates = async (force = false) => {
     if (templatesFetched && !force) return;
@@ -249,7 +252,7 @@ function AppContent() {
   const { data: rawUsers, loading: l9, error: e9 } = useFirestoreCollection(userFetchPath, isGlobalConsolidated);
 
   // Fetch global_users to get first_name/last_name for User Profiles
-  const { data: globalUsers, loading: l13, error: e13 } = useFirestoreCollection(user ? "global_users" : null);
+  const { data: globalUsers } = useFirestoreCollection(user ? "global_users" : null);
 
   const { data: rawRoles, loading: l10, error: e10 } = useFirestoreCollection((activeTenantId && (isSuperAdmin || isTenantAdmin || hasPermission("ROLE_TYPE_*") || hasPermission("USER_PROFILE_*"))) ? (isGlobalConsolidated ? "role_types" : (activeTenantId !== "GLOBAL" ? fetchPaths.roles : null)) : null);
   const { data: rawDimensions, loading: l7, error: e7 } = useFirestoreCollection(user ? fetchPaths.dimensions : null);
