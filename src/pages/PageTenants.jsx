@@ -87,18 +87,22 @@ export default function PageTenants({ t, isDark, TENANTS = [], GLOBAL_USERS = []
         mode: "add",
         data: { id: nextTenantId, name: "", owner_id: "U10001", first_name: "", last_name: "", email: "", phone: "", notes: "", role_id: "R10005", inviteUser: true, show_payment_lag: true, show_scheduled_payment_date: true }
     });
-    const openEdit = r => setModal({ 
-        open: true, 
-        mode: "edit", 
-        data: { 
-            ...r, 
-            email: r.tenant_email || "",
-            first_name: r.owner_first_name || "", 
-            last_name: r.owner_last_name || "",
-            show_payment_lag: !!r.features?.show_payment_lag,
-            show_scheduled_payment_date: !!r.features?.show_scheduled_payment_date
-        } 
-    });
+    const openEdit = r => {
+        const initialEmail = r.email || r.tenant_email || "";
+        setModal({ 
+            open: true, 
+            mode: "edit", 
+            data: { 
+                ...r, 
+                email: initialEmail,
+                tenant_email: initialEmail, // Ensure we have a reference to the "original" email
+                first_name: r.owner_first_name || "", 
+                last_name: r.owner_last_name || "",
+                show_payment_lag: !!r.features?.show_payment_lag,
+                show_scheduled_payment_date: !!r.features?.show_scheduled_payment_date
+            } 
+        });
+    };
     const close = () => setModal(m => ({ ...m, open: false }));
     const setF = (k, v) => setModal(m => ({ ...m, data: { ...m.data, [k]: v } }));
 
@@ -326,7 +330,14 @@ export default function PageTenants({ t, isDark, TENANTS = [], GLOBAL_USERS = []
                 <FF label="LAST NAME" t={t}><FIn value={modal.data.last_name || ""} onChange={e => setF("last_name", e.target.value)} placeholder="Doe" t={t} /></FF>
             </div>
 
-            <FF label="Notes" t={t}><FIn value={modal.data.notes} onChange={e => setF("notes", e.target.value)} placeholder="Tenant notes..." t={t} /></FF>
+            <FF label="Notes" t={t}>
+                <textarea 
+                    value={modal.data.notes || ""} 
+                    onChange={e => setF("notes", e.target.value)} 
+                    placeholder="Tenant notes..." 
+                    style={{ background: isDark ? "rgba(255,255,255,0.04)" : "#fff", color: t.text, border: `1px solid ${t.border}`, borderRadius: 9, padding: "10px 13px", fontSize: 13.5, outline: "none", width: "100%", minHeight: 60, fontFamily: t.font, resize: "vertical" }} 
+                />
+            </FF>
             
             <div style={{ marginTop: 12, padding: "14px 16px", borderRadius: 12, background: isDark ? "rgba(255,255,255,0.03)" : "#F9FAFB", border: `1px solid ${t.surfaceBorder}` }}>
                 <span style={{ fontSize: 13.5, fontWeight: 600, color: isDark ? "#fff" : "#1C1917", display: "block", marginBottom: 16 }}>Feature Permissions</span>
@@ -368,14 +379,7 @@ export default function PageTenants({ t, isDark, TENANTS = [], GLOBAL_USERS = []
                 </label>
             </div>
 
-            <FF label="INTERNAL NOTES" t={t}>
-                <textarea 
-                    value={modal.data.notes || ""} 
-                    onChange={e => setF("notes", e.target.value)} 
-                    placeholder="Private notes about this tenant/owner..." 
-                    style={{ background: isDark ? "rgba(255,255,255,0.04)" : "#fff", color: t.text, border: `1px solid ${t.border}`, borderRadius: 9, padding: "10px 13px", fontSize: 13.5, outline: "none", width: "100%", minHeight: 80, fontFamily: t.font, resize: "vertical" }} 
-                />
-            </FF>
+
         </Modal>
 
         <DelModal target={delT} onClose={() => setDelT(null)} onConfirm={handleDeleteTenant} label="This tenant" t={t} isDark={isDark} />
