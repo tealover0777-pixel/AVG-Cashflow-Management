@@ -293,10 +293,11 @@ export default function PagePlatformCompany({ t, isDark, USERS = [], CONTACTS = 
             const sendFn = httpsCallable(functions, "sendTestEmail");
             await sendFn({
                 tenantId: "PLATFORM",
+                usePlatformEmail: true,
                 recipientEmail: target,
                 subject: "Platform Configuration Test - American Vision Group",
                 rows: [
-                    { type: "paragraph", content: { html: `<h3>Platform Configuration Test Success</h3><p>Your platform email infrastructure was verified by <b>${user?.displayName || user?.email}</b>.</p><p>Relay: ${data.emailSetup.method === "SMTP" ? data.emailSetup.smtp.host : data.emailSetup.api.provider}</p>` } }
+                    { type: "paragraph", content: { html: `<h3>Platform Configuration Test Success</h3><p>Your platform email infrastructure was verified by <b>${user?.displayName || user?.email}</b>.</p><p>Relay: ${data.emailSetup.method === "SMTP" ? data.emailSetup.smtp?.host : data.emailSetup.api?.provider}</p>` } }
                 ]
             });
             showToast(`Test email sent to ${target}. Please check your inbox.`);

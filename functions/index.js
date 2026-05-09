@@ -622,9 +622,10 @@ async function getActiveEmailSetup(tenantId, db, forcePlatform = false) {
 
   if (forcePlatform || (setup && setup.usePlatformEmail)) {
     const platformSnap = await db.collection('platform_config').doc('company').get();
-    if (platformSnap.exists) {
-      return platformSnap.data().emailSetup;
-    }
+    const platformSetup = platformSnap.exists ? platformSnap.data().emailSetup : null;
+    if (platformSetup) return platformSetup;
+    // Platform email is selected but not configured — throw early with a clear message
+    throw new Error("Platform email service is not configured. Go to Platform Company → Email tab and save your SMTP or ESP settings first.");
   }
   return setup;
 }
