@@ -891,7 +891,7 @@ function AppContent() {
                   {activePage === "Manage Templates" && <PageManageTemplates t={t} isDark={isDark} setActivePage={setActivePage} setActiveEmailTemplate={setActiveEmailTemplate} allTemplates={allTemplates} loading={loadingTemplates} fetchTemplates={fetchTemplates} />}
                   {activePage === "Email Builder" && <PageEmailBuilder t={t} isDark={isDark} setActivePage={setActivePage} activeEmailTemplate={activeEmailTemplate} setActiveEmailTemplate={setActiveEmailTemplate} refreshTemplates={() => fetchTemplates(true)} activeTenantId={activeTenantId} backTo={prevPage} USERS={rawUsers} CONTACTS={CONTACTS} DIMENSIONS={DIMENSIONS} organizationName={determinedTenantName} />}
                   {activePage === "AI Admin" && <PageAdminHelp t={t} isDark={isDark} />}
-                  {activePage === "Company" && <PageCompany t={t} isDark={isDark} activeTenantId={activeTenantId} USERS={rawUsers} CONTACTS={rawContacts} />}
+                  {activePage === "Company" && <PageCompany t={t} isDark={isDark} activeTenantId={activeTenantId} USERS={rawUsers} GLOBAL_USERS={globalUsers} CONTACTS={rawContacts} />}
                   {activePage === "Platform Company" && <PagePlatformCompany t={t} isDark={isDark} USERS={globalUsers} CONTACTS={rawContacts} />}
                 </>
               )}
