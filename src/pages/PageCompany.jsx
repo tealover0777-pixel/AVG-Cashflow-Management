@@ -159,17 +159,12 @@ export default function PageCompany({ t, isDark, activeTenantId = "", USERS = []
             }).catch(e => console.error("Error fetching tenant data:", e));
 
             // Fetch platform email configuration
-            try {
-                getDoc(doc(db, "platform_config", "company")).then(pSnap => {
-                    if (pSnap.exists()) {
-                        const pd = pSnap.data();
-                        setPlatformEmailSetup(pd.emailSetup || null);
-                    }
-                });
-            } catch (err) {
-                console.warn("Could not fetch platform email config (likely permissions):", err);
-                setPlatformEmailSetup(null);
-            }
+            getDoc(doc(db, "platform_config", "company")).then(pSnap => {
+                if (pSnap.exists()) {
+                    const pd = pSnap.data();
+                    setPlatformEmailSetup(pd.emailSetup || null);
+                }
+            }).catch(() => setPlatformEmailSetup(null));
         }
     }, [tenantId]); // Only run when tenantId changes to avoid overwriting edits
 
