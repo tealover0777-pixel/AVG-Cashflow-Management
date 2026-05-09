@@ -138,8 +138,12 @@ export default function PageTenants({ t, isDark, TENANTS = [], GLOBAL_USERS = []
                         payload.owner_first_name = newOwner.first_name || "";
                         payload.owner_last_name = newOwner.last_name || "";
                     }
-                    const updateTenantFn = httpsCallable(functions, "updateUserTenant");
-                    await updateTenantFn({ uid: d.selectedOwnerId, email: payload.tenant_email, newTenantId: d.docId, role: "R10005", first_name: payload.owner_first_name, last_name: payload.owner_last_name });
+                    const assignOwnerFn = httpsCallable(functions, "assignTenantOwner");
+                    await assignOwnerFn({ 
+                        tenantId: d.docId, 
+                        newOwnerUid: d.selectedOwnerId, 
+                        newOwnerEmail: payload.tenant_email 
+                    });
                 } 
                 // Case B: Create BRAND NEW Owner User for Existing Tenant
                 else if (!d.selectedOwnerId && d.email && d.email !== d.tenant_email) {

@@ -226,32 +226,14 @@ export default function PageUserProfiles({ t, isDark, USERS = [], GLOBAL_USERS =
                 const isPromotingToOwner = d.role_id === "R10005";
                 const wasAlreadyOwner = profile?.role_id === "R10005" || profile?.role === "R10005";
 
-                if (isPromotingToOwner) {
-                    if (!wasAlreadyOwner && !isSuperAdmin) {
-                        showToast("Only the current Owner or a Super Admin can assign a new Owner.", "error");
-                        setSaving(false);
-                        return;
-                    }
-
-                    // Find current owner to demote
-                    // Find current owner to demote
-                    const existingOwner = USERS.find(u => u.role_id === "R10005" && u.id !== d.id);
-                    if (existingOwner) {
-                        const ownerPath = existingOwner._path || (collectionPath ? `${collectionPath}/${existingOwner.id}` : null);
-                        if (ownerPath && !ownerPath.includes("//")) {
-                            await updateDoc(doc(db, ownerPath), { role_id: "R10004", updated_at: serverTimestamp() });
-                        }
-                        await updateDoc(doc(db, "global_users", existingOwner.auth_uid || existingOwner.id), { role: "R10004", last_updated: serverTimestamp() });
-                    }
+                if (isPromotingToOwner && !wasAlreadyOwner) {
                     const tid = d.tenantId || d.tenant_id || d.Tenant_ID || tenantId;
                     if (tid && tid !== "GLOBAL") {
-                        await updateDoc(doc(db, "tenants", tid), { 
-                            owner: d.auth_uid || d.id, 
-                            owner_id: d.auth_uid || d.id, 
-                            tenant_email: String(d.email || ""),
-                            owner_first_name: String(d.first_name || ""),
-                            owner_last_name: String(d.last_name || ""),
-                            updated_at: serverTimestamp() 
+                        const assignOwnerFn = httpsCallable(functions, "assignTenantOwner");
+                        await assignOwnerFn({ 
+                            tenantId: tid, 
+                            newOwnerUid: d.auth_uid || d.id, 
+                            newOwnerEmail: d.email 
                         });
                     }
                 }

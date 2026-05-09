@@ -945,3 +945,104 @@ exports.sendMarketingEmail = functions.https.onCall(async (data, context) => {
     throw new functions.https.HttpsError('internal', err.message);
   }
 });
+
+/**
+ * Atomic function to assign a new owner to a tenant.
+ * 1. Demotes all current owners in the tenant to Admin (R10004).
+ * 2. Promotes the new owner to Owner (R10005).
+ * 3. Updates the 'tenants' document with the new owner details.
+ * 4. Syncs global_users and custom claims for both old and new owners.
+ */
+exports.assignTenantOwner = functions.https.onCall(async (data, context) => {
+  if (!context.auth) {
+    throw new functions.https.HttpsError('unauthenticated', 'Must be authenticated.');
+  }
+
+  const { tenantId, newOwnerUid, newOwnerEmail } = data;
+  if (!tenantId || !newOwnerUid) {
+    throw new functions.https.HttpsError('invalid-argument', 'Missing tenantId or newOwnerUid.');
+  }
+
+  const db = admin.firestore();
+
+  try {
+    // 1. Verify permissions (Caller must be Super Admin or current Owner of this tenant)
+    const callerClaims = context.auth.token;
+    const isSuperAdmin = callerClaims.email === "kyuahn@yahoo.com" || callerClaims.role === "Super Admin" || callerClaims.role === "L2 Admin";
+    
+    // Check if caller is the current owner of the tenant
+    let isCurrentOwner = false;
+    if (!isSuperAdmin) {
+      const tenantSnap = await db.doc(`tenants/${tenantId}`).get();
+      if (tenantSnap.exists && (tenantSnap.data().owner_id === context.auth.uid || tenantSnap.data().owner === context.auth.uid)) {
+        isCurrentOwner = true;
+      }
+    }
+
+    if (!isSuperAdmin && !isCurrentOwner) {
+      throw new functions.https.HttpsError('permission-denied', 'Only Super Admins or the current Tenant Owner can assign a new owner.');
+    }
+
+    const batch = db.batch();
+    const updates = [];
+
+    // 2. Find and demote current owners in this tenant
+    const usersRef = db.collection(`tenants/${tenantId}/users`);
+    const currentOwnersSnap = await usersRef.where('role_id', '==', 'R10005').get();
+    
+    for (const docSnap of currentOwnersSnap.docs) {
+      const oldOwnerUid = docSnap.data().auth_uid || docSnap.id;
+      if (oldOwnerUid === newOwnerUid) continue; // Skip if it's already the new owner (shouldn't happen but safe)
+
+      // Demote in tenant users
+      batch.update(docSnap.ref, { role_id: 'R10004', updated_at: admin.firestore.FieldValue.serverTimestamp() });
+      
+      // Demote in global_users
+      const globalRef = db.collection('global_users').doc(oldOwnerUid);
+      batch.update(globalRef, { role: 'R10004', last_updated: admin.firestore.FieldValue.serverTimestamp() });
+
+      // Update Custom Claims for old owner
+      updates.push(admin.auth().setCustomUserClaims(oldOwnerUid, { role: 'R10004', tenantId }));
+    }
+
+    // 3. Promote new owner
+    // Find new owner in tenant users
+    const newOwnerSnap = await usersRef.where('auth_uid', '==', newOwnerUid).get();
+    if (!newOwnerSnap.empty) {
+      const newOwnerDoc = newOwnerSnap.docs[0];
+      batch.update(newOwnerDoc.ref, { role_id: 'R10005', updated_at: admin.firestore.FieldValue.serverTimestamp() });
+      
+      const nData = newOwnerDoc.data();
+      // Update tenant document
+      const tenantRef = db.doc(`tenants/${tenantId}`);
+      batch.update(tenantRef, {
+        owner: newOwnerUid,
+        owner_id: newOwnerUid,
+        tenant_email: nData.email || newOwnerEmail || "",
+        owner_first_name: nData.first_name || "",
+        owner_last_name: nData.last_name || "",
+        updated_at: admin.firestore.FieldValue.serverTimestamp()
+      });
+    } else {
+      // If user not in tenant users yet, we might need to handle this differently, 
+      // but usually they are already a member or being moved.
+      // For now, assume they exist or use updateUserTenant first.
+      console.warn("New owner not found in tenant users subcollection:", newOwnerUid);
+    }
+
+    // Promote in global_users
+    const newGlobalRef = db.collection('global_users').doc(newOwnerUid);
+    batch.update(newGlobalRef, { role: 'R10005', tenantId, last_updated: admin.firestore.FieldValue.serverTimestamp() });
+
+    // Update Custom Claims for new owner
+    updates.push(admin.auth().setCustomUserClaims(newOwnerUid, { role: 'R10005', tenantId }));
+
+    await batch.commit();
+    await Promise.all(updates);
+
+    return { success: true, message: `Successfully assigned ${newOwnerUid} as owner of tenant ${tenantId}.` };
+  } catch (error) {
+    console.error("Assign Tenant Owner Error:", error);
+    throw new functions.https.HttpsError('internal', error.message);
+  }
+});
