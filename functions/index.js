@@ -650,19 +650,18 @@ async function getTransporter(tenantId, forcePlatform = false) {
 
   if (method === 'SMTP' && setup.smtp && setup.smtp.host) {
     const port = parseInt(setup.smtp.port) || 587;
-    // For SMTP: 
-    // 465 = Implicit SSL (secure: true)
-    // 587/25 = STARTTLS (secure: false)
-    // We force the correct logic based on port to avoid SSL version mismatches.
-    const secure = (port === 465); 
+    const secure = (port === 465);
+    const smtpUser = (setup.smtp.user || "").trim();
+    const smtpPass = (setup.smtp.pass || "").replace(/\s/g, "");
+    console.log(`[getTransporter] SMTP host=${setup.smtp.host} port=${port} secure=${secure} user=${smtpUser} passLen=${smtpPass.length}`);
 
     return nodemailer.createTransport({
       host: setup.smtp.host,
       port,
       secure,
       auth: {
-        user: (setup.smtp.user || "").trim(),
-        pass: (setup.smtp.pass || "").replace(/\s/g, "")
+        user: smtpUser,
+        pass: smtpPass
       },
       tls: {
         // Do not fail on invalid certs
