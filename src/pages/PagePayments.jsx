@@ -514,7 +514,7 @@ export default function PagePayments({ t, isDark, PAYMENTS = [], INVESTMENTS = [
           </div>
         </div>
         {!achConfig?.enabled && (
-          <button onClick={() => window.location.hash = "#Company"} style={{ padding: "8px 16px", borderRadius: 8, background: t.accent, color: "#fff", border: "none", fontSize: 12, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap" }}>
+          <button onClick={() => setActivePage("Company")} style={{ padding: "8px 16px", borderRadius: 8, background: t.accent, color: "#fff", border: "none", fontSize: 12, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap" }}>
             Finalize Setup
           </button>
         )}

@@ -103,24 +103,22 @@ function AppContent() {
     return saved !== null ? saved === "dark" : true;
   });
   
-  // Hash Routing Logic
-  const pageToHash = (page) => page.replace(/\s+/g, "-");
-  const hashToPage = (hash) => {
-    const clean = hash.replace(/^#/, "").replace(/-/g, " ");
-    // Special handling for casing if needed, but the Nav labels are mostly Title Case
-    // We'll try to find an exact match in the flat nav list to be safe
-    return clean; 
+  // Pathname Routing Logic
+  const pageToPath = (page) => `/${page.replace(/\s+/g, "-")}`;
+  const pathToPage = (pathname) => {
+    const clean = pathname.replace(/^\//, "").replace(/-/g, " ");
+    return clean || "Dashboard";
   };
 
   const [activePage, setActivePage] = useState(() => {
-    const initialHash = window.location.hash;
-    if (initialHash) return hashToPage(initialHash);
+    const pathname = window.location.pathname;
+    if (pathname && pathname !== "/") return pathToPage(pathname);
     return "Dashboard";
   });
 
   useEffect(() => {
     const handlePopState = () => {
-      const newPage = hashToPage(window.location.hash || "#Dashboard");
+      const newPage = pathToPage(window.location.pathname);
       setActivePage(newPage);
     };
     window.addEventListener("popstate", handlePopState);
@@ -128,10 +126,10 @@ function AppContent() {
   }, []);
 
   useEffect(() => {
-    const currentHash = window.location.hash;
-    const targetHash = `#${pageToHash(activePage)}`;
-    if (currentHash !== targetHash) {
-      window.history.pushState(null, "", targetHash);
+    const currentPath = window.location.pathname;
+    const targetPath = pageToPath(activePage);
+    if (currentPath !== targetPath) {
+      window.history.pushState(null, "", targetPath);
     }
   }, [activePage]);
 
