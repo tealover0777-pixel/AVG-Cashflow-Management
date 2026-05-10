@@ -115,7 +115,7 @@ export default function PageSuperAdmin({ t, isDark, ROLES = [], TENANTS = [] }) 
                 zip: d.zip || ""
             });
             close();
-            setInviteResult({ link: result.data.link, email: d.email, emailSent: result.data.emailSent, roleName: d.role });
+            setInviteResult({ link: result.data.link, email: d.email, emailSent: result.data.emailSent, roleName: d.role, user_id: result.data.user_id });
         } catch (err) {
             console.error("Invite error:", err);
             showToast("Invite failed: " + (err.message || "Unknown error"), "error");
@@ -147,7 +147,7 @@ export default function PageSuperAdmin({ t, isDark, ROLES = [], TENANTS = [] }) 
                 first_name: fn,
                 last_name: ln
             });
-            setInviteResult({ link: result.data.link, email: user.email, emailSent: result.data.emailSent, roleName: user.role });
+            setInviteResult({ link: result.data.link, email: user.email, emailSent: result.data.emailSent, roleName: user.role, user_id: result.data.user_id });
         } catch (err) {
             console.error("Row invite error:", err);
             showToast("Invite failed: " + (err.message || "Unknown error"), "error");
@@ -273,11 +273,17 @@ export default function PageSuperAdmin({ t, isDark, ROLES = [], TENANTS = [] }) 
                             </div>
                             <div style={{ fontSize: 13, color: t.textMuted, lineHeight: 1.5 }}>
                                 {inviteResult.emailSent
-                                    ? <><strong>{inviteResult.email}</strong> has been invited. They will receive a link to set their password and log in.</>
-                                    : <>User <strong>{inviteResult.email}</strong> was created but the invitation email failed. Copy the link below and share it manually.</>}
+                                    ? <><strong>{inviteResult.email}</strong> has been invited as <strong>{inviteResult.roleName || "User"}</strong>. They will receive a link to set their password.</>
+                                    : <>User <strong>{inviteResult.email}</strong> was created as <strong>{inviteResult.roleName || "User"}</strong> but the invitation email failed. Copy the link below and share it manually.</>}
                             </div>
                         </div>
                     </div>
+                    {inviteResult.user_id && (
+                        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                            <span style={{ fontSize: 12, color: t.textMuted, whiteSpace: "nowrap" }}>User ID</span>
+                            <span style={{ fontFamily: t.mono, fontSize: 13, fontWeight: 700, color: t.accent, background: isDark ? "rgba(255,255,255,0.08)" : "#F0F9FF", padding: "3px 10px", borderRadius: 6 }}>{inviteResult.user_id}</span>
+                        </div>
+                    )}
                     {inviteResult.link && (
                         <div>
                             <div style={{ fontSize: 12, fontWeight: 600, color: t.textMuted, marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.5px" }}>Invitation Link</div>
