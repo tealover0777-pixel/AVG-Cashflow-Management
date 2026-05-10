@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useMemo } from "react";
 import { badge, fmtCurr, getCurrentPeriod } from "../utils";
 import { StatCard, Bdg, ActBtns } from "../components";
 import { useDashboardData } from "../hooks/useDashboardData";
@@ -10,10 +10,70 @@ import {
   ArrowUpRight, ArrowDownRight, Calendar, Users
 } from 'lucide-react';
 
+const CF_TYPES = [
+  { key: "investorInterest", label: "Investor Interest", color: "#6366F1", match: t => /investor/i.test(t || "") },
+  { key: "borrowerInterest", label: "Borrower Interest", color: "#10B981", match: t => /borrower/i.test(t || "") },
+  { key: "principalDeposit", label: "Principal Deposit", color: "#8B5CF6", match: t => /principal/i.test(t || "") },
+  { key: "disbursement",     label: "Disbursement",     color: "#F59E0B", match: t => /disburs/i.test(t || "") },
+  { key: "fee",              label: "Fee",              color: "#EF4444", match: t => /fee/i.test(t || "") },
+];
+
 export default function PageDashboard(props) {
-  const { t, isDark, setActivePage, DIMENSIONS = [] } = props;
+  const { t, isDark, setActivePage, DIMENSIONS = [],
+    DEALS = [], INVESTMENTS = [], CONTACTS = [], SCHEDULES = [] } = props;
   const data = useDashboardData({ ...props, DIMENSIONS });
-  const { metrics, charts, recentActivity, investments, isMember, myContact } = data;
+  const { metrics, recentActivity, investments, isMember, myContact } = data;
+
+  const [cfDeal, setCfDeal] = useState("");
+  const [cfContact, setCfContact] = useState("");
+  const [cfActiveTypes, setCfActiveTypes] = useState(() => new Set(CF_TYPES.map(f => f.key)));
+
+  const toggleType = (key) => setCfActiveTypes(prev => {
+    const next = new Set(prev);
+    next.has(key) ? next.delete(key) : next.add(key);
+    return next;
+  });
+
+  const cfDeals = useMemo(() => [...new Map(DEALS.map(d => [d.id, d])).values()].sort((a, b) => (a.deal_name || a.name || "").localeCompare(b.deal_name || b.name || "")), [DEALS]);
+  const cfContacts = useMemo(() => [...new Map(CONTACTS.map(c => [c.id, c])).values()].sort((a, b) => ((a.first_name || "") + (a.last_name || "")).localeCompare((b.first_name || "") + (b.last_name || ""))), [CONTACTS]);
+
+  const cfChartData = useMemo(() => {
+    const ZEROED = new Set(["Missed", "Cancelled", "VOID", "Waived", "Replaced"]);
+    let base = SCHEDULES.filter(s => s.active_version !== false && !ZEROED.has(s.status));
+
+    if (cfDeal) {
+      const invIds = new Set(INVESTMENTS.filter(i => i.deal_id === cfDeal).map(i => i.id));
+      base = base.filter(s => invIds.has(s.investment_id || s.investment));
+    }
+    if (cfContact) {
+      const invIds = new Set(INVESTMENTS.filter(i => i.contact_id === cfContact).map(i => i.id));
+      base = base.filter(s => invIds.has(s.investment_id || s.investment));
+    }
+
+    const dates = base.map(s => s.scheduled_payment_date || s.dueDate).filter(Boolean);
+    if (!dates.length) return [];
+    const first = new Date(Math.min(...dates.map(d => new Date(d))));
+    const last  = new Date(Math.max(...dates.map(d => new Date(d))));
+    const startQ = new Date(first.getFullYear(), Math.floor(first.getMonth() / 3) * 3, 1);
+    const endQ   = new Date(last.getFullYear(),  (Math.floor(last.getMonth()  / 3) + 1) * 3, 0);
+
+    const result = [];
+    let cur = new Date(startQ);
+    while ((cur <= endQ || result.length < 4) && result.length < 40) {
+      const qStart = new Date(cur.getFullYear(), cur.getMonth(), 1);
+      const qEnd   = new Date(cur.getFullYear(), cur.getMonth() + 3, 0);
+      const qs = qStart.toISOString().slice(0, 10);
+      const qe = qEnd.toISOString().slice(0, 10);
+      const qSchedules = base.filter(s => { const d = s.scheduled_payment_date || s.dueDate; return d && d >= qs && d <= qe; });
+      const entry = { name: `Q${Math.floor(cur.getMonth() / 3) + 1} ${cur.getFullYear()}` };
+      CF_TYPES.forEach(f => {
+        entry[f.key] = qSchedules.filter(s => f.match(s.type)).reduce((sum, s) => sum + Number(String(s.payment || 0).replace(/[^0-9.-]/g, "")), 0);
+      });
+      result.push(entry);
+      cur.setMonth(cur.getMonth() + 3);
+    }
+    return result;
+  }, [SCHEDULES, INVESTMENTS, cfDeal, cfContact]);
 
   const topCards = [
     {
@@ -121,43 +181,77 @@ export default function PageDashboard(props) {
       {/* Charts Row */}
       <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 20, marginBottom: 24 }}>
         <div style={{ background: t.surface, borderRadius: 20, padding: 24, border: `1px solid ${t.surfaceBorder}`, minWidth: 0 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+          {/* Header */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
             <h3 style={{ fontSize: 15, fontWeight: 700, color: isDark ? '#fff' : '#1C1917' }}>Cashflow Overview</h3>
-            <div style={{ display: 'flex', gap: 12, fontSize: 11, fontWeight: 600 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}><div style={{ width: 8, height: 8, borderRadius: 2, background: t.accent }} /> IN Proj</div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}><div style={{ width: 8, height: 8, borderRadius: 2, background: '#10B981' }} /> IN Act</div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}><div style={{ width: 8, height: 8, borderRadius: 2, background: '#F87171' }} /> OUT Proj</div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}><div style={{ width: 8, height: 8, borderRadius: 2, background: '#FBBF24' }} /> OUT Act</div>
-            </div>
           </div>
-          <div style={{ height: 320, width: '100%', overflowX: 'auto', overflowY: 'hidden', paddingBottom: 8, scrollbarWidth: 'thin' }}>
-            <div style={{ width: Math.max(charts.cashflow.length * 120, 600), height: '100%', minWidth: 600, minHeight: 100 }}>
-              {charts.cashflow.length > 0 ? (
+
+          {/* Filters row */}
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 14, alignItems: 'center' }}>
+            {/* Deal Name dropdown */}
+            <select
+              value={cfDeal}
+              onChange={e => setCfDeal(e.target.value)}
+              style={{ padding: '5px 10px', borderRadius: 8, border: `1px solid ${cfDeal ? t.accent : t.border}`, background: cfDeal ? (isDark ? 'rgba(99,102,241,0.12)' : '#EEF2FF') : (isDark ? 'rgba(255,255,255,0.05)' : '#F9FAFB'), color: cfDeal ? t.accent : t.textMuted, fontSize: 12, fontWeight: 600, cursor: 'pointer', outline: 'none' }}
+            >
+              <option value="">All Deals</option>
+              {cfDeals.map(d => <option key={d.id} value={d.id}>{d.deal_name || d.name}</option>)}
+            </select>
+
+            {/* Contact Name dropdown */}
+            <select
+              value={cfContact}
+              onChange={e => setCfContact(e.target.value)}
+              style={{ padding: '5px 10px', borderRadius: 8, border: `1px solid ${cfContact ? t.accent : t.border}`, background: cfContact ? (isDark ? 'rgba(99,102,241,0.12)' : '#EEF2FF') : (isDark ? 'rgba(255,255,255,0.05)' : '#F9FAFB'), color: cfContact ? t.accent : t.textMuted, fontSize: 12, fontWeight: 600, cursor: 'pointer', outline: 'none' }}
+            >
+              <option value="">All Contacts</option>
+              {cfContacts.map(c => <option key={c.id} value={c.id}>{[c.first_name, c.last_name].filter(Boolean).join(' ') || c.name || c.email || c.id}</option>)}
+            </select>
+
+            <div style={{ width: 1, height: 20, background: t.border, margin: '0 2px' }} />
+
+            {/* Payment type toggle chips */}
+            {CF_TYPES.map(f => {
+              const active = cfActiveTypes.has(f.key);
+              return (
+                <button
+                  key={f.key}
+                  onClick={() => toggleType(f.key)}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 5,
+                    padding: '4px 10px', borderRadius: 20, border: `1px solid ${active ? f.color : (isDark ? 'rgba(255,255,255,0.12)' : '#E5E7EB')}`,
+                    background: active ? `${f.color}18` : 'transparent',
+                    color: active ? f.color : (isDark ? 'rgba(255,255,255,0.3)' : '#9CA3AF'),
+                    fontSize: 11, fontWeight: 600, cursor: 'pointer', transition: 'all 0.15s'
+                  }}
+                >
+                  <div style={{ width: 7, height: 7, borderRadius: '50%', background: active ? f.color : (isDark ? 'rgba(255,255,255,0.2)' : '#D1D5DB'), flexShrink: 0 }} />
+                  {f.label}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Chart */}
+          <div style={{ height: 290, width: '100%', overflowX: 'auto', overflowY: 'hidden', paddingBottom: 8, scrollbarWidth: 'thin' }}>
+            <div style={{ width: Math.max(cfChartData.length * 130, 600), height: '100%', minWidth: 600 }}>
+              {cfChartData.length > 0 ? (
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={charts.cashflow} margin={{ bottom: 20 }}>
+                  <BarChart data={cfChartData} margin={{ bottom: 20 }}>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDark ? "rgba(255,255,255,0.05)" : "#F3F4F6"} />
-                    <XAxis
-                      dataKey="name"
-                      axisLine={false}
-                      tickLine={false}
-                      tick={{ fontSize: 11, fill: t.textMuted }}
-                      dy={10}
-                    />
-                    <YAxis
-                      axisLine={false}
-                      tickLine={false}
-                      tick={{ fontSize: 11, fill: t.textMuted }}
-                      tickFormatter={(v) => `$${v / 1000}k`}
-                    />
+                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: t.textMuted }} dy={10} />
+                    <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: t.textMuted }} tickFormatter={v => `$${v >= 1000000 ? (v / 1000000).toFixed(1) + 'M' : (v / 1000).toFixed(0) + 'k'}`} />
                     <Tooltip
                       contentStyle={{ background: isDark ? '#1C1917' : '#fff', border: `1px solid ${t.surfaceBorder}`, borderRadius: 12, fontSize: 12 }}
                       cursor={{ fill: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)' }}
-                      formatter={(value) => fmtCurr(value)}
+                      formatter={(value, name) => {
+                        const f = CF_TYPES.find(x => x.key === name);
+                        return [fmtCurr(value), f?.label || name];
+                      }}
                     />
-                    <Bar dataKey="projectedIn" fill={t.accent} radius={[3, 3, 0, 0]} barSize={16} />
-                    <Bar dataKey="actualIn" fill="#10B981" radius={[3, 3, 0, 0]} barSize={16} />
-                    <Bar dataKey="projectedOut" fill="#F87171" radius={[3, 3, 0, 0]} barSize={16} />
-                    <Bar dataKey="actualOut" fill="#FBBF24" radius={[3, 3, 0, 0]} barSize={16} />
+                    {CF_TYPES.map(f => cfActiveTypes.has(f.key) && (
+                      <Bar key={f.key} dataKey={f.key} fill={f.color} radius={[3, 3, 0, 0]} barSize={14} />
+                    ))}
                   </BarChart>
                 </ResponsiveContainer>
               ) : (
