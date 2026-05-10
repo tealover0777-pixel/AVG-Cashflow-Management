@@ -228,15 +228,47 @@ exports.resendVerification = functions.https.onCall(async (data, context) => {
   }
 
   try {
-    const userRecord = await admin.auth().getUserByEmail(email);
+    const db = admin.firestore();
+
+    // Resolve or create the Firebase Auth user
+    let userRecord;
+    let isNewAuthUser = false;
+    try {
+      userRecord = await admin.auth().getUserByEmail(email);
+    } catch (e) {
+      if (e.code !== 'auth/user-not-found') throw e;
+      // User exists in Firestore but not Auth — create the Auth account now
+      userRecord = await admin.auth().createUser({ email, emailVerified: false, disabled: false });
+      isNewAuthUser = true;
+      console.log(`resendVerification: created missing Auth user for ${email}`);
+    }
+
     const uid = userRecord.uid;
+
+    // If we just created the Auth user, sync custom claims from global_users
+    if (isNewAuthUser) {
+      const gSnap = await db.collection('global_users').doc(uid).get();
+      if (!gSnap.exists) {
+        // Try matching by email
+        const matches = await db.collection('global_users').where('email', '==', email).limit(1).get();
+        if (!matches.empty) {
+          const gData = matches.docs[0].data();
+          await admin.auth().setCustomUserClaims(uid, { role: gData.role || '', tenantId: gData.tenantId || '', isGlobal: gData.isGlobal || false });
+          await db.collection('global_users').doc(uid).update({ auth_uid: uid });
+        }
+      } else {
+        const gData = gSnap.data();
+        await admin.auth().setCustomUserClaims(uid, { role: gData.role || '', tenantId: gData.tenantId || '', isGlobal: gData.isGlobal || false });
+      }
+    }
+
     const link = await admin.auth().generatePasswordResetLink(email);
 
     // Send password reset email (uses platform email as fallback if tenant has no config)
     let emailSent = false;
-    const db = admin.firestore();
     const globalSnap = await db.collection('global_users').doc(uid).get();
-    const tenantId = globalSnap.exists ? globalSnap.data().tenantId : null;
+    const tenantId = globalSnap.exists ? globalSnap.data().tenantId
+      : (await db.collection('global_users').where('email', '==', email).limit(1).get().then(s => s.empty ? null : s.docs[0].data().tenantId));
 
     try {
       const setup = await getActiveEmailSetup(tenantId, db);
