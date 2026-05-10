@@ -40,6 +40,7 @@ export default function PageUserProfiles({ t, isDark, USERS = [], GLOBAL_USERS =
     const [saving, setSaving] = useState(false);
     const [inviteResult, setInviteResult] = useState(null);
     const [inviteConfirm, setInviteConfirm] = useState(null);
+    const [linkCopied, setLinkCopied] = useState(false);
     const [toast, setToast] = useState(null); // { msg, type: 'success'|'error'|'info' }
 
     const showToast = (msg, type = "info") => {
@@ -160,14 +161,7 @@ export default function PageUserProfiles({ t, isDark, USERS = [], GLOBAL_USERS =
             });
             close();
             setInviteConfirm(null);
-            const emailSent = result.data.emailSent;
-            showToast(
-                emailSent
-                    ? `Invitation email sent to ${party.email}`
-                    : `User created — email could not be sent. Copy the link to share manually.`,
-                emailSent ? "success" : "error"
-            );
-            setInviteResult({ email: party.email, user_id: result.data.user_id, emailSent, link: result.data.link, roleName: roleInfo.name });
+            setInviteResult({ email: party.email, user_id: result.data.user_id, emailSent: result.data.emailSent, link: result.data.link, roleName: roleInfo.name });
         } catch (err) {
             console.error("Invite error:", err);
             showToast("Invite failed: " + (err.message || "Unknown error"), "error");
@@ -355,46 +349,46 @@ export default function PageUserProfiles({ t, isDark, USERS = [], GLOBAL_USERS =
             </div>
         )}
 
-        {inviteResult && (
-            <div style={{ position: "fixed", inset: 0, zIndex: 1100, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <div style={{ background: isDark ? "#1C1917" : "#fff", borderRadius: 16, padding: 28, maxWidth: 540, width: "90%", boxShadow: "0 24px 60px rgba(0,0,0,0.3)" }}>
-                    <h3 style={{ fontFamily: t.titleFont, fontSize: 18, marginBottom: 8, color: isDark ? "#fff" : "#1C1917" }}>
-                        {inviteResult.emailSent ? "✅ Invite Sent!" : "✅ User Created"}
-                    </h3>
-                    <p style={{ fontSize: 13, color: t.textMuted, marginBottom: 12, lineHeight: 1.6 }}>
-                        <strong>{inviteResult.email}</strong> has been added as a {inviteResult.roleName || "User"}.
-                    </p>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 14px", borderRadius: 9, marginBottom: 16, background: inviteResult.emailSent ? (isDark ? "rgba(34,197,94,0.1)" : "#F0FDF4") : (isDark ? "rgba(245,158,11,0.1)" : "#FFFBEB"), border: `1px solid ${inviteResult.emailSent ? "rgba(34,197,94,0.3)" : "rgba(245,158,11,0.3)"}` }}>
-                        <span style={{ fontSize: 16 }}>{inviteResult.emailSent ? "📧" : "⚠️"}</span>
-                        <span style={{ fontSize: 12.5, color: inviteResult.emailSent ? "#16a34a" : "#b45309", lineHeight: 1.5 }}>
-                            {inviteResult.emailSent
-                                ? <>Invitation email sent to <strong>{inviteResult.email}</strong>. They can use the link to set their password and log in.</>
-                                : <>Email could not be sent. Share the invitation link below manually so they can set their password.</>}
-                        </span>
+        <Modal
+            open={!!inviteResult}
+            onClose={() => { setInviteResult(null); setLinkCopied(false); }}
+            title={inviteResult?.emailSent ? "Invitation Sent" : "User Created"}
+            onSave={inviteResult?.link ? () => { navigator.clipboard.writeText(inviteResult.link); setLinkCopied(true); } : null}
+            saveLabel={linkCopied ? "✅ Copied!" : "Copy Link"}
+            width={520} t={t} isDark={isDark}
+        >
+            {inviteResult && (
+                <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                    <div style={{ display: "flex", alignItems: "flex-start", gap: 14, padding: "14px 16px", borderRadius: 10, background: inviteResult.emailSent ? (isDark ? "rgba(34,197,94,0.08)" : "#F0FDF4") : (isDark ? "rgba(239,68,68,0.08)" : "#FEF2F2"), border: `1px solid ${inviteResult.emailSent ? "rgba(34,197,94,0.25)" : "rgba(239,68,68,0.25)"}` }}>
+                        <span style={{ fontSize: 28, lineHeight: 1 }}>{inviteResult.emailSent ? "📧" : "❌"}</span>
+                        <div>
+                            <div style={{ fontSize: 14, fontWeight: 700, color: inviteResult.emailSent ? "#16a34a" : "#dc2626", marginBottom: 4 }}>
+                                {inviteResult.emailSent ? "Email sent successfully" : "Email could not be sent"}
+                            </div>
+                            <div style={{ fontSize: 13, color: t.textMuted, lineHeight: 1.5 }}>
+                                {inviteResult.emailSent
+                                    ? <><strong>{inviteResult.email}</strong> has been invited as <strong>{inviteResult.roleName || "User"}</strong>. They will receive a link to set their password.</>
+                                    : <>User <strong>{inviteResult.email}</strong> was created as <strong>{inviteResult.roleName || "User"}</strong> but the invitation email failed. Copy the link below and share it manually.</>}
+                            </div>
+                        </div>
                     </div>
                     {inviteResult.user_id && (
-                        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
-                            <span style={{ fontSize: 12, color: t.textMuted }}>User ID:</span>
+                        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                            <span style={{ fontSize: 12, color: t.textMuted, whiteSpace: "nowrap" }}>User ID</span>
                             <span style={{ fontFamily: t.mono, fontSize: 13, fontWeight: 700, color: t.accent, background: isDark ? "rgba(255,255,255,0.08)" : "#F0F9FF", padding: "3px 10px", borderRadius: 6 }}>{inviteResult.user_id}</span>
                         </div>
                     )}
                     {inviteResult.link && (
-                        <>
-                            <p style={{ fontSize: 12, color: t.textMuted, marginBottom: 6 }}>Verification link:</p>
-                            <div style={{ background: isDark ? "rgba(255,255,255,0.05)" : "#F5F4F1", border: `1px solid ${t.surfaceBorder}`, borderRadius: 9, padding: "10px 14px", fontFamily: t.mono, fontSize: 12, wordBreak: "break-all", color: t.accent, marginBottom: 16 }}>
+                        <div>
+                            <div style={{ fontSize: 12, fontWeight: 600, color: t.textMuted, marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.5px" }}>Invitation Link</div>
+                            <div style={{ background: isDark ? "rgba(255,255,255,0.04)" : "#F5F4F1", border: `1px solid ${t.surfaceBorder}`, borderRadius: 9, padding: "12px 14px", fontFamily: t.mono, fontSize: 11.5, wordBreak: "break-all", color: t.accent, lineHeight: 1.6 }}>
                                 {inviteResult.link}
                             </div>
-                        </>
+                        </div>
                     )}
-                    <div style={{ display: "flex", gap: 10 }}>
-                        {inviteResult.link && (
-                            <button onClick={() => { navigator.clipboard.writeText(inviteResult.link); }} style={{ flex: 1, background: t.accentGrad, color: "#fff", border: "none", borderRadius: 9, padding: "10px 18px", fontSize: 13.5, fontWeight: 600, cursor: "pointer" }}>Copy Link</button>
-                        )}
-                        <button onClick={() => setInviteResult(null)} style={{ flex: 1, background: isDark ? "rgba(255,255,255,0.08)" : "#F5F4F1", color: t.text, border: `1px solid ${t.border}`, borderRadius: 9, padding: "10px 18px", fontSize: 13.5, cursor: "pointer" }}>Close</button>
-                    </div>
                 </div>
-            </div>
-        )}
+            )}
+        </Modal>
 
         <div style={{ marginBottom: 28, display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
             <div>
