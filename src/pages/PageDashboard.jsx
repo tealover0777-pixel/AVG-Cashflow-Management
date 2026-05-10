@@ -34,8 +34,25 @@ export default function PageDashboard(props) {
     return next;
   });
 
-  const cfDeals = useMemo(() => [...new Map(DEALS.map(d => [d.id, d])).values()].sort((a, b) => (a.deal_name || a.name || "").localeCompare(b.deal_name || b.name || "")), [DEALS]);
-  const cfContacts = useMemo(() => [...new Map(CONTACTS.map(c => [c.id, c])).values()].sort((a, b) => ((a.first_name || "") + (a.last_name || "")).localeCompare((b.first_name || "") + (b.last_name || ""))), [CONTACTS]);
+  const cfDeals = useMemo(() => {
+    let deals = DEALS;
+    if (cfContact) {
+      const dealIds = new Set(INVESTMENTS.filter(i => i.contact_id === cfContact).map(i => i.deal_id).filter(Boolean));
+      deals = deals.filter(d => dealIds.has(d.id));
+    }
+    return [...new Map(deals.map(d => [d.id, d])).values()]
+      .sort((a, b) => (a.deal_name || a.name || "").localeCompare(b.deal_name || b.name || ""));
+  }, [DEALS, INVESTMENTS, cfContact]);
+
+  const cfContacts = useMemo(() => {
+    let contacts = CONTACTS;
+    if (cfDeal) {
+      const contactIds = new Set(INVESTMENTS.filter(i => i.deal_id === cfDeal).map(i => i.contact_id).filter(Boolean));
+      contacts = contacts.filter(c => contactIds.has(c.id) || contactIds.has(c.docId));
+    }
+    return [...new Map(contacts.map(c => [c.id, c])).values()]
+      .sort((a, b) => ((a.first_name || "") + (a.last_name || "")).localeCompare((b.first_name || "") + (b.last_name || "")));
+  }, [CONTACTS, INVESTMENTS, cfDeal]);
 
   const cfChartData = useMemo(() => {
     const ZEROED = new Set(["Missed", "Cancelled", "VOID", "Waived", "Replaced"]);
@@ -191,7 +208,7 @@ export default function PageDashboard(props) {
             {/* Deal Name dropdown */}
             <select
               value={cfDeal}
-              onChange={e => setCfDeal(e.target.value)}
+              onChange={e => { setCfDeal(e.target.value); setCfContact(""); }}
               style={{ padding: '5px 10px', borderRadius: 8, border: `1px solid ${cfDeal ? t.accent : t.border}`, background: cfDeal ? (isDark ? 'rgba(99,102,241,0.12)' : '#EEF2FF') : (isDark ? 'rgba(255,255,255,0.05)' : '#F9FAFB'), color: cfDeal ? t.accent : t.textMuted, fontSize: 12, fontWeight: 600, cursor: 'pointer', outline: 'none' }}
             >
               <option value="">All Deals</option>
@@ -201,7 +218,7 @@ export default function PageDashboard(props) {
             {/* Contact Name dropdown */}
             <select
               value={cfContact}
-              onChange={e => setCfContact(e.target.value)}
+              onChange={e => { setCfContact(e.target.value); setCfDeal(""); }}
               style={{ padding: '5px 10px', borderRadius: 8, border: `1px solid ${cfContact ? t.accent : t.border}`, background: cfContact ? (isDark ? 'rgba(99,102,241,0.12)' : '#EEF2FF') : (isDark ? 'rgba(255,255,255,0.05)' : '#F9FAFB'), color: cfContact ? t.accent : t.textMuted, fontSize: 12, fontWeight: 600, cursor: 'pointer', outline: 'none' }}
             >
               <option value="">All Contacts</option>
