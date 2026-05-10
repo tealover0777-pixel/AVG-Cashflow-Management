@@ -830,43 +830,56 @@ export default function PageMarketingEmails({ t, isDark, setActivePage, MARKETIN
           )}
         </div>
       </div>
-      <div style={{ 
-        marginBottom: 20, 
-        padding: "14px 20px", 
-        borderRadius: 12, 
-        background: (emailConfig?.common?.fromEmail) ? (isDark ? "rgba(52,211,153,0.05)" : "#f0fdf4") : (isDark ? "rgba(248,113,113,0.05)" : "#fef2f2"),
-        border: `1px solid ${(emailConfig?.common?.fromEmail) ? (isDark ? "rgba(52,211,153,0.2)" : "#bbf7d0") : (isDark ? "rgba(248,113,113,0.2)" : "#fecaca")}`,
-        display: "flex", 
-        alignItems: "center", 
-        justifyContent: "space-between",
-        gap: 16,
-        animation: "slideIn 0.3s ease-out"
-      }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <div style={{ width: 36, height: 36, borderRadius: 8, background: (emailConfig?.common?.fromEmail) ? t.accentGrad : (isDark ? "#2d0a0a" : "#fee2e2"), display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>
-            {(emailConfig?.common?.fromEmail) ? "📧" : "⚠️"}
-          </div>
-          <div>
-            <div style={{ fontSize: 13, fontWeight: 700, color: t.text }}>
-              {(emailConfig?.common?.fromEmail)
-                ? `Email Infrastructure Active${emailConfig._usingPlatform ? " (Platform)" : ""}: ${emailConfig.common.fromName || "American Vision Group"}`
-                : emailConfig?._usingPlatform ? "Platform Email Not Configured" : "Email Setup Incomplete"}
+      {(() => {
+        const usingPlatform = !!emailConfig?._usingPlatform;
+        const isEmailActive = usingPlatform
+          ? !!emailConfig?.common?.fromEmail
+          : emailConfig?.verified === true && !!emailConfig?.common?.fromEmail;
+        const verifiedButNotTested = !usingPlatform && !!emailConfig?.common?.fromEmail && emailConfig?.verified !== true;
+        return (
+          <div style={{
+            marginBottom: 20,
+            padding: "14px 20px",
+            borderRadius: 12,
+            background: isEmailActive ? (isDark ? "rgba(52,211,153,0.05)" : "#f0fdf4") : (isDark ? "rgba(248,113,113,0.05)" : "#fef2f2"),
+            border: `1px solid ${isEmailActive ? (isDark ? "rgba(52,211,153,0.2)" : "#bbf7d0") : (isDark ? "rgba(248,113,113,0.2)" : "#fecaca")}`,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 16,
+            animation: "slideIn 0.3s ease-out"
+          }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              <div style={{ width: 36, height: 36, borderRadius: 8, background: isEmailActive ? t.accentGrad : (isDark ? "#2d0a0a" : "#fee2e2"), display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>
+                {isEmailActive ? "📧" : "⚠️"}
+              </div>
+              <div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: t.text }}>
+                  {isEmailActive
+                    ? `Email Infrastructure Active${usingPlatform ? " (Platform)" : ""}: ${emailConfig.common.fromName || "American Vision Group"}`
+                    : usingPlatform ? "Platform Email Not Configured"
+                    : verifiedButNotTested ? "Verification Required"
+                    : "Email Setup Incomplete"}
+                </div>
+                <div style={{ fontSize: 12, color: t.textMuted }}>
+                  {isEmailActive
+                    ? `Sending via ${usingPlatform ? "Platform • " : ""}${emailConfig.method === "API" ? emailConfig.api?.provider : "SMTP Relay"} • ${emailConfig.common.fromEmail}`
+                    : usingPlatform
+                      ? "Platform email is enabled but not configured. Go to Platform Company → Email tab to set up your sending credentials."
+                      : verifiedButNotTested
+                        ? "Email credentials are saved but not yet verified. Go to Company → Email tab and send a test verification email."
+                        : "Configure your ESP (SendGrid, Mailgun) or SMTP settings in Company settings to enable campaign dispatches."}
+                </div>
+              </div>
             </div>
-            <div style={{ fontSize: 12, color: t.textMuted }}>
-              {(emailConfig?.common?.fromEmail)
-                ? `Sending via ${emailConfig._usingPlatform ? "Platform • " : ""}${emailConfig.method === "API" ? emailConfig.api?.provider : "SMTP Relay"} • ${emailConfig.common.fromEmail}`
-                : emailConfig?._usingPlatform
-                  ? "Platform email is enabled but not configured. Go to Platform Company → Email tab to set up your sending credentials."
-                  : "Configure your ESP (SendGrid, Mailgun) or SMTP settings in Company settings to enable campaign dispatches."}
-            </div>
+            {!isEmailActive && (
+              <button onClick={() => setActivePage(usingPlatform ? "PlatformCompany" : "Company")} style={{ padding: "7px 14px", borderRadius: 8, background: t.accent, color: "#fff", border: "none", fontSize: 12, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap" }}>
+                {usingPlatform ? "Configure Platform Email" : verifiedButNotTested ? "Verify Email" : "Setup Email"}
+              </button>
+            )}
           </div>
-        </div>
-        {!(emailConfig?.common?.fromEmail) && (
-          <button onClick={() => setActivePage(emailConfig?._usingPlatform ? "PlatformCompany" : "Company")} style={{ padding: "7px 14px", borderRadius: 8, background: t.accent, color: "#fff", border: "none", fontSize: 12, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap" }}>
-            {emailConfig?._usingPlatform ? "Configure Platform Email" : "Setup Email"}
-          </button>
-        )}
-      </div>
+        );
+      })()}
 
       {/* Tabs */}
       <div style={{ display: "flex", gap: 8, borderBottom: `1px solid ${t.border}`, marginBottom: 20 }}>

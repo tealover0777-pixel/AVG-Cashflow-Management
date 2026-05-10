@@ -365,9 +365,13 @@ export default function PageCompany({ t, isDark, activeTenantId = "", USERS = []
                     { type: "paragraph", content: { html: `<h3>Configuration Test Success</h3><p>Your email infrastructure was verified by <b>${user?.displayName || user?.email}</b>.</p><p>Relay: ${es.method === "SMTP" ? es.smtp?.host : es.api?.provider}</p>${data.emailSetup.usePlatformEmail ? "<p><i>Using Platform Email Service</i></p>" : ""}` } }
                 ]
             });
-            showToast(`Test email sent to ${target}. Please check your inbox.`);
+            await updateDoc(doc(db, "tenants", tenantId), { "emailSetup.verified": true, "emailSetup.verifiedAt": new Date().toISOString() });
+            setData(prev => ({ ...prev, emailSetup: { ...prev.emailSetup, verified: true } }));
+            showToast(`Test email sent to ${target}. Email infrastructure verified.`, "success");
         } catch (err) {
             console.error("Test email error:", err);
+            await updateDoc(doc(db, "tenants", tenantId), { "emailSetup.verified": false }).catch(() => {});
+            setData(prev => ({ ...prev, emailSetup: { ...prev.emailSetup, verified: false } }));
             showToast("Test failed: " + (err.message || "Connection refused"), "error");
         } finally {
             setTestingEmail(false);
@@ -715,7 +719,7 @@ export default function PageCompany({ t, isDark, activeTenantId = "", USERS = []
                                     <h4 style={{ margin: 0, fontSize: 14, fontWeight: 700, color: t.text }}>Test Verification</h4>
                                 </div>
                                 <p style={{ fontSize: 12, color: t.textMuted, marginBottom: 20, lineHeight: 1.5 }}>Verify your credentials by sending a test message to the configured test address.</p>
-                                <button 
+                                <button
                                     onClick={handleTestEmail}
                                     disabled={testingEmail || saving}
                                     style={{ width: "100%", padding: "10px", borderRadius: 8, background: isDark ? "rgba(255,255,255,0.08)" : "#fff", border: `1px solid ${t.border}`, color: t.text, fontSize: 13, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, transition: "all 0.2s" }}
@@ -726,6 +730,21 @@ export default function PageCompany({ t, isDark, activeTenantId = "", USERS = []
                                 </button>
                                 {data.emailSetup.common.testEmail && (
                                     <p style={{ fontSize: 11, color: t.textMuted, marginTop: 12, textAlign: "center" }}>Target: <b>{data.emailSetup.common.testEmail}</b></p>
+                                )}
+                                {data.emailSetup.verified === true && (
+                                    <div style={{ marginTop: 14, padding: "10px 14px", borderRadius: 8, background: isDark ? "rgba(34,197,94,0.08)" : "#F0FDF4", border: "1px solid rgba(34,197,94,0.25)", display: "flex", alignItems: "center", gap: 10 }}>
+                                        <span style={{ fontSize: 16 }}>✅</span>
+                                        <span style={{ fontSize: 12, fontWeight: 600, color: "#16a34a" }}>Verification successful — email infrastructure is active.</span>
+                                    </div>
+                                )}
+                                {data.emailSetup.verified === false && (
+                                    <div style={{ marginTop: 14, padding: "10px 14px", borderRadius: 8, background: isDark ? "rgba(239,68,68,0.08)" : "#FEF2F2", border: "1px solid rgba(239,68,68,0.25)", display: "flex", alignItems: "center", gap: 10 }}>
+                                        <span style={{ fontSize: 16 }}>❌</span>
+                                        <div>
+                                            <div style={{ fontSize: 12, fontWeight: 700, color: "#dc2626" }}>Verification failed</div>
+                                            <div style={{ fontSize: 11, color: isDark ? "rgba(239,68,68,0.8)" : "#991b1b", marginTop: 2 }}>Check your SMTP credentials or API key, then re-send the verification email.</div>
+                                        </div>
+                                    </div>
                                 )}
                             </div>
                         </div>
