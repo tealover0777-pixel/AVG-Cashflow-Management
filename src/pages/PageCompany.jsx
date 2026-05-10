@@ -790,7 +790,14 @@ export default function PageCompany({ t, isDark, activeTenantId = "", USERS = []
                         );
                     })()}
 
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 32, marginBottom: 32, paddingBottom: 32, borderBottom: `1px solid ${t.border}` }}>
+                    {isGlobalConsolidated && (
+                        <div style={{ padding: "12px 16px", borderRadius: 10, background: isDark ? "rgba(255,255,255,0.04)" : "#F5F4F1", border: `1px solid ${t.surfaceBorder}`, display: "flex", alignItems: "center", gap: 10 }}>
+                            <span style={{ fontSize: 15 }}>🔒</span>
+                            <span style={{ fontSize: 12.5, color: t.textMuted }}>Email settings for this view are managed in <strong style={{ color: t.text }}>Platform Company → Email</strong>. Go there to update credentials or re-run verification.</span>
+                        </div>
+                    )}
+
+                    {!isGlobalConsolidated && <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 32, marginBottom: 32, paddingBottom: 32, borderBottom: `1px solid ${t.border}` }}>
                         <div style={{ display: "grid", gap: 16 }}>
                             <div style={{ fontSize: 13, fontWeight: 700, color: t.text }}>Common Fields (Required)</div>
                             <FF label="From Email" t={t}><FIn disabled={data.emailSetup.usePlatformEmail} value={data.emailSetup.usePlatformEmail ? (platformEmailSetup?.common?.fromEmail || "") : data.emailSetup.common.fromEmail} onChange={e => updES({ fromEmail: e.target.value })} placeholder="noreply@company.com" t={t} /></FF>
@@ -801,9 +808,9 @@ export default function PageCompany({ t, isDark, activeTenantId = "", USERS = []
                             <FF label="Reply-To" t={t}><FIn disabled={data.emailSetup.usePlatformEmail} value={data.emailSetup.usePlatformEmail ? (platformEmailSetup?.common?.replyTo || "") : data.emailSetup.common.replyTo} onChange={e => updES({ replyTo: e.target.value })} placeholder="support@company.com" t={t} /></FF>
                             <FF label="Test Email Address" t={t}><FIn disabled={data.emailSetup.usePlatformEmail} value={data.emailSetup.usePlatformEmail ? (platformEmailSetup?.common?.testEmail || "") : data.emailSetup.common.testEmail} onChange={e => updES({ testEmail: e.target.value })} placeholder="test@company.com" t={t} /></FF>
                         </div>
-                    </div>
+                    </div>}
 
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 32 }}>
+                    {!isGlobalConsolidated && <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 32 }}>
                         <div>
                             <FF label="Delivery Method" t={t}>
                                 <div style={{ display: "flex", gap: 8, background: isDark ? "rgba(255,255,255,0.05)" : "#F3F4F6", padding: 4, borderRadius: 10 }}>
@@ -941,7 +948,7 @@ export default function PageCompany({ t, isDark, activeTenantId = "", USERS = []
                                 </>
                             )}
                         </div>
-                    </div>
+                    </div>}
                 </div>
             )}
             {activeTab === "ACH" && (

@@ -118,7 +118,8 @@ export default function PagePlatformCompany({ t, isDark, USERS = [], CONTACTS = 
                             has2FA: false,
                             secure: true
                         },
-                        timeZone: e.timeZone || ""
+                        timeZone: e.timeZone || "",
+                        verified: e.verified
                     },
                     achSetup: d.achSetup || {
                         enabled: false,
@@ -300,9 +301,13 @@ export default function PagePlatformCompany({ t, isDark, USERS = [], CONTACTS = 
                     { type: "paragraph", content: { html: `<h3>Platform Configuration Test Success</h3><p>Your platform email infrastructure was verified by <b>${user?.displayName || user?.email}</b>.</p><p>Relay: ${data.emailSetup.method === "SMTP" ? data.emailSetup.smtp?.host : data.emailSetup.api?.provider}</p>` } }
                 ]
             });
-            showToast(`Test email sent to ${target}. Please check your inbox.`);
+            await setDoc(doc(db, "platform_config", "company"), { emailSetup: { verified: true, verifiedAt: new Date().toISOString() } }, { merge: true });
+            setData(prev => ({ ...prev, emailSetup: { ...prev.emailSetup, verified: true } }));
+            showToast(`Test email sent to ${target}. Email infrastructure verified.`, "success");
         } catch (err) {
             console.error("Test email error:", err);
+            await setDoc(doc(db, "platform_config", "company"), { emailSetup: { verified: false } }, { merge: true }).catch(() => {});
+            setData(prev => ({ ...prev, emailSetup: { ...prev.emailSetup, verified: false } }));
             let msg = err.message || "Connection refused";
             if (msg.includes("SMTP Authentication failed") || msg.includes("535")) {
                 msg = "Authentication Failed: Please verify your SMTP Username and App Password. Ensure you use a 16-character Google App Password if 2FA is enabled.";
@@ -585,6 +590,42 @@ export default function PagePlatformCompany({ t, isDark, USERS = [], CONTACTS = 
                         <p style={{ fontSize: 12.5, color: t.textMuted, lineHeight: 1.5 }}>Configure organization-level email infrastructure.</p>
                     </div>
 
+                    {(() => {
+                        const isEmailActive = data.emailSetup.verified === true && !!data.emailSetup.common?.fromEmail;
+                        const verifiedButNotTested = !!data.emailSetup.common?.fromEmail && data.emailSetup.verified !== true;
+                        return (
+                            <div style={{
+                                marginBottom: 24,
+                                padding: "14px 20px",
+                                borderRadius: 12,
+                                background: isEmailActive ? (isDark ? "rgba(52,211,153,0.05)" : "#f0fdf4") : (isDark ? "rgba(248,113,113,0.05)" : "#fef2f2"),
+                                border: `1px solid ${isEmailActive ? (isDark ? "rgba(52,211,153,0.2)" : "#bbf7d0") : (isDark ? "rgba(248,113,113,0.2)" : "#fecaca")}`,
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 12,
+                            }}>
+                                <div style={{ width: 36, height: 36, borderRadius: 8, background: isEmailActive ? t.accentGrad : (isDark ? "#2d0a0a" : "#fee2e2"), display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0 }}>
+                                    {isEmailActive ? "📧" : "⚠️"}
+                                </div>
+                                <div>
+                                    <div style={{ fontSize: 13, fontWeight: 700, color: t.text }}>
+                                        {isEmailActive
+                                            ? `Email Infrastructure Active: ${data.emailSetup.common.fromName || "American Vision Group"}`
+                                            : verifiedButNotTested ? "Verification Required"
+                                            : "Email Setup Incomplete"}
+                                    </div>
+                                    <div style={{ fontSize: 12, color: t.textMuted }}>
+                                        {isEmailActive
+                                            ? `Sending via ${data.emailSetup.method === "API" ? data.emailSetup.api?.provider : "SMTP Relay"} • ${data.emailSetup.common.fromEmail}`
+                                            : verifiedButNotTested
+                                                ? "Credentials saved but not yet verified. Send a test verification email below to activate."
+                                                : "Fill in your From Email and credentials below, then send a test verification email to activate."}
+                                    </div>
+                                </div>
+                            </div>
+                        );
+                    })()}
+
                     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 32, marginBottom: 32, paddingBottom: 32, borderBottom: `1px solid ${t.border}` }}>
                         <div style={{ display: "grid", gap: 16 }}>
                             <div style={{ fontSize: 13, fontWeight: 700, color: t.text }}>Common Fields (Required)</div>
@@ -634,6 +675,21 @@ export default function PagePlatformCompany({ t, isDark, USERS = [], CONTACTS = 
                                 </button>
                                 {data.emailSetup.common.testEmail && (
                                     <p style={{ fontSize: 11, color: t.textMuted, marginTop: 12, textAlign: "center" }}>Target: <b>{data.emailSetup.common.testEmail}</b></p>
+                                )}
+                                {data.emailSetup.verified === true && (
+                                    <div style={{ marginTop: 14, padding: "10px 14px", borderRadius: 8, background: isDark ? "rgba(34,197,94,0.08)" : "#F0FDF4", border: "1px solid rgba(34,197,94,0.25)", display: "flex", alignItems: "center", gap: 10 }}>
+                                        <span style={{ fontSize: 16 }}>✅</span>
+                                        <span style={{ fontSize: 12, fontWeight: 600, color: "#16a34a" }}>Verification successful — email infrastructure is active.</span>
+                                    </div>
+                                )}
+                                {data.emailSetup.verified === false && (
+                                    <div style={{ marginTop: 14, padding: "10px 14px", borderRadius: 8, background: isDark ? "rgba(239,68,68,0.08)" : "#FEF2F2", border: "1px solid rgba(239,68,68,0.25)", display: "flex", alignItems: "center", gap: 10 }}>
+                                        <span style={{ fontSize: 16 }}>❌</span>
+                                        <div>
+                                            <div style={{ fontSize: 12, fontWeight: 700, color: "#dc2626" }}>Verification failed</div>
+                                            <div style={{ fontSize: 11, color: isDark ? "rgba(239,68,68,0.8)" : "#991b1b", marginTop: 2 }}>Check your SMTP credentials or API key, then re-send the verification email.</div>
+                                        </div>
+                                    </div>
                                 )}
                             </div>
                         </div>
