@@ -105,6 +105,12 @@ function AppContent() {
   
   const [activePage, setActivePage] = useState("Dashboard");
 
+  useEffect(() => {
+    if (window.location.pathname !== "/" || window.location.hash) {
+      window.history.replaceState(null, "", "/");
+    }
+  }, []);
+
   const [prevPage, setPrevPage] = useState("Manage Templates");
   const [activeEmailTemplate, setActiveEmailTemplate] = useState(null);
 
