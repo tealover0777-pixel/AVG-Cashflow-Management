@@ -303,7 +303,11 @@ export default function PagePlatformCompany({ t, isDark, USERS = [], CONTACTS = 
             showToast(`Test email sent to ${target}. Please check your inbox.`);
         } catch (err) {
             console.error("Test email error:", err);
-            showToast("Test failed: " + (err.message || "Connection refused"), "error");
+            let msg = err.message || "Connection refused";
+            if (msg.includes("SMTP Authentication failed") || msg.includes("535")) {
+                msg = "Authentication Failed: Please verify your SMTP Username and App Password. Ensure you use a 16-character Google App Password if 2FA is enabled.";
+            }
+            showToast("Test failed: " + msg, "error");
         } finally {
             setTestingEmail(false);
         }

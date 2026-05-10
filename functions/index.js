@@ -655,7 +655,7 @@ async function getTransporter(tenantId, forcePlatform = false) {
     const smtpPass = (setup.smtp.pass || "").replace(/\s/g, "");
     console.log(`[getTransporter] SMTP host=${setup.smtp.host} port=${port} secure=${secure} user=${smtpUser} passLen=${smtpPass.length}`);
 
-    return nodemailer.createTransport({
+    const transportOptions = {
       host: setup.smtp.host,
       port,
       secure,
@@ -664,12 +664,12 @@ async function getTransporter(tenantId, forcePlatform = false) {
         pass: smtpPass
       },
       tls: {
-        // Do not fail on invalid certs
         rejectUnauthorized: false,
-        // Ensure minimum TLS version for modern servers
         minVersion: 'TLSv1.2'
       }
-    });
+    };
+
+    return nodemailer.createTransport(transportOptions);
   }
 
   if (method === 'ESP' && setup.api) {
@@ -783,8 +783,25 @@ exports.sendTestEmail = functions.https.onCall(async (data, context) => {
 
     return { success: true };
   } catch (err) {
-    console.error("sendTestEmail Error:", err);
-    throw new functions.https.HttpsError('internal', err.message);
+    console.error("sendTestEmail Error Details:", {
+      message: err.message,
+      code: err.code,
+      command: err.command,
+      response: err.response,
+      stack: err.stack
+    });
+    
+    // Provide a more descriptive error message to the frontend
+    let friendlyMessage = err.message;
+    if (err.code === 'EAUTH') {
+      friendlyMessage = "Authentication failed. Please verify your SMTP username and password (or App Password if using 2FA).";
+    } else if (err.code === 'ESOCKET') {
+      friendlyMessage = "Network error: Could not connect to the mail server. Check host and port settings.";
+    } else if (err.response) {
+      friendlyMessage = `Mail Server Error: ${err.response}`;
+    }
+
+    throw new functions.https.HttpsError('internal', friendlyMessage);
   }
 });
 

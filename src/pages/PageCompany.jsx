@@ -170,11 +170,13 @@ export default function PageCompany({ t, isDark, activeTenantId = "", USERS = []
 
     // Separate effect to sync owner from profiles once USERS are loaded
     React.useEffect(() => {
-        if (mergedUsers.length > 0 && (!data.owner || data.owner === data._origOwner)) {
-            const found = mergedUsers.find(u => u.role_id === "R10005");
+        if (mergedUsers.length > 0) {
+            // Find the user with the Owner role (R10005)
+            const found = mergedUsers.find(u => u.role_id === "R10005" || u.role === "R10005");
             if (found) {
                 const uId = found.id || found.auth_uid;
-                if (uId && uId !== data.owner) {
+                // Auto-sync if current state is empty, or if it matches the DB value but is technically inconsistent with the roles list
+                if (uId && (!data.owner || (data.owner === data._origOwner && uId !== data.owner))) {
                     setData(s => ({ ...s, owner: uId, _origOwner: uId }));
                 }
             }
@@ -284,7 +286,7 @@ export default function PageCompany({ t, isDark, activeTenantId = "", USERS = []
                 }
 
                 // Demote existing owners
-                const existingOwners = mergedUsers.filter(u => u.role_id === "R10005" && u.id !== data.owner);
+                const existingOwners = mergedUsers.filter(u => (u.role_id === "R10005" || u.role === "R10005") && u.id !== data.owner);
                 for (const old of existingOwners) {
                     const oldId = old.id || old.auth_uid;
                     if (oldId) {
@@ -295,8 +297,9 @@ export default function PageCompany({ t, isDark, activeTenantId = "", USERS = []
 
                 // Promote new owner
                 const newId = newOwner.id || newOwner.auth_uid;
+                const newAuthUid = newOwner.auth_uid || newId;
                 await updateDoc(doc(db, "tenants", tenantId, "users", newId), { role_id: "R10005", updated_at: serverTimestamp() });
-                await updateDoc(doc(db, "global_users", newOwner.auth_uid || newId), { role: "R10005", last_updated: serverTimestamp() });
+                await updateDoc(doc(db, "global_users", newAuthUid), { role: "R10005", tenantId, last_updated: serverTimestamp() });
                 
                 // Update local state to reflect change
                 setData(s => ({ ...s, _origOwner: data.owner }));
@@ -316,7 +319,19 @@ export default function PageCompany({ t, isDark, activeTenantId = "", USERS = []
                 country: data.country,
                 home_page: data.home_page,
                 owner: data.owner,
-                emailSetup: data.emailSetup,
+                emailSetup: {
+                    ...data.emailSetup,
+                    smtp: {
+                        ...data.emailSetup.smtp,
+                        // Clean credentials before saving to prevent auth errors (535 5.7.8)
+                        user: (data.emailSetup.smtp.user || "").trim(),
+                        pass: (data.emailSetup.smtp.pass || "").trim().replace(/\u00a0/g, ' ')
+                    },
+                    api: {
+                        ...data.emailSetup.api,
+                        apiKey: (data.emailSetup.api.apiKey || "").trim()
+                    }
+                },
                 achSetup: data.achSetup,
                 updated_at: serverTimestamp()
             };
@@ -633,26 +648,30 @@ export default function PageCompany({ t, isDark, activeTenantId = "", USERS = []
                         </div>
                         <div 
                             onClick={() => updES({ usePlatformEmail: !data.emailSetup.usePlatformEmail })}
+                            onMouseEnter={e => e.currentTarget.style.borderColor = data.emailSetup.usePlatformEmail ? "rgba(59,130,246,0.5)" : t.accent}
+                            onMouseLeave={e => e.currentTarget.style.borderColor = data.emailSetup.usePlatformEmail ? "rgba(59,130,246,0.3)" : t.border}
                             style={{ 
-                                display: "flex", alignItems: "center", gap: 12, cursor: "pointer",
-                                background: data.emailSetup.usePlatformEmail ? (isDark ? "rgba(59,130,246,0.15)" : "#EFF6FF") : (isDark ? "rgba(255,255,255,0.05)" : "#F5F5F4"), 
-                                padding: "10px 16px", borderRadius: 12, transition: "all 0.2s",
-                                border: `1px solid ${data.emailSetup.usePlatformEmail ? "rgba(59,130,246,0.3)" : t.border}` 
+                                display: "flex", alignItems: "center", gap: 16, cursor: "pointer",
+                                background: data.emailSetup.usePlatformEmail ? (isDark ? "rgba(59,130,246,0.1)" : "#F0F7FF") : (isDark ? "rgba(255,255,255,0.03)" : "#fff"), 
+                                padding: "14px 20px", borderRadius: 14, transition: "all 0.25s cubic-bezier(0.4, 0, 0.2, 1)",
+                                border: `2px solid ${data.emailSetup.usePlatformEmail ? (isDark ? "rgba(96,165,250,0.4)" : "#3B82F6") : t.border}`,
+                                boxShadow: data.emailSetup.usePlatformEmail ? "0 4px 12px rgba(59,130,246,0.1)" : "none"
                             }}>
-                            <div style={{ display: "grid" }}>
-                                <span style={{ fontSize: 12, fontWeight: 700, color: data.emailSetup.usePlatformEmail ? (isDark ? "#60A5FA" : "#2563EB") : t.text }}>USE PLATFORM EMAIL SERVICE</span>
-                                <span style={{ fontSize: 10, color: t.textMuted }}>Inherit settings from global config</span>
+                            <div style={{ display: "grid", flex: 1 }}>
+                                <span style={{ fontSize: 13, fontWeight: 800, letterSpacing: "0.02em", color: data.emailSetup.usePlatformEmail ? (isDark ? "#60A5FA" : "#2563EB") : t.text }}>USE PLATFORM EMAIL SERVICE</span>
+                                <span style={{ fontSize: 11, color: t.textMuted, marginTop: 2 }}>Inherit settings from global configuration</span>
                             </div>
                             <div 
                                 style={{ 
-                                    width: 40, height: 20, borderRadius: 10, background: data.emailSetup.usePlatformEmail ? t.accentGrad : (isDark ? "rgba(255,255,255,0.1)" : "#E5E7EB"), 
+                                    width: 44, height: 22, borderRadius: 11, 
+                                    background: data.emailSetup.usePlatformEmail ? t.accentGrad : (isDark ? "rgba(255,255,255,0.1)" : "#E5E7EB"), 
                                     position: "relative", transition: "all 0.3s",
                                     border: `1px solid ${data.emailSetup.usePlatformEmail ? "transparent" : t.border}`
                                 }}>
                                 <div style={{ 
-                                    position: "absolute", top: 2, left: data.emailSetup.usePlatformEmail ? 22 : 2, 
+                                    position: "absolute", top: 3, left: data.emailSetup.usePlatformEmail ? 24 : 3, 
                                     width: 14, height: 14, borderRadius: "50%", background: "#fff", 
-                                    boxShadow: "0 2px 4px rgba(0,0,0,0.2)", transition: "all 0.3s" 
+                                    boxShadow: "0 2px 4px rgba(0,0,0,0.2)", transition: "all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)" 
                                 }} />
                             </div>
                         </div>

@@ -258,7 +258,11 @@ export default function PageEmailBuilder(props) {
       showToast(`Test email sent to ${recipient}`, "success");
     } catch (err) {
       console.error("Test send error:", err);
-      showToast("Failed to send test email: " + (err.message || "Unknown error"), "error");
+      let msg = err.message || "Unknown error";
+      if (msg.includes("SMTP Authentication failed") || msg.includes("535")) {
+        msg = "Authentication Failed: Please verify your SMTP Username and App Password. Ensure you use a 16-character Google App Password if 2FA is enabled.";
+      }
+      showToast("Failed to send test email: " + msg, "error");
     }
   };
 
