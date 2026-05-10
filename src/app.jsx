@@ -103,35 +103,7 @@ function AppContent() {
     return saved !== null ? saved === "dark" : true;
   });
   
-  // Pathname Routing Logic
-  const pageToPath = (page) => `/${page.replace(/\s+/g, "-")}`;
-  const pathToPage = (pathname) => {
-    const clean = pathname.replace(/^\//, "").replace(/-/g, " ");
-    return clean || "Dashboard";
-  };
-
-  const [activePage, setActivePage] = useState(() => {
-    const pathname = window.location.pathname;
-    if (pathname && pathname !== "/") return pathToPage(pathname);
-    return "Dashboard";
-  });
-
-  useEffect(() => {
-    const handlePopState = () => {
-      const newPage = pathToPage(window.location.pathname);
-      setActivePage(newPage);
-    };
-    window.addEventListener("popstate", handlePopState);
-    return () => window.removeEventListener("popstate", handlePopState);
-  }, []);
-
-  useEffect(() => {
-    const currentPath = window.location.pathname;
-    const targetPath = pageToPath(activePage);
-    if (currentPath !== targetPath) {
-      window.history.pushState(null, "", targetPath);
-    }
-  }, [activePage]);
+  const [activePage, setActivePage] = useState("Dashboard");
 
   const [prevPage, setPrevPage] = useState("Manage Templates");
   const [activeEmailTemplate, setActiveEmailTemplate] = useState(null);
