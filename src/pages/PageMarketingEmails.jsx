@@ -290,9 +290,16 @@ export default function PageMarketingEmails({ t, isDark, setActivePage, MARKETIN
   React.useEffect(() => {
     if (activeTenantId) {
       setLoadingEmail(true);
-      getDoc(doc(db, "tenants", activeTenantId)).then(snap => {
+      getDoc(doc(db, "tenants", activeTenantId)).then(async snap => {
         if (snap.exists()) {
-          setEmailConfig(snap.data()?.emailSetup || { method: "SMTP", api: { provider: "SendGrid" }, smtp: {} });
+          const tenantSetup = snap.data()?.emailSetup || null;
+          if (tenantSetup?.usePlatformEmail) {
+            const platformSnap = await getDoc(doc(db, "platform_config", "company"));
+            const platformSetup = platformSnap.exists() ? platformSnap.data()?.emailSetup : null;
+            setEmailConfig(platformSetup ? { ...platformSetup, _usingPlatform: true } : { _usingPlatform: true });
+          } else {
+            setEmailConfig(tenantSetup || { method: "SMTP", api: { provider: "SendGrid" }, smtp: {} });
+          }
         }
       }).finally(() => setLoadingEmail(false));
     }
@@ -841,18 +848,22 @@ export default function PageMarketingEmails({ t, isDark, setActivePage, MARKETIN
           </div>
           <div>
             <div style={{ fontSize: 13, fontWeight: 700, color: t.text }}>
-              {(emailConfig?.common?.fromEmail) ? `Email Infrastructure Active: ${emailConfig.common.fromName || "American Vision Group"}` : "Email Setup Incomplete"}
+              {(emailConfig?.common?.fromEmail)
+                ? `Email Infrastructure Active${emailConfig._usingPlatform ? " (Platform)" : ""}: ${emailConfig.common.fromName || "American Vision Group"}`
+                : emailConfig?._usingPlatform ? "Platform Email Not Configured" : "Email Setup Incomplete"}
             </div>
             <div style={{ fontSize: 12, color: t.textMuted }}>
-              {(emailConfig?.common?.fromEmail) 
-                ? `Sending via ${emailConfig.method === "API" ? emailConfig.api.provider : "SMTP Relay"} • ${emailConfig.common.fromEmail}` 
-                : "Configure your ESP (SendGrid, Mailgun) or SMTP settings in Company settings to enable campaign dispatches."}
+              {(emailConfig?.common?.fromEmail)
+                ? `Sending via ${emailConfig._usingPlatform ? "Platform • " : ""}${emailConfig.method === "API" ? emailConfig.api?.provider : "SMTP Relay"} • ${emailConfig.common.fromEmail}`
+                : emailConfig?._usingPlatform
+                  ? "Platform email is enabled but not configured. Go to Platform Company → Email tab to set up your sending credentials."
+                  : "Configure your ESP (SendGrid, Mailgun) or SMTP settings in Company settings to enable campaign dispatches."}
             </div>
           </div>
         </div>
         {!(emailConfig?.common?.fromEmail) && (
-          <button onClick={() => setActivePage("Company")} style={{ padding: "7px 14px", borderRadius: 8, background: t.accent, color: "#fff", border: "none", fontSize: 12, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap" }}>
-            Setup Email
+          <button onClick={() => setActivePage(emailConfig?._usingPlatform ? "PlatformCompany" : "Company")} style={{ padding: "7px 14px", borderRadius: 8, background: t.accent, color: "#fff", border: "none", fontSize: 12, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap" }}>
+            {emailConfig?._usingPlatform ? "Configure Platform Email" : "Setup Email"}
           </button>
         )}
       </div>
