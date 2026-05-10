@@ -681,6 +681,49 @@ export default function PageCompany({ t, isDark, activeTenantId = "", USERS = []
                         </div>
                     </div>
 
+                    {(() => {
+                        const usingPlatform = !!data.emailSetup.usePlatformEmail;
+                        const activeSetup = usingPlatform ? platformEmailSetup : data.emailSetup;
+                        const isEmailActive = usingPlatform
+                            ? !!activeSetup?.common?.fromEmail
+                            : data.emailSetup.verified === true && !!activeSetup?.common?.fromEmail;
+                        const verifiedButNotTested = !usingPlatform && !!activeSetup?.common?.fromEmail && data.emailSetup.verified !== true;
+                        return (
+                            <div style={{
+                                marginBottom: 24,
+                                padding: "14px 20px",
+                                borderRadius: 12,
+                                background: isEmailActive ? (isDark ? "rgba(52,211,153,0.05)" : "#f0fdf4") : (isDark ? "rgba(248,113,113,0.05)" : "#fef2f2"),
+                                border: `1px solid ${isEmailActive ? (isDark ? "rgba(52,211,153,0.2)" : "#bbf7d0") : (isDark ? "rgba(248,113,113,0.2)" : "#fecaca")}`,
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 12,
+                            }}>
+                                <div style={{ width: 36, height: 36, borderRadius: 8, background: isEmailActive ? t.accentGrad : (isDark ? "#2d0a0a" : "#fee2e2"), display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0 }}>
+                                    {isEmailActive ? "📧" : "⚠️"}
+                                </div>
+                                <div>
+                                    <div style={{ fontSize: 13, fontWeight: 700, color: t.text }}>
+                                        {isEmailActive
+                                            ? `Email Infrastructure Active${usingPlatform ? " (Platform)" : ""}: ${activeSetup?.common?.fromName || "American Vision Group"}`
+                                            : usingPlatform ? "Platform Email Not Configured"
+                                            : verifiedButNotTested ? "Verification Required"
+                                            : "Email Setup Incomplete"}
+                                    </div>
+                                    <div style={{ fontSize: 12, color: t.textMuted }}>
+                                        {isEmailActive
+                                            ? `Sending via ${usingPlatform ? "Platform • " : ""}${activeSetup?.method === "API" ? activeSetup?.api?.provider : "SMTP Relay"} • ${activeSetup?.common?.fromEmail}`
+                                            : usingPlatform
+                                                ? "Platform email is enabled but not configured. Go to Platform Company → Email tab to set up your sending credentials."
+                                                : verifiedButNotTested
+                                                    ? "Credentials saved but not yet verified. Send a test verification email below to activate."
+                                                    : "Fill in your From Email and credentials below, then send a test verification email to activate."}
+                                    </div>
+                                </div>
+                            </div>
+                        );
+                    })()}
+
                     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 32, marginBottom: 32, paddingBottom: 32, borderBottom: `1px solid ${t.border}` }}>
                         <div style={{ display: "grid", gap: 16 }}>
                             <div style={{ fontSize: 13, fontWeight: 700, color: t.text }}>Common Fields (Required)</div>
