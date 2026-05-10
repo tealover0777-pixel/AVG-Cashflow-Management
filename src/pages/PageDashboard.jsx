@@ -180,7 +180,7 @@ export default function PageDashboard(props) {
 
       {/* Charts Row */}
       <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 20, marginBottom: 24 }}>
-        <div style={{ background: t.surface, borderRadius: 20, padding: 24, border: `1px solid ${t.surfaceBorder}`, minWidth: 0 }}>
+        <div style={{ background: t.surface, borderRadius: 20, padding: 24, border: `1px solid ${t.surfaceBorder}`, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
           {/* Header */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
             <h3 style={{ fontSize: 15, fontWeight: 700, color: isDark ? '#fff' : '#1C1917' }}>Cashflow Overview</h3>
@@ -233,7 +233,7 @@ export default function PageDashboard(props) {
           </div>
 
           {/* Chart */}
-          <div style={{ height: 290, width: '100%', overflowX: 'auto', overflowY: 'hidden', paddingBottom: 8, scrollbarWidth: 'thin' }}>
+          <div style={{ flex: 1, minHeight: 0, width: '100%', overflowX: 'auto', overflowY: 'hidden', paddingBottom: 8, scrollbarWidth: 'thin' }}>
             <div style={{ width: Math.max(cfChartData.length * 130, 600), height: '100%', minWidth: 600 }}>
               {cfChartData.length > 0 ? (
                 <ResponsiveContainer width="100%" height="100%">
