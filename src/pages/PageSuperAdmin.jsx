@@ -31,6 +31,7 @@ export default function PageSuperAdmin({ t, isDark, ROLES = [], TENANTS = [] }) 
     const [linkCopied, setLinkCopied] = useState(false);
     const [invitingId, setInvitingId] = useState(null);
     const [processing, setProcessing] = useState(false);
+    const [resendConfirm, setResendConfirm] = useState(null);
     const [toast, setToast] = useState(null);
     const showToast = (msg, type = "info") => { setToast({ msg, type }); setTimeout(() => setToast(null), 4000); };
 
@@ -231,7 +232,7 @@ export default function PageSuperAdmin({ t, isDark, ROLES = [], TENANTS = [] }) 
 
     const permissions = { canUpdate, canDelete, canCreate };
     const columnDefs = useMemo(() => {
-        return getSuperAdminColumns(permissions, isDark, t, openEdit, setDelT, getRoleName, getTenantName, handleRowInvite, invitingId, ROLES);
+        return getSuperAdminColumns(permissions, isDark, t, openEdit, setDelT, getRoleName, getTenantName, (user) => setResendConfirm(user), invitingId, ROLES);
     }, [permissions, isDark, t, ROLES, TENANTS, invitingId]);
 
     if (!canView) return <div style={{ padding: 40, color: t.textMuted }}>You don't have permission to view this page.</div>;
@@ -254,6 +255,23 @@ export default function PageSuperAdmin({ t, isDark, ROLES = [], TENANTS = [] }) 
                 <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
             </div>
         )}
+
+        <Modal
+            open={!!resendConfirm}
+            onClose={() => setResendConfirm(null)}
+            title="Invite / Re-send Verification"
+            onSave={() => { const u = resendConfirm; setResendConfirm(null); handleRowInvite(u); }}
+            saveLabel="Send Verification Email ✉️"
+            width={480} t={t} isDark={isDark}
+        >
+            {resendConfirm && (
+                <p style={{ fontSize: 14, color: t.text, lineHeight: 1.6, margin: 0 }}>
+                    Sending this will re-trigger the verification email for{" "}
+                    <strong>{resendConfirm.email}</strong> and generate a new secure sign-in link.
+                    This follows your high-fidelity security protocols and does not modify any existing profile data.
+                </p>
+            )}
+        </Modal>
 
         <Modal
             open={!!inviteResult}
