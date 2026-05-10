@@ -255,7 +255,14 @@ export default function PageContacts({ t, isDark, CONTACTS = [], INVESTMENTS = [
         contactId: party.id || "",
         notes: party.notes || "",
       });
-      setInviteResult({ email: party.email, user_id: result.data.user_id, emailSent: result.data.emailSent, link: result.data.link, roleName: roleInfo.name });
+      const emailSent = result.data.emailSent;
+      showToast(
+        emailSent
+          ? `Invitation email sent to ${party.email}`
+          : `User created — email could not be sent. Copy the link to share manually.`,
+        emailSent ? "success" : "error"
+      );
+      setInviteResult({ email: party.email, user_id: result.data.user_id, emailSent, link: result.data.link, roleName: roleInfo.name });
     } catch (err) {
       console.error("Invite contact error:", err);
       showToast("Invite failed: " + (err.message || "Unknown error"), "error");
