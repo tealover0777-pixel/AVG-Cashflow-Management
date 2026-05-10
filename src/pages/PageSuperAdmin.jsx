@@ -28,6 +28,7 @@ export default function PageSuperAdmin({ t, isDark, ROLES = [], TENANTS = [] }) 
     const [delT, setDelT] = useState(null);
     const [inviting, setInviting] = useState(false);
     const [inviteResult, setInviteResult] = useState(null);
+    const [linkCopied, setLinkCopied] = useState(false);
     const [invitingId, setInvitingId] = useState(null);
     const [processing, setProcessing] = useState(false);
     const [toast, setToast] = useState(null);
@@ -114,7 +115,7 @@ export default function PageSuperAdmin({ t, isDark, ROLES = [], TENANTS = [] }) 
                 zip: d.zip || ""
             });
             close();
-            setInviteResult({ link: result.data.link, email: d.email });
+            setInviteResult({ link: result.data.link, email: d.email, emailSent: result.data.emailSent, roleName: d.role });
         } catch (err) {
             console.error("Invite error:", err);
             showToast("Invite failed: " + (err.message || "Unknown error"), "error");
@@ -146,7 +147,7 @@ export default function PageSuperAdmin({ t, isDark, ROLES = [], TENANTS = [] }) 
                 first_name: fn,
                 last_name: ln
             });
-            setInviteResult({ link: result.data.link, email: user.email });
+            setInviteResult({ link: result.data.link, email: user.email, emailSent: result.data.emailSent, roleName: user.role });
         } catch (err) {
             console.error("Row invite error:", err);
             showToast("Invite failed: " + (err.message || "Unknown error"), "error");
@@ -254,19 +255,40 @@ export default function PageSuperAdmin({ t, isDark, ROLES = [], TENANTS = [] }) 
             </div>
         )}
 
-        {inviteResult && (
-            <div style={{ position: "fixed", inset: 0, zIndex: 1100, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <div style={{ background: isDark ? "#1C1917" : "#fff", borderRadius: 16, padding: 28, maxWidth: 540, width: "90%", boxShadow: "0 24px 60px rgba(0,0,0,0.3)" }}>
-                    <h3 style={{ fontFamily: t.titleFont, fontSize: 18, marginBottom: 8, color: isDark ? "#fff" : "#1C1917" }}>Verification Link Generated</h3>
-                    <p style={{ fontSize: 13, color: t.textMuted, marginBottom: 12, lineHeight: 1.6 }}>Share this link with <strong>{inviteResult.email}</strong> so they can verify their account and log in.</p>
-                    <div style={{ background: isDark ? "rgba(255,255,255,0.05)" : "#F5F4F1", border: `1px solid ${t.surfaceBorder}`, borderRadius: 9, padding: "10px 14px", fontFamily: t.mono, fontSize: 12, wordBreak: "break-all", color: t.accent, marginBottom: 16 }}>{inviteResult.link}</div>
-                    <div style={{ display: "flex", gap: 10 }}>
-                        <button onClick={() => { navigator.clipboard.writeText(inviteResult.link); }} style={{ flex: 1, background: t.accentGrad, color: "#fff", border: "none", borderRadius: 9, padding: "10px 18px", fontSize: 13.5, fontWeight: 600, cursor: "pointer" }}>Copy Link</button>
-                        <button onClick={() => setInviteResult(null)} style={{ flex: 1, background: isDark ? "rgba(255,255,255,0.08)" : "#F5F4F1", color: t.text, border: `1px solid ${t.border}`, borderRadius: 9, padding: "10px 18px", fontSize: 13.5, cursor: "pointer" }}>Close</button>
+        <Modal
+            open={!!inviteResult}
+            onClose={() => { setInviteResult(null); setLinkCopied(false); }}
+            title={inviteResult?.emailSent ? "Invitation Sent" : "User Created"}
+            onSave={inviteResult?.link ? () => { navigator.clipboard.writeText(inviteResult.link); setLinkCopied(true); } : null}
+            saveLabel={linkCopied ? "✅ Copied!" : "Copy Link"}
+            width={520} t={t} isDark={isDark}
+        >
+            {inviteResult && (
+                <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                    <div style={{ display: "flex", alignItems: "flex-start", gap: 14, padding: "14px 16px", borderRadius: 10, background: inviteResult.emailSent ? (isDark ? "rgba(34,197,94,0.08)" : "#F0FDF4") : (isDark ? "rgba(239,68,68,0.08)" : "#FEF2F2"), border: `1px solid ${inviteResult.emailSent ? "rgba(34,197,94,0.25)" : "rgba(239,68,68,0.25)"}` }}>
+                        <span style={{ fontSize: 28, lineHeight: 1 }}>{inviteResult.emailSent ? "📧" : "❌"}</span>
+                        <div>
+                            <div style={{ fontSize: 14, fontWeight: 700, color: inviteResult.emailSent ? "#16a34a" : "#dc2626", marginBottom: 4 }}>
+                                {inviteResult.emailSent ? "Email sent successfully" : "Email could not be sent"}
+                            </div>
+                            <div style={{ fontSize: 13, color: t.textMuted, lineHeight: 1.5 }}>
+                                {inviteResult.emailSent
+                                    ? <><strong>{inviteResult.email}</strong> has been invited. They will receive a link to set their password and log in.</>
+                                    : <>User <strong>{inviteResult.email}</strong> was created but the invitation email failed. Copy the link below and share it manually.</>}
+                            </div>
+                        </div>
                     </div>
+                    {inviteResult.link && (
+                        <div>
+                            <div style={{ fontSize: 12, fontWeight: 600, color: t.textMuted, marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.5px" }}>Invitation Link</div>
+                            <div style={{ background: isDark ? "rgba(255,255,255,0.04)" : "#F5F4F1", border: `1px solid ${t.surfaceBorder}`, borderRadius: 9, padding: "12px 14px", fontFamily: t.mono, fontSize: 11.5, wordBreak: "break-all", color: t.accent, lineHeight: 1.6 }}>
+                                {inviteResult.link}
+                            </div>
+                        </div>
+                    )}
                 </div>
-            </div>
-        )}
+            )}
+        </Modal>
 
         <div style={{ marginBottom: 28, display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
             <div>

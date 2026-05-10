@@ -67,6 +67,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
   const [distMemoBulkStatus, setDistMemoBulkStatus] = useState("");
   const [rowSelection, setRowSelection] = useState({});
   const [pageSize, setPageSize] = useState(30);
+  const [invSearch, setInvSearch] = useState({ email: "", paymentMethod: "" });
   const [uploadedPhotos, setUploadedPhotos] = useState([]);
   const [newPhotoFiles, setNewPhotoFiles] = useState([]);
   const photoInputRef = useRef(null);
@@ -530,8 +531,24 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
   const allDealInvestments = useMemo(() => INVESTMENTS.filter(inv => inv.deal_id === dealId || inv.deal === deal.name), [INVESTMENTS, dealId, deal.name]);
 
   const dealInvestments = useMemo(() => {
-    return allDealInvestments.filter(c => !(c.investment_id || c.id || "").startsWith("L"));
-  }, [allDealInvestments]);
+    let list = allDealInvestments.filter(c => !(c.investment_id || c.id || "").startsWith("L"));
+    if (invSearch.email) {
+      const q = invSearch.email.toLowerCase();
+      list = list.filter(c => {
+        const contact = CONTACTS.find(x => x.id === c.contact_id || x.docId === c.contact_id);
+        return (contact?.email || "").toLowerCase().includes(q);
+      });
+    }
+    if (invSearch.paymentMethod) {
+      const q = invSearch.paymentMethod.toLowerCase();
+      list = list.filter(c => {
+        const contact = CONTACTS.find(x => x.id === c.contact_id || x.docId === c.contact_id);
+        const method = c.payment_method || contact?.payment_method || "";
+        return method.toLowerCase().includes(q);
+      });
+    }
+    return list;
+  }, [allDealInvestments, CONTACTS, invSearch]);
 
   const dealLendings = useMemo(() => {
     return allDealInvestments.filter(c => (c.investment_id || c.id || "").startsWith("L"));
@@ -2578,6 +2595,20 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
 
       {activeTab === "Investments" ? (
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+          <div style={{ display: "flex", gap: 8, marginBottom: 4 }}>
+            <input
+              placeholder="Search email..."
+              value={invSearch.email}
+              onChange={e => setInvSearch(s => ({ ...s, email: e.target.value }))}
+              style={{ padding: "6px 10px", borderRadius: 8, border: `1px solid ${t.chipBorder}`, background: t.inputBg, color: t.text, fontSize: 13 }}
+            />
+            <input
+              placeholder="Search payment method..."
+              value={invSearch.paymentMethod}
+              onChange={e => setInvSearch(s => ({ ...s, paymentMethod: e.target.value }))}
+              style={{ padding: "6px 10px", borderRadius: 8, border: `1px solid ${t.chipBorder}`, background: t.inputBg, color: t.text, fontSize: 13 }}
+            />
+          </div>
           <div style={{ height: '1200px', width: "100%", minHeight: '1200px' }}>
             <TanStackTable
               key="investments-table"
