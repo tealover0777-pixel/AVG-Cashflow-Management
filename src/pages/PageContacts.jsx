@@ -255,7 +255,7 @@ export default function PageContacts({ t, isDark, CONTACTS = [], INVESTMENTS = [
         contactId: party.id || "",
         notes: party.notes || "",
       });
-      setInviteResult({ email: party.email, user_id: result.data.user_id, link: result.data.link, roleName: roleInfo.name });
+      setInviteResult({ email: party.email, user_id: result.data.user_id, emailSent: result.data.emailSent, link: result.data.link, roleName: roleInfo.name });
     } catch (err) {
       console.error("Invite contact error:", err);
       showToast("Invite failed: " + (err.message || "Unknown error"), "error");
@@ -447,10 +447,20 @@ export default function PageContacts({ t, isDark, CONTACTS = [], INVESTMENTS = [
     {inviteResult && (
       <div style={{ position: "fixed", inset: 0, zIndex: 1100, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center" }}>
         <div style={{ background: isDark ? "#1C1917" : "#fff", borderRadius: 16, padding: 28, maxWidth: 540, width: "90%", boxShadow: "0 24px 60px rgba(0,0,0,0.3)" }}>
-          <h3 style={{ fontFamily: t.titleFont, fontSize: 18, marginBottom: 8, color: isDark ? "#fff" : "#1C1917" }}>Member Invited</h3>
+          <h3 style={{ fontFamily: t.titleFont, fontSize: 18, marginBottom: 8, color: isDark ? "#fff" : "#1C1917" }}>
+            {inviteResult.emailSent ? "✅ Invite Sent!" : "✅ User Created"}
+          </h3>
           <p style={{ fontSize: 13, color: t.textMuted, marginBottom: 12, lineHeight: 1.6 }}>
-            <strong>{inviteResult.email}</strong> has been invited as a {inviteResult.roleName || "Member"}.
+            <strong>{inviteResult.email}</strong> has been added as a {inviteResult.roleName || "Member"}.
           </p>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 14px", borderRadius: 9, marginBottom: 16, background: inviteResult.emailSent ? (isDark ? "rgba(34,197,94,0.1)" : "#F0FDF4") : (isDark ? "rgba(245,158,11,0.1)" : "#FFFBEB"), border: `1px solid ${inviteResult.emailSent ? "rgba(34,197,94,0.3)" : "rgba(245,158,11,0.3)"}` }}>
+            <span style={{ fontSize: 16 }}>{inviteResult.emailSent ? "📧" : "⚠️"}</span>
+            <span style={{ fontSize: 12.5, color: inviteResult.emailSent ? "#16a34a" : "#b45309", lineHeight: 1.5 }}>
+              {inviteResult.emailSent
+                ? <>Invitation email sent to <strong>{inviteResult.email}</strong>. They can use the link to set their password and log in.</>
+                : <>Email could not be sent. Share the invitation link below manually so they can set their password.</>}
+            </span>
+          </div>
           {inviteResult.user_id && (
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
               <span style={{ fontSize: 12, color: t.textMuted }}>User ID:</span>
@@ -458,11 +468,11 @@ export default function PageContacts({ t, isDark, CONTACTS = [], INVESTMENTS = [
             </div>
           )}
           {inviteResult.link && (<>
-            <p style={{ fontSize: 12, color: t.textMuted, marginBottom: 6 }}>Verification link:</p>
+            <p style={{ fontSize: 12, color: t.textMuted, marginBottom: 6 }}>Invitation link:</p>
             <div style={{ background: isDark ? "rgba(255,255,255,0.05)" : "#F5F4F1", border: `1px solid ${t.surfaceBorder}`, borderRadius: 9, padding: "10px 14px", fontFamily: t.mono, fontSize: 12, wordBreak: "break-all", color: t.accent, marginBottom: 16 }}>{inviteResult.link}</div>
           </>)}
           <div style={{ display: "flex", gap: 10 }}>
-            {inviteResult.link && <button onClick={() => navigator.clipboard.writeText(inviteResult.link)} style={{ flex: 1, background: t.accentGrad, color: "#fff", border: "none", borderRadius: 9, padding: "10px 18px", fontSize: 13.5, fontWeight: 600, cursor: "pointer" }}>Copy Link</button>}
+            {inviteResult.link && <button onClick={() => { navigator.clipboard.writeText(inviteResult.link); }} style={{ flex: 1, background: t.accentGrad, color: "#fff", border: "none", borderRadius: 9, padding: "10px 18px", fontSize: 13.5, fontWeight: 600, cursor: "pointer" }}>Copy Link</button>}
             <button onClick={() => setInviteResult(null)} style={{ flex: 1, background: isDark ? "rgba(255,255,255,0.08)" : "#F5F4F1", color: t.text, border: `1px solid ${t.border}`, borderRadius: 9, padding: "10px 18px", fontSize: 13.5, cursor: "pointer" }}>Close</button>
           </div>
         </div>

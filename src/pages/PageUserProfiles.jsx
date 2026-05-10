@@ -355,14 +355,16 @@ export default function PageUserProfiles({ t, isDark, USERS = [], GLOBAL_USERS =
                         {inviteResult.emailSent ? "✅ Invite Sent!" : "✅ User Created"}
                     </h3>
                     <p style={{ fontSize: 13, color: t.textMuted, marginBottom: 12, lineHeight: 1.6 }}>
-                        <strong>{inviteResult.email}</strong> has been invited as a {inviteResult.roleName || "User"}.
+                        <strong>{inviteResult.email}</strong> has been added as a {inviteResult.roleName || "User"}.
                     </p>
-                    <p style={{ fontSize: 13, color: t.textMuted, marginBottom: 12, lineHeight: 1.6 }}>
-                        {inviteResult.emailSent
-                            ? <>A verification email has been sent to <strong>{inviteResult.email}</strong>. They will need to click the link in the email to verify their address.</>
-                            : <>User <strong>{inviteResult.email}</strong> has been created. Share the verification link below so they can verify their email and log in.</>
-                        }
-                    </p>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 14px", borderRadius: 9, marginBottom: 16, background: inviteResult.emailSent ? (isDark ? "rgba(34,197,94,0.1)" : "#F0FDF4") : (isDark ? "rgba(245,158,11,0.1)" : "#FFFBEB"), border: `1px solid ${inviteResult.emailSent ? "rgba(34,197,94,0.3)" : "rgba(245,158,11,0.3)"}` }}>
+                        <span style={{ fontSize: 16 }}>{inviteResult.emailSent ? "📧" : "⚠️"}</span>
+                        <span style={{ fontSize: 12.5, color: inviteResult.emailSent ? "#16a34a" : "#b45309", lineHeight: 1.5 }}>
+                            {inviteResult.emailSent
+                                ? <>Invitation email sent to <strong>{inviteResult.email}</strong>. They can use the link to set their password and log in.</>
+                                : <>Email could not be sent. Share the invitation link below manually so they can set their password.</>}
+                        </span>
+                    </div>
                     {inviteResult.user_id && (
                         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
                             <span style={{ fontSize: 12, color: t.textMuted }}>User ID:</span>

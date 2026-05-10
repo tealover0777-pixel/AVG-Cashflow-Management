@@ -163,37 +163,37 @@ exports.inviteUser = functions.https.onCall(async (data, context) => {
     // 6. Generate password reset link (better for onboarding than verification)
     const link = await admin.auth().generatePasswordResetLink(email);
 
-    // 7. Attempt to send email using tenant SMTP/API if available
+    // 7. Send invitation email (uses platform email as fallback if tenant has no config)
     let emailSent = false;
-    if (tenantId) {
-      try {
-        const setup = await getActiveEmailSetup(tenantId, db);
-        const common = (setup && setup.common) || {};
+    try {
+      const setup = await getActiveEmailSetup(tenantId, db);
+      const common = (setup && setup.common) || {};
+      let tenantName = "American Vision Group";
+      if (tenantId && tenantId !== "PLATFORM") {
         const tenantSnap = await db.collection('tenants').doc(tenantId).get();
-        const tData = tenantSnap.data() || {};
-        
-        const transporter = await getTransporter(tenantId);
-        await transporter.sendMail({
-          from: `"${common.fromName || tData.tenant_name || "American Vision Group"}" <${common.fromEmail || "no-reply@americanvisiongroup.com"}>`,
-          to: email,
-          replyTo: common.replyTo || common.fromEmail || "",
-          subject: `You've been invited to ${tData.tenant_name || "the Platform"}`,
-          html: `<div style="font-family: sans-serif; max-width: 600px; padding: 20px;">
-            <h2>Welcome to ${tData.tenant_name || "American Vision Group"}</h2>
-            <p>Hello ${first_name || "there"},</p>
-            <p>You have been invited to join the platform with the role of <b>${roleName}</b>.</p>
-            <p>Please click the button below to set your password and access your account:</p>
-            <div style="margin: 30px 0;">
-              <a href="${link}" style="background: #1c1917; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: 600;">Accept Invitation</a>
-            </div>
-            <p style="font-size: 13px; color: #666;">If the button doesn't work, copy and paste this link into your browser:</p>
-            <p style="font-size: 13px; color: #666; word-break: break-all;">${link}</p>
-          </div>`
-        });
-        emailSent = true;
-      } catch (err) {
-        console.error("Failed to send invite email:", err.message);
+        if (tenantSnap.exists) tenantName = tenantSnap.data().tenant_name || tenantSnap.data().name || tenantName;
       }
+      const transporter = await getTransporter(tenantId);
+      await transporter.sendMail({
+        from: `"${common.fromName || tenantName}" <${common.fromEmail || "no-reply@americanvisiongroup.com"}>`,
+        to: email,
+        replyTo: common.replyTo || common.fromEmail || "",
+        subject: `You've been invited to ${tenantName}`,
+        html: `<div style="font-family: sans-serif; max-width: 600px; padding: 20px;">
+          <h2>Welcome to ${tenantName}</h2>
+          <p>Hello ${first_name || "there"},</p>
+          <p>You have been invited to join the platform with the role of <b>${roleName}</b>.</p>
+          <p>Please click the button below to set your password and access your account:</p>
+          <div style="margin: 30px 0;">
+            <a href="${link}" style="background: #1c1917; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: 600;">Accept Invitation</a>
+          </div>
+          <p style="font-size: 13px; color: #666;">If the button doesn't work, copy and paste this link into your browser:</p>
+          <p style="font-size: 13px; color: #666; word-break: break-all;">${link}</p>
+        </div>`
+      });
+      emailSent = true;
+    } catch (err) {
+      console.warn("Invite email not sent:", err.message);
     }
 
     return {
@@ -232,37 +232,37 @@ exports.resendVerification = functions.https.onCall(async (data, context) => {
     const uid = userRecord.uid;
     const link = await admin.auth().generatePasswordResetLink(email);
 
-    // Attempt to send email if tenant is known
+    // Send password reset email (uses platform email as fallback if tenant has no config)
     let emailSent = false;
     const db = admin.firestore();
     const globalSnap = await db.collection('global_users').doc(uid).get();
     const tenantId = globalSnap.exists ? globalSnap.data().tenantId : null;
 
-    if (tenantId) {
-      try {
-        const setup = await getActiveEmailSetup(tenantId, db);
-        const common = (setup && setup.common) || {};
+    try {
+      const setup = await getActiveEmailSetup(tenantId, db);
+      const common = (setup && setup.common) || {};
+      let tenantName = "American Vision Group";
+      if (tenantId && tenantId !== "PLATFORM") {
         const tenantSnap = await db.collection('tenants').doc(tenantId).get();
-        const tData = tenantSnap.data() || {};
-        
-        const transporter = await getTransporter(tenantId);
-        await transporter.sendMail({
-          from: `"${common.fromName || tData.tenant_name || "American Vision Group"}" <${common.fromEmail || "no-reply@americanvisiongroup.com"}>`,
-          to: email,
-          subject: `Reset Your Password - ${tData.tenant_name || "American Vision Group"}`,
-          html: `<div style="font-family: sans-serif; max-width: 600px; padding: 20px;">
-            <h2>Password Reset Request</h2>
-            <p>Access your account for <b>${tData.tenant_name || "American Vision Group"}</b> by clicking the link below:</p>
-            <div style="margin: 30px 0;">
-              <a href="${link}" style="background: #1c1917; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: 600;">Sign In / Reset Password</a>
-            </div>
-            <p style="font-size: 13px; color: #666;">This link will expire in 24 hours.</p>
-          </div>`
-        });
-        emailSent = true;
-      } catch (err) {
-        console.error("Resend email failed:", err.message);
+        if (tenantSnap.exists) tenantName = tenantSnap.data().tenant_name || tenantSnap.data().name || tenantName;
       }
+      const transporter = await getTransporter(tenantId);
+      await transporter.sendMail({
+        from: `"${common.fromName || tenantName}" <${common.fromEmail || "no-reply@americanvisiongroup.com"}>`,
+        to: email,
+        subject: `Reset Your Password - ${tenantName}`,
+        html: `<div style="font-family: sans-serif; max-width: 600px; padding: 20px;">
+          <h2>Password Reset Request</h2>
+          <p>Access your account for <b>${tenantName}</b> by clicking the link below:</p>
+          <div style="margin: 30px 0;">
+            <a href="${link}" style="background: #1c1917; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: 600;">Sign In / Reset Password</a>
+          </div>
+          <p style="font-size: 13px; color: #666;">This link will expire in 24 hours.</p>
+        </div>`
+      });
+      emailSent = true;
+    } catch (err) {
+      console.warn("Resend email not sent:", err.message);
     }
 
     return { success: true, link, emailSent };
@@ -616,18 +616,33 @@ exports.activateUser = functions.https.onCall(async (data, context) => {
  * Handles inheritance from platform_config if usePlatformEmail is enabled.
  */
 async function getActiveEmailSetup(tenantId, db, forcePlatform = false) {
-  if (!tenantId) return null;
-  const tenantSnap = await db.collection('tenants').doc(tenantId).get();
-  const setup = tenantSnap.exists ? tenantSnap.data().emailSetup : null;
+  // Resolve tenant setup (skip for PLATFORM pseudo-tenant)
+  let tenantSetup = null;
+  if (tenantId && tenantId !== "PLATFORM") {
+    const tenantSnap = await db.collection('tenants').doc(tenantId).get();
+    tenantSetup = tenantSnap.exists ? tenantSnap.data().emailSetup : null;
+  }
 
-  if (forcePlatform || (setup && setup.usePlatformEmail)) {
+  // Use platform email when:
+  //   - explicitly forced (sendTestEmail with toggle on)
+  //   - tenant has usePlatformEmail enabled
+  //   - tenant has no email config at all (auto-fallback)
+  const preferPlatform = forcePlatform || (tenantSetup && tenantSetup.usePlatformEmail) || !tenantSetup;
+
+  if (preferPlatform) {
     const platformSnap = await db.collection('platform_config').doc('company').get();
     const platformSetup = platformSnap.exists ? platformSnap.data().emailSetup : null;
     if (platformSetup) return platformSetup;
-    // Platform email is selected but not configured — throw early with a clear message
-    throw new Error("Platform email service is not configured. Go to Platform Company → Email tab and save your SMTP or ESP settings first.");
+
+    // Platform explicitly requested but not configured → fail with a helpful message
+    if (forcePlatform || (tenantSetup && tenantSetup.usePlatformEmail)) {
+      throw new Error("Platform email service is not configured. Go to Platform Company → Email tab and save your SMTP or ESP settings first.");
+    }
+    // Auto-fallback: platform also not configured, nothing we can do
+    return null;
   }
-  return setup;
+
+  return tenantSetup;
 }
 
 /**
