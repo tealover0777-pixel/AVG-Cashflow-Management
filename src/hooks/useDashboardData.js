@@ -44,7 +44,7 @@ export function useDashboardData({ DEALS = [], INVESTMENTS = [], CONTACTS = [], 
         const ZEROED_STATUSES = new Set(["Missed", "Cancelled", "VOID", "Waived", "Replaced"]);
         // All valid statuses from Dimensions (or fallback to what's actually in the data)
         const allValidStatuses = scheduleStatusDim?.items?.length
-            ? new Set(paymentStatusDim.items.map(i => typeof i === 'string' ? i : i.value || i.label || i.name).filter(Boolean))
+            ? new Set(scheduleStatusDim.items.map(i => typeof i === 'string' ? i : i.value || i.label || i.name).filter(Boolean))
             : new Set(allFilteredSchedules.map(s => s.status).filter(Boolean));
         // liveStatuses = all valid statuses minus the zeroed-out ones (used for metrics)
         const liveStatuses = [...allValidStatuses].filter(s => !ZEROED_STATUSES.has(s));

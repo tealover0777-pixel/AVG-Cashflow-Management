@@ -24,6 +24,13 @@ export const fmtDate = (val) => {
   return d.toISOString().split('T')[0];
 };
 
+export const getCurrentPeriod = () => {
+  const d = new Date();
+  const q = Math.floor((d.getMonth() + 3) / 3);
+  return `Q${q} ${d.getFullYear()}`;
+};
+
+
 export const splitInvestorName = (name) => {
   const parts = (name || "").trim().split(/\s+/);
   if (parts.length <= 1) return { firstName: name || "", lastName: "" };

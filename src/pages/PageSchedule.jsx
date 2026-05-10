@@ -10,7 +10,7 @@ import { Download, ChevronDown, Table as TableIcon, LayoutPanelLeft } from "luci
 
 import { db } from "../firebase";
 import { collection, doc, addDoc, updateDoc, deleteDoc, serverTimestamp, getDocs, query, where } from "firebase/firestore";
-import { sortData, badge, initials, av, pmtCalculator_ACT360_30360, getFeeFrequencyString, normalizeDateAtNoon, mkId, fmtCurr as fmtCurrency, splitInvestorName, formatPaymentLag } from "../utils";
+import { sortData, badge, initials, av, pmtCalculator_ACT360_30360, getFeeFrequencyString, normalizeDateAtNoon, mkId, fmtCurr as fmtCurrency, splitInvestorName, formatPaymentLag, getCurrentPeriod } from "../utils";
 import { StatCard, Bdg, Pagination, Modal, FF, FIn, FSel, FMultiSel, DelModal, Tooltip } from "../components";
 import { InvestorSummaryModal } from "../components/InvestorSummaryModal";
 import { useAuth } from "../AuthContext";
@@ -2776,7 +2776,7 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
           <FIn
             value={distMemoModal.data.memo || ""}
             onChange={e => setDistMemoModal(m => ({ ...m, data: { ...m.data, memo: e.target.value } }))}
-            placeholder="e.g. Q1 2025 Interest Distribution"
+            placeholder={`e.g. ${getCurrentPeriod()} Interest Distribution`}
             t={t}
           />
         </FF>

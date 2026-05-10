@@ -13,7 +13,7 @@ import { getDistributionMemoColumns } from "../components/DistributionMemoTanSta
 import TanStackTable from "../components/TanStackTable";
 import DocumentsTab from "../components/DocumentsTab";
 import { X, Check, Plus, Construction, AlertTriangle, FileCheck, Download, ChevronDown, CreditCard } from "lucide-react";
-import { normalizeDateAtNoon, getFrequencyValue, pmtCalculator_ACT360_30360, feeCalculator_ACT360_30360, calculateScheduledDate, fmtCurr, initials, av, badge, splitInvestorName } from "../utils";
+import { normalizeDateAtNoon, getFrequencyValue, pmtCalculator_ACT360_30360, feeCalculator_ACT360_30360, calculateScheduledDate, fmtCurr, initials, av, badge, splitInvestorName, getCurrentPeriod } from "../utils";
 
 import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
@@ -4296,7 +4296,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
             <FIn
               value={distMemoModal.data.memo || ""}
               onChange={e => setDistMemoModal(m => ({ ...m, data: { ...m.data, memo: e.target.value } }))}
-              placeholder="e.g. Q1 2025 Interest Distribution"
+              placeholder={`e.g. ${getCurrentPeriod()} Interest Distribution`}
               t={t}
             />
           </FF>

@@ -1,5 +1,5 @@
 import React from "react";
-import { badge, fmtCurr } from "../utils";
+import { badge, fmtCurr, getCurrentPeriod } from "../utils";
 import { StatCard, Bdg, ActBtns } from "../components";
 import { useDashboardData } from "../hooks/useDashboardData";
 import {
@@ -69,7 +69,9 @@ export default function PageDashboard(props) {
         <div style={{ display: "flex", gap: 10 }}>
           <div style={{ textAlign: 'right' }}>
             <div style={{ fontSize: 11, fontWeight: 700, color: t.textMuted, textTransform: 'uppercase' }}>Current Period</div>
-            <div style={{ fontSize: 13, fontWeight: 600, color: isDark ? '#fff' : '#1C1917' }}>Q1 2026</div>
+            <div style={{ fontSize: 13, fontWeight: 600, color: isDark ? '#fff' : '#1C1917' }}>
+              {getCurrentPeriod()}
+            </div>
           </div>
         </div>
       </div>
