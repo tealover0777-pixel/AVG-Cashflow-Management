@@ -1,6 +1,6 @@
 import React from "react";
 import { db } from "../firebase";
-import { doc, getDoc, updateDoc, serverTimestamp } from "firebase/firestore";
+import { doc, getDoc, updateDoc, setDoc, serverTimestamp } from "firebase/firestore";
 import { useAuth } from "../AuthContext";
 import { FF, FIn } from "../components";
 import { uploadFile, listFiles } from "../utils/storageUtils";
@@ -9,9 +9,9 @@ import { functions } from "../firebase";
 import { httpsCallable } from "firebase/functions";
 import { resolveTimeZone, US_TIMEZONES } from "../utils/timeZoneUtils";
 
-export default function PageCompany({ t, isDark, activeTenantId = "", USERS = [], GLOBAL_USERS = [], CONTACTS = [] }) {
+export default function PageCompany({ t, isDark, activeTenantId = "", USERS = [], GLOBAL_USERS = [], CONTACTS = [], platformConfig = null, isGlobalConsolidated = false }) {
     const { user, profile, tenantId: authTenantId, isSuperAdmin } = useAuth();
-    const tenantId = activeTenantId || authTenantId;
+    const tenantId = (!isGlobalConsolidated && activeTenantId !== "GLOBAL") ? (activeTenantId || authTenantId) : null;
     const [saving, setSaving] = React.useState(false);
     const [toast, setToast] = React.useState(null);
     const [showOwnerSearch, setShowOwnerSearch] = React.useState(false);
@@ -92,6 +92,38 @@ export default function PageCompany({ t, isDark, activeTenantId = "", USERS = []
             immediateDestination: ""
         }
     });
+
+    React.useEffect(() => {
+        if (isGlobalConsolidated && platformConfig) {
+            const d = platformConfig;
+            const e = d.emailSetup || {};
+            setData({
+                name: d.name || "",
+                logo: d.logo || "",
+                email: d.email || "",
+                phone: d.phone || "",
+                address1: d.address1 || d.address || "",
+                address2: d.address2 || "",
+                city: d.city || "",
+                state: d.state || "",
+                zip: d.zip || "",
+                country: d.country || "",
+                home_page: d.home_page || "",
+                owner: d.owner || "",
+                _origOwner: d.owner || "",
+                emailSetup: {
+                    method: e.method || "ESP",
+                    usePlatformEmail: false,
+                    verified: e.verified,
+                    common: e.common || { fromEmail: "", fromName: "", replyTo: "", testEmail: user?.email || "" },
+                    api: e.api || { provider: "SendGrid", apiKey: "", domain: "", region: "", baseUrl: "" },
+                    smtp: e.smtp || { host: "", port: "587", user: "", pass: "", secure: true },
+                    timeZone: e.timeZone || ""
+                },
+                achSetup: d.achSetup || { enabled: false, originatorName: d.name || "", originatorId: "", odfiName: "", odfiRouting: "", accountNumber: "", accountType: "Checking", immediateOrigin: "", immediateDestination: "" }
+            });
+        }
+    }, [isGlobalConsolidated, platformConfig]);
 
     React.useEffect(() => {
         if (tenantId) {
@@ -264,8 +296,40 @@ export default function PageCompany({ t, isDark, activeTenantId = "", USERS = []
     };
 
     const handleSave = async () => {
-        if (!tenantId) return;
+        if (!tenantId && !isGlobalConsolidated) return;
         setSaving(true);
+
+        if (isGlobalConsolidated) {
+            try {
+                await setDoc(doc(db, "platform_config", "company"), {
+                    name: data.name,
+                    logo: data.logo,
+                    email: data.email,
+                    phone: data.phone,
+                    address1: data.address1,
+                    address2: data.address2,
+                    city: data.city,
+                    state: data.state,
+                    zip: data.zip,
+                    country: data.country,
+                    home_page: data.home_page,
+                    owner: data.owner,
+                    emailSetup: {
+                        ...data.emailSetup,
+                        smtp: { ...data.emailSetup.smtp, user: (data.emailSetup.smtp.user || "").trim(), pass: (data.emailSetup.smtp.pass || "").trim().replace(/ /g, ' ') },
+                        api: { ...data.emailSetup.api, apiKey: (data.emailSetup.api.apiKey || "").trim() }
+                    },
+                    achSetup: data.achSetup,
+                }, { merge: true });
+                showToast("Platform company settings saved.", "success");
+            } catch (err) {
+                showToast("Failed to save: " + (err.message || "Unknown error"), "error");
+            } finally {
+                setSaving(false);
+            }
+            return;
+        }
+
         try {
             const isNewOwner = data.owner && data.owner !== data._origOwner;
             
@@ -347,7 +411,7 @@ export default function PageCompany({ t, isDark, activeTenantId = "", USERS = []
     };
 
     const handleTestEmail = async () => {
-        if (!tenantId) return;
+        if (!tenantId && !isGlobalConsolidated) return;
         const target = data.emailSetup.common.testEmail || user?.email;
         if (!target) {
             showToast("Please provide a Test Email Address first.", "error"); return;
@@ -357,20 +421,22 @@ export default function PageCompany({ t, isDark, activeTenantId = "", USERS = []
             const sendFn = httpsCallable(functions, "sendTestEmail");
             const es = data.emailSetup.usePlatformEmail && platformEmailSetup ? platformEmailSetup : data.emailSetup;
             await sendFn({
-                tenantId,
+                tenantId: isGlobalConsolidated ? "PLATFORM" : tenantId,
                 recipientEmail: target,
-                usePlatformEmail: !!data.emailSetup.usePlatformEmail,
+                usePlatformEmail: isGlobalConsolidated || !!data.emailSetup.usePlatformEmail,
                 subject: "Test Configuration - American Vision Group",
                 rows: [
-                    { type: "paragraph", content: { html: `<h3>Configuration Test Success</h3><p>Your email infrastructure was verified by <b>${user?.displayName || user?.email}</b>.</p><p>Relay: ${es.method === "SMTP" ? es.smtp?.host : es.api?.provider}</p>${data.emailSetup.usePlatformEmail ? "<p><i>Using Platform Email Service</i></p>" : ""}` } }
+                    { type: "paragraph", content: { html: `<h3>Configuration Test Success</h3><p>Your email infrastructure was verified by <b>${user?.displayName || user?.email}</b>.</p><p>Relay: ${es.method === "SMTP" ? es.smtp?.host : es.api?.provider}</p>${(isGlobalConsolidated || data.emailSetup.usePlatformEmail) ? "<p><i>Using Platform Email Service</i></p>" : ""}` } }
                 ]
             });
-            await updateDoc(doc(db, "tenants", tenantId), { "emailSetup.verified": true, "emailSetup.verifiedAt": new Date().toISOString() });
+            const verifiedDoc = isGlobalConsolidated ? doc(db, "platform_config", "company") : doc(db, "tenants", tenantId);
+            await setDoc(verifiedDoc, { emailSetup: { verified: true, verifiedAt: new Date().toISOString() } }, { merge: true });
             setData(prev => ({ ...prev, emailSetup: { ...prev.emailSetup, verified: true } }));
             showToast(`Test email sent to ${target}. Email infrastructure verified.`, "success");
         } catch (err) {
             console.error("Test email error:", err);
-            await updateDoc(doc(db, "tenants", tenantId), { "emailSetup.verified": false }).catch(() => {});
+            const verifiedDoc = isGlobalConsolidated ? doc(db, "platform_config", "company") : doc(db, "tenants", tenantId);
+            await setDoc(verifiedDoc, { emailSetup: { verified: false } }, { merge: true }).catch(() => {});
             setData(prev => ({ ...prev, emailSetup: { ...prev.emailSetup, verified: false } }));
             showToast("Test failed: " + (err.message || "Connection refused"), "error");
         } finally {
@@ -650,7 +716,7 @@ export default function PageCompany({ t, isDark, activeTenantId = "", USERS = []
                             <h3 style={{ fontSize: 17, fontWeight: 700, color: isDark ? "#fff" : "#1C1917", marginBottom: 6 }}>Email Setup</h3>
                             <p style={{ fontSize: 12.5, color: t.textMuted, lineHeight: 1.5 }}>Configure organization-level email infrastructure.</p>
                         </div>
-                        <div 
+                        {!isGlobalConsolidated && <div
                             onClick={() => updES({ usePlatformEmail: !data.emailSetup.usePlatformEmail })}
                             onMouseEnter={e => e.currentTarget.style.borderColor = data.emailSetup.usePlatformEmail ? "rgba(59,130,246,0.5)" : t.accent}
                             onMouseLeave={e => e.currentTarget.style.borderColor = data.emailSetup.usePlatformEmail ? "rgba(59,130,246,0.3)" : t.border}
@@ -678,7 +744,7 @@ export default function PageCompany({ t, isDark, activeTenantId = "", USERS = []
                                     boxShadow: "0 2px 4px rgba(0,0,0,0.2)", transition: "all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)" 
                                 }} />
                             </div>
-                        </div>
+                        </div>}
                     </div>
 
                     {(() => {
