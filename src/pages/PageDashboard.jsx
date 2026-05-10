@@ -13,7 +13,7 @@ import {
 const CF_TYPES = [
   { key: "investorInterest", label: "Investor Interest", color: "#6366F1", match: t => /investor/i.test(t || "") },
   { key: "borrowerInterest", label: "Borrower Interest", color: "#10B981", match: t => /borrower/i.test(t || "") },
-  { key: "principalDeposit", label: "Principal Deposit", color: "#8B5CF6", match: t => /principal/i.test(t || "") },
+  { key: "principalDeposit", label: "Principal Deposit", color: "#C4B5FD", match: t => /principal/i.test(t || "") },
   { key: "disbursement",     label: "Disbursement",     color: "#F59E0B", match: t => /disburs/i.test(t || "") },
   { key: "fee",              label: "Fee",              color: "#EF4444", match: t => /fee/i.test(t || "") },
 ];
