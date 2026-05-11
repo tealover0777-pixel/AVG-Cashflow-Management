@@ -776,15 +776,15 @@ export default function PageCompany({ t, isDark, activeTenantId = "", USERS = []
                                             : verifiedButNotTested ? "Verification Required"
                                             : "Email Setup Incomplete"}
                                     </div>
-                                    <div style={{ fontSize: 12, color: t.textMuted }}>
-                                        {isEmailActive
-                                            ? `Sending via ${usingPlatform ? "Platform • " : ""}${activeSetup?.method === "API" ? activeSetup?.api?.provider : "SMTP Relay"} • ${activeSetup?.common?.fromEmail}`
-                                            : usingPlatform
-                                                ? "Platform email is enabled but not configured. Go to Platform Company → Email tab to set up your sending credentials."
+                                    {!usingPlatform && (
+                                        <div style={{ fontSize: 12, color: t.textMuted }}>
+                                            {isEmailActive
+                                                ? `Sending via ${activeSetup?.method === "API" ? activeSetup?.api?.provider : "SMTP Relay"} • ${activeSetup?.common?.fromEmail}`
                                                 : verifiedButNotTested
                                                     ? "Credentials saved but not yet verified. Send a test verification email below to activate."
                                                     : "Fill in your From Email and credentials below, then send a test verification email to activate."}
-                                    </div>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         );
