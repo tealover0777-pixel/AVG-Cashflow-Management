@@ -27,6 +27,7 @@ export default function PageDashboard(props) {
   const [cfDeal, setCfDeal] = useState("");
   const [cfContact, setCfContact] = useState("");
   const [cfActiveTypes, setCfActiveTypes] = useState(() => new Set(CF_TYPES.map(f => f.key)));
+  const [cfGranularity, setCfGranularity] = useState("Quarterly");
 
   const toggleType = (key) => setCfActiveTypes(prev => {
     const next = new Set(prev);
@@ -69,28 +70,48 @@ export default function PageDashboard(props) {
 
     const dates = base.map(s => s.scheduled_payment_date || s.dueDate).filter(Boolean);
     if (!dates.length) return [];
-    const first = new Date(Math.min(...dates.map(d => new Date(d))));
-    const last  = new Date(Math.max(...dates.map(d => new Date(d))));
-    const startQ = new Date(first.getFullYear(), Math.floor(first.getMonth() / 3) * 3, 1);
-    const endQ   = new Date(last.getFullYear(),  (Math.floor(last.getMonth()  / 3) + 1) * 3, 0);
 
-    const result = [];
-    let cur = new Date(startQ);
-    while ((cur <= endQ || result.length < 4) && result.length < 40) {
-      const qStart = new Date(cur.getFullYear(), cur.getMonth(), 1);
-      const qEnd   = new Date(cur.getFullYear(), cur.getMonth() + 3, 0);
-      const qs = qStart.toISOString().slice(0, 10);
-      const qe = qEnd.toISOString().slice(0, 10);
-      const qSchedules = base.filter(s => { const d = s.scheduled_payment_date || s.dueDate; return d && d >= qs && d <= qe; });
-      const entry = { name: `Q${Math.floor(cur.getMonth() / 3) + 1} ${cur.getFullYear()}` };
+    // Build bucket key + label based on granularity
+    const bucketKey = (dateStr) => {
+      const d = new Date(dateStr);
+      const y = d.getFullYear();
+      const m = d.getMonth();
+      if (cfGranularity === 'Monthly')   return `${y}-${String(m + 1).padStart(2, '0')}`;
+      if (cfGranularity === 'Quarterly') return `${y}-Q${Math.floor(m / 3) + 1}`;
+      return `${y}`;
+    };
+    const bucketLabel = (key) => {
+      if (cfGranularity === 'Monthly') {
+        const [y, mo] = key.split('-');
+        return new Date(Number(y), Number(mo) - 1, 1).toLocaleString('default', { month: 'short', year: 'numeric' });
+      }
+      if (cfGranularity === 'Quarterly') {
+        const [y, q] = key.split('-');
+        return `${q} ${y}`;
+      }
+      return key;
+    };
+
+    // Group schedules into ordered buckets
+    const bucketMap = new Map();
+    base.forEach(s => {
+      const d = s.scheduled_payment_date || s.dueDate;
+      if (!d) return;
+      const k = bucketKey(d);
+      if (!bucketMap.has(k)) bucketMap.set(k, []);
+      bucketMap.get(k).push(s);
+    });
+
+    const maxBuckets = cfGranularity === 'Monthly' ? 60 : cfGranularity === 'Quarterly' ? 40 : 20;
+    const sortedKeys = [...bucketMap.keys()].sort();
+    return sortedKeys.slice(0, maxBuckets).map(k => {
+      const entry = { name: bucketLabel(k) };
       CF_TYPES.forEach(f => {
-        entry[f.key] = qSchedules.filter(s => f.match(s.type)).reduce((sum, s) => sum + Number(String(s.payment || 0).replace(/[^0-9.-]/g, "")), 0);
+        entry[f.key] = bucketMap.get(k).filter(s => f.match(s.type)).reduce((sum, s) => sum + Number(String(s.payment || 0).replace(/[^0-9.-]/g, "")), 0);
       });
-      result.push(entry);
-      cur.setMonth(cur.getMonth() + 3);
-    }
-    return result;
-  }, [SCHEDULES, INVESTMENTS, cfDeal, cfContact]);
+      return entry;
+    });
+  }, [SCHEDULES, INVESTMENTS, cfDeal, cfContact, cfGranularity]);
 
   const topCards = [
     {
@@ -203,7 +224,7 @@ export default function PageDashboard(props) {
             <h3 style={{ fontSize: 15, fontWeight: 700, color: isDark ? '#fff' : '#1C1917' }}>Cashflow Overview</h3>
           </div>
 
-          {/* Filters row 1: dropdowns */}
+          {/* Filters row 1: dropdowns + date granularity */}
           <div style={{ display: 'flex', gap: 8, marginBottom: 8, alignItems: 'center' }}>
             {/* Deal Name dropdown */}
             <select
@@ -224,6 +245,25 @@ export default function PageDashboard(props) {
               <option value="">All Contacts</option>
               {cfContacts.map(c => <option key={c.id} value={c.id}>{[c.first_name, c.last_name].filter(Boolean).join(' ') || c.name || c.email || c.id}</option>)}
             </select>
+
+            {/* Divider */}
+            <div style={{ width: 1, height: 18, background: t.border, margin: '0 2px', flexShrink: 0 }} />
+
+            {/* Date granularity pills */}
+            {['Monthly', 'Quarterly', 'Yearly'].map(g => (
+              <button
+                key={g}
+                onClick={() => setCfGranularity(g)}
+                style={{
+                  padding: '4px 11px', borderRadius: 20, border: `1px solid ${cfGranularity === g ? t.accent : (isDark ? 'rgba(255,255,255,0.12)' : '#E5E7EB')}`,
+                  background: cfGranularity === g ? (isDark ? 'rgba(99,102,241,0.15)' : '#EEF2FF') : 'transparent',
+                  color: cfGranularity === g ? t.accent : (isDark ? 'rgba(255,255,255,0.4)' : '#9CA3AF'),
+                  fontSize: 11, fontWeight: 700, cursor: 'pointer', transition: 'all 0.15s', whiteSpace: 'nowrap'
+                }}
+              >
+                {g}
+              </button>
+            ))}
           </div>
 
           {/* Filters row 2: payment type toggle chips */}
