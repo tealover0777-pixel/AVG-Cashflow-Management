@@ -203,8 +203,8 @@ export default function PageDashboard(props) {
             <h3 style={{ fontSize: 15, fontWeight: 700, color: isDark ? '#fff' : '#1C1917' }}>Cashflow Overview</h3>
           </div>
 
-          {/* Filters row */}
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 14, alignItems: 'center' }}>
+          {/* Filters row 1: dropdowns */}
+          <div style={{ display: 'flex', gap: 8, marginBottom: 8, alignItems: 'center' }}>
             {/* Deal Name dropdown */}
             <select
               value={cfDeal}
@@ -224,10 +224,10 @@ export default function PageDashboard(props) {
               <option value="">All Contacts</option>
               {cfContacts.map(c => <option key={c.id} value={c.id}>{[c.first_name, c.last_name].filter(Boolean).join(' ') || c.name || c.email || c.id}</option>)}
             </select>
+          </div>
 
-            <div style={{ width: 1, height: 20, background: t.border, margin: '0 2px' }} />
-
-            {/* Payment type toggle chips */}
+          {/* Filters row 2: payment type toggle chips */}
+          <div style={{ display: 'flex', gap: 8, marginBottom: 14, alignItems: 'center', flexWrap: 'nowrap' }}>
             {CF_TYPES.map(f => {
               const active = cfActiveTypes.has(f.key);
               return (
@@ -239,7 +239,7 @@ export default function PageDashboard(props) {
                     padding: '4px 10px', borderRadius: 20, border: `1px solid ${active ? f.color : (isDark ? 'rgba(255,255,255,0.12)' : '#E5E7EB')}`,
                     background: active ? `${f.color}18` : 'transparent',
                     color: active ? f.color : (isDark ? 'rgba(255,255,255,0.3)' : '#9CA3AF'),
-                    fontSize: 11, fontWeight: 600, cursor: 'pointer', transition: 'all 0.15s'
+                    fontSize: 11, fontWeight: 600, cursor: 'pointer', transition: 'all 0.15s', whiteSpace: 'nowrap'
                   }}
                 >
                   <div style={{ width: 7, height: 7, borderRadius: '50%', background: active ? f.color : (isDark ? 'rgba(255,255,255,0.2)' : '#D1D5DB'), flexShrink: 0 }} />
