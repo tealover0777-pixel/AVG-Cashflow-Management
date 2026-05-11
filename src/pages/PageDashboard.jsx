@@ -11,11 +11,11 @@ import {
 } from 'lucide-react';
 
 const CF_TYPES = [
-  { key: "investorInterest", label: "Investor Interest", color: "#6366F1", match: t => /investor/i.test(t || "") },
-  { key: "borrowerInterest", label: "Borrower Interest", color: "#10B981", match: t => /borrower/i.test(t || "") },
-  { key: "principalDeposit", label: "Principal Deposit", color: "#C4B5FD", match: t => /principal/i.test(t || "") },
-  { key: "disbursement",     label: "Disbursement",     color: "#F59E0B", match: t => /disburs/i.test(t || "") },
-  { key: "fee",              label: "Fee",              color: "#EF4444", match: t => /fee/i.test(t || "") },
+  { key: "investorInterest", label: "Investor Interest Payment",  color: "#6366F1", match: t => /investor/i.test(t || "") },
+  { key: "borrowerInterest", label: "Borrower Interest Payment",  color: "#10B981", match: t => /borrower/i.test(t || "") },
+  { key: "principalDeposit", label: "Investor Principal Deposit", color: "#C4B5FD", match: t => /principal/i.test(t || "") },
+  { key: "disbursement",     label: "Borrower Disbursement",      color: "#F59E0B", match: t => /disburs/i.test(t || "") },
+  { key: "fee",              label: "Fee",                        color: "#EF4444", match: t => /fee/i.test(t || "") },
 ];
 
 export default function PageDashboard(props) {
@@ -228,6 +228,30 @@ export default function PageDashboard(props) {
 
           {/* Filters row 2: payment type toggle chips */}
           <div style={{ display: 'flex', gap: 8, marginBottom: 14, alignItems: 'center', flexWrap: 'nowrap' }}>
+            {/* FILTER BY label */}
+            <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: '0.08em', color: t.textMuted, textTransform: 'uppercase', whiteSpace: 'nowrap', paddingRight: 2 }}>Filter by</span>
+
+            {/* ALL chip */}
+            {(() => {
+              const allActive = CF_TYPES.every(f => cfActiveTypes.has(f.key));
+              return (
+                <button
+                  onClick={() => setCfActiveTypes(allActive ? new Set() : new Set(CF_TYPES.map(f => f.key)))}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 5,
+                    padding: '4px 10px', borderRadius: 20,
+                    border: `1px solid ${allActive ? t.accent : (isDark ? 'rgba(255,255,255,0.12)' : '#E5E7EB')}`,
+                    background: allActive ? `${t.accent}18` : 'transparent',
+                    color: allActive ? t.accent : (isDark ? 'rgba(255,255,255,0.3)' : '#9CA3AF'),
+                    fontSize: 11, fontWeight: 700, cursor: 'pointer', transition: 'all 0.15s', whiteSpace: 'nowrap'
+                  }}
+                >
+                  All
+                </button>
+              );
+            })()}
+
+            {/* Individual type chips */}
             {CF_TYPES.map(f => {
               const active = cfActiveTypes.has(f.key);
               return (
