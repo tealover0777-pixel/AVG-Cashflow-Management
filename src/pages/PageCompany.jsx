@@ -800,13 +800,13 @@ export default function PageCompany({ t, isDark, activeTenantId = "", USERS = []
                     {!isGlobalConsolidated && <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 32, marginBottom: 32, paddingBottom: 32, borderBottom: `1px solid ${t.border}` }}>
                         <div style={{ display: "grid", gap: 16 }}>
                             <div style={{ fontSize: 13, fontWeight: 700, color: t.text }}>Common Fields (Required)</div>
-                            <FF label="From Email" t={t}><FIn disabled={data.emailSetup.usePlatformEmail} value={data.emailSetup.usePlatformEmail ? (platformEmailSetup?.common?.fromEmail || "") : data.emailSetup.common.fromEmail} onChange={e => updES({ fromEmail: e.target.value })} placeholder="noreply@company.com" t={t} /></FF>
-                            <FF label="From Name" t={t}><FIn disabled={data.emailSetup.usePlatformEmail} value={data.emailSetup.usePlatformEmail ? (platformEmailSetup?.common?.fromName || "") : data.emailSetup.common.fromName} onChange={e => updES({ fromName: e.target.value })} placeholder="Company Name" t={t} /></FF>
+                            <FF label="From Email" t={t}><FIn value={data.emailSetup.common.fromEmail} onChange={e => updES({ fromEmail: e.target.value })} placeholder="noreply@company.com" t={t} /></FF>
+                            <FF label="From Name" t={t}><FIn value={data.emailSetup.common.fromName} onChange={e => updES({ fromName: e.target.value })} placeholder="Company Name" t={t} /></FF>
                         </div>
                         <div style={{ display: "grid", gap: 16 }}>
                             <div style={{ fontSize: 13, fontWeight: 700, color: t.text }}>Optional / Testing</div>
-                            <FF label="Reply-To" t={t}><FIn disabled={data.emailSetup.usePlatformEmail} value={data.emailSetup.usePlatformEmail ? (platformEmailSetup?.common?.replyTo || "") : data.emailSetup.common.replyTo} onChange={e => updES({ replyTo: e.target.value })} placeholder="support@company.com" t={t} /></FF>
-                            <FF label="Test Email Address" t={t}><FIn disabled={data.emailSetup.usePlatformEmail} value={data.emailSetup.usePlatformEmail ? (platformEmailSetup?.common?.testEmail || "") : data.emailSetup.common.testEmail} onChange={e => updES({ testEmail: e.target.value })} placeholder="test@company.com" t={t} /></FF>
+                            <FF label="Reply-To" t={t}><FIn value={data.emailSetup.common.replyTo} onChange={e => updES({ replyTo: e.target.value })} placeholder="support@company.com" t={t} /></FF>
+                            <FF label="Test Email Address" t={t}><FIn value={data.emailSetup.common.testEmail} onChange={e => updES({ testEmail: e.target.value })} placeholder="test@company.com" t={t} /></FF>
                         </div>
                     </div>}
 
