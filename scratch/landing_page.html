@@ -1,0 +1,355 @@
+<!DOCTYPE html><html class="light" lang="en"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>AVG Cashflow Management | Intelligent Cashflow Management</title>
+<!-- Google Fonts: Manrope, Inter, JetBrains Mono -->
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Manrope:wght@600;700;800&amp;family=JetBrains+Mono:wght@500&amp;display=swap" rel="stylesheet">
+<!-- Material Symbols Outlined -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "secondary-fixed-dim": "#e9c349",
+                    "surface-container": "#edeeef",
+                    "surface": "#f8f9fa",
+                    "on-tertiary-fixed": "#141b2b",
+                    "error-container": "#ffdad6",
+                    "inverse-primary": "#c8bfff",
+                    "surface-dim": "#d9dadb",
+                    "outline-variant": "#c9c4d9",
+                    "tertiary-fixed-dim": "#c0c6db",
+                    "secondary": "#735c00",
+                    "on-error-container": "#93000a",
+                    "on-primary-container": "#e8e2ff",
+                    "surface-container-low": "#f3f4f5",
+                    "surface-container-high": "#e7e8e9",
+                    "on-secondary": "#ffffff",
+                    "surface-container-lowest": "#ffffff",
+                    "inverse-on-surface": "#f0f1f2",
+                    "secondary-container": "#fed65b",
+                    "outline": "#787587",
+                    "on-tertiary-fixed-variant": "#404758",
+                    "error": "#ba1a1a",
+                    "on-surface": "#191c1d",
+                    "surface-bright": "#f8f9fa",
+                    "on-surface-variant": "#474556",
+                    "on-error": "#ffffff",
+                    "surface-container-highest": "#e1e3e4",
+                    "background": "#f8f9fa",
+                    "on-primary-fixed": "#190064",
+                    "tertiary-fixed": "#dce2f7",
+                    "secondary-fixed": "#ffe088",
+                    "on-secondary-container": "#745c00",
+                    "primary-container": "#6344f5",
+                    "tertiary": "#474e5f",
+                    "on-tertiary-container": "#dee4fa",
+                    "on-background": "#191c1d",
+                    "primary-fixed": "#e5deff",
+                    "primary-fixed-dim": "#c8bfff",
+                    "on-primary": "#ffffff",
+                    "on-secondary-fixed": "#241a00",
+                    "on-secondary-fixed-variant": "#574500",
+                    "inverse-surface": "#2e3132",
+                    "on-tertiary": "#ffffff",
+                    "on-primary-fixed-variant": "#420bd6",
+                    "surface-tint": "#5b39ed",
+                    "tertiary-container": "#5f6678",
+                    "surface-variant": "#e1e3e4",
+                    "primary": "#4a20dd"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "card-gap": "20px",
+                    "unit": "4px",
+                    "container-padding": "32px",
+                    "gutter": "24px",
+                    "sidebar-width": "260px"
+            },
+            "fontFamily": {
+                    "body-md": ["Inter"],
+                    "headline-md": ["Manrope"],
+                    "display-lg": ["Manrope"],
+                    "numeric-data": ["Inter"],
+                    "body-lg": ["Inter"],
+                    "label-md": ["JetBrains Mono"],
+                    "headline-lg": ["Manrope"],
+                    "body-sm": ["Inter"],
+                    "headline-lg-mobile": ["Manrope"]
+            },
+            "fontSize": {
+                    "body-md": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                    "headline-md": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                    "display-lg": ["48px", {"lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                    "numeric-data": ["16px", {"lineHeight": "24px", "fontWeight": "600"}],
+                    "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}],
+                    "label-md": ["12px", {"lineHeight": "16px", "fontWeight": "500"}],
+                    "headline-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                    "body-sm": ["12px", {"lineHeight": "16px", "fontWeight": "400"}],
+                    "headline-lg-mobile": ["24px", {"lineHeight": "32px", "fontWeight": "600"}]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        body { font-family: 'Inter', sans-serif; background-color: #f8f9fa; }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(229, 231, 235, 0.5);
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .gradient-brand {
+            background: linear-gradient(135deg, #4a20dd 0%, #6344f5 100%);
+        }
+        .gradient-hero {
+            background: radial-gradient(circle at top right, rgba(99, 68, 245, 0.08), transparent),
+                        radial-gradient(circle at bottom left, rgba(74, 32, 221, 0.05), transparent);
+        }
+    </style>
+<style data-stitch-cursor=""></style><style data-stitch-scroll-lock=""></style></head>
+<body class="text-on-surface">
+<!-- TopNavBar Shell -->
+<header class="bg-surface shadow-sm sticky top-0 z-50">
+<div class="flex justify-between items-center w-full px-container-padding py-4 max-w-[1200px] mx-auto">
+<div class="text-headline-md font-headline-md font-bold text-primary">AVG Cashflow Management</div>
+<nav class="hidden md:flex items-center gap-8">
+<a class="text-on-surface-variant font-medium hover:text-primary transition-colors duration-200" href="#">Investors</a>
+<a class="text-on-surface-variant font-medium hover:text-primary transition-colors duration-200" href="#">About</a>
+<a class="text-on-surface-variant font-medium hover:text-primary transition-colors duration-200" href="#">Contact</a>
+</nav>
+<div class="flex items-center gap-4">
+<button class="text-on-surface-variant font-medium hover:text-primary transition-colors duration-200">Login</button>
+<button class="bg-primary text-on-primary px-6 py-2 rounded-lg font-medium active:scale-95 transition-transform">Get Started</button>
+</div>
+</div>
+</header>
+<main>
+<!-- Hero Section -->
+<section class="relative overflow-hidden gradient-hero py-24 md:py-32">
+<div class="max-w-[1200px] mx-auto px-container-padding flex flex-col items-center text-center relative z-10">
+<div class="inline-flex items-center px-3 py-1 mb-8 rounded-full bg-primary-fixed text-on-primary-fixed-variant font-label-md text-label-md gap-2">
+<span class="material-symbols-outlined text-[16px]" style="font-variation-settings: 'FILL' 1;">verified</span>
+                    Trusted by Global Financial Institutions
+                </div>
+<h1 class="font-display-lg text-[40px] md:text-display-lg leading-tight mb-6 max-w-4xl">
+                    Intelligent Cashflow Management for <span class="text-primary">Global Investors</span>
+</h1>
+<p class="font-body-lg text-body-lg text-on-surface-variant mb-10 max-w-2xl">
+                    Experience the future of asset management with real-time analytics, automated workflows, and institutional-grade security designed for modern finance.
+                </p>
+<div class="flex flex-col md:flex-row gap-4">
+<button class="bg-primary text-on-primary px-10 py-4 rounded-lg font-headline-md text-numeric-data shadow-lg hover:shadow-xl transition-all">Get Started</button>
+<button class="bg-surface-container-lowest border border-outline-variant text-on-surface-variant px-10 py-4 rounded-lg font-headline-md text-numeric-data hover:bg-surface transition-all flex items-center justify-center gap-2">
+<span class="material-symbols-outlined">play_circle</span>
+                        Watch Demo
+                    </button>
+</div>
+<!-- Hero Image / Dashboard Mockup Preview -->
+<div class="mt-20 w-full max-w-5xl mx-auto rounded-xl overflow-hidden shadow-2xl border border-outline-variant bg-white p-2">
+<img alt="Financial Dashboard Preview" class="w-full h-auto rounded-lg" data-alt="A clean and professional fintech dashboard interface showing complex financial data and growth charts. The UI features a soft purple and blue color scheme with plenty of white space, reflecting a modern institutional financial application. High-quality data visualization widgets are arranged in a bento-box layout under bright, even lighting." src="https://lh3.googleusercontent.com/aida-public/AB6AXuATRpLxz0n2LXk50AKXhqKUZKs-N3SAwwNksKTHyIfXG_RVM8ECoCKWNVkMjtX4S55Hr0q_oBj3qKigajkS03kP9RXZaJScHITq4lobxD2kD_956vxwXBc9avMl3lFmNn1WlxrXxVxzTw8bNPfC-aoCodbwrVTl1AavtHG894klfV9De6-l8sy2gt0C5PUOiaoTi59MPIfwMTm0oEH_mdvPLE3c3FV9uxdLNUA-7pJcAtyuLozjbk1vdy1JgSeeUhMqh-gvvViaVOk">
+</div>
+</div>
+<!-- Abstract background element -->
+<div class="absolute -top-24 -right-24 w-96 h-96 bg-primary opacity-5 rounded-full blur-[100px]"></div>
+<div class="absolute top-1/2 -left-24 w-64 h-64 bg-secondary-container opacity-10 rounded-full blur-[80px]"></div>
+</section>
+<!-- Trust Section / Partner Logos -->
+<section class="py-12 bg-surface-container-low border-y border-outline-variant/30">
+<div class="max-w-[1200px] mx-auto px-container-padding">
+<p class="text-center font-label-md text-label-md text-on-surface-variant uppercase tracking-widest mb-8">Strategic Partners &amp; Institutional Backers</p>
+<div class="flex flex-wrap justify-center items-center gap-12 md:gap-20 opacity-50 grayscale hover:grayscale-0 transition-all duration-500">
+<span class="font-headline-md text-on-surface-variant font-bold flex items-center gap-2">
+<span class="material-symbols-outlined">account_balance</span> FEDERAL TRUST
+                    </span>
+<span class="font-headline-md text-on-surface-variant font-bold flex items-center gap-2">
+<span class="material-symbols-outlined">shield</span> SECURE CAPITAL
+                    </span>
+<span class="font-headline-md text-on-surface-variant font-bold flex items-center gap-2">
+<span class="material-symbols-outlined">monitoring</span> DATA FLOW
+                    </span>
+<span class="font-headline-md text-on-surface-variant font-bold flex items-center gap-2">
+<span class="material-symbols-outlined">globe</span> GLOBAL REACH
+                    </span>
+</div>
+</div>
+</section>
+<!-- Features Section (Bento Grid Style) -->
+<section class="py-24 max-w-[1200px] mx-auto px-container-padding">
+<div class="text-center mb-16">
+<h2 class="font-headline-lg text-headline-lg mb-4">Sophisticated Tools for Precision Finance</h2>
+<p class="font-body-md text-body-md text-on-surface-variant max-w-xl mx-auto">Our platform integrates seamlessly with your existing infrastructure to provide a unified view of your financial health.</p>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-12 gap-6">
+<!-- Large Feature Card -->
+<div class="md:col-span-8 glass-card p-8 rounded-xl flex flex-col justify-between group hover:shadow-lg transition-shadow bg-surface-container-lowest">
+<div class="flex flex-col md:flex-row gap-8 items-start">
+<div class="flex-1">
+<div class="w-12 h-12 gradient-brand rounded-lg flex items-center justify-center text-white mb-6">
+<span class="material-symbols-outlined">dashboard_customize</span>
+</div>
+<h3 class="font-headline-md text-headline-md mb-4">Real-time Cashflow Overview</h3>
+<p class="font-body-md text-body-md text-on-surface-variant mb-6">Gain absolute clarity over your liquid assets with live tracking and predictive analytics that anticipate market shifts before they happen.</p>
+<ul class="space-y-3">
+<li class="flex items-center gap-3 text-body-md text-on-surface">
+<span class="material-symbols-outlined text-primary text-[20px]">check_circle</span>
+                                    Instant liquidity position reporting
+                                </li>
+<li class="flex items-center gap-3 text-body-md text-on-surface">
+<span class="material-symbols-outlined text-primary text-[20px]">check_circle</span>
+                                    AI-driven trend forecasting
+                                </li>
+</ul>
+</div>
+<div class="flex-1 bg-surface-container-high rounded-lg p-4 border border-outline-variant/50">
+<img alt="Real-time Analytics" class="w-full h-auto rounded shadow-sm" data-alt="A detailed financial line graph displaying positive growth trends. The chart is rendered in a minimalist style with crisp purple lines against a soft white background. The environment is professional and data-driven, suggesting stability and upward movement in capital management." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCnV-BvDVvD0ssBcUcVlDDp9Fg3laegGKslvm89cydBB5E8A8X1aFPr4lVaC5nzP7HcJe0TClkcEQsStEHWNWvZ-yraVh0nJT9eBHl9NAlHUKHTcg1L60auaGAs7IEQUaLBwwqxcrJnItKlboP3PPNudWTqvVZDBZSs7PskqknZIql6FE7aftBLaAoTI88PTvlUFvtHsrarETfxZAvc4CpAXpUKBWUGWtWA-eBDlCHMcepMRZXGsEvVH0cIaYFnrWYlVomCrsiLqvk">
+</div>
+</div>
+</div>
+<!-- Small Feature Card -->
+<div class="md:col-span-4 bg-primary-container p-8 rounded-xl flex flex-col justify-end text-white relative overflow-hidden">
+<div class="absolute top-0 right-0 p-8 opacity-20">
+<span class="material-symbols-outlined text-[120px]">groups</span>
+</div>
+<div class="relative z-10">
+<h3 class="font-headline-md text-headline-md mb-3">Investor Portals</h3>
+<p class="text-on-primary-container font-body-sm text-body-sm opacity-90">Secure, white-labeled access for your clients to view performance and manage documents.</p>
+<button class="mt-6 flex items-center gap-2 font-label-md text-label-md bg-white/10 hover:bg-white/20 px-4 py-2 rounded-full transition-colors">
+                            Learn More <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
+</button>
+</div>
+</div>
+<!-- Another Feature Card -->
+<div class="md:col-span-4 glass-card p-8 rounded-xl border border-outline-variant bg-surface-container-lowest">
+<div class="w-12 h-12 bg-secondary-container rounded-lg flex items-center justify-center text-on-secondary-container mb-6">
+<span class="material-symbols-outlined">schedule_send</span>
+</div>
+<h3 class="font-headline-md text-headline-md mb-3">Automated Payments</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Eliminate manual errors with smart payment scheduling that handles multi-currency distribution automatically.</p>
+</div>
+<!-- High Emphasis Metric Card -->
+<div class="md:col-span-8 gradient-brand p-8 rounded-xl flex flex-col md:flex-row items-center gap-8 text-white">
+<div class="flex-1">
+<span class="font-label-md text-label-md uppercase tracking-wider opacity-80 mb-2 block">Total Capital Managed</span>
+<div class="font-display-lg text-[48px] leading-none mb-2">$4.2B+</div>
+<p class="opacity-80 text-body-md font-body-md">Across 40+ international jurisdictions and growing.</p>
+</div>
+<div class="flex gap-4">
+<div class="bg-white/10 backdrop-blur p-4 rounded-lg border border-white/20">
+<div class="text-label-md font-label-md opacity-70 mb-1">Growth</div>
+<div class="text-headline-md font-numeric-data text-secondary-fixed">+14.2%</div>
+</div>
+<div class="bg-white/10 backdrop-blur p-4 rounded-lg border border-white/20">
+<div class="text-label-md font-label-md opacity-70 mb-1">Active Users</div>
+<div class="text-headline-md font-numeric-data text-secondary-fixed">2.5k</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Why Choose Us / Security Section -->
+<section class="py-24 bg-inverse-surface text-inverse-on-surface overflow-hidden relative">
+<div class="max-w-[1200px] mx-auto px-container-padding flex flex-col md:flex-row items-center gap-16">
+<div class="flex-1">
+<h2 class="font-headline-lg text-headline-lg mb-8">Uncompromising Security, <span class="text-inverse-primary">Absolute Transparency.</span></h2>
+<div class="space-y-8">
+<div class="flex gap-6">
+<div class="flex-shrink-0 w-10 h-10 rounded-full border border-inverse-primary flex items-center justify-center text-inverse-primary">
+<span class="material-symbols-outlined">lock</span>
+</div>
+<div>
+<h4 class="font-headline-md text-[18px] mb-2">Institutional-Grade Encryption</h4>
+<p class="text-surface-variant font-body-sm text-body-sm">Your data is protected by AES-256 encryption and multi-factor biometric authentication at every touchpoint.</p>
+</div>
+</div>
+<div class="flex gap-6">
+<div class="flex-shrink-0 w-10 h-10 rounded-full border border-inverse-primary flex items-center justify-center text-inverse-primary">
+<span class="material-symbols-outlined">policy</span>
+</div>
+<div>
+<h4 class="font-headline-md text-[18px] mb-2">Regulatory Compliance</h4>
+<p class="text-surface-variant font-body-sm text-body-sm">We maintain full compliance with SEC, GDPR, and FINRA standards to ensure your operations are globally secure.</p>
+</div>
+</div>
+<div class="flex gap-6">
+<div class="flex-shrink-0 w-10 h-10 rounded-full border border-inverse-primary flex items-center justify-center text-inverse-primary">
+<span class="material-symbols-outlined">visibility</span>
+</div>
+<div>
+<h4 class="font-headline-md text-[18px] mb-2">Immutable Audit Trails</h4>
+<p class="text-surface-variant font-body-sm text-body-sm">Every transaction and modification is logged in a permanent, tamper-proof ledger for complete accountability.</p>
+</div>
+</div>
+</div>
+</div>
+<div class="flex-1 relative">
+<div class="rounded-2xl overflow-hidden shadow-2xl relative z-10 border border-outline/30">
+<img alt="Security Architecture" class="w-full h-auto" data-alt="A macro shot of a sleek, dark-toned server room with glowing blue status lights. The lighting is low and sophisticated, emphasizing technology and high-security data centers. The style is cinematic and high-end, evoking a sense of powerful computing and protected information storage." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDNR2GFh_zbXI69LM2-tD3lyWpm_ZGwH1IVweW68GI7-FfjQp_SiOR2zHUmVflcZxoBKM8DdjDnuqmO0NvrsHK82M9XJyizEJiXk0hiWNYaXEvIRuU8MhZRkKrN0_DsQ5jcos6jtxRhzOiy8a5FbrP6DTohucGgPwNLoRsBzHvnla9IfohBkolvRRfrzv-Vvq9DPwfBvjhdlcP2_LyfF2aLvbtnbgPeT28zb2OP_Vny-mALNDnco6cqf2xfCbMYQ7zU-aeQyflEais">
+</div>
+<!-- Decorative element -->
+<div class="absolute -bottom-10 -right-10 w-40 h-40 bg-primary opacity-20 blur-[60px]"></div>
+</div>
+</div>
+</section>
+<!-- Final CTA Section -->
+<section class="py-24 max-w-[1200px] mx-auto px-container-padding text-center">
+<div class="bg-surface-container-high rounded-3xl py-16 px-8 border border-outline-variant relative overflow-hidden">
+<div class="relative z-10">
+<h2 class="font-headline-lg text-headline-lg mb-6">Ready to transform your cashflow operations?</h2>
+<p class="font-body-lg text-body-lg text-on-surface-variant mb-10 max-w-2xl mx-auto">Join the leading investment firms that trust AVG Cashflow Management for their financial intelligence.</p>
+<div class="flex flex-col sm:flex-row gap-4 justify-center">
+<button class="bg-primary text-on-primary px-12 py-4 rounded-lg font-headline-md text-numeric-data shadow-lg active:scale-95 transition-all">Start Your Free Trial</button>
+<button class="border border-primary text-primary px-12 py-4 rounded-lg font-headline-md text-numeric-data hover:bg-primary-fixed transition-all">Schedule a Consultation</button>
+</div>
+</div>
+<!-- Abstract background pattern -->
+<div class="absolute inset-0 opacity-5 pointer-events-none" style="background-image: radial-gradient(#4a20dd 1px, transparent 1px); background-size: 24px 24px;"></div>
+</div>
+</section>
+</main>
+<!-- Footer Shell -->
+<footer class="bg-surface-container-highest border-t border-outline-variant">
+<div class="w-full px-container-padding py-12 flex flex-col md:flex-row justify-between items-start max-w-[1200px] mx-auto">
+<div class="mb-8 md:mb-0">
+<div class="text-headline-sm font-headline-sm font-bold text-on-surface mb-4">AVG Cashflow Management</div>
+<p class="text-body-sm font-body-sm text-on-surface-variant max-w-xs">Empowering global investors with state-of-the-art intelligent cashflow management solutions.</p>
+</div>
+<div class="grid grid-cols-2 sm:grid-cols-3 gap-12">
+<div class="flex flex-col gap-3">
+<span class="font-label-md text-label-md text-on-surface uppercase tracking-wider mb-2">Company</span>
+<a class="text-on-surface-variant font-body-sm text-body-sm hover:text-primary transition-colors" href="#">About Us</a>
+<a class="text-on-surface-variant font-body-sm text-body-sm hover:text-primary transition-colors" href="#">Careers</a>
+<a class="text-on-surface-variant font-body-sm text-body-sm hover:text-primary transition-colors" href="#">Press</a>
+</div>
+<div class="flex flex-col gap-3">
+<span class="font-label-md text-label-md text-on-surface uppercase tracking-wider mb-2">Support</span>
+<a class="text-on-surface-variant font-body-sm text-body-sm hover:text-primary transition-colors" href="#">Help Center</a>
+<a class="text-on-surface-variant font-body-sm text-body-sm hover:text-primary transition-colors" href="#">API Docs</a>
+<a class="text-on-surface-variant font-body-sm text-body-sm hover:text-primary transition-colors" href="#">Contact</a>
+</div>
+<div class="flex flex-col gap-3">
+<span class="font-label-md text-label-md text-on-surface uppercase tracking-wider mb-2">Legal</span>
+<a class="text-on-surface-variant font-body-sm text-body-sm hover:text-primary underline" href="#">Privacy Policy</a>
+<a class="text-on-surface-variant font-body-sm text-body-sm hover:text-primary underline" href="#">Terms of Service</a>
+</div>
+</div>
+</div>
+<div class="w-full px-container-padding py-6 border-t border-outline-variant/30 max-w-[1200px] mx-auto text-center md:text-left">
+<p class="text-body-sm font-body-sm text-on-surface-variant">© 2024 AVG Cashflow Management. All rights reserved.</p>
+</div>
+</footer>
+
+
+</body></html>

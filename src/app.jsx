@@ -43,6 +43,8 @@ import { Tooltip } from "./components";
 import SidebarHelp from "./components/SidebarHelp";
 import PageAdminHelp from "./pages/PageAdminHelp";
 import PageDealSummary from "./pages/PageDealSummary";
+import PageLanding from "./pages/PageLanding";
+import PageAuthAction from "./pages/PageAuthAction";
 
 
 const Icon = ({ name, size = 18, color = "currentColor" }) => {
@@ -105,7 +107,14 @@ function AppContent() {
   
   const [activePage, setActivePage] = useState("Dashboard");
 
+  const [isAuthAction, setIsAuthAction] = useState(false);
+
   useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get("mode") && urlParams.get("oobCode")) {
+      setIsAuthAction(true);
+      return; // Don't clear the path if we have auth actions
+    }
     if (window.location.pathname !== "/" || window.location.hash) {
       window.history.replaceState(null, "", "/");
     }
@@ -615,8 +624,12 @@ function AppContent() {
 
   const nav = getNav(isSuperAdmin, isTenantAdmin, hasPermission, isR10010);
 
+  if (isAuthAction) {
+    return <PageAuthAction />;
+  }
+
   if (!user) {
-    return <LoginScreen login={login} t={t} isDark={isDark} />;
+    return <PageLanding login={login} />;
   }
 
   if (profile?.status === "Inactive") {
@@ -896,54 +909,6 @@ function InactiveScreen({ logout, t, isDark }) {
   );
 }
 
-function LoginScreen({ login, t, isDark }) {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
-  const [resetMsg, setResetMsg] = useState("");
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    try {
-      await login(email, password);
-    } catch (err) {
-      setError("Invalid credentials");
-    }
-  };
-
-  const handleResetPassword = async () => {
-    if (!email) { setError("Please enter your email address first"); return; }
-    try {
-      const { sendPasswordResetEmail } = await import("firebase/auth");
-      await sendPasswordResetEmail(auth, email);
-      setError("");
-      setResetMsg("Password reset email sent. Check your inbox.");
-    } catch (err) {
-      setError(err.code === "auth/user-not-found" ? "No account found with this email" : "Failed to send reset email. Please try again.");
-    }
-  };
-
-  return (
-    <div style={{ height: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: isDark ? "#0C0A09" : "#F5F4F1" }}>
-      <form onSubmit={handleSubmit} style={{ background: t.surface, padding: 32, borderRadius: 20, width: 360, border: `1px solid ${t.surfaceBorder}`, boxShadow: t.tableShadow }}>
-        <h2 style={{ fontSize: 24, fontWeight: 800, marginBottom: 8, color: isDark ? "#fff" : "#1C1917" }}>Welcome Back</h2>
-        <p style={{ fontSize: 13.5, color: t.textMuted, marginBottom: 24 }}>Login to manage your cashflow</p>
-
-        {error && <div style={{ background: "rgba(239, 68, 68, 0.1)", color: "#EF4444", padding: 12, borderRadius: 8, fontSize: 13, marginBottom: 16 }}>{error}</div>}
-        {resetMsg && <div style={{ background: "rgba(34, 197, 94, 0.1)", color: "#22C55E", padding: 12, borderRadius: 8, fontSize: 13, marginBottom: 16 }}>{resetMsg}</div>}
-
-        <div style={{ display: "grid", gap: 16 }}>
-          <input type="email" placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} style={{ padding: 12, borderRadius: 10, border: `1px solid ${t.surfaceBorder}`, background: "#fff", color: "#000", outline: "none" }} />
-          <input type="password" placeholder="Password" value={password} onChange={e => setPassword(e.target.value)} style={{ padding: 12, borderRadius: 10, border: `1px solid ${t.surfaceBorder}`, background: "#fff", color: "#000", outline: "none" }} />
-          <button type="submit" style={{ background: t.accentGrad, color: "#fff", padding: 12, borderRadius: 10, fontWeight: 700, border: "none", cursor: "pointer", marginTop: 8 }}>Sign In</button>
-        </div>
-        <div style={{ textAlign: "center", marginTop: 16 }}>
-          <button type="button" onClick={handleResetPassword} style={{ background: "none", border: "none", color: t.accent, fontSize: 13, cursor: "pointer", textDecoration: "underline" }}>Forgot password?</button>
-        </div>
-      </form>
-    </div>
-  );
-}
 
 export default function App() {
   return (
