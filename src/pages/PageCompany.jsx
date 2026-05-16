@@ -810,7 +810,7 @@ export default function PageCompany({ t, isDark, activeTenantId = "", USERS = []
                         </div>
                     </div>}
 
-                    {!isGlobalConsolidated && <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 32 }}>
+                    {!isGlobalConsolidated && <div style={{ display: "grid", gridTemplateColumns: data.emailSetup.usePlatformEmail ? "1fr" : "1fr 1fr", gap: 32 }}>
                         <div>
                             <FF label="Delivery Method" t={t}>
                                 <div style={{ display: "flex", gap: 8, background: isDark ? "rgba(255,255,255,0.05)" : "#F3F4F6", padding: 4, borderRadius: 10 }}>
@@ -865,7 +865,8 @@ export default function PageCompany({ t, isDark, activeTenantId = "", USERS = []
                             </div>
                         </div>
 
-                        <div style={{ display: "grid", gap: 16, opacity: data.emailSetup.usePlatformEmail ? 0.6 : 1, pointerEvents: data.emailSetup.usePlatformEmail ? "none" : "auto" }}>
+                        {!data.emailSetup.usePlatformEmail && (
+                            <div style={{ display: "grid", gap: 16 }}>
                             {(data.emailSetup.usePlatformEmail ? platformEmailSetup?.method === "ESP" : data.emailSetup.method === "ESP") && (
                                 <>
                                     <div style={{ fontSize: 13, fontWeight: 700, color: t.text }}>Provider Settings</div>
@@ -947,7 +948,7 @@ export default function PageCompany({ t, isDark, activeTenantId = "", USERS = []
                                     </label>
                                 </>
                             )}
-                        </div>
+                        </div>)}
                     </div>}
                 </div>
             )}
