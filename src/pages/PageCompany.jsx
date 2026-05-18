@@ -239,7 +239,11 @@ export default function PageCompany({ t, isDark, activeTenantId = "", USERS = []
         if (!data.owner) return "—";
         const found = mergedUsers.find(u => u.id === data.owner || u.auth_uid === data.owner || u.email === data.owner);
         if (found) {
-            return [found.first_name, found.last_name].filter(Boolean).join(" ") || found.name || found.contact_name || found.email || data.owner;
+            const name = [found.first_name, found.last_name].filter(Boolean).join(" ") || found.name || found.contact_name;
+            if (name && found.email) {
+                return `${name} (${found.email})`;
+            }
+            return name || found.email || data.owner;
         }
         return data.owner;
     }, [data.owner, mergedUsers]);
