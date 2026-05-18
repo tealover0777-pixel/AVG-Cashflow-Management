@@ -658,10 +658,10 @@ function AppContent() {
       {/* ── Sidebar ── */}
       <div style={{ width: 228, background: t.sidebar, backdropFilter: t.glass ? "blur(20px)" : "none", borderRight: `1px solid ${t.sidebarBorder}`, display: "flex", flexDirection: "column", flexShrink: 0, boxShadow: t.sidebarShadow }}>
         {/* Logo */}
-        <div style={{ padding: determinedLogo ? "0 0 20px" : "26px 22px 24px", borderBottom: `1px solid ${t.sidebarBorder}`, display: "flex", justifyContent: "center" }}>
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8, width: "100%", justifyContent: "center" }}>
+        <div style={{ padding: determinedLogo ? "0" : "26px 22px 24px", borderBottom: `1px solid ${t.sidebarBorder}`, display: "flex", justifyContent: "flex-start" }}>
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 8, width: "100%", justifyContent: "flex-start" }}>
             {determinedLogo ? (
-              <img src={determinedLogo} alt="Logo" style={{ width: "100%", height: "auto", maxHeight: 120, objectFit: "contain" }} />
+              <img src={determinedLogo} alt="Logo" style={{ width: "100%", height: "auto", display: "block" }} />
             ) : (<>
               <div style={{ display: "flex", alignItems: "center", gap: 11, width: "100%", justifyContent: "flex-start" }}>
                 <div style={{ width: 38, height: 38, borderRadius: 11, background: t.logoGrad, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 17, fontWeight: 800, color: "#fff", boxShadow: t.logoShadow, letterSpacing: "-1px" }}>I</div>
