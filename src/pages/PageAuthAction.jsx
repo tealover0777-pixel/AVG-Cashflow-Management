@@ -74,7 +74,7 @@ export default function PageAuthAction() {
     <div className="bg-surface text-on-surface font-sans min-h-screen flex flex-col">
       <header className="bg-surface shadow-sm sticky top-0 z-50">
         <div className="flex justify-between items-center w-full px-container-padding py-4 max-w-[1200px] mx-auto">
-          <div className="text-[24px] font-bold text-primary font-manrope">AVG Cashflow Management</div>
+          <div className="text-[24px] font-bold text-primary font-manrope">Intelligent Cashflow Management</div>
           <div className="flex items-center gap-4">
             <a href="/" className="text-on-surface-variant font-medium hover:text-primary transition-colors duration-200">
               Support
@@ -168,8 +168,8 @@ export default function PageAuthAction() {
       <footer className="bg-surface-container-highest border-t border-outline-variant py-8">
         <div className="w-full px-container-padding flex flex-col md:flex-row justify-between items-center max-w-[1200px] mx-auto gap-4">
           <div className="flex flex-col md:flex-row items-center gap-4">
-            <span className="text-[18px] font-extrabold text-on-surface font-manrope">AVG Cashflow Management</span>
-            <span className="text-xs text-on-surface-variant font-medium">© 2024 AVG Cashflow Management. All rights reserved.</span>
+            <span className="text-[18px] font-extrabold text-on-surface font-manrope">Intelligent Cashflow Management</span>
+            <span className="text-xs text-on-surface-variant font-medium">© 2024 Intelligent Cashflow Management. All rights reserved.</span>
           </div>
           <div className="flex gap-6">
             <a className="text-xs text-on-surface-variant hover:text-primary transition-colors font-bold uppercase tracking-wider" href="#">Privacy Policy</a>

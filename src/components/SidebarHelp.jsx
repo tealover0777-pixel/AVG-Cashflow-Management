@@ -7,7 +7,7 @@ import { readKnowledgeBase, saveConversation, updateConversation } from "../util
 
 export default function SidebarHelp({ open, onClose, t, isDark }) {
   const { user } = useAuth();
-  const [messages, setMessages] = useState([{ role: "model", text: "Hello! I'm your AVG Cashflow assistant. How can I help you today?" }]);
+  const [messages, setMessages] = useState([{ role: "model", text: "Hello! I'm your Intelligent Cashflow assistant. How can I help you today?" }]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [modelOptions, setModelOptions] = useState(null);
@@ -22,14 +22,14 @@ export default function SidebarHelp({ open, onClose, t, isDark }) {
         const kbText = await readKnowledgeBase();
         setModelOptions({
           model: "gemini-2.5-flash",
-          systemInstruction: kbText || "You are a helpful assistant for AVG Cashflow Management. Answer questions concisely and professionally. You assist users with Projects, Contacts, Schedules, and Payments. If you don't know an answer, tell the user to contact the admin at admin@avg-cashflow.com.",
+          systemInstruction: kbText || "You are a helpful assistant for Intelligent Cashflow Management. Answer questions concisely and professionally. You assist users with Projects, Contacts, Schedules, and Payments. If you don't know an answer, tell the user to contact the admin at admin@avg-cashflow.com.",
         });
         console.log("Model Initialized with latest KB.");
       } catch (err) {
         console.error("Failed to load KB from Storage:", err);
         setModelOptions({
           model: "gemini-2.5-flash",
-          systemInstruction: "You are a helpful assistant for AVG Cashflow Management. You provide information about Projects, Contacts, and Schedules. If you don't know the answer, politely suggest contacting the admin.",
+          systemInstruction: "You are a helpful assistant for Intelligent Cashflow Management. You provide information about Projects, Contacts, and Schedules. If you don't know the answer, politely suggest contacting the admin.",
         });
       }
     }

@@ -73,7 +73,7 @@ export default function PageAdminHelp({ t, isDark }) {
 
       setKbLoading(true);
       const kb = await readKnowledgeBase();
-      setKbContent(kb || "You are a helpful assistant for AVG Cashflow Management. Answer questions concisely and professionally. You assist users with Projects, Contacts, Schedules, and Payments.");
+      setKbContent(kb || "You are a helpful assistant for Intelligent Cashflow Management. Answer questions concisely and professionally. You assist users with Projects, Contacts, Schedules, and Payments.");
       setKbLoading(false);
     } catch (err) {
       console.error("PageAdminHelp loadData error:", err);

@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useRef, useEffect, useCallback } from "react";
 /**
- * AVG Cashflow Management — Utilities
+ * Intelligent Cashflow Management — Utilities
  * Theme tokens, constants, helper functions, avatar/badge utilities.
  */
 

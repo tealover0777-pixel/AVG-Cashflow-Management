@@ -1,5 +1,5 @@
 /**
- * TimeZone Utilities for AVG Cashflow Management
+ * TimeZone Utilities for Intelligent Cashflow Management
  * Handles mapping of US States and Zip codes to IANA TimeZones.
  */
 

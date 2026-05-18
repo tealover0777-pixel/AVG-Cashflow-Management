@@ -1,6 +1,6 @@
 # Database Migration Scripts
 
-This directory contains Firestore migration scripts for the AVG Cashflow Management application.
+This directory contains Firestore migration scripts for the Intelligent Cashflow Management application.
 
 ## Migration: Fix Missing previous_version_id
 

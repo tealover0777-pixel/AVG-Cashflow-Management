@@ -1,5 +1,5 @@
 /**
- * AVG Cashflow Management — Shared Components
+ * Intelligent Cashflow Management — Shared Components
  * Reusable UI components and hooks.
  */
 import React from "react";

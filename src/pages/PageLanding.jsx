@@ -38,7 +38,7 @@ export default function PageLanding({ login }) {
       {/* Top Navigation */}
       <header className="bg-surface shadow-sm sticky top-0 z-50">
         <div className="flex justify-between items-center w-full px-container-padding py-4 max-w-[1200px] mx-auto">
-          <div className="text-[24px] font-bold text-primary font-manrope">AVG Cashflow Management</div>
+          <div className="text-[24px] font-bold text-primary font-manrope">Intelligent Cashflow Management</div>
           <nav className="hidden md:flex items-center gap-8">
             <a className="text-on-surface-variant font-medium hover:text-primary transition-colors duration-200" href="#">Investors</a>
             <a className="text-on-surface-variant font-medium hover:text-primary transition-colors duration-200" href="#">About</a>
@@ -222,7 +222,7 @@ export default function PageLanding({ login }) {
           <div className="bg-surface-container-high rounded-[40px] py-20 px-8 border border-outline-variant relative overflow-hidden group">
             <div className="relative z-10">
               <h2 className="text-[40px] font-bold mb-6 font-manrope tracking-tight">Ready to transform your cashflow operations?</h2>
-              <p className="text-[18px] text-on-surface-variant mb-12 max-w-2xl mx-auto font-medium">Join the leading investment firms that trust AVG Cashflow Management for their financial intelligence.</p>
+              <p className="text-[18px] text-on-surface-variant mb-12 max-w-2xl mx-auto font-medium">Join the leading investment firms that trust Intelligent Cashflow Management for their financial intelligence.</p>
               <div className="flex flex-col sm:flex-row gap-6 justify-center">
                 <button className="bg-primary text-on-primary px-12 py-5 rounded-xl font-extrabold text-[16px] shadow-xl shadow-primary/20 active:scale-95 transition-all hover:bg-primary-container">Start Your Free Trial</button>
                 <button className="bg-white border-2 border-primary/20 text-primary px-12 py-5 rounded-xl font-extrabold text-[16px] hover:bg-primary-fixed hover:border-primary/40 transition-all">Schedule a Consultation</button>
@@ -237,7 +237,7 @@ export default function PageLanding({ login }) {
       <footer className="bg-surface-container-highest border-t border-outline-variant mt-20">
         <div className="w-full px-container-padding py-16 flex flex-col md:flex-row justify-between items-start max-w-[1200px] mx-auto gap-12">
           <div className="mb-8 md:mb-0 max-w-sm">
-            <div className="text-[24px] font-extrabold text-on-surface mb-6 font-manrope">AVG Cashflow Management</div>
+            <div className="text-[24px] font-extrabold text-on-surface mb-6 font-manrope">Intelligent Cashflow Management</div>
             <p className="text-[15px] text-on-surface-variant leading-relaxed">Empowering global investors with state-of-the-art intelligent cashflow management solutions.</p>
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-16 flex-1">
@@ -261,7 +261,7 @@ export default function PageLanding({ login }) {
           </div>
         </div>
         <div className="w-full px-container-padding py-8 border-t border-outline-variant/30 max-w-[1200px] mx-auto text-center md:text-left">
-          <p className="text-[14px] text-on-surface-variant font-medium">© 2024 AVG Cashflow Management. All rights reserved.</p>
+          <p className="text-[14px] text-on-surface-variant font-medium">© 2024 Intelligent Cashflow Management. All rights reserved.</p>
         </div>
       </footer>
 
