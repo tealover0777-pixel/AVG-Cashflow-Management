@@ -82,6 +82,9 @@ export const getUserProfileColumns = (permissions, isDark, t, onEdit, onDel, onR
       accessorFn: (row) => getRoleName(row.role_id, ROLES),
       cell: ({ getValue, row }) => {
         const roleName = getValue();
+        if (!permissions.isGlobalUser) {
+          return <span style={{ fontSize: 13, color: t.text }}>{roleName}</span>;
+        }
         const role_id = row.original.role_id;
         const isGlobal = isRoleGlobal(role_id, ROLES) || row.original.isGlobal === true;
         return (
@@ -114,7 +117,7 @@ export const getUserProfileColumns = (permissions, isDark, t, onEdit, onDel, onR
       size: 110,
       cell: ({ getValue }) => <StatusBadge status={getValue()} t={t} isDark={isDark} />,
     },
-    {
+    ...(permissions.isGlobalUser ? [{
       accessorKey: 'auth_uid',
       header: 'AUTH UID',
       size: 240,
@@ -126,7 +129,7 @@ export const getUserProfileColumns = (permissions, isDark, t, onEdit, onDel, onR
           </span>
         );
       },
-    },
+    }] : []),
   ];
 
   cols.push(
