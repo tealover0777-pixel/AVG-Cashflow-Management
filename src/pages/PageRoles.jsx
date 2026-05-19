@@ -155,7 +155,7 @@ export default function PageRoles({ t, isDark, collectionPath = "", DIMENSIONS =
                 pageSize={20}
                 t={t}
                 isDark={isDark}
-                showGlobalSearch={!readOnly}
+                showGlobalSearch={false}
             />
         </div>
 
