@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import { User } from "lucide-react";
 import { db, auth } from "../firebase";
-import { doc, setDoc, updateDoc, serverTimestamp, collection, query, where, getDocs, getDoc } from "firebase/firestore";
+import { doc, setDoc, updateDoc, serverTimestamp, collection, query, where, getDocs, getDoc, deleteField } from "firebase/firestore";
 import { sendPasswordResetEmail } from "firebase/auth";
 import { useAuth } from "../AuthContext";
 import { FF, FIn, Modal } from "../components";
@@ -114,20 +114,39 @@ export default function PageProfile({ t, isDark, setIsDark, ROLES = [], collecti
             const uid = user?.uid;
             if (!uid) return;
 
+            const isGlobal = profile?.isGlobalRole === true || profile?.isGlobal === true || profile?.tenantId === "GLOBAL" || !profile?.tenantId;
+
             // 1. Update global_users record
-            await setDoc(doc(db, "global_users", uid), {
-                first_name: data.first_name || "",
-                last_name: data.last_name || "",
-                phone: data.phone || "",
-                photo_url: data.photo_url || "",
-                address1: data.address1 || "",
-                address2: data.address2 || "",
-                city: data.city || "",
-                state: data.state || "",
-                zip: data.zip || "",
-                country: data.country || "",
+            const globalPayload = {
                 last_updated: serverTimestamp(),
-            }, { merge: true });
+            };
+
+            if (isGlobal) {
+                globalPayload.first_name = data.first_name || "";
+                globalPayload.last_name = data.last_name || "";
+                globalPayload.phone = data.phone || "";
+                globalPayload.photo_url = data.photo_url || "";
+                globalPayload.address1 = data.address1 || "";
+                globalPayload.address2 = data.address2 || "";
+                globalPayload.city = data.city || "";
+                globalPayload.state = data.state || "";
+                globalPayload.zip = data.zip || "";
+                globalPayload.country = data.country || "";
+            } else {
+                // Symmetrical Structure: Strip detailed profile fields for tenant users
+                globalPayload.first_name = deleteField();
+                globalPayload.last_name = deleteField();
+                globalPayload.phone = deleteField();
+                globalPayload.photo_url = deleteField();
+                globalPayload.address1 = deleteField();
+                globalPayload.address2 = deleteField();
+                globalPayload.city = deleteField();
+                globalPayload.state = deleteField();
+                globalPayload.zip = deleteField();
+                globalPayload.country = deleteField();
+            }
+
+            await setDoc(doc(db, "global_users", uid), globalPayload, { merge: true });
 
             // 2. Update tenant-specific user doc
             const path = collectionPath || (tenantId ? `tenants/${tenantId}/users` : null);

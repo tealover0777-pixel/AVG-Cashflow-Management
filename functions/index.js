@@ -93,22 +93,39 @@ exports.inviteUser = functions.https.onCall(async (data, context) => {
     await admin.auth().setCustomUserClaims(uid, { role, tenantId, isGlobal });
 
     // 4. Create/Update Firestore Global Profile
-    await db.collection('global_users').doc(uid).set({
+    const globalData = {
       email,
-      first_name: first_name || '',
-      last_name: last_name || '',
       role,
       tenantId,
       isGlobal,
       status: 'Pending',
-      contact_id: contactId || partyId || '',
-      street1: street1 || '',
-      street2: street2 || '',
-      city: city || '',
-      state: state || '',
-      zip: zip || '',
       last_updated: admin.firestore.FieldValue.serverTimestamp()
-    }, { merge: true });
+    };
+
+    if (isGlobal) {
+      globalData.first_name = first_name || '';
+      globalData.last_name = last_name || '';
+      globalData.contact_id = contactId || partyId || '';
+      globalData.street1 = street1 || '';
+      globalData.street2 = street2 || '';
+      globalData.city = city || '';
+      globalData.state = state || '';
+      globalData.zip = zip || '';
+    } else {
+      // Symmetrical Structure: Strip detailed profile fields for tenant users
+      globalData.first_name = admin.firestore.FieldValue.delete();
+      globalData.last_name = admin.firestore.FieldValue.delete();
+      globalData.contact_id = admin.firestore.FieldValue.delete();
+      globalData.street1 = admin.firestore.FieldValue.delete();
+      globalData.street2 = admin.firestore.FieldValue.delete();
+      globalData.city = admin.firestore.FieldValue.delete();
+      globalData.state = admin.firestore.FieldValue.delete();
+      globalData.zip = admin.firestore.FieldValue.delete();
+      globalData.user_id = admin.firestore.FieldValue.delete();
+      globalData.notes = admin.firestore.FieldValue.delete();
+    }
+
+    await db.collection('global_users').doc(uid).set(globalData, { merge: true });
 
     // 4. Determine user_id (Check if already in tenant)
     let user_id = providedUserId;
@@ -131,11 +148,13 @@ exports.inviteUser = functions.https.onCall(async (data, context) => {
     }
     if (!user_id) user_id = 'U' + Date.now(); // Final fallback
 
-    // Update global_users with user_id and notes
-    await db.collection('global_users').doc(uid).update({
-      user_id: user_id,
-      notes: notes || ''
-    });
+    if (isGlobal) {
+      // Update global_users with user_id and notes
+      await db.collection('global_users').doc(uid).update({
+        user_id: user_id,
+        notes: notes || ''
+      });
+    }
 
     // 5. Create Tenant Profile
     if (tenantId) {
@@ -506,20 +525,53 @@ exports.updateUserTenant = functions.https.onCall(async (data, context) => {
     // 2. Set Custom Claims in Firebase Auth
     await admin.auth().setCustomUserClaims(uid, { role, tenantId: newTenantId });
 
-    // 3. Update Global Profile (global_users)
-    await db.collection('global_users').doc(uid).set({
+    // Look up if role is global from role_types
+    let isGlobal = false;
+    try {
+      const roleDoc = await db.collection('role_types').doc(role).get();
+      if (roleDoc.exists && roleDoc.data().IsGlobal === true) {
+        isGlobal = true;
+      }
+    } catch (e) {
+      console.warn('Could not check role_types:', e.message);
+    }
+
+    const globalPayload = {
       email: email,
-      first_name: first_name || '',
-      last_name: last_name || '',
       tenantId: newTenantId,
       role: role,
-      street1: street1 || '',
-      street2: street2 || '',
-      city: city || '',
-      state: state || '',
-      zip: zip || '',
+      isGlobal: isGlobal,
       last_updated: admin.firestore.FieldValue.serverTimestamp()
-    }, { merge: true });
+    };
+
+    if (isGlobal) {
+      globalPayload.first_name = first_name || '';
+      globalPayload.last_name = last_name || '';
+      globalPayload.street1 = street1 || '';
+      globalPayload.street2 = street2 || '';
+      globalPayload.city = city || '';
+      globalPayload.state = state || '';
+      globalPayload.zip = zip || '';
+      globalPayload.phone = phone || '';
+      globalPayload.notes = notes || '';
+      globalPayload.user_id = user_id || '';
+    } else {
+      // Symmetrical Structure: Strip detailed profile fields for tenant users
+      globalPayload.first_name = admin.firestore.FieldValue.delete();
+      globalPayload.last_name = admin.firestore.FieldValue.delete();
+      globalPayload.street1 = admin.firestore.FieldValue.delete();
+      globalPayload.street2 = admin.firestore.FieldValue.delete();
+      globalPayload.city = admin.firestore.FieldValue.delete();
+      globalPayload.state = admin.firestore.FieldValue.delete();
+      globalPayload.zip = admin.firestore.FieldValue.delete();
+      globalPayload.phone = admin.firestore.FieldValue.delete();
+      globalPayload.notes = admin.firestore.FieldValue.delete();
+      globalPayload.user_id = admin.firestore.FieldValue.delete();
+      globalPayload.contact_id = admin.firestore.FieldValue.delete();
+    }
+
+    // 3. Update Global Profile (global_users)
+    await db.collection('global_users').doc(uid).set(globalPayload, { merge: true });
 
     // 4. Move/Update Tenant Profile
     let effectiveUserId = user_id;

@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from "react";
 import { db, functions } from "../firebase";
-import { doc, setDoc, deleteDoc, serverTimestamp, collection, query, where, getDocs, updateDoc } from "firebase/firestore";
+import { doc, setDoc, deleteDoc, serverTimestamp, collection, query, where, getDocs, updateDoc, deleteField } from "firebase/firestore";
 import { httpsCallable } from "firebase/functions";
 import { useFirestoreCollection } from "../useFirestoreCollection";
 import { useAuth } from "../AuthContext";
@@ -168,28 +168,45 @@ export default function PageSuperAdmin({ t, isDark, ROLES = [], TENANTS = [] }) 
         setProcessing(true);
 
         // Ensure all values are plain strings, not Firestore objects
-        const tid = isRoleGlobal(d.role) ? "GLOBAL" : String(d.tenantId || "");
+        const isGlobal = isRoleGlobal(d.role);
+        const tid = isGlobal ? "GLOBAL" : String(d.tenantId || "");
+        
         const payload = {
             email: String(d.email || ""),
-            first_name: String(d.first_name || ""),
-            last_name: String(d.last_name || ""),
             role: String(d.role || ""),
             tenantId: tid,
-            phone: String(d.phone || ""),
-            notes: String(d.notes || ""),
             status: String(d.status || "Active"),
-            street1: String(d.street1 || ""),
-            street2: String(d.street2 || ""),
-            city: String(d.city || ""),
-            state: String(d.state || ""),
-            zip: String(d.zip || ""),
             updated_at: serverTimestamp(),
         };
+
+        if (isGlobal) {
+            payload.first_name = String(d.first_name || "");
+            payload.last_name = String(d.last_name || "");
+            payload.phone = String(d.phone || "");
+            payload.notes = String(d.notes || "");
+            payload.street1 = String(d.street1 || "");
+            payload.street2 = String(d.street2 || "");
+            payload.city = String(d.city || "");
+            payload.state = String(d.state || "");
+            payload.zip = String(d.zip || "");
+        } else {
+            // Symmetrical Structure: Strip detailed profile fields for tenant users
+            payload.first_name = deleteField();
+            payload.last_name = deleteField();
+            payload.phone = deleteField();
+            payload.notes = deleteField();
+            payload.street1 = deleteField();
+            payload.street2 = deleteField();
+            payload.city = deleteField();
+            payload.state = deleteField();
+            payload.zip = deleteField();
+            payload.user_id = deleteField();
+            payload.contact_id = deleteField();
+        }
 
         try {
             await setDoc(doc(db, "global_users", d.uid), payload, { merge: true });
             // Sync to tenant user doc if it's a real tenant (not GLOBAL)
-            const tid = String(d.tenantId || "");
             if (tid && tid !== "GLOBAL") {
                 const q = query(collection(db, `tenants/${tid}/users`), where("auth_uid", "==", d.uid));
                 const snap = await getDocs(q);
@@ -201,6 +218,11 @@ export default function PageSuperAdmin({ t, isDark, ROLES = [], TENANTS = [] }) 
                         role_id: String(d.role || ""),
                         phone: String(d.phone || ""),
                         notes: String(d.notes || ""),
+                        street1: String(d.street1 || ""),
+                        street2: String(d.street2 || ""),
+                        city: String(d.city || ""),
+                        state: String(d.state || ""),
+                        zip: String(d.zip || ""),
                         updated_at: serverTimestamp()
                     });
                 }

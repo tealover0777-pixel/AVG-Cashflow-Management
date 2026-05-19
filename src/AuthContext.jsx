@@ -105,8 +105,8 @@ export function AuthProvider({ children }) {
                                 setProfile(prev => {
                                     const tenantData = tSnap.docs[0].data();
                                     return {
-                                        ...tenantData,
-                                        ...prev, // global_users takes precedence for core profile details
+                                        ...prev,
+                                        ...tenantData, // tenant-scoped profile details take precedence for tenant-scoped users
                                         role: prev?.role || tenantData?.role_id || tenantData?.role || "",
                                         tenantId: prev?.tenantId || tenantData?.tenantId || ""
                                     };

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { db, functions } from "../firebase";
-import { doc, setDoc, updateDoc, deleteDoc, serverTimestamp } from "firebase/firestore";
+import { doc, setDoc, updateDoc, deleteDoc, serverTimestamp, deleteField } from "firebase/firestore";
 import { httpsCallable } from "firebase/functions";
 import { ActBtns, Modal, FF, FIn, DelModal, Tooltip } from "../components";
 import TanStackTable from "../components/TanStackTable";
@@ -265,20 +265,23 @@ export default function PageUserProfiles({ t, isDark, USERS = [], GLOBAL_USERS =
                 const authUid = String(d.auth_uid || d.id);
                 if (authUid && !/^U\d+$/.test(authUid)) {
                     const globalData = {
-                        user_id: String(d.user_id || ""),
-                        first_name: String(d.first_name || ""),
-                        last_name: String(d.last_name || ""),
                         email: String(d.email || ""),
-                        phone: String(d.phone || ""),
                         role: String(d.role_id || ""),
+                        tenantId: tid,
                         status: String(d.status || "Active"),
-                        notes: String(d.notes || ""),
-                        street1: String(d.street1 || ""),
-                        street2: String(d.street2 || ""),
-                        city: String(d.city || ""),
-                        state: String(d.state || ""),
-                        zip: String(d.zip || ""),
-                        last_updated: serverTimestamp()
+                        last_updated: serverTimestamp(),
+                        // Enforce Symmetrical Structure: tenant users keep only minimal routing data in global_users
+                        first_name: deleteField(),
+                        last_name: deleteField(),
+                        phone: deleteField(),
+                        notes: deleteField(),
+                        street1: deleteField(),
+                        street2: deleteField(),
+                        city: deleteField(),
+                        state: deleteField(),
+                        zip: deleteField(),
+                        user_id: deleteField(),
+                        contact_id: deleteField()
                     };
                     await setDoc(doc(db, "global_users", authUid), globalData, { merge: true });
                 }
