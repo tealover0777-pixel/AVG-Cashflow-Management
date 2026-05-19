@@ -35,6 +35,7 @@ const TanStackTable = React.forwardRef(({
   // Controlled Selection props
   rowSelection: controlledRowSelection,
   onRowSelectionChange: controlledOnRowSelectionChange,
+  showGlobalSearch = true,
 }, ref) => {
   const [sorting, setSorting] = useState(initialSorting);
   const [columnFilters, setColumnFilters] = useState([]);
@@ -122,33 +123,35 @@ const TanStackTable = React.forwardRef(({
       position: 'relative'
     }}>
       {/* Global Search Bar */}
-      <div style={{ 
-        padding: '12px 16px', 
-        borderBottom: `1px solid ${t.surfaceBorder}`,
-        display: 'flex',
-        justifyContent: 'flex-end',
-        background: isDark ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.01)'
-      }}>
-        <div style={{ position: 'relative', width: '300px' }}>
-          <Search size={14} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: t.textMuted, pointerEvents: 'none' }} />
-          <input 
-            value={globalFilter ?? ''}
-            onChange={e => setGlobalFilter(e.target.value)}
-            placeholder="Search all columns..."
-            style={{
-              width: '100%',
-              padding: '7px 12px 7px 32px',
-              fontSize: '13px',
-              borderRadius: '8px',
-              border: `1px solid ${t.surfaceBorder}`,
-              background: isDark ? 'rgba(0,0,0,0.2)' : '#fff',
-              color: t.text,
-              outline: 'none',
-              transition: 'all 0.2s'
-            }}
-          />
+      {showGlobalSearch && (
+        <div style={{ 
+          padding: '12px 16px', 
+          borderBottom: `1px solid ${t.surfaceBorder}`,
+          display: 'flex',
+          justifyContent: 'flex-end',
+          background: isDark ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.01)'
+        }}>
+          <div style={{ position: 'relative', width: '300px' }}>
+            <Search size={14} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: t.textMuted, pointerEvents: 'none' }} />
+            <input 
+              value={globalFilter ?? ''}
+              onChange={e => setGlobalFilter && setGlobalFilter(e.target.value)}
+              placeholder="Search all columns..."
+              style={{
+                width: '100%',
+                padding: '7px 12px 7px 32px',
+                fontSize: '13px',
+                borderRadius: '8px',
+                border: `1px solid ${t.surfaceBorder}`,
+                background: isDark ? 'rgba(0,0,0,0.2)' : '#fff',
+                color: t.text,
+                outline: 'none',
+                transition: 'all 0.2s'
+              }}
+            />
+          </div>
         </div>
-      </div>
+      )}
 
       <div style={{ flex: 1, overflow: 'auto', position: 'relative', pointerEvents: 'auto' }} className="ts-scroller">
         <table style={{ width: table.getCenterTotalSize(), minWidth: '100%', borderCollapse: 'separate', borderSpacing: 0, fontSize: '13px', tableLayout: 'fixed' }}>
