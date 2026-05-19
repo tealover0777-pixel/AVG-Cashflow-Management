@@ -872,7 +872,8 @@ function AppContent() {
                   {activePage === "Fees" && <PageFees t={t} isDark={isDark} FEES_DATA={FEES_DATA} DIMENSIONS={DIMENSIONS} collectionPath={isGlobalConsolidated ? "GROUP:fees" : fetchPaths.fees} />}
                   {activePage === "Platform Tenant Admin" && <PageTenants t={t} isDark={isDark} TENANTS={TENANTS} GLOBAL_USERS={globalUsers} ROLES={rawRoles} collectionPath={fetchPaths.tenants} />}
                   {activePage === "User Profiles" && <PageUserProfiles t={t} isDark={isDark} USERS={rawUsers} GLOBAL_USERS={globalUsers} ROLES={rawRoles} collectionPath={fetchPaths.users} DIMENSIONS={DIMENSIONS} tenantId={activeTenantId} TENANTS={TENANTS} CONTACTS={CONTACTS} />}
-                  {activePage === "Role Types" && <PageRoles t={t} isDark={isDark} collectionPath={fetchPaths.roles} DIMENSIONS={DIMENSIONS} USERS={rawUsers} />}
+                  {activePage === "Role Types" && <PageRoles t={t} isDark={isDark} collectionPath={fetchPaths.roles} DIMENSIONS={DIMENSIONS} USERS={rawUsers} readOnly={true} />}
+                  {activePage === "Platform Role Types" && <PageRoles t={t} isDark={isDark} collectionPath={fetchPaths.roles} DIMENSIONS={DIMENSIONS} USERS={rawUsers} />}
                                     {activePage === "Platform User Admin" && isR10010 && <PageSuperAdmin t={t} isDark={isDark} ROLES={rawRoles} TENANTS={TENANTS} />}
 
                   {activePage === "Profile" && <PageProfile t={t} isDark={isDark} setIsDark={setIsDark} ROLES={rawRoles} collectionPath={fetchPaths.users} activeTenantId={activeTenantId} />}

@@ -52,7 +52,10 @@ export const getRoleColumns = (permissions, isDark, t, onEdit, onDel) => {
       },
       flex: 1,
     },
-    {
+  ];
+
+  if (!permissions.readOnly) {
+    cols.push({
       id: 'actions',
       header: 'ACTIONS',
       size: 80,
@@ -64,8 +67,8 @@ export const getRoleColumns = (permissions, isDark, t, onEdit, onDel) => {
           onDel={() => onDel(row.original)}
         />
       ),
-    },
-  ];
+    });
+  }
 
   return cols;
 };

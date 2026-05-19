@@ -7,12 +7,12 @@ import TanStackTable from "../components/TanStackTable";
 import { useAuth } from "../AuthContext";
 import { getRoleColumns } from "../components/RolesTanStackConfig";
 
-export default function PageRoles({ t, isDark, collectionPath = "", DIMENSIONS = [], USERS = [] }) {
+export default function PageRoles({ t, isDark, collectionPath = "", DIMENSIONS = [], USERS = [], readOnly = false }) {
     const { hasPermission, isSuperAdmin, isGlobalRole } = useAuth();
     // Only super admins or properly permissioned users can edit Roles
-    const canCreate = isSuperAdmin || hasPermission("ROLE_CREATE") || hasPermission("ROLE_TYPE_CREATE");
-    const canUpdate = isSuperAdmin || hasPermission("ROLE_UPDATE") || hasPermission("ROLE_TYPE_UPDATE");
-    const canDelete = isSuperAdmin || hasPermission("ROLE_DELETE") || hasPermission("ROLE_TYPE_DELETE");
+    const canCreate = !readOnly && (isSuperAdmin || hasPermission("ROLE_CREATE") || hasPermission("ROLE_TYPE_CREATE"));
+    const canUpdate = !readOnly && (isSuperAdmin || hasPermission("ROLE_UPDATE") || hasPermission("ROLE_TYPE_UPDATE"));
+    const canDelete = !readOnly && (isSuperAdmin || hasPermission("ROLE_DELETE") || hasPermission("ROLE_TYPE_DELETE"));
     const { data: rawRoles = [], loading, error } = useFirestoreCollection(collectionPath);
     const [modal, setModal] = useState({ open: false, mode: "add", data: {} });
     const [delT, setDelT] = useState(null);
@@ -110,7 +110,7 @@ export default function PageRoles({ t, isDark, collectionPath = "", DIMENSIONS =
         finally { setSavingPerms(false); }
     };
 
-    const permissions = { canUpdate, canDelete };
+    const permissions = { canUpdate, canDelete, readOnly };
     const columnDefs = useMemo(() => {
         return getRoleColumns(permissions, isDark, t, openEdit, setDelT);
     }, [permissions, isDark, t]);
