@@ -76,18 +76,24 @@ export default function PageUserProfiles({ t, isDark, USERS = [], GLOBAL_USERS =
                 (u.auth_uid && gu.id === u.auth_uid) ||
                 (u.email && gu.email && gu.email.toLowerCase() === u.email.toLowerCase())
             );
+            const tenantId = u.tenantId || globalUser?.tenantId || "";
+            const foundTenant = TENANTS.find(ten => ten.id === tenantId);
+            const tenantName = foundTenant ? (foundTenant.name || foundTenant.tenant_name || tenantId) : (tenantId || "—");
+
             return {
                 ...u,
                 docId: u._path || u.docId || u.id,
                 first_name: globalUser?.first_name || u.first_name || "",
                 last_name: globalUser?.last_name || u.last_name || "",
                 displayName: globalUser?.displayName || u.displayName || "",
-                role_id: u.role_id || globalUser?.role || ""
+                role_id: u.role_id || globalUser?.role || "",
+                tenantId,
+                tenantName
             };
         });
 
         return tUsers;
-    }, [USERS, GLOBAL_USERS, ROLES]);
+    }, [USERS, GLOBAL_USERS, ROLES, TENANTS]);
 
     // Filter logic: Include all unless it's a global role (except for the Owner role R10005)
     const filteredUsers = useMemo(() => {
@@ -309,7 +315,13 @@ export default function PageUserProfiles({ t, isDark, USERS = [], GLOBAL_USERS =
         }
     };
 
-    const permissions = { canUpdate, canDelete, canInvite, isSuperAdmin };
+    const permissions = { 
+        canUpdate, 
+        canDelete, 
+        canInvite, 
+        isSuperAdmin,
+        isGlobalUser: isSuperAdmin || isGlobalRole
+    };
     const columnDefs = useMemo(() => {
         return getUserProfileColumns(permissions, isDark, t, openEdit, setDelT, openResendInvite, ROLES);
     }, [permissions, isDark, t, ROLES]);

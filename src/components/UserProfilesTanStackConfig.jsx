@@ -69,6 +69,12 @@ export const getUserProfileColumns = (permissions, isDark, t, onEdit, onDel, onR
       size: 180,
       cell: ({ getValue }) => <span style={{ fontSize: 12.5, color: t.accent }}>{getValue()}</span>,
     },
+    ...(permissions.isGlobalUser ? [{
+      accessorKey: 'tenantName',
+      header: 'TENANT NAME',
+      size: 160,
+      cell: ({ getValue }) => <span style={{ fontSize: 13.5, fontWeight: 500, color: t.text }}>{getValue() || "—"}</span>,
+    }] : []),
     {
       id: 'role',
       header: 'ROLE',
