@@ -327,7 +327,7 @@ export default function PageTenants({ t, isDark, TENANTS = [], GLOBAL_USERS = []
             <FF label="TENANT ID" t={t}>
                 <div style={{ fontFamily: t.mono, fontSize: 13, color: t.idText, background: isDark ? "rgba(255,255,255,0.04)" : "#F5F4F1", border: `1px solid ${t.surfaceBorder}`, borderRadius: 9, padding: "10px 13px", letterSpacing: "0.5px" }}>{modal.data.id}</div>
             </FF>
-            <FF label="TENANT NAME" t={t}><FIn value={modal.data.name} onChange={e => setF("name", e.target.value)} placeholder="e.g. AVG Real Estate" t={t} /></FF>
+            <FF label="TENANT NAME" t={t}><FIn value={modal.data.name} onChange={e => setF("name", e.target.value)} placeholder="e.g. Intelligent Real Estate" t={t} /></FF>
             
             <div style={{ margin: "20px 0 10px 0", borderBottom: `1px solid ${t.border}`, paddingBottom: 8 }}>
                 <span style={{ fontSize: 11, fontWeight: 700, color: t.textMuted, letterSpacing: "0.5px" }}>PRIMARY OWNER DETAILS</span>

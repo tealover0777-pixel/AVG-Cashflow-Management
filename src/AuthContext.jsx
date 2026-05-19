@@ -102,7 +102,15 @@ export function AuthProvider({ children }) {
                         const q = query(collection(db, `tenants/${tenantId}/users`), where("auth_uid", "==", u.uid));
                         tenantUnsub = onSnapshot(q, (tSnap) => {
                             if (!tSnap.empty) {
-                                setProfile(prev => ({ ...prev, ...tSnap.docs[0].data() }));
+                                setProfile(prev => {
+                                    const tenantData = tSnap.docs[0].data();
+                                    return {
+                                        ...tenantData,
+                                        ...prev, // global_users takes precedence for core profile details
+                                        role: prev?.role || tenantData?.role_id || tenantData?.role || "",
+                                        tenantId: prev?.tenantId || tenantData?.tenantId || ""
+                                    };
+                                });
                             }
                         });
                     }

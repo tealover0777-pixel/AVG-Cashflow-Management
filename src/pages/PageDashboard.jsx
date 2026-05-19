@@ -161,7 +161,7 @@ export default function PageDashboard(props) {
             Dashboard
           </h1>
           <p style={{ fontSize: 13.5, color: t.textMuted }}>
-            {isMember ? `Welcome back, ${myContact?.name || 'Member'}` : "AVG Cashflow System Overview"}
+            {isMember ? `Welcome back, ${myContact?.name || 'Member'}` : "Intelligent Cashflow System Overview"}
           </p>
         </div>
         <div style={{ display: "flex", gap: 10 }}>
