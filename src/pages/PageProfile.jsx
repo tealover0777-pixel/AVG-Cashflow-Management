@@ -37,7 +37,7 @@ export default function PageProfile({ t, isDark, setIsDark, ROLES = [], collecti
         const found = ROLES.find(r => (r.id || r.role_id) === roleId);
         return found ? (found.role_name || found.name || roleId) : roleId;
     })();
-    const roleDisplay = roleId && roleName && roleName !== roleId ? `${roleId} — ${roleName}` : (roleName || roleId || "—");
+    const roleDisplay = roleName || roleId || "—";
 
 
 

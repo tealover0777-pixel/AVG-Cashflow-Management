@@ -779,7 +779,7 @@ function AppContent() {
                 })()}
               </div>
               <div style={{ fontSize: 10, color: t.textMuted, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                {profile?.role}{profile?.roleName && profile?.roleName !== profile?.role ? ` - ${profile?.roleName}` : ""}
+                {profile?.roleName || profile?.role || ""}
               </div>
             </div>
             <Tooltip text="Sign out of your account" t={t}>

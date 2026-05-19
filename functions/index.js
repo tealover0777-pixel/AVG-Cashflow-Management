@@ -156,27 +156,54 @@ exports.inviteUser = functions.https.onCall(async (data, context) => {
       });
     }
 
-    // 5. Create Tenant Profile
+    // 5. Create Tenant Profile (users or contacts)
     if (tenantId) {
-      await db.doc(`tenants/${tenantId}/users/${user_id}`).set({
-        user_id,
-        first_name: first_name || '',
-        last_name: last_name || '',
-        email,
-        role_id: role,
-        status: 'Pending',
-        phone: phone || userRecord.phoneNumber || '',
-        notes: notes || '',
-        tenantId,
-        auth_uid: uid,
-        contact_id: contactId || partyId || '',
-        street1: street1 || '',
-        street2: street2 || '',
-        city: city || '',
-        state: state || '',
-        zip: zip || '',
-        created_at: admin.firestore.FieldValue.serverTimestamp()
-      }, { merge: true });
+      const cid = contactId || partyId;
+      let contactDoc = null;
+      if (cid) {
+        const docSnap = await db.doc(`tenants/${tenantId}/contacts/${cid}`).get();
+        if (docSnap.exists) contactDoc = docSnap;
+      }
+      if (!contactDoc) {
+        const contactSnap = await db.collection(`tenants/${tenantId}/contacts`).where('email', '==', email).limit(1).get();
+        if (!contactSnap.empty) contactDoc = contactSnap.docs[0];
+      }
+
+      if (contactDoc) {
+        // Link to existing contact document
+        await contactDoc.ref.set({
+          auth_uid: uid,
+          role_id: role,
+          status: 'Pending',
+          phone: phone || contactDoc.data().phone || userRecord.phoneNumber || '',
+          street1: street1 || contactDoc.data().street1 || '',
+          street2: street2 || contactDoc.data().street2 || '',
+          city: city || contactDoc.data().city || '',
+          state: state || contactDoc.data().state || '',
+          zip: zip || contactDoc.data().zip || '',
+          updated_at: admin.firestore.FieldValue.serverTimestamp()
+        }, { merge: true });
+      } else {
+        // Create standard tenant user profile
+        await db.doc(`tenants/${tenantId}/users/${user_id}`).set({
+          user_id,
+          first_name: first_name || '',
+          last_name: last_name || '',
+          email,
+          role_id: role,
+          status: 'Pending',
+          phone: phone || userRecord.phoneNumber || '',
+          notes: notes || '',
+          tenantId,
+          auth_uid: uid,
+          street1: street1 || '',
+          street2: street2 || '',
+          city: city || '',
+          state: state || '',
+          zip: zip || '',
+          created_at: admin.firestore.FieldValue.serverTimestamp()
+        }, { merge: true });
+      }
     }
 
     // 6. Generate password reset link (better for onboarding than verification)
