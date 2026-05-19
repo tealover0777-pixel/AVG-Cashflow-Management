@@ -10,7 +10,8 @@ import { httpsCallable } from "firebase/functions";
 import { resolveTimeZone, US_TIMEZONES } from "../utils/timeZoneUtils";
 
 export default function PagePlatformCompany({ t, isDark, USERS = [], CONTACTS = [] }) {
-    const { user } = useAuth();
+    const { user, isSuperAdmin, hasPermission } = useAuth();
+    const canUpdate = isSuperAdmin || hasPermission("PLATFORM_TENANT_UPDATE") || hasPermission("TENANT_UPDATE") || hasPermission("PLATFORM_USER_UPDATE");
     const [saving, setSaving] = React.useState(false);
     const [toast, setToast] = React.useState(null);
     const [showOwnerSearch, setShowOwnerSearch] = React.useState(false);
@@ -226,15 +227,20 @@ export default function PagePlatformCompany({ t, isDark, USERS = [], CONTACTS = 
         }
     };
 
-    const handlePhotoChange = (e) => uploadLogoFile(e.target.files[0]);
+    const handlePhotoChange = (e) => {
+        if (!canUpdate) return;
+        uploadLogoFile(e.target.files[0]);
+    };
 
     const handleDrop = (e) => {
         e.preventDefault();
+        if (!canUpdate) return;
         setDragOver(false);
         uploadLogoFile(e.dataTransfer.files[0]);
     };
 
     const handleSave = async () => {
+        if (!canUpdate) return;
         setSaving(true);
         try {
             // 1. Handle Ownership Transfer if it changed
@@ -392,13 +398,15 @@ export default function PagePlatformCompany({ t, isDark, USERS = [], CONTACTS = 
                     <h1 style={{ fontFamily: t.titleFont, fontWeight: t.titleWeight, fontSize: t.titleSize, color: isDark ? "#fff" : "#1C1917", letterSpacing: t.titleTracking, lineHeight: 1, marginBottom: 6 }}>Platform Company</h1>
                     <p style={{ fontSize: 13.5, color: t.textMuted }}>Manage global platform company settings and infrastructure.</p>
                 </div>
-                <div style={{ display: "flex", gap: 12 }}>
-                    <button onClick={handleSave} disabled={saving} 
-                        style={{ background: t.accentGrad, color: "#fff", border: "none", borderRadius: 12, padding: "12px 28px", fontSize: 14, fontWeight: 700, cursor: "pointer", boxShadow: `0 6px 20px ${t.accentShadow}`, display: "flex", alignItems: "center", gap: 10, transition: "all 0.2s" }}
-                        onMouseEnter={e => e.currentTarget.style.transform = "translateY(-2px)"} onMouseLeave={e => e.currentTarget.style.transform = "translateY(0)"}>
-                        {saving ? "⏳ Saving..." : "✅ Apply Global Settings"}
-                    </button>
-                </div>
+                {canUpdate && (
+                    <div style={{ display: "flex", gap: 12 }}>
+                        <button onClick={handleSave} disabled={saving} 
+                            style={{ background: t.accentGrad, color: "#fff", border: "none", borderRadius: 12, padding: "12px 28px", fontSize: 14, fontWeight: 700, cursor: "pointer", boxShadow: `0 6px 20px ${t.accentShadow}`, display: "flex", alignItems: "center", gap: 10, transition: "all 0.2s" }}
+                            onMouseEnter={e => e.currentTarget.style.transform = "translateY(-2px)"} onMouseLeave={e => e.currentTarget.style.transform = "translateY(0)"}>
+                            {saving ? "⏳ Saving..." : "✅ Apply Global Settings"}
+                        </button>
+                    </div>
+                )}
             </div>
 
             {/* Tab Bar */}
@@ -436,14 +444,14 @@ export default function PagePlatformCompany({ t, isDark, USERS = [], CONTACTS = 
                             <p style={{ fontSize: 12.5, color: t.textMuted, lineHeight: 1.5 }}>Set the platform's corporate identity.</p>
                         </div>
                         <div style={{ display: "grid", gap: 24 }}>
-                            <FF label="Platform Company Name" t={t}><FIn value={data.name} onChange={e => setData(p => ({ ...p, name: e.target.value }))} placeholder="Platform Company Name" t={t} /></FF>
+                            <FF label="Platform Company Name" t={t}><FIn value={data.name} onChange={e => setData(p => ({ ...p, name: e.target.value }))} placeholder="Platform Company Name" t={t} disabled={!canUpdate} /></FF>
                             <FF label="Platform Logo" t={t}>
                                 <div style={{ display: "grid", gap: 16 }}>
                                     <div
-                                        onDragOver={e => { e.preventDefault(); setDragOver(true); }}
+                                        onDragOver={e => { e.preventDefault(); canUpdate && setDragOver(true); }}
                                         onDragLeave={() => setDragOver(false)}
                                         onDrop={handleDrop}
-                                        style={{ background: dragOver ? (isDark ? "rgba(52,211,153,0.08)" : "rgba(79,70,229,0.06)") : (isDark ? "rgba(255,255,255,0.02)" : "#FAFAF9"), border: `2px dashed ${dragOver ? t.accent : t.surfaceBorder}`, borderRadius: 16, padding: 32, display: "flex", flexDirection: "column", alignItems: "center", gap: 16, textAlign: "center", transition: "all 0.2s" }}>
+                                        style={{ background: dragOver ? (isDark ? "rgba(52,211,153,0.08)" : "rgba(79,70,229,0.06)") : (isDark ? "rgba(255,255,255,0.02)" : "#FAFAF9"), border: `2px dashed ${dragOver ? t.accent : t.surfaceBorder}`, borderRadius: 16, padding: 32, display: "flex", flexDirection: "column", alignItems: "center", gap: 16, textAlign: "center", transition: "all 0.2s", opacity: canUpdate ? 1 : 0.7 }}>
                                         {logoUploading ? (
                                             <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}>
                                                 <div style={{ width: 40, height: 40, border: `3px solid ${t.accent}`, borderTopColor: "transparent", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
@@ -452,18 +460,20 @@ export default function PagePlatformCompany({ t, isDark, USERS = [], CONTACTS = 
                                         ) : data.logo ? (
                                             <div style={{ position: "relative" }}>
                                                 <img src={data.logo} alt="Logo" style={{ maxWidth: "100%", maxHeight: 120, borderRadius: 8, boxShadow: "0 8px 24px rgba(0,0,0,0.12)" }} />
-                                                <button onClick={() => setData(p => ({ ...p, logo: "" }))} style={{ position: "absolute", top: -12, right: -12, background: "#EF4444", color: "#fff", border: "2px solid #fff", borderRadius: "50%", width: 26, height: 26, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15, fontWeight: 800 }}>×</button>
+                                                {canUpdate && <button onClick={() => setData(p => ({ ...p, logo: "" }))} style={{ position: "absolute", top: -12, right: -12, background: "#EF4444", color: "#fff", border: "2px solid #fff", borderRadius: "50%", width: 26, height: 26, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15, fontWeight: 800 }}>×</button>}
                                             </div>
                                         ) : (
                                             <div style={{ width: 90, height: 90, borderRadius: 20, background: isDark ? "rgba(255,255,255,0.05)" : "#F3F4F6", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 40 }}>🌐</div>
                                         )}
-                                        <div style={{ marginTop: 8 }}>
-                                            <input type="file" id="platform-logo-upload" accept="image/*" onChange={handlePhotoChange} style={{ display: "none" }} />
-                                            <label htmlFor="platform-logo-upload" style={{ background: logoUploading ? t.surfaceBorder : t.accentGrad, color: "#fff", padding: "10px 22px", borderRadius: 10, fontSize: 13.5, fontWeight: 600, cursor: logoUploading ? "not-allowed" : "pointer", display: "inline-block", opacity: logoUploading ? 0.6 : 1 }}>{data.logo ? "Upload New Logo" : "Upload Logo"}</label>
-                                            <p style={{ fontSize: 11, color: t.textMuted, marginTop: 12, fontWeight: 500 }}>Drag & drop or click to upload · PNG/JPEG · Max 2MB</p>
-                                        </div>
+                                        {canUpdate && (
+                                            <div style={{ marginTop: 8 }}>
+                                                <input type="file" id="platform-logo-upload" accept="image/*" onChange={handlePhotoChange} style={{ display: "none" }} disabled={!canUpdate} />
+                                                <label htmlFor="platform-logo-upload" style={{ background: logoUploading ? t.surfaceBorder : t.accentGrad, color: "#fff", padding: "10px 22px", borderRadius: 10, fontSize: 13.5, fontWeight: 600, cursor: logoUploading ? "not-allowed" : "pointer", display: "inline-block", opacity: logoUploading ? 0.6 : 1 }}>{data.logo ? "Upload New Logo" : "Upload Logo"}</label>
+                                                <p style={{ fontSize: 11, color: t.textMuted, marginTop: 12, fontWeight: 500 }}>Drag & drop or click to upload · PNG/JPEG · Max 2MB</p>
+                                            </div>
+                                        )}
                                     </div>
-
+ 
                                     {existingLogos.length > 0 && (
                                         <div style={{ display: "grid", gap: 8 }}>
                                             <div style={{ fontSize: 12, fontWeight: 600, color: t.textMuted }}>Or select from previously uploaded logos:</div>
@@ -471,7 +481,8 @@ export default function PagePlatformCompany({ t, isDark, USERS = [], CONTACTS = 
                                                 <select 
                                                     value={data.logo} 
                                                     onChange={e => setData(s => ({ ...s, logo: e.target.value }))}
-                                                    style={{ width: "100%", padding: "10px 14px", borderRadius: 9, border: `1px solid ${t.border}`, background: isDark ? "rgba(255,255,255,0.05)" : "#fff", color: t.text, cursor: "pointer", fontSize: 13.5, appearance: "none", outline: "none" }}
+                                                    disabled={!canUpdate}
+                                                    style={{ width: "100%", padding: "10px 14px", borderRadius: 9, border: `1px solid ${t.border}`, background: isDark ? "rgba(255,255,255,0.05)" : "#fff", color: t.text, cursor: canUpdate ? "pointer" : "default", fontSize: 13.5, appearance: "none", outline: "none", opacity: canUpdate ? 1 : 0.6 }}
                                                 >
                                                     <option value="">-- Choose existing logo --</option>
                                                     {existingLogos.map(logo => (
@@ -499,31 +510,31 @@ export default function PagePlatformCompany({ t, isDark, USERS = [], CONTACTS = 
                         <div style={{ display: "grid", gap: 20 }}>
                             <div style={{ display: "grid", gap: 16 }}>
                                 <div style={{ fontSize: 13, fontWeight: 700, color: t.text, marginBottom: -4 }}>Contact Details</div>
-                                <FF label="Public Email" t={t}><FIn value={data.email} onChange={e => setData(s => ({ ...s, email: e.target.value }))} placeholder="e.g. contact@platform.com" t={t} /></FF>
-                                <FF label="Public Phone" t={t}><FIn value={data.phone} onChange={e => setData(s => ({ ...s, phone: e.target.value }))} placeholder="e.g. +1 555 000 0000" t={t} /></FF>
-                                <FF label="Website / Home Page" t={t}><FIn value={data.home_page} onChange={e => setData(s => ({ ...s, home_page: e.target.value }))} placeholder="https://www.platform.com" t={t} /></FF>
+                                <FF label="Public Email" t={t}><FIn value={data.email} onChange={e => setData(s => ({ ...s, email: e.target.value }))} placeholder="e.g. contact@platform.com" t={t} disabled={!canUpdate} /></FF>
+                                <FF label="Public Phone" t={t}><FIn value={data.phone} onChange={e => setData(s => ({ ...s, phone: e.target.value }))} placeholder="e.g. +1 555 000 0000" t={t} disabled={!canUpdate} /></FF>
+                                <FF label="Website / Home Page" t={t}><FIn value={data.home_page} onChange={e => setData(s => ({ ...s, home_page: e.target.value }))} placeholder="https://www.platform.com" t={t} disabled={!canUpdate} /></FF>
                             </div>
                             <div style={{ height: 1, background: t.border, opacity: 0.5, margin: "8px 0" }} />
                             <div style={{ display: "grid", gap: 16 }}>
                                 <div style={{ fontSize: 13, fontWeight: 700, color: t.text, marginBottom: -4 }}>Location</div>
-                                <FF label="Street Address" t={t}><FIn value={data.address1} onChange={e => setData(s => ({ ...s, address1: e.target.value }))} placeholder="Address line 1" t={t} /></FF>
-                                <FF label="Address Line 2" t={t}><FIn value={data.address2} onChange={e => setData(s => ({ ...s, address2: e.target.value }))} placeholder="Suite, floor, etc." t={t} /></FF>
+                                <FF label="Street Address" t={t}><FIn value={data.address1} onChange={e => setData(s => ({ ...s, address1: e.target.value }))} placeholder="Address line 1" t={t} disabled={!canUpdate} /></FF>
+                                <FF label="Address Line 2" t={t}><FIn value={data.address2} onChange={e => setData(s => ({ ...s, address2: e.target.value }))} placeholder="Suite, floor, etc." t={t} disabled={!canUpdate} /></FF>
                                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-                                    <FF label="City" t={t}><FIn value={data.city} onChange={e => setData(s => ({ ...s, city: e.target.value }))} placeholder="City" t={t} /></FF>
-                                    <FF label="State" t={t}><FIn value={data.state} onChange={e => setData(s => ({ ...s, state: e.target.value }))} placeholder="State" t={t} /></FF>
+                                    <FF label="City" t={t}><FIn value={data.city} onChange={e => setData(s => ({ ...s, city: e.target.value }))} placeholder="City" t={t} disabled={!canUpdate} /></FF>
+                                    <FF label="State" t={t}><FIn value={data.state} onChange={e => setData(s => ({ ...s, state: e.target.value }))} placeholder="State" t={t} disabled={!canUpdate} /></FF>
                                 </div>
                                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-                                    <FF label="Zip Code" t={t}><FIn value={data.zip} onChange={e => setData(s => ({ ...s, zip: e.target.value }))} placeholder="Zip code" t={t} /></FF>
-                                    <FF label="Country" t={t}><FIn value={data.country} onChange={e => setData(s => ({ ...s, country: e.target.value }))} placeholder="Country" t={t} /></FF>
+                                    <FF label="Zip Code" t={t}><FIn value={data.zip} onChange={e => setData(s => ({ ...s, zip: e.target.value }))} placeholder="Zip code" t={t} disabled={!canUpdate} /></FF>
+                                    <FF label="Country" t={t}><FIn value={data.country} onChange={e => setData(s => ({ ...s, country: e.target.value }))} placeholder="Country" t={t} disabled={!canUpdate} /></FF>
                                 </div>
                             </div>
                             <div style={{ height: 1, background: t.border, opacity: 0.5, margin: "8px 0" }} />
                             <FF label="OWNER" t={t}>
                                 <div style={{ position: "relative" }}>
-                                    <div onClick={() => setShowOwnerSearch(!showOwnerSearch)} style={{ width: "100%", padding: "10px 14px", borderRadius: 9, border: `1px solid ${t.border}`, background: isDark ? "rgba(255,255,255,0.05)" : "#fff", color: t.text, cursor: "pointer", fontSize: 14, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                                    <div onClick={() => canUpdate && setShowOwnerSearch(!showOwnerSearch)} style={{ width: "100%", padding: "10px 14px", borderRadius: 9, border: `1px solid ${t.border}`, background: isDark ? "rgba(255,255,255,0.05)" : "#fff", color: t.text, cursor: canUpdate ? "pointer" : "default", fontSize: 14, display: "flex", alignItems: "center", justifyContent: "space-between", opacity: canUpdate ? 1 : 0.6 }}>
                                         <span>{resolvedOwnerName}</span><span style={{ fontSize: 10, opacity: 0.5 }}>▼</span>
                                     </div>
-                                    {showOwnerSearch && (
+                                    {canUpdate && showOwnerSearch && (
                                         <div style={{ position: "absolute", top: "100%", left: 0, right: 0, background: t.surface, border: `1px solid ${t.border}`, borderRadius: 12, marginTop: 6, zIndex: 100, boxShadow: "0 12px 32px rgba(0,0,0,0.25)", overflow: "hidden" }}>
                                             <input autoFocus value={ownerSearch} onChange={e => setOwnerSearch(e.target.value)} placeholder="Search directory..." style={{ width: "100%", padding: "12px 16px", border: "none", borderBottom: `1px solid ${t.border}`, background: "transparent", color: t.text, outline: "none" }} />
                                             <div style={{ maxHeight: 240, overflowY: "auto" }}>
@@ -557,7 +568,7 @@ export default function PagePlatformCompany({ t, isDark, USERS = [], CONTACTS = 
                                 <p style={{ margin: 0, fontSize: 11.5, color: t.textMuted }}>Used for calculating "Time of Day" for automated marketing campaigns.</p>
                             </div>
                         </div>
-
+ 
                         <div style={{ maxWidth: 400 }}>
                             <FF label={
                                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -571,7 +582,8 @@ export default function PagePlatformCompany({ t, isDark, USERS = [], CONTACTS = 
                                     <select 
                                         value={data.emailSetup.timeZone} 
                                         onChange={e => updES({ timeZone: e.target.value })}
-                                        style={{ width: "100%", padding: "10px 14px", borderRadius: 9, border: `1px solid ${t.border}`, background: isDark ? "rgba(255,255,255,0.05)" : "#fff", color: t.text, cursor: "pointer", fontSize: 14, outline: "none", appearance: "none" }}
+                                        disabled={!canUpdate}
+                                        style={{ width: "100%", padding: "10px 14px", borderRadius: 9, border: `1px solid ${t.border}`, background: isDark ? "rgba(255,255,255,0.05)" : "#fff", color: t.text, cursor: canUpdate ? "pointer" : "default", fontSize: 14, outline: "none", appearance: "none", opacity: canUpdate ? 1 : 0.6 }}
                                     >
                                         <option value="">Select Time Zone (Optional)</option>
                                         {US_TIMEZONES.map(tz => <option key={tz.value} value={tz.value}>{tz.label} ({tz.value})</option>)}
@@ -633,27 +645,27 @@ export default function PagePlatformCompany({ t, isDark, USERS = [], CONTACTS = 
                     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 32, marginBottom: 32, paddingBottom: 32, borderBottom: `1px solid ${t.border}` }}>
                         <div style={{ display: "grid", gap: 16 }}>
                             <div style={{ fontSize: 13, fontWeight: 700, color: t.text }}>Common Fields (Required)</div>
-                            <FF label="From Email" t={t}><FIn value={data.emailSetup.common.fromEmail} onChange={e => updES({ fromEmail: e.target.value })} placeholder="noreply@company.com" t={t} /></FF>
-                            <FF label="From Name" t={t}><FIn value={data.emailSetup.common.fromName} onChange={e => updES({ fromName: e.target.value })} placeholder="Company Name" t={t} /></FF>
+                            <FF label="From Email" t={t}><FIn value={data.emailSetup.common.fromEmail} onChange={e => updES({ fromEmail: e.target.value })} placeholder="noreply@company.com" t={t} disabled={!canUpdate} /></FF>
+                            <FF label="From Name" t={t}><FIn value={data.emailSetup.common.fromName} onChange={e => updES({ fromName: e.target.value })} placeholder="Company Name" t={t} disabled={!canUpdate} /></FF>
                         </div>
                         <div style={{ display: "grid", gap: 16 }}>
                             <div style={{ fontSize: 13, fontWeight: 700, color: t.text }}>Optional / Testing</div>
-                            <FF label="Reply-To" t={t}><FIn value={data.emailSetup.common.replyTo} onChange={e => updES({ replyTo: e.target.value })} placeholder="support@company.com" t={t} /></FF>
-                            <FF label="Test Email Address" t={t}><FIn value={data.emailSetup.common.testEmail} onChange={e => updES({ testEmail: e.target.value })} placeholder="test@company.com" t={t} /></FF>
+                            <FF label="Reply-To" t={t}><FIn value={data.emailSetup.common.replyTo} onChange={e => updES({ replyTo: e.target.value })} placeholder="support@company.com" t={t} disabled={!canUpdate} /></FF>
+                            <FF label="Test Email Address" t={t}><FIn value={data.emailSetup.common.testEmail} onChange={e => updES({ testEmail: e.target.value })} placeholder="test@company.com" t={t} disabled={!canUpdate} /></FF>
                         </div>
                     </div>
 
                     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 32 }}>
                         <div>
                             <FF label="Delivery Method" t={t}>
-                                <div style={{ display: "flex", gap: 8, background: isDark ? "rgba(255,255,255,0.05)" : "#F3F4F6", padding: 4, borderRadius: 10 }}>
-                                    <button onClick={() => updES({ method: "ESP" })}
-                                        style={{ flex: 1, padding: "8px 0", borderRadius: 8, border: "none", fontSize: 13, fontWeight: 600, cursor: "pointer", background: data.emailSetup.method === "ESP" ? t.accentGrad : "transparent", color: data.emailSetup.method === "ESP" ? "#fff" : t.textMuted, position: "relative" }}>
+                                <div style={{ display: "flex", gap: 8, background: isDark ? "rgba(255,255,255,0.05)" : "#F3F4F6", padding: 4, borderRadius: 10, opacity: canUpdate ? 1 : 0.7 }}>
+                                    <button onClick={() => canUpdate && updES({ method: "ESP" })}
+                                        style={{ flex: 1, padding: "8px 0", borderRadius: 8, border: "none", fontSize: 13, fontWeight: 600, cursor: canUpdate ? "pointer" : "default", background: data.emailSetup.method === "ESP" ? t.accentGrad : "transparent", color: data.emailSetup.method === "ESP" ? "#fff" : t.textMuted, position: "relative" }}>
                                         Service Provider (API)
                                         {data.emailSetup.method === "ESP" && <span style={{ position: "absolute", top: -8, right: 4, background: "#34D399", color: "#fff", fontSize: 8, padding: "2px 6px", borderRadius: 6, fontWeight: 800 }}>ACTIVE</span>}
                                     </button>
-                                    <button onClick={() => updES({ method: "SMTP" })}
-                                        style={{ flex: 1, padding: "8px 0", borderRadius: 8, border: "none", fontSize: 13, fontWeight: 600, cursor: "pointer", background: data.emailSetup.method === "SMTP" ? t.accentGrad : "transparent", color: data.emailSetup.method === "SMTP" ? "#fff" : t.textMuted, position: "relative" }}>
+                                    <button onClick={() => canUpdate && updES({ method: "SMTP" })}
+                                        style={{ flex: 1, padding: "8px 0", borderRadius: 8, border: "none", fontSize: 13, fontWeight: 600, cursor: canUpdate ? "pointer" : "default", background: data.emailSetup.method === "SMTP" ? t.accentGrad : "transparent", color: data.emailSetup.method === "SMTP" ? "#fff" : t.textMuted, position: "relative" }}>
                                         Custom SMTP
                                         {data.emailSetup.method === "SMTP" && <span style={{ position: "absolute", top: -8, right: 4, background: "#34D399", color: "#fff", fontSize: 8, padding: "2px 6px", borderRadius: 6, fontWeight: 800 }}>ACTIVE</span>}
                                     </button>
@@ -670,10 +682,10 @@ export default function PagePlatformCompany({ t, isDark, USERS = [], CONTACTS = 
                                 <p style={{ fontSize: 12, color: t.textMuted, marginBottom: 20, lineHeight: 1.5 }}>Verify your credentials by sending a test message to the configured test address.</p>
                                 <button 
                                     onClick={handleTestEmail}
-                                    disabled={testingEmail || saving}
-                                    style={{ width: "100%", padding: "10px", borderRadius: 8, background: isDark ? "rgba(255,255,255,0.08)" : "#fff", border: `1px solid ${t.border}`, color: t.text, fontSize: 13, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, transition: "all 0.2s" }}
-                                    onMouseEnter={e => e.currentTarget.style.background = isDark ? "rgba(255,255,255,0.12)" : "#F3F4F6"}
-                                    onMouseLeave={e => e.currentTarget.style.background = isDark ? "rgba(255,255,255,0.08)" : "#fff"}
+                                    disabled={testingEmail || saving || !canUpdate}
+                                    style={{ width: "100%", padding: "10px", borderRadius: 8, background: isDark ? "rgba(255,255,255,0.08)" : "#fff", border: `1px solid ${t.border}`, color: t.text, fontSize: 13, fontWeight: 600, cursor: (testingEmail || saving || !canUpdate) ? "not-allowed" : "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, transition: "all 0.2s", opacity: canUpdate ? 1 : 0.6 }}
+                                    onMouseEnter={e => { if (canUpdate) e.currentTarget.style.background = isDark ? "rgba(255,255,255,0.12)" : "#F3F4F6"; }}
+                                    onMouseLeave={e => { if (canUpdate) e.currentTarget.style.background = isDark ? "rgba(255,255,255,0.08)" : "#fff"; }}
                                 >
                                     {testingEmail ? "Verifying..." : "Send Verification Email"}
                                 </button>
@@ -707,21 +719,22 @@ export default function PagePlatformCompany({ t, isDark, USERS = [], CONTACTS = 
                                             <select 
                                                 value={data.emailSetup.api.provider} 
                                                 onChange={e => updAPI({ provider: e.target.value })}
-                                                style={{ width: "100%", padding: "10px 14px", borderRadius: 9, border: `1px solid ${t.border}`, background: isDark ? "rgba(255,255,255,0.05)" : "#fff", color: t.text, cursor: "pointer", fontSize: 14, outline: "none", appearance: "none" }}
+                                                disabled={!canUpdate}
+                                                style={{ width: "100%", padding: "10px 14px", borderRadius: 9, border: `1px solid ${t.border}`, background: isDark ? "rgba(255,255,255,0.05)" : "#fff", color: t.text, cursor: canUpdate ? "pointer" : "default", fontSize: 14, outline: "none", appearance: "none", opacity: canUpdate ? 1 : 0.6 }}
                                             >
                                                 {PROVIDERS.map(p => <option key={p} value={p}>{p}</option>)}
                                             </select>
                                             <ChevronDown size={14} style={{ position: "absolute", right: 14, top: "50%", transform: "translateY(-50%)", pointerEvents: "none", opacity: 0.5 }} />
                                         </div>
                                     </FF>
-                                    <FF label="API Key 🔐" t={t}><FIn type="password" value={data.emailSetup.api.apiKey} onChange={e => updAPI({ apiKey: e.target.value })} placeholder="Your API key" t={t} /></FF>
+                                    <FF label="API Key 🔐" t={t}><FIn type="password" value={data.emailSetup.api.apiKey} onChange={e => updAPI({ apiKey: e.target.value })} placeholder="Your API key" t={t} disabled={!canUpdate} /></FF>
                                     {data.emailSetup.api.provider === "Mailgun" && (
-                                        <FF label="Domain" t={t}><FIn value={data.emailSetup.api.domain} onChange={e => updAPI({ domain: e.target.value })} placeholder="mg.yourdomain.com" t={t} /></FF>
+                                        <FF label="Domain" t={t}><FIn value={data.emailSetup.api.domain} onChange={e => updAPI({ domain: e.target.value })} placeholder="mg.yourdomain.com" t={t} disabled={!canUpdate} /></FF>
                                     )}
                                     {data.emailSetup.api.provider === "Amazon SES" && (
-                                        <FF label="Region" t={t}><FIn value={data.emailSetup.api.region} onChange={e => updAPI({ region: e.target.value })} placeholder="us-east-1" t={t} /></FF>
+                                        <FF label="Region" t={t}><FIn value={data.emailSetup.api.region} onChange={e => updAPI({ region: e.target.value })} placeholder="us-east-1" t={t} disabled={!canUpdate} /></FF>
                                     )}
-                                    <FF label="API Base URL (Optional)" t={t}><FIn value={data.emailSetup.api.baseUrl} onChange={e => updAPI({ baseUrl: e.target.value })} placeholder="https://api.provider.com" t={t} /></FF>
+                                    <FF label="API Base URL (Optional)" t={t}><FIn value={data.emailSetup.api.baseUrl} onChange={e => updAPI({ baseUrl: e.target.value })} placeholder="https://api.provider.com" t={t} disabled={!canUpdate} /></FF>
                                 </>
                             )}
                             {data.emailSetup.method === "SMTP" && (
@@ -737,7 +750,8 @@ export default function PagePlatformCompany({ t, isDark, USERS = [], CONTACTS = 
                                                         updSMTP({ host: profile.host, port: profile.port });
                                                     }
                                                 }}
-                                                style={{ width: "100%", padding: "10px 14px", borderRadius: 9, border: `1px solid ${t.border}`, background: isDark ? "rgba(255,255,255,0.05)" : "#fff", color: t.text, cursor: "pointer", fontSize: 14, outline: "none", appearance: "none" }}
+                                                disabled={!canUpdate}
+                                                style={{ width: "100%", padding: "10px 14px", borderRadius: 9, border: `1px solid ${t.border}`, background: isDark ? "rgba(255,255,255,0.05)" : "#fff", color: t.text, cursor: canUpdate ? "pointer" : "default", fontSize: 14, outline: "none", appearance: "none", opacity: canUpdate ? 1 : 0.6 }}
                                             >
                                                 {SMTP_PROFILES.map(p => <option key={p.label} value={p.label}>{p.label}</option>)}
                                             </select>
@@ -745,31 +759,31 @@ export default function PagePlatformCompany({ t, isDark, USERS = [], CONTACTS = 
                                         </div>
                                         <p style={{ fontSize: 11, color: t.textMuted, marginTop: 6 }}>Selecting a service will auto-populate host and port details.</p>
                                     </FF>
-
+ 
                                     <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 12 }}>
-                                        <FF label="SMTP Host" t={t}><FIn value={data.emailSetup.smtp.host} onChange={e => updSMTP({ host: e.target.value })} placeholder="smtp.provider.com" t={t} /></FF>
-                                        <FF label="Port" t={t}><FIn value={data.emailSetup.smtp.port} onChange={e => updSMTP({ port: e.target.value })} placeholder="587" t={t} /></FF>
+                                        <FF label="SMTP Host" t={t}><FIn value={data.emailSetup.smtp.host} onChange={e => updSMTP({ host: e.target.value })} placeholder="smtp.provider.com" t={t} disabled={!canUpdate} /></FF>
+                                        <FF label="Port" t={t}><FIn value={data.emailSetup.smtp.port} onChange={e => updSMTP({ port: e.target.value })} placeholder="587" t={t} disabled={!canUpdate} /></FF>
                                     </div>
-                                    <FF label="SMTP Username" t={t}><FIn value={data.emailSetup.smtp.user} onChange={e => updSMTP({ user: e.target.value })} placeholder="username@provider.com" t={t} /></FF>
+                                    <FF label="SMTP Username" t={t}><FIn value={data.emailSetup.smtp.user} onChange={e => updSMTP({ user: e.target.value })} placeholder="username@provider.com" t={t} disabled={!canUpdate} /></FF>
                                     
                                     <div style={{ marginBottom: 16 }}>
-                                        <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer", marginBottom: 12 }}>
-                                            <input type="checkbox" checked={data.emailSetup.smtp.has2FA} onChange={e => updSMTP({ has2FA: e.target.checked })} style={{ width: 16, height: 16, accentColor: t.accent }} />
+                                        <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: canUpdate ? "pointer" : "default", marginBottom: 12, opacity: canUpdate ? 1 : 0.7 }}>
+                                            <input type="checkbox" checked={data.emailSetup.smtp.has2FA} onChange={e => canUpdate && updSMTP({ has2FA: e.target.checked })} disabled={!canUpdate} style={{ width: 16, height: 16, accentColor: t.accent }} />
                                             <span style={{ fontSize: 13, fontWeight: 700, color: t.text }}>My account has 2FA enabled (requires App Password)</span>
                                         </label>
                                         
                                         {data.emailSetup.smtp.has2FA ? (
                                             <FF label="App Password 🔐" t={t}>
-                                                <FIn type="password" value={data.emailSetup.smtp.pass} onChange={e => updSMTP({ pass: e.target.value })} placeholder="16-character app password" t={t} />
+                                                <FIn type="password" value={data.emailSetup.smtp.pass} onChange={e => updSMTP({ pass: e.target.value })} placeholder="16-character app password" t={t} disabled={!canUpdate} />
                                                 <p style={{ fontSize: 11, color: t.textMuted, marginTop: 8, lineHeight: 1.4 }}>Generate this in your Google Account Security settings. Use it instead of your regular password.</p>
                                             </FF>
                                         ) : (
-                                            <FF label="SMTP Password" t={t}><FIn type="password" value={data.emailSetup.smtp.pass} onChange={e => updSMTP({ pass: e.target.value })} placeholder="••••••••" t={t} /></FF>
+                                            <FF label="SMTP Password" t={t}><FIn type="password" value={data.emailSetup.smtp.pass} onChange={e => updSMTP({ pass: e.target.value })} placeholder="••••••••" t={t} disabled={!canUpdate} /></FF>
                                         )}
                                     </div>
-
-                                    <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer", marginTop: 4 }}>
-                                        <input type="checkbox" checked={data.emailSetup.smtp.secure} onChange={e => updSMTP({ secure: e.target.checked })} style={{ width: 16, height: 16, accentColor: t.accent }} />
+ 
+                                    <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: canUpdate ? "pointer" : "default", marginTop: 4, opacity: canUpdate ? 1 : 0.7 }}>
+                                        <input type="checkbox" checked={data.emailSetup.smtp.secure} onChange={e => canUpdate && updSMTP({ secure: e.target.checked })} disabled={!canUpdate} style={{ width: 16, height: 16, accentColor: t.accent }} />
                                         <span style={{ fontSize: 13, fontWeight: 500, color: t.text }}>Use TLS / SSL for secure connection</span>
                                     </label>
                                 </>
@@ -786,33 +800,34 @@ export default function PagePlatformCompany({ t, isDark, USERS = [], CONTACTS = 
                             <h3 style={{ fontSize: 17, fontWeight: 700, color: isDark ? "#fff" : "#1C1917", marginBottom: 6 }}>Platform ACH Setup</h3>
                             <p style={{ fontSize: 12.5, color: t.textMuted, lineHeight: 1.5 }}>Banking credentials for platform-level ACH operations.</p>
                         </div>
-                        <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer", background: isDark ? "rgba(255,255,255,0.05)" : "#F3F4F6", padding: "8px 16px", borderRadius: 10, border: `1px solid ${data.achSetup.enabled ? t.accent : t.border}` }}>
+                        <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: canUpdate ? "pointer" : "default", background: isDark ? "rgba(255,255,255,0.05)" : "#F3F4F6", padding: "8px 16px", borderRadius: 10, border: `1px solid ${data.achSetup.enabled ? t.accent : t.border}`, opacity: canUpdate ? 1 : 0.7 }}>
                             <span style={{ fontSize: 13, fontWeight: 600, color: data.achSetup.enabled ? (isDark ? "#34D399" : "#059669") : t.textMuted }}>{data.achSetup.enabled ? "ACH Generation Enabled" : "ACH Generation Disabled"}</span>
-                            <input type="checkbox" checked={data.achSetup.enabled} onChange={e => updACH({ enabled: e.target.checked })} style={{ width: 18, height: 18, accentColor: t.accent }} />
+                            <input type="checkbox" checked={data.achSetup.enabled} onChange={e => canUpdate && updACH({ enabled: e.target.checked })} disabled={!canUpdate} style={{ width: 18, height: 18, accentColor: t.accent }} />
                         </label>
                     </div>
 
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 32, opacity: data.achSetup.enabled ? 1 : 0.6, pointerEvents: data.achSetup.enabled ? "auto" : "none", transition: "opacity 0.2s" }}>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 32, opacity: (data.achSetup.enabled && canUpdate) ? 1 : 0.6, pointerEvents: (data.achSetup.enabled && canUpdate) ? "auto" : "none", transition: "opacity 0.2s" }}>
                         <div style={{ display: "grid", gap: 20 }}>
                             <div style={{ fontSize: 13, fontWeight: 700, color: t.text }}>Originator Information</div>
-                            <FF label="Originator Name" t={t}><FIn value={data.achSetup.originatorName} onChange={e => updACH({ originatorName: e.target.value })} placeholder="Platform Name" t={t} /></FF>
-                            <FF label="Originator ID" t={t}><FIn value={data.achSetup.originatorId} onChange={e => updACH({ originatorId: e.target.value })} placeholder="Tax ID" t={t} /></FF>
+                            <FF label="Originator Name" t={t}><FIn value={data.achSetup.originatorName} onChange={e => updACH({ originatorName: e.target.value })} placeholder="Platform Name" t={t} disabled={!canUpdate} /></FF>
+                            <FF label="Originator ID" t={t}><FIn value={data.achSetup.originatorId} onChange={e => updACH({ originatorId: e.target.value })} placeholder="Tax ID" t={t} disabled={!canUpdate} /></FF>
                             
                             <div style={{ height: 1, background: t.border, opacity: 0.5, margin: "8px 0" }} />
                             <div style={{ fontSize: 13, fontWeight: 700, color: t.text }}>Banking Institution (ODFI)</div>
-                            <FF label="Bank Name" t={t}><FIn value={data.achSetup.odfiName} onChange={e => updACH({ odfiName: e.target.value })} placeholder="Your Bank Name" t={t} /></FF>
-                            <FF label="ODFI Routing Number" t={t}><FIn value={data.achSetup.odfiRouting} onChange={e => updACH({ odfiRouting: e.target.value })} placeholder="9-digit Routing" t={t} /></FF>
+                            <FF label="Bank Name" t={t}><FIn value={data.achSetup.odfiName} onChange={e => updACH({ odfiName: e.target.value })} placeholder="Your Bank Name" t={t} disabled={!canUpdate} /></FF>
+                            <FF label="ODFI Routing Number" t={t}><FIn value={data.achSetup.odfiRouting} onChange={e => updACH({ odfiRouting: e.target.value })} placeholder="9-digit Routing" t={t} disabled={!canUpdate} /></FF>
                         </div>
 
                         <div style={{ display: "grid", gap: 20 }}>
                             <div style={{ fontSize: 13, fontWeight: 700, color: t.text }}>Account Details</div>
-                            <FF label="Account Number" t={t}><FIn type="password" value={data.achSetup.accountNumber} onChange={e => updACH({ accountNumber: e.target.value })} placeholder="Account Number" t={t} /></FF>
+                            <FF label="Account Number" t={t}><FIn type="password" value={data.achSetup.accountNumber} onChange={e => updACH({ accountNumber: e.target.value })} placeholder="Account Number" t={t} disabled={!canUpdate} /></FF>
                             <FF label="Account Type" t={t}>
                                 <div style={{ position: "relative" }}>
                                     <select 
                                         value={data.achSetup.accountType} 
                                         onChange={e => updACH({ accountType: e.target.value })}
-                                        style={{ width: "100%", padding: "10px 14px", borderRadius: 9, border: `1px solid ${t.border}`, background: isDark ? "rgba(255,255,255,0.05)" : "#fff", color: t.text, cursor: "pointer", fontSize: 14, outline: "none", appearance: "none" }}
+                                        disabled={!canUpdate}
+                                        style={{ width: "100%", padding: "10px 14px", borderRadius: 9, border: `1px solid ${t.border}`, background: isDark ? "rgba(255,255,255,0.05)" : "#fff", color: t.text, cursor: canUpdate ? "pointer" : "default", fontSize: 14, outline: "none", appearance: "none", opacity: canUpdate ? 1 : 0.6 }}
                                     >
                                         <option value="Checking">Checking</option>
                                         <option value="Savings">Savings</option>
@@ -824,8 +839,8 @@ export default function PagePlatformCompany({ t, isDark, USERS = [], CONTACTS = 
                             <div style={{ height: 1, background: t.border, opacity: 0.5, margin: "8px 0" }} />
                             <div style={{ fontSize: 13, fontWeight: 700, color: t.text }}>NACHA File Header Metadata</div>
                             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-                                <FF label="Immediate Origin" t={t}><FIn value={data.achSetup.immediateOrigin} onChange={e => updACH({ immediateOrigin: e.target.value })} placeholder="e.g. TTNNNNNNN" t={t} /></FF>
-                                <FF label="Immediate Destination" t={t}><FIn value={data.achSetup.immediateDestination} onChange={e => updACH({ immediateDestination: e.target.value })} placeholder="Bank's Routing" t={t} /></FF>
+                                <FF label="Immediate Origin" t={t}><FIn value={data.achSetup.immediateOrigin} onChange={e => updACH({ immediateOrigin: e.target.value })} placeholder="e.g. TTNNNNNNN" t={t} disabled={!canUpdate} /></FF>
+                                <FF label="Immediate Destination" t={t}><FIn value={data.achSetup.immediateDestination} onChange={e => updACH({ immediateDestination: e.target.value })} placeholder="Bank's Routing" t={t} disabled={!canUpdate} /></FF>
                             </div>
                         </div>
                     </div>
