@@ -99,8 +99,10 @@ export function AuthProvider({ children }) {
 
                     // Sync with tenant-specific profile if it exists
                     if (tenantId && !tenantUnsub) {
-                        const q = query(collection(db, `tenants/${tenantId}/users`), where("auth_uid", "==", u.uid));
-                        tenantUnsub = onSnapshot(q, (tSnap) => {
+                        const qUsers = query(collection(db, `tenants/${tenantId}/users`), where("auth_uid", "==", u.uid));
+                        const qContacts = query(collection(db, `tenants/${tenantId}/contacts`), where("auth_uid", "==", u.uid));
+
+                        const unsubUsers = onSnapshot(qUsers, (tSnap) => {
                             if (!tSnap.empty) {
                                 setProfile(prev => {
                                     const tenantData = tSnap.docs[0].data();
@@ -108,11 +110,43 @@ export function AuthProvider({ children }) {
                                         ...prev,
                                         ...tenantData, // tenant-scoped profile details take precedence for tenant-scoped users
                                         role: prev?.role || tenantData?.role_id || tenantData?.role || "",
-                                        tenantId: prev?.tenantId || tenantData?.tenantId || ""
+                                        tenantId: prev?.tenantId || tenantData?.tenantId || "",
+                                        isContact: false
                                     };
                                 });
                             }
                         });
+
+                        const unsubContacts = onSnapshot(qContacts, (cSnap) => {
+                            if (!cSnap.empty) {
+                                setProfile(prev => {
+                                    const contactData = cSnap.docs[0].data();
+                                    let fName = contactData.first_name || "";
+                                    let lName = contactData.last_name || "";
+                                    if (!fName && contactData.name) {
+                                        const parts = contactData.name.trim().split(/\s+/);
+                                        fName = parts[0] || "";
+                                        lName = parts.slice(1).join(" ") || "";
+                                    }
+                                    return {
+                                        ...prev,
+                                        ...contactData,
+                                        first_name: fName,
+                                        last_name: lName,
+                                        address1: contactData.address1 || contactData.street1 || "",
+                                        address2: contactData.address2 || contactData.street2 || "",
+                                        role: prev?.role || contactData?.role_id || contactData?.role || "",
+                                        tenantId: prev?.tenantId || contactData?.tenantId || "",
+                                        isContact: true
+                                    };
+                                });
+                            }
+                        });
+
+                        tenantUnsub = () => {
+                            unsubUsers();
+                            unsubContacts();
+                        };
                     }
 
                     if (!fetchedProfile && u.email?.toLowerCase() === "kyuahn@yahoo.com") {

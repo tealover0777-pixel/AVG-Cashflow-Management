@@ -148,25 +148,42 @@ export default function PageProfile({ t, isDark, setIsDark, ROLES = [], collecti
 
             await setDoc(doc(db, "global_users", uid), globalPayload, { merge: true });
 
-            // 2. Update tenant-specific user doc
-            const path = collectionPath || (tenantId ? `tenants/${tenantId}/users` : null);
+            // 2. Update tenant-specific doc (user or contact)
+            const targetCollection = profile?.isContact ? `tenants/${tenantId}/contacts` : `tenants/${tenantId}/users`;
+            const path = collectionPath || (tenantId ? targetCollection : null);
             if (path) {
                 const q = query(collection(db, path), where("auth_uid", "==", uid));
                 const snap = await getDocs(q);
                 if (!snap.empty) {
-                    await updateDoc(snap.docs[0].ref, {
-                        first_name: data.first_name || "",
-                        last_name: data.last_name || "",
+                    const updatePayload = {
                         phone: data.phone || "",
                         photo_url: data.photo_url || "",
-                        address1: data.address1 || "",
-                        address2: data.address2 || "",
-                        city: data.city || "",
-                        state: data.state || "",
-                        zip: data.zip || "",
-                        country: data.country || "",
                         updated_at: serverTimestamp(),
-                    });
+                    };
+
+                    if (profile?.isContact) {
+                        updatePayload.first_name = data.first_name || "";
+                        updatePayload.last_name = data.last_name || "";
+                        updatePayload.name = `${data.first_name || ""} ${data.last_name || ""}`.trim();
+                        // Contacts use street1/street2 fields instead of address1/address2
+                        updatePayload.street1 = data.address1 || "";
+                        updatePayload.street2 = data.address2 || "";
+                        updatePayload.city = data.city || "";
+                        updatePayload.state = data.state || "";
+                        updatePayload.zip = data.zip || "";
+                        updatePayload.country = data.country || "";
+                    } else {
+                        updatePayload.first_name = data.first_name || "";
+                        updatePayload.last_name = data.last_name || "";
+                        updatePayload.address1 = data.address1 || "";
+                        updatePayload.address2 = data.address2 || "";
+                        updatePayload.city = data.city || "";
+                        updatePayload.state = data.state || "";
+                        updatePayload.zip = data.zip || "";
+                        updatePayload.country = data.country || "";
+                    }
+
+                    await updateDoc(snap.docs[0].ref, updatePayload);
                 }
             }
 
