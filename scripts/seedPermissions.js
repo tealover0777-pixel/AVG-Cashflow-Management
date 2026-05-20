@@ -35,6 +35,7 @@ async function seed() {
         await setDoc(doc(db, "dimensions", "Permissions"), {
             name: "Permissions",
             items: permissionsList,
+            options: permissionsList,
             category: "Permissions"
         });
         console.log("Successfully seeded Permissions dimension.");
