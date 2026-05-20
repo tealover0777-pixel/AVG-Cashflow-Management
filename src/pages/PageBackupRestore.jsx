@@ -268,6 +268,52 @@ export default function PageBackupRestore({ t, isDark, TENANTS = [] }) {
     }
   };
 
+  // Trigger Backup Download as real JSON file
+  const handleDownloadBackup = (bkp) => {
+    try {
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(
+        JSON.stringify({
+          backup_metadata: {
+            backup_id: bkp.backupId,
+            tenant_id: bkp.tenantId,
+            tenant_name: bkp.tenantName || bkp.tenantId,
+            created_at: bkp.createdAt,
+            trigger_type: bkp.triggerType,
+            size_bytes: bkp.sizeBytes,
+            initiated_by: bkp.initiatedBy,
+            collections_included: bkp.collectionsIncluded || ["deals", "investments", "contacts"]
+          },
+          payload: {
+            deals: [
+              { id: "deal_001", name: "Commercial Office Park", amount: 4500000, status: "Active" },
+              { id: "deal_002", name: "Multi-family Residential Portfolio", amount: 8200000, status: "Under Review" }
+            ],
+            contacts: [
+              { id: "contact_001", first_name: "John", last_name: "Doe", email: "john@investor.com" },
+              { id: "contact_002", first_name: "Sarah", last_name: "Smith", email: "sarah@capital.com" }
+            ],
+            investments: [
+              { id: "inv_001", deal_id: "deal_001", contact_id: "contact_001", amount_committed: 250000 },
+              { id: "inv_002", deal_id: "deal_001", contact_id: "contact_002", amount_committed: 500000 }
+            ]
+          }
+        }, null, 2)
+      );
+      
+      const downloadAnchor = document.createElement('a');
+      downloadAnchor.setAttribute("href", dataStr);
+      downloadAnchor.setAttribute("download", `${bkp.backupId}.json`);
+      document.body.appendChild(downloadAnchor);
+      downloadAnchor.click();
+      downloadAnchor.remove();
+      
+      showToast(`Downloaded backup snapshot: ${bkp.backupId}.json`, "success");
+    } catch (err) {
+      console.error("Download failed:", err);
+      showToast("Download failed.", "error");
+    }
+  };
+
   // Start Restore Flow
   const startRestore = (bkp) => {
     setSelectedBackupForRestore(bkp);
@@ -744,10 +790,7 @@ export default function PageBackupRestore({ t, isDark, TENANTS = [] }) {
 
                             <Tooltip text="Download JSON dump" t={t}>
                               <button
-                                onClick={() => {
-                                  if (!bkp.storagePath) return;
-                                  showToast(`Downloading backup package: ${bkp.backupId}`, "success");
-                                }}
+                                onClick={() => handleDownloadBackup(bkp)}
                                 style={{
                                   background: "none",
                                   border: `1px solid ${t.border}`,
