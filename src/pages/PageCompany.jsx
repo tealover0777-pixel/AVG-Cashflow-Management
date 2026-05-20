@@ -794,7 +794,7 @@ export default function PageCompany({ t, isDark, activeTenantId = "", USERS = []
                                     {!usingPlatform && (
                                         <div style={{ fontSize: 12, color: t.textMuted }}>
                                             {isEmailActive
-                                                ? `Sending via ${activeSetup?.method === "API" ? activeSetup?.api?.provider : "SMTP Relay"} • ${activeSetup?.common?.fromEmail}`
+                                                ? `Sending via ${activeSetup?.method === "API" ? activeSetup?.api?.provider : "SMTP Relay"}`
                                                 : verifiedButNotTested
                                                     ? "Credentials saved but not yet verified. Send a test verification email below to activate."
                                                     : "Fill in your From Email and credentials below, then send a test verification email to activate."}

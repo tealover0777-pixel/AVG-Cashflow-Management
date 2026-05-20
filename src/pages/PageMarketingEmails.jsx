@@ -884,7 +884,7 @@ export default function PageMarketingEmails({ t, isDark, setActivePage, MARKETIN
                 </div>
                 <div style={{ fontSize: 12, color: t.textMuted }}>
                   {isEmailActive
-                    ? `Sending via ${usingPlatform ? "Platform • " : ""}${emailConfig?.method === "API" ? emailConfig?.api?.provider : "SMTP Relay"} • ${emailConfig?.common?.fromEmail}`
+                    ? `Sending via ${usingPlatform ? "Platform • " : ""}${emailConfig?.method === "API" ? emailConfig?.api?.provider : "SMTP Relay"}`
                     : usingPlatform
                       ? (isGlobal
                         ? "Configure your ESP (SendGrid, Mailgun) or SMTP settings in Platform Company settings to enable campaign dispatches."

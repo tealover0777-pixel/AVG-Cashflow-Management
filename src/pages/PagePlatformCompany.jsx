@@ -635,7 +635,7 @@ export default function PagePlatformCompany({ t, isDark, USERS = [], CONTACTS = 
                                     </div>
                                     <div style={{ fontSize: 12, color: t.textMuted }}>
                                         {isEmailActive
-                                            ? `Sending via ${data.emailSetup.method === "API" ? data.emailSetup.api?.provider : "SMTP Relay"} • ${data.emailSetup.common.fromEmail}`
+                                            ? `Sending via ${data.emailSetup.method === "API" ? data.emailSetup.api?.provider : "SMTP Relay"}`
                                             : verifiedButNotTested
                                                 ? "Credentials saved but not yet verified. Send a test verification email below to activate."
                                                 : "Fill in your From Email and credentials below, then send a test verification email to activate."}
