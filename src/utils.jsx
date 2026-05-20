@@ -179,6 +179,7 @@ const NAV_ITEMS = [
       { label: "Platform Role Types", icon: "ShieldCheck" },
       { label: "Platform Tenant Admin", icon: "Building2" },
       { label: "Platform Company", icon: "Building2" },
+      { label: "Backup & Restore", icon: "Database" },
     ]
   },
   { label: "Profile", icon: "User", hidden: true },
@@ -191,7 +192,8 @@ export const getNav = (isSuper, _isAdmin, hasPermission, isR10010) => {
     "Platform User Admin",
     "Platform Role Types",
     "Platform Tenant Admin",
-    "Platform Company"
+    "Platform Company",
+    "Backup & Restore"
   ];
   const administrationChildren = [
     "Investments",

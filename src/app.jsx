@@ -31,6 +31,7 @@ import PageEmailBuilder from "./pages/PageEmailBuilder";
 import PageResourceManagement from "./pages/PageResourceManagement";
 import PageCompany from "./pages/PageCompany";
 import PagePlatformCompany from "./pages/PagePlatformCompany";
+import PageBackupRestore from "./pages/PageBackupRestore";
 import {
   LayoutDashboard, Briefcase, Users, PieChart, Calendar, 
   CreditCard, BarChart3, Settings, Shield, UserCircle, 
@@ -38,7 +39,7 @@ import {
   TableProperties, Hash, LayoutGrid, Coins, CircleDollarSign,
   UserSquare, ShieldAlert, Building2, ShieldCheck, UserPlus,
   Bot, Box, CalendarDays, User, ChevronRight, Server, HeartHandshake, Landmark,
-  Megaphone, Mail, Folder
+  Megaphone, Mail, Folder, Database
 } from "lucide-react";
 import { Tooltip } from "./components";
 import SidebarHelp from "./components/SidebarHelp";
@@ -55,7 +56,7 @@ const Icon = ({ name, size = 18, color = "currentColor" }) => {
     UserPlus, Bot, Box, BarChart3, CalendarDays, PieChart, CreditCard, 
     User, ChevronRight, HelpCircle, LogOut, Sparkles, Sun, Moon,
     Shield, UserCircle, ChevronDown, TableProperties, Hash, Calendar,
-    Server, HeartHandshake, Landmark, Megaphone, Mail, Folder
+    Server, HeartHandshake, Landmark, Megaphone, Mail, Folder, Database
   };
   const LucideIcon = icons[name];
   return LucideIcon ? <LucideIcon size={size} color={color} style={{ flexShrink: 0 }} /> : null;
@@ -888,6 +889,7 @@ function AppContent() {
                   {activePage === "AI Admin" && <PageAdminHelp t={t} isDark={isDark} />}
                   {activePage === "Company" && <PageCompany t={t} isDark={isDark} activeTenantId={activeTenantId} USERS={rawUsers} GLOBAL_USERS={globalUsers} CONTACTS={rawContacts} platformConfig={platformConfig} isGlobalConsolidated={isGlobalConsolidated} />}
                   {activePage === "Platform Company" && <PagePlatformCompany t={t} isDark={isDark} USERS={globalUsers} CONTACTS={rawContacts} />}
+                  {activePage === "Backup & Restore" && <PageBackupRestore t={t} isDark={isDark} TENANTS={TENANTS} />}
                 </>
               )}
         </div>
