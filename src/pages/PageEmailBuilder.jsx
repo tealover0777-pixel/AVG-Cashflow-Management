@@ -2636,6 +2636,25 @@ function resolvePreviewTags(html, contacts = [], emailSettings = {}) {
 
 function ReviewPanel({ t, isDark, rows, emailSettings, narrow, contacts = [] }) {
   const recipientVal = Array.isArray(emailSettings.recipients) ? emailSettings.recipients.join("; ") : (emailSettings.recipients || "—");
+
+  // Extract attachments from rows recursively
+  const allAttachments = [];
+  const traverse = (items) => {
+    if (!Array.isArray(items)) return;
+    items.forEach(row => {
+      if (row.type === 'attachment') {
+        const files = row.content?.files || [];
+        allAttachments.push(...files);
+      } else if (row.type === 'columns') {
+        const cols = row.content?.columns || [];
+        cols.forEach(col => {
+          traverse(col.blocks);
+        });
+      }
+    });
+  };
+  traverse(rows);
+
   return (
     <div style={{ flex: 1, background: isDark ? "#111" : "#EEEEE9", display: "flex", gap: 24, padding: "40px", overflowY: "auto" }}>
       <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 14 }}>
@@ -2657,6 +2676,36 @@ function ReviewPanel({ t, isDark, rows, emailSettings, narrow, contacts = [] }) 
             <div style={{ fontSize: 12, color: val === "—" ? t.textMuted : t.text }}>{val || "—"}</div>
           </div>
         ))}
+
+        <div style={{ marginBottom: 14 }}>
+          <div style={{ fontSize: 11, color: t.textMuted, marginBottom: 2 }}>Attached:</div>
+          {allAttachments.length > 0 ? (
+            <div style={{ display: "flex", flexDirection: "column", gap: 4, marginTop: 4 }}>
+              {allAttachments.map((f, idx) => (
+                <a
+                  key={idx}
+                  href={f.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    fontSize: 11,
+                    color: isDark ? "#60A5FA" : "#2563EB",
+                    textDecoration: "underline",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                    display: "block"
+                  }}
+                  title={f.name}
+                >
+                  📎 {f.name}
+                </a>
+              ))}
+            </div>
+          ) : (
+            <div style={{ fontSize: 12, color: t.textMuted, fontStyle: "italic" }}>None</div>
+          )}
+        </div>
       </div>
     </div>
   );
