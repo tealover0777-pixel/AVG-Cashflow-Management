@@ -145,6 +145,25 @@ export default function PageEmailBuilder(props) {
     }
   }, [activeEmailTemplate]);
 
+  // Default From and Reply-to to current logged in user's email if they are empty
+  useEffect(() => {
+    if (profile?.email) {
+      setEmailSettings(prev => {
+        let changed = false;
+        const next = { ...prev };
+        if (!next.from) {
+          next.from = profile.email;
+          changed = true;
+        }
+        if (!next.replyTo) {
+          next.replyTo = profile.email;
+          changed = true;
+        }
+        return changed ? next : prev;
+      });
+    }
+  }, [profile?.email, activeEmailTemplate]);
+
   // Close dropdowns on outside click
   const activeId = tenantId || (activeTenantIdProp && activeTenantIdProp !== "GLOBAL" ? activeTenantIdProp : "");
   const effectiveTenantId = activeId;
@@ -2163,6 +2182,15 @@ function SettingsPanel({ t, isDark, settings, onChange, profile, DIMENSIONS = []
       return next;
     });
   }, [settings, profile]);
+
+  React.useEffect(() => {
+    // Deep/Shallow compare to prevent infinite loop
+    const keys = ["subject", "internalName", "fromName", "from", "replyTo", "recipients", "doNotSendTo", "type"];
+    const hasChanges = keys.some(key => localSettings[key] !== settings[key]);
+    if (hasChanges) {
+      onChange(localSettings);
+    }
+  }, [localSettings, settings, onChange]);
 
   const set = (key, val) => setLocalSettings(prev => ({ ...prev, [key]: val }));
 
