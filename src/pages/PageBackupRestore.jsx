@@ -10,7 +10,7 @@ import {
   query, where, orderBy, getDocs, addDoc, serverTimestamp, limit 
 } from "firebase/firestore";
 import { useAuth } from "../AuthContext";
-import { Tooltip, StatCard } from "../components";
+import { Tooltip, StatCard, DelModal } from "../components";
 import RestorePreviewDiff from "../components/RestorePreviewDiff";
 
 export default function PageBackupRestore({ t, isDark, TENANTS = [] }) {
@@ -55,6 +55,7 @@ export default function PageBackupRestore({ t, isDark, TENANTS = [] }) {
   const [globalBackups, setGlobalBackups] = useState([]);
   const [showGlobalRegistry, setShowGlobalRegistry] = useState(false);
   const [expandedGlobalBackups, setExpandedGlobalBackups] = useState(new Set());
+  const [confirmDelAction, setConfirmDelAction] = useState(null);
 
   // ── Restore Preview State ──
   const [previewModalOpen, setPreviewModalOpen] = useState(false);
@@ -356,7 +357,6 @@ export default function PageBackupRestore({ t, isDark, TENANTS = [] }) {
 
   // Trigger Delete Backup
   const handleDeleteBackup = async (backupId) => {
-    if (!confirm("Are you sure you want to permanently delete this backup snapshot? This cannot be undone.")) return;
     try {
       // Try to delete document from firestore if exists
       try {
@@ -597,7 +597,6 @@ export default function PageBackupRestore({ t, isDark, TENANTS = [] }) {
   };
 
   const handleDeleteGlobalBackup = async (id) => {
-    if (!confirm("Are you sure you want to permanently delete this global compliance backup? This cannot be undone.")) return;
     try {
       try {
         await deleteDoc(doc(db, "global_backups", id));
@@ -1604,7 +1603,7 @@ export default function PageBackupRestore({ t, isDark, TENANTS = [] }) {
 
                         <Tooltip text="Delete record" t={t}>
                           <button
-                            onClick={() => handleDeleteBackup(bkp.id)}
+                            onClick={() => setConfirmDelAction({ type: 'single', id: bkp.id })}
                             style={{
                               background: "none",
                               border: "none",
@@ -2285,7 +2284,7 @@ export default function PageBackupRestore({ t, isDark, TENANTS = [] }) {
                             </Tooltip>
                             <Tooltip text="Delete global compliance archive" t={t}>
                               <button
-                                onClick={() => handleDeleteGlobalBackup(gb.id)}
+                                onClick={() => setConfirmDelAction({ type: 'global', id: gb.id })}
                                 style={{
                                   background: "none",
                                   border: "none",
@@ -2426,6 +2425,24 @@ export default function PageBackupRestore({ t, isDark, TENANTS = [] }) {
           <button onClick={() => setToast(null)} style={{ background: "none", border: "none", color: "inherit", cursor: "pointer", fontSize: 16, marginLeft: 8, opacity: 0.7 }}>✕</button>
         </div>
       )}
+
+      {/* Delete Confirmation Modal */}
+      <DelModal
+        open={!!confirmDelAction}
+        onClose={() => setConfirmDelAction(null)}
+        onDel={async () => {
+          if (confirmDelAction.type === "single") {
+            await handleDeleteBackup(confirmDelAction.id);
+          } else {
+            await handleDeleteGlobalBackup(confirmDelAction.id);
+          }
+          setConfirmDelAction(null);
+        }}
+        title={confirmDelAction?.type === "global" ? "Delete Global Backup?" : "Delete Snapshot?"}
+        label={confirmDelAction?.type === "global" ? "This global compliance archive" : "This backup snapshot"}
+        t={t}
+        isDark={isDark}
+      />
     </>
   );
 }
