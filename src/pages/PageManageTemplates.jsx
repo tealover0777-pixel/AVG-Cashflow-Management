@@ -64,14 +64,41 @@ function generateEmailPreviewHtml(rows = []) {
       }
       case "columns": {
         const type = row.content?.type;
-        const ratios = type === "1/2" ? [1, 1] : type === "1/3" ? [1, 1, 1] : type === "1/4" ? [1, 1, 1, 1] : [1];
+        const layout = row.content?.layout;
         const cols = row.content?.columns || [];
-        const colsHtml = (Array.isArray(ratios) ? ratios : []).map((flex, i) => {
-          const col = (Array.isArray(cols) ? cols[i] : null) || { blocks: [], settings: {} };
+        let ratios = [];
+        if (layout) {
+          ratios = layout.split("-").map(Number);
+        } else if (type) {
+          ratios = type === "1/2" ? [1, 1] : type === "1/3" ? [1, 1, 1] : type === "1/4" ? [1, 1, 1, 1] : [1];
+        } else {
+          ratios = cols.map(() => 1);
+        }
+        const colsHtml = ratios.map((flex, i) => {
+          const col = cols[i] || { blocks: [], settings: {} };
           const blocksHtml = (Array.isArray(col.blocks) ? col.blocks : []).map(b => renderRow(b)).join("");
           return `<div style="flex:${flex};padding:${col.settings?.padding || "10px"}">${blocksHtml}</div>`;
         }).join("");
         return `<div style="display:flex;background:${row.content?.rowBg || "transparent"}">${colsHtml}</div>`;
+      }
+      case "attachment": {
+        const files = row.content?.files || [];
+        if (files.length === 0) return "";
+        const filesHtml = files.map(file => `
+          <li style="margin-bottom:6px;">
+            <a href="${file.url}" target="_blank" style="color:#2563eb;font-size:13px;text-decoration:underline;font-weight:500;">${file.name}</a>
+          </li>
+        `).join("");
+        return `
+          <div style="padding: 16px 32px;">
+            <div style="background:#F9FAFB;border:1px solid #E5E7EB;border-radius:8px;padding:16px 24px;">
+              <div style="font-weight:700;font-size:14px;margin-bottom:8px;color:#374151;">📎 Attached Documents:</div>
+              <ul style="list-style-type:none;padding:0;margin:0;">
+                ${filesHtml}
+              </ul>
+            </div>
+          </div>
+        `;
       }
       default:
         return "";
