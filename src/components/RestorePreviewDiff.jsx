@@ -40,6 +40,9 @@ export default function RestorePreviewDiff({
   const collectionDiffs = useMemo(() => {
     const result = {};
     const collections = ["deals", "contacts", "investments"];
+    if (currentData.paymentSchedules || backupData.paymentSchedules) {
+      collections.push("paymentSchedules");
+    }
 
     collections.forEach(col => {
       const current = Array.isArray(currentData[col]) ? currentData[col] : [];
@@ -109,6 +112,9 @@ export default function RestorePreviewDiff({
   // Get primary display label for an item
   function getItemLabel(item) {
     if (!item) return "—";
+    if (item.due_date) {
+      return `Schedule: ${item.due_date} (${item.payment_amount ? '$' + item.payment_amount : item.amount || ''})`;
+    }
     return item.name || item.deal_name || 
            (item.first_name && item.last_name ? `${item.first_name} ${item.last_name}` : "") ||
            item.email || item.id || item.docId || "Unknown";
@@ -154,6 +160,9 @@ export default function RestorePreviewDiff({
   );
 
   const tabs = ["deals", "contacts", "investments"];
+  if (currentData.paymentSchedules || backupData.paymentSchedules) {
+    tabs.push("paymentSchedules");
+  }
 
   const pillStyle = (isActive) => ({
     padding: "7px 16px",

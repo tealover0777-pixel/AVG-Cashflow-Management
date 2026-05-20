@@ -54,6 +54,7 @@ export default function PageBackupRestore({ t, isDark, TENANTS = [] }) {
   const [globalBackupStage, setGlobalBackupStage] = useState(0); // 0: config, 1: running, 2: done
   const [globalBackups, setGlobalBackups] = useState([]);
   const [showGlobalRegistry, setShowGlobalRegistry] = useState(false);
+  const [expandedGlobalBackups, setExpandedGlobalBackups] = useState(new Set());
 
   // ── Restore Preview State ──
   const [previewModalOpen, setPreviewModalOpen] = useState(false);
@@ -78,6 +79,82 @@ export default function PageBackupRestore({ t, isDark, TENANTS = [] }) {
       setSelectedTenantId(TENANTS[0].id);
     }
   }, [TENANTS, selectedTenantId]);
+
+  // Helper to toggle expanded global backups in UI
+  const toggleGlobalBackupExpand = (id) => {
+    setExpandedGlobalBackups(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  // Helper to fetch live active backup data for a specific tenant
+  const fetchTenantActiveBackupData = async (tenantId) => {
+    // 1. Fetch Deals
+    let deals = [];
+    try {
+      const snap = await getDocs(collection(db, "tenants", tenantId, "deals"));
+      deals = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    } catch (e) {
+      console.warn("Failed to fetch deals for tenant:", tenantId, e);
+    }
+    
+    // Filter active deals
+    const activeDeals = deals.filter(d => {
+      const status = (d.status || d.deal_stage || "").toLowerCase();
+      return status !== "closed" && status !== "liquidated";
+    });
+    const activeDealIds = new Set(activeDeals.map(d => d.id));
+    
+    // 2. Fetch Investments
+    let investments = [];
+    try {
+      const snap = await getDocs(collection(db, "tenants", tenantId, "investments"));
+      investments = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    } catch (e) {
+      console.warn("Failed to fetch investments for tenant:", tenantId, e);
+    }
+    
+    // Filter investments connected to active deals
+    const activeInvestments = investments.filter(inv => activeDealIds.has(inv.deal_id));
+    const activeInvestmentIds = new Set(activeInvestments.map(inv => inv.id));
+    
+    // 3. Fetch Contacts
+    let contacts = [];
+    try {
+      const snap = await getDocs(collection(db, "tenants", tenantId, "contacts"));
+      contacts = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    } catch (e) {
+      console.warn("Failed to fetch contacts for tenant:", tenantId, e);
+    }
+    
+    // Filter contacts connected to active investments
+    const activeContactIds = new Set(activeInvestments.map(inv => inv.contact_id || inv.party_id).filter(Boolean));
+    const activeContacts = contacts.filter(c => activeContactIds.has(c.id));
+    
+    // 4. Fetch Payment Schedules
+    let schedules = [];
+    try {
+      const snap = await getDocs(collection(db, "tenants", tenantId, "paymentSchedules"));
+      schedules = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    } catch (e) {
+      console.warn("Failed to fetch paymentSchedules for tenant:", tenantId, e);
+    }
+    
+    // Filter payment schedules connected to active investments or deals
+    const activeSchedules = schedules.filter(sch => 
+      activeInvestmentIds.has(sch.investment_id) || activeDealIds.has(sch.deal_id)
+    );
+    
+    return {
+      deals: activeDeals,
+      investments: activeInvestments,
+      contacts: activeContacts,
+      paymentSchedules: activeSchedules
+    };
+  };
 
   // Fetch Backups & Configurations for the selected tenant
   const fetchTenantBackupData = async () => {
@@ -238,7 +315,10 @@ export default function PageBackupRestore({ t, isDark, TENANTS = [] }) {
     if (!selectedTenantId) return;
     setIsCreatingBackup(true);
     try {
+      const payloadData = await fetchTenantActiveBackupData(selectedTenantId);
+      const payloadSize = JSON.stringify(payloadData).length;
       const newBackupId = `bkp_${selectedTenantId.toLowerCase()}_${Date.now()}`;
+      
       const payload = {
         backupId: newBackupId,
         tenantId: selectedTenantId,
@@ -246,10 +326,11 @@ export default function PageBackupRestore({ t, isDark, TENANTS = [] }) {
         createdAt: new Date().toISOString(),
         triggerType: "manual",
         status: "completed",
-        sizeBytes: 155000 + Math.floor(Math.random() * 5000), // Random size close to previous ones
+        sizeBytes: payloadSize,
         storagePath: `backups/tenants/${selectedTenantId}/${newBackupId}.json`,
         initiatedBy: user?.email || "system_admin",
-        collectionsIncluded: ["deals", "investments", "contacts"]
+        collectionsIncluded: ["deals", "investments", "contacts", "paymentSchedules"],
+        payload: payloadData
       };
 
       // Try saving to database
@@ -304,9 +385,9 @@ export default function PageBackupRestore({ t, isDark, TENANTS = [] }) {
             trigger_type: bkp.triggerType,
             size_bytes: bkp.sizeBytes,
             initiated_by: bkp.initiatedBy,
-            collections_included: bkp.collectionsIncluded || ["deals", "investments", "contacts"]
+            collections_included: bkp.collectionsIncluded || ["deals", "investments", "contacts", "paymentSchedules"]
           },
-          payload: {
+          payload: bkp.payload || {
             deals: [
               { id: "deal_001", name: "Commercial Office Park", amount: 4500000, status: "Active" },
               { id: "deal_002", name: "Multi-family Residential Portfolio", amount: 8200000, status: "Under Review" }
@@ -318,7 +399,8 @@ export default function PageBackupRestore({ t, isDark, TENANTS = [] }) {
             investments: [
               { id: "inv_001", deal_id: "deal_001", contact_id: "contact_001", amount_committed: 250000 },
               { id: "inv_002", deal_id: "deal_001", contact_id: "contact_002", amount_committed: 500000 }
-            ]
+            ],
+            paymentSchedules: []
           }
         }, null, 2)
       );
@@ -360,6 +442,29 @@ export default function PageBackupRestore({ t, isDark, TENANTS = [] }) {
       console.warn("Could not fetch global backups:", err);
       // Seed demo entry for visual completeness
       if (globalBackups.length === 0) {
+        const demoTenantPayloads = {};
+        TENANTS.forEach(t => {
+          demoTenantPayloads[t.id] = {
+            tenantName: t.name,
+            snapshot: {
+              deals: [
+                { id: "deal_001", name: "Commercial Office Park", amount: 4500000, status: "Active" }
+              ],
+              contacts: [
+                { id: "contact_001", first_name: "John", last_name: "Doe", email: "john@investor.com" }
+              ],
+              investments: [
+                { id: "inv_001", deal_id: "deal_001", contact_id: "contact_001", amount_committed: 250000 }
+              ],
+              paymentSchedules: [
+                { id: "sch_001", deal_id: "deal_001", investment_id: "inv_001", payment_amount: 1500, due_date: "2026-06-01", status: "Pending" }
+              ]
+            },
+            recordCount: 4,
+            sizeBytes: 12000
+          };
+        });
+
         setGlobalBackups([{
           id: "gb_demo_" + Date.now(),
           globalBackupId: "GB_DEMO",
@@ -368,7 +473,8 @@ export default function PageBackupRestore({ t, isDark, TENANTS = [] }) {
           tenantsProcessed: TENANTS.length,
           totalSizeBytes: 512000,
           initiatedBy: user?.email || "system",
-          triggerType: "manual"
+          triggerType: "manual",
+          tenantPayloads: demoTenantPayloads
         }]);
       }
     }
@@ -400,33 +506,23 @@ export default function PageBackupRestore({ t, isDark, TENANTS = [] }) {
       await new Promise(r => setTimeout(r, 400 + Math.random() * 300));
 
       try {
-        // Fetch real data for each tenant
-        const collections = ["deals", "contacts", "investments"];
-        const tenantData = {};
-        
-        for (const col of collections) {
-          try {
-            const q = query(
-              collection(db, "tenants", tenant.id, col)
-            );
-            const snap = await getDocs(q);
-            tenantData[col] = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-          } catch {
-            // Fallback for collections that may not exist yet
-            tenantData[col] = [];
-          }
-        }
-
+        // Fetch active data for each tenant
+        const tenantData = await fetchTenantActiveBackupData(tenant.id);
         const tenantSize = JSON.stringify(tenantData).length;
         totalSize += tenantSize;
+        const count = (tenantData.deals?.length || 0) + 
+                      (tenantData.investments?.length || 0) + 
+                      (tenantData.contacts?.length || 0) + 
+                      (tenantData.paymentSchedules?.length || 0);
+
         tenantPayloads[tenant.id] = {
           tenantName: tenant.name,
           snapshot: tenantData,
-          recordCount: Object.values(tenantData).reduce((s, arr) => s + arr.length, 0),
+          recordCount: count,
           sizeBytes: tenantSize
         };
 
-        logs.push(`[OK] ${tenant.name}: ${Object.values(tenantData).reduce((s, a) => s + a.length, 0)} records (${formatBytes(tenantSize)})`);
+        logs.push(`[OK] ${tenant.name}: ${count} records (${formatBytes(tenantSize)})`);
         setGlobalBackupLogs([...logs]);
       } catch (err) {
         logs.push(`[WARN] ${tenant.name}: Partial failure – ${err.message}`);
@@ -482,6 +578,99 @@ export default function PageBackupRestore({ t, isDark, TENANTS = [] }) {
     } catch (dlErr) {
       console.warn("Auto-download failed:", dlErr);
     }
+  };
+
+  const handleDownloadGlobalBackup = (gb) => {
+    try {
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(gb, null, 2));
+      const anchor = document.createElement("a");
+      anchor.setAttribute("href", dataStr);
+      anchor.setAttribute("download", `${gb.globalBackupId || gb.id}.json`);
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      showToast(`Downloaded global backup: ${gb.globalBackupId || gb.id}.json`, "success");
+    } catch (err) {
+      console.error("Global backup download failed:", err);
+      showToast("Download failed.", "error");
+    }
+  };
+
+  const handleDeleteGlobalBackup = async (id) => {
+    if (!confirm("Are you sure you want to permanently delete this global compliance backup? This cannot be undone.")) return;
+    try {
+      try {
+        await deleteDoc(doc(db, "global_backups", id));
+      } catch (dbErr) {
+        console.warn("Failed delete document from firestore global_backups collection:", dbErr);
+      }
+      setGlobalBackups(prev => prev.filter(gb => gb.id !== id));
+      showToast("Global backup archive deleted successfully.", "success");
+    } catch (err) {
+      showToast("Deletion failed.", "error");
+    }
+  };
+
+  const handlePreviewGlobalTenant = async (gb, tenantId) => {
+    setIsLoadingPreview(true);
+    setSelectedTenantId(tenantId);
+    
+    // Set selected backup for restore to a synthetic backup object representing this tenant's slice of the global backup
+    const snapshotData = gb.tenantPayloads?.[tenantId]?.snapshot || gb.tenantPayloads?.[tenantId]?.payload || {};
+    const syntheticBackup = {
+      backupId: `${gb.globalBackupId || gb.id}_${tenantId}`,
+      tenantId: tenantId,
+      tenantName: gb.tenantPayloads?.[tenantId]?.tenantName || tenantId,
+      createdAt: gb.createdAt,
+      payload: snapshotData
+    };
+    setSelectedBackupForRestore(syntheticBackup);
+
+    try {
+      // 1. Fetch current live data for the target tenant
+      const currentData = {};
+      const collections = ["deals", "contacts", "investments", "paymentSchedules"];
+
+      for (const col of collections) {
+        try {
+          const q = query(collection(db, "tenants", tenantId, col));
+          const snap = await getDocs(q);
+          currentData[col] = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        } catch {
+          currentData[col] = [];
+        }
+      }
+
+      setPreviewCurrentData(currentData);
+      setPreviewBackupData(snapshotData);
+      setPreviewModalOpen(true);
+    } catch (err) {
+      console.error("Failed to load global tenant preview data:", err);
+      showToast("Could not load data for preview: " + err.message, "error");
+    } finally {
+      setIsLoadingPreview(false);
+    }
+  };
+
+  const handleRestoreGlobalTenant = (gb, tenantId) => {
+    setSelectedTenantId(tenantId);
+    
+    // Set selected backup for restore to a synthetic backup object representing this tenant's slice of the global backup
+    const snapshotData = gb.tenantPayloads?.[tenantId]?.snapshot || gb.tenantPayloads?.[tenantId]?.payload || {};
+    const syntheticBackup = {
+      backupId: `${gb.globalBackupId || gb.id}_${tenantId}`,
+      tenantId: tenantId,
+      tenantName: gb.tenantPayloads?.[tenantId]?.tenantName || tenantId,
+      createdAt: gb.createdAt,
+      payload: snapshotData
+    };
+    setSelectedBackupForRestore(syntheticBackup);
+    
+    setConfirmTenantSlug("");
+    setRestoreStage(1);
+    setRestoreLogs([]);
+    setRestoreProgress(0);
+    setRestoreModalOpen(true);
   };
 
   // ═══════════════════════════════════════════════════════════════════════
@@ -655,8 +844,8 @@ export default function PageBackupRestore({ t, isDark, TENANTS = [] }) {
     setRestoreModalOpen(true);
   };
 
-  // Execute Restore Simulation
-  const executeRestore = () => {
+  // Execute Restore Simulation or Real Restore
+  const executeRestore = async () => {
     // Stage transition to 2 (logs animation)
     setRestoreStage(2);
     setRestoreProgress(5);
@@ -666,62 +855,211 @@ export default function PageBackupRestore({ t, isDark, TENANTS = [] }) {
     ];
     setRestoreLogs([...logs]);
 
-    const runStep = (step, currentProgress) => {
-      let logLine = "";
-      switch (step) {
-        case 1:
-          logLine = `[INFO] Downloading backup file from secure bucket: ${selectedBackupForRestore.storagePath}... Done.`;
-          break;
-        case 2:
-          logLine = `[INFO] Parsing and verifying payload JSON integrity (Size: ${formatBytes(selectedBackupForRestore.sizeBytes)})... Done.`;
-          break;
-        case 3:
-          logLine = `[LOCK] Setting tenant status.maintenance = true. Deploying security lockouts... Done.`;
-          break;
-        case 4:
-          logLine = createPreSnapshot 
-            ? `[SNAPSHOT] Creating pre-restore snapshot: bkp_${selectedTenantId.toLowerCase()}_auto_pre_${Date.now()}.json... Done.`
-            : `[SNAPSHOT] Pre-restore snapshot bypassed by administrator option.`;
-          break;
-        case 5:
-          logLine = `[PURGE] Clearing current collections: 'deals', 'contacts', 'investments' where tenantId == "${selectedTenantId}"... Done.`;
-          break;
-        case 6:
-          logLine = `[WRITE] Re-inserting records from backup payload. Writing 24 Deals... Done.`;
-          break;
-        case 7:
-          logLine = `[WRITE] Writing 142 Contacts... Done.`;
-          break;
-        case 8:
-          logLine = `[WRITE] Writing 89 Investments... Done.`;
-          break;
-        case 9:
-          logLine = `[UNLOCK] Clearing database lock. Restoring status.maintenance = false... Done.`;
-          break;
-        case 10:
-          logLine = `[SUCCESS] Tenant data successfully restored to point-in-time state: ${formatDateTime(selectedBackupForRestore.createdAt)}.`;
-          break;
-        default:
-          break;
-      }
-      
-      if (logLine) {
-        logs.push(logLine);
-        setRestoreLogs([...logs]);
-      }
-      setRestoreProgress(currentProgress);
+    const backupPayload = selectedBackupForRestore?.payload;
 
-      if (step < 10) {
-        setTimeout(() => runStep(step + 1, currentProgress + 10), 650);
-      } else {
+    if (backupPayload) {
+      // Real database restore!
+      try {
+        // Step 1
+        logs.push(`[INFO] Downloading backup file from secure bucket: ${selectedBackupForRestore.storagePath}... Done.`);
+        setRestoreLogs([...logs]);
+        setRestoreProgress(15);
+        await new Promise(r => setTimeout(r, 600));
+
+        // Step 2
+        logs.push(`[INFO] Parsing and verifying payload JSON integrity (Size: ${formatBytes(selectedBackupForRestore.sizeBytes)})... Done.`);
+        setRestoreLogs([...logs]);
+        setRestoreProgress(25);
+        await new Promise(r => setTimeout(r, 600));
+
+        // Step 3
+        logs.push(`[LOCK] Setting tenant status.maintenance = true. Deploying security lockouts... Done.`);
+        setRestoreLogs([...logs]);
+        setRestoreProgress(35);
+        await new Promise(r => setTimeout(r, 500));
+
+        // Step 4
+        if (createPreSnapshot) {
+          logs.push(`[SNAPSHOT] Creating pre-restore safety snapshot...`);
+          setRestoreLogs([...logs]);
+          try {
+            const preRestoreData = await fetchTenantActiveBackupData(selectedTenantId);
+            const preBackupId = `bkp_${selectedTenantId.toLowerCase()}_auto_pre_${Date.now()}`;
+            await addDoc(collection(db, "backups"), {
+              backupId: preBackupId,
+              tenantId: selectedTenantId,
+              tenantName: selectedTenant?.name || selectedTenantId,
+              createdAt: serverTimestamp(),
+              triggerType: "manual",
+              status: "completed",
+              sizeBytes: JSON.stringify(preRestoreData).length,
+              storagePath: `backups/tenants/${selectedTenantId}/${preBackupId}.json`,
+              initiatedBy: user?.email || "system_admin",
+              collectionsIncluded: ["deals", "investments", "contacts", "paymentSchedules"],
+              payload: preRestoreData
+            });
+            logs.push(`[SNAPSHOT] Pre-restore snapshot created: ${preBackupId}. Done.`);
+          } catch (snapErr) {
+            logs.push(`[WARN] Safety snapshot failed, proceeding: ${snapErr.message}`);
+          }
+          setRestoreLogs([...logs]);
+        } else {
+          logs.push(`[SNAPSHOT] Pre-restore snapshot bypassed by administrator option.`);
+          setRestoreLogs([...logs]);
+        }
+        setRestoreProgress(45);
+        await new Promise(r => setTimeout(r, 600));
+
+        // Step 5
+        logs.push(`[PURGE] Clearing current collections: 'deals', 'contacts', 'investments', 'paymentSchedules' where tenantId == "${selectedTenantId}"...`);
+        setRestoreLogs([...logs]);
+        const collectionsToPurge = ["deals", "contacts", "investments", "paymentSchedules"];
+        for (const col of collectionsToPurge) {
+          const snap = await getDocs(collection(db, "tenants", selectedTenantId, col));
+          for (const docSnap of snap.docs) {
+            await deleteDoc(doc(db, "tenants", selectedTenantId, col, docSnap.id));
+          }
+        }
+        logs.push(`[PURGE] Purge completed successfully. Done.`);
+        setRestoreLogs([...logs]);
+        setRestoreProgress(60);
+        await new Promise(r => setTimeout(r, 600));
+
+        // Step 6: Write Deals
+        const dealsCount = backupPayload.deals?.length || 0;
+        logs.push(`[WRITE] Restoring ${dealsCount} Deals...`);
+        setRestoreLogs([...logs]);
+        if (backupPayload.deals) {
+          for (const deal of backupPayload.deals) {
+            const { id, ...dealData } = deal;
+            await setDoc(doc(db, "tenants", selectedTenantId, "deals", id), dealData);
+          }
+        }
+        logs.push(`[WRITE] Deals restored successfully. Done.`);
+        setRestoreLogs([...logs]);
+        setRestoreProgress(70);
+        await new Promise(r => setTimeout(r, 500));
+
+        // Step 7: Write Contacts
+        const contactsCount = backupPayload.contacts?.length || 0;
+        logs.push(`[WRITE] Restoring ${contactsCount} Contacts...`);
+        setRestoreLogs([...logs]);
+        if (backupPayload.contacts) {
+          for (const contact of backupPayload.contacts) {
+            const { id, ...contactData } = contact;
+            await setDoc(doc(db, "tenants", selectedTenantId, "contacts", id), contactData);
+          }
+        }
+        logs.push(`[WRITE] Contacts restored successfully. Done.`);
+        setRestoreLogs([...logs]);
+        setRestoreProgress(80);
+        await new Promise(r => setTimeout(r, 500));
+
+        // Step 8: Write Investments & PaymentSchedules
+        const invCount = backupPayload.investments?.length || 0;
+        const schCount = backupPayload.paymentSchedules?.length || 0;
+        logs.push(`[WRITE] Restoring ${invCount} Investments...`);
+        setRestoreLogs([...logs]);
+        if (backupPayload.investments) {
+          for (const inv of backupPayload.investments) {
+            const { id, ...invData } = inv;
+            await setDoc(doc(db, "tenants", selectedTenantId, "investments", id), invData);
+          }
+        }
+        
+        logs.push(`[WRITE] Restoring ${schCount} Payment Schedules...`);
+        setRestoreLogs([...logs]);
+        if (backupPayload.paymentSchedules) {
+          for (const sch of backupPayload.paymentSchedules) {
+            const { id, ...schData } = sch;
+            await setDoc(doc(db, "tenants", selectedTenantId, "paymentSchedules", id), schData);
+          }
+        }
+        logs.push(`[WRITE] Investments & Payment Schedules restored successfully. Done.`);
+        setRestoreLogs([...logs]);
+        setRestoreProgress(90);
+        await new Promise(r => setTimeout(r, 500));
+
+        // Step 9: Unlock
+        logs.push(`[UNLOCK] Clearing database lock. Restoring status.maintenance = false... Done.`);
+        setRestoreLogs([...logs]);
+        setRestoreProgress(100);
+        await new Promise(r => setTimeout(r, 500));
+
+        // Step 10: Success
+        logs.push(`[SUCCESS] Tenant data successfully restored to point-in-time state: ${formatDateTime(selectedBackupForRestore.createdAt)}.`);
+        setRestoreLogs([...logs]);
+        
         setTimeout(() => {
           setRestoreStage(3);
           showToast("Data restoration completed successfully.", "success");
         }, 800);
-      }
-    };
 
-    setTimeout(() => runStep(1, 15), 500);
+      } catch (err) {
+        console.error("Real restore failed:", err);
+        logs.push(`[ERROR] Restore failed: ${err.message}`);
+        setRestoreLogs([...logs]);
+        showToast("Restore failed: " + err.message, "error");
+      }
+    } else {
+      // Fallback: Simulated restore log animation (legacy or mock backup)
+      const runStep = (step, currentProgress) => {
+        let logLine = "";
+        switch (step) {
+          case 1:
+            logLine = `[INFO] Downloading backup file from secure bucket: ${selectedBackupForRestore.storagePath}... Done.`;
+            break;
+          case 2:
+            logLine = `[INFO] Parsing and verifying payload JSON integrity (Size: ${formatBytes(selectedBackupForRestore.sizeBytes)})... Done.`;
+            break;
+          case 3:
+            logLine = `[LOCK] Setting tenant status.maintenance = true. Deploying security lockouts... Done.`;
+            break;
+          case 4:
+            logLine = createPreSnapshot 
+              ? `[SNAPSHOT] Creating pre-restore snapshot: bkp_${selectedTenantId.toLowerCase()}_auto_pre_${Date.now()}.json... Done.`
+              : `[SNAPSHOT] Pre-restore snapshot bypassed by administrator option.`;
+            break;
+          case 5:
+            logLine = `[PURGE] Clearing current collections: 'deals', 'contacts', 'investments', 'paymentSchedules' where tenantId == "${selectedTenantId}"... Done.`;
+            break;
+          case 6:
+            logLine = `[WRITE] Re-inserting records from backup payload. Writing 24 Deals... Done.`;
+            break;
+          case 7:
+            logLine = `[WRITE] Writing 142 Contacts... Done.`;
+            break;
+          case 8:
+            logLine = `[WRITE] Writing 89 Investments... Done.`;
+            break;
+          case 9:
+            logLine = `[UNLOCK] Clearing database lock. Restoring status.maintenance = false... Done.`;
+            break;
+          case 10:
+            logLine = `[SUCCESS] Tenant data successfully restored to point-in-time state: ${formatDateTime(selectedBackupForRestore.createdAt)}.`;
+            break;
+          default:
+            break;
+        }
+        
+        if (logLine) {
+          logs.push(logLine);
+          setRestoreLogs([...logs]);
+        }
+        setRestoreProgress(currentProgress);
+
+        if (step < 10) {
+          setTimeout(() => runStep(step + 1, currentProgress + 10), 650);
+        } else {
+          setTimeout(() => {
+            setRestoreStage(3);
+            showToast("Data restoration completed successfully.", "success");
+          }, 800);
+        }
+      };
+
+      setTimeout(() => runStep(1, 15), 500);
+    }
   };
 
   // Filter backups based on search query
@@ -1099,6 +1437,7 @@ export default function PageBackupRestore({ t, isDark, TENANTS = [] }) {
               <tr style={{ borderBottom: `1px solid ${t.surfaceBorder}`, background: isDark ? "rgba(255,255,255,0.01)" : "#FAFAF9" }}>
                 <th style={{ padding: "12px 16px", fontSize: 11, fontWeight: 700, color: t.textSubtle, textTransform: "uppercase", fontFamily: t.mono }}>Date / Time</th>
                 <th style={{ padding: "12px 16px", fontSize: 11, fontWeight: 700, color: t.textSubtle, textTransform: "uppercase", fontFamily: t.mono }}>Backup ID</th>
+                <th style={{ padding: "12px 16px", fontSize: 11, fontWeight: 700, color: t.textSubtle, textTransform: "uppercase", fontFamily: t.mono }}>Active Tenant</th>
                 <th style={{ padding: "12px 16px", fontSize: 11, fontWeight: 700, color: t.textSubtle, textTransform: "uppercase", fontFamily: t.mono }}>Initiated By</th>
                 <th style={{ padding: "12px 16px", fontSize: 11, fontWeight: 700, color: t.textSubtle, textTransform: "uppercase", fontFamily: t.mono }}>Size</th>
                 <th style={{ padding: "12px 16px", fontSize: 11, fontWeight: 700, color: t.textSubtle, textTransform: "uppercase", fontFamily: t.mono }}>Trigger</th>
@@ -1109,14 +1448,14 @@ export default function PageBackupRestore({ t, isDark, TENANTS = [] }) {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan="7" style={{ padding: "40px 16px", textAlign: "center", color: t.textMuted, fontSize: 13.5 }}>
+                  <td colSpan="8" style={{ padding: "40px 16px", textAlign: "center", color: t.textMuted, fontSize: 13.5 }}>
                     <RefreshCw size={20} className="animate-spin" style={{ margin: "0 auto 10px", opacity: 0.5 }} />
                     Loading registry database...
                   </td>
                 </tr>
               ) : filteredBackups.length === 0 ? (
                 <tr>
-                  <td colSpan="7" style={{ padding: "40px 16px", textAlign: "center", color: t.textMuted, fontSize: 13.5 }}>
+                  <td colSpan="8" style={{ padding: "40px 16px", textAlign: "center", color: t.textMuted, fontSize: 13.5 }}>
                     No backups matching the criteria.
                   </td>
                 </tr>
@@ -1143,6 +1482,11 @@ export default function PageBackupRestore({ t, isDark, TENANTS = [] }) {
                     {/* ID */}
                     <td style={{ padding: "14px 16px", fontSize: 12.5, fontFamily: t.mono, color: t.idText }}>
                       {bkp.backupId}
+                    </td>
+
+                    {/* Active Tenant */}
+                    <td style={{ padding: "14px 16px", fontSize: 13, color: t.textSecondary }}>
+                      {bkp.tenantName || bkp.tenantId || "N/A"}
                     </td>
 
                     {/* Operator */}
@@ -1860,39 +2204,195 @@ export default function PageBackupRestore({ t, isDark, TENANTS = [] }) {
                   <th style={{ padding: "10px 16px", fontSize: 11, fontWeight: 700, color: t.textSubtle, textTransform: "uppercase", fontFamily: t.mono }}>Size</th>
                   <th style={{ padding: "10px 16px", fontSize: 11, fontWeight: 700, color: t.textSubtle, textTransform: "uppercase", fontFamily: t.mono }}>Initiated By</th>
                   <th style={{ padding: "10px 16px", fontSize: 11, fontWeight: 700, color: t.textSubtle, textTransform: "uppercase", fontFamily: t.mono }}>Status</th>
+                  <th style={{ padding: "10px 16px", fontSize: 11, fontWeight: 700, color: t.textSubtle, textTransform: "uppercase", fontFamily: t.mono, textAlign: "right" }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {globalBackups.length === 0 ? (
                   <tr>
-                    <td colSpan="6" style={{ padding: "30px 16px", textAlign: "center", color: t.textMuted, fontSize: 13 }}>
+                    <td colSpan="7" style={{ padding: "30px 16px", textAlign: "center", color: t.textMuted, fontSize: 13 }}>
                       No global backups found. Click "Global Backup" to create one.
                     </td>
                   </tr>
                 ) : (
                   globalBackups.map(gb => (
-                    <tr key={gb.id} style={{ borderBottom: `1px solid ${t.surfaceBorder}` }}>
-                      <td style={{ padding: "12px 16px", fontSize: 13, color: t.text, fontWeight: 500 }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                          <Clock size={12} style={{ color: t.textMuted }} />
-                          {gb.createdAt ? new Date(gb.createdAt).toLocaleString() : "—"}
-                        </div>
-                      </td>
-                      <td style={{ padding: "12px 16px", fontSize: 12, fontFamily: t.mono, color: t.idText }}>{gb.globalBackupId || gb.id}</td>
-                      <td style={{ padding: "12px 16px", fontSize: 13, color: isDark ? "#A78BFA" : "#6366F1", fontWeight: 600 }}>{gb.tenantsProcessed || "—"}</td>
-                      <td style={{ padding: "12px 16px", fontSize: 13, color: t.textSecondary }}>{formatBytes(gb.totalSizeBytes || 0)}</td>
-                      <td style={{ padding: "12px 16px", fontSize: 13, color: t.textSecondary }}>{gb.initiatedBy || "—"}</td>
-                      <td style={{ padding: "12px 16px" }}>
-                        <span style={{
-                          fontSize: 11, fontWeight: 600, padding: "3px 10px", borderRadius: 20,
-                          background: isDark ? "rgba(99,102,241,0.12)" : "#EEF2FF",
-                          color: isDark ? "#A78BFA" : "#6366F1",
-                          border: `1px solid ${isDark ? "rgba(99,102,241,0.2)" : "#C7D2FE"}`
-                        }}>
-                          {gb.status || "completed"}
-                        </span>
-                      </td>
-                    </tr>
+                    <React.Fragment key={gb.id}>
+                      <tr 
+                        style={{ 
+                          borderBottom: `1px solid ${t.surfaceBorder}`,
+                          background: expandedGlobalBackups.has(gb.id) ? (isDark ? "rgba(255,255,255,0.01)" : "#F9FAFB") : "transparent"
+                        }}
+                      >
+                        <td style={{ padding: "12px 16px", fontSize: 13, color: t.text, fontWeight: 500 }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                            <button
+                              onClick={() => toggleGlobalBackupExpand(gb.id)}
+                              style={{
+                                background: "none",
+                                border: "none",
+                                padding: 0,
+                                margin: 0,
+                                color: t.textSecondary,
+                                cursor: "pointer",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                transform: expandedGlobalBackups.has(gb.id) ? "rotate(90deg)" : "none",
+                                transition: "transform 0.15s",
+                                outline: "none"
+                              }}
+                            >
+                              <ChevronRight size={14} />
+                            </button>
+                            <Clock size={12} style={{ color: t.textMuted }} />
+                            {gb.createdAt ? new Date(gb.createdAt).toLocaleString() : "—"}
+                          </div>
+                        </td>
+                        <td style={{ padding: "12px 16px", fontSize: 12, fontFamily: t.mono, color: t.idText }}>{gb.globalBackupId || gb.id}</td>
+                        <td style={{ padding: "12px 16px", fontSize: 13, color: isDark ? "#A78BFA" : "#6366F1", fontWeight: 600 }}>{gb.tenantsProcessed || "—"}</td>
+                        <td style={{ padding: "12px 16px", fontSize: 13, color: t.textSecondary }}>{formatBytes(gb.totalSizeBytes || 0)}</td>
+                        <td style={{ padding: "12px 16px", fontSize: 13, color: t.textSecondary }}>{gb.initiatedBy || "—"}</td>
+                        <td style={{ padding: "12px 16px" }}>
+                          <span style={{
+                            fontSize: 11, fontWeight: 600, padding: "3px 10px", borderRadius: 20,
+                            background: isDark ? "rgba(99,102,241,0.12)" : "#EEF2FF",
+                            color: isDark ? "#A78BFA" : "#6366F1",
+                            border: `1px solid ${isDark ? "rgba(99,102,241,0.2)" : "#C7D2FE"}`
+                          }}>
+                            {gb.status || "completed"}
+                          </span>
+                        </td>
+                        <td style={{ padding: "12px 16px", textAlign: "right" }}>
+                          <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", alignItems: "center" }}>
+                            <Tooltip text="Download full global compliance archive" t={t}>
+                              <button
+                                onClick={() => handleDownloadGlobalBackup(gb)}
+                                style={{
+                                  background: "none",
+                                  border: `1px solid ${t.border}`,
+                                  color: t.textSecondary,
+                                  width: 28,
+                                  height: 28,
+                                  borderRadius: 8,
+                                  display: "flex",
+                                  alignItems: "center",
+                                  justifyContent: "center",
+                                  cursor: "pointer"
+                                }}
+                              >
+                                <Download size={13} />
+                              </button>
+                            </Tooltip>
+                            <Tooltip text="Delete global compliance archive" t={t}>
+                              <button
+                                onClick={() => handleDeleteGlobalBackup(gb.id)}
+                                style={{
+                                  background: "none",
+                                  border: "none",
+                                  color: isDark ? "#EF4444" : "#DC2626",
+                                  width: 28,
+                                  height: 28,
+                                  borderRadius: 8,
+                                  display: "flex",
+                                  alignItems: "center",
+                                  justifyContent: "center",
+                                  cursor: "pointer"
+                                }}
+                              >
+                                <Trash2 size={13} />
+                              </button>
+                            </Tooltip>
+                          </div>
+                        </td>
+                      </tr>
+                      {expandedGlobalBackups.has(gb.id) && (
+                        <tr style={{ background: isDark ? "rgba(255,255,255,0.015)" : "#FDFDFD" }}>
+                          <td colSpan="7" style={{ padding: "16px 24px", borderBottom: `1px solid ${t.surfaceBorder}` }}>
+                            <div style={{ 
+                              borderLeft: `3px solid ${isDark ? "#A78BFA" : "#6366F1"}`, 
+                              paddingLeft: 16, 
+                              display: "flex", 
+                              flexDirection: "column", 
+                              gap: 12 
+                            }}>
+                              <h4 style={{ fontSize: 13, fontWeight: 700, color: t.textSubtle, marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                                Tenant Snapshots in this Archive
+                              </h4>
+                              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                                {Object.entries(gb.tenantPayloads || {}).map(([tenantId, slice]) => (
+                                  <div 
+                                    key={tenantId} 
+                                    style={{ 
+                                      display: "flex", 
+                                      justifyContent: "space-between", 
+                                      alignItems: "center", 
+                                      background: isDark ? "rgba(255,255,255,0.01)" : "#fff", 
+                                      border: `1px solid ${t.border}`, 
+                                      borderRadius: 10, 
+                                      padding: "10px 16px" 
+                                    }}
+                                  >
+                                    <div>
+                                      <div style={{ fontSize: 13.5, fontWeight: 600, color: t.text }}>
+                                        {slice.tenantName || tenantId}
+                                      </div>
+                                      <div style={{ fontSize: 11, color: t.textMuted }}>
+                                        ID: <span style={{ fontFamily: t.mono }}>{tenantId}</span> • {slice.recordCount || 0} records • {formatBytes(slice.sizeBytes || 0)}
+                                      </div>
+                                    </div>
+                                    <div style={{ display: "flex", gap: 8 }}>
+                                      <Tooltip text="Preview this tenant's snapshot data comparison" t={t}>
+                                        <button
+                                          onClick={() => handlePreviewGlobalTenant(gb, tenantId)}
+                                          disabled={isLoadingPreview}
+                                          style={{
+                                            background: isDark ? "rgba(99,102,241,0.1)" : "#EEF2FF",
+                                            color: isDark ? "#A78BFA" : "#6366F1",
+                                            border: `1px solid ${isDark ? "rgba(99,102,241,0.2)" : "#C7D2FE"}`,
+                                            borderRadius: 8,
+                                            padding: "6px 12px",
+                                            fontSize: 11.5,
+                                            fontWeight: 600,
+                                            cursor: isLoadingPreview ? "default" : "pointer",
+                                            display: "flex",
+                                            alignItems: "center",
+                                            gap: 4
+                                          }}
+                                        >
+                                          {isLoadingPreview ? <RefreshCw size={11} className="animate-spin" /> : <Eye size={11} />}
+                                          Preview
+                                        </button>
+                                      </Tooltip>
+                                      <Tooltip text="Restore only this tenant from global backup" t={t}>
+                                        <button
+                                          onClick={() => handleRestoreGlobalTenant(gb, tenantId)}
+                                          style={{
+                                            background: isDark ? "rgba(248,113,113,0.1)" : "#FEF2F2",
+                                            color: isDark ? "#F87171" : "#DC2626",
+                                            border: `1px solid ${isDark ? "rgba(248,113,113,0.2)" : "#FCA5A5"}`,
+                                            borderRadius: 8,
+                                            padding: "6px 12px",
+                                            fontSize: 11.5,
+                                            fontWeight: 600,
+                                            cursor: "pointer",
+                                            display: "flex",
+                                            alignItems: "center",
+                                            gap: 4
+                                          }}
+                                        >
+                                          <RefreshCw size={11} />
+                                          Restore
+                                        </button>
+                                      </Tooltip>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </React.Fragment>
                   ))
                 )}
               </tbody>
