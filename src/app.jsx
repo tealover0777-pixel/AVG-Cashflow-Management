@@ -28,6 +28,7 @@ import PageMarketingEmails from "./pages/PageMarketingEmails";
 import PageManageTemplates from "./pages/PageManageTemplates";
 import PageSelectTemplate from "./pages/PageSelectTemplate";
 import PageEmailBuilder from "./pages/PageEmailBuilder";
+import PageResourceManagement from "./pages/PageResourceManagement";
 import PageCompany from "./pages/PageCompany";
 import PagePlatformCompany from "./pages/PagePlatformCompany";
 import {
@@ -37,7 +38,7 @@ import {
   TableProperties, Hash, LayoutGrid, Coins, CircleDollarSign,
   UserSquare, ShieldAlert, Building2, ShieldCheck, UserPlus,
   Bot, Box, CalendarDays, User, ChevronRight, Server, HeartHandshake, Landmark,
-  Megaphone, Mail
+  Megaphone, Mail, Folder
 } from "lucide-react";
 import { Tooltip } from "./components";
 import SidebarHelp from "./components/SidebarHelp";
@@ -54,7 +55,7 @@ const Icon = ({ name, size = 18, color = "currentColor" }) => {
     UserPlus, Bot, Box, BarChart3, CalendarDays, PieChart, CreditCard, 
     User, ChevronRight, HelpCircle, LogOut, Sparkles, Sun, Moon,
     Shield, UserCircle, ChevronDown, TableProperties, Hash, Calendar,
-    Server, HeartHandshake, Landmark, Megaphone, Mail
+    Server, HeartHandshake, Landmark, Megaphone, Mail, Folder
   };
   const LucideIcon = icons[name];
   return LucideIcon ? <LucideIcon size={size} color={color} style={{ flexShrink: 0 }} /> : null;
@@ -880,6 +881,7 @@ function AppContent() {
                   {activePage === "Dimensions" && <PageDimensions t={t} isDark={isDark} DIMENSIONS={DIMENSIONS} rawDimensions={rawDimensions} collectionPath={fetchPaths.dimensions} />}
                   {activePage === "Reports" && <PageReports t={t} isDark={isDark} MONTHLY={MONTHLY} activeTenantId={activeTenantId} />}
                   {activePage === "Marketing emails" && <PageMarketingEmails t={t} isDark={isDark} setActivePage={setActivePage} MARKETING_EMAILS={rawMarketingEmails} setActiveEmailTemplate={setActiveEmailTemplate} activeTenantId={activeTenantId} USERS={rawUsers} CONTACTS={CONTACTS} />}
+                  {activePage === "Resource management" && <PageResourceManagement t={t} isDark={isDark} activeTenantId={activeTenantId} />}
                   {activePage === "Select Template" && <PageSelectTemplate t={t} isDark={isDark} setActivePage={setActivePage} allTemplates={allTemplates} setActiveEmailTemplate={setActiveEmailTemplate} />}
                   {activePage === "Manage Templates" && <PageManageTemplates t={t} isDark={isDark} setActivePage={setActivePage} setActiveEmailTemplate={setActiveEmailTemplate} allTemplates={allTemplates} loading={loadingTemplates} fetchTemplates={fetchTemplates} />}
                   {activePage === "Email Builder" && <PageEmailBuilder t={t} isDark={isDark} setActivePage={setActivePage} activeEmailTemplate={activeEmailTemplate} setActiveEmailTemplate={setActiveEmailTemplate} refreshTemplates={() => fetchTemplates(true)} activeTenantId={activeTenantId} backTo={prevPage} USERS={rawUsers} CONTACTS={CONTACTS} DIMENSIONS={DIMENSIONS} organizationName={determinedTenantName} />}

@@ -407,6 +407,19 @@ export default function PageEmailBuilder(props) {
     }
   };
 
+  const handleInsertDocument = (url, name) => {
+    const rowId = selectedRowIdRef.current;
+    const blockType = selectedBlockTypeRef.current;
+    if (rowId && blockType === "ATTACHMENT") {
+      const row = rows.find(r => r.id === rowId);
+      const currentFiles = row?.content?.files || [];
+      handleUpdateRow(rowId, { files: [...currentFiles, { name, url }] });
+      setActiveRightTab("Content");
+    } else {
+      showToast("Click an attachment block on the canvas first, then click USE", "info");
+    }
+  };
+
   const handleAddRow = (relativeId, label = "PARAGRAPH", position = "after") => {
     const type = LABEL_TO_TYPE[label] || "paragraph";
     const newRow = { id: `r_${Date.now()}`, type, content: {} };
@@ -1008,8 +1021,9 @@ export default function PageEmailBuilder(props) {
                           uploadProgress={uploadProgress}
                           onUpload={handleUploadFile}
                           onDeleteUpload={handleDeleteUpload}
-                          hasImageSelected={selectedBlockType === "IMAGE"}
+                          selectedBlockType={selectedBlockType}
                           onInsertImage={handleInsertImage}
+                          onInsertDocument={handleInsertDocument}
                         />
                       )}
                     </>
@@ -3782,72 +3796,229 @@ function ImagesTab({ t, isDark, setActiveRightTab, hasImageSelected, onInsertIma
 
 // ── Uploads Tab ───────────────────────────────────────────────────────────────
 
-function UploadsTab({ t, isDark, uploads, isUploading, uploadProgress, onUpload, onDeleteUpload, hasImageSelected, onInsertImage }) {
+function UploadsTab({ t, isDark, uploads, isUploading, uploadProgress, onUpload, onDeleteUpload, selectedBlockType, onInsertImage, onInsertDocument }) {
   const fileInputRef = useRef(null);
   const [hoveredIndex, setHoveredIndex] = useState(null);
   const [itemToDelete, setItemToDelete] = useState(null);
+  const [activeSubTab, setActiveSubTab] = useState("images"); // "images" or "documents"
+
+  const isImageFile = (filename) => {
+    const ext = (filename || "").split('.').pop().toLowerCase();
+    return ["jpg", "jpeg", "png", "gif", "webp", "svg", "bmp", "ico"].includes(ext);
+  };
+
+  const imagesList = (uploads || []).filter(item => isImageFile(item.path.split('/').pop()));
+  const docsList = (uploads || []).filter(item => !isImageFile(item.path.split('/').pop()));
 
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
       <div style={{ padding: "14px", borderBottom: `1px solid ${t.border}` }}>
         <h3 style={{ fontSize: 15, fontWeight: 700, margin: "0 0 14px 0", color: t.text }}>Uploads</h3>
-        <input type="file" ref={fileInputRef} style={{ display: "none" }} accept="image/*" onChange={e => e.target.files[0] && onUpload(e.target.files[0])} />
-        <button onClick={() => fileInputRef.current?.click()} disabled={isUploading} style={{ width: "100%", background: isDark ? "#333" : "#222", color: "#fff", border: "none", padding: "10px", borderRadius: 4, fontWeight: 600, fontSize: 13, marginBottom: 12, cursor: isUploading ? "not-allowed" : "pointer", opacity: isUploading ? 0.7 : 1 }}>
-          {isUploading ? `Uploading... ${Math.round(uploadProgress)}%` : "Upload Image"}
+        <input 
+          type="file" 
+          ref={fileInputRef} 
+          style={{ display: "none" }} 
+          accept={activeSubTab === "images" ? "image/*" : "*/*"} 
+          onChange={e => e.target.files[0] && onUpload(e.target.files[0])} 
+        />
+        <button 
+          onClick={() => fileInputRef.current?.click()} 
+          disabled={isUploading} 
+          style={{ width: "100%", background: isDark ? "#333" : "#222", color: "#fff", border: "none", padding: "10px", borderRadius: 4, fontWeight: 600, fontSize: 13, marginBottom: 12, cursor: isUploading ? "not-allowed" : "pointer", opacity: isUploading ? 0.7 : 1 }}
+        >
+          {isUploading ? `Uploading... ${Math.round(uploadProgress)}%` : activeSubTab === "images" ? "Upload Image" : "Upload Document"}
         </button>
-        <div onClick={() => fileInputRef.current?.click()} onDrop={e => { e.preventDefault(); e.dataTransfer.files[0] && onUpload(e.dataTransfer.files[0]); }} onDragOver={e => e.preventDefault()} style={{ border: `1px dashed ${t.border}`, borderRadius: 4, padding: "24px 12px", textAlign: "center", background: t.surface, cursor: "pointer" }}>
+        <div 
+          onClick={() => fileInputRef.current?.click()} 
+          onDrop={e => { e.preventDefault(); e.dataTransfer.files[0] && onUpload(e.dataTransfer.files[0]); }} 
+          onDragOver={e => e.preventDefault()} 
+          style={{ border: `1px dashed ${t.border}`, borderRadius: 4, padding: "24px 12px", textAlign: "center", background: t.surface, cursor: "pointer" }}
+        >
           <UploadCloud size={22} color={t.textMuted} style={{ margin: "0 auto 6px", display: "block" }} />
-          <p style={{ margin: 0, fontSize: 12, color: t.textMuted }}>Drop a new image here, or click to select files to upload.</p>
+          <p style={{ margin: 0, fontSize: 12, color: t.textMuted }}>
+            {activeSubTab === "images" 
+              ? "Drop a new image here, or click to select files to upload." 
+              : "Drop a new document here, or click to select files to upload."}
+          </p>
+        </div>
+
+        {/* Sub tabs for Images & Documents */}
+        <div style={{ display: "flex", gap: 4, marginTop: 14, background: isDark ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.03)", padding: 3, borderRadius: 6 }}>
+          <button
+            onClick={() => setActiveSubTab("images")}
+            style={{
+              flex: 1,
+              padding: "6px 12px",
+              borderRadius: 4,
+              border: "none",
+              background: activeSubTab === "images" ? (isDark ? "#333" : "#fff") : "transparent",
+              color: activeSubTab === "images" ? t.text : t.textMuted,
+              fontSize: 12,
+              fontWeight: 600,
+              cursor: "pointer",
+              boxShadow: activeSubTab === "images" ? "0 1px 2px rgba(0,0,0,0.05)" : "none",
+              transition: "all 0.15s"
+            }}
+          >
+            Images ({imagesList.length})
+          </button>
+          <button
+            onClick={() => setActiveSubTab("documents")}
+            style={{
+              flex: 1,
+              padding: "6px 12px",
+              borderRadius: 4,
+              border: "none",
+              background: activeSubTab === "documents" ? (isDark ? "#333" : "#fff") : "transparent",
+              color: activeSubTab === "documents" ? t.text : t.textMuted,
+              fontSize: 12,
+              fontWeight: 600,
+              cursor: "pointer",
+              boxShadow: activeSubTab === "documents" ? "0 1px 2px rgba(0,0,0,0.05)" : "none",
+              transition: "all 0.15s"
+            }}
+          >
+            Documents ({docsList.length})
+          </button>
         </div>
       </div>
-      <div style={{ padding: 14, flex: 1, overflowY: "auto", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 7, alignContent: "flex-start" }}>
-        {uploads.length === 0
-          ? <div style={{ gridColumn: "1/-1", textAlign: "center", fontSize: 12, color: t.textMuted, padding: "28px 0" }}>{isUploading ? "Processing..." : "No uploads yet"}</div>
-          : (Array.isArray(uploads) ? uploads : []).map((item, i) => (
-            <div
-              key={i}
-              onMouseEnter={() => setHoveredIndex(i)}
-              onMouseLeave={() => setHoveredIndex(null)}
-              style={{ position: "relative" }}
-            >
-              <div
-                draggable
-                onDragStart={e => e.dataTransfer.setData("imageUrl", item.url)}
-                onClick={() => hasImageSelected && onInsertImage(item.url)}
-                style={{ height: 90, borderRadius: 4, backgroundImage: `url(${item.url})`, backgroundSize: "cover", backgroundPosition: "center", cursor: hasImageSelected ? "pointer" : "grab", border: `2px solid ${hasImageSelected && hoveredIndex === i ? "#3B82F6" : t.border}`, transition: "border-color 0.15s" }}
-              />
-              <p style={{ margin: "4px 0 0", fontSize: 10, color: t.textMuted, textAlign: "center", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", padding: "0 2px" }} title={item.path.split('/').pop()}>
-                {item.path.split('/').pop().replace(/^\d+_/, '')}
-              </p>
-              {hoveredIndex === i && (
+
+      <div style={{ padding: 14, flex: 1, overflowY: "auto" }}>
+        {activeSubTab === "images" ? (
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 7, alignContent: "flex-start" }}>
+            {imagesList.length === 0 ? (
+              <div style={{ gridColumn: "1/-1", textAlign: "center", fontSize: 12, color: t.textMuted, padding: "28px 0" }}>
+                {isUploading ? "Processing..." : "No images uploaded yet"}
+              </div>
+            ) : (
+              imagesList.map((item, i) => (
                 <div
-                  style={{ position: "absolute", top: 0, left: 0, right: 0, height: 90, borderRadius: 4, background: "rgba(59,130,246,0.15)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}
-                  onClick={() => onInsertImage(item.url)}
+                  key={i}
+                  onMouseEnter={() => setHoveredIndex(i)}
+                  onMouseLeave={() => setHoveredIndex(null)}
+                  style={{ position: "relative" }}
                 >
-                  <span style={{ fontSize: 10, fontWeight: 700, color: "#fff", background: hasImageSelected ? "rgba(59,130,246,0.9)" : "rgba(100,100,100,0.85)", padding: "2px 10px", borderRadius: 4 }}>
-                    {hasImageSelected ? "USE" : "Select a block first"}
-                  </span>
+                  <div
+                    draggable
+                    onDragStart={e => e.dataTransfer.setData("imageUrl", item.url)}
+                    onClick={() => selectedBlockType === "IMAGE" && onInsertImage(item.url)}
+                    style={{ height: 90, borderRadius: 4, backgroundImage: `url(${item.url})`, backgroundSize: "cover", backgroundPosition: "center", cursor: selectedBlockType === "IMAGE" ? "pointer" : "grab", border: `2px solid ${selectedBlockType === "IMAGE" && hoveredIndex === i ? "#3B82F6" : t.border}`, transition: "border-color 0.15s" }}
+                  />
+                  <p style={{ margin: "4px 0 0", fontSize: 10, color: t.textMuted, textAlign: "center", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", padding: "0 2px" }} title={item.path.split('/').pop()}>
+                    {item.path.split('/').pop().replace(/^\d+_/, '')}
+                  </p>
+                  {hoveredIndex === i && (
+                    <div
+                      style={{ position: "absolute", top: 0, left: 0, right: 0, height: 90, borderRadius: 4, background: "rgba(59,130,246,0.15)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}
+                      onClick={() => onInsertImage(item.url)}
+                    >
+                      <span style={{ fontSize: 10, fontWeight: 700, color: "#fff", background: selectedBlockType === "IMAGE" ? "rgba(59,130,246,0.9)" : "rgba(100,100,100,0.85)", padding: "2px 10px", borderRadius: 4 }}>
+                        {selectedBlockType === "IMAGE" ? "USE" : "Select image block"}
+                      </span>
+                    </div>
+                  )}
+                  {hoveredIndex === i && (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setItemToDelete(item); }}
+                      style={{
+                        position: "absolute", top: 5, right: 5,
+                        width: 26, height: 26, borderRadius: 6,
+                        background: "rgba(220,38,38,0.9)", color: "#fff",
+                        border: "none", display: "flex", alignItems: "center", justifyContent: "center",
+                        cursor: "pointer", boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
+                        zIndex: 10
+                      }}
+                      title="Delete image"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  )}
                 </div>
-              )}
-              {hoveredIndex === i && (
-                <button
-                  onClick={(e) => { e.stopPropagation(); setItemToDelete(item); }}
+              ))
+            )}
+          </div>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            {docsList.length === 0 ? (
+              <div style={{ textAlign: "center", fontSize: 12, color: t.textMuted, padding: "28px 0" }}>
+                {isUploading ? "Processing..." : "No documents uploaded yet"}
+              </div>
+            ) : (
+              docsList.map((item, i) => (
+                <div
+                  key={i}
+                  onMouseEnter={() => setHoveredIndex(i + 10000)}
+                  onMouseLeave={() => setHoveredIndex(null)}
                   style={{
-                    position: "absolute", top: 5, right: 5,
-                    width: 26, height: 26, borderRadius: 6,
-                    background: "rgba(220,38,38,0.9)", color: "#fff",
-                    border: "none", display: "flex", alignItems: "center", justifyContent: "center",
-                    cursor: "pointer", boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
-                    zIndex: 10
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    padding: "10px 12px",
+                    border: `1px solid ${t.border}`,
+                    borderRadius: 6,
+                    background: t.surface,
+                    position: "relative",
+                    overflow: "hidden"
                   }}
-                  title="Delete image"
                 >
-                  <Trash2 size={14} />
-                </button>
-              )}
-            </div>
-          ))
-        }
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, overflow: "hidden", marginRight: 8, flex: 1 }}>
+                    <FileText size={16} color={t.textMuted} style={{ flexShrink: 0 }} />
+                    <span style={{ fontSize: 12, color: t.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={item.path.split('/').pop()}>
+                      {item.path.split('/').pop().replace(/^\d+_/, '')}
+                    </span>
+                  </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0, zIndex: 5 }}>
+                    {selectedBlockType === "ATTACHMENT" && (
+                      <button
+                        onClick={() => onInsertDocument(item.url, item.path.split('/').pop().replace(/^\d+_/, ''))}
+                        style={{
+                          background: "#3B82F6",
+                          color: "#fff",
+                          border: "none",
+                          padding: "4px 8px",
+                          borderRadius: 4,
+                          fontSize: 10,
+                          fontWeight: 700,
+                          cursor: "pointer"
+                        }}
+                      >
+                        USE
+                      </button>
+                    )}
+                    <a
+                      href={item.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{
+                        padding: 4,
+                        color: isDark ? "#60A5FA" : "#2563EB",
+                        display: "flex",
+                        alignItems: "center"
+                      }}
+                      onClick={e => e.stopPropagation()}
+                    >
+                      <Eye size={14} />
+                    </a>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setItemToDelete(item); }}
+                      style={{
+                        background: "transparent",
+                        border: "none",
+                        cursor: "pointer",
+                        padding: 4,
+                        color: "#EF4444",
+                        display: "flex",
+                        alignItems: "center"
+                      }}
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        )}
       </div>
       <DelModal
         open={!!itemToDelete}
@@ -3861,12 +4032,18 @@ function UploadsTab({ t, isDark, uploads, isUploading, uploadProgress, onUpload,
       >
         <div style={{ padding: "8px 0" }}>
           <p style={{ fontSize: 13, color: t.textMuted, margin: "0 0 12px 0" }}>
-            Are you sure you want to delete this image?
+            Are you sure you want to delete this file?
           </p>
           {itemToDelete && (
             <div style={{ display: "flex", alignItems: "center", gap: 10, padding: 10, background: t.surface, borderRadius: 8, border: `1px solid ${t.border}` }}>
-              <div style={{ width: 40, height: 40, borderRadius: 4, backgroundImage: `url(${itemToDelete.url})`, backgroundSize: "cover", backgroundPosition: "center" }} />
-              <span style={{ fontSize: 12, fontWeight: 500, color: t.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              {isImageFile(itemToDelete.path.split('/').pop()) ? (
+                <div style={{ width: 40, height: 40, borderRadius: 4, backgroundImage: `url(${itemToDelete.url})`, backgroundSize: "cover", backgroundPosition: "center" }} />
+              ) : (
+                <div style={{ width: 40, height: 40, borderRadius: 4, display: "flex", alignItems: "center", justifyContent: "center", background: isDark ? "rgba(255,255,255,0.05)" : "#E5E7EB" }}>
+                  <FileText size={20} color={t.textMuted} />
+                </div>
+              )}
+              <span style={{ fontSize: 12, fontWeight: 500, color: t.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>
                 {itemToDelete.path.split('/').pop().replace(/^\d+_/, '')}
               </span>
             </div>

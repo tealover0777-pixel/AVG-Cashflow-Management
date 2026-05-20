@@ -137,6 +137,7 @@ const NAV_ITEMS = [
     expandable: true,
     children: [
       { label: "Marketing emails", icon: "Mail" },
+      { label: "Resource management", icon: "Folder" },
     ]
   },
   {
@@ -214,7 +215,7 @@ export const getNav = (isSuper, _isAdmin, hasPermission, isR10010) => {
     }
 
     // For non-super users, require MARKETING_VIEW permission to see the Marketing section
-    const isMarketingNav = item.label === "Marketing" || item.label === "Marketing emails";
+    const isMarketingNav = item.label === "Marketing" || item.label === "Marketing emails" || item.label === "Resource management";
     if (isMarketingNav && (!hasPermission || !hasPermission("MARKETING_VIEW"))) return false;
 
     if (!hasPermission) return false;
