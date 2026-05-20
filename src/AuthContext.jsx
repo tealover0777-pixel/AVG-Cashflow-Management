@@ -224,6 +224,23 @@ export function AuthProvider({ children }) {
             if (keys.some(k => has(k))) return true;
         }
 
+        if (perm.toUpperCase() === "SETTINGS_VIEW") {
+            const keys = ["SETTINGS_VIEW", "Settings_view", "FEE_VIEW"];
+            if (keys.some(k => has(k))) return true;
+        }
+        if (perm.toUpperCase() === "SETTINGS_CREATE") {
+            const keys = ["SETTINGS_CREATE", "Settings_create", "FEE_CREATE"];
+            if (keys.some(k => has(k))) return true;
+        }
+        if (perm.toUpperCase() === "SETTINGS_UPDATE") {
+            const keys = ["SETTINGS_UPDATE", "Settings_update", "FEE_UPDATE"];
+            if (keys.some(k => has(k))) return true;
+        }
+        if (perm.toUpperCase() === "SETTINGS_DELETE") {
+            const keys = ["SETTINGS_DELETE", "Settings_delete", "FEE_DELETE"];
+            if (keys.some(k => has(k))) return true;
+        }
+
         // 2. If checking granular permissions, map to parent-tier permissions
         if (["PLATFORM_USER_VIEW", "PLATFORM_TENANT_VIEW", "DIMENTION_VIEW", "DIMENSION_VIEW"].includes(perm.toUpperCase())) {
             if (has("PlatformAdmin_view") || has("PLATFORMADMIN_VIEW")) return true;
@@ -261,6 +278,18 @@ export function AuthProvider({ children }) {
         if (perm.toUpperCase() === "PAYMENT_VIEW") {
             if (has("PAYMENT_VIEW") || has("BANKING_VIEW")) return true;
         }
+        if (perm.toUpperCase() === "FEE_VIEW") {
+            if (has("FEE_VIEW") || has("Settings_view") || has("SETTINGS_VIEW")) return true;
+        }
+        if (perm.toUpperCase() === "FEE_CREATE") {
+            if (has("FEE_CREATE") || has("Settings_create") || has("SETTINGS_CREATE")) return true;
+        }
+        if (perm.toUpperCase() === "FEE_UPDATE") {
+            if (has("FEE_UPDATE") || has("Settings_update") || has("SETTINGS_UPDATE")) return true;
+        }
+        if (perm.toUpperCase() === "FEE_DELETE") {
+            if (has("FEE_DELETE") || has("Settings_delete") || has("SETTINGS_DELETE")) return true;
+        }
         if (["INVESTORPORTAL_VIEW", "INVESTOR_PORTAL_VIEW"].includes(perm.toUpperCase())) {
             if (has("DEAL_VIEW") || has("INVESTORPORTAL_VIEW") || has("INVESTOR_PORTAL_VIEW")) return true;
         }
@@ -284,6 +313,13 @@ export function AuthProvider({ children }) {
                     has("PlatformAdmin_update") || has("PLATFORMADMIN_UPDATE") ||
                     has("PlatformAdmin_create") || has("PLATFORMADMIN_CREATE") ||
                     has("PlatformAdmin_delete") || has("PLATFORMADMIN_DELETE")) return true;
+            }
+            if (prefix === "SETTINGS_" || prefix === "FEE_") {
+                if (has("Settings_view") || has("SETTINGS_VIEW") ||
+                    has("Settings_update") || has("SETTINGS_UPDATE") ||
+                    has("Settings_create") || has("SETTINGS_CREATE") ||
+                    has("Settings_delete") || has("SETTINGS_DELETE") ||
+                    has("FEE_VIEW") || has("FEE_CREATE") || has("FEE_UPDATE") || has("FEE_DELETE")) return true;
             }
             return permissions.some(p => p.toUpperCase().startsWith(prefix));
         }
