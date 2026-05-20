@@ -186,80 +186,109 @@ export function AuthProvider({ children }) {
     const hasPermission = (perm) => {
         if (!perm) return false;
 
-        // Bidirectional mapping for backward compatibility and centralized gating
-        // 1. If checking high-level parent-tier permission, map to granular permissions
-        if (perm === "PlatformAdmin_view") {
-            const keys = ["PlatformAdmin_view", "PLATFORM_USER_VIEW", "PLATFORM_TENANT_VIEW", "PLATFORM_USER_CREATE", "PLATFORM_TENANT_CREATE", "DIMENTION_VIEW", "DIMENSION_VIEW"];
-            if (permissions.some(p => keys.includes(p))) return true;
+        // Helper to check case-insensitive presence in user permissions
+        const has = (p) => permissions.some(x => x.toUpperCase() === p.toUpperCase());
+
+        // 1. Parent-tier view/create/update/delete mappings
+        if (["PLATFORMADMIN_VIEW", "PLATFORM_ADMIN_VIEW"].includes(perm.toUpperCase())) {
+            const keys = ["PLATFORMADMIN_VIEW", "PlatformAdmin_view", "PLATFORM_USER_VIEW", "PLATFORM_TENANT_VIEW", "DIMENTION_VIEW", "DIMENSION_VIEW"];
+            if (keys.some(k => has(k))) return true;
         }
-        if (perm === "PlatformAdmin_create") {
-            const keys = ["PlatformAdmin_create", "PLATFORM_USER_CREATE", "PLATFORM_TENANT_CREATE"];
-            if (permissions.some(p => keys.includes(p))) return true;
+        if (["PLATFORMADMIN_CREATE", "PLATFORM_ADMIN_CREATE"].includes(perm.toUpperCase())) {
+            const keys = ["PLATFORMADMIN_CREATE", "PlatformAdmin_create", "PLATFORM_USER_CREATE", "PLATFORM_TENANT_CREATE"];
+            if (keys.some(k => has(k))) return true;
         }
-        if (perm === "PlatformAdmin_update") {
-            const keys = ["PlatformAdmin_update", "PLATFORM_USER_UPDATE", "PLATFORM_TENANT_UPDATE"];
-            if (permissions.some(p => keys.includes(p))) return true;
+        if (["PLATFORMADMIN_UPDATE", "PLATFORM_ADMIN_UPDATE"].includes(perm.toUpperCase())) {
+            const keys = ["PLATFORMADMIN_UPDATE", "PlatformAdmin_update", "PLATFORM_USER_UPDATE", "PLATFORM_TENANT_UPDATE"];
+            if (keys.some(k => has(k))) return true;
         }
-        if (perm === "PlatformAdmin_delete") {
-            const keys = ["PlatformAdmin_delete", "PLATFORM_USER_DELETE", "PLATFORM_TENANT_DELETE"];
-            if (permissions.some(p => keys.includes(p))) return true;
+        if (["PLATFORMADMIN_DELETE", "PLATFORM_ADMIN_DELETE"].includes(perm.toUpperCase())) {
+            const keys = ["PLATFORMADMIN_DELETE", "PlatformAdmin_delete", "PLATFORM_USER_DELETE", "PLATFORM_TENANT_DELETE"];
+            if (keys.some(k => has(k))) return true;
         }
 
-        if (perm === "Administration_view") {
-            const keys = ["Administration_view", "INVESTMENT_VIEW", "PAYMENT_SCHEDULE_VIEW", "USER_PROFILE_VIEW", "ROLE_TYPE_VIEW", "TENANT_VIEW", "INVESTMENT_CREATE", "PAYMENT_SCHEDULE_CREATE", "USER_PROFILE_CREATE"];
-            if (permissions.some(p => keys.includes(p))) return true;
+        if (["ADMINISTRATION_VIEW", "ADMIN_VIEW"].includes(perm.toUpperCase())) {
+            const keys = ["ADMINISTRATION_VIEW", "Administration_view", "INVESTMENT_VIEW", "PAYMENT_SCHEDULE_VIEW", "USER_PROFILE_VIEW", "ROLE_TYPE_VIEW", "TENANT_VIEW", "INVESTMENT_CREATE", "PAYMENT_SCHEDULE_CREATE", "USER_PROFILE_CREATE"];
+            if (keys.some(k => has(k))) return true;
         }
-        if (perm === "Administration_create") {
-            const keys = ["Administration_create", "INVESTMENT_CREATE", "PAYMENT_SCHEDULE_CREATE", "USER_PROFILE_CREATE"];
-            if (permissions.some(p => keys.includes(p))) return true;
+        if (["ADMINISTRATION_CREATE", "ADMIN_CREATE"].includes(perm.toUpperCase())) {
+            const keys = ["ADMINISTRATION_CREATE", "Administration_create", "INVESTMENT_CREATE", "PAYMENT_SCHEDULE_CREATE", "USER_PROFILE_CREATE"];
+            if (keys.some(k => has(k))) return true;
         }
-        if (perm === "Administration_update") {
-            const keys = ["Administration_update", "INVESTMENT_UPDATE", "PAYMENT_SCHEDULE_UPDATE", "USER_PROFILE_UPDATE"];
-            if (permissions.some(p => keys.includes(p))) return true;
+        if (["ADMINISTRATION_UPDATE", "ADMIN_UPDATE"].includes(perm.toUpperCase())) {
+            const keys = ["ADMINISTRATION_UPDATE", "Administration_update", "INVESTMENT_UPDATE", "PAYMENT_SCHEDULE_UPDATE", "USER_PROFILE_UPDATE"];
+            if (keys.some(k => has(k))) return true;
         }
-        if (perm === "Administration_delete") {
-            const keys = ["Administration_delete", "INVESTMENT_DELETE", "PAYMENT_SCHEDULE_DELETE", "USER_PROFILE_DELETE"];
-            if (permissions.some(p => keys.includes(p))) return true;
+        if (["ADMINISTRATION_DELETE", "ADMIN_DELETE"].includes(perm.toUpperCase())) {
+            const keys = ["ADMINISTRATION_DELETE", "Administration_delete", "INVESTMENT_DELETE", "PAYMENT_SCHEDULE_DELETE", "USER_PROFILE_DELETE"];
+            if (keys.some(k => has(k))) return true;
         }
 
         // 2. If checking granular permissions, map to parent-tier permissions
-        if (["PLATFORM_USER_VIEW", "PLATFORM_TENANT_VIEW", "DIMENTION_VIEW", "DIMENSION_VIEW"].includes(perm)) {
-            if (permissions.includes("PlatformAdmin_view")) return true;
+        if (["PLATFORM_USER_VIEW", "PLATFORM_TENANT_VIEW", "DIMENTION_VIEW", "DIMENSION_VIEW"].includes(perm.toUpperCase())) {
+            if (has("PlatformAdmin_view") || has("PLATFORMADMIN_VIEW")) return true;
         }
-        if (["PLATFORM_USER_CREATE", "PLATFORM_TENANT_CREATE"].includes(perm)) {
-            if (permissions.includes("PlatformAdmin_create")) return true;
+        if (["PLATFORM_USER_CREATE", "PLATFORM_TENANT_CREATE"].includes(perm.toUpperCase())) {
+            if (has("PlatformAdmin_create") || has("PLATFORMADMIN_CREATE")) return true;
         }
-        if (["PLATFORM_USER_UPDATE", "PLATFORM_TENANT_UPDATE"].includes(perm)) {
-            if (permissions.includes("PlatformAdmin_update")) return true;
+        if (["PLATFORM_USER_UPDATE", "PLATFORM_TENANT_UPDATE"].includes(perm.toUpperCase())) {
+            if (has("PlatformAdmin_update") || has("PLATFORMADMIN_UPDATE")) return true;
         }
-        if (["PLATFORM_USER_DELETE", "PLATFORM_TENANT_DELETE"].includes(perm)) {
-            if (permissions.includes("PlatformAdmin_delete")) return true;
+        if (["PLATFORM_USER_DELETE", "PLATFORM_TENANT_DELETE"].includes(perm.toUpperCase())) {
+            if (has("PlatformAdmin_delete") || has("PLATFORMADMIN_DELETE")) return true;
         }
 
-        if (["INVESTMENT_VIEW", "PAYMENT_SCHEDULE_VIEW", "USER_PROFILE_VIEW", "ROLE_TYPE_VIEW", "TENANT_VIEW"].includes(perm)) {
-            if (permissions.includes("Administration_view")) return true;
+        if (["INVESTMENT_VIEW", "PAYMENT_SCHEDULE_VIEW", "USER_PROFILE_VIEW", "ROLE_TYPE_VIEW", "TENANT_VIEW"].includes(perm.toUpperCase())) {
+            if (has("Administration_view") || has("ADMINISTRATION_VIEW")) return true;
         }
-        if (["INVESTMENT_CREATE", "PAYMENT_SCHEDULE_CREATE", "USER_PROFILE_CREATE"].includes(perm)) {
-            if (permissions.includes("Administration_create")) return true;
+        if (["INVESTMENT_CREATE", "PAYMENT_SCHEDULE_CREATE", "USER_PROFILE_CREATE"].includes(perm.toUpperCase())) {
+            if (has("Administration_create") || has("ADMINISTRATION_CREATE")) return true;
         }
-        if (["INVESTMENT_UPDATE", "PAYMENT_SCHEDULE_UPDATE", "USER_PROFILE_UPDATE"].includes(perm)) {
-            if (permissions.includes("Administration_update")) return true;
+        if (["INVESTMENT_UPDATE", "PAYMENT_SCHEDULE_UPDATE", "USER_PROFILE_UPDATE"].includes(perm.toUpperCase())) {
+            if (has("Administration_update") || has("ADMINISTRATION_UPDATE")) return true;
         }
-        if (["INVESTMENT_DELETE", "PAYMENT_SCHEDULE_DELETE", "USER_PROFILE_DELETE"].includes(perm)) {
-            if (permissions.includes("Administration_delete")) return true;
+        if (["INVESTMENT_DELETE", "PAYMENT_SCHEDULE_DELETE", "USER_PROFILE_DELETE"].includes(perm.toUpperCase())) {
+            if (has("Administration_delete") || has("ADMINISTRATION_DELETE")) return true;
+        }
+
+        // 3. Section specific parents mapping
+        if (perm.toUpperCase() === "DEAL_VIEW") {
+            if (has("DEAL_VIEW") || has("INVESTORPORTAL_VIEW") || has("INVESTOR_PORTAL_VIEW")) return true;
+        }
+        if (perm.toUpperCase() === "CONTACT_VIEW") {
+            if (has("CONTACT_VIEW") || has("CRM_VIEW")) return true;
+        }
+        if (perm.toUpperCase() === "PAYMENT_VIEW") {
+            if (has("PAYMENT_VIEW") || has("BANKING_VIEW")) return true;
+        }
+        if (["INVESTORPORTAL_VIEW", "INVESTOR_PORTAL_VIEW"].includes(perm.toUpperCase())) {
+            if (has("DEAL_VIEW") || has("INVESTORPORTAL_VIEW") || has("INVESTOR_PORTAL_VIEW")) return true;
+        }
+        if (perm.toUpperCase() === "CRM_VIEW") {
+            if (has("CONTACT_VIEW") || has("CRM_VIEW")) return true;
+        }
+        if (perm.toUpperCase() === "BANKING_VIEW") {
+            if (has("PAYMENT_VIEW") || has("BANKING_VIEW")) return true;
         }
 
         if (perm.endsWith("*")) {
-            const prefix = perm.slice(0, -1);
+            const prefix = perm.slice(0, -1).toUpperCase();
             if (["ROLE_TYPE_", "USER_PROFILE_", "INVESTMENT_", "PAYMENT_SCHEDULE_", "USER_", "MEMBER_", "REPORT_"].includes(prefix)) {
-                if (permissions.includes("Administration_view") || permissions.includes("Administration_update") || permissions.includes("Administration_create") || permissions.includes("Administration_delete")) return true;
+                if (has("Administration_view") || has("ADMINISTRATION_VIEW") ||
+                    has("Administration_update") || has("ADMINISTRATION_UPDATE") ||
+                    has("Administration_create") || has("ADMINISTRATION_CREATE") ||
+                    has("Administration_delete") || has("ADMINISTRATION_DELETE")) return true;
             }
             if (["PLATFORM_USER_", "PLATFORM_TENANT_", "DIMENTION_", "DIMENSION_"].includes(prefix)) {
-                if (permissions.includes("PlatformAdmin_view") || permissions.includes("PlatformAdmin_update") || permissions.includes("PlatformAdmin_create") || permissions.includes("PlatformAdmin_delete")) return true;
+                if (has("PlatformAdmin_view") || has("PLATFORMADMIN_VIEW") ||
+                    has("PlatformAdmin_update") || has("PLATFORMADMIN_UPDATE") ||
+                    has("PlatformAdmin_create") || has("PLATFORMADMIN_CREATE") ||
+                    has("PlatformAdmin_delete") || has("PLATFORMADMIN_DELETE")) return true;
             }
-            return permissions.some(p => p.startsWith(prefix));
+            return permissions.some(p => p.toUpperCase().startsWith(prefix));
         }
-        return permissions.includes(perm);
+
+        return has(perm);
     };
 
     const value = {
