@@ -2656,19 +2656,19 @@ function ReviewPanel({ t, isDark, rows, emailSettings, narrow, contacts = [] }) 
   traverse(rows);
 
   return (
-    <div style={{ flex: 1, background: isDark ? "#111" : "#EEEEE9", display: "flex", gap: 24, padding: "40px", overflowY: "auto" }}>
-      <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 14 }}>
+    <div style={{ flex: 1, background: isDark ? "#111" : "#EEEEE9", display: "flex", gap: 24, padding: "40px", height: "100%", overflow: "hidden" }}>
+      <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 14, overflowY: "auto", height: "100%" }}>
         {narrow && (
-          <div style={{ background: "#EFF6FF", border: "1px solid #BFDBFE", borderRadius: 6, padding: "7px 14px", fontSize: 12, color: "#2563EB", display: "flex", alignItems: "center", gap: 6 }}>
+          <div style={{ background: "#EFF6FF", border: "1px solid #BFDBFE", borderRadius: 6, padding: "7px 14px", fontSize: 12, color: "#2563EB", display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
             ℹ Discover mobile email styling tips. <span style={{ textDecoration: "underline", cursor: "pointer" }}>Learn more</span>
           </div>
         )}
-        <div style={{ width: narrow ? 390 : "100%", maxWidth: narrow ? 390 : 1100, boxShadow: "0 10px 40px rgba(0,0,0,0.1)", background: "#fff", borderRadius: 8, overflow: "hidden" }}>
+        <div style={{ width: narrow ? 390 : "100%", maxWidth: narrow ? 390 : 1100, boxShadow: "0 10px 40px rgba(0,0,0,0.1)", background: "#fff", borderRadius: 8, overflow: "hidden", marginBottom: 40, flexShrink: 0 }}>
           {(Array.isArray(rows) ? rows : []).map(row => <RowPreview key={row.id} row={row} narrow={narrow} contacts={contacts} emailSettings={emailSettings} />)}
         </div>
       </div>
 
-      <div style={{ width: 220, background: t.surface, borderRadius: 10, border: `1px solid ${t.border}`, padding: 20, height: "fit-content", flexShrink: 0 }}>
+      <div style={{ width: 220, background: t.surface, borderRadius: 10, border: `1px solid ${t.border}`, padding: 20, height: "fit-content", maxHeight: "100%", overflowY: "auto", flexShrink: 0 }}>
         <h4 style={{ margin: "0 0 16px 0", fontSize: 14, fontWeight: 700, color: t.text }}>Email info</h4>
         {[["From:", emailSettings.from], ["From name:", emailSettings.fromName], ["Reply-to:", emailSettings.replyTo], ["Subject:", emailSettings.subject], ["Recipients:", recipientVal]].map(([label, val]) => (
           <div key={label} style={{ marginBottom: 14 }}>
