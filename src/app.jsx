@@ -216,7 +216,7 @@ function AppContent() {
     if (tenantId && !activeTenantId) setActiveTenantId(tenantId);
   }, [tenantId]);
 
-  const isGlobalConsolidated = activeTenantId === "GLOBAL" && isSuperAdmin;
+  const isGlobalConsolidated = activeTenantId === "GLOBAL" && (isSuperAdmin || isGlobalRole);
   // We only fetch single-tenant data if activeTenantId is physically set.
   // Super admins/Global roles can fetch "GLOBAL" which uses group queries.
   const fetchPaths = getCollectionPaths(isGlobalConsolidated ? "" : (activeTenantId || "T_PENDING"));
@@ -227,11 +227,11 @@ function AppContent() {
   const { data: rawSchedules, loading: l4, error: e4 } = useFirestoreCollection(isGlobalConsolidated ? "paymentSchedules" : (activeTenantId && activeTenantId !== "GLOBAL" ? fetchPaths.paymentSchedules : null), isGlobalConsolidated);
   const { data: rawPayments, loading: l5, error: e5 } = useFirestoreCollection(isGlobalConsolidated ? "payments" : (activeTenantId && activeTenantId !== "GLOBAL" ? fetchPaths.payments : null), isGlobalConsolidated);
   const { data: rawFees, loading: l6, error: e6 } = useFirestoreCollection(isGlobalConsolidated ? "fees" : (activeTenantId && activeTenantId !== "GLOBAL" ? fetchPaths.fees : null), isGlobalConsolidated);
-  const { data: rawTenants, loading: l8, error: e8 } = useFirestoreCollection((isSuperAdmin && user) ? getCollectionPaths("").tenants : null);
+  const { data: rawTenants, loading: l8, error: e8 } = useFirestoreCollection(((isSuperAdmin || isGlobalRole) && user) ? getCollectionPaths("").tenants : null);
   
   // User Profiles: Always use tenant-specific path (no platform users)
   // Only use collection group in GLOBAL consolidated mode
-  const userFetchPath = (activeTenantId && (isSuperAdmin || isTenantAdmin || hasPermission("USER_PROFILE_*")))
+  const userFetchPath = (activeTenantId && (isSuperAdmin || isGlobalRole || isTenantAdmin || hasPermission("USER_PROFILE_*")))
     ? (isGlobalConsolidated ? "users" : fetchPaths.users)
     : null;
   const { data: rawUsers, loading: l9, error: e9 } = useFirestoreCollection(userFetchPath, isGlobalConsolidated);
@@ -239,7 +239,7 @@ function AppContent() {
   // Fetch global_users to get first_name/last_name for User Profiles
   const { data: globalUsers } = useFirestoreCollection(user ? "global_users" : null);
 
-  const { data: rawRoles, loading: l10, error: e10 } = useFirestoreCollection((activeTenantId && (isSuperAdmin || isTenantAdmin || hasPermission("ROLE_TYPE_*") || hasPermission("USER_PROFILE_*"))) ? (isGlobalConsolidated ? "role_types" : (activeTenantId !== "GLOBAL" ? fetchPaths.roles : null)) : null);
+  const { data: rawRoles, loading: l10, error: e10 } = useFirestoreCollection((activeTenantId && (isSuperAdmin || isGlobalRole || isTenantAdmin || hasPermission("ROLE_TYPE_*") || hasPermission("USER_PROFILE_*"))) ? (isGlobalConsolidated ? "role_types" : (activeTenantId !== "GLOBAL" ? fetchPaths.roles : null)) : null);
   const { data: rawDimensions, loading: l7, error: e7 } = useFirestoreCollection(user ? fetchPaths.dimensions : null);
   const { data: rawACHBatches, loading: l11, error: e11 } = useFirestoreCollection(isGlobalConsolidated ? "achBatches" : (activeTenantId && activeTenantId !== "GLOBAL" ? fetchPaths.achBatches : null), isGlobalConsolidated);
   const { data: rawLedger, loading: l12, error: e12 } = useFirestoreCollection(isGlobalConsolidated ? "ledger" : (activeTenantId && activeTenantId !== "GLOBAL" ? fetchPaths.ledger : null), isGlobalConsolidated);
@@ -248,7 +248,7 @@ function AppContent() {
 
   const shouldFetch = !!activeTenantId || isGlobalRole;
 
-  const loading = authLoading || (shouldFetch && (l1 || l2 || l3 || l4 || l5 || l6 || l11 || l12 || l14)) || (isSuperAdmin && l8) || (activeTenantId && (isSuperAdmin || isTenantAdmin || hasPermission("USER_PROFILE_*") || hasPermission("ROLE_TYPE_*")) && (l9 || l10)) || (user && l7);
+  const loading = authLoading || (shouldFetch && (l1 || l2 || l3 || l4 || l5 || l6 || l11 || l12 || l14)) || ((isSuperAdmin || isGlobalRole) && l8) || (activeTenantId && (isSuperAdmin || isGlobalRole || isTenantAdmin || hasPermission("USER_PROFILE_*") || hasPermission("ROLE_TYPE_*")) && (l9 || l10)) || (user && l7);
   const dataPresent = rawDeals.length > 0 || rawInvestments.length > 0;
   const showLoading = loading && !dataPresent;
 
@@ -256,10 +256,10 @@ function AppContent() {
 
   // Auto-select first tenant for Super Admins if none selected
   useEffect(() => {
-    if (isSuperAdmin && !activeTenantId && rawTenants.length > 0) {
+    if ((isSuperAdmin || isGlobalRole) && !activeTenantId && rawTenants.length > 0) {
       setActiveTenantId(rawTenants[0].id || rawTenants[0].tenant_id || "");
     }
-  }, [isSuperAdmin, activeTenantId, rawTenants]);
+  }, [isSuperAdmin, isGlobalRole, activeTenantId, rawTenants]);
 
   const memberContactId = useMemo(() => {
     if (!isMember) return null;
@@ -799,7 +799,7 @@ function AppContent() {
             <span>Intelligent Cashflow</span>
             <span style={{ color: isDark ? "rgba(255,255,255,0.2)" : "#D4D0CB" }}>›</span>
             <span style={{ color: t.breadcrumbActive, fontWeight: 500 }}>{activePage}</span>
-            {isSuperAdmin && (
+            {(isSuperAdmin || isGlobalRole) && (
               <div style={{ marginLeft: 20, paddingLeft: 20, borderLeft: `1px solid ${t.surfaceBorder}`, display: "flex", alignItems: "center", gap: 8 }}>
                 <span style={{ color: t.textMuted }}>Viewing Tenant:</span>
                 <select
