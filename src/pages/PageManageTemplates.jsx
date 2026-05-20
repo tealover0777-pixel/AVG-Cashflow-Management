@@ -169,8 +169,12 @@ const TemplatePlaceholder = ({ isDark }) => (
 );
 
 export default function PageManageTemplates({ t, isDark, setActivePage, setActiveEmailTemplate, allTemplates, loading, fetchTemplates }) {
-  const { tenantId, isSuperAdmin, isGlobalRole, profile } = useAuth();
+  const { tenantId, isSuperAdmin, isGlobalRole, profile, hasPermission } = useAuth();
   const isAdmin = isSuperAdmin || isGlobalRole;
+  const canCreate = isSuperAdmin || hasPermission("MARKETING_CREATE");
+  const canUpdate = isSuperAdmin || hasPermission("MARKETING_UPDATE");
+  const canDelete = isSuperAdmin || hasPermission("MARKETING_DELETE");
+
   const [searchQuery, setSearchQuery] = React.useState("");
   const [viewTemplate, setViewTemplate] = React.useState(null);
   const [selectedTemplate, setSelectedTemplate] = React.useState(null);
@@ -220,7 +224,7 @@ export default function PageManageTemplates({ t, isDark, setActivePage, setActiv
           </div>
         ) : <div />}
 
-        {!template.isGlobal && (
+        {!template.isGlobal && canDelete && (
           <button
             onClick={(e) => {
               e.stopPropagation();
@@ -367,23 +371,25 @@ export default function PageManageTemplates({ t, isDark, setActivePage, setActiv
           <h1 style={{ fontSize: 20, fontWeight: 600, margin: 0, color: t.text }}>Manage email templates</h1>
         </div>
 
-        <div style={{ display: "flex", gap: 8 }}>
-          <button
-            onClick={() => {
-              if (typeof setActiveEmailTemplate === 'function') {
-                setActiveEmailTemplate({ name: "Untitled Template", rows: [], settings: {} });
-              }
-              setActivePage("Email Builder");
-            }}
-            style={{
-              padding: "8px 16px", borderRadius: 8, background: t.accent,
-              color: "#fff", border: "none",
-              fontSize: 13, fontWeight: 600, cursor: "pointer"
-            }}
-          >
-            + Create Template
-          </button>
-        </div>
+        {canCreate && (
+          <div style={{ display: "flex", gap: 8 }}>
+            <button
+              onClick={() => {
+                if (typeof setActiveEmailTemplate === 'function') {
+                  setActiveEmailTemplate({ name: "Untitled Template", rows: [], settings: {} });
+                }
+                setActivePage("Email Builder");
+              }}
+              style={{
+                padding: "8px 16px", borderRadius: 8, background: t.accent,
+                color: "#fff", border: "none",
+                fontSize: 13, fontWeight: 600, cursor: "pointer"
+              }}
+            >
+              + Create Template
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Main Content Area */}

@@ -6,6 +6,7 @@ import { db, storage } from "../firebase";
 import { collection, addDoc, serverTimestamp, doc, updateDoc, deleteDoc, getDoc, query, where, getDocs, onSnapshot } from "firebase/firestore";
 import { ref, uploadBytes } from "firebase/storage";
 import { getCollectionPaths } from "../utils";
+import { useAuth } from "../AuthContext";
 
 const formatDate = (dateVal) => {
   if (!dateVal) return "";
@@ -34,17 +35,17 @@ const ActionCell = ({ row, isDark, t, actions }) => {
     <ActBtns
       show={true}
       t={t}
-      onEdit={() => onEditName(email)}
-      onClone={() => onClone(email)}
-      onDel={() => onDelete(email)}
-      extraActions={[
+      onEdit={onEditName ? () => onEditName(email) : null}
+      onClone={onClone ? () => onClone(email) : null}
+      onDel={onDelete ? () => onDelete(email) : null}
+      extraActions={onSaveAsTemplate ? [
         { 
           label: "Save as new template", 
           icon: Save, 
           onClick: () => onSaveAsTemplate(email),
           color: isDark ? "#A78BFA" : "#7C3AED" 
         }
-      ]}
+      ] : []}
     />
   );
 };
@@ -269,6 +270,11 @@ const DUMMY_DRAFTS = [
 ];
 
 export default function PageMarketingEmails({ t, isDark, setActivePage, MARKETING_EMAILS = [], setActiveEmailTemplate, activeTenantId, USERS = [], CONTACTS = [] }) {
+  const { hasPermission, isSuperAdmin } = useAuth();
+  const canUpdate = isSuperAdmin || hasPermission("MARKETING_UPDATE");
+  const canDelete = isSuperAdmin || hasPermission("MARKETING_DELETE");
+  const canCreate = isSuperAdmin || hasPermission("MARKETING_CREATE");
+
   const [activeTab, setActiveTab] = React.useState("Draft");
   const [showTemplateModal, setShowTemplateModal] = React.useState(false);
   const [globalFilter, setGlobalFilter] = React.useState("");
@@ -529,26 +535,26 @@ export default function PageMarketingEmails({ t, isDark, setActivePage, MARKETIN
     cell: ({ getValue, row }) => {
       const status = getValue() || "Draft";
       const dotColor = status === "Sent" ? "#22c55e" : status === "Draft" ? "#9CA3AF" : status === "Scheduled" ? "#F59E0B" : "#F59E0B";
-      const isScheduled = status === "Scheduled";
+      const isEditable = (status === "Scheduled") && !!actions.onEditSchedule;
       return (
         <div 
           onClick={(e) => {
-            if (isScheduled) {
+            if (isEditable) {
               e.stopPropagation();
               actions.onEditSchedule(row.original);
             }
           }}
-          style={{ display: "flex", alignItems: "center", gap: 6, cursor: isScheduled ? "pointer" : "default" }}
+          style={{ display: "flex", alignItems: "center", gap: 6, cursor: isEditable ? "pointer" : "default" }}
         >
           <div style={{ width: 7, height: 7, borderRadius: "50%", background: dotColor, flexShrink: 0 }} />
           <span 
             style={{ 
               fontSize: "12px", 
               fontWeight: 500, 
-              color: isScheduled ? (isDark ? "#60A5FA" : "#2563EB") : t.text,
+              color: isEditable ? (isDark ? "#60A5FA" : "#2563EB") : t.text,
             }}
-            onMouseEnter={e => { if (isScheduled) e.currentTarget.style.textDecoration = "underline"; }}
-            onMouseLeave={e => { if (isScheduled) e.currentTarget.style.textDecoration = "none"; }}
+            onMouseEnter={e => { if (isEditable) e.currentTarget.style.textDecoration = "underline"; }}
+            onMouseLeave={e => { if (isEditable) e.currentTarget.style.textDecoration = "none"; }}
           >
             {status}
           </span>
@@ -694,8 +700,8 @@ export default function PageMarketingEmails({ t, isDark, setActivePage, MARKETIN
           setActiveEmailTemplate({ ...email, _useMode: true });
           setActivePage("Email Builder");
         },
-        onEditName: (email) => setItemToEdit(email),
-        onClone: async (email) => {
+        onEditName: canUpdate ? (email) => setItemToEdit(email) : null,
+        onClone: canCreate ? async (email) => {
           if (!activeTenantId) return;
           
           let newTitle = email.title || "Untitled";
@@ -719,8 +725,8 @@ export default function PageMarketingEmails({ t, isDark, setActivePage, MARKETIN
             createdAt: serverTimestamp(),
             updatedAt: serverTimestamp(),
           });
-        },
-        onSaveAsTemplate: async (email) => {
+        } : null,
+        onSaveAsTemplate: canCreate ? async (email) => {
           if (!activeTenantId) return;
           const sanitizedName = email.title.replace(/[/\s]+/g, "_").trim();
           const path = `tenants/${activeTenantId}/templates/${sanitizedName}_backup.json`;
@@ -735,12 +741,12 @@ export default function PageMarketingEmails({ t, isDark, setActivePage, MARKETIN
           const blob = new Blob([JSON.stringify(templateData, null, 2)], { type: "application/json" });
           await uploadBytes(templateRef, blob);
           showToast("Campaign saved to your template library!", "success");
-        },
-        onDelete: (email) => setItemToDelete(email),
-        onEditSchedule: (email) => setItemToReschedule(email),
+        } : null,
+        onDelete: canDelete ? (email) => setItemToDelete(email) : null,
+        onEditSchedule: canUpdate ? (email) => setItemToReschedule(email) : null,
       }, activeTab);
     },
-    [isDark, t, setActivePage, setActiveEmailTemplate, activeTenantId, activeTab, activityLogs]
+    [isDark, t, setActivePage, setActiveEmailTemplate, activeTenantId, activeTab, activityLogs, canUpdate, canCreate, canDelete]
   );
 
   const [isImporting, setIsImporting] = React.useState(false);
@@ -812,14 +818,16 @@ export default function PageMarketingEmails({ t, isDark, setActivePage, MARKETIN
           >
             <LayoutTemplate size={16} /> Templates
           </button>
-          <button
-            onClick={() => setActivePage("Select Template")}
-            style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 18px", borderRadius: 8, background: t.accentGrad, color: "#fff", fontWeight: 600, fontSize: 13, border: "none", cursor: "pointer", boxShadow: "0 4px 12px rgba(59,130,246,0.25)" }}
-          >
-            <Plus size={16} /> New Draft
-          </button>
+          {canCreate && (
+            <button
+              onClick={() => setActivePage("Select Template")}
+              style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 18px", borderRadius: 8, background: t.accentGrad, color: "#fff", fontWeight: 600, fontSize: 13, border: "none", cursor: "pointer", boxShadow: "0 4px 12px rgba(59,130,246,0.25)" }}
+            >
+              <Plus size={16} /> New Draft
+            </button>
+          )}
           
-          {MARKETING_EMAILS.length === 0 && (
+          {canCreate && MARKETING_EMAILS.length === 0 && (
             <button
               onClick={handleImportToLive}
               disabled={isImporting}
@@ -908,13 +916,15 @@ export default function PageMarketingEmails({ t, isDark, setActivePage, MARKETIN
       {/* Actions Bar */}
       <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", marginBottom: 14 }}>
         <div style={{ display: "flex", gap: 8, marginLeft: 12 }}>
-          <button
-            onClick={() => setItemToDelete(selectedRows)}
-            disabled={selectedRows.length === 0}
-            style={{ display: "flex", alignItems: "center", gap: 6, padding: "9px 14px", borderRadius: 8, border: `1px solid ${t.border}`, background: isDark ? "rgba(255,255,255,0.03)" : "#fff", color: selectedRows.length > 0 ? "#EF4444" : t.textMuted, fontSize: 13, fontWeight: 500, cursor: selectedRows.length > 0 ? "pointer" : "not-allowed", opacity: selectedRows.length > 0 ? 1 : 0.6 }}
-          >
-            <Trash2 size={15} /> Delete {selectedRows.length > 0 ? `(${selectedRows.length})` : ""}
-          </button>
+          {canDelete && (
+            <button
+              onClick={() => setItemToDelete(selectedRows)}
+              disabled={selectedRows.length === 0}
+              style={{ display: "flex", alignItems: "center", gap: 6, padding: "9px 14px", borderRadius: 8, border: `1px solid ${t.border}`, background: isDark ? "rgba(255,255,255,0.03)" : "#fff", color: selectedRows.length > 0 ? "#EF4444" : t.textMuted, fontSize: 13, fontWeight: 500, cursor: selectedRows.length > 0 ? "pointer" : "not-allowed", opacity: selectedRows.length > 0 ? 1 : 0.6 }}
+            >
+              <Trash2 size={15} /> Delete {selectedRows.length > 0 ? `(${selectedRows.length})` : ""}
+            </button>
+          )}
         </div>
       </div>
 
