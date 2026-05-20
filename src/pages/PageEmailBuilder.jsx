@@ -2221,7 +2221,15 @@ function SettingsPanel({ t, isDark, settings, onChange, profile, DIMENSIONS = []
           ref={el => { if (el) el.indeterminate = table.getIsSomeRowsSelected() && !table.getIsAllRowsSelected(); }}
         />
       ),
-      cell: ({ row }) => <input type="checkbox" className="ts-checkbox" checked={row.getIsSelected()} disabled={!row.original.email || row.original.isAlreadyDoNotSend} onChange={row.getToggleSelectedHandler()} />,
+      cell: ({ row }) => (
+        <input 
+          type="checkbox" 
+          className="ts-checkbox" 
+          checked={row.getIsSelected() || row.original.isAlreadyRecipient} 
+          disabled={!row.original.email || row.original.isAlreadyDoNotSend || row.original.isAlreadyRecipient} 
+          onChange={row.getToggleSelectedHandler()} 
+        />
+      ),
       size: 50
     },
     { accessorKey: "first_name", header: (t.isFrench ? "Prénom" : "First Name"), cell: info => info.getValue() || (info.row.original.name || "").split(" ")[0] || "—" },
@@ -2231,11 +2239,21 @@ function SettingsPanel({ t, isDark, settings, onChange, profile, DIMENSIONS = []
       header: (t.isFrench ? "E-mail" : "Email Address"),
       cell: info => {
         const val = info.getValue() || "—";
-        return info.row.original.isAlreadyDoNotSend ? (
-          <div style={{ color: isDark ? "#F87171" : "#DC2626", fontWeight: 600, display: "flex", alignItems: "center", gap: 8 }}>
-            {val} <span style={{ fontSize: 10, background: isDark ? "rgba(239, 68, 68, 0.2)" : "#FEE2E2", padding: "2px 8px", borderRadius: 12 }}>EXCLUDED</span>
-          </div>
-        ) : val;
+        if (info.row.original.isAlreadyDoNotSend) {
+          return (
+            <div style={{ color: isDark ? "#F87171" : "#DC2626", fontWeight: 600, display: "flex", alignItems: "center", gap: 8 }}>
+              {val} <span style={{ fontSize: 10, background: isDark ? "rgba(239, 68, 68, 0.2)" : "#FEE2E2", padding: "2px 8px", borderRadius: 12 }}>EXCLUDED</span>
+            </div>
+          );
+        }
+        if (info.row.original.isAlreadyRecipient) {
+          return (
+            <div style={{ color: isDark ? "#A3A3A3" : "#6B7280", fontWeight: 600, display: "flex", alignItems: "center", gap: 8 }}>
+              {val} <span style={{ fontSize: 10, background: isDark ? "rgba(255, 255, 255, 0.1)" : "#E5E7EB", padding: "2px 8px", borderRadius: 12 }}>ADDED</span>
+            </div>
+          );
+        }
+        return val;
       }
     }
   ], [t, isDark]);
@@ -2252,7 +2270,15 @@ function SettingsPanel({ t, isDark, settings, onChange, profile, DIMENSIONS = []
           ref={el => { if (el) el.indeterminate = table.getIsSomeRowsSelected() && !table.getIsAllRowsSelected(); }}
         />
       ),
-      cell: ({ row }) => <input type="checkbox" className="ts-checkbox" checked={row.getIsSelected()} disabled={!row.original.email || row.original.isAlreadyRecipient} onChange={row.getToggleSelectedHandler()} />,
+      cell: ({ row }) => (
+        <input 
+          type="checkbox" 
+          className="ts-checkbox" 
+          checked={row.getIsSelected() || row.original.isAlreadyDoNotSend} 
+          disabled={!row.original.email || row.original.isAlreadyRecipient || row.original.isAlreadyDoNotSend} 
+          onChange={row.getToggleSelectedHandler()} 
+        />
+      ),
       size: 50
     },
     { accessorKey: "first_name", header: (t.isFrench ? "Prénom" : "First Name"), cell: info => info.getValue() || (info.row.original.name || "").split(" ")[0] || "—" },
@@ -2262,11 +2288,21 @@ function SettingsPanel({ t, isDark, settings, onChange, profile, DIMENSIONS = []
       header: (t.isFrench ? "E-mail" : "Email Address"),
       cell: info => {
         const val = info.getValue() || "—";
-        return info.row.original.isAlreadyRecipient ? (
-          <div style={{ color: isDark ? "#60A5FA" : "#2563EB", fontWeight: 600, display: "flex", alignItems: "center", gap: 8 }}>
-            {val} <span style={{ fontSize: 10, background: isDark ? "rgba(59, 130, 246, 0.2)" : "#DBEAFE", padding: "2px 8px", borderRadius: 12 }}>RECIPIENT</span>
-          </div>
-        ) : val;
+        if (info.row.original.isAlreadyRecipient) {
+          return (
+            <div style={{ color: isDark ? "#60A5FA" : "#2563EB", fontWeight: 600, display: "flex", alignItems: "center", gap: 8 }}>
+              {val} <span style={{ fontSize: 10, background: isDark ? "rgba(59, 130, 246, 0.2)" : "#DBEAFE", padding: "2px 8px", borderRadius: 12 }}>RECIPIENT</span>
+            </div>
+          );
+        }
+        if (info.row.original.isAlreadyDoNotSend) {
+          return (
+            <div style={{ color: isDark ? "#A3A3A3" : "#6B7280", fontWeight: 600, display: "flex", alignItems: "center", gap: 8 }}>
+              {val} <span style={{ fontSize: 10, background: isDark ? "rgba(255, 255, 255, 0.1)" : "#E5E7EB", padding: "2px 8px", borderRadius: 12 }}>EXCLUDED</span>
+            </div>
+          );
+        }
+        return val;
       }
     }
   ], [t, isDark]);
@@ -2390,12 +2426,25 @@ function SettingsPanel({ t, isDark, settings, onChange, profile, DIMENSIONS = []
             rowSelection={rowSelection}
             onRowSelectionChange={setRowSelection}
             getRowId={(row) => row._rowId}
-            rowStyle={(row) => row.isAlreadyDoNotSend ? {
-              background: isDark ? "rgba(239, 68, 68, 0.05)" : "#FEF2F2",
-              borderLeft: `4px solid ${isDark ? "#EF4444" : "#DC2626"}`,
-              opacity: 0.9,
-              cursor: "not-allowed"
-            } : {}}
+            rowStyle={(row) => {
+              if (row.isAlreadyDoNotSend) {
+                return {
+                  background: isDark ? "rgba(239, 68, 68, 0.05)" : "#FEF2F2",
+                  borderLeft: `4px solid ${isDark ? "#EF4444" : "#DC2626"}`,
+                  opacity: 0.9,
+                  cursor: "not-allowed"
+                };
+              }
+              if (row.isAlreadyRecipient) {
+                return {
+                  background: isDark ? "rgba(255, 255, 255, 0.03)" : "#F3F4F6",
+                  borderLeft: `4px solid ${isDark ? "#737373" : "#9CA3AF"}`,
+                  opacity: 0.8,
+                  cursor: "not-allowed"
+                };
+              }
+              return {};
+            }}
           />
         </div>
       </Modal>
@@ -2427,12 +2476,25 @@ function SettingsPanel({ t, isDark, settings, onChange, profile, DIMENSIONS = []
             rowSelection={doNotSendRowSelection}
             onRowSelectionChange={setDoNotSendRowSelection}
             getRowId={(row) => row._rowId}
-            rowStyle={(row) => row.isAlreadyRecipient ? {
-              background: isDark ? "rgba(59, 130, 246, 0.05)" : "#F0F9FF",
-              borderLeft: `4px solid ${isDark ? "#3B82F6" : "#2563EB"}`,
-              opacity: 0.9,
-              cursor: "not-allowed"
-            } : {}}
+            rowStyle={(row) => {
+              if (row.isAlreadyRecipient) {
+                return {
+                  background: isDark ? "rgba(59, 130, 246, 0.05)" : "#F0F9FF",
+                  borderLeft: `4px solid ${isDark ? "#3B82F6" : "#2563EB"}`,
+                  opacity: 0.9,
+                  cursor: "not-allowed"
+                };
+              }
+              if (row.isAlreadyDoNotSend) {
+                return {
+                  background: isDark ? "rgba(255, 255, 255, 0.03)" : "#F3F4F6",
+                  borderLeft: `4px solid ${isDark ? "#737373" : "#9CA3AF"}`,
+                  opacity: 0.8,
+                  cursor: "not-allowed"
+                };
+              }
+              return {};
+            }}
           />
         </div>
       </Modal>
