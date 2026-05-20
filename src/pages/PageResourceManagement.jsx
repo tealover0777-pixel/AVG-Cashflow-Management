@@ -5,7 +5,8 @@ import { DelModal } from "../components";
 import { 
   FileText, Image as ImageIcon, Trash2, Download, Copy, Check, 
   UploadCloud, Search, Eye, RefreshCw, FolderOpen, AlertCircle,
-  FileSpreadsheet, FileArchive, FileArchive as FilePresentation, FileDown, MoreVertical
+  FileSpreadsheet, FileArchive, FileArchive as FilePresentation, FileDown, MoreVertical,
+  LayoutGrid, List
 } from "lucide-react";
 
 const formatBytes = (bytes, decimals = 2) => {
@@ -63,6 +64,7 @@ export default function PageResourceManagement({ t, isDark, activeTenantId }) {
   const [activeTab, setActiveTab] = useState("all"); // all, images, documents
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState("newest"); // newest, oldest, name, size
+  const [viewMode, setViewMode] = useState("card"); // card, list
   
   // Drag and drop state
   const [isDragging, setIsDragging] = useState(false);
@@ -564,6 +566,50 @@ export default function PageResourceManagement({ t, isDark, activeTenantId }) {
                 <option value="name" style={{ color: "#000" }}>Sort: Name</option>
                 <option value="size" style={{ color: "#000" }}>Sort: Size</option>
               </select>
+
+              {/* View Toggle */}
+              <div style={{ display: "flex", gap: 2, background: isDark ? "#171515" : "#F3F4F6", padding: 3, borderRadius: 8, border: `1px solid ${t.surfaceBorder}` }}>
+                <button
+                  type="button"
+                  onClick={() => setViewMode("card")}
+                  style={{
+                    background: viewMode === "card" ? (isDark ? "#2D2D2D" : "#fff") : "transparent",
+                    color: viewMode === "card" ? t.accent : t.textMuted,
+                    border: "none",
+                    borderRadius: 6,
+                    width: 32,
+                    height: 32,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    cursor: "pointer",
+                    transition: "all 0.15s ease"
+                  }}
+                  title="Card View"
+                >
+                  <LayoutGrid size={15} />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setViewMode("list")}
+                  style={{
+                    background: viewMode === "list" ? (isDark ? "#2D2D2D" : "#fff") : "transparent",
+                    color: viewMode === "list" ? t.accent : t.textMuted,
+                    border: "none",
+                    borderRadius: 6,
+                    width: 32,
+                    height: 32,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    cursor: "pointer",
+                    transition: "all 0.15s ease"
+                  }}
+                  title="List View"
+                >
+                  <List size={15} />
+                </button>
+              </div>
             </div>
           </div>
 
@@ -601,130 +647,262 @@ export default function PageResourceManagement({ t, isDark, activeTenantId }) {
                       <ImageIcon size={13} /> Images ({imagesList.length})
                     </div>
                     
-                    <div style={{ 
+                    <div style={viewMode === "card" ? { 
                       display: "grid", 
                       gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", 
                       gap: 16 
+                    } : {
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: 10
                     }}>
                       {imagesList.map((item) => (
-                        <div 
-                          key={item.path}
-                          style={{
-                            background: isDark ? "rgba(255,255,255,0.02)" : "#fff",
-                            border: `1px solid ${t.surfaceBorder}`,
-                            borderRadius: 12,
-                            overflow: "hidden",
-                            position: "relative",
-                            display: "flex",
-                            flexDirection: "column",
-                            transition: "transform 0.15s ease, box-shadow 0.15s ease"
-                          }}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.transform = "translateY(-2px)";
-                            e.currentTarget.style.boxShadow = isDark ? "0 8px 24px rgba(0,0,0,0.3)" : "0 8px 24px rgba(0,0,0,0.05)";
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.transform = "none";
-                            e.currentTarget.style.boxShadow = "none";
-                          }}
-                        >
-                          {/* Image Thumbnail */}
-                          <div style={{
-                            width: "100%",
-                            height: 120,
-                            background: isDark ? "#171515" : "#FAF9F6",
-                            borderBottom: `1px solid ${t.surfaceBorder}`,
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            overflow: "hidden",
-                            position: "relative"
-                          }}>
-                            <img 
-                              src={item.url} 
-                              alt={item.displayName}
-                              style={{
-                                maxWidth: "100%",
-                                maxHeight: "100%",
-                                objectFit: "contain"
-                              }}
-                            />
-                            
-                            {/* Hover overlay actions */}
+                        viewMode === "card" ? (
+                          <div 
+                            key={item.path}
+                            style={{
+                              background: isDark ? "rgba(255,255,255,0.02)" : "#fff",
+                              border: `1px solid ${t.surfaceBorder}`,
+                              borderRadius: 12,
+                              overflow: "hidden",
+                              position: "relative",
+                              display: "flex",
+                              flexDirection: "column",
+                              transition: "transform 0.15s ease, box-shadow 0.15s ease"
+                            }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.transform = "translateY(-2px)";
+                              e.currentTarget.style.boxShadow = isDark ? "0 8px 24px rgba(0,0,0,0.3)" : "0 8px 24px rgba(0,0,0,0.05)";
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.transform = "none";
+                              e.currentTarget.style.boxShadow = "none";
+                            }}
+                          >
+                            {/* Image Thumbnail */}
                             <div style={{
-                              position: "absolute",
-                              inset: 0,
-                              background: "rgba(0,0,0,0.5)",
-                              opacity: 0,
+                              width: "100%",
+                              height: 120,
+                              background: isDark ? "#171515" : "#FAF9F6",
+                              borderBottom: `1px solid ${t.surfaceBorder}`,
                               display: "flex",
                               alignItems: "center",
                               justifyContent: "center",
-                              gap: 8,
-                              transition: "opacity 0.2s ease"
+                              overflow: "hidden",
+                              position: "relative"
+                            }}>
+                              <img 
+                                src={item.url} 
+                                alt={item.displayName}
+                                style={{
+                                  maxWidth: "100%",
+                                  maxHeight: "100%",
+                                  objectFit: "contain"
+                                }}
+                              />
+                              
+                              {/* Hover overlay actions */}
+                              <div style={{
+                                position: "absolute",
+                                inset: 0,
+                                background: "rgba(0,0,0,0.5)",
+                                opacity: 0,
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                gap: 8,
+                                transition: "opacity 0.2s ease"
+                              }}
+                              className="hover-overlay"
+                              onMouseEnter={(e) => e.currentTarget.style.opacity = 1}
+                              onMouseLeave={(e) => e.currentTarget.style.opacity = 0}
+                              >
+                                <a 
+                                  href={item.url} 
+                                  target="_blank" 
+                                  rel="noreferrer"
+                                  style={{
+                                    width: 32,
+                                    height: 32,
+                                    borderRadius: 8,
+                                    background: "#fff",
+                                    color: "#000",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    cursor: "pointer"
+                                  }}
+                                  title="Open full image"
+                                >
+                                  <Eye size={15} />
+                                </a>
+                              </div>
+                            </div>
+
+                            {/* Image details */}
+                            <div style={{ padding: 12, flex: 1, display: "flex", flexDirection: "column", justifyContent: "space-between", gap: 8 }}>
+                              <div>
+                                <div 
+                                  style={{ 
+                                    fontSize: 13, 
+                                    fontWeight: 600, 
+                                    color: t.text, 
+                                    overflow: "hidden",
+                                    textOverflow: "ellipsis",
+                                    whiteSpace: "nowrap",
+                                    marginBottom: 2
+                                  }}
+                                  title={item.displayName}
+                                >
+                                  {item.displayName}
+                                </div>
+                                <div style={{ fontSize: 11, color: t.textMuted }}>
+                                  {formatBytes(item.size)} • {formatDate(item.timeCreated).split(',')[0]}
+                                </div>
+                              </div>
+
+                              {/* Card actions */}
+                              <div style={{ display: "flex", gap: 6, borderTop: `1px solid ${t.surfaceBorder}`, paddingTop: 10, marginTop: 4 }}>
+                                <button
+                                  onClick={() => handleCopyUrl(item.url, item.name)}
+                                  style={{
+                                    flex: 1,
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    gap: 4,
+                                    background: isDark ? "rgba(255,255,255,0.04)" : "#F3F4F6",
+                                    border: "none",
+                                    borderRadius: 6,
+                                    padding: "6px 0",
+                                    fontSize: 11,
+                                    fontWeight: 500,
+                                    color: t.textSecondary,
+                                    cursor: "pointer"
+                                  }}
+                                >
+                                  {copiedUrl === item.name ? (
+                                    <>
+                                      <Check size={12} style={{ color: "#10B981" }} />
+                                      <span style={{ color: "#10B981" }}>Copied</span>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Copy size={12} />
+                                      <span>Copy URL</span>
+                                    </>
+                                  )}
+                                </button>
+                                
+                                <button
+                                  onClick={() => setDeletingItem(item)}
+                                  style={{
+                                    width: 28,
+                                    height: 28,
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    background: "transparent",
+                                    border: "none",
+                                    borderRadius: 6,
+                                    color: "#EF4444",
+                                    cursor: "pointer"
+                                  }}
+                                  onMouseEnter={(e) => e.currentTarget.style.background = isDark ? "rgba(239,68,68,0.15)" : "#FEF2F2"}
+                                  onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}
+                                  title="Delete image"
+                                >
+                                  <Trash2 size={13} />
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        ) : (
+                          <div 
+                            key={item.path}
+                            style={{
+                              background: isDark ? "rgba(255,255,255,0.015)" : "#fff",
+                              border: `1px solid ${t.surfaceBorder}`,
+                              borderRadius: 12,
+                              padding: "10px 18px",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "space-between",
+                              gap: 16,
+                              transition: "border-color 0.15s ease"
                             }}
-                            className="hover-overlay"
-                            onMouseEnter={(e) => e.currentTarget.style.opacity = 1}
-                            onMouseLeave={(e) => e.currentTarget.style.opacity = 0}
-                            >
+                            onMouseEnter={(e) => e.currentTarget.style.borderColor = t.accent}
+                            onMouseLeave={(e) => e.currentTarget.style.borderColor = t.surfaceBorder}
+                          >
+                            <div style={{ display: "flex", alignItems: "center", gap: 14, minWidth: 0, flex: 1 }}>
+                              <div style={{
+                                width: 38,
+                                height: 38,
+                                borderRadius: 10,
+                                background: isDark ? "rgba(59,130,246,0.15)" : "#EFF6FF",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                flexShrink: 0,
+                                overflow: "hidden"
+                              }}>
+                                <img src={item.url} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                              </div>
+                              <div style={{ minWidth: 0 }}>
+                                <div 
+                                  style={{ 
+                                    fontSize: 13.5, 
+                                    fontWeight: 600, 
+                                    color: t.text, 
+                                    overflow: "hidden",
+                                    textOverflow: "ellipsis",
+                                    whiteSpace: "nowrap"
+                                  }}
+                                  title={item.displayName}
+                                >
+                                  {item.displayName}
+                                </div>
+                                <div style={{ fontSize: 11.5, color: t.textMuted, display: "flex", alignItems: "center", gap: 6, marginTop: 2 }}>
+                                  <span>Image File</span>
+                                  <span>•</span>
+                                  <span>{formatBytes(item.size)}</span>
+                                  <span>•</span>
+                                  <span>Uploaded {formatDate(item.timeCreated)}</span>
+                                </div>
+                              </div>
+                            </div>
+
+                            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                               <a 
                                 href={item.url} 
                                 target="_blank" 
                                 rel="noreferrer"
                                 style={{
-                                  width: 32,
-                                  height: 32,
-                                  borderRadius: 8,
-                                  background: "#fff",
-                                  color: "#000",
+                                  width: 34,
+                                  height: 34,
                                   display: "flex",
                                   alignItems: "center",
                                   justifyContent: "center",
+                                  borderRadius: 8,
+                                  background: isDark ? "rgba(255,255,255,0.04)" : "#F3F4F6",
+                                  color: t.textSecondary,
                                   cursor: "pointer"
                                 }}
                                 title="Open full image"
                               >
-                                <Eye size={15} />
+                                <Eye size={14} />
                               </a>
-                            </div>
-                          </div>
-
-                          {/* Image details */}
-                          <div style={{ padding: 12, flex: 1, display: "flex", flexDirection: "column", justifyContent: "space-between", gap: 8 }}>
-                            <div>
-                              <div 
-                                style={{ 
-                                  fontSize: 13, 
-                                  fontWeight: 600, 
-                                  color: t.text, 
-                                  overflow: "hidden",
-                                  textOverflow: "ellipsis",
-                                  whiteSpace: "nowrap",
-                                  marginBottom: 2
-                                }}
-                                title={item.displayName}
-                              >
-                                {item.displayName}
-                              </div>
-                              <div style={{ fontSize: 11, color: t.textMuted }}>
-                                {formatBytes(item.size)} • {formatDate(item.timeCreated).split(',')[0]}
-                              </div>
-                            </div>
-
-                            {/* Card actions */}
-                            <div style={{ display: "flex", gap: 6, borderTop: `1px solid ${t.surfaceBorder}`, paddingTop: 10, marginTop: 4 }}>
                               <button
                                 onClick={() => handleCopyUrl(item.url, item.name)}
                                 style={{
-                                  flex: 1,
                                   display: "flex",
                                   alignItems: "center",
-                                  justifyContent: "center",
-                                  gap: 4,
+                                  gap: 6,
                                   background: isDark ? "rgba(255,255,255,0.04)" : "#F3F4F6",
                                   border: "none",
-                                  borderRadius: 6,
-                                  padding: "6px 0",
-                                  fontSize: 11,
+                                  borderRadius: 8,
+                                  padding: "8px 14px",
+                                  fontSize: 12.5,
                                   fontWeight: 500,
                                   color: t.textSecondary,
                                   cursor: "pointer"
@@ -732,28 +910,28 @@ export default function PageResourceManagement({ t, isDark, activeTenantId }) {
                               >
                                 {copiedUrl === item.name ? (
                                   <>
-                                    <Check size={12} style={{ color: "#10B981" }} />
-                                    <span style={{ color: "#10B981" }}>Copied</span>
+                                    <Check size={13} style={{ color: "#10B981" }} />
+                                    <span style={{ color: "#10B981" }}>Copied URL</span>
                                   </>
                                 ) : (
                                   <>
-                                    <Copy size={12} />
+                                    <Copy size={13} />
                                     <span>Copy URL</span>
                                   </>
                                 )}
                               </button>
-                              
+
                               <button
                                 onClick={() => setDeletingItem(item)}
                                 style={{
-                                  width: 28,
-                                  height: 28,
+                                  width: 34,
+                                  height: 34,
                                   display: "flex",
                                   alignItems: "center",
                                   justifyContent: "center",
+                                  borderRadius: 8,
                                   background: "transparent",
                                   border: "none",
-                                  borderRadius: 6,
                                   color: "#EF4444",
                                   cursor: "pointer"
                                 }}
@@ -761,11 +939,11 @@ export default function PageResourceManagement({ t, isDark, activeTenantId }) {
                                 onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}
                                 title="Delete image"
                               >
-                                <Trash2 size={13} />
+                                <Trash2 size={14} />
                               </button>
                             </div>
                           </div>
-                        </div>
+                        )
                       ))}
                     </div>
                   </div>
