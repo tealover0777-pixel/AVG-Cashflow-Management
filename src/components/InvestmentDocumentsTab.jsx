@@ -1,11 +1,16 @@
 import React, { useState, useEffect } from "react";
-import { db } from "../firebase";
+import { db, storage } from "../firebase";
 import { collection, query, onSnapshot, doc, setDoc, deleteDoc, serverTimestamp } from "firebase/firestore";
 import { uploadFile, deleteFile } from "../utils/storageUtils";
+import { ref, listAll, getDownloadURL, getMetadata } from "firebase/storage";
+import { useAuth } from "../AuthContext";
 import { FileText, File, Trash2, Download, Plus, Loader2, X, HelpCircle, Eye } from "lucide-react";
 import { Modal, FF, FIn, FSel, Tooltip, DelModal } from "../components";
 
 export default function InvestmentDocumentsTab({ t, isDark, tenantId, contact, party, DEALS, INVESTMENTS }) {
+    const { activeTenantId } = useAuth();
+    const effectiveTenantId = tenantId || activeTenantId || "GLOBAL";
+
     const [docs, setDocs] = useState([]);
     const [loading, setLoading] = useState(true);
     const [uploading, setUploading] = useState(false);
@@ -23,6 +28,12 @@ export default function InvestmentDocumentsTab({ t, isDark, tenantId, contact, p
     const showToast = (msg, type = "info") => { setToast({ msg, type }); setTimeout(() => setToast(null), 4000); };
     const [confirmDelDoc, setConfirmDelDoc] = useState(null);
 
+    const [uploadMode, setUploadMode] = useState("file"); // "file" or "resource"
+    const [resourceSearchQuery, setResourceSearchQuery] = useState("");
+    const [resources, setResources] = useState([]);
+    const [resourcesLoading, setResourcesLoading] = useState(false);
+    const [selectedResource, setSelectedResource] = useState(null);
+
     const src = contact || party; // accept either prop name
     const partyId = String(src.id || src.docId || "").trim();
 
@@ -39,16 +50,93 @@ export default function InvestmentDocumentsTab({ t, isDark, tenantId, contact, p
         return () => unsub();
     }, [tenantId, partyId]);
 
+    useEffect(() => {
+        if (!isModalOpen) {
+            setUploadMode("file");
+            setSelectedResource(null);
+        }
+    }, [isModalOpen]);
+
+    useEffect(() => {
+        if (isModalOpen && uploadMode === "resource") {
+            loadResources();
+        }
+    }, [isModalOpen, uploadMode]);
+
+    const loadResources = async () => {
+        setResourcesLoading(true);
+        try {
+            const res = await listAll(ref(storage, `tenants/${effectiveTenantId}/marketing_uploads`));
+            const items = Array.isArray(res.items) ? res.items : [];
+            const list = await Promise.all(
+                items.map(async (r) => {
+                    const url = await getDownloadURL(r);
+                    let metadata = {};
+                    try {
+                        metadata = await getMetadata(r);
+                    } catch (e) {
+                        console.error("Error retrieving metadata:", e);
+                    }
+                    
+                    let displayName = r.name;
+                    const match = r.name.match(/^\d+_(.+)$/);
+                    if (match) {
+                        displayName = match[1];
+                    }
+
+                    return {
+                        name: r.name,
+                        displayName,
+                        url,
+                        path: r.fullPath,
+                        size: metadata.size || 0,
+                        contentType: metadata.contentType || "",
+                        isImage: ["jpg", "jpeg", "png", "gif", "webp", "svg", "bmp", "ico"].includes(displayName.split('.').pop().toLowerCase())
+                    };
+                })
+            );
+            setResources(list.filter(item => !item.isImage));
+        } catch (err) {
+            console.error("Error loading resources:", err);
+            showToast("Failed to fetch resources: " + err.message, "error");
+        } finally {
+            setResourcesLoading(false);
+        }
+    };
+
+    const formatSize = (bytes) => {
+        if (!bytes || bytes === 0) return '0 Bytes';
+        const k = 1024;
+        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    };
+
     const handleUpload = async () => {
-        if (!newDoc.file) { showToast("Please select a file.", "error"); return; }
+        if (uploadMode === "file" && !newDoc.file) { showToast("Please select a file.", "error"); return; }
+        if (uploadMode === "resource" && !selectedResource) { showToast("Please select a resource document.", "error"); return; }
         if (!newDoc.dealId) { showToast("Please select a deal.", "error"); return; }
 
         setUploading(true);
         setProgress(10);
         try {
             const timestamp = Date.now();
-            const path = `tenants/${tenantId}/contacts/${partyId}/documents/${timestamp}_${newDoc.file.name}`;
-            const url = await uploadFile(newDoc.file, path);
+            let url, path, name, size, type;
+
+            if (uploadMode === "file") {
+                path = `tenants/${tenantId}/contacts/${partyId}/documents/${timestamp}_${newDoc.file.name}`;
+                url = await uploadFile(newDoc.file, path);
+                name = newDoc.file.name;
+                size = newDoc.file.size;
+                type = newDoc.file.type;
+            } else {
+                url = selectedResource.url;
+                path = selectedResource.path;
+                name = selectedResource.displayName;
+                size = selectedResource.size;
+                type = selectedResource.contentType;
+            }
+            
             setProgress(90);
 
             const deal = DEALS.find(d => d.id === newDoc.dealId);
@@ -56,11 +144,11 @@ export default function InvestmentDocumentsTab({ t, isDark, tenantId, contact, p
             
             await setDoc(doc(db, "tenants", tenantId, "contacts", partyId, "documents", docId), {
                 id: docId,
-                name: newDoc.file.name,
+                name: name,
                 url: url,
                 path: path,
-                size: newDoc.file.size,
-                type: newDoc.file.type,
+                size: size,
+                type: type,
                 category: newDoc.category,
                 deal_id: newDoc.dealId,
                 deal_name: deal?.name || newDoc.dealId,
@@ -74,6 +162,8 @@ export default function InvestmentDocumentsTab({ t, isDark, tenantId, contact, p
                 setProgress(0);
                 setIsModalOpen(false);
                 setNewDoc({ file: null, category: "Agreement", dealId: "", label: "" });
+                setSelectedResource(null);
+                setUploadMode("file");
             }, 500);
         } catch (err) {
             console.error("Upload error:", err);
@@ -172,20 +262,132 @@ export default function InvestmentDocumentsTab({ t, isDark, tenantId, contact, p
                     isDark={isDark}
                 >
                     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-                        <FF label="File" t={t}>
-                            <input 
-                                type="file" 
-                                onChange={e => setNewDoc(prev => ({ ...prev, file: e.target.files[0] }))}
-                                style={{ 
-                                    width: "100%", 
-                                    padding: "10px", 
-                                    border: `1px solid ${t.surfaceBorder}`, 
-                                    borderRadius: 9, 
-                                    background: isDark ? "rgba(255,255,255,0.03)" : "#fff",
-                                    color: t.text
-                                }} 
-                            />
-                        </FF>
+                        <div style={{ display: "flex", gap: 12, marginBottom: 4 }}>
+                            <button
+                                type="button"
+                                onClick={() => setUploadMode("file")}
+                                style={{
+                                    flex: 1,
+                                    padding: "8px 12px",
+                                    borderRadius: 8,
+                                    border: `1px solid ${uploadMode === "file" ? t.accent : t.surfaceBorder}`,
+                                    background: uploadMode === "file" ? (isDark ? "rgba(59,130,246,0.1)" : "#EFF6FF") : "transparent",
+                                    color: uploadMode === "file" ? t.accent : t.text,
+                                    fontWeight: 600,
+                                    fontSize: 13,
+                                    cursor: "pointer"
+                                }}
+                            >
+                                Upload Local File
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setUploadMode("resource")}
+                                style={{
+                                    flex: 1,
+                                    padding: "8px 12px",
+                                    borderRadius: 8,
+                                    border: `1px solid ${uploadMode === "resource" ? t.accent : t.surfaceBorder}`,
+                                    background: uploadMode === "resource" ? (isDark ? "rgba(59,130,246,0.1)" : "#EFF6FF") : "transparent",
+                                    color: uploadMode === "resource" ? t.accent : t.text,
+                                    fontWeight: 600,
+                                    fontSize: 13,
+                                    cursor: "pointer"
+                                }}
+                            >
+                                Select from Resources
+                            </button>
+                        </div>
+
+                        {uploadMode === "file" ? (
+                            <FF label="File" t={t}>
+                                <input 
+                                    type="file" 
+                                    onChange={e => setNewDoc(prev => ({ ...prev, file: e.target.files[0] }))}
+                                    style={{ 
+                                        width: "100%", 
+                                        padding: "10px", 
+                                        border: `1px solid ${t.surfaceBorder}`, 
+                                        borderRadius: 9, 
+                                        background: isDark ? "rgba(255,255,255,0.03)" : "#fff",
+                                        color: t.text
+                                    }} 
+                                />
+                            </FF>
+                        ) : (
+                            <FF label="Select Resource Document" t={t}>
+                                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                                    <input
+                                        type="text"
+                                        placeholder="Search resource documents..."
+                                        value={resourceSearchQuery}
+                                        onChange={e => setResourceSearchQuery(e.target.value)}
+                                        style={{
+                                            width: "100%",
+                                            background: isDark ? "rgba(255,255,255,0.03)" : "#fff",
+                                            border: `1px solid ${t.surfaceBorder}`,
+                                            borderRadius: 8,
+                                            padding: "8px 12px",
+                                            fontSize: 13,
+                                            color: t.text,
+                                            outline: "none",
+                                            boxSizing: "border-box"
+                                        }}
+                                    />
+                                    
+                                    <div style={{ maxHeight: 180, overflowY: "auto", border: `1px solid ${t.surfaceBorder}`, borderRadius: 8, padding: 8, background: isDark ? "rgba(0,0,0,0.15)" : "#fff" }}>
+                                        {resourcesLoading ? (
+                                            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: 80, color: t.textMuted, gap: 6, fontSize: 13 }}>
+                                                <Loader2 size={16} className="animate-spin" /> Loading resources...
+                                            </div>
+                                        ) : resources.filter(r => r.displayName.toLowerCase().includes(resourceSearchQuery.toLowerCase())).length === 0 ? (
+                                            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: 80, color: t.textMuted, fontSize: 12.5 }}>
+                                                No documents found in Resource Management.
+                                            </div>
+                                        ) : (
+                                            resources.filter(r => r.displayName.toLowerCase().includes(resourceSearchQuery.toLowerCase())).map((item) => {
+                                                const isSelected = selectedResource?.path === item.path;
+                                                return (
+                                                    <div
+                                                        key={item.path}
+                                                        onClick={() => setSelectedResource(item)}
+                                                        style={{
+                                                            display: "flex",
+                                                            alignItems: "center",
+                                                            justifyContent: "space-between",
+                                                            padding: "8px 10px",
+                                                            borderRadius: 6,
+                                                            background: isSelected 
+                                                                ? (isDark ? "rgba(59,130,246,0.15)" : "#EFF6FF") 
+                                                                : "transparent",
+                                                            border: `1px solid ${isSelected ? t.accent : "transparent"}`,
+                                                            cursor: "pointer",
+                                                            transition: "background 0.2s"
+                                                        }}
+                                                        className="hover-bg-resource-item"
+                                                    >
+                                                        <div style={{ display: "flex", alignItems: "center", gap: 6, overflow: "hidden", marginRight: 8, flex: 1 }}>
+                                                            <FileText size={15} color={isSelected ? t.accent : t.textMuted} style={{ flexShrink: 0 }} />
+                                                            <span style={{ fontSize: 12, color: isSelected ? t.accent : t.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={item.displayName}>
+                                                                {item.displayName}
+                                                            </span>
+                                                        </div>
+                                                        <div style={{ fontSize: 11, color: t.textMuted, flexShrink: 0 }}>
+                                                            {formatSize(item.size)}
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })
+                                        )}
+                                    </div>
+                                    <style>{`
+                                        .hover-bg-resource-item:hover {
+                                            background: ${isDark ? "rgba(255,255,255,0.04)" : "#F3F4F6"} !important;
+                                        }
+                                    `}</style>
+                                </div>
+                            </FF>
+                        )}
                         <FF label="Category" t={t}>
                             <FSel 
                                 value={newDoc.category} 

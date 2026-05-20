@@ -1,12 +1,17 @@
 import React, { useState, useEffect } from "react";
-import { db } from "../firebase";
+import { db, storage } from "../firebase";
 import { collection, query, onSnapshot, doc, setDoc, deleteDoc, serverTimestamp } from "firebase/firestore";
 import { uploadFile, deleteFile } from "../utils/storageUtils";
+import { ref, listAll, getDownloadURL, getMetadata } from "firebase/storage";
+import { useAuth } from "../AuthContext";
 import { FileText, File, Trash2, Download, Plus, Loader2, X } from "lucide-react";
 import { fmtCurr } from "../utils";
 
-export default function DocumentsTab({ t, isDark, dealId, dealPath }) {
+export default function DocumentsTab({ t, isDark, dealId, dealPath, tenantId }) {
     const dp = dealPath || `deals/${dealId}`;
+    const { activeTenantId } = useAuth();
+    const effectiveTenantId = tenantId || activeTenantId || "GLOBAL";
+
     const [docs, setDocs] = useState([]);
     const [loading, setLoading] = useState(true);
     const [uploading, setUploading] = useState(false);
@@ -14,6 +19,11 @@ export default function DocumentsTab({ t, isDark, dealId, dealPath }) {
     const [toast, setToast] = useState(null);
     const showToast = (msg, type = "info") => { setToast({ msg, type }); setTimeout(() => setToast(null), 4000); };
     const [confirmDelDoc, setConfirmDelDoc] = useState(null);
+
+    const [resourceModalOpen, setResourceModalOpen] = useState(false);
+    const [resources, setResources] = useState([]);
+    const [resourcesLoading, setResourcesLoading] = useState(false);
+    const [resourceSearchQuery, setResourceSearchQuery] = useState("");
 
     useEffect(() => {
         if (!dealId) return;
@@ -27,6 +37,75 @@ export default function DocumentsTab({ t, isDark, dealId, dealPath }) {
         });
         return () => unsub();
     }, [dealId]);
+
+    useEffect(() => {
+        if (resourceModalOpen) {
+            loadResources();
+        }
+    }, [resourceModalOpen]);
+
+    const loadResources = async () => {
+        setResourcesLoading(true);
+        try {
+            const res = await listAll(ref(storage, `tenants/${effectiveTenantId}/marketing_uploads`));
+            const items = Array.isArray(res.items) ? res.items : [];
+            const list = await Promise.all(
+                items.map(async (r) => {
+                    const url = await getDownloadURL(r);
+                    let metadata = {};
+                    try {
+                        metadata = await getMetadata(r);
+                    } catch (e) {
+                        console.error("Error retrieving metadata:", e);
+                    }
+                    
+                    let displayName = r.name;
+                    const match = r.name.match(/^\d+_(.+)$/);
+                    if (match) {
+                        displayName = match[1];
+                    }
+
+                    return {
+                        name: r.name,
+                        displayName,
+                        url,
+                        path: r.fullPath,
+                        size: metadata.size || 0,
+                        contentType: metadata.contentType || "",
+                        isImage: ["jpg", "jpeg", "png", "gif", "webp", "svg", "bmp", "ico"].includes(displayName.split('.').pop().toLowerCase())
+                    };
+                })
+            );
+            setResources(list.filter(item => !item.isImage));
+        } catch (err) {
+            console.error("Error loading resources:", err);
+            showToast("Failed to fetch resources: " + err.message, "error");
+        } finally {
+            setResourcesLoading(false);
+        }
+    };
+
+    const handleSelectResource = async (resource) => {
+        setUploading(true);
+        try {
+            const docId = `DOC_${Date.now()}`;
+            await setDoc(doc(db, dp, "documents", docId), {
+                name: resource.displayName,
+                url: resource.url,
+                path: resource.path,
+                size: resource.size || 0,
+                type: resource.contentType || "application/octet-stream",
+                uploadedAt: serverTimestamp(),
+            });
+            showToast("Document loaded from Resource Management!", "success");
+            setResourceModalOpen(false);
+        } catch (err) {
+            console.error("Error adding resource doc:", err);
+            showToast("Failed to load document: " + err.message, "error");
+        } finally {
+            setUploading(false);
+        }
+    };
 
     const handleFileChange = async (e) => {
         const file = e.target.files[0];
@@ -85,23 +164,44 @@ export default function DocumentsTab({ t, isDark, dealId, dealPath }) {
         <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <h3 style={{ fontSize: 16, fontWeight: 700, color: t.text }}>Documents</h3>
-                <label style={{ 
-                    background: t.accentGrad, 
-                    color: "#fff", 
-                    padding: "8px 16px", 
-                    borderRadius: 9, 
-                    fontSize: 13, 
-                    fontWeight: 600, 
-                    cursor: uploading ? "not-allowed" : "pointer",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 6,
-                    opacity: uploading ? 0.7 : 1
-                }}>
-                    {uploading ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />}
-                    {uploading ? "Uploading..." : "Upload Document"}
-                    <input type="file" onChange={handleFileChange} style={{ display: "none" }} disabled={uploading} />
-                </label>
+                <div style={{ display: "flex", gap: 10 }}>
+                    <button 
+                        onClick={() => setResourceModalOpen(true)}
+                        style={{
+                            background: isDark ? "rgba(255,255,255,0.06)" : "#fff",
+                            border: `1px solid ${t.surfaceBorder}`,
+                            color: t.text,
+                            padding: "8px 16px",
+                            borderRadius: 9,
+                            fontSize: 13,
+                            fontWeight: 600,
+                            cursor: "pointer",
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 6
+                        }}
+                    >
+                        <FileText size={16} />
+                        Select from Resources
+                    </button>
+                    <label style={{ 
+                        background: t.accentGrad, 
+                        color: "#fff", 
+                        padding: "8px 16px", 
+                        borderRadius: 9, 
+                        fontSize: 13, 
+                        fontWeight: 600, 
+                        cursor: uploading ? "not-allowed" : "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 6,
+                        opacity: uploading ? 0.7 : 1
+                    }}>
+                        {uploading ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />}
+                        {uploading ? "Uploading..." : "Upload Document"}
+                        <input type="file" onChange={handleFileChange} style={{ display: "none" }} disabled={uploading} />
+                    </label>
+                </div>
             </div>
 
             {uploading && (
@@ -167,6 +267,96 @@ export default function DocumentsTab({ t, isDark, dealId, dealPath }) {
                 .animate-spin { animation: spin 1s linear infinite; }
                 @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
             `}</style>
+            {resourceModalOpen && (
+                <div style={{ position: "fixed", inset: 0, zIndex: 9000, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <div style={{ background: isDark ? "#1C1917" : "#fff", borderRadius: 16, padding: 24, maxWidth: 500, width: "95%", maxHeight: "85vh", display: "flex", flexDirection: "column", boxShadow: "0 20px 60px rgba(0,0,0,0.3)" }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+                            <div style={{ fontSize: 16, fontWeight: 700, color: isDark ? "#fff" : "#1C1917" }}>Select from Resource Management</div>
+                            <button onClick={() => setResourceModalOpen(false)} style={{ background: "none", border: "none", color: t.textMuted, cursor: "pointer", display: "flex", alignItems: "center" }}><X size={18} /></button>
+                        </div>
+                        
+                        <div style={{ position: "relative", marginBottom: 14 }}>
+                            <input
+                                type="text"
+                                placeholder="Search documents..."
+                                value={resourceSearchQuery}
+                                onChange={e => setResourceSearchQuery(e.target.value)}
+                                style={{
+                                    width: "100%",
+                                    background: isDark ? "rgba(255,255,255,0.03)" : "#FAF9F6",
+                                    border: `1px solid ${t.surfaceBorder}`,
+                                    borderRadius: 8,
+                                    padding: "8px 12px",
+                                    fontSize: 13,
+                                    color: t.text,
+                                    outline: "none",
+                                    boxSizing: "border-box"
+                                }}
+                            />
+                        </div>
+
+                        <div style={{ flex: 1, overflowY: "auto", display: "flex", flexDirection: "column", gap: 8, minHeight: 200, paddingRight: 4 }}>
+                            {resourcesLoading ? (
+                                <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: 180, color: t.textMuted, gap: 8 }}>
+                                    <Loader2 size={18} className="animate-spin" /> Loading resources...
+                                </div>
+                            ) : resources.filter(r => r.displayName.toLowerCase().includes(resourceSearchQuery.toLowerCase())).length === 0 ? (
+                                <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: 180, color: t.textMuted, fontSize: 13 }}>
+                                    No documents found in Resource Management.
+                                </div>
+                            ) : (
+                                resources.filter(r => r.displayName.toLowerCase().includes(resourceSearchQuery.toLowerCase())).map((item) => (
+                                    <div
+                                        key={item.path}
+                                        onClick={() => handleSelectResource(item)}
+                                        style={{
+                                            display: "flex",
+                                            alignItems: "center",
+                                            justifyContent: "space-between",
+                                            padding: "10px 12px",
+                                            border: `1px solid ${t.surfaceBorder}`,
+                                            borderRadius: 8,
+                                            background: isDark ? "rgba(255,255,255,0.02)" : "#FAFAFA",
+                                            cursor: "pointer",
+                                            transition: "background 0.2s"
+                                        }}
+                                        className="hover-bg-resource"
+                                    >
+                                        <div style={{ display: "flex", alignItems: "center", gap: 8, overflow: "hidden", marginRight: 8, flex: 1 }}>
+                                            <FileText size={16} color={t.textMuted} style={{ flexShrink: 0 }} />
+                                            <span style={{ fontSize: 12.5, color: t.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={item.displayName}>
+                                                {item.displayName}
+                                            </span>
+                                        </div>
+                                        <div style={{ fontSize: 11, color: t.textMuted, flexShrink: 0, paddingRight: 8 }}>
+                                            {formatSize(item.size)}
+                                        </div>
+                                        <button
+                                            style={{
+                                                background: t.accentGrad || t.accent,
+                                                color: "#fff",
+                                                border: "none",
+                                                padding: "4px 10px",
+                                                borderRadius: 6,
+                                                fontSize: 11,
+                                                fontWeight: 600,
+                                                cursor: "pointer"
+                                            }}
+                                        >
+                                            Select
+                                        </button>
+                                    </div>
+                                ))
+                            )}
+                        </div>
+                        <style>{`
+                            .hover-bg-resource:hover {
+                                background: ${isDark ? "rgba(255,255,255,0.06)" : "#F3F4F6"} !important;
+                            }
+                        `}</style>
+                    </div>
+                </div>
+            )}
             {confirmDelDoc && (
                 <div style={{ position: "fixed", inset: 0, zIndex: 9000, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center" }}>
                     <div style={{ background: isDark ? "#1C1917" : "#fff", borderRadius: 14, padding: 24, maxWidth: 380, width: "90%", boxShadow: "0 20px 60px rgba(0,0,0,0.3)" }}>

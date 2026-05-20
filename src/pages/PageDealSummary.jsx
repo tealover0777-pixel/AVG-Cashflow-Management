@@ -3561,7 +3561,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
         </div>
       ) : activeTab === "Documents" ? (
         <div style={{ minHeight: '500px' }}>
-          <DocumentsTab t={t} isDark={isDark} dealId={dealId} dealPath={dealPath} />
+          <DocumentsTab t={t} isDark={isDark} dealId={dealId} dealPath={dealPath} tenantId={tenantId} />
         </div>
       ) : (
         <div style={{ padding: 40, textAlign: "center", color: t.textMuted, background: isDark ? "rgba(255,255,255,0.02)" : "#FAFAFA", borderRadius: 12 }}>
