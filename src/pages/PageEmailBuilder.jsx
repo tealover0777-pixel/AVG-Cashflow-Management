@@ -31,11 +31,12 @@ const CONTENT_BLOCKS = [
   { label: "IMAGE", icon: ImageIcon },
   { label: "HTML", icon: Code },
   { label: "TABLE", icon: TableIcon },
+  { label: "ATTACHMENT", icon: Paperclip },
 ];
 
 const LABEL_TO_TYPE = {
   "COLUMNS": "columns", "TEXT": "paragraph", "BUTTON": "button", "DIVIDER": "divider",
-  "HEADING": "heading", "IMAGE": "image", "HTML": "html", "TABLE": "table"
+  "HEADING": "heading", "IMAGE": "image", "HTML": "html", "TABLE": "table", "ATTACHMENT": "attachment"
 };
 
 const INITIAL_SETTINGS = {
@@ -250,8 +251,8 @@ export default function PageEmailBuilder(props) {
           setUploads(p => [{ url, path: task.snapshot.ref.fullPath }, ...p]);
           setIsUploading(false);
           setUploadProgress(0);
-          if (onComplete) onComplete(url);
-          showToast("Image uploaded successfully!", "success");
+          if (onComplete) onComplete(url, file.name);
+          showToast("File uploaded successfully!", "success");
         });
       }
     );
@@ -430,6 +431,12 @@ export default function PageEmailBuilder(props) {
       };
     }
 
+    if (type === "attachment") {
+      newRow.content = {
+        files: []
+      };
+    }
+
     setRows(prev => {
       if (!relativeId) {
         return position === "before" ? [newRow, ...prev] : [...prev, newRow];
@@ -449,6 +456,12 @@ export default function PageEmailBuilder(props) {
   const handleAddBlockToColumn = (rowId, colIdx, label) => {
     const type = LABEL_TO_TYPE[label] || "paragraph";
     const newBlock = { id: `b_${Date.now()}`, type, content: {} };
+
+    if (type === "attachment") {
+      newBlock.content = {
+        files: []
+      };
+    }
 
     setRows(prev => (Array.isArray(prev) ? prev : []).map(r => {
       if (r.id !== rowId) return r;
@@ -1375,7 +1388,8 @@ function DropZone({ active, onDragOver, onDrop }) {
 const ROW_BLOCK_TYPE = {
   image: "IMAGE", paragraph: "TEXT", footer: "IMAGE",
   button: "BUTTON", divider: "DIVIDER", heading: "HEADING",
-  html: "HTML", table: "TABLE", columns: "COLUMNS", kpis: "KPIs"
+  html: "HTML", table: "TABLE", columns: "COLUMNS", kpis: "KPIs",
+  attachment: "ATTACHMENT"
 };
 
 function AddRowBtn({ onClick, position, isDark }) {
@@ -1873,6 +1887,48 @@ function EmailRow({ row, isSelected, isHovered, onSelect, onHover, onDelete, onD
             {isSelected && <FloatingTextBar t={t} isDark={isDark} DIMENSIONS={DIMENSIONS} />}
           </>
         );
+
+      case "attachment": {
+        const files = item.content?.files || [];
+        return (
+          <div style={{ padding: "16px 32px", background: "#fff" }}>
+            <div style={{ background: isDark ? "rgba(255,255,255,0.02)" : "#F9FAFB", border: `1px dashed ${t.border}`, borderRadius: 8, padding: 16 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 6, fontWeight: 700, fontSize: 13, color: t.text, marginBottom: 8 }}>
+                <Paperclip size={16} /> Attached Documents
+              </div>
+              {files.length > 0 ? (
+                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                  {files.map((file, idx) => (
+                    <div key={idx} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: isDark ? "rgba(255,255,255,0.05)" : "#fff", border: `1px solid ${t.border}`, borderRadius: 6, padding: "8px 12px" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8, overflow: "hidden" }}>
+                        <FileText size={16} color={t.textMuted} />
+                        <span style={{ fontSize: 12, color: t.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{file.name}</span>
+                      </div>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <a href={file.url} target="_blank" rel="noopener noreferrer" style={{ fontSize: 11, color: isDark ? "#60A5FA" : "#2563EB", fontWeight: 600, textDecoration: "none" }} onClick={e => e.stopPropagation()}>View</a>
+                        <button
+                          onClick={e => {
+                            e.stopPropagation();
+                            const nextFiles = files.filter((_, i) => i !== idx);
+                            onUpdate(item.id, { files: nextFiles });
+                          }}
+                          style={{ background: "transparent", border: "none", cursor: "pointer", display: "flex", alignItems: "center", padding: 4, color: "#EF4444" }}
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div style={{ fontSize: 12, color: t.textMuted, fontStyle: "italic", textAlign: "center", padding: "12px 0" }}>
+                  No documents attached yet. Click to select this block, then upload files in the properties panel on the right.
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      }
 
       default:
         return (
@@ -2675,6 +2731,32 @@ function RowPreview({ row, narrow, contacts = [], emailSettings = {} }) {
           </table>
         </div>
       );
+    case "attachment": {
+      const files = row.content?.files || [];
+      return (
+        <div style={{ padding: p, background: "#fff" }}>
+          <div style={{ background: "#F9FAFB", border: "1px solid #E5E7EB", borderRadius: 8, padding: "16px 24px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, fontWeight: 700, fontSize: narrow ? 11 : 13, color: "#374151", marginBottom: 8 }}>
+              📎 Attached Documents:
+            </div>
+            {files.length > 0 ? (
+              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                {files.map((file, idx) => (
+                  <div key={idx} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "#fff", border: "1px solid #E5E7EB", borderRadius: 6, padding: "8px 12px" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, overflow: "hidden" }}>
+                      <span style={{ fontSize: narrow ? 11 : 12, color: "#1F2937", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{file.name}</span>
+                    </div>
+                    <a href={file.url} target="_blank" rel="noopener noreferrer" style={{ fontSize: narrow ? 10 : 11, color: "#2563EB", fontWeight: 600, textDecoration: "none" }}>Download</a>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div style={{ fontSize: narrow ? 11 : 12, color: "#6B7280", fontStyle: "italic" }}>No attachments.</div>
+            )}
+          </div>
+        </div>
+      );
+    }
     default:
       return <div style={{ height: 40, background: "#fff" }} />;
   }
@@ -3112,6 +3194,77 @@ function BlockPropsPanel({ t, isDark, blockType, rowId, onUpdate, rows, onClose,
                   <button key={a.id} onClick={() => upd({ align: a.id })} style={{ padding: "8px 14px", background: (content.align || "center") === a.id ? (isDark ? "#333" : "#222") : t.surface, border: "none", borderRight: a.id !== "justify" ? `1px solid ${t.border}` : "none", cursor: "pointer", color: (content.align || "center") === a.id ? "#fff" : t.textMuted, display: "flex", alignItems: "center", justifyContent: "center" }}>{a.icon}</button>
                 ))}
               </div>
+            </div>
+          </>)}
+          <General />
+        </>
+      );
+
+      case "ATTACHMENT": return (
+        <>
+          <DispCond />
+          {S("main", "Attached Documents", <>
+            <div style={{ display: "flex", gap: 10, marginBottom: 8 }}>
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isUploading}
+                style={{ flex: 1, background: isDark ? "#333" : "#222", color: "#fff", border: "none", padding: "8px", borderRadius: 4, fontWeight: 700, fontSize: 13, cursor: isUploading ? "not-allowed" : "pointer", opacity: isUploading ? 0.7 : 1 }}
+              >
+                {isUploading ? `Uploading...` : "Attach Document"}
+              </button>
+            </div>
+            <input
+              type="file"
+              ref={fileInputRef}
+              style={{ display: "none" }}
+              onChange={e => {
+                const file = e.target.files[0];
+                if (file) {
+                  onUpload(file, (url, name) => {
+                    const currentFiles = content.files || [];
+                    upd({ files: [...currentFiles, { name: name || file.name, url }] });
+                  });
+                }
+              }}
+            />
+            {isUploading && (
+              <div style={{ width: "100%", background: isDark ? "#333" : "#E5E7EB", height: 4, borderRadius: 2, overflow: "hidden", marginBottom: 12 }}>
+                <div style={{ background: "#3B82F6", height: "100%", width: `${uploadProgress}%`, transition: "width 0.2s" }} />
+              </div>
+            )}
+
+            <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 8 }}>
+              {Array.isArray(content.files) && content.files.length > 0 ? (
+                content.files.map((file, idx) => (
+                  <div key={idx} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 10px", border: `1px solid ${t.border}`, borderRadius: 6, background: isDark ? "rgba(255,255,255,0.02)" : "#FAFAFA" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6, overflow: "hidden", marginRight: 8 }}>
+                      <FileText size={14} color={t.textMuted} style={{ flexShrink: 0 }} />
+                      <span style={{ fontSize: 12, color: t.text, textOverflow: "ellipsis", overflow: "hidden", whiteSpace: "nowrap" }} title={file.name}>
+                        {file.name}
+                      </span>
+                    </div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
+                      <a href={file.url} target="_blank" rel="noopener noreferrer" style={{ padding: 4, color: isDark ? "#60A5FA" : "#2563EB", display: "flex", alignItems: "center" }} onClick={e => e.stopPropagation()}>
+                        <Eye size={14} />
+                      </a>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          const nextFiles = content.files.filter((_, i) => i !== idx);
+                          upd({ files: nextFiles });
+                        }}
+                        style={{ background: "transparent", border: "none", cursor: "pointer", padding: 4, color: "#EF4444", display: "flex", alignItems: "center" }}
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div style={{ fontSize: 11, color: t.textMuted, textAlign: "center", padding: "10px 0" }}>
+                  No documents attached yet. Click the button above to upload and attach files.
+                </div>
+              )}
             </div>
           </>)}
           <General />

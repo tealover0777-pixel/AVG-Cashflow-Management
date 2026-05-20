@@ -867,10 +867,51 @@ function renderEmailBody(rows) {
         });
         html += `</tr></table>`;
         break;
+      case 'attachment':
+        const files = row.content.files || [];
+        if (files.length > 0) {
+          html += `<div style="padding: 16px 32px; background-color: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px; margin: 16px 32px;">`;
+          html += `<div style="font-weight: bold; font-size: 14px; margin-bottom: 8px; color: #374151;">📎 Attached Documents:</div>`;
+          html += `<ul style="list-style-type: none; padding: 0; margin: 0;">`;
+          files.forEach(file => {
+            html += `<li style="margin-bottom: 6px;"><a href="${file.url}" target="_blank" style="color: #2563eb; font-size: 13px; text-decoration: underline; font-weight: 500;">${file.name}</a></li>`;
+          });
+          html += `</ul></div>`;
+        }
+        break;
     }
   });
   html += `</div>`;
   return html;
+}
+
+/**
+ * Helper to extract attachments from rows (handling columns recursively)
+ */
+function extractAttachments(rows) {
+  const attachments = [];
+  const scan = (items) => {
+    (items || []).forEach(row => {
+      if (row.type === 'attachment') {
+        const files = row.content && row.content.files || [];
+        files.forEach(file => {
+          if (file.name && file.url) {
+            attachments.push({
+              filename: file.name,
+              path: file.url
+            });
+          }
+        });
+      } else if (row.type === 'columns') {
+        const cols = row.content && row.content.columns || [];
+        cols.forEach(col => {
+          scan(col.blocks);
+        });
+      }
+    });
+  };
+  scan(rows);
+  return attachments;
 }
 
 /**
@@ -899,12 +940,15 @@ exports.sendTestEmail = functions.https.onCall(async (data, context) => {
     const personalizedSubject = await resolveRecipientTags(subject || "Test Email", recipientEmail, tenantId, db, finalFromName);
     const personalizedHtml = await resolveRecipientTags(htmlBody, recipientEmail, tenantId, db, finalFromName);
 
+    const attachments = extractAttachments(rows);
+
     await transporter.sendMail({
       from: `"${finalFromName}" <${finalFromEmail}>`,
       to: recipientEmail,
       replyTo: finalReplyTo,
       subject: personalizedSubject,
-      html: personalizedHtml
+      html: personalizedHtml,
+      attachments: attachments.length > 0 ? attachments : undefined
     });
 
     return { success: true };
@@ -1068,12 +1112,15 @@ exports.sendMarketingEmail = functions.https.onCall(async (data, context) => {
         const personalizedHtml = await resolveRecipientTags(htmlBase, email, tenantId, db, finalFromName);
         const personalizedSubject = await resolveRecipientTags(subject || "Marketing Communication", email, tenantId, db, finalFromName);
 
+        const attachments = extractAttachments(rows);
+
         const info = await transporter.sendMail({
           from: `"${finalFromName}" <${finalFromEmail}>`,
           to: email,
           replyTo: finalReplyTo,
           subject: personalizedSubject,
-          html: personalizedHtml
+          html: personalizedHtml,
+          attachments: attachments.length > 0 ? attachments : undefined
         });
 
         // Log success
