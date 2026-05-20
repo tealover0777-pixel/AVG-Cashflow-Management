@@ -127,7 +127,7 @@ export default function PageEmailBuilder(props) {
 
   const { profile, tenantId, isSuperAdmin, isGlobalRole, isTenantAdmin, isR10010 } = useAuth();
   const isAdmin = isSuperAdmin || isGlobalRole || isR10010;
-  const isEditingGlobal = isAdmin && !!activeEmailTemplate?.isGlobal;
+  const isEditingGlobal = isAdmin && (!!activeEmailTemplate?.isGlobal || activeTenantIdProp === "GLOBAL");
   // Any admin (global or tenant) can see the persistence button. 
   // Non-admins only see it for their own (personal) templates.
   const canSeeSave = !activeEmailTemplate?.isGlobal || isAdmin || isTenantAdmin;
@@ -278,7 +278,10 @@ export default function PageEmailBuilder(props) {
     try {
       const targetName = asNewName || emailName;
       const sanitizedName = targetName.replace(/[/\s]+/g, "_").trim();
-      const isSavingAsGlobal = !saveAsNew && isAdmin && activeEmailTemplate?.isGlobal;
+      const isSavingAsGlobal = isAdmin && (
+        (activeTenantIdProp === "GLOBAL") || 
+        (!saveAsNew && activeEmailTemplate?.isGlobal)
+      );
       const effectiveTenantId = tenantId || (activeTenantIdProp && activeTenantIdProp !== "GLOBAL" ? activeTenantIdProp : "");
 
       const templateData = {
@@ -287,7 +290,7 @@ export default function PageEmailBuilder(props) {
         rows: rows,
         updatedAt: new Date().toISOString(),
         updatedBy: profile?.email || "unknown",
-        category: saveAsNew ? "Your templates" : (isSavingAsGlobal || !activeEmailTemplate) ? "Global" : (activeEmailTemplate.category || "Your templates"),
+        category: isSavingAsGlobal ? "Global" : (saveAsNew ? "Your templates" : (activeEmailTemplate ? (activeEmailTemplate.category || "Your templates") : "Your templates")),
         tag: activeEmailTemplate?.tag || "Custom",
         isGlobal: !!isSavingAsGlobal
       };
@@ -332,7 +335,7 @@ export default function PageEmailBuilder(props) {
           props.setActiveEmailTemplate({ ...templateData, id: path, isGlobal: !!isSavingAsGlobal });
         }
 
-        showToast(saveAsNew ? "New template saved to your library!" : (isSavingAsGlobal ? "Global template updated!" : "Template saved!"), "success");
+        showToast(saveAsNew ? (isSavingAsGlobal ? "New global template saved!" : "New template saved to your library!") : (isSavingAsGlobal ? "Global template updated!" : "Template saved!"), "success");
       }
 
       if (typeof props.refreshTemplates === "function") {
@@ -643,46 +646,48 @@ export default function PageEmailBuilder(props) {
           </button>
 
           {/* 1b. Save as new draft (Firestore) */}
-          <button
-            onClick={async () => {
-              if (!effectiveTenantId) {
-                showToast("No tenant ID found. Cannot save draft.", "error");
-                return;
-              }
-              setIsSaving(true);
-              try {
-                const docRef = await addDoc(collection(db, "tenants", effectiveTenantId, "marketingEmails"), {
-                  title: emailName,
-                  rows: rows,
-                  settings: emailSettings,
-                  status: "Draft",
-                  createdAt: new Date().toISOString(),
-                  updatedAt: new Date().toISOString(),
-                  createdBy: profile?.email || "unknown",
-                });
-                showToast("New draft created successfully!", "success");
-                if (typeof props.setActiveEmailTemplate === "function") {
-                  props.setActiveEmailTemplate({
-                    id: docRef.id,
-                    name: emailName,
+          {activeTenantIdProp !== "GLOBAL" && (
+            <button
+              onClick={async () => {
+                if (!effectiveTenantId) {
+                  showToast("No tenant ID found. Cannot save draft.", "error");
+                  return;
+                }
+                setIsSaving(true);
+                try {
+                  const docRef = await addDoc(collection(db, "tenants", effectiveTenantId, "marketingEmails"), {
+                    title: emailName,
                     rows: rows,
                     settings: emailSettings,
-                    status: "Draft"
+                    status: "Draft",
+                    createdAt: new Date().toISOString(),
+                    updatedAt: new Date().toISOString(),
+                    createdBy: profile?.email || "unknown",
                   });
+                  showToast("New draft created successfully!", "success");
+                  if (typeof props.setActiveEmailTemplate === "function") {
+                    props.setActiveEmailTemplate({
+                      id: docRef.id,
+                      name: emailName,
+                      rows: rows,
+                      settings: emailSettings,
+                      status: "Draft"
+                    });
+                  }
+                  if (typeof props.refreshTemplates === "function") await props.refreshTemplates();
+                } catch (err) {
+                  console.error("Draft save error:", err);
+                  showToast("Failed to save draft.", "error");
+                } finally {
+                  setIsSaving(false);
                 }
-                if (typeof props.refreshTemplates === "function") await props.refreshTemplates();
-              } catch (err) {
-                console.error("Draft save error:", err);
-                showToast("Failed to save draft.", "error");
-              } finally {
-                setIsSaving(false);
-              }
-            }}
-            disabled={isSaving}
-            style={{ background: "transparent", color: isDark ? "#60A5FA" : "#2563EB", border: `1px solid ${isDark ? "#60A5FA" : "#2563EB"}`, borderRadius: 24, padding: "7px 18px", fontSize: 13, fontWeight: 600, cursor: isSaving ? "not-allowed" : "pointer", display: "flex", alignItems: "center", gap: 8, opacity: isSaving ? 0.7 : 1 }}
-          >
-            <Plus size={14} /> {isSaving ? "Creating..." : "Save as new draft"}
-          </button>
+              }}
+              disabled={isSaving}
+              style={{ background: "transparent", color: isDark ? "#60A5FA" : "#2563EB", border: `1px solid ${isDark ? "#60A5FA" : "#2563EB"}`, borderRadius: 24, padding: "7px 18px", fontSize: 13, fontWeight: 600, cursor: isSaving ? "not-allowed" : "pointer", display: "flex", alignItems: "center", gap: 8, opacity: isSaving ? 0.7 : 1 }}
+            >
+              <Plus size={14} /> {isSaving ? "Creating..." : "Save as new draft"}
+            </button>
+          )}
 
           {/* 2. Template Persistence: Save or Update Global Template */}
           {canSeeSave && (
@@ -691,7 +696,7 @@ export default function PageEmailBuilder(props) {
               disabled={isSaving}
               style={{ background: isEditingGlobal ? "#1D4ED8" : "transparent", color: isEditingGlobal ? "#fff" : "#1D4ED8", border: "1px solid #1D4ED8", borderRadius: 24, padding: "7px 18px", fontSize: 13, fontWeight: 600, cursor: isSaving ? "not-allowed" : "pointer", display: "flex", alignItems: "center", gap: 8, opacity: isSaving ? 0.7 : 1 }}
             >
-              <Save size={14} /> {isSaving ? "Saving..." : isEditingGlobal ? "Update Global Template" : "Save"}
+              <Save size={14} /> {isSaving ? "Saving..." : (isEditingGlobal ? (activeEmailTemplate?.isGlobal ? "Update Global Template" : "Save Global Template") : "Save")}
             </button>
           )}
 
