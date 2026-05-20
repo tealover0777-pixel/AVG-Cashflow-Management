@@ -54,7 +54,7 @@ export default function PageUserProfiles({ t, isDark, USERS = [], GLOBAL_USERS =
 
     useEffect(() => {
         if (DIMENSIONS && !DIMENSIONS.some(d => d.name === "Permissions")) {
-            setDoc(doc(db, "dimensions", "Permissions"), { name: "Permissions", items: PERMISSIONS_LIST, options: PERMISSIONS_LIST, category: "Permissions" })
+            setDoc(doc(db, "dimensions", "Permissions"), { name: "Permissions", items: PERMISSIONS_LIST, category: "Permissions" })
                 .catch(e => console.error("Auto-seed permissions failed.", e));
         }
     }, [DIMENSIONS]);

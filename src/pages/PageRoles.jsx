@@ -95,7 +95,7 @@ export default function PageRoles({ t, isDark, collectionPath = "", DIMENSIONS =
 
         setSavingPerms(true);
         try {
-            await setDoc(doc(db, "dimensions", permDimObj.doc_id), { name: "Permissions", items: newItems, options: newItems, category: "Permissions" }, { merge: true });
+            await setDoc(doc(db, "dimensions", permDimObj.doc_id), { name: "Permissions", items: newItems, category: "Permissions" }, { merge: true });
             setNewPerm("");
         } catch (err) { console.error("Add perm error:", err); }
         finally { setSavingPerms(false); }
@@ -107,7 +107,7 @@ export default function PageRoles({ t, isDark, collectionPath = "", DIMENSIONS =
         const current = permDim.filter(x => x !== p);
         setSavingPerms(true);
         try {
-            await setDoc(doc(db, "dimensions", permDimObj.doc_id), { name: "Permissions", items: current, options: current, category: "Permissions" }, { merge: true });
+            await setDoc(doc(db, "dimensions", permDimObj.doc_id), { name: "Permissions", items: current, category: "Permissions" }, { merge: true });
         } catch (err) { console.error("Remove perm error:", err); }
         finally { setSavingPerms(false); }
     };
