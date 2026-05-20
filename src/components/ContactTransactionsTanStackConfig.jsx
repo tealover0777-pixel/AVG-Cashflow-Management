@@ -6,7 +6,7 @@ import { RotateCcw } from 'lucide-react';
 export const getContactTransactionColumns = (isDark, t, context) => {
   const { DEALS = [], onEdit } = context;
 
-  return [
+  const cols = [
     {
       header: "Deal",
       id: "deal",
@@ -123,7 +123,10 @@ export const getContactTransactionColumns = (isDark, t, context) => {
       },
       sortingFn: 'datetime'
     },
-    {
+  ];
+
+  if (onEdit) {
+    cols.push({
       id: "actions",
       header: "",
       size: 60,
@@ -134,10 +137,12 @@ export const getContactTransactionColumns = (isDark, t, context) => {
           <ActBtns
             show={true}
             t={t}
-            onEdit={onEdit ? () => onEdit(row.original) : null}
+            onEdit={() => onEdit(row.original)}
           />
         </div>
       )
-    }
-  ];
+    });
+  }
+
+  return cols;
 };

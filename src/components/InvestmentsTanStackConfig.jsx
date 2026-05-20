@@ -288,14 +288,17 @@ export const getInvestmentColumns = (permissions, isDark, t, context) => {
       enableColumnFilter: false,
       cell: ({ row }) => {
         const data = row.original;
+        const showEdit = !!permissions.canUpdate;
+        const showDel = !!permissions.canDelete;
+        const showClone = !!permissions.canCreate;
         return (
           <div style={{ display: 'flex', alignItems: 'center' }}>
             <ActBtns
               show={true}
               t={t}
-              onEdit={callbacks.onEdit ? () => callbacks.onEdit(data) : null}
-              onDel={callbacks.onDelete ? () => callbacks.onDelete(data) : null}
-              onClone={callbacks.onClone ? () => callbacks.onClone(data) : null}
+              onEdit={showEdit && callbacks.onEdit ? () => callbacks.onEdit(data) : null}
+              onDel={showDel && callbacks.onDelete ? () => callbacks.onDelete(data) : null}
+              onClone={showClone && callbacks.onClone ? () => callbacks.onClone(data) : null}
             />
           </div>
         );

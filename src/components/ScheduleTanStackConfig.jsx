@@ -394,14 +394,17 @@ export const getScheduleColumns = (permissions, isDark, t, context) => {
       enableColumnFilter: false,
       cell: ({ row }) => {
         const data = row.original;
+        const showEdit = !!permissions.canUpdate;
+        const showDel = !!permissions.canDelete;
+        const showUndo = !!permissions.canUpdate;
         return (
           <div style={{ display: 'flex', alignItems: 'center' }}>
             <ActBtns
               show={true}
               t={t}
-              onEdit={callbacks.onEdit ? () => callbacks.onEdit(data) : null}
-              onDel={callbacks.onDelete ? () => callbacks.onDelete(data) : null}
-              onUndo={data.version_num > 1 && callbacks.onUndo ? () => callbacks.onUndo(data) : null}
+              onEdit={showEdit && callbacks.onEdit ? () => callbacks.onEdit(data) : null}
+              onDel={showDel && callbacks.onDelete ? () => callbacks.onDelete(data) : null}
+              onUndo={showUndo && data.version_num > 1 && callbacks.onUndo ? () => callbacks.onUndo(data) : null}
             />
           </div>
         );

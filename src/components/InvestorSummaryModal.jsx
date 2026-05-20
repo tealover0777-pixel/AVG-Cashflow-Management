@@ -9,6 +9,7 @@ import { Bdg, FF, FIn, FSel, TanStackTable, Tooltip, Modal } from "../components
 import InvestmentDocumentsTab from "./InvestmentDocumentsTab";
 import InvestmentChangelogTab from "./InvestmentChangelogTab";
 import { getContactTransactionColumns } from "./ContactTransactionsTanStackConfig";
+import { useAuth } from "../AuthContext";
 
 export const InvestorSummaryModal = ({ 
   contact, 
@@ -30,6 +31,11 @@ export const InvestorSummaryModal = ({
   USERS = [],
   currentUser = null
 }) => {
+  const { hasPermission, isSuperAdmin } = useAuth();
+  const hasUpdateContact = isSuperAdmin || hasPermission("CONTACT_UPDATE");
+  const hasUpdateInvestment = isSuperAdmin || hasPermission("INVESTMENT_UPDATE");
+  const canUpdateSchedule = isSuperAdmin || hasPermission("Administration_update") || hasPermission("PAYMENT_UPDATE") || hasPermission("PAYMENTS_UPDATE");
+
   const [activeTab, setActiveTab] = useState(initialTab);
   const [viewMode, setViewMode] = useState(defaultView);
   const [isEditing, setIsEditing] = useState(false);
@@ -474,8 +480,8 @@ export const InvestorSummaryModal = ({
                   columns={getContactTransactionColumns(isDark, t, { 
                     DEALS, 
                     statusOptions: scheduleStatusOpts,
-                    onStatusChange: handleUpdateStatus,
-                    onEdit: (row) => setTxEditModal({ open: true, data: { ...row, status_edit: row.status, notes_edit: row.notes ?? "", payment_amount_edit: row.payment, due_date_edit: row.dueDate ?? "" } }) 
+                    onStatusChange: canUpdateSchedule ? handleUpdateStatus : null,
+                    onEdit: canUpdateSchedule ? (row) => setTxEditModal({ open: true, data: { ...row, status_edit: row.status, notes_edit: row.notes ?? "", payment_amount_edit: row.payment, due_date_edit: row.dueDate ?? "" } }) : null
                   })}
                   isDark={isDark}
                   t={t}
@@ -520,43 +526,44 @@ export const InvestorSummaryModal = ({
                   </FF>
                 </div>
                 
-                <FF label="Investment Name" t={t}><FIn value={investmentEditData.investment_name} onChange={e => setIED({ investment_name: e.target.value })} placeholder="e.g. Initial Investment" t={t} /></FF>
+                <FF label="Investment Name" t={t}><FIn value={investmentEditData.investment_name} onChange={e => setIED({ investment_name: e.target.value })} placeholder="e.g. Initial Investment" t={t} disabled={!hasUpdateInvestment} /></FF>
                 
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
-                  <FF label="Deal" t={t}><FSel value={investmentEditData.deal} onChange={e => setIED({ deal: e.target.value })} options={DEALS.map(d => d.name)} t={t} /></FF>
+                  <FF label="Deal" t={t}><FSel value={investmentEditData.deal} onChange={e => setIED({ deal: e.target.value })} options={DEALS.map(d => d.name)} t={t} disabled={!hasUpdateInvestment} /></FF>
                   <FF label="Type" t={t}>
                     <FSel 
                       value={investmentEditData.type || investmentEditData.investment_type} 
                       onChange={e => setIED({ type: e.target.value, investment_type: e.target.value })} 
                       options={dp.role_type === "Borrower" ? borrowerEditTypeOpts : investorEditTypeOpts} 
                       t={t} 
+                      disabled={!hasUpdateInvestment}
                     />
                   </FF>
                 </div>
 
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 20 }}>
-                  <FF label="Amount" t={t}><FIn value={investmentEditData.amount} onChange={e => setIED({ amount: e.target.value })} placeholder="$0" t={t} /></FF>
-                  <FF label="Rate (%)" t={t}><FIn value={investmentEditData.rate} onChange={e => setIED({ rate: e.target.value, interest_rate: e.target.value })} placeholder="e.g. 10" t={t} /></FF>
-                  <FF label="Frequency" t={t}><FSel value={investmentEditData.freq} onChange={e => setIED({ freq: e.target.value, payment_frequency: e.target.value })} options={scheduleFrequencyOpts} t={t} /></FF>
+                  <FF label="Amount" t={t}><FIn value={investmentEditData.amount} onChange={e => setIED({ amount: e.target.value })} placeholder="$0" t={t} disabled={!hasUpdateInvestment} /></FF>
+                  <FF label="Rate (%)" t={t}><FIn value={investmentEditData.rate} onChange={e => setIED({ rate: e.target.value, interest_rate: e.target.value })} placeholder="e.g. 10" t={t} disabled={!hasUpdateInvestment} /></FF>
+                  <FF label="Frequency" t={t}><FSel value={investmentEditData.freq} onChange={e => setIED({ freq: e.target.value, payment_frequency: e.target.value })} options={scheduleFrequencyOpts} t={t} disabled={!hasUpdateInvestment} /></FF>
                 </div>
 
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 20 }}>
-                  <FF label="Term (months)" t={t}><FIn value={investmentEditData.term_months} onChange={e => setIED({ term_months: e.target.value })} placeholder="e.g. 24" t={t} /></FF>
-                  <FF label="Status" t={t}><FSel value={investmentEditData.status} onChange={e => setIED({ status: e.target.value })} options={["Open", "Active", "Closed"]} t={t} /></FF>
-                  <FF label="Calculator" t={t}><FSel value={investmentEditData.calculator} onChange={e => setIED({ calculator: e.target.value })} options={calculatorOpts} t={t} /></FF>
+                  <FF label="Term (months)" t={t}><FIn value={investmentEditData.term_months} onChange={e => setIED({ term_months: e.target.value })} placeholder="e.g. 24" t={t} disabled={!hasUpdateInvestment} /></FF>
+                  <FF label="Status" t={t}><FSel value={investmentEditData.status} onChange={e => setIED({ status: e.target.value })} options={["Open", "Active", "Closed"]} t={t} disabled={!hasUpdateInvestment} /></FF>
+                  <FF label="Calculator" t={t}><FSel value={investmentEditData.calculator} onChange={e => setIED({ calculator: e.target.value })} options={calculatorOpts} t={t} disabled={!hasUpdateInvestment} /></FF>
                 </div>
 
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
-                  <FF label="Start Date" t={t}><FIn value={investmentEditData.start_date} onChange={e => setIED({ start_date: e.target.value })} t={t} type="date" /></FF>
-                  <FF label="Maturity Date" t={t}><FIn value={investmentEditData.maturity_date} onChange={e => setIED({ maturity_date: e.target.value })} t={t} type="date" /></FF>
+                  <FF label="Start Date" t={t}><FIn value={investmentEditData.start_date} onChange={e => setIED({ start_date: e.target.value })} t={t} type="date" disabled={!hasUpdateInvestment} /></FF>
+                  <FF label="Maturity Date" t={t}><FIn value={investmentEditData.maturity_date} onChange={e => setIED({ maturity_date: e.target.value })} t={t} type="date" disabled={!hasUpdateInvestment} /></FF>
                 </div>
 
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
-                  <FF label="Payment Method" t={t}><FSel value={investmentEditData.payment_method} onChange={e => setIED({ payment_method: e.target.value })} options={paymentMethods} t={t} /></FF>
+                  <FF label="Payment Method" t={t}><FSel value={investmentEditData.payment_method} onChange={e => setIED({ payment_method: e.target.value })} options={paymentMethods} t={t} disabled={!hasUpdateInvestment} /></FF>
                   <FF label="Rollover at Maturity" t={t}>
                     <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                       <div style={{ display: "flex", alignItems: "center", height: 40 }}>
-                        <input type="checkbox" checked={investmentEditData.rollover} onChange={e => setIED({ rollover: e.target.checked })} style={{ cursor: "pointer", width: 18, height: 18 }} />
+                        <input type="checkbox" checked={investmentEditData.rollover} onChange={e => setIED({ rollover: e.target.checked })} disabled={!hasUpdateInvestment} style={{ cursor: hasUpdateInvestment ? "pointer" : "default", width: 18, height: 18 }} />
                         <span style={{ marginLeft: 10, fontSize: 13, color: t.textSecondary }}>Rollover Principal</span>
                       </div>
                       {investmentEditData.rollover && (
@@ -585,11 +592,12 @@ export const InvestorSummaryModal = ({
                       {FEES_DATA.map(f => {
                         const selected = (investmentEditData.feeIds || []).includes(f.id);
                         const toggleFee = () => {
+                          if (!hasUpdateInvestment) return;
                           const cur = investmentEditData.feeIds || [];
                           setIED({ feeIds: selected ? cur.filter(x => x !== f.id) : [...cur, f.id] });
                         };
                         return (
-                          <div key={f.id} onClick={toggleFee} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: selected ? 600 : 400, padding: "6px 12px", borderRadius: 20, cursor: "pointer", transition: "all 0.15s ease", background: selected ? (isDark ? "rgba(52,211,153,0.15)" : "#ECFDF5") : t.chipBg, color: selected ? (isDark ? "#34D399" : "#059669") : t.textSecondary, border: `1px solid ${selected ? (isDark ? "rgba(52,211,153,0.4)" : "#A7F3D0") : t.chipBorder}` }}>
+                          <div key={f.id} onClick={toggleFee} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: selected ? 600 : 400, padding: "6px 12px", borderRadius: 20, cursor: hasUpdateInvestment ? "pointer" : "default", transition: "all 0.15s ease", background: selected ? (isDark ? "rgba(52,211,153,0.15)" : "#ECFDF5") : t.chipBg, color: selected ? (isDark ? "#34D399" : "#059669") : t.textSecondary, border: `1px solid ${selected ? (isDark ? "rgba(52,211,153,0.4)" : "#A7F3D0") : t.chipBorder}`, opacity: hasUpdateInvestment ? 1 : 0.6 }}>
                             <span style={{ fontSize: 11, fontWeight: 700 }}>{selected ? "✓" : "+"}</span>
                             {f.name} {f.rate ? `(${f.rate})` : ""}
                           </div>
@@ -599,15 +607,17 @@ export const InvestorSummaryModal = ({
                   </FF>
                 )}
 
-                <div style={{ marginTop: 12, pt: 12, borderTop: `1px solid ${t.surfaceBorder}`, display: "flex", justifyContent: "flex-end" }}>
-                  <button 
-                    onClick={handleSaveInvestment} 
-                    disabled={savingInvestment}
-                    style={{ padding: "10px 24px", borderRadius: 10, background: t.accentGrad, color: "#fff", border: "none", fontWeight: 700, cursor: "pointer", fontSize: 14, boxShadow: `0 4px 12px ${t.accentShadow}`, opacity: savingInvestment ? 0.7 : 1 }}
-                  >
-                    {savingInvestment ? "Saving..." : "Save Investment"}
-                  </button>
-                </div>
+                {hasUpdateInvestment && (
+                  <div style={{ marginTop: 12, pt: 12, borderTop: `1px solid ${t.surfaceBorder}`, display: "flex", justifyContent: "flex-end" }}>
+                    <button 
+                      onClick={handleSaveInvestment} 
+                      disabled={savingInvestment}
+                      style={{ padding: "10px 24px", borderRadius: 10, background: t.accentGrad, color: "#fff", border: "none", fontWeight: 700, cursor: "pointer", fontSize: 14, boxShadow: `0 4px 12px ${t.accentShadow}`, opacity: savingInvestment ? 0.7 : 1 }}
+                    >
+                      {savingInvestment ? "Saving..." : "Save Investment"}
+                    </button>
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -668,8 +678,8 @@ export const InvestorSummaryModal = ({
                   columns={getContactTransactionColumns(isDark, t, { 
                     DEALS, 
                     statusOptions: scheduleStatusOpts,
-                    onStatusChange: handleUpdateStatus,
-                    onEdit: (row) => setTxEditModal({ open: true, data: { ...row, status_edit: row.status, notes_edit: row.notes ?? "", payment_amount_edit: row.payment, due_date_edit: row.dueDate ?? "" } }) 
+                    onStatusChange: canUpdateSchedule ? handleUpdateStatus : null,
+                    onEdit: canUpdateSchedule ? (row) => setTxEditModal({ open: true, data: { ...row, status_edit: row.status, notes_edit: row.notes ?? "", payment_amount_edit: row.payment, due_date_edit: row.dueDate ?? "" } }) : null
                   })}
                   isDark={isDark}
                   t={t}
@@ -683,37 +693,39 @@ export const InvestorSummaryModal = ({
       case "Notes":
         return (
           <div style={{ display: "flex", flexDirection: "column", gap: 20, maxWidth: 700 }}>
-            <div style={{ background: isDark ? "rgba(255,255,255,0.03)" : "#FAFAF9", border: `1px solid ${t.surfaceBorder}`, borderRadius: 12, padding: 20 }}>
-              <div style={{ fontSize: 13, fontWeight: 600, color: t.text, marginBottom: 10 }}>Add Note</div>
-              <textarea
-                value={noteText}
-                onChange={e => setNoteText(e.target.value)}
-                placeholder="Write a note about this contact..."
-                rows={4}
-                style={{ width: "100%", padding: "10px 13px", borderRadius: 9, border: `1px solid ${t.surfaceBorder}`, background: isDark ? "rgba(0,0,0,0.2)" : "#fff", color: t.text, fontSize: 13.5, fontFamily: "inherit", resize: "vertical", outline: "none", boxSizing: "border-box" }}
-              />
-              <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 10 }}>
-                <button
-                  disabled={savingNote || !noteText.trim()}
-                  onClick={async () => {
-                    if (!noteText.trim() || !onAddNote) return;
-                    setSavingNote(true);
-                    try {
-                      const saved = await onAddNote({ text: noteText.trim() });
-                      setNotes(prev => [saved, ...prev]);
-                      setNoteText("");
-                    } catch (err) {
-                      showToast("Failed to save note: " + err.message, "error");
-                    } finally {
-                      setSavingNote(false);
-                    }
-                  }}
-                  style={{ padding: "9px 22px", borderRadius: 9, background: noteText.trim() ? t.accentGrad : (isDark ? "rgba(255,255,255,0.07)" : "#e5e7eb"), color: noteText.trim() ? "#fff" : t.textMuted, border: "none", fontWeight: 700, fontSize: 13.5, cursor: noteText.trim() && !savingNote ? "pointer" : "default", boxShadow: noteText.trim() ? `0 4px 12px ${t.accentShadow}` : "none" }}
-                >
-                  {savingNote ? "Saving..." : "Save Note"}
-                </button>
+            {hasUpdateContact && (
+              <div style={{ background: isDark ? "rgba(255,255,255,0.03)" : "#FAFAF9", border: `1px solid ${t.surfaceBorder}`, borderRadius: 12, padding: 20 }}>
+                <div style={{ fontSize: 13, fontWeight: 600, color: t.text, marginBottom: 10 }}>Add Note</div>
+                <textarea
+                  value={noteText}
+                  onChange={e => setNoteText(e.target.value)}
+                  placeholder="Write a note about this contact..."
+                  rows={4}
+                  style={{ width: "100%", padding: "10px 13px", borderRadius: 9, border: `1px solid ${t.surfaceBorder}`, background: isDark ? "rgba(0,0,0,0.2)" : "#fff", color: t.text, fontSize: 13.5, fontFamily: "inherit", resize: "vertical", outline: "none", boxSizing: "border-box" }}
+                />
+                <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 10 }}>
+                  <button
+                    disabled={savingNote || !noteText.trim()}
+                    onClick={async () => {
+                      if (!noteText.trim() || !onAddNote) return;
+                      setSavingNote(true);
+                      try {
+                        const saved = await onAddNote({ text: noteText.trim() });
+                        setNotes(prev => [saved, ...prev]);
+                        setNoteText("");
+                      } catch (err) {
+                        showToast("Failed to save note: " + err.message, "error");
+                      } finally {
+                        setSavingNote(false);
+                      }
+                    }}
+                    style={{ padding: "9px 22px", borderRadius: 9, background: noteText.trim() ? t.accentGrad : (isDark ? "rgba(255,255,255,0.07)" : "#e5e7eb"), color: noteText.trim() ? "#fff" : t.textMuted, border: "none", fontWeight: 700, fontSize: 13.5, cursor: noteText.trim() && !savingNote ? "pointer" : "default", boxShadow: noteText.trim() ? `0 4px 12px ${t.accentShadow}` : "none" }}
+                  >
+                    {savingNote ? "Saving..." : "Save Note"}
+                  </button>
+                </div>
               </div>
-            </div>
+            )}
 
             {notes.length === 0 ? (
               <div style={{ textAlign: "center", padding: "40px 0", color: t.textMuted, fontSize: 13.5 }}>No notes yet. Add the first one above.</div>
@@ -835,9 +847,9 @@ export const InvestorSummaryModal = ({
                       <button onClick={handleSave} disabled={saving} style={{ padding: "8px 20px", borderRadius: 8, background: t.accentGrad, color: "#fff", border: "none", fontWeight: 600, cursor: "pointer", fontSize: 13, boxShadow: `0 4px 12px ${t.accentShadow}`, opacity: saving ? 0.7 : 1 }}>{saving ? "Saving..." : "Save Changes"}</button>
                       <button onClick={() => setIsEditing(false)} disabled={saving} style={{ padding: "8px 16px", borderRadius: 8, background: isDark ? "rgba(255,255,255,0.05)" : "#F3F4F6", color: t.textSecondary, border: `1px solid ${t.surfaceBorder}`, fontWeight: 600, cursor: "pointer", fontSize: 13 }}>Cancel</button>
                     </div>
-                  ) : (
+                  ) : hasUpdateContact ? (
                     <button onClick={() => setIsEditing(true)} style={{ padding: "8px 20px", borderRadius: 8, background: t.accentGrad, color: "#fff", border: "none", fontWeight: 600, cursor: "pointer", fontSize: 13, boxShadow: `0 4px 12px ${t.accentShadow}` }}>Edit Profile</button>
-                  )}
+                  ) : null}
                 </div>
               )}
               <button onClick={onClose} style={{ width: 36, height: 36, borderRadius: 18, background: isDark ? "rgba(255,255,255,0.1)" : "#F3F4F6", border: `1px solid ${t.surfaceBorder}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, cursor: "pointer", color: t.textSecondary, transition: "background 0.2s" }}>×</button>

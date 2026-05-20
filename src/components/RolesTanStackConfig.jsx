@@ -63,8 +63,8 @@ export const getRoleColumns = (permissions, isDark, t, onEdit, onDel) => {
         <ActBtns
           show={true}
           t={t}
-          onEdit={() => onEdit(row.original)}
-          onDel={() => onDel(row.original)}
+          onEdit={permissions.canUpdate ? () => onEdit(row.original) : null}
+          onDel={permissions.canDelete ? () => onDel(row.original) : null}
         />
       ),
     });
