@@ -28,9 +28,10 @@ const ZEROING_STATUSES = ["Missed", "Cancelled", "VOID", "WAIVED", "REPLACED", "
 export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = [], CONTACTS = [], DEALS = [], DIMENSIONS = [], FEES_DATA = [], USERS = [], LEDGER = [], collectionPath = "", setActivePage, setSelectedDealId, selectedDistMemoId, setSelectedDistMemoId, tenantId }) {
 
   const { user, hasPermission, isSuperAdmin } = useAuth();
-  const canCreate = isSuperAdmin || hasPermission("PAYMENT_SCHEDULE_CREATE");
-  const canDelete = isSuperAdmin || hasPermission("PAYMENT_SCHEDULE_DELETE");
-  const canUpdate = isSuperAdmin || hasPermission("PAYMENT_SCHEDULE_UPDATE");
+  const canView = isSuperAdmin || hasPermission("Administration_view");
+  const canCreate = isSuperAdmin || hasPermission("Administration_create");
+  const canDelete = isSuperAdmin || hasPermission("Administration_delete");
+  const canUpdate = isSuperAdmin || hasPermission("Administration_update");
   const getNextScheduleId = () => mkId("S");
   const paymentStatusOpts = (DIMENSIONS.find(d => d.name === "ScheduleStatus" || d.name === "Schedule Status" || d.name === "Payment Status" || d.name === "PaymentStatus") || {}).items
     ?.map(i => String(i || "").trim())
@@ -1831,6 +1832,8 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
     { label: "Paid", value: statsBaseData.filter(s => s.status === "Paid").length, accent: isDark ? "#34D399" : "#059669", bg: isDark ? "rgba(52,211,153,0.08)" : "#ECFDF5", border: isDark ? "rgba(52,211,153,0.15)" : "#A7F3D0" },
     { label: "Missed", value: statsBaseData.filter(s => s.status === "Missed").length, accent: isDark ? "#F87171" : "#DC2626", bg: isDark ? "rgba(248,113,113,0.08)" : "#FEF2F2", border: isDark ? "rgba(248,113,113,0.15)" : "#FECACA" }
   ];
+  if (!canView) return <div style={{ padding: 40, color: t.textMuted }}>You don't have permission to view this page.</div>;
+
   return (<>
     <div style={{ marginBottom: 28, display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
       <div>

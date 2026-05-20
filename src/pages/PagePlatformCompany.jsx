@@ -11,7 +11,8 @@ import { resolveTimeZone, US_TIMEZONES } from "../utils/timeZoneUtils";
 
 export default function PagePlatformCompany({ t, isDark, USERS = [], CONTACTS = [] }) {
     const { user, isSuperAdmin, hasPermission } = useAuth();
-    const canUpdate = isSuperAdmin || hasPermission("PLATFORM_TENANT_UPDATE") || hasPermission("TENANT_UPDATE") || hasPermission("PLATFORM_USER_UPDATE");
+    const canView = isSuperAdmin || hasPermission("PlatformAdmin_view");
+    const canUpdate = isSuperAdmin || hasPermission("PlatformAdmin_update");
     const [saving, setSaving] = React.useState(false);
     const [toast, setToast] = React.useState(null);
     const [showOwnerSearch, setShowOwnerSearch] = React.useState(false);
@@ -374,6 +375,8 @@ export default function PagePlatformCompany({ t, isDark, USERS = [], CONTACTS = 
     ];
     const [activeTab, setActiveTab] = React.useState("Branding");
     const TABS = ["Branding", "Info", "Email", "ACH"];
+
+    if (!canView) return <div style={{ padding: 40, color: t.textMuted }}>You don't have permission to view this page.</div>;
 
     return (
         <div style={{ maxWidth: 1200, margin: "0 auto" }}>

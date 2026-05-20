@@ -11,10 +11,11 @@ import { Check, Plus, Construction, AlertTriangle, FileCheck, CreditCard } from 
 
 export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [], CONTACTS = [], DIMENSIONS = [], FEES_DATA = [], SCHEDULES = [], LEDGER = [], USERS = [], collectionPath = "", schedulePath = "", tenantId = "" }) {
   const { hasPermission, isSuperAdmin } = useAuth();
-  const canCreate = isSuperAdmin || hasPermission("INVESTMENT_CREATE");
-  const canUpdate = isSuperAdmin || hasPermission("INVESTMENT_UPDATE");
-  const canDelete = isSuperAdmin || hasPermission("INVESTMENT_DELETE");
-  const canGenerate = isSuperAdmin || hasPermission("PAYMENT_SCHEDULE_CREATE");
+  const canView = isSuperAdmin || hasPermission("Administration_view");
+  const canCreate = isSuperAdmin || hasPermission("Administration_create");
+  const canUpdate = isSuperAdmin || hasPermission("Administration_update");
+  const canDelete = isSuperAdmin || hasPermission("Administration_delete");
+  const canGenerate = isSuperAdmin || hasPermission("Administration_create");
   const [sel, setSel] = useState(new Set());
   const [chip, setChip] = useState("All");
   const [generating, setGenerating] = useState(false);
@@ -809,6 +810,8 @@ export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [
       }
     });
   }, [permissions, isDark, t, FEES_DATA, DEALS]);
+
+  if (!canView) return <div style={{ padding: 40, color: t.textMuted }}>You don't have permission to view this page.</div>;
 
   return (<>
     <div style={{ marginBottom: 28, display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}><div><h1 style={{ fontFamily: t.titleFont, fontWeight: t.titleWeight, fontSize: t.titleSize, color: isDark ? "#fff" : "#1C1917", letterSpacing: t.titleTracking, lineHeight: 1, marginBottom: 6 }}>Investments</h1><p style={{ fontSize: 13.5, color: t.textMuted }}>Manage investments</p></div>

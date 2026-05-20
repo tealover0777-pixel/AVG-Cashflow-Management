@@ -9,10 +9,12 @@ import { getRoleColumns } from "../components/RolesTanStackConfig";
 
 export default function PageRoles({ t, isDark, collectionPath = "", DIMENSIONS = [], USERS = [], readOnly = false }) {
     const { hasPermission, isSuperAdmin, isGlobalRole } = useAuth();
-    // Only super admins or properly permissioned users can edit Roles
-    const canCreate = !readOnly && (isSuperAdmin || hasPermission("ROLE_CREATE") || hasPermission("ROLE_TYPE_CREATE"));
-    const canUpdate = !readOnly && (isSuperAdmin || hasPermission("ROLE_UPDATE") || hasPermission("ROLE_TYPE_UPDATE"));
-    const canDelete = !readOnly && (isSuperAdmin || hasPermission("ROLE_DELETE") || hasPermission("ROLE_TYPE_DELETE"));
+    const canView = readOnly
+        ? (isSuperAdmin || hasPermission("Administration_view"))
+        : (isSuperAdmin || hasPermission("PlatformAdmin_view"));
+    const canCreate = !readOnly && (isSuperAdmin || hasPermission("PlatformAdmin_create"));
+    const canUpdate = !readOnly && (isSuperAdmin || hasPermission("PlatformAdmin_update"));
+    const canDelete = !readOnly && (isSuperAdmin || hasPermission("PlatformAdmin_delete"));
     const { data: rawRoles = [], loading, error } = useFirestoreCollection(collectionPath);
     const [modal, setModal] = useState({ open: false, mode: "add", data: {} });
     const [delT, setDelT] = useState(null);
@@ -135,6 +137,8 @@ export default function PageRoles({ t, isDark, collectionPath = "", DIMENSIONS =
         if (!isSuperAdmin && !isGlobalRole && (p.IsGlobal || (rNum >= 10006 && rNum <= 10010))) return false;
         return true;
     });
+
+    if (!canView) return <div style={{ padding: 40, color: t.textMuted }}>You don't have permission to view this page.</div>;
 
     return (<>
         <div style={{ marginBottom: 28, display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>

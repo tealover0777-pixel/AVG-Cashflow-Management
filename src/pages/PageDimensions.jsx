@@ -6,9 +6,10 @@ import { Modal, FIn, FF, DelModal } from "../components";
 import { Trash2, Pencil, Check } from "lucide-react";
 
 export default function PageDimensions({ t, isDark, DIMENSIONS = [], rawDimensions = [], collectionPath = "" }) {
-  const { hasPermission } = useAuth();
-  const canUpdate = hasPermission("DIMENTION_UPDATE");
-  const canDelete = hasPermission("DIMENTION_DELETE");
+  const { hasPermission, isSuperAdmin } = useAuth();
+  const canView = isSuperAdmin || hasPermission("PlatformAdmin_view");
+  const canUpdate = isSuperAdmin || hasPermission("PlatformAdmin_update");
+  const canDelete = isSuperAdmin || hasPermission("PlatformAdmin_delete");
   const [editing, setEditing] = useState(null);
   const [newVals, setNewVals] = useState({});
   const [showNewModal, setShowNewModal] = useState(false);
@@ -108,6 +109,8 @@ export default function PageDimensions({ t, isDark, DIMENSIONS = [], rawDimensio
       setLoading(false);
     }
   };
+
+  if (!canView) return <div style={{ padding: 40, color: t.textMuted }}>You don't have permission to view this page.</div>;
 
   return (<>
     <div style={{ marginBottom: 28, display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>

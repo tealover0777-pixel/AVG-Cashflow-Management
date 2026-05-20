@@ -184,18 +184,34 @@ const NAV_ITEMS = [
 ];
 
 export const getNav = (isSuper, _isAdmin, hasPermission, isR10010) => {
+  const platformAdminChildren = [
+    "AI Admin",
+    "Dimensions",
+    "Platform User Admin",
+    "Platform Role Types",
+    "Platform Tenant Admin",
+    "Platform Company"
+  ];
+  const administrationChildren = [
+    "Investments",
+    "Role Types",
+    "Payment Schedule",
+    "User Profiles",
+    "Company"
+  ];
+
   // Helper function to check if a single item should be visible
   const isItemVisible = (item) => {
     if (item.hidden) return false;
-
-    // Platform User Admin section requires PLATFORM_USER_VIEW permission (or R10010 legacy role)
-    if (item.label === "Platform User Admin") return isR10010;
-    if (item.label === "Platform Role Types") return isSuper || isR10010;
-
-    // AI Admin restricted to Super Admins (you can change this to global roles if needed)
-    if (item.label === "AI Admin") return isSuper;
-
     if (isSuper) return true; // Super Admins always see everything else
+
+    if (platformAdminChildren.includes(item.label)) {
+      return !!(hasPermission && hasPermission("PlatformAdmin_view"));
+    }
+
+    if (administrationChildren.includes(item.label)) {
+      return !!(hasPermission && hasPermission("Administration_view"));
+    }
 
     // For non-super users, require MARKETING_VIEW permission to see the Marketing section
     const isMarketingNav = item.label === "Marketing" || item.label === "Marketing emails";
@@ -206,22 +222,9 @@ export const getNav = (isSuper, _isAdmin, hasPermission, isR10010) => {
     // Granular RBAC per section (child items)
     if (item.label === "Dashboard" && !hasPermission("DASHBOARD_VIEW")) return false;
     if (item.label === "Deals" && !hasPermission("DEAL_VIEW")) return false;
-    if (item.label === "Contacts") {
-      const hasContact = hasPermission("CONTACT_VIEW");
-      if (!hasContact) return false;
-    }
-    if (item.label === "Investments") {
-      const hasInvest = hasPermission("INVESTMENT_VIEW");
-      if (!hasInvest) return false;
-    }
-    if (item.label === "Payment Schedule" && !hasPermission("PAYMENT_SCHEDULE_VIEW")) return false;
+    if (item.label === "Contacts" && !hasPermission("CONTACT_VIEW")) return false;
     if (item.label === "Payments" && !hasPermission("PAYMENT_VIEW")) return false;
     if (item.label === "Fees" && !hasPermission("FEE_VIEW")) return false;
-    if (item.label === "User Profiles" && !hasPermission("USER_PROFILE_VIEW")) return false;
-    if (item.label === "Role Types" && !hasPermission("ROLE_TYPE_VIEW")) return false;
-    if (item.label === "Platform Tenant Admin" && !(hasPermission("PLATFORM_TENANT_VIEW") || hasPermission("TENANT_VIEW"))) return false;
-    if (item.label === "Platform Company" && !(isSuper || isR10010)) return false;
-    if (item.label === "Dimensions" && !(hasPermission("DIMENSION_VIEW") || hasPermission("DIMENTION_VIEW"))) return false;
 
     return true;
   };

@@ -10,9 +10,10 @@ import { uploadFile } from "../utils/storageUtils";
 
 export default function PageTenants({ t, isDark, TENANTS = [], GLOBAL_USERS = [], ROLES = [], collectionPath = "" }) {
     const { hasPermission, isSuperAdmin, isGlobalRole, permissions: userPerms } = useAuth();
-    const canCreate = isSuperAdmin || hasPermission("PLATFORM_TENANT_CREATE") || hasPermission("TENANT_CREATE");
-    const canUpdate = isSuperAdmin || hasPermission("PLATFORM_TENANT_UPDATE") || hasPermission("TENANT_UPDATE");
-    const canDelete = isSuperAdmin || hasPermission("PLATFORM_TENANT_DELETE") || hasPermission("TENANT_DELETE");
+    const canView = isSuperAdmin || hasPermission("PlatformAdmin_view");
+    const canCreate = isSuperAdmin || hasPermission("PlatformAdmin_create");
+    const canUpdate = isSuperAdmin || hasPermission("PlatformAdmin_update");
+    const canDelete = isSuperAdmin || hasPermission("PlatformAdmin_delete");
     const [modal, setModal] = useState({ open: false, mode: "add", data: {} });
     const [delT, setDelT] = useState(null);
     const [sel, setSel] = useState(new Set());
@@ -290,6 +291,8 @@ export default function PageTenants({ t, isDark, TENANTS = [], GLOBAL_USERS = []
     const columnDefs = useMemo(() => {
         return getTenantColumns(permissions, isDark, t, openEdit, (target) => setDelT({ id: target.id, name: target.name, docId: target.docId }), handleInviteOwner, invitingId);
     }, [permissions, isDark, t, invitingId]);
+
+    if (!canView) return <div style={{ padding: 40, color: t.textMuted }}>You don't have permission to view this page.</div>;
 
     return (<>
         <div style={{ marginBottom: 28, display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>

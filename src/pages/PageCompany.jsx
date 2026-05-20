@@ -10,7 +10,9 @@ import { httpsCallable } from "firebase/functions";
 import { resolveTimeZone, US_TIMEZONES } from "../utils/timeZoneUtils";
 
 export default function PageCompany({ t, isDark, activeTenantId = "", USERS = [], GLOBAL_USERS = [], CONTACTS = [], platformConfig = null, isGlobalConsolidated = false }) {
-    const { user, profile, tenantId: authTenantId, isSuperAdmin } = useAuth();
+    const { user, profile, tenantId: authTenantId, isSuperAdmin, hasPermission } = useAuth();
+    const canView = isSuperAdmin || hasPermission("Administration_view");
+    const canUpdate = isSuperAdmin || hasPermission("Administration_update");
     const tenantId = (!isGlobalConsolidated && activeTenantId !== "GLOBAL") ? (activeTenantId || authTenantId) : null;
     const [saving, setSaving] = React.useState(false);
     const [toast, setToast] = React.useState(null);
@@ -300,6 +302,10 @@ export default function PageCompany({ t, isDark, activeTenantId = "", USERS = []
     };
 
     const handleSave = async () => {
+        if (!canUpdate) {
+            showToast("You do not have permission to update company settings.", "error");
+            return;
+        }
         if (!tenantId && !isGlobalConsolidated) return;
         setSaving(true);
 
@@ -496,6 +502,8 @@ export default function PageCompany({ t, isDark, activeTenantId = "", USERS = []
     const [activeTab, setActiveTab] = React.useState("Branding");
     const TABS = ["Branding", "Info", "Email", "ACH"];
 
+    if (!canView) return <div style={{ padding: 40, color: t.textMuted }}>You don't have permission to view this page.</div>;
+
     return (
         <div style={{ maxWidth: 1200, margin: "0 auto" }}>
             {toast && (
@@ -520,7 +528,7 @@ export default function PageCompany({ t, isDark, activeTenantId = "", USERS = []
                     <p style={{ fontSize: 13.5, color: t.textMuted }}>Manage your organization's global settings and infrastructure.</p>
                 </div>
                 <div style={{ display: "flex", gap: 12 }}>
-                    <button onClick={handleSave} disabled={saving} 
+                    <button onClick={handleSave} disabled={saving || !canUpdate} 
                         style={{ background: t.accentGrad, color: "#fff", border: "none", borderRadius: 12, padding: "12px 28px", fontSize: 14, fontWeight: 700, cursor: "pointer", boxShadow: `0 6px 20px ${t.accentShadow}`, display: "flex", alignItems: "center", gap: 10, transition: "all 0.2s" }}
                         onMouseEnter={e => e.currentTarget.style.transform = "translateY(-2px)"} onMouseLeave={e => e.currentTarget.style.transform = "translateY(0)"}>
                         {saving ? "⏳ Saving..." : "✅ Apply Global Settings"}

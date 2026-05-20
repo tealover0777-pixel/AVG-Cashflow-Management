@@ -10,10 +10,10 @@ import { getSuperAdminColumns } from "../components/SuperAdminTanStackConfig";
 
 export default function PageSuperAdmin({ t, isDark, ROLES = [], TENANTS = [] }) {
     const { hasPermission, isSuperAdmin, user } = useAuth();
-    const canCreate = isSuperAdmin || hasPermission("PLATFORM_USER_CREATE");
-    const canView = isSuperAdmin || hasPermission("PLATFORM_USER_VIEW");
-    const canUpdate = isSuperAdmin || hasPermission("PLATFORM_USER_UPDATE");
-    const canDelete = isSuperAdmin || hasPermission("PLATFORM_USER_DELETE");
+    const canView = isSuperAdmin || hasPermission("PlatformAdmin_view");
+    const canCreate = isSuperAdmin || hasPermission("PlatformAdmin_create");
+    const canUpdate = isSuperAdmin || hasPermission("PlatformAdmin_update");
+    const canDelete = isSuperAdmin || hasPermission("PlatformAdmin_delete");
     
     const US_STATES = [
         "AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", "FL", "GA", "HI", "ID", "IL", "IN", "IA", "KS", "KY", "LA", "ME", "MD", 

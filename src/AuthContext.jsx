@@ -185,8 +185,78 @@ export function AuthProvider({ children }) {
 
     const hasPermission = (perm) => {
         if (!perm) return false;
+
+        // Bidirectional mapping for backward compatibility and centralized gating
+        // 1. If checking high-level parent-tier permission, map to granular permissions
+        if (perm === "PlatformAdmin_view") {
+            const keys = ["PlatformAdmin_view", "PLATFORM_USER_VIEW", "PLATFORM_TENANT_VIEW", "PLATFORM_USER_CREATE", "PLATFORM_TENANT_CREATE", "DIMENTION_VIEW", "DIMENSION_VIEW"];
+            if (permissions.some(p => keys.includes(p))) return true;
+        }
+        if (perm === "PlatformAdmin_create") {
+            const keys = ["PlatformAdmin_create", "PLATFORM_USER_CREATE", "PLATFORM_TENANT_CREATE"];
+            if (permissions.some(p => keys.includes(p))) return true;
+        }
+        if (perm === "PlatformAdmin_update") {
+            const keys = ["PlatformAdmin_update", "PLATFORM_USER_UPDATE", "PLATFORM_TENANT_UPDATE"];
+            if (permissions.some(p => keys.includes(p))) return true;
+        }
+        if (perm === "PlatformAdmin_delete") {
+            const keys = ["PlatformAdmin_delete", "PLATFORM_USER_DELETE", "PLATFORM_TENANT_DELETE"];
+            if (permissions.some(p => keys.includes(p))) return true;
+        }
+
+        if (perm === "Administration_view") {
+            const keys = ["Administration_view", "INVESTMENT_VIEW", "PAYMENT_SCHEDULE_VIEW", "USER_PROFILE_VIEW", "ROLE_TYPE_VIEW", "TENANT_VIEW", "INVESTMENT_CREATE", "PAYMENT_SCHEDULE_CREATE", "USER_PROFILE_CREATE"];
+            if (permissions.some(p => keys.includes(p))) return true;
+        }
+        if (perm === "Administration_create") {
+            const keys = ["Administration_create", "INVESTMENT_CREATE", "PAYMENT_SCHEDULE_CREATE", "USER_PROFILE_CREATE"];
+            if (permissions.some(p => keys.includes(p))) return true;
+        }
+        if (perm === "Administration_update") {
+            const keys = ["Administration_update", "INVESTMENT_UPDATE", "PAYMENT_SCHEDULE_UPDATE", "USER_PROFILE_UPDATE"];
+            if (permissions.some(p => keys.includes(p))) return true;
+        }
+        if (perm === "Administration_delete") {
+            const keys = ["Administration_delete", "INVESTMENT_DELETE", "PAYMENT_SCHEDULE_DELETE", "USER_PROFILE_DELETE"];
+            if (permissions.some(p => keys.includes(p))) return true;
+        }
+
+        // 2. If checking granular permissions, map to parent-tier permissions
+        if (["PLATFORM_USER_VIEW", "PLATFORM_TENANT_VIEW", "DIMENTION_VIEW", "DIMENSION_VIEW"].includes(perm)) {
+            if (permissions.includes("PlatformAdmin_view")) return true;
+        }
+        if (["PLATFORM_USER_CREATE", "PLATFORM_TENANT_CREATE"].includes(perm)) {
+            if (permissions.includes("PlatformAdmin_create")) return true;
+        }
+        if (["PLATFORM_USER_UPDATE", "PLATFORM_TENANT_UPDATE"].includes(perm)) {
+            if (permissions.includes("PlatformAdmin_update")) return true;
+        }
+        if (["PLATFORM_USER_DELETE", "PLATFORM_TENANT_DELETE"].includes(perm)) {
+            if (permissions.includes("PlatformAdmin_delete")) return true;
+        }
+
+        if (["INVESTMENT_VIEW", "PAYMENT_SCHEDULE_VIEW", "USER_PROFILE_VIEW", "ROLE_TYPE_VIEW", "TENANT_VIEW"].includes(perm)) {
+            if (permissions.includes("Administration_view")) return true;
+        }
+        if (["INVESTMENT_CREATE", "PAYMENT_SCHEDULE_CREATE", "USER_PROFILE_CREATE"].includes(perm)) {
+            if (permissions.includes("Administration_create")) return true;
+        }
+        if (["INVESTMENT_UPDATE", "PAYMENT_SCHEDULE_UPDATE", "USER_PROFILE_UPDATE"].includes(perm)) {
+            if (permissions.includes("Administration_update")) return true;
+        }
+        if (["INVESTMENT_DELETE", "PAYMENT_SCHEDULE_DELETE", "USER_PROFILE_DELETE"].includes(perm)) {
+            if (permissions.includes("Administration_delete")) return true;
+        }
+
         if (perm.endsWith("*")) {
             const prefix = perm.slice(0, -1);
+            if (["ROLE_TYPE_", "USER_PROFILE_", "INVESTMENT_", "PAYMENT_SCHEDULE_", "USER_", "MEMBER_", "REPORT_"].includes(prefix)) {
+                if (permissions.includes("Administration_view") || permissions.includes("Administration_update") || permissions.includes("Administration_create") || permissions.includes("Administration_delete")) return true;
+            }
+            if (["PLATFORM_USER_", "PLATFORM_TENANT_", "DIMENTION_", "DIMENSION_"].includes(prefix)) {
+                if (permissions.includes("PlatformAdmin_view") || permissions.includes("PlatformAdmin_update") || permissions.includes("PlatformAdmin_create") || permissions.includes("PlatformAdmin_delete")) return true;
+            }
             return permissions.some(p => p.startsWith(prefix));
         }
         return permissions.includes(perm);

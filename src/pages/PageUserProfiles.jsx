@@ -28,10 +28,11 @@ export default function PageUserProfiles({ t, isDark, USERS = [], GLOBAL_USERS =
         "SD", "TN", "TX", "UT", "VT", "VA", "WA", "WV", "WI", "WY"
     ];
     const { hasPermission, isSuperAdmin, user, profile, isGlobalRole } = useAuth();
-    const canCreate = isSuperAdmin || hasPermission("USER_PROFILE_CREATE") || hasPermission("USER_CREATE") || profile?.role_id === "R10005";
-    const canInvite = isSuperAdmin || hasPermission("USER_PROFILE_CREATE") || hasPermission("USER_INVITE") || profile?.role_id === "R10005";
-    const canUpdate = isSuperAdmin || hasPermission("USER_PROFILE_UPDATE") || hasPermission("USER_UPDATE") || profile?.role_id === "R10005";
-    const canDelete = isSuperAdmin || hasPermission("USER_PROFILE_DELETE") || hasPermission("USER_DELETE") || profile?.role_id === "R10005";
+    const canView = isSuperAdmin || hasPermission("Administration_view");
+    const canCreate = isSuperAdmin || hasPermission("Administration_create");
+    const canInvite = isSuperAdmin || hasPermission("Administration_create");
+    const canUpdate = isSuperAdmin || hasPermission("Administration_update");
+    const canDelete = isSuperAdmin || hasPermission("Administration_delete");
 
     const [modal, setModal] = useState({ open: false, mode: "add", data: {} });
     const [delT, setDelT] = useState(null);
@@ -325,6 +326,8 @@ export default function PageUserProfiles({ t, isDark, USERS = [], GLOBAL_USERS =
     const columnDefs = useMemo(() => {
         return getUserProfileColumns(permissions, isDark, t, openEdit, setDelT, openResendInvite, ROLES);
     }, [permissions, isDark, t, ROLES]);
+
+    if (!canView) return <div style={{ padding: 40, color: t.textMuted }}>You don't have permission to view this page.</div>;
 
     return (<>
         {/* Toast Notification */}

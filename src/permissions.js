@@ -16,7 +16,9 @@ export const PERMISSIONS_LIST = [
     "PLATFORM_USER_CREATE", "PLATFORM_USER_DELETE", "PLATFORM_USER_VIEW", "PLATFORM_USER_UPDATE",
     "PLATFORM_TENANT_CREATE", "PLATFORM_TENANT_DELETE", "PLATFORM_TENANT_VIEW", "PLATFORM_TENANT_UPDATE",
     "CONTACT_CREATE", "CONTACT_VIEW", "CONTACT_UPDATE", "CONTACT_DELETE",
-    "MARKETING_VIEW", "MARKETING_CREATE", "MARKETING_UPDATE", "MARKETING_DELETE", "MARKETING_SEND"
+    "MARKETING_VIEW", "MARKETING_CREATE", "MARKETING_UPDATE", "MARKETING_DELETE", "MARKETING_SEND",
+    "PlatformAdmin_view", "PlatformAdmin_create", "PlatformAdmin_update", "PlatformAdmin_delete",
+    "Administration_view", "Administration_create", "Administration_update", "Administration_delete"
 ];
 
 // Provide sensible defaults for the requested standard UserRoles.
@@ -39,7 +41,8 @@ export const DEFAULT_ROLE_PERMISSIONS = {
         "FEE_CREATE", "FEE_VIEW", "FEE_UPDATE", "FEE_DELETE",
         "DIMENTION_CREATE", "DIMENTION_VIEW", "DIMENTION_UPDATE", "DIMENTION_DELETE",
         "REPORT_CREATE", "REPORT_VIEW", "REPORT_EXPORT", "REPORT_UPDATE", "REPORT_DELETE",
-        "CONTACT_CREATE", "CONTACT_VIEW", "CONTACT_UPDATE", "CONTACT_DELETE"
+        "CONTACT_CREATE", "CONTACT_VIEW", "CONTACT_UPDATE", "CONTACT_DELETE",
+        "Administration_view", "Administration_create", "Administration_update", "Administration_delete"
     ],
     "R10005": [ // Legacy role ID for Tenant Owner
         "TENANT_VIEW", "TENANT_UPDATE",
@@ -54,7 +57,8 @@ export const DEFAULT_ROLE_PERMISSIONS = {
         "FEE_CREATE", "FEE_VIEW", "FEE_UPDATE", "FEE_DELETE",
         "DIMENTION_CREATE", "DIMENTION_VIEW", "DIMENTION_UPDATE", "DIMENTION_DELETE",
         "REPORT_CREATE", "REPORT_VIEW", "REPORT_EXPORT", "REPORT_UPDATE", "REPORT_DELETE",
-        "CONTACT_CREATE", "CONTACT_VIEW", "CONTACT_UPDATE", "CONTACT_DELETE"
+        "CONTACT_CREATE", "CONTACT_VIEW", "CONTACT_UPDATE", "CONTACT_DELETE",
+        "Administration_view", "Administration_create", "Administration_update", "Administration_delete"
     ],
     "Tenant Admin": [
         "TENANT_VIEW",
@@ -69,7 +73,8 @@ export const DEFAULT_ROLE_PERMISSIONS = {
         "FEE_CREATE", "FEE_VIEW", "FEE_UPDATE",
         "DIMENTION_CREATE", "DIMENTION_VIEW", "DIMENTION_UPDATE",
         "REPORT_CREATE", "REPORT_VIEW", "REPORT_EXPORT", "REPORT_UPDATE",
-        "CONTACT_CREATE", "CONTACT_VIEW", "CONTACT_UPDATE"
+        "CONTACT_CREATE", "CONTACT_VIEW", "CONTACT_UPDATE",
+        "Administration_view", "Administration_create", "Administration_update"
     ],
     "Admin": [ // Alias for Tenant Admin (R10004)
         "TENANT_VIEW",
@@ -84,7 +89,8 @@ export const DEFAULT_ROLE_PERMISSIONS = {
         "FEE_CREATE", "FEE_VIEW", "FEE_UPDATE",
         "DIMENTION_CREATE", "DIMENTION_VIEW", "DIMENTION_UPDATE",
         "REPORT_CREATE", "REPORT_VIEW", "REPORT_EXPORT", "REPORT_UPDATE",
-        "CONTACT_CREATE", "CONTACT_VIEW", "CONTACT_UPDATE"
+        "CONTACT_CREATE", "CONTACT_VIEW", "CONTACT_UPDATE",
+        "Administration_view", "Administration_create", "Administration_update"
     ],
     "R10004": [ // Legacy role ID for Tenant Admin
         "TENANT_VIEW",
@@ -99,7 +105,8 @@ export const DEFAULT_ROLE_PERMISSIONS = {
         "FEE_CREATE", "FEE_VIEW", "FEE_UPDATE",
         "DIMENTION_CREATE", "DIMENTION_VIEW", "DIMENTION_UPDATE",
         "REPORT_CREATE", "REPORT_VIEW", "REPORT_EXPORT", "REPORT_UPDATE",
-        "CONTACT_CREATE", "CONTACT_VIEW", "CONTACT_UPDATE"
+        "CONTACT_CREATE", "CONTACT_VIEW", "CONTACT_UPDATE",
+        "Administration_view", "Administration_create", "Administration_update"
     ],
     "Tenant Manager": [
         "TENANT_VIEW", "USER_VIEW",
@@ -109,28 +116,34 @@ export const DEFAULT_ROLE_PERMISSIONS = {
         "PAYMENT_VIEW",
         "FEE_CREATE", "FEE_VIEW", "FEE_UPDATE",
         "REPORT_VIEW", "REPORT_EXPORT",
-        "CONTACT_CREATE", "CONTACT_VIEW", "CONTACT_UPDATE"
+        "CONTACT_CREATE", "CONTACT_VIEW", "CONTACT_UPDATE",
+        "Administration_view", "Administration_create", "Administration_update"
     ],
     "Tenant Member": [
         "TENANT_VIEW", "USER_VIEW",
-        "DEAL_VIEW", "INVESTMENT_VIEW", "PAYMENT_SCHEDULE_VIEW", "PAYMENT_VIEW", "FEE_VIEW", "REPORT_VIEW", "CONTACT_VIEW"
+        "DEAL_VIEW", "INVESTMENT_VIEW", "PAYMENT_SCHEDULE_VIEW", "PAYMENT_VIEW", "FEE_VIEW", "REPORT_VIEW", "CONTACT_VIEW",
+        "Administration_view"
     ],
     "Tenant Viewer": [
-        "DEAL_VIEW", "INVESTMENT_VIEW", "PAYMENT_SCHEDULE_VIEW", "PAYMENT_VIEW", "FEE_VIEW", "REPORT_VIEW", "CONTACT_VIEW"
+        "DEAL_VIEW", "INVESTMENT_VIEW", "PAYMENT_SCHEDULE_VIEW", "PAYMENT_VIEW", "FEE_VIEW", "REPORT_VIEW", "CONTACT_VIEW",
+        "Administration_view"
     ],
     "Auditor": [
         "TENANT_VIEW", "USER_VIEW", "DEAL_VIEW", "MEMBER_VIEW", "INVESTMENT_VIEW",
-        "PAYMENT_SCHEDULE_VIEW", "PAYMENT_VIEW", "FEE_VIEW", "DIMENTION_VIEW", "REPORT_VIEW", "REPORT_EXPORT", "CONTACT_VIEW"
+        "PAYMENT_SCHEDULE_VIEW", "PAYMENT_VIEW", "FEE_VIEW", "DIMENTION_VIEW", "REPORT_VIEW", "REPORT_EXPORT", "CONTACT_VIEW",
+        "PlatformAdmin_view", "Administration_view"
     ],
     "Support Admin": [
-        "TENANT_VIEW", "USER_VIEW", "DEAL_VIEW", "INVESTMENT_VIEW", "PAYMENT_SCHEDULE_VIEW", "PAYMENT_VIEW", "FEE_VIEW", "DIMENTION_VIEW", "CONTACT_VIEW"
+        "TENANT_VIEW", "USER_VIEW", "DEAL_VIEW", "INVESTMENT_VIEW", "PAYMENT_SCHEDULE_VIEW", "PAYMENT_VIEW", "FEE_VIEW", "DIMENTION_VIEW", "CONTACT_VIEW",
+        "PlatformAdmin_view", "Administration_view"
     ],
     "Platform_Operator": [
         "PLATFORM_USER_CREATE", "PLATFORM_USER_VIEW", "PLATFORM_USER_UPDATE", "PLATFORM_USER_DELETE",
         "PLATFORM_TENANT_VIEW", "TENANT_VIEW",
         "DEAL_VIEW", "INVESTMENT_VIEW", "CONTACT_VIEW",
         "PAYMENT_SCHEDULE_VIEW", "PAYMENT_VIEW", "FEE_VIEW",
-        "REPORT_VIEW", "REPORT_EXPORT"
+        "REPORT_VIEW", "REPORT_EXPORT",
+        "PlatformAdmin_view", "PlatformAdmin_create", "PlatformAdmin_update", "PlatformAdmin_delete", "Administration_view"
     ],
     "R10010": [...PERMISSIONS_LIST],
     "R10003": [...PERMISSIONS_LIST],
@@ -139,13 +152,16 @@ export const DEFAULT_ROLE_PERMISSIONS = {
         "PLATFORM_TENANT_VIEW", "TENANT_VIEW",
         "DEAL_VIEW", "INVESTMENT_VIEW", "CONTACT_VIEW",
         "PAYMENT_SCHEDULE_VIEW", "PAYMENT_VIEW", "FEE_VIEW",
-        "REPORT_VIEW", "REPORT_EXPORT"
+        "REPORT_VIEW", "REPORT_EXPORT",
+        "PlatformAdmin_view", "PlatformAdmin_create", "PlatformAdmin_update", "PlatformAdmin_delete", "Administration_view"
     ],
     "R10007": [
         "TENANT_VIEW", "USER_VIEW", "DEAL_VIEW", "MEMBER_VIEW", "INVESTMENT_VIEW",
-        "PAYMENT_SCHEDULE_VIEW", "PAYMENT_VIEW", "FEE_VIEW", "DIMENTION_VIEW", "REPORT_VIEW", "REPORT_EXPORT", "CONTACT_VIEW"
+        "PAYMENT_SCHEDULE_VIEW", "PAYMENT_VIEW", "FEE_VIEW", "DIMENTION_VIEW", "REPORT_VIEW", "REPORT_EXPORT", "CONTACT_VIEW",
+        "PlatformAdmin_view", "Administration_view"
     ],
     "R10008": [
-        "TENANT_VIEW", "USER_VIEW", "DEAL_VIEW", "INVESTMENT_VIEW", "PAYMENT_SCHEDULE_VIEW", "PAYMENT_VIEW", "FEE_VIEW", "DIMENTION_VIEW", "CONTACT_VIEW"
+        "TENANT_VIEW", "USER_VIEW", "DEAL_VIEW", "INVESTMENT_VIEW", "PAYMENT_SCHEDULE_VIEW", "PAYMENT_VIEW", "FEE_VIEW", "DIMENTION_VIEW", "CONTACT_VIEW",
+        "PlatformAdmin_view", "Administration_view"
     ]
 };
