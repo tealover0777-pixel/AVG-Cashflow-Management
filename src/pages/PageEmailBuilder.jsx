@@ -2183,14 +2183,26 @@ function SettingsPanel({ t, isDark, settings, onChange, profile, DIMENSIONS = []
     });
   }, [settings, profile]);
 
+  const resetToSettings = () => {
+    setLocalSettings({
+      ...settings,
+      from: settings.from || profile?.email || "",
+      replyTo: settings.replyTo || profile?.email || "",
+      recipients: Array.isArray(settings.recipients) ? settings.recipients.join("; ") : (settings.recipients || ""),
+      doNotSendTo: Array.isArray(settings.doNotSendTo) ? settings.doNotSendTo.join("; ") : (settings.doNotSendTo || "")
+    });
+  };
+
   React.useEffect(() => {
-    // Deep/Shallow compare to prevent infinite loop
-    const keys = ["subject", "internalName", "fromName", "from", "replyTo", "recipients", "doNotSendTo", "type"];
-    const hasChanges = keys.some(key => localSettings[key] !== settings[key]);
-    if (hasChanges) {
-      onChange(localSettings);
+    if (isUnified) {
+      // Deep/Shallow compare to prevent infinite loop
+      const keys = ["subject", "internalName", "fromName", "from", "replyTo", "recipients", "doNotSendTo", "type"];
+      const hasChanges = keys.some(key => localSettings[key] !== settings[key]);
+      if (hasChanges) {
+        onChange(localSettings);
+      }
     }
-  }, [localSettings, settings, onChange]);
+  }, [localSettings, settings, onChange, isUnified]);
 
   const set = (key, val) => setLocalSettings(prev => ({ ...prev, [key]: val }));
 
@@ -2323,7 +2335,7 @@ function SettingsPanel({ t, isDark, settings, onChange, profile, DIMENSIONS = []
           <SettingsRow label="Internal name:" t={t} isUnified={isUnified}><input placeholder="Email draft name" value={localSettings.internalName || ""} onChange={e => set("internalName", e.target.value)} style={isUnified ? { ...inpRefined, fontWeight: 700 } : inp} /></SettingsRow>
           <SettingsRow label="Recipients:" t={t} isUnified={isUnified}>
             <div style={{ display: "flex", alignItems: "center", flex: 1, gap: 12 }}>
-              <input placeholder="Enter emails (semicolon-separated) or use picker →" value={localSettings.recipients || ""} onChange={e => { set("recipients", e.target.value); onChange(prev => ({ ...prev, recipients: e.target.value })); }} style={isUnified ? inpRefined : inp} />
+              <input placeholder="Enter emails (semicolon-separated) or use picker →" value={localSettings.recipients || ""} onChange={e => { set("recipients", e.target.value); if (isUnified) onChange(prev => ({ ...prev, recipients: e.target.value })); }} style={isUnified ? inpRefined : inp} />
               <button onClick={() => setShowRecipients(true)} style={isUnified ? actionBtnRefined : { ...actionBtn, marginLeft: 16 }}>
                 <Users size={14} /> View recipients
               </button>
@@ -2331,7 +2343,7 @@ function SettingsPanel({ t, isDark, settings, onChange, profile, DIMENSIONS = []
           </SettingsRow>
           <SettingsRow label="Do not send to:" t={t} isUnified={isUnified}>
             <div style={{ display: "flex", alignItems: "center", flex: 1, gap: 12 }}>
-              <input placeholder="(Optional) Enter emails to exclude or use picker →" value={localSettings.doNotSendTo || ""} onChange={e => { set("doNotSendTo", e.target.value); onChange(prev => ({ ...prev, doNotSendTo: e.target.value })); }} style={isUnified ? inpRefined : inp} />
+              <input placeholder="(Optional) Enter emails to exclude or use picker →" value={localSettings.doNotSendTo || ""} onChange={e => { set("doNotSendTo", e.target.value); if (isUnified) onChange(prev => ({ ...prev, doNotSendTo: e.target.value })); }} style={isUnified ? inpRefined : inp} />
               <button onClick={() => setShowDoNotSend(true)} style={isUnified ? actionBtnRefined : { ...actionBtn, marginLeft: 16 }}>
                 <Users size={14} /> View do not send
               </button>
@@ -2386,7 +2398,7 @@ function SettingsPanel({ t, isDark, settings, onChange, profile, DIMENSIONS = []
 
           {!isUnified && (
             <div style={{ display: "flex", justifyContent: "flex-end", gap: 12, padding: "24px 48px" }}>
-              <button onClick={() => setLocalSettings(settings)} style={{ ...actionBtn, background: isDark ? "rgba(255,255,255,0.05)" : "#F3F4F6" }}>Cancel</button>
+              <button onClick={resetToSettings} style={{ ...actionBtn, background: isDark ? "rgba(255,255,255,0.05)" : "#F3F4F6" }}>Cancel</button>
               <button
                 onClick={() => onSave ? onSave(localSettings) : onChange(localSettings)}
                 disabled={isSaving}
@@ -2411,7 +2423,9 @@ function SettingsPanel({ t, isDark, settings, onChange, profile, DIMENSIONS = []
         onSave={() => {
           const emails = (Array.isArray(selectedInTable) ? selectedInTable : []).map(s => s.email).filter(Boolean).join("; ");
           set("recipients", emails);
-          onChange(prev => ({ ...prev, recipients: emails }));
+          if (isUnified) {
+            onChange(prev => ({ ...prev, recipients: emails }));
+          }
           setShowRecipients(false);
         }}
       >
@@ -2461,7 +2475,9 @@ function SettingsPanel({ t, isDark, settings, onChange, profile, DIMENSIONS = []
         onSave={() => {
           const emails = (Array.isArray(selectedDoNotSend) ? selectedDoNotSend : []).map(s => s.email).filter(Boolean).join("; ");
           set("doNotSendTo", emails);
-          onChange(prev => ({ ...prev, doNotSendTo: emails }));
+          if (isUnified) {
+            onChange(prev => ({ ...prev, doNotSendTo: emails }));
+          }
           setShowDoNotSend(false);
         }}
       >
