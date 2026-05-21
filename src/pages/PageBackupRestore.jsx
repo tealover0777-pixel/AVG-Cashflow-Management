@@ -4,11 +4,12 @@ import {
   ShieldCheck, Clock, Settings, Search, CheckCircle2, ChevronRight, Server,
   Globe, Layers, Eye, Timer, BarChart3, Archive, Zap, Shield
 } from "lucide-react";
-import { db } from "../firebase";
+import { db, storage } from "../firebase";
 import { 
   collection, doc, getDoc, setDoc, updateDoc, deleteDoc, 
   query, where, orderBy, getDocs, addDoc, serverTimestamp, limit 
 } from "firebase/firestore";
+import { ref, uploadString, getDownloadURL, deleteObject } from "firebase/storage";
 import { useAuth } from "../AuthContext";
 import { Tooltip, StatCard, DelModal } from "../components";
 import RestorePreviewDiff from "../components/RestorePreviewDiff";
@@ -317,8 +318,12 @@ export default function PageBackupRestore({ t, isDark, TENANTS = [] }) {
     setIsCreatingBackup(true);
     try {
       const payloadData = await fetchTenantActiveBackupData(selectedTenantId);
-      const payloadSize = JSON.stringify(payloadData).length;
+      const payloadString = JSON.stringify(payloadData);
+      const payloadSize = payloadString.length;
       const newBackupId = `bkp_${selectedTenantId.toLowerCase()}_${Date.now()}`;
+      const storagePath = `backups/tenants/${selectedTenantId}/${newBackupId}.json`;
+      
+      await uploadString(ref(storage, storagePath), payloadString);
       
       const payload = {
         backupId: newBackupId,
@@ -328,10 +333,9 @@ export default function PageBackupRestore({ t, isDark, TENANTS = [] }) {
         triggerType: "manual",
         status: "completed",
         sizeBytes: payloadSize,
-        storagePath: `backups/tenants/${selectedTenantId}/${newBackupId}.json`,
+        storagePath: storagePath,
         initiatedBy: user?.email || "system_admin",
-        collectionsIncluded: ["deals", "investments", "contacts", "paymentSchedules"],
-        payload: payloadData
+        collectionsIncluded: ["deals", "investments", "contacts", "paymentSchedules"]
       };
 
       // Try saving to database
@@ -358,6 +362,15 @@ export default function PageBackupRestore({ t, isDark, TENANTS = [] }) {
   // Trigger Delete Backup
   const handleDeleteBackup = async (backupId) => {
     try {
+      const bkp = backups.find(b => b.id === backupId || b.backupId === backupId);
+      if (bkp?.storagePath) {
+        try {
+          await deleteObject(ref(storage, bkp.storagePath));
+        } catch (stErr) {
+          console.warn("Failed to delete backup from storage:", stErr);
+        }
+      }
+
       // Try to delete document from firestore if exists
       try {
         await deleteDoc(doc(db, "backups", backupId));
@@ -373,48 +386,45 @@ export default function PageBackupRestore({ t, isDark, TENANTS = [] }) {
   };
 
   // Trigger Backup Download as real JSON file
-  const handleDownloadBackup = (bkp) => {
+  const handleDownloadBackup = async (bkp) => {
     try {
-      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(
-        JSON.stringify({
-          backup_metadata: {
-            backup_id: bkp.backupId,
-            tenant_id: bkp.tenantId,
-            tenant_name: bkp.tenantName || bkp.tenantId,
-            created_at: bkp.createdAt,
-            trigger_type: bkp.triggerType,
-            size_bytes: bkp.sizeBytes,
-            initiated_by: bkp.initiatedBy,
-            collections_included: bkp.collectionsIncluded || ["deals", "investments", "contacts", "paymentSchedules"]
-          },
-          payload: bkp.payload || {
-            deals: [
-              { id: "deal_001", name: "Commercial Office Park", amount: 4500000, status: "Active" },
-              { id: "deal_002", name: "Multi-family Residential Portfolio", amount: 8200000, status: "Under Review" }
-            ],
-            contacts: [
-              { id: "contact_001", first_name: "John", last_name: "Doe", email: "john@investor.com" },
-              { id: "contact_002", first_name: "Sarah", last_name: "Smith", email: "sarah@capital.com" }
-            ],
-            investments: [
-              { id: "inv_001", deal_id: "deal_001", contact_id: "contact_001", amount_committed: 250000 },
-              { id: "inv_002", deal_id: "deal_001", contact_id: "contact_002", amount_committed: 500000 }
-            ],
-            paymentSchedules: []
-          }
-        }, null, 2)
-      );
+      let payloadData = bkp.payload;
+      if (!payloadData && bkp.storagePath) {
+        const url = await getDownloadURL(ref(storage, bkp.storagePath));
+        const res = await fetch(url);
+        payloadData = await res.json();
+      } else if (!payloadData) {
+        // Fallback dummy
+        payloadData = {
+          deals: [], contacts: [], investments: [], paymentSchedules: []
+        };
+      }
+
+      const blob = new Blob([JSON.stringify({
+        backup_metadata: {
+          backup_id: bkp.backupId,
+          tenant_id: bkp.tenantId,
+          tenant_name: bkp.tenantName || bkp.tenantId,
+          created_at: bkp.createdAt,
+          trigger_type: bkp.triggerType,
+          size_bytes: bkp.sizeBytes,
+          initiated_by: bkp.initiatedBy,
+          collections_included: bkp.collectionsIncluded || ["deals", "investments", "contacts", "paymentSchedules"]
+        },
+        payload: payloadData
+      }, null, 2)], { type: "application/json" });
       
-      const downloadAnchor = document.createElement('a');
-      downloadAnchor.setAttribute("href", dataStr);
-      downloadAnchor.setAttribute("download", `${bkp.backupId}.json`);
-      document.body.appendChild(downloadAnchor);
-      downloadAnchor.click();
-      downloadAnchor.remove();
-      
-      showToast(`Downloaded backup snapshot: ${bkp.backupId}.json`, "success");
+      const urlObj = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = urlObj;
+      a.download = `${bkp.backupId}.json`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(urlObj);
+      showToast("Backup snapshot downloaded.", "success");
     } catch (err) {
-      console.error("Download failed:", err);
+      console.error("Backup download failed:", err);
       showToast("Download failed.", "error");
     }
   };
@@ -538,6 +548,19 @@ export default function PageBackupRestore({ t, isDark, TENANTS = [] }) {
     await new Promise(r => setTimeout(r, 600));
 
     const globalBackupId = `GB_${Date.now()}`;
+    const storagePath = `global_backups/${globalBackupId}.json`;
+    const payloadString = JSON.stringify(tenantPayloads);
+    
+    try {
+      await uploadString(ref(storage, storagePath), payloadString);
+    } catch (err) {
+      console.error("Failed to upload global backup to Storage:", err);
+      logs.push(`[ERROR] Failed to upload global archive: ${err.message}`);
+      setGlobalBackupLogs([...logs]);
+      setIsRunningGlobalBackup(false);
+      return;
+    }
+
     const payload = {
       globalBackupId,
       createdAt: new Date().toISOString(),
@@ -546,7 +569,7 @@ export default function PageBackupRestore({ t, isDark, TENANTS = [] }) {
       totalSizeBytes: totalSize,
       initiatedBy: user?.email || "system_admin",
       triggerType: "manual",
-      tenantPayloads
+      storagePath
     };
 
     try {
@@ -566,29 +589,40 @@ export default function PageBackupRestore({ t, isDark, TENANTS = [] }) {
     setIsRunningGlobalBackup(false);
     showToast("Global compliance backup completed successfully.", "success");
 
-    // Also enable the JSON download
+    // Auto-download link removal (optional, or rely on handleDownloadGlobalBackup)
     try {
-      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(payload, null, 2));
+      const blob = new Blob([JSON.stringify({ ...payload, tenantPayloads }, null, 2)], { type: "application/json" });
+      const urlObj = URL.createObjectURL(blob);
       const anchor = document.createElement("a");
-      anchor.setAttribute("href", dataStr);
-      anchor.setAttribute("download", `${globalBackupId}.json`);
+      anchor.href = urlObj;
+      anchor.download = `${globalBackupId}.json`;
       document.body.appendChild(anchor);
       anchor.click();
       anchor.remove();
+      URL.revokeObjectURL(urlObj);
     } catch (dlErr) {
       console.warn("Auto-download failed:", dlErr);
     }
   };
 
-  const handleDownloadGlobalBackup = (gb) => {
+  const handleDownloadGlobalBackup = async (gb) => {
     try {
-      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(gb, null, 2));
+      let fullPayload = { ...gb };
+      if (!gb.tenantPayloads && gb.storagePath) {
+        const url = await getDownloadURL(ref(storage, gb.storagePath));
+        const res = await fetch(url);
+        fullPayload.tenantPayloads = await res.json();
+      }
+      
+      const blob = new Blob([JSON.stringify(fullPayload, null, 2)], { type: "application/json" });
+      const urlObj = URL.createObjectURL(blob);
       const anchor = document.createElement("a");
-      anchor.setAttribute("href", dataStr);
-      anchor.setAttribute("download", `${gb.globalBackupId || gb.id}.json`);
+      anchor.href = urlObj;
+      anchor.download = `${gb.globalBackupId || gb.id}.json`;
       document.body.appendChild(anchor);
       anchor.click();
       anchor.remove();
+      URL.revokeObjectURL(urlObj);
       showToast(`Downloaded global backup: ${gb.globalBackupId || gb.id}.json`, "success");
     } catch (err) {
       console.error("Global backup download failed:", err);
@@ -598,6 +632,14 @@ export default function PageBackupRestore({ t, isDark, TENANTS = [] }) {
 
   const handleDeleteGlobalBackup = async (id) => {
     try {
+      const gb = globalBackups.find(g => g.id === id);
+      if (gb?.storagePath) {
+        try {
+          await deleteObject(ref(storage, gb.storagePath));
+        } catch (stErr) {
+          console.warn("Failed to delete global backup from storage:", stErr);
+        }
+      }
       try {
         await deleteDoc(doc(db, "global_backups", id));
       } catch (dbErr) {
@@ -614,12 +656,26 @@ export default function PageBackupRestore({ t, isDark, TENANTS = [] }) {
     setIsLoadingPreview(true);
     setSelectedTenantId(tenantId);
     
+    let payloads = gb.tenantPayloads;
+    if (!payloads && gb.storagePath) {
+      try {
+        const url = await getDownloadURL(ref(storage, gb.storagePath));
+        const res = await fetch(url);
+        payloads = await res.json();
+      } catch (e) {
+        console.error("Failed to load global payloads:", e);
+        showToast("Failed to fetch backup data.", "error");
+        setIsLoadingPreview(false);
+        return;
+      }
+    }
+
     // Set selected backup for restore to a synthetic backup object representing this tenant's slice of the global backup
-    const snapshotData = gb.tenantPayloads?.[tenantId]?.snapshot || gb.tenantPayloads?.[tenantId]?.payload || {};
+    const snapshotData = payloads?.[tenantId]?.snapshot || payloads?.[tenantId]?.payload || {};
     const syntheticBackup = {
       backupId: `${gb.globalBackupId || gb.id}_${tenantId}`,
       tenantId: tenantId,
-      tenantName: gb.tenantPayloads?.[tenantId]?.tenantName || tenantId,
+      tenantName: payloads?.[tenantId]?.tenantName || tenantId,
       createdAt: gb.createdAt,
       payload: snapshotData
     };
@@ -651,15 +707,31 @@ export default function PageBackupRestore({ t, isDark, TENANTS = [] }) {
     }
   };
 
-  const handleRestoreGlobalTenant = (gb, tenantId) => {
+  const handleRestoreGlobalTenant = async (gb, tenantId) => {
     setSelectedTenantId(tenantId);
     
+    let payloads = gb.tenantPayloads;
+    if (!payloads && gb.storagePath) {
+      setIsLoadingPreview(true);
+      try {
+        const url = await getDownloadURL(ref(storage, gb.storagePath));
+        const res = await fetch(url);
+        payloads = await res.json();
+      } catch (e) {
+        console.error("Failed to load global payloads:", e);
+        showToast("Failed to fetch backup data.", "error");
+        setIsLoadingPreview(false);
+        return;
+      }
+      setIsLoadingPreview(false);
+    }
+
     // Set selected backup for restore to a synthetic backup object representing this tenant's slice of the global backup
-    const snapshotData = gb.tenantPayloads?.[tenantId]?.snapshot || gb.tenantPayloads?.[tenantId]?.payload || {};
+    const snapshotData = payloads?.[tenantId]?.snapshot || payloads?.[tenantId]?.payload || {};
     const syntheticBackup = {
       backupId: `${gb.globalBackupId || gb.id}_${tenantId}`,
       tenantId: tenantId,
-      tenantName: gb.tenantPayloads?.[tenantId]?.tenantName || tenantId,
+      tenantName: payloads?.[tenantId]?.tenantName || tenantId,
       createdAt: gb.createdAt,
       payload: snapshotData
     };
@@ -678,12 +750,28 @@ export default function PageBackupRestore({ t, isDark, TENANTS = [] }) {
 
   const handleShowRestorePreview = async (bkp) => {
     setIsLoadingPreview(true);
-    setSelectedBackupForRestore(bkp);
+    
+    let payload = bkp.payload;
+    if (!payload && bkp.storagePath) {
+      try {
+        const url = await getDownloadURL(ref(storage, bkp.storagePath));
+        const res = await fetch(url);
+        payload = await res.json();
+      } catch (e) {
+        console.error("Failed to fetch backup payload for preview:", e);
+        showToast("Failed to fetch backup data.", "error");
+        setIsLoadingPreview(false);
+        return;
+      }
+    }
+    
+    const backupWithPayload = { ...bkp, payload };
+    setSelectedBackupForRestore(backupWithPayload);
 
     try {
       // 1. Fetch current live data for the selected tenant
       const currentData = {};
-      const collections = ["deals", "contacts", "investments"];
+      const collections = ["deals", "contacts", "investments", "paymentSchedules"];
 
       for (const col of collections) {
         try {
@@ -696,7 +784,7 @@ export default function PageBackupRestore({ t, isDark, TENANTS = [] }) {
       }
 
       // 2. Use the backup payload (simulate with representative data if mock)
-      const backupData = bkp.payload || {
+      const backupData = backupWithPayload.payload || {
         deals: [
           { id: "deal_001", name: "Commercial Office Park", amount: 4500000, status: "Active", tenantId: selectedTenantId },
           { id: "deal_002", name: "Multi-family Residential Portfolio", amount: 8200000, status: "Under Review", tenantId: selectedTenantId }
@@ -834,8 +922,24 @@ export default function PageBackupRestore({ t, isDark, TENANTS = [] }) {
   };
 
   // Start Restore Flow
-  const startRestore = (bkp) => {
-    setSelectedBackupForRestore(bkp);
+  const startRestore = async (bkp) => {
+    let payload = bkp.payload;
+    if (!payload && bkp.storagePath) {
+      setIsLoadingPreview(true);
+      try {
+        const url = await getDownloadURL(ref(storage, bkp.storagePath));
+        const res = await fetch(url);
+        payload = await res.json();
+      } catch (e) {
+        console.error("Failed to fetch backup payload for restore:", e);
+        showToast("Failed to fetch backup data.", "error");
+        setIsLoadingPreview(false);
+        return;
+      }
+      setIsLoadingPreview(false);
+    }
+    
+    setSelectedBackupForRestore({ ...bkp, payload });
     setConfirmTenantSlug("");
     setRestoreStage(1);
     setRestoreLogs([]);
