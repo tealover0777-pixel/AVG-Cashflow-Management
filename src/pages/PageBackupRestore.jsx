@@ -193,17 +193,11 @@ export default function PageBackupRestore({ t, isDark, TENANTS = [] }) {
         };
       });
 
-      // Seed mock records if Firestore collection has no backups yet (for premium visual completeness)
-      if (backupsList.length === 0) {
-        const seedMockBackups = getMockBackups(selectedTenantId);
-        setBackups(seedMockBackups);
-      } else {
-        setBackups(backupsList);
-      }
+      setBackups(backupsList);
     } catch (err) {
       console.warn("Failed to read from Firestore backups:", err);
-      // Fallback to high-fidelity mock list to ensure UI is interactive
-      setBackups(getMockBackups(selectedTenantId));
+      // Fallback empty list on error
+      setBackups([]);
     } finally {
       setLoading(false);
     }
@@ -339,17 +333,19 @@ export default function PageBackupRestore({ t, isDark, TENANTS = [] }) {
       };
 
       // Try saving to database
+      let finalPayload = { ...payload };
       try {
-        await addDoc(collection(db, "backups"), {
+        const docRef = await addDoc(collection(db, "backups"), {
           ...payload,
           createdAt: serverTimestamp()
         });
+        finalPayload.id = docRef.id;
       } catch (dbErr) {
         console.warn("Could not save to active backups collection, prepending to local state:", dbErr);
       }
 
       // Prepend to current listings
-      setBackups(prev => [payload, ...prev]);
+      setBackups(prev => [finalPayload, ...prev]);
       showToast("Manual database backup completed successfully.", "success");
     } catch (err) {
       console.error("Backup trigger failed:", err);
