@@ -19,7 +19,8 @@ export default function PageMemberAccount({
   DIMENSIONS = [], 
   tenantId = "", 
   LEDGER = [], 
-  USERS = [] 
+  USERS = [],
+  loading = false
 }) {
   const { user, hasPermission, isSuperAdmin } = useAuth();
   const contact = CONTACTS[0]; // Since CONTACTS is globally filtered for the logged-in member
@@ -106,6 +107,7 @@ export default function PageMemberAccount({
 
   // Get payment schedules for this contact/investments
   const partySchedules = useMemo(() => {
+    if (!contact) return [];
     return SCHEDULES.filter(s => {
       const sPId = String(s.contact_id || "").trim();
       const isMatched = sPId === dpId || (dpDocId && sPId === dpDocId);
@@ -650,6 +652,29 @@ export default function PageMemberAccount({
         );
     }
   };
+
+  if (!contact) {
+    if (loading) {
+      return (
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%", color: t.textMuted, fontSize: 14 }}>
+          Loading account details...
+        </div>
+      );
+    }
+    return (
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "100%", color: t.textMuted, gap: 16, padding: 40 }}>
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12, maxWidth: 450, textAlign: "center" }}>
+          <div style={{ fontSize: 18, fontWeight: 700, color: isDark ? "#fff" : "#1C1917" }}>No Profile Linked</div>
+          <div style={{ fontSize: 14, color: t.textSecondary, lineHeight: 1.6 }}>
+            Your user account is not currently linked to an investor or borrower profile.
+          </div>
+          <div style={{ fontSize: 13.5, color: t.textMuted, lineHeight: 1.5, background: isDark ? "rgba(255,255,255,0.03)" : "#F9FAFB", border: `1px solid ${t.surfaceBorder}`, padding: "12px 18px", borderRadius: 10, marginTop: 8 }}>
+            Please contact support to link your user credentials with your contact profile.
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const showData = isEditing ? editData : contact;
 

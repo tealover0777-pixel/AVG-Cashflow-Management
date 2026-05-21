@@ -912,6 +912,7 @@ function AppContent() {
                       tenantId={activeTenantId}
                       LEDGER={LEDGER}
                       USERS={rawUsers}
+                      loading={loading}
                     />
                   )}
                 </>
