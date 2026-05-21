@@ -2,8 +2,9 @@ import React, { useState } from "react";
 import { auth } from "../firebase";
 import { sendPasswordResetEmail } from "firebase/auth";
 
-export default function PageLanding({ login }) {
+export default function PageLanding({ login, demoVideoUrl }) {
   const [showLogin, setShowLogin] = useState(false);
+  const [showDemoVideo, setShowDemoVideo] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -76,7 +77,11 @@ export default function PageLanding({ login }) {
               <button className="bg-primary text-on-primary px-10 py-4 rounded-lg font-bold shadow-lg hover:shadow-xl transition-all">
                 Get Started
               </button>
-              <button className="bg-surface-container-lowest border border-outline-variant text-on-surface-variant px-10 py-4 rounded-lg font-bold hover:bg-surface transition-all flex items-center justify-center gap-2">
+              <button 
+                onClick={() => demoVideoUrl && setShowDemoVideo(true)}
+                className={`bg-surface-container-lowest border border-outline-variant text-on-surface-variant px-10 py-4 rounded-lg font-bold hover:bg-surface transition-all flex items-center justify-center gap-2 ${!demoVideoUrl ? 'opacity-50 cursor-not-allowed' : ''}`}
+                disabled={!demoVideoUrl}
+              >
                 <span className="material-symbols-outlined">play_circle</span>
                 Watch Demo
               </button>
@@ -343,6 +348,27 @@ export default function PageLanding({ login }) {
                 ) : "Forgot your password?"}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Demo Video Modal */}
+      {showDemoVideo && demoVideoUrl && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-on-surface/60 backdrop-blur-md transition-opacity" onClick={() => setShowDemoVideo(false)}></div>
+          <div className="relative w-full max-w-4xl aspect-video rounded-2xl overflow-hidden shadow-2xl border border-outline-variant bg-black animate-in fade-in zoom-in duration-300">
+            <button
+              onClick={() => setShowDemoVideo(false)}
+              className="absolute top-4 right-4 z-10 w-10 h-10 rounded-full bg-black/60 hover:bg-black/80 flex items-center justify-center text-white transition-colors backdrop-blur-sm"
+            >
+              <span className="material-symbols-outlined text-[20px]">close</span>
+            </button>
+            <video
+              src={demoVideoUrl}
+              controls
+              autoPlay
+              className="w-full h-full object-contain"
+            />
           </div>
         </div>
       )}

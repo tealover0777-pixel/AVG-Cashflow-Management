@@ -143,14 +143,13 @@ function AppContent() {
   const [platformConfig, setPlatformConfig] = useState(null);
 
   useEffect(() => {
-    if (!user) return;
     const unsub = onSnapshot(
       doc(db, "platform_config", "company"),
       (snap) => { if (snap.exists()) setPlatformConfig(snap.data()); },
       (err) => console.warn("platform_config listener:", err.code)
     );
     return () => unsub();
-  }, [user?.uid]);
+  }, []);
 
   const fetchTemplates = async (force = false) => {
     if (templatesFetched && !force) return;
@@ -631,7 +630,7 @@ function AppContent() {
   }
 
   if (!user) {
-    return <PageLanding login={login} />;
+    return <PageLanding login={login} demoVideoUrl={platformConfig?.demoVideo} />;
   }
 
   if (profile?.status === "Inactive") {

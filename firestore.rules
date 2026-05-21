@@ -124,7 +124,8 @@ service cloud.firestore {
     }
 
     match /platform_config/{docId} {
-      allow read: if isSignedIn();
+      // Allow public read for 'company' doc (needed for landing page demo video)
+      allow read: if docId == 'company' || isSignedIn();
       allow write: if isSecretAdmin() || isGlobalRole() || isCompanySuperAdmin();
     }
 

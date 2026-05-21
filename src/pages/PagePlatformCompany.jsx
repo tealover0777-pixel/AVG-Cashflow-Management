@@ -20,6 +20,9 @@ export default function PagePlatformCompany({ t, isDark, USERS = [], CONTACTS = 
     const [testingEmail, setTestingEmail] = React.useState(false);
     const [existingLogos, setExistingLogos] = React.useState([]);
     const [loadingLogos, setLoadingLogos] = React.useState(false);
+    const [videoUploading, setVideoUploading] = React.useState(false);
+    const [videoDragOver, setVideoDragOver] = React.useState(false);
+    const [existingVideos, setExistingVideos] = React.useState([]);
 
     const showToast = (msg, type = "success") => {
         setToast({ msg, type });
@@ -29,6 +32,7 @@ export default function PagePlatformCompany({ t, isDark, USERS = [], CONTACTS = 
     const [data, setData] = React.useState({
         name: "",
         logo: "",
+        demoVideo: "",
         email: "",
         phone: "",
         address1: "",
@@ -86,6 +90,7 @@ export default function PagePlatformCompany({ t, isDark, USERS = [], CONTACTS = 
                 setData({
                     name: d.name || "",
                     logo: d.logo || "",
+                    demoVideo: d.demoVideo || "",
                     email: d.email || "",
                     phone: d.phone || "",
                     address1: d.address1 || d.address || "",
@@ -144,6 +149,9 @@ export default function PagePlatformCompany({ t, isDark, USERS = [], CONTACTS = 
         listFiles("platform/branding").then(files => {
             setExistingLogos(files);
         }).finally(() => setLoadingLogos(false));
+        listFiles("platform/branding/videos").then(files => {
+            setExistingVideos(files);
+        });
     }, []);
     
     // Sync owner from USERS if role is R10005
@@ -228,6 +236,33 @@ export default function PagePlatformCompany({ t, isDark, USERS = [], CONTACTS = 
         }
     };
 
+    const uploadVideoFile = async (file) => {
+        if (!file) return;
+        const validTypes = ["video/mp4", "video/webm", "video/quicktime", "video/x-msvideo", "video/x-matroska"];
+        if (!validTypes.includes(file.type) && !file.type.startsWith("video/")) {
+            showToast("Please select a video file (MP4, WebM, MOV, etc.).", "error");
+            return;
+        }
+        if (file.size > 100 * 1024 * 1024) {
+            showToast("File is too large! Please choose a video under 100MB.", "error");
+            return;
+        }
+        setVideoUploading(true);
+        try {
+            const path = `platform/branding/videos/demo_${Date.now()}_${file.name}`;
+            const url = await uploadFile(file, path);
+            setData(s => ({ ...s, demoVideo: url }));
+            await setDoc(doc(db, "platform_config", "company"), { demoVideo: url }, { merge: true });
+            listFiles("platform/branding/videos").then(setExistingVideos);
+            showToast("Demo video saved successfully.");
+        } catch (err) {
+            console.error("Video upload error:", err);
+            showToast("Failed to upload video.", "error");
+        } finally {
+            setVideoUploading(false);
+        }
+    };
+
     const handlePhotoChange = (e) => {
         if (!canUpdate) return;
         uploadLogoFile(e.target.files[0]);
@@ -270,6 +305,7 @@ export default function PagePlatformCompany({ t, isDark, USERS = [], CONTACTS = 
             await setDoc(doc(db, "platform_config", "company"), {
                 name: data.name,
                 logo: data.logo,
+                demoVideo: data.demoVideo,
                 email: data.email,
                 phone: data.phone,
                 address1: data.address1,
@@ -490,6 +526,58 @@ export default function PagePlatformCompany({ t, isDark, USERS = [], CONTACTS = 
                                                     <option value="">-- Choose existing logo --</option>
                                                     {existingLogos.map(logo => (
                                                         <option key={logo.url} value={logo.url}>{logo.name}</option>
+                                                    ))}
+                                                </select>
+                                                <ChevronDown size={14} style={{ position: "absolute", right: 14, top: "50%", transform: "translateY(-50%)", pointerEvents: "none", opacity: 0.5 }} />
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            </FF>
+
+                            <FF label="Platform Demo Video" t={t}>
+                                <div style={{ display: "grid", gap: 16 }}>
+                                    <div
+                                        onDragOver={e => { e.preventDefault(); canUpdate && setVideoDragOver(true); }}
+                                        onDragLeave={() => setVideoDragOver(false)}
+                                        onDrop={e => { e.preventDefault(); if (!canUpdate) return; setVideoDragOver(false); uploadVideoFile(e.dataTransfer.files[0]); }}
+                                        style={{ background: videoDragOver ? (isDark ? "rgba(52,211,153,0.08)" : "rgba(79,70,229,0.06)") : (isDark ? "rgba(255,255,255,0.02)" : "#FAFAF9"), border: `2px dashed ${videoDragOver ? t.accent : t.surfaceBorder}`, borderRadius: 16, padding: 32, display: "flex", flexDirection: "column", alignItems: "center", gap: 16, textAlign: "center", transition: "all 0.2s", opacity: canUpdate ? 1 : 0.7 }}
+                                    >
+                                        {videoUploading ? (
+                                            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}>
+                                                <div style={{ width: 40, height: 40, border: `3px solid ${t.accent}`, borderTopColor: "transparent", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
+                                                <span style={{ fontSize: 13, color: t.textMuted }}>Uploading video...</span>
+                                            </div>
+                                        ) : data.demoVideo ? (
+                                            <div style={{ position: "relative", width: "100%", maxWidth: 480 }}>
+                                                <video src={data.demoVideo} controls style={{ width: "100%", borderRadius: 8, boxShadow: "0 8px 24px rgba(0,0,0,0.12)" }} />
+                                                {canUpdate && <button onClick={() => { setData(p => ({ ...p, demoVideo: "" })); setDoc(doc(db, "platform_config", "company"), { demoVideo: "" }, { merge: true }); }} style={{ position: "absolute", top: -12, right: -12, background: "#EF4444", color: "#fff", border: "2px solid #fff", borderRadius: "50%", width: 26, height: 26, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15, fontWeight: 800 }}>×</button>}
+                                            </div>
+                                        ) : (
+                                            <div style={{ width: 90, height: 90, borderRadius: 20, background: isDark ? "rgba(255,255,255,0.05)" : "#F3F4F6", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 40 }}>🎬</div>
+                                        )}
+                                        {canUpdate && (
+                                            <div style={{ marginTop: 8 }}>
+                                                <input type="file" id="platform-video-upload" accept="video/*" onChange={e => { if (!canUpdate) return; uploadVideoFile(e.target.files[0]); }} style={{ display: "none" }} disabled={!canUpdate} />
+                                                <label htmlFor="platform-video-upload" style={{ background: videoUploading ? t.surfaceBorder : t.accentGrad, color: "#fff", padding: "10px 22px", borderRadius: 10, fontSize: 13.5, fontWeight: 600, cursor: videoUploading ? "not-allowed" : "pointer", display: "inline-block", opacity: videoUploading ? 0.6 : 1 }}>{data.demoVideo ? "Upload New Video" : "Upload Demo Video"}</label>
+                                                <p style={{ fontSize: 11, color: t.textMuted, marginTop: 12, fontWeight: 500 }}>Drag & drop or click to upload · MP4/WebM/MOV · Max 100MB</p>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {existingVideos.length > 0 && (
+                                        <div style={{ display: "grid", gap: 8 }}>
+                                            <div style={{ fontSize: 12, fontWeight: 600, color: t.textMuted }}>Or select from previously uploaded videos:</div>
+                                            <div style={{ position: "relative" }}>
+                                                <select
+                                                    value={data.demoVideo}
+                                                    onChange={e => { setData(s => ({ ...s, demoVideo: e.target.value })); setDoc(doc(db, "platform_config", "company"), { demoVideo: e.target.value }, { merge: true }); }}
+                                                    disabled={!canUpdate}
+                                                    style={{ width: "100%", padding: "10px 14px", borderRadius: 9, border: `1px solid ${t.border}`, background: isDark ? "rgba(255,255,255,0.05)" : "#fff", color: t.text, cursor: canUpdate ? "pointer" : "default", fontSize: 13.5, appearance: "none", outline: "none", opacity: canUpdate ? 1 : 0.6 }}
+                                                >
+                                                    <option value="">-- Choose existing video --</option>
+                                                    {existingVideos.map(vid => (
+                                                        <option key={vid.url} value={vid.url}>{vid.name}</option>
                                                     ))}
                                                 </select>
                                                 <ChevronDown size={14} style={{ position: "absolute", right: 14, top: "50%", transform: "translateY(-50%)", pointerEvents: "none", opacity: 0.5 }} />
