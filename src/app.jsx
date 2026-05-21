@@ -131,10 +131,14 @@ function AppContent() {
   }, [activePage]);
 
   useEffect(() => {
-    if (isMember && activePage !== "Member Account") {
+    const hasMemberAccount = hasPermission && hasPermission("MEMBERACCOUNT_VIEW");
+    const hasDashboard = hasPermission && hasPermission("DASHBOARD_VIEW");
+    if ((isMember || hasMemberAccount) && !hasDashboard && activePage === "Dashboard") {
       setActivePage("Member Account");
+    } else if (!hasDashboard && !isMember && !hasMemberAccount && activePage === "Dashboard" && hasPermission) {
+      setActivePage("Profile");
     }
-  }, [isMember, activePage]);
+  }, [isMember, hasPermission, activePage]);
 
   const [selectedDealId, setSelectedDealId] = useState(null);
   const [selectedDistMemoId, setSelectedDistMemoId] = useState(null);
@@ -775,7 +779,7 @@ function AppContent() {
         <div style={{ padding: "16px", borderTop: `1px solid ${t.sidebarBorder}` }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <Tooltip text="View your profile settings" t={t}>
-              <div onClick={() => setActivePage(isMember ? "Member Account" : "Profile")} style={{ cursor: "pointer", width: isDark ? 32 : 34, height: isDark ? 32 : 34, borderRadius: isDark ? 8 : 9, background: isDark ? "linear-gradient(135deg,#60A5FA,#3B82F6)" : "linear-gradient(135deg,#F472B6,#EC4899)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff" }}>
+              <div onClick={() => setActivePage((isMember || (hasPermission && hasPermission("MEMBERACCOUNT_VIEW"))) ? "Member Account" : "Profile")} style={{ cursor: "pointer", width: isDark ? 32 : 34, height: isDark ? 32 : 34, borderRadius: isDark ? 8 : 9, background: isDark ? "linear-gradient(135deg,#60A5FA,#3B82F6)" : "linear-gradient(135deg,#F472B6,#EC4899)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff" }}>
                 <User size={18} />
               </div>
             </Tooltip>
@@ -834,7 +838,7 @@ function AppContent() {
             )}
           </div>
           <div style={{ display: "flex", gap: 16, fontSize: 12.5, alignItems: "center" }}>
-            <span style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer" }} onClick={() => setActivePage(isMember ? "Member Account" : "Profile")}>
+            <span style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer" }} onClick={() => setActivePage((isMember || (hasPermission && hasPermission("MEMBERACCOUNT_VIEW"))) ? "Member Account" : "Profile")}>
               <span style={{ color: t.text, fontWeight: 500 }}>
                 {[profile?.first_name, profile?.last_name].filter(Boolean).join(" ") || user.email}
               </span>
@@ -870,7 +874,7 @@ function AppContent() {
               </div>
               : (
                 <>
-                  {activePage === "Dashboard" && <PageDashboard t={t} isDark={isDark} DEALS={DEALS} INVESTMENTS={INVESTMENTS} CONTACTS={CONTACTS} SCHEDULES={SCHEDULES} PAYMENTS={PAYMENTS} MONTHLY={MONTHLY} DIMENSIONS={DIMENSIONS} setActivePage={setActivePage} />}
+                  {activePage === "Dashboard" && hasPermission("DASHBOARD_VIEW") && <PageDashboard t={t} isDark={isDark} DEALS={DEALS} INVESTMENTS={INVESTMENTS} CONTACTS={CONTACTS} SCHEDULES={SCHEDULES} PAYMENTS={PAYMENTS} MONTHLY={MONTHLY} DIMENSIONS={DIMENSIONS} setActivePage={setActivePage} />}
                   {activePage === "Deals" && <PageDeals t={t} isDark={isDark} DEALS={DEALS} INVESTMENTS={INVESTMENTS} SCHEDULES={SCHEDULES} FEES_DATA={FEES_DATA} DIMENSIONS={DIMENSIONS} collectionPath={isGlobalConsolidated ? "GROUP:deals" : fetchPaths.deals} setActivePage={setActivePage} setSelectedDealId={setSelectedDealId} tenantFeatures={tenantFeatures} />}
                   {activePage === "Deal Summary" && <PageDealSummary t={t} isDark={isDark} dealId={selectedDealId} DEALS={DEALS} INVESTMENTS={INVESTMENTS} CONTACTS={CONTACTS} DIMENSIONS={DIMENSIONS} FEES_DATA={FEES_DATA} SCHEDULES={SCHEDULES} USERS={rawUsers} LEDGER={LEDGER} setActivePage={setActivePage} selectedDistMemoId={selectedDistMemoId} setSelectedDistMemoId={setSelectedDistMemoId} investmentCollection={isGlobalConsolidated ? "investments" : fetchPaths.investments} scheduleCollection={isGlobalConsolidated ? "paymentSchedules" : fetchPaths.paymentSchedules} tenantId={activeTenantId} tenantFeatures={tenantFeatures} />}
                   {activePage === "Contacts" && <PageContacts t={t} isDark={isDark} CONTACTS={CONTACTS} INVESTMENTS={INVESTMENTS} SCHEDULES={SCHEDULES} DEALS={DEALS} collectionPath={isGlobalConsolidated ? "GROUP:contacts" : fetchPaths.contacts} DIMENSIONS={DIMENSIONS} tenantId={activeTenantId} LEDGER={LEDGER} USERS={rawUsers} ROLES={rawRoles} />}

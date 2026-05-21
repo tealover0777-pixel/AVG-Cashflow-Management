@@ -186,7 +186,10 @@ const NAV_ITEMS = [
 ];
 
 export const getNav = (isSuper, _isAdmin, hasPermission, isR10010, isMember = false) => {
-  if (isMember) {
+  const hasMemberAccount = hasPermission && hasPermission("MEMBERACCOUNT_VIEW");
+  const hasDashboard = hasPermission && hasPermission("DASHBOARD_VIEW");
+
+  if (isMember || (hasMemberAccount && !hasDashboard)) {
     const memberNav = [{ label: "Member Account", icon: "User" }];
     if (typeof window !== 'undefined') window.__NAV__ = memberNav;
     return memberNav;

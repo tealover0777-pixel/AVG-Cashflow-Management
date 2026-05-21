@@ -19,6 +19,50 @@ export function AuthProvider({ children }) {
         let profileUnsub = null;
         let tenantUnsub = null;
 
+        const getPermissionsAndRoleName = async (roleVal, tId) => {
+            let userPermissions = [];
+            let roleName = roleVal || "";
+            let isGlobalRole = false;
+
+            if (!roleVal) {
+                return { userPermissions, roleName, isGlobalRole };
+            }
+
+            try {
+                const roleDoc = await getDoc(doc(db, "role_types", roleVal));
+                let roleData = roleDoc.exists() ? roleDoc.data() : null;
+
+                if (!roleData && tId && tId !== "GLOBAL") {
+                    const tRoleDoc = await getDoc(doc(db, `tenants/${tId}/roles`, roleVal));
+                    if (tRoleDoc.exists()) roleData = tRoleDoc.data();
+                }
+
+                if (roleData) {
+                    roleName = roleData.role_name || roleData.name || roleVal;
+                    if (roleData.IsGlobal || roleData.isGlobal) isGlobalRole = true;
+                    const rawPerms = roleData.Permissions || roleData.Permission || roleData.permissions || [];
+                    userPermissions = Array.isArray(rawPerms) ? rawPerms : (typeof rawPerms === "string" ? rawPerms.split(",").map(p => p.trim()).filter(Boolean) : []);
+                } else {
+                    const matchedKey = Object.keys(DEFAULT_ROLE_PERMISSIONS).find(k => k.toLowerCase() === roleVal.toLowerCase());
+                    userPermissions = matchedKey ? DEFAULT_ROLE_PERMISSIONS[matchedKey] : [];
+                    roleName = matchedKey || roleVal;
+                }
+            } catch (err) {
+                console.error("Role fetch error:", err);
+                const matchedKey = Object.keys(DEFAULT_ROLE_PERMISSIONS).find(k => k.toLowerCase() === roleVal.toLowerCase());
+                userPermissions = matchedKey ? DEFAULT_ROLE_PERMISSIONS[matchedKey] : [];
+                roleName = matchedKey || roleVal;
+            }
+
+            if (roleVal.toLowerCase() === "l2 admin") {
+                userPermissions = [...DEFAULT_ROLE_PERMISSIONS["L2 Admin"]];
+                roleName = "L2 Admin";
+                isGlobalRole = true;
+            }
+
+            return { userPermissions, roleName, isGlobalRole };
+        };
+
         const authUnsub = onAuthStateChanged(auth, async (u) => {
             if (profileUnsub) profileUnsub();
             if (tenantUnsub) tenantUnsub();
@@ -58,35 +102,9 @@ export function AuthProvider({ children }) {
                     const tenantId = fetchedProfile.tenantId || fetchedProfile.tenant_id || "";
 
                     // Fetch role permissions and display name
-                    let userPermissions = [];
-                    try {
-                        const roleDoc = await getDoc(doc(db, "role_types", role));
-                        let roleData = roleDoc.exists() ? roleDoc.data() : null;
-
-                        if (!roleData && tenantId) {
-                            const tRoleDoc = await getDoc(doc(db, `tenants/${tenantId}/roles`, role));
-                            if (tRoleDoc.exists()) roleData = tRoleDoc.data();
-                        }
-
-                        if (roleData) {
-                            fetchedProfile.roleName = roleData.role_name || roleData.name || role;
-                            if (roleData.IsGlobal) fetchedProfile.isGlobalRole = true;
-                            const rawPerms = roleData.Permissions || roleData.Permission || roleData.permissions || [];
-                            userPermissions = Array.isArray(rawPerms) ? rawPerms : (typeof rawPerms === "string" ? rawPerms.split(",").map(p => p.trim()).filter(Boolean) : []);
-                        } else {
-                            userPermissions = DEFAULT_ROLE_PERMISSIONS[role] || [];
-                            fetchedProfile.roleName = role;
-                        }
-                    } catch (err) {
-                        console.error("Role fetch error:", err);
-                        userPermissions = DEFAULT_ROLE_PERMISSIONS[role] || [];
-                    }
-
-                    if (role === "L2 Admin") {
-                        userPermissions = [...DEFAULT_ROLE_PERMISSIONS["L2 Admin"]];
-                        fetchedProfile.roleName = role;
-                        fetchedProfile.isGlobalRole = true;
-                    }
+                    const { userPermissions, roleName, isGlobalRole } = await getPermissionsAndRoleName(role, tenantId);
+                    fetchedProfile.roleName = roleName;
+                    if (isGlobalRole) fetchedProfile.isGlobalRole = true;
 
                     // Auto-activate if pending
                     if (fetchedProfile.status === "Pending" || !fetchedProfile.status) {
@@ -102,32 +120,47 @@ export function AuthProvider({ children }) {
                         const qUsers = query(collection(db, `tenants/${tenantId}/users`), where("auth_uid", "==", u.uid));
                         const qContacts = query(collection(db, `tenants/${tenantId}/contacts`), where("auth_uid", "==", u.uid));
 
-                        const unsubUsers = onSnapshot(qUsers, (tSnap) => {
+                        const unsubUsers = onSnapshot(qUsers, async (tSnap) => {
                             if (!tSnap.empty) {
+                                const tenantData = tSnap.docs[0].data();
+                                const resolvedRole = tenantData?.role_id || tenantData?.role || fetchedProfile.role || "";
+                                const resolvedTenantId = tenantData?.tenantId || tenantId || "";
+                                
+                                const { userPermissions: tPerms, roleName: tRoleName, isGlobalRole: tIsGlobal } = 
+                                    await getPermissionsAndRoleName(resolvedRole, resolvedTenantId);
+
                                 setProfile(prev => {
-                                    const tenantData = tSnap.docs[0].data();
                                     return {
                                         ...prev,
                                         ...tenantData, // tenant-scoped profile details take precedence for tenant-scoped users
-                                        role: prev?.role || tenantData?.role_id || tenantData?.role || "",
-                                        tenantId: prev?.tenantId || tenantData?.tenantId || "",
+                                        role: resolvedRole,
+                                        tenantId: resolvedTenantId,
+                                        roleName: tRoleName,
+                                        isGlobalRole: tIsGlobal || prev?.isGlobalRole,
                                         isContact: false
                                     };
                                 });
+                                setPermissions(tPerms);
                             }
                         });
 
-                        const unsubContacts = onSnapshot(qContacts, (cSnap) => {
+                        const unsubContacts = onSnapshot(qContacts, async (cSnap) => {
                             if (!cSnap.empty) {
+                                const contactData = cSnap.docs[0].data();
+                                let fName = contactData.first_name || "";
+                                let lName = contactData.last_name || "";
+                                if (!fName && contactData.name) {
+                                    const parts = contactData.name.trim().split(/\s+/);
+                                    fName = parts[0] || "";
+                                    lName = parts.slice(1).join(" ") || "";
+                                }
+                                const resolvedRole = contactData?.role_id || contactData?.role || fetchedProfile.role || "";
+                                const resolvedTenantId = contactData?.tenantId || tenantId || "";
+
+                                const { userPermissions: cPerms, roleName: cRoleName, isGlobalRole: cIsGlobal } = 
+                                    await getPermissionsAndRoleName(resolvedRole, resolvedTenantId);
+
                                 setProfile(prev => {
-                                    const contactData = cSnap.docs[0].data();
-                                    let fName = contactData.first_name || "";
-                                    let lName = contactData.last_name || "";
-                                    if (!fName && contactData.name) {
-                                        const parts = contactData.name.trim().split(/\s+/);
-                                        fName = parts[0] || "";
-                                        lName = parts.slice(1).join(" ") || "";
-                                    }
                                     return {
                                         ...prev,
                                         ...contactData,
@@ -135,11 +168,14 @@ export function AuthProvider({ children }) {
                                         last_name: lName,
                                         address1: contactData.address1 || contactData.street1 || "",
                                         address2: contactData.address2 || contactData.street2 || "",
-                                        role: prev?.role || contactData?.role_id || contactData?.role || "",
-                                        tenantId: prev?.tenantId || contactData?.tenantId || "",
+                                        role: resolvedRole,
+                                        tenantId: resolvedTenantId,
+                                        roleName: cRoleName,
+                                        isGlobalRole: cIsGlobal || prev?.isGlobalRole,
                                         isContact: true
                                     };
                                 });
+                                setPermissions(cPerms);
                             }
                         });
 
