@@ -367,7 +367,9 @@ export default function PageBackupRestore({ t, isDark, TENANTS = [] }) {
         try {
           await deleteObject(ref(storage, bkp.storagePath));
         } catch (stErr) {
-          console.warn("Failed to delete backup from storage:", stErr);
+          if (stErr.code !== 'storage/object-not-found') {
+            console.warn("Failed to delete backup from storage:", stErr.message);
+          }
         }
       }
 
@@ -637,7 +639,9 @@ export default function PageBackupRestore({ t, isDark, TENANTS = [] }) {
         try {
           await deleteObject(ref(storage, gb.storagePath));
         } catch (stErr) {
-          console.warn("Failed to delete global backup from storage:", stErr);
+          if (stErr.code !== 'storage/object-not-found') {
+            console.warn("Failed to delete global backup from storage:", stErr.message);
+          }
         }
       }
       try {
