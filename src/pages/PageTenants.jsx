@@ -22,6 +22,8 @@ export default function PageTenants({ t, isDark, TENANTS = [], GLOBAL_USERS = []
     const gridRef = useRef(null);
     const [pageSize, setPageSize] = useState(30);
     const [invitingId, setInvitingId] = useState(null);
+    const [inviteResult, setInviteResult] = useState(null);
+    const [linkCopied, setLinkCopied] = useState(false);
 
     const handleInviteOwner = async (row) => {
         if (!row.email) {
@@ -31,7 +33,7 @@ export default function PageTenants({ t, isDark, TENANTS = [], GLOBAL_USERS = []
         setInvitingId(row.docId);
         try {
             const inviteUserFn = httpsCallable(functions, "inviteUser");
-            await inviteUserFn({
+            const result = await inviteUserFn({
                 email: row.email,
                 role: row.role_id || "R10005",
                 tenantId: row.docId,
@@ -41,7 +43,13 @@ export default function PageTenants({ t, isDark, TENANTS = [], GLOBAL_USERS = []
                 notes: row.notes || "",
                 inviteUser: true
             });
-            showToast(`Invite sent successfully to ${row.email}`, "success");
+            setInviteResult({
+                email: row.email,
+                user_id: result.data.user_id,
+                emailSent: result.data.emailSent,
+                link: result.data.link,
+                roleName: "Owner"
+            });
         } catch (err) {
             console.error("Invite error:", err);
             showToast("Invite failed: " + (err.message || "Unknown error"), "error");
@@ -435,6 +443,50 @@ export default function PageTenants({ t, isDark, TENANTS = [], GLOBAL_USERS = []
         </Modal>
 
         <DelModal target={delT} onClose={() => setDelT(null)} onConfirm={handleDeleteTenant} label="This tenant" t={t} isDark={isDark} />
+
+        {/* Invite Result Modal with Password Reset Link */}
+        <Modal
+            open={!!inviteResult}
+            onClose={() => { setInviteResult(null); setLinkCopied(false); }}
+            title={inviteResult?.emailSent ? "Invitation Sent" : "User Created"}
+            onSave={inviteResult?.link ? () => { navigator.clipboard.writeText(inviteResult.link); setLinkCopied(true); } : null}
+            saveLabel={linkCopied ? "✅ Copied!" : "📋 Copy Link"}
+            width={520} t={t} isDark={isDark}
+        >
+            {inviteResult && (
+                <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                    <div style={{ display: "flex", alignItems: "flex-start", gap: 14, padding: "14px 16px", borderRadius: 10, background: inviteResult.emailSent ? (isDark ? "rgba(34,197,94,0.08)" : "#F0FDF4") : (isDark ? "rgba(239,68,68,0.08)" : "#FEF2F2"), border: `1px solid ${inviteResult.emailSent ? "rgba(34,197,94,0.25)" : "rgba(239,68,68,0.25)"}` }}>
+                        <span style={{ fontSize: 28, lineHeight: 1 }}>{inviteResult.emailSent ? "📧" : "❌"}</span>
+                        <div>
+                            <div style={{ fontSize: 14, fontWeight: 700, color: inviteResult.emailSent ? "#16a34a" : "#dc2626", marginBottom: 4 }}>
+                                {inviteResult.emailSent ? "Email sent successfully" : "Email could not be sent"}
+                            </div>
+                            <div style={{ fontSize: 13, color: t.textMuted, lineHeight: 1.5 }}>
+                                {inviteResult.emailSent
+                                    ? <><strong>{inviteResult.email}</strong> has been invited as <strong>{inviteResult.roleName || "Owner"}</strong>. A password-reset link has been emailed — you can also copy it below.</>
+                                    : <>User <strong>{inviteResult.email}</strong> was created as <strong>{inviteResult.roleName || "Owner"}</strong> but the invitation email failed. Copy the link below and share it manually.</>}
+                            </div>
+                        </div>
+                    </div>
+                    {inviteResult.user_id && (
+                        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                            <span style={{ fontSize: 12, color: t.textMuted, whiteSpace: "nowrap" }}>User ID</span>
+                            <span style={{ fontFamily: t.mono, fontSize: 13, fontWeight: 700, color: t.accent, background: isDark ? "rgba(255,255,255,0.08)" : "#F0F9FF", padding: "3px 10px", borderRadius: 6 }}>{inviteResult.user_id}</span>
+                        </div>
+                    )}
+                    {inviteResult.link && (
+                        <div>
+                            <div style={{ fontSize: 12, fontWeight: 600, color: t.textMuted, marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                                {inviteResult.emailSent ? "Password Reset Link (also emailed)" : "Invitation Link"}
+                            </div>
+                            <div style={{ background: isDark ? "rgba(255,255,255,0.04)" : "#F5F4F1", border: `1px solid ${t.surfaceBorder}`, borderRadius: 9, padding: "12px 14px", fontFamily: t.mono, fontSize: 11.5, wordBreak: "break-all", color: t.accent, lineHeight: 1.6 }}>
+                                {inviteResult.link}
+                            </div>
+                        </div>
+                    )}
+                </div>
+            )}
+        </Modal>
         {toast && (
             <div style={{ position: "fixed", bottom: 28, right: 28, zIndex: 9999, background: toast.type === "success" ? (isDark ? "#052e16" : "#f0fdf4") : (isDark ? "#2d0a0a" : "#fef2f2"), border: `1px solid ${toast.type === "success" ? "#22c55e" : "#ef4444"}`, color: toast.type === "success" ? "#22c55e" : "#ef4444", borderRadius: 12, padding: "14px 20px", fontSize: 13.5, fontWeight: 600, boxShadow: "0 8px 32px rgba(0,0,0,0.18)", display: "flex", alignItems: "center", gap: 10, maxWidth: 380 }}>
                 <span>{toast.type === "success" ? "✅" : "❌"}</span>
