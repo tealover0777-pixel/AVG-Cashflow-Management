@@ -448,49 +448,13 @@ export default function PageBackupRestore({ t, isDark, TENANTS = [] }) {
       }));
     } catch (err) {
       console.warn("Could not fetch global backups:", err);
-      // Seed demo entry for visual completeness
-      if (globalBackups.length === 0) {
-        const demoTenantPayloads = {};
-        TENANTS.forEach(t => {
-          demoTenantPayloads[t.id] = {
-            tenantName: t.name,
-            snapshot: {
-              deals: [
-                { id: "deal_001", name: "Commercial Office Park", amount: 4500000, status: "Active" }
-              ],
-              contacts: [
-                { id: "contact_001", first_name: "John", last_name: "Doe", email: "john@investor.com" }
-              ],
-              investments: [
-                { id: "inv_001", deal_id: "deal_001", contact_id: "contact_001", amount_committed: 250000 }
-              ],
-              paymentSchedules: [
-                { id: "sch_001", deal_id: "deal_001", investment_id: "inv_001", payment_amount: 1500, due_date: "2026-06-01", status: "Pending" }
-              ]
-            },
-            recordCount: 4,
-            sizeBytes: 12000
-          };
-        });
-
-        setGlobalBackups([{
-          id: "gb_demo_" + Date.now(),
-          globalBackupId: "GB_DEMO",
-          createdAt: new Date(Date.now() - 86400000).toISOString(),
-          status: "completed",
-          tenantsProcessed: TENANTS.length,
-          totalSizeBytes: 512000,
-          initiatedBy: user?.email || "system",
-          triggerType: "manual",
-          tenantPayloads: demoTenantPayloads
-        }]);
-      }
+      // No fallback to avoid ghost backups appearing
     }
   };
 
   useEffect(() => {
-    if (showGlobalRegistry) fetchGlobalBackups();
-  }, [showGlobalRegistry]);
+    fetchGlobalBackups();
+  }, []);
 
   const handleRunGlobalBackup = async () => {
     setIsRunningGlobalBackup(true);
@@ -2265,7 +2229,7 @@ export default function PageBackupRestore({ t, isDark, TENANTS = [] }) {
       {/* ═══════════════════════════════════════════════════════════════════ */}
       <div style={{ marginTop: 24 }}>
         <button
-          onClick={() => { setShowGlobalRegistry(p => !p); if (!showGlobalRegistry) fetchGlobalBackups(); }}
+          onClick={() => setShowGlobalRegistry(p => !p)}
           style={{
             display: "flex",
             alignItems: "center",
