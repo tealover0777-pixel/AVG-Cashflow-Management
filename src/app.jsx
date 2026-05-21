@@ -32,6 +32,7 @@ import PageResourceManagement from "./pages/PageResourceManagement";
 import PageCompany from "./pages/PageCompany";
 import PagePlatformCompany from "./pages/PagePlatformCompany";
 import PageBackupRestore from "./pages/PageBackupRestore";
+import PageMemberAccount from "./pages/PageMemberAccount";
 import {
   LayoutDashboard, Briefcase, Users, PieChart, Calendar, 
   CreditCard, BarChart3, Settings, Shield, UserCircle, 
@@ -128,6 +129,12 @@ function AppContent() {
   useEffect(() => {
     if (activePage !== "Email Builder") setPrevPage(activePage);
   }, [activePage]);
+
+  useEffect(() => {
+    if (isMember && activePage !== "Member Account") {
+      setActivePage("Member Account");
+    }
+  }, [isMember, activePage]);
 
   const [selectedDealId, setSelectedDealId] = useState(null);
   const [selectedDistMemoId, setSelectedDistMemoId] = useState(null);
@@ -623,7 +630,7 @@ function AppContent() {
     return { name: d.category || d.name || d.id, items, ...style, doc_id: d.id || d.doc_id };
   });
 
-  const nav = getNav(isSuperAdmin, isTenantAdmin, hasPermission, isR10010);
+  const nav = getNav(isSuperAdmin, isTenantAdmin, hasPermission, isR10010, isMember);
 
   if (isAuthAction) {
     return <PageAuthAction />;
@@ -768,7 +775,7 @@ function AppContent() {
         <div style={{ padding: "16px", borderTop: `1px solid ${t.sidebarBorder}` }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <Tooltip text="View your profile settings" t={t}>
-              <div onClick={() => setActivePage("Profile")} style={{ cursor: "pointer", width: isDark ? 32 : 34, height: isDark ? 32 : 34, borderRadius: isDark ? 8 : 9, background: isDark ? "linear-gradient(135deg,#60A5FA,#3B82F6)" : "linear-gradient(135deg,#F472B6,#EC4899)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff" }}>
+              <div onClick={() => setActivePage(isMember ? "Member Account" : "Profile")} style={{ cursor: "pointer", width: isDark ? 32 : 34, height: isDark ? 32 : 34, borderRadius: isDark ? 8 : 9, background: isDark ? "linear-gradient(135deg,#60A5FA,#3B82F6)" : "linear-gradient(135deg,#F472B6,#EC4899)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff" }}>
                 <User size={18} />
               </div>
             </Tooltip>
@@ -827,7 +834,7 @@ function AppContent() {
             )}
           </div>
           <div style={{ display: "flex", gap: 16, fontSize: 12.5, alignItems: "center" }}>
-            <span style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer" }} onClick={() => setActivePage("Profile")}>
+            <span style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer" }} onClick={() => setActivePage(isMember ? "Member Account" : "Profile")}>
               <span style={{ color: t.text, fontWeight: 500 }}>
                 {[profile?.first_name, profile?.last_name].filter(Boolean).join(" ") || user.email}
               </span>
@@ -889,6 +896,20 @@ function AppContent() {
                   {activePage === "Company" && <PageCompany t={t} isDark={isDark} activeTenantId={activeTenantId} USERS={rawUsers} GLOBAL_USERS={globalUsers} CONTACTS={rawContacts} platformConfig={platformConfig} isGlobalConsolidated={isGlobalConsolidated} />}
                   {activePage === "Platform Company" && <PagePlatformCompany t={t} isDark={isDark} USERS={globalUsers} CONTACTS={rawContacts} />}
                   {activePage === "Backup & Restore" && <PageBackupRestore t={t} isDark={isDark} TENANTS={TENANTS} />}
+                  {activePage === "Member Account" && (
+                    <PageMemberAccount
+                      t={t}
+                      isDark={isDark}
+                      CONTACTS={CONTACTS}
+                      INVESTMENTS={INVESTMENTS}
+                      SCHEDULES={SCHEDULES}
+                      DEALS={DEALS}
+                      DIMENSIONS={DIMENSIONS}
+                      tenantId={activeTenantId}
+                      LEDGER={LEDGER}
+                      USERS={rawUsers}
+                    />
+                  )}
                 </>
               )}
         </div>

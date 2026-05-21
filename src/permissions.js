@@ -18,7 +18,8 @@ export const PERMISSIONS_LIST = [
     "CONTACT_CREATE", "CONTACT_VIEW", "CONTACT_UPDATE", "CONTACT_DELETE",
     "MARKETING_VIEW", "MARKETING_CREATE", "MARKETING_UPDATE", "MARKETING_DELETE", "MARKETING_SEND",
     "PlatformAdmin_view", "PlatformAdmin_create", "PlatformAdmin_update", "PlatformAdmin_delete",
-    "Administration_view", "Administration_create", "Administration_update", "Administration_delete"
+    "Administration_view", "Administration_create", "Administration_update", "Administration_delete",
+    "MEMBERACCOUNT_VIEW", "MEMBERACCOUNT_CREATE", "MEMBERACCOUNT_UPDATE", "MEMBERACCOUNT_DELETE"
 ];
 
 // Provide sensible defaults for the requested standard UserRoles.
@@ -163,5 +164,8 @@ export const DEFAULT_ROLE_PERMISSIONS = {
     "R10008": [
         "TENANT_VIEW", "USER_VIEW", "DEAL_VIEW", "INVESTMENT_VIEW", "PAYMENT_SCHEDULE_VIEW", "PAYMENT_VIEW", "FEE_VIEW", "DIMENTION_VIEW", "CONTACT_VIEW",
         "PlatformAdmin_view", "Administration_view"
+    ],
+    "R10001": [
+        "MEMBERACCOUNT_VIEW", "MEMBERACCOUNT_UPDATE"
     ]
 };

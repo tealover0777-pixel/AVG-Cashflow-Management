@@ -185,7 +185,13 @@ const NAV_ITEMS = [
   { label: "Profile", icon: "User", hidden: true },
 ];
 
-export const getNav = (isSuper, _isAdmin, hasPermission, isR10010) => {
+export const getNav = (isSuper, _isAdmin, hasPermission, isR10010, isMember = false) => {
+  if (isMember) {
+    const memberNav = [{ label: "Member Account", icon: "User" }];
+    if (typeof window !== 'undefined') window.__NAV__ = memberNav;
+    return memberNav;
+  }
+
   const platformAdminChildren = [
     "AI Admin",
     "Dimensions",
