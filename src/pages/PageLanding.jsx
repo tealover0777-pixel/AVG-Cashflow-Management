@@ -5,6 +5,7 @@ import { sendPasswordResetEmail } from "firebase/auth";
 export default function PageLanding({ login, demoVideoUrl }) {
   const [showLogin, setShowLogin] = useState(false);
   const [showDemoVideo, setShowDemoVideo] = useState(false);
+  const [showGetStarted, setShowGetStarted] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -52,7 +53,10 @@ export default function PageLanding({ login, demoVideoUrl }) {
             >
               Login
             </button>
-            <button className="bg-primary text-on-primary px-6 py-2 rounded-lg font-medium active:scale-95 transition-transform">
+            <button 
+              onClick={() => setShowGetStarted(true)}
+              className="bg-primary text-on-primary px-6 py-2 rounded-lg font-medium active:scale-95 transition-transform"
+            >
               Get Started
             </button>
           </div>
@@ -74,7 +78,10 @@ export default function PageLanding({ login, demoVideoUrl }) {
               Experience the future of asset management with real-time analytics, automated workflows, and institutional-grade security designed for modern finance.
             </p>
             <div className="flex flex-col md:flex-row gap-4">
-              <button className="bg-primary text-on-primary px-10 py-4 rounded-lg font-bold shadow-lg hover:shadow-xl transition-all">
+              <button 
+                onClick={() => setShowGetStarted(true)}
+                className="bg-primary text-on-primary px-10 py-4 rounded-lg font-bold shadow-lg hover:shadow-xl transition-all"
+              >
                 Get Started
               </button>
               <button 
@@ -229,7 +236,12 @@ export default function PageLanding({ login, demoVideoUrl }) {
               <h2 className="text-[40px] font-bold mb-6 font-manrope tracking-tight">Ready to transform your cashflow operations?</h2>
               <p className="text-[18px] text-on-surface-variant mb-12 max-w-2xl mx-auto font-medium">Join the leading investment firms that trust Intelligent Cashflow Management for their financial intelligence.</p>
               <div className="flex flex-col sm:flex-row gap-6 justify-center">
-                <button className="bg-primary text-on-primary px-12 py-5 rounded-xl font-extrabold text-[16px] shadow-xl shadow-primary/20 active:scale-95 transition-all hover:bg-primary-container">Start Your Free Trial</button>
+                <button 
+                  onClick={() => setShowGetStarted(true)}
+                  className="bg-primary text-on-primary px-12 py-5 rounded-xl font-extrabold text-[16px] shadow-xl shadow-primary/20 active:scale-95 transition-all hover:bg-primary-container"
+                >
+                  Start Your Free Trial
+                </button>
                 <button className="bg-white border-2 border-primary/20 text-primary px-12 py-5 rounded-xl font-extrabold text-[16px] hover:bg-primary-fixed hover:border-primary/40 transition-all">Schedule a Consultation</button>
               </div>
             </div>
@@ -369,6 +381,65 @@ export default function PageLanding({ login, demoVideoUrl }) {
               autoPlay
               className="w-full h-full object-contain"
             />
+          </div>
+        </div>
+      )}
+
+      {/* Get Started / Contact Support Modal */}
+      {showGetStarted && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-on-surface/40 backdrop-blur-md transition-opacity" onClick={() => setShowGetStarted(false)}></div>
+          <div className="relative bg-surface-container-lowest border border-outline-variant rounded-[32px] p-10 shadow-[0_32px_64px_-12px_rgba(0,0,0,0.14)] w-full max-w-lg animate-in fade-in zoom-in duration-300">
+            <div className="flex justify-between items-center mb-6">
+              <div className="w-16 h-16 bg-primary-container rounded-2xl flex items-center justify-center text-on-primary-container shadow-inner">
+                <span className="material-symbols-outlined text-[36px]">mail</span>
+              </div>
+              <button onClick={() => setShowGetStarted(false)} className="w-10 h-10 rounded-full flex items-center justify-center text-on-surface-variant hover:bg-surface-container-high transition-colors">
+                <span className="material-symbols-outlined text-[20px]">close</span>
+              </button>
+            </div>
+            
+            <h2 className="text-[28px] font-bold mb-3 tracking-tight font-manrope">
+              Ready to Get Started?
+            </h2>
+            <p className="text-on-surface-variant text-[16px] mb-8 font-medium leading-relaxed">
+              To schedule a meeting and set up your account, please send an email to our support team at <a href="mailto:support@avgcashflow.com" className="text-primary font-bold hover:underline">support@avgcashflow.com</a> with the following information:
+            </p>
+
+            <ul className="space-y-4 mb-8">
+              <li className="flex items-start gap-3">
+                <span className="material-symbols-outlined text-primary text-[20px] mt-0.5">check_circle</span>
+                <span className="text-on-surface font-medium">1. First Name and Last Name</span>
+              </li>
+              <li className="flex items-start gap-3">
+                <span className="material-symbols-outlined text-primary text-[20px] mt-0.5">check_circle</span>
+                <span className="text-on-surface font-medium">2. Company and its primary business</span>
+              </li>
+              <li className="flex items-start gap-3">
+                <span className="material-symbols-outlined text-primary text-[20px] mt-0.5">check_circle</span>
+                <span className="text-on-surface font-medium">3. Address, Phone, Email, and any additional notes for contact information</span>
+              </li>
+              <li className="flex items-start gap-3">
+                <span className="material-symbols-outlined text-primary text-[20px] mt-0.5">check_circle</span>
+                <span className="text-on-surface font-medium">4. Best time and best method to contact you</span>
+              </li>
+            </ul>
+
+            <div className="bg-surface-container p-5 rounded-2xl border border-outline/50 mb-8">
+              <p className="text-sm text-on-surface-variant font-medium">
+                Our onboarding team will review your details and reach out shortly to schedule a personalized onboarding session.
+              </p>
+            </div>
+
+            <button 
+              onClick={() => {
+                window.location.href = "mailto:support@avgcashflow.com?subject=Get Started with ICM&body=Hi Support Team,%0D%0A%0D%0A1. Name:%0D%0A2. Company & Business:%0D%0A3. Address/Phone/Notes:%0D%0A4. Best time/method to contact:%0D%0A%0D%0A";
+              }}
+              className="w-full bg-primary text-on-primary py-5 rounded-[20px] font-extrabold text-[16px] shadow-lg shadow-primary/20 hover:shadow-xl active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+            >
+              <span className="material-symbols-outlined text-[20px]">send</span>
+              Email Support Now
+            </button>
           </div>
         </div>
       )}
