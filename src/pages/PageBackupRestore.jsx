@@ -56,7 +56,14 @@ export default function PageBackupRestore({ t, isDark, TENANTS = [] }) {
   const [globalBackups, setGlobalBackups] = useState([]);
   const [showGlobalRegistry, setShowGlobalRegistry] = useState(false);
   const [expandedGlobalBackups, setExpandedGlobalBackups] = useState(new Set());
+  const [globalBackupPayloads, setGlobalBackupPayloads] = useState({}); // id -> tenantPayloads cache
+  const [loadingGlobalPayload, setLoadingGlobalPayload] = useState(new Set()); // ids currently loading
   const [confirmDelAction, setConfirmDelAction] = useState(null);
+
+  // ── Upload & Restore from JSON State ──
+  const [uploadRestoreModalOpen, setUploadRestoreModalOpen] = useState(false);
+  const [uploadedGlobalBackup, setUploadedGlobalBackup] = useState(null); // parsed JSON
+  const [uploadRestoreError, setUploadRestoreError] = useState("");
 
   // ── Restore Preview State ──
   const [previewModalOpen, setPreviewModalOpen] = useState(false);
@@ -82,14 +89,60 @@ export default function PageBackupRestore({ t, isDark, TENANTS = [] }) {
     }
   }, [TENANTS, selectedTenantId]);
 
-  // Helper to toggle expanded global backups in UI
-  const toggleGlobalBackupExpand = (id) => {
+  // Helper to toggle expanded global backups in UI — lazy-loads tenant payloads from Storage
+  const toggleGlobalBackupExpand = async (id) => {
     setExpandedGlobalBackups(prev => {
       const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
+      if (next.has(id)) { next.delete(id); return next; }
+      next.add(id);
       return next;
     });
+
+    // Only fetch if not already cached
+    if (globalBackupPayloads[id]) return;
+    const gb = globalBackups.find(g => g.id === id);
+    if (!gb) return;
+
+    // If tenantPayloads already embedded (legacy or in-memory)
+    if (gb.tenantPayloads) {
+      setGlobalBackupPayloads(prev => ({ ...prev, [id]: gb.tenantPayloads }));
+      return;
+    }
+
+    if (gb.storagePath) {
+      setLoadingGlobalPayload(prev => new Set([...prev, id]));
+      try {
+        const url = await getDownloadURL(ref(storage, gb.storagePath));
+        const res = await fetch(url);
+        const payloads = await res.json();
+        setGlobalBackupPayloads(prev => ({ ...prev, [id]: payloads }));
+      } catch (e) {
+        console.error("Failed to load tenant payloads:", e);
+        showToast("Failed to load tenant snapshots.", "error");
+      } finally {
+        setLoadingGlobalPayload(prev => { const n = new Set(prev); n.delete(id); return n; });
+      }
+    }
+  };
+
+  // Handler: parse an uploaded global backup JSON and open the restore modal
+  const handleUploadGlobalBackupJson = (file) => {
+    if (!file) return;
+    setUploadRestoreError("");
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const parsed = JSON.parse(e.target.result);
+        if (!parsed.tenantPayloads) {
+          setUploadRestoreError("Invalid file: missing 'tenantPayloads' key. Please upload a valid global backup JSON.");
+          return;
+        }
+        setUploadedGlobalBackup(parsed);
+      } catch {
+        setUploadRestoreError("Invalid JSON file. Please upload a valid backup file.");
+      }
+    };
+    reader.readAsText(file);
   };
 
   // Helper to fetch live active backup data for a specific tenant
@@ -2251,6 +2304,28 @@ export default function PageBackupRestore({ t, isDark, TENANTS = [] }) {
           <span style={{ marginLeft: "auto", fontSize: 12, color: t.textMuted, fontWeight: 500 }}>
             {globalBackups.length} archive(s)
           </span>
+          {/* Upload & Restore from JSON button */}
+          <button
+            onClick={(e) => { e.stopPropagation(); setUploadedGlobalBackup(null); setUploadRestoreError(""); setUploadRestoreModalOpen(true); }}
+            style={{
+              background: isDark ? "rgba(99,102,241,0.15)" : "#EEF2FF",
+              color: isDark ? "#A78BFA" : "#6366F1",
+              border: `1px solid ${isDark ? "rgba(99,102,241,0.3)" : "#C7D2FE"}`,
+              borderRadius: 8,
+              padding: "4px 12px",
+              fontSize: 12,
+              fontWeight: 600,
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              gap: 5,
+              marginLeft: 8,
+              whiteSpace: "nowrap"
+            }}
+            title="Upload a saved global backup JSON file to restore"
+          >
+            <Archive size={12} /> Upload & Restore
+          </button>
           <ChevronRight size={16} style={{ transform: showGlobalRegistry ? "rotate(90deg)" : "none", transition: "transform 0.2s" }} />
         </button>
 
@@ -2385,76 +2460,89 @@ export default function PageBackupRestore({ t, isDark, TENANTS = [] }) {
                               <h4 style={{ fontSize: 13, fontWeight: 700, color: t.textSubtle, marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.5px" }}>
                                 Tenant Snapshots in this Archive
                               </h4>
-                              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                                {Object.entries(gb.tenantPayloads || {}).map(([tenantId, slice]) => (
-                                  <div 
-                                    key={tenantId} 
-                                    style={{ 
-                                      display: "flex", 
-                                      justifyContent: "space-between", 
-                                      alignItems: "center", 
-                                      background: isDark ? "rgba(255,255,255,0.01)" : "#fff", 
-                                      border: `1px solid ${t.border}`, 
-                                      borderRadius: 10, 
-                                      padding: "10px 16px" 
-                                    }}
-                                  >
-                                    <div>
-                                      <div style={{ fontSize: 13.5, fontWeight: 600, color: t.text }}>
-                                        {slice.tenantName || tenantId}
-                                      </div>
-                                      <div style={{ fontSize: 11, color: t.textMuted }}>
-                                        ID: <span style={{ fontFamily: t.mono }}>{tenantId}</span> • {slice.recordCount || 0} records • {formatBytes(slice.sizeBytes || 0)}
-                                      </div>
-                                    </div>
-                                    <div style={{ display: "flex", gap: 8 }}>
-                                      <Tooltip text="Preview this tenant's snapshot data comparison" t={t}>
-                                        <button
-                                          onClick={() => handlePreviewGlobalTenant(gb, tenantId)}
-                                          disabled={isLoadingPreview}
-                                          style={{
-                                            background: isDark ? "rgba(99,102,241,0.1)" : "#EEF2FF",
-                                            color: isDark ? "#A78BFA" : "#6366F1",
-                                            border: `1px solid ${isDark ? "rgba(99,102,241,0.2)" : "#C7D2FE"}`,
-                                            borderRadius: 8,
-                                            padding: "6px 12px",
-                                            fontSize: 11.5,
-                                            fontWeight: 600,
-                                            cursor: isLoadingPreview ? "default" : "pointer",
-                                            display: "flex",
-                                            alignItems: "center",
-                                            gap: 4
+                              {loadingGlobalPayload.has(gb.id) ? (
+                                <div style={{ display: "flex", alignItems: "center", gap: 8, color: t.textMuted, fontSize: 13, padding: "8px 0" }}>
+                                  <RefreshCw size={14} className="animate-spin" /> Loading tenant snapshots from storage...
+                                </div>
+                              ) : (
+                                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                                  {Object.entries(globalBackupPayloads[gb.id] || {}).length === 0 ? (
+                                    <div style={{ fontSize: 13, color: t.textMuted, padding: "6px 0" }}>No tenant snapshots found in this archive.</div>
+                                  ) : (
+                                    Object.entries(globalBackupPayloads[gb.id] || {}).map(([tenantId, slice]) => {
+                                      const gbWithPayloads = { ...gb, tenantPayloads: globalBackupPayloads[gb.id] };
+                                      return (
+                                        <div 
+                                          key={tenantId} 
+                                          style={{ 
+                                            display: "flex", 
+                                            justifyContent: "space-between", 
+                                            alignItems: "center", 
+                                            background: isDark ? "rgba(255,255,255,0.01)" : "#fff", 
+                                            border: `1px solid ${t.border}`, 
+                                            borderRadius: 10, 
+                                            padding: "10px 16px" 
                                           }}
                                         >
-                                          {isLoadingPreview ? <RefreshCw size={11} className="animate-spin" /> : <Eye size={11} />}
-                                          Preview
-                                        </button>
-                                      </Tooltip>
-                                      <Tooltip text="Restore only this tenant from global backup" t={t}>
-                                        <button
-                                          onClick={() => handleRestoreGlobalTenant(gb, tenantId)}
-                                          style={{
-                                            background: isDark ? "rgba(248,113,113,0.1)" : "#FEF2F2",
-                                            color: isDark ? "#F87171" : "#DC2626",
-                                            border: `1px solid ${isDark ? "rgba(248,113,113,0.2)" : "#FCA5A5"}`,
-                                            borderRadius: 8,
-                                            padding: "6px 12px",
-                                            fontSize: 11.5,
-                                            fontWeight: 600,
-                                            cursor: "pointer",
-                                            display: "flex",
-                                            alignItems: "center",
-                                            gap: 4
-                                          }}
-                                        >
-                                          <RefreshCw size={11} />
-                                          Restore
-                                        </button>
-                                      </Tooltip>
-                                    </div>
-                                  </div>
-                                ))}
-                              </div>
+                                          <div>
+                                            <div style={{ fontSize: 13.5, fontWeight: 600, color: t.text }}>
+                                              {slice.tenantName || tenantId}
+                                            </div>
+                                            <div style={{ fontSize: 11, color: t.textMuted }}>
+                                              ID: <span style={{ fontFamily: t.mono }}>{tenantId}</span> • {slice.recordCount || 0} records • {formatBytes(slice.sizeBytes || 0)}
+                                            </div>
+                                          </div>
+                                          <div style={{ display: "flex", gap: 8 }}>
+                                            <Tooltip text="Preview this tenant's snapshot data comparison" t={t}>
+                                              <button
+                                                onClick={() => handlePreviewGlobalTenant(gbWithPayloads, tenantId)}
+                                                disabled={isLoadingPreview}
+                                                style={{
+                                                  background: isDark ? "rgba(99,102,241,0.1)" : "#EEF2FF",
+                                                  color: isDark ? "#A78BFA" : "#6366F1",
+                                                  border: `1px solid ${isDark ? "rgba(99,102,241,0.2)" : "#C7D2FE"}`,
+                                                  borderRadius: 8,
+                                                  padding: "6px 12px",
+                                                  fontSize: 11.5,
+                                                  fontWeight: 600,
+                                                  cursor: isLoadingPreview ? "default" : "pointer",
+                                                  display: "flex",
+                                                  alignItems: "center",
+                                                  gap: 4
+                                                }}
+                                              >
+                                                {isLoadingPreview ? <RefreshCw size={11} className="animate-spin" /> : <Eye size={11} />}
+                                                Preview
+                                              </button>
+                                            </Tooltip>
+                                            <Tooltip text="Restore only this tenant from global backup" t={t}>
+                                              <button
+                                                onClick={() => handleRestoreGlobalTenant(gbWithPayloads, tenantId)}
+                                                style={{
+                                                  background: isDark ? "rgba(248,113,113,0.1)" : "#FEF2F2",
+                                                  color: isDark ? "#F87171" : "#DC2626",
+                                                  border: `1px solid ${isDark ? "rgba(248,113,113,0.2)" : "#FCA5A5"}`,
+                                                  borderRadius: 8,
+                                                  padding: "6px 12px",
+                                                  fontSize: 11.5,
+                                                  fontWeight: 600,
+                                                  cursor: "pointer",
+                                                  display: "flex",
+                                                  alignItems: "center",
+                                                  gap: 4
+                                                }}
+                                              >
+                                                <RefreshCw size={11} />
+                                                Restore
+                                              </button>
+                                            </Tooltip>
+                                          </div>
+                                        </div>
+                                      );
+                                    })
+                                  )}
+                                </div>
+                              )}
                             </div>
                           </td>
                         </tr>
@@ -2467,6 +2555,115 @@ export default function PageBackupRestore({ t, isDark, TENANTS = [] }) {
           </div>
         )}
       </div>
+
+      {/* ─── Upload & Restore from JSON Modal ─── */}
+      {uploadRestoreModalOpen && (
+        <div style={{
+          position: "fixed", inset: 0, zIndex: 9999,
+          background: "rgba(0,0,0,0.55)", backdropFilter: "blur(4px)",
+          display: "flex", alignItems: "center", justifyContent: "center"
+        }}>
+          <div style={{
+            background: isDark ? "#18181b" : "#fff",
+            border: `1px solid ${isDark ? "rgba(99,102,241,0.2)" : "#E0E7FF"}`,
+            borderRadius: 20,
+            padding: "32px 36px",
+            width: "100%",
+            maxWidth: 560,
+            boxShadow: "0 24px 80px rgba(0,0,0,0.25)"
+          }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}>
+              <Archive size={20} style={{ color: isDark ? "#A78BFA" : "#6366F1" }} />
+              <h2 style={{ fontSize: 18, fontWeight: 700, color: isDark ? "#F5F3FF" : "#1E1B4B", margin: 0 }}>Upload & Restore from JSON</h2>
+              <button onClick={() => { setUploadRestoreModalOpen(false); setUploadedGlobalBackup(null); setUploadRestoreError(""); }} style={{ marginLeft: "auto", background: "none", border: "none", cursor: "pointer", color: isDark ? "#9CA3AF" : "#6B7280", display: "flex" }}>
+                <X size={20} />
+              </button>
+            </div>
+            <p style={{ fontSize: 13, color: isDark ? "#9CA3AF" : "#6B7280", marginBottom: 20, lineHeight: 1.6 }}>
+              Select a previously downloaded <strong>Global Backup JSON</strong> file. Once loaded, you can choose a tenant to restore.
+            </p>
+
+            {/* File picker */}
+            {!uploadedGlobalBackup && (
+              <label style={{
+                display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+                gap: 12, padding: "28px 20px",
+                border: `2px dashed ${isDark ? "rgba(99,102,241,0.35)" : "#A5B4FC"}`,
+                borderRadius: 14, cursor: "pointer",
+                background: isDark ? "rgba(99,102,241,0.04)" : "#F5F3FF",
+                color: isDark ? "#A78BFA" : "#6366F1",
+                transition: "all 0.15s"
+              }}>
+                <Download size={28} style={{ opacity: 0.7 }} />
+                <span style={{ fontSize: 13.5, fontWeight: 600 }}>Click to select backup JSON file</span>
+                <span style={{ fontSize: 11.5, opacity: 0.6 }}>Accepts: GB_*.json</span>
+                <input
+                  type="file"
+                  accept="application/json,.json"
+                  style={{ display: "none" }}
+                  onChange={(e) => handleUploadGlobalBackupJson(e.target.files?.[0])}
+                />
+              </label>
+            )}
+
+            {uploadRestoreError && (
+              <div style={{ marginTop: 12, padding: "10px 14px", borderRadius: 10, background: isDark ? "#2d0a0a" : "#FEF2F2", color: isDark ? "#F87171" : "#DC2626", fontSize: 13, display: "flex", gap: 8, alignItems: "center" }}>
+                <AlertTriangle size={14} /> {uploadRestoreError}
+              </div>
+            )}
+
+            {/* Tenant list from uploaded file */}
+            {uploadedGlobalBackup && (
+              <div>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
+                  <div style={{ fontSize: 13, color: isDark ? "#A78BFA" : "#6366F1", fontWeight: 600 }}>
+                    ✅ Loaded: <span style={{ fontFamily: "monospace" }}>{uploadedGlobalBackup.globalBackupId}</span>
+                    <span style={{ fontWeight: 400, color: isDark ? "#9CA3AF" : "#6B7280", marginLeft: 8 }}>
+                      ({uploadedGlobalBackup.createdAt ? new Date(uploadedGlobalBackup.createdAt).toLocaleString() : "—"})
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => { setUploadedGlobalBackup(null); setUploadRestoreError(""); }}
+                    style={{ fontSize: 11.5, color: t.textMuted, background: "none", border: `1px solid ${t.border}`, borderRadius: 6, padding: "3px 10px", cursor: "pointer" }}
+                  >Clear</button>
+                </div>
+                <p style={{ fontSize: 12, color: t.textMuted, marginBottom: 12 }}>Select a tenant snapshot to restore:</p>
+                <div style={{ display: "flex", flexDirection: "column", gap: 10, maxHeight: 300, overflowY: "auto" }}>
+                  {Object.entries(uploadedGlobalBackup.tenantPayloads || {}).map(([tenantId, slice]) => (
+                    <div key={tenantId} style={{
+                      display: "flex", justifyContent: "space-between", alignItems: "center",
+                      background: isDark ? "rgba(255,255,255,0.02)" : "#fff",
+                      border: `1px solid ${t.border}`, borderRadius: 10, padding: "10px 16px"
+                    }}>
+                      <div>
+                        <div style={{ fontSize: 13.5, fontWeight: 600, color: t.text }}>{slice.tenantName || tenantId}</div>
+                        <div style={{ fontSize: 11, color: t.textMuted }}>
+                          ID: <span style={{ fontFamily: "monospace" }}>{tenantId}</span> • {slice.recordCount || 0} records • {formatBytes(slice.sizeBytes || 0)}
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => {
+                          setUploadRestoreModalOpen(false);
+                          handleRestoreGlobalTenant({ ...uploadedGlobalBackup, tenantPayloads: uploadedGlobalBackup.tenantPayloads, id: uploadedGlobalBackup.globalBackupId }, tenantId);
+                        }}
+                        style={{
+                          background: isDark ? "rgba(248,113,113,0.12)" : "#FEF2F2",
+                          color: isDark ? "#F87171" : "#DC2626",
+                          border: `1px solid ${isDark ? "rgba(248,113,113,0.25)" : "#FCA5A5"}`,
+                          borderRadius: 8, padding: "6px 14px", fontSize: 12, fontWeight: 600,
+                          cursor: "pointer", display: "flex", alignItems: "center", gap: 5
+                        }}
+                      >
+                        <RefreshCw size={11} /> Restore
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Styled toast notification */}
       {toast && (
