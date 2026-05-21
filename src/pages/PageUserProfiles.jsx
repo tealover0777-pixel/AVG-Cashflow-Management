@@ -186,7 +186,7 @@ export default function PageUserProfiles({ t, isDark, USERS = [], GLOBAL_USERS =
             const resendFn = httpsCallable(functions, "resendVerification");
             const result = await resendFn({ email: d.email });
             close();
-            setInviteResult({ email: d.email, user_id: d.user_id, emailSent: result.data.emailSent, link: result.data.link });
+            setInviteResult({ email: d.email, user_id: d.user_id, emailSent: result.data.emailSent, link: result.data.link, roleName: d.role_id ? getRoleInfo(d.role_id).name : undefined });
         } catch (err) {
             console.error("Resend error:", err);
             showToast("Re-send failed: " + (err.message || "Unknown error"), "error");
@@ -372,7 +372,7 @@ export default function PageUserProfiles({ t, isDark, USERS = [], GLOBAL_USERS =
             onClose={() => { setInviteResult(null); setLinkCopied(false); }}
             title={inviteResult?.emailSent ? "Invitation Sent" : "User Created"}
             onSave={inviteResult?.link ? () => { navigator.clipboard.writeText(inviteResult.link); setLinkCopied(true); } : null}
-            saveLabel={linkCopied ? "✅ Copied!" : "Copy Link"}
+            saveLabel={linkCopied ? "✅ Copied!" : "📋 Copy Link"}
             width={520} t={t} isDark={isDark}
         >
             {inviteResult && (
@@ -385,7 +385,7 @@ export default function PageUserProfiles({ t, isDark, USERS = [], GLOBAL_USERS =
                             </div>
                             <div style={{ fontSize: 13, color: t.textMuted, lineHeight: 1.5 }}>
                                 {inviteResult.emailSent
-                                    ? <><strong>{inviteResult.email}</strong> has been invited as <strong>{inviteResult.roleName || "User"}</strong>. They will receive a link to set their password.</>
+                                    ? <><strong>{inviteResult.email}</strong> has been invited as <strong>{inviteResult.roleName || "User"}</strong>. A password-reset link has been emailed — you can also copy it below.</>
                                     : <>User <strong>{inviteResult.email}</strong> was created as <strong>{inviteResult.roleName || "User"}</strong> but the invitation email failed. Copy the link below and share it manually.</>}
                             </div>
                         </div>
@@ -398,7 +398,9 @@ export default function PageUserProfiles({ t, isDark, USERS = [], GLOBAL_USERS =
                     )}
                     {inviteResult.link && (
                         <div>
-                            <div style={{ fontSize: 12, fontWeight: 600, color: t.textMuted, marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.5px" }}>Invitation Link</div>
+                            <div style={{ fontSize: 12, fontWeight: 600, color: t.textMuted, marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                                {inviteResult.emailSent ? "Password Reset Link (also emailed)" : "Invitation Link"}
+                            </div>
                             <div style={{ background: isDark ? "rgba(255,255,255,0.04)" : "#F5F4F1", border: `1px solid ${t.surfaceBorder}`, borderRadius: 9, padding: "12px 14px", fontFamily: t.mono, fontSize: 11.5, wordBreak: "break-all", color: t.accent, lineHeight: 1.6 }}>
                                 {inviteResult.link}
                             </div>
