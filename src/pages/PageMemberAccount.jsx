@@ -417,7 +417,7 @@ export default function PageMemberAccount({
                   {fmtCurr(partySchedules.reduce((sum, s) => sum + (Number(s.signed_payment_amount || s.payment_amount || String(s.amount || 0).replace(/[^0-9.-]/g,'')) || 0), 0))}
                 </div>
               </div>
-              <div style={{ height: 400 }}>
+              <div style={{ height: "calc(100vh - 420px)", minHeight: 400 }}>
                 <TanStackTable
                   data={partySchedules}
                   columns={getContactTransactionColumns(isDark, t, { DEALS })}
@@ -455,22 +455,14 @@ export default function PageMemberAccount({
               <div style={{ padding: 40, textAlign: "center", color: t.textMuted }}>No investment selected or available.</div>
             ) : (
               <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 20 }}>
                   <FF label="Investment ID" t={t}>
                     <div style={{ padding: "10px 13px", background: isDark ? "rgba(255,255,255,0.03)" : "#f9f9f9", border: `1px solid ${t.surfaceBorder}`, borderRadius: 8, color: t.textMuted, fontSize: 13, fontFamily: t.mono }}>{selectedInv.id}</div>
                   </FF>
                   <FF label="Deal ID" t={t}>
-                    <div style={{ padding: "10px 13px", background: isDark ? "rgba(255,255,255,0.03)" : "#f9f9f9", border: `1px solid ${t.surfaceBorder}`, borderRadius: 8, color: t.textMuted, fontSize: 13, fontFamily: t.mono }}>{selectedInv.deal_id || "—"}</div>
-                  </FF>
-                </div>
-                
-                <FF label="Investment Name" t={t}>
-                  <FIn value={selectedInv.investment_name || ""} disabled t={t} />
-                </FF>
-                
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
-                  <FF label="Deal" t={t}>
-                    <FIn value={selectedInv.deal || selectedInv.deal_name || ""} disabled t={t} />
+                    <div style={{ padding: "10px 13px", background: isDark ? "rgba(255,255,255,0.03)" : "#f9f9f9", border: `1px solid ${t.surfaceBorder}`, borderRadius: 8, color: t.textMuted, fontSize: 13, fontFamily: t.mono }}>
+                      {selectedInv.deal_id ? `${selectedInv.deal_id} - ${selectedInv.deal || selectedInv.deal_name || DEALS.find(d => d.id === selectedInv.deal_id)?.name || ""}`.replace(/ - $/, "") : "—"}
+                    </div>
                   </FF>
                   <FF label="Type" t={t}>
                     <FIn value={selectedInv.type || selectedInv.investment_type || ""} disabled t={t} />
@@ -554,7 +546,7 @@ export default function PageMemberAccount({
                 </div>
                 <div style={{ fontSize: 14, fontWeight: 600, color: t.accent }}>{fmtCurr(distributedAmount)}</div>
               </div>
-              <div style={{ height: 400 }}>
+              <div style={{ height: "calc(100vh - 420px)", minHeight: 400 }}>
                 <TanStackTable
                   data={distributions}
                   columns={getContactTransactionColumns(isDark, t, { DEALS })}
