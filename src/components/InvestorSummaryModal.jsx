@@ -549,19 +549,15 @@ export const InvestorSummaryModal = ({
               <div style={{ padding: 40, textAlign: "center", color: t.textMuted }}>No investment selected or available.</div>
             ) : (
               <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 20 }}>
                   <FF label="Investment ID" t={t}>
                     <div style={{ padding: "10px 13px", background: isDark ? "rgba(255,255,255,0.03)" : "#f9f9f9", border: `1px solid ${t.surfaceBorder}`, borderRadius: 8, color: t.textMuted, fontSize: 13, fontFamily: t.mono }}>{investmentEditData.id}</div>
                   </FF>
                   <FF label="Deal ID" t={t}>
-                    <div style={{ padding: "10px 13px", background: isDark ? "rgba(255,255,255,0.03)" : "#f9f9f9", border: `1px solid ${t.surfaceBorder}`, borderRadius: 8, color: t.textMuted, fontSize: 13, fontFamily: t.mono }}>{investmentEditData.deal_id || "—"}</div>
+                    <div style={{ padding: "10px 13px", background: isDark ? "rgba(255,255,255,0.03)" : "#f9f9f9", border: `1px solid ${t.surfaceBorder}`, borderRadius: 8, color: t.textMuted, fontSize: 13, fontFamily: t.mono }}>
+                      {investmentEditData.deal_id ? `${investmentEditData.deal_id} - ${investmentEditData.deal || DEALS.find(d => d.id === investmentEditData.deal_id)?.name || ""}`.replace(/ - $/, "") : "—"}
+                    </div>
                   </FF>
-                </div>
-                
-                <FF label="Investment Name" t={t}><FIn value={investmentEditData.investment_name} onChange={e => setIED({ investment_name: e.target.value })} placeholder="e.g. Initial Investment" t={t} disabled={!hasUpdateInvestment} /></FF>
-                
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
-                  <FF label="Deal" t={t}><FSel value={investmentEditData.deal} onChange={e => setIED({ deal: e.target.value })} options={DEALS.map(d => d.name)} t={t} disabled={!hasUpdateInvestment} /></FF>
                   <FF label="Type" t={t}>
                     <FSel 
                       value={investmentEditData.type || investmentEditData.investment_type} 
