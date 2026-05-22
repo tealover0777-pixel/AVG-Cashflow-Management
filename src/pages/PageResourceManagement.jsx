@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useRef } from "react";
 import { ref, uploadBytesResumable, getDownloadURL, listAll, deleteObject, getMetadata } from "firebase/storage";
 import { storage } from "../firebase";
-import { DelModal } from "../components";
+import { DelModal, Modal } from "../components";
 import { 
   FileText, Image as ImageIcon, Trash2, Download, Copy, Check, 
   UploadCloud, Search, Eye, RefreshCw, FolderOpen, AlertCircle,
   FileSpreadsheet, FileArchive, FileArchive as FilePresentation, FileDown, MoreVertical,
-  LayoutGrid, List
+  LayoutGrid, List, X
 } from "lucide-react";
 
 const formatBytes = (bytes, decimals = 2) => {
@@ -77,6 +77,9 @@ export default function PageResourceManagement({ t, isDark, activeTenantId }) {
   
   // Deleting state
   const [deletingItem, setDeletingItem] = useState(null);
+  
+  // Image preview state
+  const [previewImage, setPreviewImage] = useState(null);
   
   // Toast notifications
   const [toast, setToast] = useState(null);
@@ -680,17 +683,21 @@ export default function PageResourceManagement({ t, isDark, activeTenantId }) {
                             }}
                           >
                             {/* Image Thumbnail */}
-                            <div style={{
-                              width: "100%",
-                              height: 120,
-                              background: isDark ? "#171515" : "#FAF9F6",
-                              borderBottom: `1px solid ${t.surfaceBorder}`,
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                              overflow: "hidden",
-                              position: "relative"
-                            }}>
+                            <div 
+                              onClick={() => setPreviewImage(item)}
+                              style={{
+                                width: "100%",
+                                height: 120,
+                                background: isDark ? "#171515" : "#FAF9F6",
+                                borderBottom: `1px solid ${t.surfaceBorder}`,
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                overflow: "hidden",
+                                position: "relative",
+                                cursor: "pointer"
+                              }}
+                            >
                               <img 
                                 src={item.url} 
                                 alt={item.displayName}
@@ -701,7 +708,6 @@ export default function PageResourceManagement({ t, isDark, activeTenantId }) {
                                 }}
                               />
                               
-                              {/* Hover overlay actions */}
                               <div style={{
                                 position: "absolute",
                                 inset: 0,
@@ -717,16 +723,15 @@ export default function PageResourceManagement({ t, isDark, activeTenantId }) {
                               onMouseEnter={(e) => e.currentTarget.style.opacity = 1}
                               onMouseLeave={(e) => e.currentTarget.style.opacity = 0}
                               >
-                                <a 
-                                  href={item.url} 
-                                  target="_blank" 
-                                  rel="noreferrer"
+                                <button 
+                                  onClick={() => setPreviewImage(item)}
                                   style={{
                                     width: 32,
                                     height: 32,
                                     borderRadius: 8,
                                     background: "#fff",
                                     color: "#000",
+                                    border: "none",
                                     display: "flex",
                                     alignItems: "center",
                                     justifyContent: "center",
@@ -735,7 +740,7 @@ export default function PageResourceManagement({ t, isDark, activeTenantId }) {
                                   title="Open full image"
                                 >
                                   <Eye size={15} />
-                                </a>
+                                </button>
                               </div>
                             </div>
 
@@ -1124,6 +1129,74 @@ export default function PageResourceManagement({ t, isDark, activeTenantId }) {
         t={t}
         isDark={isDark}
       />
+
+      {/* Image Preview Modal */}
+      <Modal isOpen={!!previewImage} onClose={() => setPreviewImage(null)} isDark={isDark} maxWidth={900}>
+        {previewImage && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div style={{ fontSize: 18, fontWeight: 700, color: t.text }}>{previewImage.displayName}</div>
+              <button 
+                onClick={() => setPreviewImage(null)}
+                style={{ 
+                  background: "transparent", 
+                  border: "none", 
+                  color: t.textMuted, 
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  padding: 4
+                }}
+              >
+                <X size={20} />
+              </button>
+            </div>
+            
+            <div style={{ 
+              background: isDark ? "#171515" : "#F3F4F6", 
+              borderRadius: 12, 
+              display: "flex", 
+              alignItems: "center", 
+              justifyContent: "center",
+              overflow: "hidden",
+              padding: 20,
+              minHeight: 300,
+              maxHeight: "70vh"
+            }}>
+              <img 
+                src={previewImage.url} 
+                alt={previewImage.displayName}
+                style={{
+                  maxWidth: "100%",
+                  maxHeight: "100%",
+                  objectFit: "contain",
+                  boxShadow: "0 4px 12px rgba(0,0,0,0.1)"
+                }}
+              />
+            </div>
+
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", color: t.textMuted, fontSize: 13 }}>
+              <div>{formatBytes(previewImage.size)} • {formatDate(previewImage.timeCreated)}</div>
+              <a 
+                href={previewImage.url} 
+                target="_blank" 
+                rel="noreferrer"
+                style={{
+                  color: t.accent,
+                  textDecoration: "none",
+                  fontWeight: 500,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 4
+                }}
+              >
+                Open Original <Eye size={14} />
+              </a>
+            </div>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 }
