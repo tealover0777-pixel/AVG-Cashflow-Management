@@ -360,7 +360,7 @@ export default function PageResourceManagement({ t, isDark, activeTenantId }) {
         </div>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 20, flex: 1, overflow: "hidden" }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 20, flex: 1, overflow: "hidden" }}>
         {/* Upload Area / Queue Panel */}
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           {/* Drag & Drop Zone */}
