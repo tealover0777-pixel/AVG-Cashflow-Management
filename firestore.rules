@@ -247,5 +247,26 @@ service cloud.firestore {
         allow read: if isTenantMember(tenantId) && hasPermission('PAYMENT_VIEW');
         allow create, update, delete: if isTenantMember(tenantId) && hasPermission('PAYMENT_CREATE');
     }
+
+    match /tenants/{tenantId}/marketingEmails/{docId} {
+        allow read: if isTenantMember(tenantId) && hasPermission('MARKETING_VIEW');
+        allow create: if isTenantMember(tenantId) && hasPermission('MARKETING_CREATE');
+        allow update: if isTenantMember(tenantId) && hasPermission('MARKETING_UPDATE');
+        allow delete: if isTenantMember(tenantId) && hasPermission('MARKETING_DELETE');
+    }
+
+    match /tenants/{tenantId}/comms_log/{docId} {
+        allow read: if isTenantMember(tenantId) && hasPermission('MARKETING_VIEW');
+        allow create: if isTenantMember(tenantId) && hasPermission('MARKETING_CREATE');
+        allow update: if isTenantMember(tenantId) && hasPermission('MARKETING_UPDATE');
+        allow delete: if isTenantMember(tenantId) && hasPermission('MARKETING_DELETE');
+    }
+
+    match /tenants/{tenantId}/scheduledJobs/{docId} {
+        allow read: if isTenantMember(tenantId) && hasPermission('MARKETING_VIEW');
+        allow create: if isTenantMember(tenantId) && hasPermission('MARKETING_CREATE');
+        allow update: if isTenantMember(tenantId) && hasPermission('MARKETING_UPDATE');
+        allow delete: if isTenantMember(tenantId) && hasPermission('MARKETING_DELETE');
+    }
   }
 }

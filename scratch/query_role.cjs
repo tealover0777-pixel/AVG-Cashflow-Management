@@ -10,13 +10,16 @@ if (!admin.apps.length) {
 const db = admin.firestore();
 
 async function run() {
-  const docRef = db.collection('role_types').doc('R10004');
-  const docSnap = await docRef.get();
-  if (docSnap.exists) {
-    console.log("ROLE R10004:");
-    console.log(JSON.stringify(docSnap.data(), null, 2));
-  } else {
-    console.log("R10004 not found in role_types");
+  const roles = ['R10001', 'R10002', 'R10003', 'R10004'];
+  for (const roleId of roles) {
+    const docRef = db.collection('role_types').doc(roleId);
+    const docSnap = await docRef.get();
+    if (docSnap.exists) {
+      console.log(`\nROLE ${roleId}:`);
+      console.log(JSON.stringify(docSnap.data(), null, 2));
+    } else {
+      console.log(`\nROLE ${roleId} not found`);
+    }
   }
 }
 run().catch(console.error);
