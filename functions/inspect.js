@@ -10,13 +10,11 @@ if (!admin.apps.length) {
 async function run() {
   try {
     const db = admin.firestore();
-    const docRef = db.collection('tenants').doc('T10002').collection('contacts').doc('M10002');
-    const docSnap = await docRef.get();
-    if (docSnap.exists) {
-      console.log('Contact M10002 Data:', JSON.stringify(docSnap.data(), null, 2));
-    } else {
-      console.log('Contact M10002 does not exist!');
-    }
+    const paymentsSnap = await db.collection('tenants').doc('T10002').collection('payments').get();
+    console.log(`Found ${paymentsSnap.size} payments in T10002.`);
+    paymentsSnap.forEach(doc => {
+      console.log(`Payment ${doc.id}:`, JSON.stringify(doc.data(), null, 2));
+    });
     process.exit(0);
   } catch (e) {
     console.error(e);

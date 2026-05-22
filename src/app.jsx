@@ -253,14 +253,27 @@ function AppContent() {
   const memberContactId = useMemo(() => {
     if (!isMember) return null;
 
+    let candidateId = null;
     // 1. Check explicit profile field
-    if (profile?.contact_id || profile?.party_id) return profile.contact_id || profile.party_id;
+    if (profile?.contact_id || profile?.party_id) {
+      candidateId = profile.contact_id || profile.party_id;
+    }
     // 2. Check notes field
-    const noteId = (profile?.notes || "").split(" — ")[1];
-    if (noteId) return noteId;
+    if (!candidateId) {
+      const noteId = (profile?.notes || "").split(" — ")[1];
+      if (noteId) candidateId = noteId;
+    }
     // 3. Fallback: Lookup by email in rawContacts
-    const foundByEmail = rawContacts.find(p => p.email && p.email.toLowerCase() === user?.email?.toLowerCase());
-    if (foundByEmail) return foundByEmail.id || foundByEmail.doc_id;
+    if (!candidateId) {
+      const foundByEmail = rawContacts.find(p => p.email && p.email.toLowerCase() === user?.email?.toLowerCase());
+      if (foundByEmail) candidateId = foundByEmail.id || foundByEmail.doc_id;
+    }
+
+    // Defensive check: only allow candidateId if it exists in rawContacts
+    // (since contactsQuery only returns contacts with matching auth_uid)
+    if (candidateId && rawContacts.some(c => c.id === candidateId || c.doc_id === candidateId)) {
+      return candidateId;
+    }
 
     return null;
   }, [profile, user, rawContacts, isMember]);
