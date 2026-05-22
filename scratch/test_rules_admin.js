@@ -17,8 +17,8 @@ const db = getFirestore(app);
 
 async function run() {
     try {
-        console.log("Signing in as admin kyuahn@yahoo.com...");
-        const userCredential = await signInWithEmailAndPassword(auth, "kyuahn@yahoo.com", "Password123!");
+        console.log("\nSigning in as admin kyuahn@yahoo.com...");
+        const userCredential = await signInWithEmailAndPassword(auth, "kyuahn@yahoo.com", "Citib@nk2");
         const uid = userCredential.user.uid;
         console.log(`Signed in successfully! UID: ${uid}`);
 
