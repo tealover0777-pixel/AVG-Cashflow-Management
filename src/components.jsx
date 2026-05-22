@@ -449,27 +449,29 @@ export const Modal = ({ open, onClose, title, onSave, saveLabel, secondaryAction
           </Tooltip>
         </div>
         <div style={{ padding: "24px 26px", overflowY: "auto", flex: 1, display: "flex", flexDirection: "column" }}>{children}</div>
-        <div style={{ padding: "16px 26px", borderTop: `1px solid ${t.surfaceBorder}`, display: "flex", justifyContent: "flex-end", gap: 10, background: isDark ? "rgba(255,255,255,0.02)" : "#FAFAF9", borderRadius: "0 0 20px 20px", flexShrink: 0 }}>
-          {showCancel && (
-            <Tooltip text="Cancel without saving" t={t}>
-              <button onClick={onClose} disabled={loading} style={{ padding: "10px 22px", borderRadius: 11, fontSize: 13, fontWeight: 500, background: t.chipBg, color: t.textSecondary, border: `1px solid ${t.chipBorder}`, cursor: loading ? "default" : "pointer", opacity: loading ? 0.5 : 1 }}>Cancel</button>
-            </Tooltip>
-          )}
-          {secondaryAction && (
-            <Tooltip text={secondaryLabel || "Back"} t={t}>
-              <button onClick={secondaryAction} disabled={loading} style={{ padding: "10px 22px", borderRadius: 11, fontSize: 13, fontWeight: 500, background: t.chipBg, color: t.textSecondary, border: `1px solid ${t.chipBorder}`, cursor: loading ? "default" : "pointer", opacity: loading ? 0.5 : 1 }}>
-                {secondaryLabel || "Back"}
-              </button>
-            </Tooltip>
-          )}
-          {onSave && (
-            <Tooltip text={danger ? "Confirm deletion" : (saveLabel || "Save changes")} t={t}>
-              <button onClick={onSave} disabled={loading} className="primary-btn" style={{ padding: "10px 22px", borderRadius: 11, fontSize: 13, fontWeight: 600, background: danger ? "rgba(248,113,113,0.15)" : t.accentGrad, color: danger ? (isDark ? "#F87171" : "#DC2626") : "#fff", border: danger ? `1px solid ${isDark ? "rgba(248,113,113,0.3)" : "#FECACA"}` : "none", boxShadow: danger ? "none" : `0 4px 14px ${t.accentShadow}`, cursor: loading ? "default" : "pointer", opacity: loading ? 0.6 : 1 }}>
-                {loading ? "..." : (saveLabel || "Save")}
-              </button>
-            </Tooltip>
-          )}
-        </div>
+        {(showCancel || secondaryAction || onSave) && (
+          <div style={{ padding: "16px 26px", borderTop: `1px solid ${t.surfaceBorder}`, display: "flex", justifyContent: "flex-end", gap: 10, background: isDark ? "rgba(255,255,255,0.02)" : "#FAFAF9", borderRadius: "0 0 20px 20px", flexShrink: 0 }}>
+            {showCancel && (
+              <Tooltip text="Cancel without saving" t={t}>
+                <button onClick={onClose} disabled={loading} style={{ padding: "10px 22px", borderRadius: 11, fontSize: 13, fontWeight: 500, background: t.chipBg, color: t.textSecondary, border: `1px solid ${t.chipBorder}`, cursor: loading ? "default" : "pointer", opacity: loading ? 0.5 : 1 }}>Cancel</button>
+              </Tooltip>
+            )}
+            {secondaryAction && (
+              <Tooltip text={secondaryLabel || "Back"} t={t}>
+                <button onClick={secondaryAction} disabled={loading} style={{ padding: "10px 22px", borderRadius: 11, fontSize: 13, fontWeight: 500, background: t.chipBg, color: t.textSecondary, border: `1px solid ${t.chipBorder}`, cursor: loading ? "default" : "pointer", opacity: loading ? 0.5 : 1 }}>
+                  {secondaryLabel || "Back"}
+                </button>
+              </Tooltip>
+            )}
+            {onSave && (
+              <Tooltip text={danger ? "Confirm deletion" : (saveLabel || "Save changes")} t={t}>
+                <button onClick={onSave} disabled={loading} className="primary-btn" style={{ padding: "10px 22px", borderRadius: 11, fontSize: 13, fontWeight: 600, background: danger ? "rgba(248,113,113,0.15)" : t.accentGrad, color: danger ? (isDark ? "#F87171" : "#DC2626") : "#fff", border: danger ? `1px solid ${isDark ? "rgba(248,113,113,0.3)" : "#FECACA"}` : "none", boxShadow: danger ? "none" : `0 4px 14px ${t.accentShadow}`, cursor: loading ? "default" : "pointer", opacity: loading ? 0.6 : 1 }}>
+                  {loading ? "..." : (saveLabel || "Save")}
+                </button>
+              </Tooltip>
+            )}
+          </div>
+        )}
         <div onMouseDown={onResizeStart} style={{ position: "absolute", right: 0, bottom: 0, width: 22, height: 22, cursor: "nwse-resize", zIndex: 10, display: "flex", alignItems: "flex-end", justifyContent: "flex-end", padding: 4 }}>
           <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
             <line x1="2" y1="13" x2="13" y2="2" stroke={isDark ? "#6B7280" : "#94A3B8"} strokeWidth="2" strokeLinecap="round"/>

@@ -1131,28 +1131,17 @@ export default function PageResourceManagement({ t, isDark, activeTenantId }) {
       />
 
       {/* Image Preview Modal */}
-      <Modal isOpen={!!previewImage} onClose={() => setPreviewImage(null)} isDark={isDark} maxWidth={900}>
+      <Modal 
+        open={!!previewImage} 
+        onClose={() => setPreviewImage(null)} 
+        title={previewImage?.displayName || "Image Preview"} 
+        showCancel={false} 
+        t={t} 
+        isDark={isDark} 
+        width={900}
+      >
         {previewImage && (
           <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <div style={{ fontSize: 18, fontWeight: 700, color: t.text }}>{previewImage.displayName}</div>
-              <button 
-                onClick={() => setPreviewImage(null)}
-                style={{ 
-                  background: "transparent", 
-                  border: "none", 
-                  color: t.textMuted, 
-                  cursor: "pointer",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  padding: 4
-                }}
-              >
-                <X size={20} />
-              </button>
-            </div>
-            
             <div style={{ 
               background: isDark ? "#171515" : "#F3F4F6", 
               borderRadius: 12, 
