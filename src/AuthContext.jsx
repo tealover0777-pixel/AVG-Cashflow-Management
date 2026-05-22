@@ -115,74 +115,83 @@ export function AuthProvider({ children }) {
                         } catch (e) { console.error("Activation error:", e); }
                     }
 
+                    const roleUpper = (role || "").toUpperCase();
+
                     // Sync with tenant-specific profile if it exists
-                    if (tenantId && !tenantUnsub) {
-                        const qUsers = query(collection(db, `tenants/${tenantId}/users`), where("auth_uid", "==", u.uid));
-                        const qContacts = query(collection(db, `tenants/${tenantId}/contacts`), where("auth_uid", "==", u.uid));
+                    if (tenantUnsub) {
+                        tenantUnsub();
+                        tenantUnsub = null;
+                    }
 
-                        const unsubUsers = onSnapshot(qUsers, async (tSnap) => {
-                            if (!tSnap.empty) {
-                                const tenantData = tSnap.docs[0].data();
-                                const resolvedRole = tenantData?.role_id || tenantData?.role || fetchedProfile.role || "";
-                                const resolvedTenantId = tenantData?.tenantId || tenantId || "";
-                                
-                                const { userPermissions: tPerms, roleName: tRoleName, isGlobalRole: tIsGlobal } = 
-                                    await getPermissionsAndRoleName(resolvedRole, resolvedTenantId);
+                    if (tenantId && tenantId !== "GLOBAL") {
+                        if (roleUpper === "R10001") {
+                            // Listen ONLY to contacts
+                            const qContacts = query(collection(db, `tenants/${tenantId}/contacts`), where("auth_uid", "==", u.uid));
+                            const unsubContacts = onSnapshot(qContacts, async (cSnap) => {
+                                if (!cSnap.empty) {
+                                    const contactData = cSnap.docs[0].data();
+                                    let fName = contactData.first_name || "";
+                                    let lName = contactData.last_name || "";
+                                    if (!fName && contactData.name) {
+                                        const parts = contactData.name.trim().split(/\s+/);
+                                        fName = parts[0] || "";
+                                        lName = parts.slice(1).join(" ") || "";
+                                    }
+                                    const resolvedRole = contactData?.role_id || contactData?.role || fetchedProfile.role || "";
+                                    const resolvedTenantId = contactData?.tenantId || tenantId || "";
 
-                                setProfile(prev => {
-                                    return {
-                                        ...prev,
-                                        ...tenantData, // tenant-scoped profile details take precedence for tenant-scoped users
-                                        role: resolvedRole,
-                                        tenantId: resolvedTenantId,
-                                        roleName: tRoleName,
-                                        isGlobalRole: tIsGlobal || prev?.isGlobalRole,
-                                        isContact: false
-                                    };
-                                });
-                                setPermissions(tPerms);
-                            }
-                        });
+                                    const { userPermissions: cPerms, roleName: cRoleName, isGlobalRole: cIsGlobal } = 
+                                        await getPermissionsAndRoleName(resolvedRole, resolvedTenantId);
 
-                        const unsubContacts = onSnapshot(qContacts, async (cSnap) => {
-                            if (!cSnap.empty) {
-                                const contactData = cSnap.docs[0].data();
-                                let fName = contactData.first_name || "";
-                                let lName = contactData.last_name || "";
-                                if (!fName && contactData.name) {
-                                    const parts = contactData.name.trim().split(/\s+/);
-                                    fName = parts[0] || "";
-                                    lName = parts.slice(1).join(" ") || "";
+                                    setProfile(prev => {
+                                        return {
+                                            ...prev,
+                                            ...contactData,
+                                            first_name: fName,
+                                            last_name: lName,
+                                            address1: contactData.address1 || contactData.street1 || "",
+                                            address2: contactData.address2 || contactData.street2 || "",
+                                            role: resolvedRole,
+                                            tenantId: resolvedTenantId,
+                                            roleName: cRoleName,
+                                            isGlobalRole: cIsGlobal || prev?.isGlobalRole,
+                                            isContact: true,
+                                            isMember: true
+                                        };
+                                    });
+                                    setPermissions(cPerms);
                                 }
-                                const resolvedRole = contactData?.role_id || contactData?.role || fetchedProfile.role || "";
-                                const resolvedTenantId = contactData?.tenantId || tenantId || "";
+                            });
+                            tenantUnsub = unsubContacts;
+                        } else if (["R10002", "R10003", "R10004", "R10005"].includes(roleUpper)) {
+                            // Listen ONLY to users
+                            const qUsers = query(collection(db, `tenants/${tenantId}/users`), where("auth_uid", "==", u.uid));
+                            const unsubUsers = onSnapshot(qUsers, async (tSnap) => {
+                                if (!tSnap.empty) {
+                                    const tenantData = tSnap.docs[0].data();
+                                    const resolvedRole = tenantData?.role_id || tenantData?.role || fetchedProfile.role || "";
+                                    const resolvedTenantId = tenantData?.tenantId || tenantId || "";
+                                    
+                                    const { userPermissions: tPerms, roleName: tRoleName, isGlobalRole: tIsGlobal } = 
+                                        await getPermissionsAndRoleName(resolvedRole, resolvedTenantId);
 
-                                const { userPermissions: cPerms, roleName: cRoleName, isGlobalRole: cIsGlobal } = 
-                                    await getPermissionsAndRoleName(resolvedRole, resolvedTenantId);
-
-                                setProfile(prev => {
-                                    return {
-                                        ...prev,
-                                        ...contactData,
-                                        first_name: fName,
-                                        last_name: lName,
-                                        address1: contactData.address1 || contactData.street1 || "",
-                                        address2: contactData.address2 || contactData.street2 || "",
-                                        role: resolvedRole,
-                                        tenantId: resolvedTenantId,
-                                        roleName: cRoleName,
-                                        isGlobalRole: cIsGlobal || prev?.isGlobalRole,
-                                        isContact: true
-                                    };
-                                });
-                                setPermissions(cPerms);
-                            }
-                        });
-
-                        tenantUnsub = () => {
-                            unsubUsers();
-                            unsubContacts();
-                        };
+                                    setProfile(prev => {
+                                        return {
+                                            ...prev,
+                                            ...tenantData,
+                                            role: resolvedRole,
+                                            tenantId: resolvedTenantId,
+                                            roleName: tRoleName,
+                                            isGlobalRole: tIsGlobal || prev?.isGlobalRole,
+                                            isContact: false,
+                                            isMember: false
+                                        };
+                                    });
+                                    setPermissions(tPerms);
+                                }
+                            });
+                            tenantUnsub = unsubUsers;
+                        }
                     }
 
                     if (!fetchedProfile && u.email?.toLowerCase() === "kyuahn@yahoo.com") {
@@ -308,32 +317,64 @@ export function AuthProvider({ children }) {
         if (perm.toUpperCase() === "DEAL_VIEW") {
             if (has("DEAL_VIEW") || has("INVESTORPORTAL_VIEW") || has("INVESTOR_PORTAL_VIEW")) return true;
         }
-        if (perm.toUpperCase() === "CONTACT_VIEW") {
-            if (has("CONTACT_VIEW") || has("CRM_VIEW")) return true;
-        }
-        if (perm.toUpperCase() === "PAYMENT_VIEW") {
-            if (has("PAYMENT_VIEW") || has("BANKING_VIEW")) return true;
-        }
-        if (perm.toUpperCase() === "FEE_VIEW") {
-            if (has("FEE_VIEW") || has("Settings_view") || has("SETTINGS_VIEW")) return true;
-        }
-        if (perm.toUpperCase() === "FEE_CREATE") {
-            if (has("FEE_CREATE") || has("Settings_create") || has("SETTINGS_CREATE")) return true;
-        }
-        if (perm.toUpperCase() === "FEE_UPDATE") {
-            if (has("FEE_UPDATE") || has("Settings_update") || has("SETTINGS_UPDATE")) return true;
-        }
-        if (perm.toUpperCase() === "FEE_DELETE") {
-            if (has("FEE_DELETE") || has("Settings_delete") || has("SETTINGS_DELETE")) return true;
-        }
         if (["INVESTORPORTAL_VIEW", "INVESTOR_PORTAL_VIEW"].includes(perm.toUpperCase())) {
             if (has("DEAL_VIEW") || has("INVESTORPORTAL_VIEW") || has("INVESTOR_PORTAL_VIEW")) return true;
         }
-        if (perm.toUpperCase() === "CRM_VIEW") {
+
+        // CRM / Contacts
+        if (["CONTACT_CREATE", "CRM_CREATE"].includes(perm.toUpperCase())) {
+            if (has("CONTACT_CREATE") || has("CRM_CREATE")) return true;
+        }
+        if (["CONTACT_VIEW", "CRM_VIEW"].includes(perm.toUpperCase())) {
             if (has("CONTACT_VIEW") || has("CRM_VIEW")) return true;
         }
-        if (perm.toUpperCase() === "BANKING_VIEW") {
+        if (["CONTACT_UPDATE", "CRM_UPDATE"].includes(perm.toUpperCase())) {
+            if (has("CONTACT_UPDATE") || has("CRM_UPDATE")) return true;
+        }
+        if (["CONTACT_DELETE", "CRM_DELETE"].includes(perm.toUpperCase())) {
+            if (has("CONTACT_DELETE") || has("CRM_DELETE")) return true;
+        }
+
+        // Banking / Payments
+        if (["PAYMENT_CREATE", "BANKING_CREATE"].includes(perm.toUpperCase())) {
+            if (has("PAYMENT_CREATE") || has("BANKING_CREATE")) return true;
+        }
+        if (["PAYMENT_VIEW", "BANKING_VIEW"].includes(perm.toUpperCase())) {
             if (has("PAYMENT_VIEW") || has("BANKING_VIEW")) return true;
+        }
+        if (["PAYMENT_UPDATE", "BANKING_UPDATE"].includes(perm.toUpperCase())) {
+            if (has("PAYMENT_UPDATE") || has("BANKING_UPDATE")) return true;
+        }
+        if (["PAYMENT_DELETE", "BANKING_DELETE"].includes(perm.toUpperCase())) {
+            if (has("PAYMENT_DELETE") || has("BANKING_DELETE")) return true;
+        }
+
+        // Settings / Fees
+        if (["FEE_CREATE", "SETTINGS_CREATE", "Settings_create"].includes(perm.toUpperCase())) {
+            if (has("FEE_CREATE") || has("Settings_create") || has("SETTINGS_CREATE")) return true;
+        }
+        if (["FEE_VIEW", "SETTINGS_VIEW", "Settings_view"].includes(perm.toUpperCase())) {
+            if (has("FEE_VIEW") || has("Settings_view") || has("SETTINGS_VIEW")) return true;
+        }
+        if (["FEE_UPDATE", "SETTINGS_UPDATE", "Settings_update"].includes(perm.toUpperCase())) {
+            if (has("FEE_UPDATE") || has("Settings_update") || has("SETTINGS_UPDATE")) return true;
+        }
+        if (["FEE_DELETE", "SETTINGS_DELETE", "Settings_delete"].includes(perm.toUpperCase())) {
+            if (has("FEE_DELETE") || has("Settings_delete") || has("SETTINGS_DELETE")) return true;
+        }
+
+        // Dimension / Dimention
+        if (["DIMENTION_CREATE", "DIMENSION_CREATE"].includes(perm.toUpperCase())) {
+            if (has("DIMENTION_CREATE") || has("DIMENSION_CREATE")) return true;
+        }
+        if (["DIMENTION_VIEW", "DIMENSION_VIEW"].includes(perm.toUpperCase())) {
+            if (has("DIMENTION_VIEW") || has("DIMENSION_VIEW")) return true;
+        }
+        if (["DIMENTION_UPDATE", "DIMENSION_UPDATE"].includes(perm.toUpperCase())) {
+            if (has("DIMENTION_UPDATE") || has("DIMENSION_UPDATE")) return true;
+        }
+        if (["DIMENTION_DELETE", "DIMENSION_DELETE"].includes(perm.toUpperCase())) {
+            if (has("DIMENTION_DELETE") || has("DIMENSION_DELETE")) return true;
         }
 
         if (perm.endsWith("*")) {

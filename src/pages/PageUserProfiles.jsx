@@ -126,11 +126,6 @@ export default function PageUserProfiles({ t, isDark, USERS = [], GLOBAL_USERS =
     const handleInviteUser = async () => {
         const d = modal.data;
         if (!d.email || !d.role_id) return;
-        const emailExists = CONTACTS.some(p => p.email && p.email.toLowerCase() === d.email.toLowerCase());
-        if (!emailExists) {
-            showToast("This email does not belong to any existing Contact. Please create a Contact record first on the Contacts page.", "error");
-            return;
-        }
         setInviteConfirm({ ...d, tenantId: isSelectedRoleGlobal(d.role_id) ? "" : (d.inviteTenantId || tenantId || "") });
     };
 
@@ -462,7 +457,7 @@ export default function PageUserProfiles({ t, isDark, USERS = [], GLOBAL_USERS =
             <FF label="Role" t={t}>
                 <select value={modal.data.role_id || ""} onChange={e => setF("role_id", e.target.value)} style={{ background: isDark ? "rgba(255,255,255,0.04)" : "#fff", color: isDark ? "#fff" : "#000", border: `1px solid ${t.border}`, borderRadius: 9, padding: "10px 13px", fontSize: 13.5, outline: "none", width: "100%", fontFamily: t.font, appearance: "none" }}>
                     <option value="" disabled style={{ color: "#000" }}>Select a role...</option>
-                    {ROLES.filter(r => isGlobalRole || isSuperAdmin || (!isSelectedRoleGlobal(r.id || r.role_id) && (r.id || r.role_id) !== "R10005")).map(r => (
+                    {ROLES.filter(r => ["R10002", "R10003", "R10004", "R10005"].includes(r.id || r.role_id)).map(r => (
                         <option key={r.id || r.role_id} value={r.id || r.role_id} style={{ color: "#000" }}>{r.role_name || r.name || r.id}</option>
                     ))}
                 </select>
@@ -498,7 +493,7 @@ export default function PageUserProfiles({ t, isDark, USERS = [], GLOBAL_USERS =
             <FF label="Email" t={t}><FIn value={modal.data.email} onChange={e => setF("email", e.target.value)} t={t} /></FF>
             <FF label="Role" t={t}>
                 <select value={modal.data.role_id || ""} onChange={e => setF("role_id", e.target.value)} style={{ background: isDark ? "rgba(255,255,255,0.04)" : "#fff", color: isDark ? "#fff" : "#000", border: `1px solid ${t.border}`, borderRadius: 9, padding: "10px 13px", fontSize: 13.5, outline: "none", width: "100%", fontFamily: t.font, appearance: "none" }}>
-                    {ROLES.filter(r => isGlobalRole || isSuperAdmin || (!isSelectedRoleGlobal(r.id || r.role_id) && (r.id || r.role_id) !== "R10005")).map(r => (
+                    {ROLES.filter(r => ["R10002", "R10003", "R10004", "R10005"].includes(r.id || r.role_id)).map(r => (
                         <option key={r.id || r.role_id} value={r.id || r.role_id} style={{ color: "#000" }}>{r.role_name || r.name || r.id}</option>
                     ))}
                 </select>

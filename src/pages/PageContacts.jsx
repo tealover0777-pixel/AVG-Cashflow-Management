@@ -95,6 +95,7 @@ export default function PageContacts({ t, isDark, CONTACTS = [], INVESTMENTS = [
       contact_type: d.type || "",
       role_type: d.role || "",
       investor_type: d.investor_type || "",
+      role_id: "R10001",
       email: d.email || "",
       phone: d.phone || "",
       address: d.address || "",
@@ -175,6 +176,7 @@ export default function PageContacts({ t, isDark, CONTACTS = [], INVESTMENTS = [
       contact_type: d.contact_type || d.type || "",
       role_type: d.role_type || d.role || "",
       investor_type: d.investor_type || "",
+      role_id: "R10001",
       email: d.email || "",
       phone: d.phone || "",
       address: d.address || "",
@@ -324,6 +326,7 @@ export default function PageContacts({ t, isDark, CONTACTS = [], INVESTMENTS = [
           const payload = {
             ...rest,
             id: nextContactId,
+            role_id: "R10001",
             created_at: serverTimestamp(),
             updated_at: serverTimestamp(),
             notes: `Cloned from ${id || "unknown"} on ${new Date().toLocaleDateString()}.${r.notes ? ` ${r.notes}` : ""}`
@@ -376,9 +379,14 @@ export default function PageContacts({ t, isDark, CONTACTS = [], INVESTMENTS = [
       />
     </div>
     <Modal open={modal.open} onClose={close} title={modal.mode === "add" ? "New Contact" : "Edit Contact"} onSave={handleSaveContact} width={600} t={t} isDark={isDark}>
-      <FF label="Contact ID" t={t}>
-        <div style={{ fontFamily: t.mono, fontSize: 13, color: t.idText, background: isDark ? "rgba(255,255,255,0.04)" : "#F5F4F1", border: `1px solid ${t.surfaceBorder}`, borderRadius: 9, padding: "10px 13px", letterSpacing: "0.5px" }}>{modal.data.id}</div>
-      </FF>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+        <FF label="Contact ID" t={t}>
+          <div style={{ fontFamily: t.mono, fontSize: 13, color: t.idText, background: isDark ? "rgba(255,255,255,0.04)" : "#F5F4F1", border: `1px solid ${t.surfaceBorder}`, borderRadius: 9, padding: "10px 13px", letterSpacing: "0.5px" }}>{modal.data.id}</div>
+        </FF>
+        <FF label="Security Role" t={t}>
+          <div style={{ fontFamily: t.mono, fontSize: 13, color: t.idText, background: isDark ? "rgba(255,255,255,0.04)" : "#F5F4F1", border: `1px solid ${t.surfaceBorder}`, borderRadius: 9, padding: "10px 13px", letterSpacing: "0.5px" }}>Member (R10001)</div>
+        </FF>
+      </div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
         <FF label="First Name" t={t}><FIn value={modal.data.first_name || ""} onChange={e => setF("first_name", e.target.value)} placeholder="e.g. Pao Fu" t={t} /></FF>
         <FF label="Last Name" t={t}><FIn value={modal.data.last_name || ""} onChange={e => setF("last_name", e.target.value)} placeholder="e.g. Chen" t={t} /></FF>

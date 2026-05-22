@@ -73,7 +73,10 @@ export default function PageSuperAdmin({ t, isDark, ROLES = [], TENANTS = [] }) 
 
     // Get role options from ROLES collection
     const roleOptions = useMemo(() => {
-        return ROLES.map(r => {
+        return ROLES.filter(r => {
+            const id = r.id || r.role_id;
+            return ["R10006", "R10007", "R10008", "R10009", "R10010"].includes(id);
+        }).map(r => {
             const id = r.id || r.role_id;
             const name = r.role_name || r.name || id;
             return {
