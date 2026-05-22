@@ -430,11 +430,7 @@ export function AuthProvider({ children }) {
             return isT && !(profile?.isGlobalRole === true || profile?.isGlobal === true);
         })(),
         isGlobalRole: profile?.isGlobalRole === true || profile?.isGlobal === true,
-        isR10010: (() => {
-            const role = (profile?.role || "").toUpperCase();
-            // R10010 legacy role OR any role with PLATFORM_USER_VIEW permission
-            return role === "R10010" || user?.email?.toLowerCase() === "kyuahn@yahoo.com" || permissions.includes("PLATFORM_USER_VIEW");
-        })(),
+        isR10010: hasPermission("PLATFORM_USER_VIEW"),
         tenantId: profile?.tenantId || ""
     };
 

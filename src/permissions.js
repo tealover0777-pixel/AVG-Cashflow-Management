@@ -147,6 +147,7 @@ export const DEFAULT_ROLE_PERMISSIONS = {
         "PlatformAdmin_view", "PlatformAdmin_create", "PlatformAdmin_update", "PlatformAdmin_delete", "Administration_view"
     ],
     "R10010": [...PERMISSIONS_LIST],
+    "R10009": [...PERMISSIONS_LIST],
     "R10003": [...PERMISSIONS_LIST],
     "R10006": [
         "PLATFORM_USER_CREATE", "PLATFORM_USER_VIEW", "PLATFORM_USER_UPDATE", "PLATFORM_USER_DELETE",

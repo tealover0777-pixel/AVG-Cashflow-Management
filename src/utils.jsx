@@ -215,11 +215,12 @@ export const getNav = (isSuper, _isAdmin, hasPermission, isR10010, isMember = fa
   // Helper function to check if a single item should be visible
   const isItemVisible = (item) => {
     if (item.hidden) return false;
-    if (isSuper) return true; // Super Admins always see everything else
 
     if (platformAdminChildren.includes(item.label)) {
       return !!(hasPermission && hasPermission("PlatformAdmin_view"));
     }
+
+    if (isSuper) return true; // Super Admins always see everything else
 
     if (administrationChildren.includes(item.label)) {
       return !!(hasPermission && hasPermission("Administration_view"));
