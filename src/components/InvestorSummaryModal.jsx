@@ -506,7 +506,7 @@ export const InvestorSummaryModal = ({
                   {fmtCurr(partySchedules.reduce((sum, s) => sum + (Number(s.signed_payment_amount || s.payment_amount || String(s.amount || 0).replace(/[^0-9.-]/g,'')) || 0), 0))}
                 </div>
               </div>
-              <div style={{ height: 400 }}>
+              <div style={{ height: "calc(100vh - 420px)", minHeight: 400 }}>
                 <TanStackTable
                   data={partySchedules}
                   columns={getContactTransactionColumns(isDark, t, { 
@@ -700,7 +700,7 @@ export const InvestorSummaryModal = ({
                 </div>
                 <div style={{ fontSize: 14, fontWeight: 600, color: t.accent }}>{fmtCurr(filteredTotal)}</div>
               </div>
-              <div style={{ height: 400 }}>
+              <div style={{ height: "calc(100vh - 420px)", minHeight: 400 }}>
                 <TanStackTable
                   data={filteredDist}
                   columns={getContactTransactionColumns(isDark, t, { 
