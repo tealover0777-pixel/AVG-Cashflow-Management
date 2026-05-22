@@ -132,8 +132,8 @@ export function AuthProvider({ children }) {
                                     const contactData = cSnap.docs[0].data();
                                     let fName = contactData.first_name || "";
                                     let lName = contactData.last_name || "";
-                                    if (!fName && contactData.name) {
-                                        const parts = contactData.name.trim().split(/\s+/);
+                                    if (!fName && (contactData.name || contactData.contact_name)) {
+                                        const parts = (contactData.name || contactData.contact_name).trim().split(/\s+/);
                                         fName = parts[0] || "";
                                         lName = parts.slice(1).join(" ") || "";
                                     }

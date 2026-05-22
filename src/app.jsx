@@ -6,10 +6,10 @@ import React, { useState, useMemo, useEffect } from "react";
 import { AuthProvider, useAuth } from "./AuthContext";
 import { createRoot } from "react-dom/client";
 import { auth, db, storage } from "./firebase";
-import { doc, getDoc, onSnapshot } from "firebase/firestore";
+import { doc, getDoc, onSnapshot, collection, query, where } from "firebase/firestore";
 import { ref, listAll, getDownloadURL } from "firebase/storage";
 import { useFirestoreCollection } from "./useFirestoreCollection";
-import { mkTheme, getNav, getCollectionPaths, DIM_STYLES, DEFAULT_DIM_STYLE, MONTHLY, initials, av, fmtCurr, fmtDate, parseTemplateJson } from "./utils";
+import { mkTheme, getNav, getCollectionPaths, DIM_STYLES, DEFAULT_DIM_STYLE, MONTHLY, initials, av, fmtCurr, fmtDate, parseTemplateJson, splitInvestorName } from "./utils";
 import PageDashboard from "./pages/PageDashboard";
 import PageDeals from "./pages/PageDeals";
 import PageContacts from "./pages/PageContacts";
@@ -233,12 +233,76 @@ function AppContent() {
   // Super admins/Global roles can fetch "GLOBAL" which uses group queries.
   const fetchPaths = getCollectionPaths(isGlobalConsolidated ? "" : (activeTenantId || "T_PENDING"));
 
-  const { data: rawDeals, loading: l1, error: e1 } = useFirestoreCollection(isGlobalConsolidated ? "deals" : (activeTenantId && activeTenantId !== "GLOBAL" ? fetchPaths.deals : null), isGlobalConsolidated);
-  const { data: rawContacts, loading: l2, error: e2 } = useFirestoreCollection(isGlobalConsolidated ? "contacts" : (activeTenantId && activeTenantId !== "GLOBAL" ? fetchPaths.contacts : null), isGlobalConsolidated);
-  const { data: rawInvestments, loading: l3, error: e3 } = useFirestoreCollection(isGlobalConsolidated ? "investments" : (activeTenantId && activeTenantId !== "GLOBAL" ? fetchPaths.investments : null), isGlobalConsolidated);
-  const { data: rawSchedules, loading: l4, error: e4 } = useFirestoreCollection(isGlobalConsolidated ? "paymentSchedules" : (activeTenantId && activeTenantId !== "GLOBAL" ? fetchPaths.paymentSchedules : null), isGlobalConsolidated);
-  const { data: rawPayments, loading: l5, error: e5 } = useFirestoreCollection(isGlobalConsolidated ? "payments" : (activeTenantId && activeTenantId !== "GLOBAL" ? fetchPaths.payments : null), isGlobalConsolidated);
-  const { data: rawFees, loading: l6, error: e6 } = useFirestoreCollection(isGlobalConsolidated ? "fees" : (activeTenantId && activeTenantId !== "GLOBAL" ? fetchPaths.fees : null), isGlobalConsolidated);
+  const dealsPath = isGlobalConsolidated ? "deals" : (activeTenantId && activeTenantId !== "GLOBAL" ? fetchPaths.deals : null);
+  const { data: rawDeals, loading: l1, error: e1 } = useFirestoreCollection(dealsPath, isGlobalConsolidated);
+
+  // 1. Fetch contacts query (supports member filtering by auth_uid)
+  const contactsQuery = useMemo(() => {
+    if (isGlobalConsolidated) return "contacts";
+    if (!activeTenantId || activeTenantId === "GLOBAL") return null;
+    if (isMember) {
+      if (!user?.uid) return null;
+      return query(collection(db, "tenants", activeTenantId, "contacts"), where("auth_uid", "==", user.uid));
+    }
+    return fetchPaths.contacts;
+  }, [isGlobalConsolidated, activeTenantId, isMember, user?.uid, fetchPaths.contacts]);
+
+  const { data: rawContacts, loading: l2, error: e2 } = useFirestoreCollection(contactsQuery, isGlobalConsolidated);
+
+  // 2. Resolve member contact ID
+  const memberContactId = useMemo(() => {
+    if (!isMember) return null;
+
+    // 1. Check explicit profile field
+    if (profile?.contact_id || profile?.party_id) return profile.contact_id || profile.party_id;
+    // 2. Check notes field
+    const noteId = (profile?.notes || "").split(" — ")[1];
+    if (noteId) return noteId;
+    // 3. Fallback: Lookup by email in rawContacts
+    const foundByEmail = rawContacts.find(p => p.email && p.email.toLowerCase() === user?.email?.toLowerCase());
+    if (foundByEmail) return foundByEmail.id || foundByEmail.doc_id;
+
+    return null;
+  }, [profile, user, rawContacts, isMember]);
+
+  // 3. Create queries for investments, schedules, payments
+  const investmentsQuery = useMemo(() => {
+    if (isGlobalConsolidated) return "investments";
+    if (!activeTenantId || activeTenantId === "GLOBAL") return null;
+    if (isMember) {
+      if (!memberContactId) return null;
+      return query(collection(db, "tenants", activeTenantId, "investments"), where("contact_id", "==", memberContactId));
+    }
+    return fetchPaths.investments;
+  }, [isGlobalConsolidated, activeTenantId, isMember, memberContactId, fetchPaths.investments]);
+
+  const schedulesQuery = useMemo(() => {
+    if (isGlobalConsolidated) return "paymentSchedules";
+    if (!activeTenantId || activeTenantId === "GLOBAL") return null;
+    if (isMember) {
+      if (!memberContactId) return null;
+      return query(collection(db, "tenants", activeTenantId, "paymentSchedules"), where("contact_id", "==", memberContactId));
+    }
+    return fetchPaths.paymentSchedules;
+  }, [isGlobalConsolidated, activeTenantId, isMember, memberContactId, fetchPaths.paymentSchedules]);
+
+  const paymentsQuery = useMemo(() => {
+    if (isGlobalConsolidated) return "payments";
+    if (!activeTenantId || activeTenantId === "GLOBAL") return null;
+    if (isMember) {
+      if (!memberContactId) return null;
+      return query(collection(db, "tenants", activeTenantId, "payments"), where("contact_id", "==", memberContactId));
+    }
+    return fetchPaths.payments;
+  }, [isGlobalConsolidated, activeTenantId, isMember, memberContactId, fetchPaths.payments]);
+
+  // 4. Fetch investments, schedules, payments
+  const { data: rawInvestments, loading: l3, error: e3 } = useFirestoreCollection(investmentsQuery, isGlobalConsolidated);
+  const { data: rawSchedules, loading: l4, error: e4 } = useFirestoreCollection(schedulesQuery, isGlobalConsolidated);
+  const { data: rawPayments, loading: l5, error: e5 } = useFirestoreCollection(paymentsQuery, isGlobalConsolidated);
+
+  // Fees: Admin only
+  const { data: rawFees, loading: l6, error: e6 } = useFirestoreCollection(isMember ? null : (isGlobalConsolidated ? "fees" : (activeTenantId && activeTenantId !== "GLOBAL" ? fetchPaths.fees : null)), isGlobalConsolidated);
   const { data: rawTenants, loading: l8, error: e8 } = useFirestoreCollection(((isSuperAdmin || isGlobalRole) && user) ? getCollectionPaths("").tenants : null);
   
   // User Profiles: Always use tenant-specific path (no platform users)
@@ -253,9 +317,11 @@ function AppContent() {
 
   const { data: rawRoles, loading: l10, error: e10 } = useFirestoreCollection((activeTenantId && (isSuperAdmin || isGlobalRole || isTenantAdmin || hasPermission("ROLE_TYPE_*") || hasPermission("USER_PROFILE_*"))) ? (isGlobalConsolidated ? "role_types" : (activeTenantId !== "GLOBAL" ? fetchPaths.roles : null)) : null);
   const { data: rawDimensions, loading: l7, error: e7 } = useFirestoreCollection(user ? fetchPaths.dimensions : null);
-  const { data: rawACHBatches, loading: l11, error: e11 } = useFirestoreCollection(isGlobalConsolidated ? "achBatches" : (activeTenantId && activeTenantId !== "GLOBAL" ? fetchPaths.achBatches : null), isGlobalConsolidated);
-  const { data: rawLedger, loading: l12, error: e12 } = useFirestoreCollection(isGlobalConsolidated ? "ledger" : (activeTenantId && activeTenantId !== "GLOBAL" ? fetchPaths.ledger : null), isGlobalConsolidated);
-  const { data: rawMarketingEmails, loading: l14, error: e14 } = useFirestoreCollection(isGlobalConsolidated ? "marketingEmails" : (activeTenantId && activeTenantId !== "GLOBAL" ? fetchPaths.marketingEmails : null), isGlobalConsolidated);
+
+  // ACHBatches, Ledger, MarketingEmails: Admin only
+  const { data: rawACHBatches, loading: l11, error: e11 } = useFirestoreCollection(isMember ? null : (isGlobalConsolidated ? "achBatches" : (activeTenantId && activeTenantId !== "GLOBAL" ? fetchPaths.achBatches : null)), isGlobalConsolidated);
+  const { data: rawLedger, loading: l12, error: e12 } = useFirestoreCollection(isMember ? null : (isGlobalConsolidated ? "ledger" : (activeTenantId && activeTenantId !== "GLOBAL" ? fetchPaths.ledger : null)), isGlobalConsolidated);
+  const { data: rawMarketingEmails, loading: l14, error: e14 } = useFirestoreCollection(isMember ? null : (isGlobalConsolidated ? "marketingEmails" : (activeTenantId && activeTenantId !== "GLOBAL" ? fetchPaths.marketingEmails : null)), isGlobalConsolidated);
 
 
   const shouldFetch = !!activeTenantId || isGlobalRole;
@@ -273,20 +339,7 @@ function AppContent() {
     }
   }, [isSuperAdmin, isGlobalRole, activeTenantId, rawTenants]);
 
-  const memberContactId = useMemo(() => {
-    if (!isMember) return null;
-
-    // 1. Check explicit profile field
-    if (profile?.contact_id || profile?.party_id) return profile.contact_id || profile.party_id;
-    // 2. Check notes field
-    const noteId = (profile?.notes || "").split(" — ")[1];
-    if (noteId) return noteId;
-    // 3. Fallback: Lookup by email in rawContacts
-    const foundByEmail = rawContacts.find(p => p.email && p.email.toLowerCase() === user?.email?.toLowerCase());
-    if (foundByEmail) return foundByEmail.id || foundByEmail.doc_id;
-
-    return null;
-  }, [profile, user, rawContacts, isMember]);
+  // memberContactId resolved above
 
   const forceFilter = isMember;
 
@@ -357,17 +410,26 @@ function AppContent() {
       if (!memberContactId) return false;
       return d.id === memberContactId;
     })
-    .map(d => ({
-      id: d.id, docId: d.doc_id || d.id, _path: d._path, name: d.contact_name || d.party_name || "", type: d.contact_type || d.party_type || "", role: d.role_type || "",
-      party_id: d.party_id || d.contact_id || "", 
-      contact_id: d.contact_id || d.party_id || "",
-      first_name: d.first_name || "", last_name: d.last_name || "",
-      email: d.email || "", phone: d.phone || "", investor_type: d.investor_type || "",
-      address: d.address || "", bank_information: d.bank_information || "",
-      bank_address: d.bank_address || "", bank_routing_number: d.bank_routing_number || "", bank_account_number: d.bank_account_number || "",
-      tax_id: d.tax_id || "", payment_method: d.payment_method || "",
-      created_at: fmtDate(d.created_at), updated_at: fmtDate(d.updated_at),
-    }))
+    .map(d => {
+      let fn = d.first_name || "";
+      let ln = d.last_name || "";
+      if (!fn && !ln && (d.contact_name || d.party_name)) {
+        const parts = splitInvestorName(d.contact_name || d.party_name || "");
+        fn = parts.firstName;
+        ln = parts.lastName;
+      }
+      return {
+        id: d.id, docId: d.doc_id || d.id, _path: d._path, name: d.contact_name || d.party_name || "", type: d.contact_type || d.party_type || "", role: d.role_type || "",
+        party_id: d.party_id || d.contact_id || "", 
+        contact_id: d.contact_id || d.party_id || "",
+        first_name: fn, last_name: ln,
+        email: d.email || "", phone: d.phone || "", investor_type: d.investor_type || "",
+        address: d.address || "", bank_information: d.bank_information || "",
+        bank_address: d.bank_address || "", bank_routing_number: d.bank_routing_number || "", bank_account_number: d.bank_account_number || "",
+        tax_id: d.tax_id || "", payment_method: d.payment_method || "",
+        created_at: fmtDate(d.created_at), updated_at: fmtDate(d.updated_at),
+      };
+    })
     .sort((a, b) => (a.name || "").localeCompare(b.name || ""));
  
   const INVESTMENTS = rawInvestments
@@ -405,8 +467,24 @@ function AppContent() {
         deal: dealMatch?.deal_name || d.deal_name || d.deal_id || "",
         deal_id: dealId,
         contact: contactMatch?.contact_name || contactMatch?.party_name || d.contact_name || d.party_name || d.contact_id || d.party_id || "",
-        first_name: contactMatch?.first_name || (contactMatch?.contact_name || contactMatch?.party_name || d.contact_name || d.party_name || "").split(" ")[0] || "",
-        last_name: contactMatch?.last_name || (contactMatch?.contact_name || contactMatch?.party_name || d.contact_name || d.party_name || "").split(" ").slice(1).join(" ") || "",
+        first_name: (() => {
+          let fn = contactMatch?.first_name || "";
+          let ln = contactMatch?.last_name || "";
+          if (!fn && !ln) {
+            const parts = splitInvestorName(contactMatch?.contact_name || contactMatch?.party_name || d.contact_name || d.party_name || "");
+            return parts.firstName;
+          }
+          return fn;
+        })(),
+        last_name: (() => {
+          let fn = contactMatch?.first_name || "";
+          let ln = contactMatch?.last_name || "";
+          if (!fn && !ln) {
+            const parts = splitInvestorName(contactMatch?.contact_name || contactMatch?.party_name || d.contact_name || d.party_name || "");
+            return parts.lastName;
+          }
+          return ln;
+        })(),
         contact_id: d.contact_id || contactMatch?.id || "",
         email: contactMatch?.email || d.email || "",
         phone: contactMatch?.phone || d.phone || "",
@@ -545,8 +623,24 @@ function AppContent() {
         investment: d.investment_id || "",
         contact: contactMatch?.contact_name || contactMatch?.party_name || d.contact_name || d.party_name || d.contact_id || d.party_id || "",
         contact_id: contactId,
-        first_name: contactMatch?.first_name || d.first_name || "",
-        last_name: contactMatch?.last_name || d.last_name || "",
+        first_name: (() => {
+          let fn = contactMatch?.first_name || d.first_name || "";
+          let ln = contactMatch?.last_name || d.last_name || "";
+          if (!fn && !ln) {
+            const parts = splitInvestorName(contactMatch?.contact_name || contactMatch?.party_name || d.contact_name || d.party_name || "");
+            return parts.firstName;
+          }
+          return fn;
+        })(),
+        last_name: (() => {
+          let fn = contactMatch?.first_name || d.first_name || "";
+          let ln = contactMatch?.last_name || d.last_name || "";
+          if (!fn && !ln) {
+            const parts = splitInvestorName(contactMatch?.contact_name || contactMatch?.party_name || d.contact_name || d.party_name || "");
+            return parts.lastName;
+          }
+          return ln;
+        })(),
         type: d.payment_type || "",
         amount: d.amount,
         date: fmtDate(d.payment_date),

@@ -159,10 +159,22 @@ export const InvestorSummaryModal = ({
     if (contact && contactId !== lastContactIdRef.current) {
       lastContactIdRef.current = contactId;
 
+      let fn = contact.first_name || "";
+      let ln = contact.last_name || "";
+      if (!fn && !ln && (contact.name || contact.contact_name)) {
+        const parts = (contact.name || contact.contact_name).trim().split(/\s+/);
+        if (parts.length > 1) {
+          ln = parts.pop();
+          fn = parts.join(" ");
+        } else {
+          fn = parts[0] || "";
+        }
+      }
+
       setEditData({
         ...contact,
-        first_name: contact.first_name || "",
-        last_name: contact.last_name || "",
+        first_name: fn,
+        last_name: ln,
         contact_type: contact.contact_type || contact.type || "Individual",
         role_type: contact.role_type || contact.role || "Investor",
         email: contact.email || "",
@@ -220,9 +232,29 @@ export const InvestorSummaryModal = ({
     setNoteText("");
   }, [contact?.id]);
 
+  const resolvedContact = useMemo(() => {
+    if (!contact) return null;
+    let fn = contact.first_name || "";
+    let ln = contact.last_name || "";
+    if (!fn && !ln && (contact.name || contact.contact_name)) {
+      const parts = (contact.name || contact.contact_name).trim().split(/\s+/);
+      if (parts.length > 1) {
+        ln = parts.pop();
+        fn = parts.join(" ");
+      } else {
+        fn = parts[0] || "";
+      }
+    }
+    return {
+      ...contact,
+      first_name: fn,
+      last_name: ln
+    };
+  }, [contact]);
+
   if (!contact) return null;
   const dp = contact;
-  const showData = isEditing ? editData : contact;
+  const showData = isEditing ? editData : resolvedContact;
 
   const roleOpts = (DIMENSIONS.find(d => d.name === "ContactRole" || d.name === "Contact Role") || {}).items || ["Investor", "Borrower"];
   const contactTypeOpts = (DIMENSIONS.find(d => d.name === "ContactType" || d.name === "Contact Type") || {}).items || ["Individual", "Company", "Trust", "Partnership"];

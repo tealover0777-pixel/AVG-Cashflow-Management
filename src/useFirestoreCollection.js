@@ -19,7 +19,14 @@ export function useFirestoreCollection(collectionPath, isGroup = false) {
       return;
     }
 
-    const ref = isGroup ? collectionGroup(db, collectionPath) : collection(db, collectionPath);
+    const ref = typeof collectionPath === "string"
+      ? (isGroup ? collectionGroup(db, collectionPath) : collection(db, collectionPath))
+      : collectionPath;
+
+    const logPath = typeof collectionPath === "string"
+      ? collectionPath
+      : "Query";
+
     const unsubscribe = onSnapshot(
       ref,
       (snapshot) => {
@@ -34,14 +41,14 @@ export function useFirestoreCollection(collectionPath, isGroup = false) {
         setLoading(false);
       },
       (err) => {
-        console.error("Firestore error on", collectionPath, err);
+        console.error("Firestore error on", logPath, err);
         setError(err);
         setLoading(false);
       }
     );
 
     return unsubscribe;
-  }, [collectionPath]);
+  }, [collectionPath, isGroup]);
 
   return { data, loading, error };
 }

@@ -61,7 +61,14 @@ export const getContactColumns = (permissions, isDark, t, context) => {
       accessorKey: "first_name",
       size: 150,
       cell: ({ row, getValue }) => {
-        const val = getValue() || "";
+        let val = getValue() || "";
+        if (!val) {
+          const name = row.original.contact_name || row.original.name || "";
+          if (name) {
+            const parts = name.trim().split(/\s+/);
+            val = parts.slice(0, -1).join(" ") || parts[0] || "";
+          }
+        }
         return (
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
             <a
@@ -83,11 +90,23 @@ export const getContactColumns = (permissions, isDark, t, context) => {
       header: "Last Name",
       accessorKey: "last_name",
       size: 150,
-      cell: ({ getValue }) => (
-        <span style={{ fontSize: '11.5px', fontWeight: 500, color: t.text }}>
-          {getValue() || "—"}
-        </span>
-      )
+      cell: ({ row, getValue }) => {
+        let val = getValue() || "";
+        if (!val) {
+          const name = row.original.contact_name || row.original.name || "";
+          if (name) {
+            const parts = name.trim().split(/\s+/);
+            if (parts.length > 1) {
+              val = parts[parts.length - 1] || "";
+            }
+          }
+        }
+        return (
+          <span style={{ fontSize: '11.5px', fontWeight: 500, color: t.text }}>
+            {val || "—"}
+          </span>
+        );
+      }
     },
     {
       header: "Type",

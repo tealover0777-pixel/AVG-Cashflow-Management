@@ -29,6 +29,19 @@ service cloud.firestore {
       return isSignedIn() && getTenant() == tenantId;
     }
 
+    function isOwnerOfContact(tenantId, contactId) {
+      return isSignedIn() &&
+             exists(/databases/$(database)/documents/tenants/$(tenantId)/contacts/$(contactId)) &&
+             get(/databases/$(database)/documents/tenants/$(tenantId)/contacts/$(contactId)).data.auth_uid == request.auth.uid;
+    }
+
+    function isDocumentOwner(tenantId, docData) {
+      return isSignedIn() && (
+        ('contact_id' in docData && isOwnerOfContact(tenantId, docData.contact_id)) ||
+        ('party_id' in docData && isOwnerOfContact(tenantId, docData.party_id))
+      );
+    }
+
     // --- Role-based access check functions ---
     function isSecretAdmin() {
       return isRole('R10010') || (isSignedIn() && (
@@ -139,7 +152,7 @@ service cloud.firestore {
     // Rules for data within a tenant.
     match /tenants/{tenantId}/{document=**} {
       allow read, write: if isCompanySuperAdmin() || isSecretAdmin() || isGlobalRole();
-      allow read: if isCompanySupport() || isTenantMember(tenantId);
+      allow read: if isCompanySupport() || isTenantAdminRead(tenantId);
       allow write: if isTenantAdmin(tenantId);
     }
 
@@ -153,10 +166,15 @@ service cloud.firestore {
     }
 
     match /tenants/{tenantId}/deals/{docId} {
-        allow read: if isTenantMember(tenantId) && hasPermission('DEAL_VIEW');
+        allow read: if isTenantMember(tenantId);
         allow create: if isTenantMember(tenantId) && hasPermission('DEAL_CREATE');
         allow update: if isTenantMember(tenantId) && hasPermission('DEAL_UPDATE');
         allow delete: if isTenantMember(tenantId) && hasPermission('DEAL_DELETE');
+
+        match /{allChildren=**} {
+            allow read: if isTenantMember(tenantId);
+            allow write: if isTenantMember(tenantId) && hasPermission('DEAL_UPDATE');
+        }
     }
 
     match /tenants/{tenantId}/assets/{docId} {
@@ -175,17 +193,23 @@ service cloud.firestore {
 
 
     match /tenants/{tenantId}/paymentSchedules/{docId} {
-        allow read: if isTenantMember(tenantId) && hasPermission('PAYMENT_SCHEDULE_VIEW');
+        allow read: if isTenantMember(tenantId) && (hasPermission('PAYMENT_SCHEDULE_VIEW') || isDocumentOwner(tenantId, resource.data));
         allow create: if isTenantMember(tenantId) && hasPermission('PAYMENT_SCHEDULE_CREATE');
         allow update: if isTenantMember(tenantId) && hasPermission('PAYMENT_SCHEDULE_UPDATE');
         allow delete: if isTenantMember(tenantId) && hasPermission('PAYMENT_SCHEDULE_DELETE');
     }
 
     match /tenants/{tenantId}/contacts/{docId} {
-        allow read: if isTenantMember(tenantId) && hasPermission('CONTACT_VIEW');
+        allow read: if isTenantMember(tenantId) && (hasPermission('CONTACT_VIEW') || resource.data.auth_uid == request.auth.uid);
         allow create: if isTenantMember(tenantId) && hasPermission('CONTACT_CREATE');
-        allow update: if isTenantMember(tenantId) && hasPermission('CONTACT_UPDATE');
+        allow update: if isTenantMember(tenantId) && (hasPermission('CONTACT_UPDATE') || resource.data.auth_uid == request.auth.uid);
         allow delete: if isTenantMember(tenantId) && hasPermission('CONTACT_DELETE');
+
+        match /notes/{noteId} {
+            allow read: if isTenantMember(tenantId) && (hasPermission('CONTACT_VIEW') || get(/databases/$(database)/documents/tenants/$(tenantId)/contacts/$(docId)).data.auth_uid == request.auth.uid);
+            allow create: if isTenantMember(tenantId) && (hasPermission('CONTACT_UPDATE') || get(/databases/$(database)/documents/tenants/$(tenantId)/contacts/$(docId)).data.auth_uid == request.auth.uid);
+            allow update, delete: if isTenantMember(tenantId) && hasPermission('CONTACT_UPDATE');
+        }
     }
 
     match /tenants/{tenantId}/fees/{docId} {
@@ -196,14 +220,14 @@ service cloud.firestore {
     }
 
     match /tenants/{tenantId}/payments/{docId} {
-        allow read: if isTenantMember(tenantId) && hasPermission('PAYMENT_VIEW');
+        allow read: if isTenantMember(tenantId) && (hasPermission('PAYMENT_VIEW') || isDocumentOwner(tenantId, resource.data));
         allow create: if isTenantMember(tenantId) && hasPermission('PAYMENT_CREATE');
         allow update: if isTenantMember(tenantId) && hasPermission('PAYMENT_UPDATE');
         allow delete: if isTenantMember(tenantId) && hasPermission('PAYMENT_DELETE');
     }
 
     match /tenants/{tenantId}/investments/{docId} {
-        allow read: if isTenantMember(tenantId) && hasPermission('INVESTMENT_VIEW');
+        allow read: if isTenantMember(tenantId) && (hasPermission('INVESTMENT_VIEW') || isDocumentOwner(tenantId, resource.data));
         allow create: if isTenantMember(tenantId) && hasPermission('INVESTMENT_CREATE');
         allow update: if isTenantMember(tenantId) && hasPermission('INVESTMENT_UPDATE');
         allow delete: if isTenantMember(tenantId) && hasPermission('INVESTMENT_DELETE');

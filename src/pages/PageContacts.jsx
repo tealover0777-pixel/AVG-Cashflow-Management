@@ -39,8 +39,8 @@ export default function PageContacts({ t, isDark, CONTACTS = [], INVESTMENTS = [
   const openEdit = r => {
     let fn = r.first_name || "";
     let ln = r.last_name || "";
-    if (!fn && !ln && r.name) {
-      const parts = r.name.trim().split(/\s+/);
+    if (!fn && !ln && (r.name || r.contact_name)) {
+      const parts = (r.name || r.contact_name).trim().split(/\s+/);
       if (parts.length > 1) {
         ln = parts.pop();
         fn = parts.join(" ");
