@@ -1034,6 +1034,23 @@ function AppContent() {
                       LEDGER={LEDGER}
                       USERS={rawUsers}
                       loading={loading}
+                      initialTab="Dashboard"
+                    />
+                  )}
+                  {activePage === "My Investments" && (
+                    <PageMemberAccount
+                      t={t}
+                      isDark={isDark}
+                      CONTACTS={CONTACTS}
+                      INVESTMENTS={INVESTMENTS}
+                      SCHEDULES={SCHEDULES}
+                      DEALS={DEALS}
+                      DIMENSIONS={DIMENSIONS}
+                      tenantId={activeTenantId}
+                      LEDGER={LEDGER}
+                      USERS={rawUsers}
+                      loading={loading}
+                      initialTab="Investments"
                     />
                   )}
                 </>

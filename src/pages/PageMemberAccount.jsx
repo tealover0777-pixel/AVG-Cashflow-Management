@@ -41,12 +41,14 @@ export default function PageMemberAccount({
   tenantId = "",
   LEDGER = [],
   USERS = [],
-  loading = false
+  loading = false,
+  initialTab = "Dashboard"
 }) {
   const { user, hasPermission, isSuperAdmin } = useAuth();
   const contact = CONTACTS[0]; // Since CONTACTS is globally filtered for the logged-in member
 
-  const [activeTab, setActiveTab] = useState("Dashboard");
+  const [activeTab, setActiveTab] = useState(initialTab);
+  const [distributionFilter, setDistributionFilter] = useState("all");
   const [transactionSubTab, setTransactionSubTab] = useState("Capital Transactions");
   const [isEditing, setIsEditing] = useState(false);
   const [editData, setEditData] = useState({});
@@ -57,6 +59,10 @@ export default function PageMemberAccount({
   const [noteText, setNoteText] = useState("");
   const [savingNote, setSavingNote] = useState(false);
   const [newInvModalOpen, setNewInvModalOpen] = useState(false);
+
+  useEffect(() => {
+    setActiveTab(initialTab);
+  }, [initialTab]);
 
   const showToast = (msg, type = "info") => {
     setToast({ msg, type });
@@ -186,6 +192,56 @@ export default function PageMemberAccount({
       return sum;
     }, 0);
   }, [distributions]);
+
+  const avgYield = useMemo(() => {
+    let totalAmount = 0;
+    let weightedRateSum = 0;
+    partyInvestments.forEach(inv => {
+      const amtStr = String(inv.amount || 0).replace(/[^0-9.-]/g, '');
+      const amt = Number(amtStr) || 0;
+      const rate = Number(inv.rate || inv.interest_rate || 0) || 0;
+      weightedRateSum += amt * rate;
+      totalAmount += amt;
+    });
+    return totalAmount > 0 ? (weightedRateSum / totalAmount).toFixed(1) : "0.0";
+  }, [partyInvestments]);
+
+  const distributionGrouped = useMemo(() => {
+    const groups = {};
+    partyInvestments.forEach(inv => {
+      const deal = DEALS.find(d => d.id === inv.deal_id || d.name === inv.deal);
+      const dealName = inv.deal || inv.deal_name || deal?.name || "Other Investment";
+      
+      const invSchedules = partySchedules.filter(s => 
+        s.investment === inv.id && 
+        ((s.payment_type || s.type || "").toLowerCase().includes("interest") || (s.payment_type || s.type || "").toLowerCase().includes("distribution"))
+      );
+      
+      const totalDist = invSchedules.reduce((sum, s) => {
+        const st = (s.status || s.PaymentStatus || "").trim();
+        if (st === "Paid" || st === "Partial") {
+          return sum + (Number(s.signed_payment_amount || s.payment_amount || s.amount || 0) || 0);
+        }
+        return sum;
+      }, 0);
+
+      const paidSchedules = invSchedules
+        .filter(s => (s.status || s.PaymentStatus || "").trim() === "Paid")
+        .sort((a, b) => new Date(b.receivedDate || b.dueDate || b.date).getTime() - new Date(a.receivedDate || a.dueDate || a.date).getTime());
+      
+      const lastDate = paidSchedules.length > 0 ? (paidSchedules[0].receivedDate || paidSchedules[0].dueDate || paidSchedules[0].date) : null;
+      const lastAmt = paidSchedules.length > 0 ? Number(paidSchedules[0].signed_payment_amount || paidSchedules[0].payment_amount || paidSchedules[0].amount || 0) : 0;
+      
+      groups[inv.id] = {
+        investmentId: inv.id,
+        dealName,
+        totalDistributed: totalDist,
+        lastDate,
+        lastAmount: lastAmt
+      };
+    });
+    return Object.values(groups);
+  }, [partyInvestments, partySchedules, DEALS]);
 
   // Dimension option fallbacks
   const roleOpts = (DIMENSIONS.find(d => d.name === "ContactRole" || d.name === "Contact Role") || {}).items || ["Investor", "Borrower", "Member"];
@@ -522,6 +578,329 @@ export default function PageMemberAccount({
   // Render tab content
   const renderTabContent = () => {
     switch (activeTab) {
+      case "Investments":
+        // Filter distributions by selected investment if filter is not "all"
+        const filteredDistributions = distributionFilter === "all"
+          ? distributionGrouped
+          : distributionGrouped.filter(g => g.investmentId === distributionFilter);
+
+        // Find date of the last paid distribution across all active investments
+        const lastPaidDate = (() => {
+          const allDates = distributionGrouped.map(g => g.lastDate).filter(Boolean);
+          if (allDates.length === 0) return "—";
+          const sorted = allDates.sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
+          return formatDate(sorted[0]);
+        })();
+
+        return (
+          <div style={{ display: "flex", flexDirection: "column", gap: "24px", paddingBottom: "32px" }}>
+            {/* Bento Grid summary */}
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "20px" }}>
+              {/* Capital Under Management Card (gradient background) */}
+              <div style={{
+                ...glassCardStyle,
+                background: isDark
+                  ? "linear-gradient(135deg, rgba(99,102,241,0.2), rgba(74,32,221,0.2))"
+                  : "linear-gradient(135deg, #6344f5, #4a20dd)",
+                color: "#fff",
+                border: "none",
+                position: "relative"
+              }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "16px" }}>
+                  <p style={{ fontSize: "11px", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.1em", opacity: 0.8 }}>Capital Under Management</p>
+                  <span className="material-symbols-outlined" style={{ opacity: 0.8 }}>account_balance</span>
+                </div>
+                <p style={{ fontSize: "36px", fontWeight: 700, margin: "0" }} className="tabular-nums">
+                  {fmtCurr(investedAmount)}
+                </p>
+                <div style={{ display: "flex", alignItems: "center", gap: "4px", background: "rgba(255,255,255,0.15)", width: "fit-content", padding: "4px 12px", borderRadius: "9999px", fontSize: "12px", marginTop: "16px" }}>
+                  <TrendingUp size={12} />
+                  <span>+12.5% YoY</span>
+                </div>
+              </div>
+
+              {/* Total Distributed Card */}
+              <div style={glassCardStyle}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "16px" }}>
+                  <p style={{ fontSize: "11px", fontWeight: 600, textTransform: "uppercase", color: t.textMuted, letterSpacing: "0.1em" }}>Total Distributed</p>
+                  <span className="material-symbols-outlined" style={{ color: isDark ? "#818CF8" : "#4a20dd" }}>payments</span>
+                </div>
+                <p style={{ fontSize: "28px", fontWeight: 700, color: isDark ? "#fff" : "#111827", margin: "0" }} className="tabular-nums">
+                  {fmtCurr(distributedAmount)}
+                </p>
+                <p style={{ fontSize: "12px", color: t.textMuted, marginTop: "20px", marginBottom: "0" }}>
+                  Last payment: {lastPaidDate}
+                </p>
+              </div>
+
+              {/* Average Yield Card */}
+              <div style={glassCardStyle}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "16px" }}>
+                  <p style={{ fontSize: "11px", fontWeight: 600, textTransform: "uppercase", color: t.textMuted, letterSpacing: "0.1em" }}>Average Yield</p>
+                  <span className="material-symbols-outlined" style={{ color: isDark ? "#FBBF24" : "#D97706" }}>analytics</span>
+                </div>
+                <p style={{ fontSize: "28px", fontWeight: 700, color: isDark ? "#fff" : "#111827", margin: "0" }} className="tabular-nums">
+                  {avgYield}%
+                </p>
+                <div style={{ display: "flex", alignItems: "center", gap: "8px", marginTop: "16px" }}>
+                  <div style={{ display: "flex", marginLeft: "4px" }}>
+                    <div style={{ width: "20px", height: "20px", borderRadius: "50%", background: isDark ? "#3730A3" : "#C7D2FE", border: `2px solid ${isDark ? "#1C1917" : "#fff"}`, zIndex: 3 }} />
+                    <div style={{ width: "20px", height: "20px", borderRadius: "50%", background: isDark ? "#1E1B4B" : "#E0E7FF", border: `2px solid ${isDark ? "#1C1917" : "#fff"}`, marginLeft: "-8px", zIndex: 2 }} />
+                    <div style={{ width: "20px", height: "20px", borderRadius: "50%", background: isDark ? "#312E81" : "#EEF2FF", border: `2px solid ${isDark ? "#1C1917" : "#fff"}`, marginLeft: "-8px", zIndex: 1 }} />
+                  </div>
+                  <span style={{ fontSize: "12px", color: t.textMuted }}>Across {partyInvestments.length} properties</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Section 1: Active Investments Table */}
+            <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                <div style={{ width: "4px", height: "24px", background: isDark ? "#818CF8" : "#4a20dd", borderRadius: "2px" }} />
+                <h4 style={{ fontSize: "18px", fontWeight: 700, color: isDark ? "#fff" : "#111827", margin: "0" }}>Active Investments</h4>
+              </div>
+              <div style={{ ...glassCardStyle, padding: "0", overflow: "hidden" }}>
+                <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left" }}>
+                  <thead>
+                    <tr style={{ background: isDark ? "rgba(255,255,255,0.01)" : "#FAFAFA", borderBottom: `1px solid ${t.surfaceBorder}` }}>
+                      <th style={{ padding: "14px 24px", fontSize: "11px", fontWeight: 700, color: t.textMuted }}>DEAL NAME</th>
+                      <th style={{ padding: "14px 24px", fontSize: "11px", fontWeight: 700, color: t.textMuted, textAlign: "right" }}>TOTAL VALUE</th>
+                      <th style={{ padding: "14px 24px", fontSize: "11px", fontWeight: 700, color: t.textMuted, textAlign: "right" }}>TOTAL DISTRIBUTED</th>
+                      <th style={{ padding: "14px 24px", fontSize: "11px", fontWeight: 700, color: t.textMuted, textAlign: "center" }}>DATE PLACED</th>
+                      <th style={{ padding: "14px 24px", fontSize: "11px", fontWeight: 700, color: t.textMuted, textAlign: "center" }}>ACTIONS</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {partyInvestments.length === 0 ? (
+                      <tr>
+                        <td colSpan={5} style={{ padding: "40px 24px", textAlign: "center", color: t.textMuted, fontSize: "13px" }}>No active investments.</td>
+                      </tr>
+                    ) : (
+                      partyInvestments.map((inv, idx) => {
+                        const deal = DEALS.find(d => d.id === inv.deal_id || d.name === inv.deal);
+                        const dealName = inv.deal || inv.deal_name || deal?.name || "Other Investment";
+                        const rate = inv.rate || inv.interest_rate || "0";
+                        
+                        // Compute total paid distributions for this specific investment
+                        const totalDist = partySchedules
+                          .filter(s => s.investment === inv.id && 
+                            ((s.payment_type || s.type || "").toLowerCase().includes("interest") || (s.payment_type || s.type || "").toLowerCase().includes("distribution"))
+                          )
+                          .reduce((sum, s) => {
+                            const st = (s.status || s.PaymentStatus || "").trim();
+                            if (st === "Paid" || st === "Partial") {
+                              return sum + (Number(s.signed_payment_amount || s.payment_amount || s.amount || 0) || 0);
+                            }
+                            return sum;
+                          }, 0);
+
+                        return (
+                          <tr key={inv.id || idx} style={{ borderBottom: `1px solid ${t.surfaceBorder}` }}>
+                            <td style={{ padding: "16px 24px" }}>
+                              <div style={{ fontSize: "13.5px", fontWeight: 600, color: isDark ? "#fff" : "#1C1917" }}>{dealName}</div>
+                              <div style={{ fontSize: "11px", color: isDark ? "#818CF8" : "#4a20dd", fontWeight: 500, marginTop: "2px" }}>Rate: {rate}%</div>
+                            </td>
+                            <td style={{ padding: "16px 24px", textAlign: "right", fontSize: "14px", fontWeight: 600, color: isDark ? "#fff" : "#1C1917" }} className="tabular-nums">{fmtCurr(inv.amount)}</td>
+                            <td style={{ padding: "16px 24px", textAlign: "right", fontSize: "14px", color: t.textSecondary }} className="tabular-nums">{fmtCurr(totalDist)}</td>
+                            <td style={{ padding: "16px 24px", textAlign: "center", fontSize: "13px", color: t.textSecondary }}>{formatDate(inv.start_date)}</td>
+                            <td style={{ padding: "16px 24px", textAlign: "center" }}>
+                              <button style={{ background: "none", border: "none", color: t.textMuted, cursor: "pointer" }} onClick={() => { setSelectedInvestmentId(inv.id); setActiveTab("Investment Details"); }}>
+                                <span className="material-symbols-outlined" style={{ fontSize: "18px" }}>more_vert</span>
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Section 2: Distributions Table */}
+            <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                  <div style={{ width: "4px", height: "24px", background: isDark ? "#FBBF24" : "#D97706", borderRadius: "2px" }} />
+                  <h4 style={{ fontSize: "18px", fontWeight: 700, color: isDark ? "#fff" : "#111827", margin: "0" }}>Distributions</h4>
+                </div>
+                {/* Select by Investment Filter */}
+                <div style={{ position: "relative" }}>
+                  <select
+                    value={distributionFilter}
+                    onChange={e => setDistributionFilter(e.target.value)}
+                    style={{
+                      appearance: "none",
+                      display: "block",
+                      width: "200px",
+                      background: isDark ? "rgba(255,255,255,0.05)" : "#fff",
+                      border: `1px solid ${t.surfaceBorder}`,
+                      padding: "8px 36px 8px 16px",
+                      borderRadius: "8px",
+                      fontSize: "13px",
+                      color: t.text,
+                      fontWeight: 500,
+                      outline: "none",
+                      cursor: "pointer"
+                    }}
+                  >
+                    <option value="all">Select by Investment</option>
+                    {partyInvestments.map(inv => {
+                      const deal = DEALS.find(d => d.id === inv.deal_id || d.name === inv.deal);
+                      return (
+                        <option key={inv.id} value={inv.id}>
+                          {inv.deal || inv.deal_name || deal?.name || "Investment"}
+                        </option>
+                      );
+                    })}
+                  </select>
+                  <span className="material-symbols-outlined" style={{
+                    position: "absolute",
+                    right: "12px",
+                    top: "50%",
+                    transform: "translateY(-50%)",
+                    color: t.textMuted,
+                    pointerEvents: "none",
+                    fontSize: "18px"
+                  }}>expand_more</span>
+                </div>
+              </div>
+              <div style={{ ...glassCardStyle, padding: "0", overflow: "hidden" }}>
+                <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left" }}>
+                  <thead>
+                    <tr style={{ background: isDark ? "rgba(255,255,255,0.01)" : "#FAFAFA", borderBottom: `1px solid ${t.surfaceBorder}` }}>
+                      <th style={{ padding: "14px 24px", fontSize: "11px", fontWeight: 700, color: t.textMuted }}>DEAL NAME</th>
+                      <th style={{ padding: "14px 24px", fontSize: "11px", fontWeight: 700, color: t.textMuted, textAlign: "right" }}>TOTAL DISTRIBUTED</th>
+                      <th style={{ padding: "14px 24px", fontSize: "11px", fontWeight: 700, color: t.textMuted, textAlign: "center" }}>LAST DISTRIBUTION DATE</th>
+                      <th style={{ padding: "14px 24px", fontSize: "11px", fontWeight: 700, color: t.textMuted, textAlign: "right" }}>LAST DISTRIBUTED AMOUNT</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredDistributions.length === 0 ? (
+                      <tr>
+                        <td colSpan={4} style={{ padding: "40px 24px", textAlign: "center", color: t.textMuted, fontSize: "13px" }}>No distribution records found.</td>
+                      </tr>
+                    ) : (
+                      filteredDistributions.map((g, idx) => (
+                        <tr key={g.investmentId || idx} style={{ borderBottom: `1px solid ${t.surfaceBorder}` }}>
+                          <td style={{ padding: "16px 24px", fontSize: "13.5px", fontWeight: 600, color: isDark ? "#fff" : "#1C1917" }}>{g.dealName}</td>
+                          <td style={{ padding: "16px 24px", textAlign: "right", fontSize: "14px", fontWeight: 600, color: isDark ? "#fff" : "#1C1917" }} className="tabular-nums">{fmtCurr(g.totalDistributed)}</td>
+                          <td style={{ padding: "16px 24px", textAlign: "center", fontSize: "13px", color: t.textSecondary }}>{formatDate(g.lastDate)}</td>
+                          <td style={{ padding: "16px 24px", textAlign: "right" }}>
+                            <span style={{
+                              display: "inline-flex",
+                              padding: "4px 12px",
+                              borderRadius: "9999px",
+                              background: isDark ? "rgba(52,211,153,0.15)" : "#ECFDF5",
+                              color: isDark ? "#34D399" : "#059669",
+                              fontSize: "13px",
+                              fontWeight: 700
+                            }} className="tabular-nums">
+                              {fmtCurr(g.lastAmount)}
+                            </span>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Visual Support Grid */}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px", marginTop: "24px" }}>
+              {/* Featured Asset block */}
+              <div style={{
+                position: "relative",
+                height: "240px",
+                borderRadius: "16px",
+                overflow: "hidden"
+              }} className="group">
+                <img
+                  alt="Palm Springs Villa"
+                  src="https://lh3.googleusercontent.com/aida-public/AB6AXuCYcxrTf_9eoqM-wj-oMsOKR0JHh1GGxPWvOArKS4ykDt9vAwknXVC1fCXgNAGbPxdt3n7zHsIDxO_mzFOnTy0f9NgbdC4FFTfssUvJwOqFMQxSj7c02aPi6Jl4vThxA6rzcLHGjJa5MZFpCc9_u6tt0fdbJiCs-jIisnKjvGPJPKKKQlHJQApHRUKgjV6vozgFDR4XjnfHri_heomrNy7LEf92q3nj1zR9ssMtDo2Xcz6vcr_rbce-l_FyxRkwzyyYag3hVYF4e0o"
+                  style={{
+                    width: "100%",
+                    height: "100%",
+                    objectFit: "cover",
+                    transition: "transform 0.5s ease"
+                  }}
+                  onMouseEnter={e => e.currentTarget.style.transform = "scale(1.05)"}
+                  onMouseLeave={e => e.currentTarget.style.transform = "scale(1.0)"}
+                />
+                <div style={{
+                  position: "absolute",
+                  inset: "0",
+                  background: "linear-gradient(to top, rgba(25, 28, 29, 0.85) 0%, rgba(25, 28, 29, 0) 70%)",
+                  display: "flex",
+                  flexDirection: "column",
+                  justifyContent: "end",
+                  padding: "24px",
+                  color: "#fff"
+                }}>
+                  <span style={{
+                    background: isDark ? "#818CF8" : "#4a20dd",
+                    color: "#fff",
+                    fontSize: "10px",
+                    fontWeight: 700,
+                    padding: "3px 8px",
+                    borderRadius: "4px",
+                    width: "fit-content",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.1em",
+                    marginBottom: "8px"
+                  }}>Featured Asset</span>
+                  <h5 style={{ fontSize: "18px", fontWeight: 700, margin: "0 0 4px 0" }}>Palm Springs Villa</h5>
+                  <p style={{ fontSize: "13px", opacity: 0.8, margin: "0" }}>8% Fixed Annual Return</p>
+                </div>
+              </div>
+
+              {/* Portfolio Analytics block */}
+              <div style={{
+                ...glassCardStyle,
+                background: isDark ? "rgba(74,32,221,0.05)" : "rgba(74,32,221,0.02)",
+                justifyContent: "center",
+                alignItems: "center",
+                textAlign: "center"
+              }}>
+                <div style={{
+                  width: "48px",
+                  height: "48px",
+                  borderRadius: "50%",
+                  background: isDark ? "rgba(74,32,221,0.15)" : "#EEF2FF",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  marginBottom: "16px"
+                }}>
+                  <span className="material-symbols-outlined" style={{ fontSize: "24px", color: isDark ? "#818CF8" : "#4a20dd" }}>analytics</span>
+                </div>
+                <h5 style={{ fontSize: "16px", fontWeight: 700, color: isDark ? "#fff" : "#111827", margin: "0 0 6px 0" }}>Portfolio Analytics</h5>
+                <p style={{ fontSize: "13px", color: t.textSecondary, maxWidth: "300px", margin: "0 0 16px 0" }}>
+                  Deep dive into your investment performance metrics and tax reporting.
+                </p>
+                <button
+                  onClick={() => setActiveTab("Transactions")}
+                  style={{
+                    background: "none",
+                    border: "none",
+                    color: isDark ? "#818CF8" : "#4a20dd",
+                    fontWeight: 700,
+                    fontSize: "13px",
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "4px"
+                  }}
+                >
+                  <span>View Detailed Report</span>
+                  <span>→</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+
       case "Dashboard":
         return (
           <div style={{ display: "flex", flexDirection: "column", gap: "20px", paddingBottom: "32px" }}>
@@ -1150,11 +1529,15 @@ export default function PageMemberAccount({
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
           <div>
             <div style={{ fontSize: 24, fontWeight: 700, color: isDark ? "#fff" : "#1C1917", marginBottom: 4, fontFamily: t.titleFont }}>
-              My Dashboard
+              {activeTab === "Investments" ? "My Investments" : "My Dashboard"}
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
               <span style={{ fontSize: 13, color: t.textMuted }}>
-                Welcome back, <strong>{[contact.first_name, contact.last_name].filter(Boolean).join(" ") || "Member"}</strong>
+                {activeTab === "Investments" ? (
+                  "Overview of your current capital deployment and yield performance."
+                ) : (
+                  <>Welcome back, <strong>{[contact.first_name, contact.last_name].filter(Boolean).join(" ") || "Member"}</strong></>
+                )}
               </span>
               <div style={{ width: 1, height: 14, background: t.surfaceBorder }} />
 

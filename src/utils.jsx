@@ -190,7 +190,10 @@ export const getNav = (isSuper, _isAdmin, hasPermission, isR10010, isMember = fa
   const hasDashboard = hasPermission && hasPermission("DASHBOARD_VIEW");
 
   if (isMember || (hasMemberAccount && !hasDashboard)) {
-    const memberNav = [{ label: "My Dashboard", icon: "LayoutDashboard" }];
+    const memberNav = [
+      { label: "My Dashboard", icon: "LayoutDashboard" },
+      { label: "My Investments", icon: "Wallet" }
+    ];
     if (typeof window !== 'undefined') window.__NAV__ = memberNav;
     return memberNav;
   }
