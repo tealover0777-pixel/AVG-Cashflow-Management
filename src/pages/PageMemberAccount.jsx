@@ -42,7 +42,8 @@ export default function PageMemberAccount({
   LEDGER = [],
   USERS = [],
   loading = false,
-  initialTab = "Dashboard"
+  initialTab = "Dashboard",
+  readOnly = false
 }) {
   const { user, hasPermission, isSuperAdmin } = useAuth();
   const contact = CONTACTS[0]; // Since CONTACTS is globally filtered for the logged-in member
@@ -1126,86 +1127,89 @@ export default function PageMemberAccount({
         );
 
       case "Profile":
-        const showData = isEditing ? editData : contact;
+        const activeEditing = isEditing && !readOnly;
+        const showData = activeEditing ? editData : contact;
         return (
           <div style={{ display: "flex", flexDirection: "column", gap: 24, maxWidth: 800, paddingBottom: "32px" }}>
-            <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: "8px" }}>
-              {isEditing ? (
-                <div style={{ display: "flex", gap: 8 }}>
-                  <button onClick={handleSave} disabled={saving} style={{ padding: "8px 20px", borderRadius: 8, background: t.accentGrad, color: "#fff", border: "none", fontWeight: 600, cursor: "pointer", fontSize: 13, boxShadow: `0 4px 12px ${t.accentShadow}`, opacity: saving ? 0.7 : 1 }}>{saving ? "Saving..." : "Save Changes"}</button>
-                  <button onClick={() => setIsEditing(false)} disabled={saving} style={{ padding: "8px 16px", borderRadius: 8, background: isDark ? "rgba(255,255,255,0.05)" : "#F3F4F6", color: t.textSecondary, border: `1px solid ${t.surfaceBorder}`, fontWeight: 600, cursor: "pointer", fontSize: 13 }}>Cancel</button>
-                </div>
-              ) : (
-                <button onClick={() => setIsEditing(true)} style={{ padding: "8px 20px", borderRadius: 8, background: t.accentGrad, color: "#fff", border: "none", fontWeight: 600, cursor: "pointer", fontSize: 13, boxShadow: `0 4px 12px ${t.accentShadow}` }}>Edit Profile</button>
-              )}
-            </div>
+            {!readOnly && (
+              <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: "8px" }}>
+                {activeEditing ? (
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <button onClick={handleSave} disabled={saving} style={{ padding: "8px 20px", borderRadius: 8, background: t.accentGrad, color: "#fff", border: "none", fontWeight: 600, cursor: "pointer", fontSize: 13, boxShadow: `0 4px 12px ${t.accentShadow}`, opacity: saving ? 0.7 : 1 }}>{saving ? "Saving..." : "Save Changes"}</button>
+                    <button onClick={() => setIsEditing(false)} disabled={saving} style={{ padding: "8px 16px", borderRadius: 8, background: isDark ? "rgba(255,255,255,0.05)" : "#F3F4F6", color: t.textSecondary, border: `1px solid ${t.surfaceBorder}`, fontWeight: 600, cursor: "pointer", fontSize: 13 }}>Cancel</button>
+                  </div>
+                ) : (
+                  <button onClick={() => setIsEditing(true)} style={{ padding: "8px 20px", borderRadius: 8, background: t.accentGrad, color: "#fff", border: "none", fontWeight: 600, cursor: "pointer", fontSize: 13, boxShadow: `0 4px 12px ${t.accentShadow}` }}>Edit Profile</button>
+                )}
+              </div>
+            )}
 
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
               <FF label="First Name" t={t}>
-                {isEditing ? <FIn value={editData.first_name} onChange={e => setED({ first_name: e.target.value })} t={t} /> : <div style={{ padding: "12px 16px", background: isDark ? "rgba(255,255,255,0.03)" : "#fff", border: `1px solid ${t.surfaceBorder}`, borderRadius: 8, color: t.text, fontWeight: 500 }}>{showData.first_name || "—"}</div>}
+                {activeEditing ? <FIn value={editData.first_name} onChange={e => setED({ first_name: e.target.value })} t={t} /> : <div style={{ padding: "12px 16px", background: isDark ? "rgba(255,255,255,0.03)" : "#fff", border: `1px solid ${t.surfaceBorder}`, borderRadius: 8, color: t.text, fontWeight: 500 }}>{showData.first_name || "—"}</div>}
               </FF>
               <FF label="Last Name" t={t}>
-                {isEditing ? <FIn value={editData.last_name} onChange={e => setED({ last_name: e.target.value })} t={t} /> : <div style={{ padding: "12px 16px", background: isDark ? "rgba(255,255,255,0.03)" : "#fff", border: `1px solid ${t.surfaceBorder}`, borderRadius: 8, color: t.text, fontWeight: 500 }}>{showData.last_name || "—"}</div>}
+                {activeEditing ? <FIn value={editData.last_name} onChange={e => setED({ last_name: e.target.value })} t={t} /> : <div style={{ padding: "12px 16px", background: isDark ? "rgba(255,255,255,0.03)" : "#fff", border: `1px solid ${t.surfaceBorder}`, borderRadius: 8, color: t.text, fontWeight: 500 }}>{showData.last_name || "—"}</div>}
               </FF>
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
               <FF label="Contact Type" t={t}>
-                {isEditing ? <FSel value={editData.contact_type} options={contactTypeOpts} onChange={e => setED({ contact_type: e.target.value })} t={t} /> : <div style={{ padding: "12px 16px", background: isDark ? "rgba(255,255,255,0.03)" : "#fff", border: `1px solid ${t.surfaceBorder}`, borderRadius: 8, color: t.text, fontWeight: 500 }}>{showData.contact_type || showData.type || "—"}</div>}
+                {activeEditing ? <FSel value={editData.contact_type} options={contactTypeOpts} onChange={e => setED({ contact_type: e.target.value })} t={t} /> : <div style={{ padding: "12px 16px", background: isDark ? "rgba(255,255,255,0.03)" : "#fff", border: `1px solid ${t.surfaceBorder}`, borderRadius: 8, color: t.text, fontWeight: 500 }}>{showData.contact_type || showData.type || "—"}</div>}
               </FF>
               <FF label="Role" t={t}>
-                {isEditing ? <FSel value={editData.role_type} options={roleOpts} onChange={e => setED({ role_type: e.target.value })} t={t} /> : <div style={{ padding: "12px 16px", background: isDark ? "rgba(255,255,255,0.03)" : "#fff", border: `1px solid ${t.surfaceBorder}`, borderRadius: 8, color: t.text, fontWeight: 500 }}>{showData.role_type || showData.role || "—"}</div>}
+                {activeEditing ? <FSel value={editData.role_type} options={roleOpts} onChange={e => setED({ role_type: e.target.value })} t={t} /> : <div style={{ padding: "12px 16px", background: isDark ? "rgba(255,255,255,0.03)" : "#fff", border: `1px solid ${t.surfaceBorder}`, borderRadius: 8, color: t.text, fontWeight: 500 }}>{showData.role_type || showData.role || "—"}</div>}
               </FF>
             </div>
-            {(isEditing ? editData.contact_type === "Company" : (showData.contact_type === "Company" || showData.type === "Company" || showData.company_name)) && (
+            {(activeEditing ? editData.contact_type === "Company" : (showData.contact_type === "Company" || showData.type === "Company" || showData.company_name)) && (
               <FF label="Company Name" t={t}>
-                {isEditing ? <FIn value={editData.company_name} onChange={e => setED({ company_name: e.target.value })} placeholder="e.g. Acme Corp" t={t} /> : <div style={{ padding: "12px 16px", background: isDark ? "rgba(255,255,255,0.03)" : "#fff", border: `1px solid ${t.surfaceBorder}`, borderRadius: 8, color: t.text, fontWeight: 500 }}>{showData.company_name || "—"}</div>}
+                {activeEditing ? <FIn value={editData.company_name} onChange={e => setED({ company_name: e.target.value })} placeholder="e.g. Acme Corp" t={t} /> : <div style={{ padding: "12px 16px", background: isDark ? "rgba(255,255,255,0.03)" : "#fff", border: `1px solid ${t.surfaceBorder}`, borderRadius: 8, color: t.text, fontWeight: 500 }}>{showData.company_name || "—"}</div>}
               </FF>
             )}
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
               <FF label="Investor Type" t={t}>
-                {isEditing ? <FSel value={editData.investor_type} options={investorTypeOpts} onChange={e => setED({ investor_type: e.target.value })} t={t} /> : <div style={{ padding: "12px 16px", background: isDark ? "rgba(255,255,255,0.03)" : "#fff", border: `1px solid ${t.surfaceBorder}`, borderRadius: 8, color: t.text, fontWeight: 500 }}>{showData.investor_type || "—"}</div>}
+                {activeEditing ? <FSel value={editData.investor_type} options={investorTypeOpts} onChange={e => setED({ investor_type: e.target.value })} t={t} /> : <div style={{ padding: "12px 16px", background: isDark ? "rgba(255,255,255,0.03)" : "#fff", border: `1px solid ${t.surfaceBorder}`, borderRadius: 8, color: t.text, fontWeight: 500 }}>{showData.investor_type || "—"}</div>}
               </FF>
               <FF label="Tax ID" t={t}>
-                {isEditing ? <FIn value={editData.tax_id} onChange={e => setED({ tax_id: e.target.value })} t={t} /> : <div style={{ padding: "12px 16px", background: isDark ? "rgba(255,255,255,0.03)" : "#fff", border: `1px solid ${t.surfaceBorder}`, borderRadius: 8, color: t.text, fontWeight: 500 }}>{showData.tax_id || "—"}</div>}
+                {activeEditing ? <FIn value={editData.tax_id} onChange={e => setED({ tax_id: e.target.value })} t={t} /> : <div style={{ padding: "12px 16px", background: isDark ? "rgba(255,255,255,0.03)" : "#fff", border: `1px solid ${t.surfaceBorder}`, borderRadius: 8, color: t.text, fontWeight: 500 }}>{showData.tax_id || "—"}</div>}
               </FF>
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
               <FF label="Email" t={t}>
-                {isEditing ? <FIn value={editData.email} onChange={e => setED({ email: e.target.value })} t={t} /> : <div style={{ padding: "12px 16px", background: isDark ? "rgba(255,255,255,0.03)" : "#fff", border: `1px solid ${t.surfaceBorder}`, borderRadius: 8, color: t.text, fontWeight: 500 }}>{showData.email || "—"}</div>}
+                {activeEditing ? <FIn value={editData.email} onChange={e => setED({ email: e.target.value })} t={t} /> : <div style={{ padding: "12px 16px", background: isDark ? "rgba(255,255,255,0.03)" : "#fff", border: `1px solid ${t.surfaceBorder}`, borderRadius: 8, color: t.text, fontWeight: 500 }}>{showData.email || "—"}</div>}
               </FF>
               <FF label="Phone" t={t}>
-                {isEditing ? <FIn value={editData.phone} onChange={e => setED({ phone: e.target.value })} t={t} /> : <div style={{ padding: "12px 16px", background: isDark ? "rgba(255,255,255,0.03)" : "#fff", border: `1px solid ${t.surfaceBorder}`, borderRadius: 8, color: t.text, fontWeight: 500 }}>{showData.phone || "—"}</div>}
+                {activeEditing ? <FIn value={editData.phone} onChange={e => setED({ phone: e.target.value })} t={t} /> : <div style={{ padding: "12px 16px", background: isDark ? "rgba(255,255,255,0.03)" : "#fff", border: `1px solid ${t.surfaceBorder}`, borderRadius: 8, color: t.text, fontWeight: 500 }}>{showData.phone || "—"}</div>}
               </FF>
             </div>
             <FF label="Address" t={t}>
-              {isEditing ? <FIn value={editData.address} onChange={e => setED({ address: e.target.value })} t={t} /> : <div style={{ padding: "12px 16px", background: isDark ? "rgba(255,255,255,0.03)" : "#fff", border: `1px solid ${t.surfaceBorder}`, borderRadius: 8, color: t.text, fontWeight: 500 }}>{showData.address || "—"}</div>}
+              {activeEditing ? <FIn value={editData.address} onChange={e => setED({ address: e.target.value })} t={t} /> : <div style={{ padding: "12px 16px", background: isDark ? "rgba(255,255,255,0.03)" : "#fff", border: `1px solid ${t.surfaceBorder}`, borderRadius: 8, color: t.text, fontWeight: 500 }}>{showData.address || "—"}</div>}
             </FF>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
               <FF label="Bank Name" t={t}>
-                {isEditing ? <FIn value={editData.bank_information} onChange={e => setED({ bank_information: e.target.value })} t={t} /> : <div style={{ padding: "12px 16px", background: isDark ? "rgba(255,255,255,0.03)" : "#fff", border: `1px solid ${t.surfaceBorder}`, borderRadius: 8, color: t.text, fontWeight: 500 }}>{showData.bank_information || "—"}</div>}
+                {activeEditing ? <FIn value={editData.bank_information} onChange={e => setED({ bank_information: e.target.value })} t={t} /> : <div style={{ padding: "12px 16px", background: isDark ? "rgba(255,255,255,0.03)" : "#fff", border: `1px solid ${t.surfaceBorder}`, borderRadius: 8, color: t.text, fontWeight: 500 }}>{showData.bank_information || "—"}</div>}
               </FF>
               <FF label="Bank Address" t={t}>
-                {isEditing ? <FIn value={editData.bank_address} onChange={e => setED({ bank_address: e.target.value })} t={t} /> : <div style={{ padding: "12px 16px", background: isDark ? "rgba(255,255,255,0.03)" : "#fff", border: `1px solid ${t.surfaceBorder}`, borderRadius: 8, color: t.text, fontWeight: 500 }}>{showData.bank_address || "—"}</div>}
+                {activeEditing ? <FIn value={editData.bank_address} onChange={e => setED({ bank_address: e.target.value })} t={t} /> : <div style={{ padding: "12px 16px", background: isDark ? "rgba(255,255,255,0.03)" : "#fff", border: `1px solid ${t.surfaceBorder}`, borderRadius: 8, color: t.text, fontWeight: 500 }}>{showData.bank_address || "—"}</div>}
               </FF>
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
               <FF label="Bank Routing Number" t={t}>
-                {isEditing ? <FIn value={editData.bank_routing_number} onChange={e => setED({ bank_routing_number: e.target.value })} t={t} /> : <div style={{ padding: "12px 16px", background: isDark ? "rgba(255,255,255,0.03)" : "#fff", border: `1px solid ${t.surfaceBorder}`, borderRadius: 8, color: t.text, fontWeight: 500 }}>{showData.bank_routing_number || "—"}</div>}
+                {activeEditing ? <FIn value={editData.bank_routing_number} onChange={e => setED({ bank_routing_number: e.target.value })} t={t} /> : <div style={{ padding: "12px 16px", background: isDark ? "rgba(255,255,255,0.03)" : "#fff", border: `1px solid ${t.surfaceBorder}`, borderRadius: 8, color: t.text, fontWeight: 500 }}>{showData.bank_routing_number || "—"}</div>}
               </FF>
               <FF label="Bank Account Number" t={t}>
-                {isEditing ? <FIn value={editData.bank_account_number} onChange={e => setED({ bank_account_number: e.target.value })} t={t} /> : <div style={{ padding: "12px 16px", background: isDark ? "rgba(255,255,255,0.03)" : "#fff", border: `1px solid ${t.surfaceBorder}`, borderRadius: 8, color: t.text, fontWeight: 500 }}>{showData.bank_account_number || "—"}</div>}
+                {activeEditing ? <FIn value={editData.bank_account_number} onChange={e => setED({ bank_account_number: e.target.value })} t={t} /> : <div style={{ padding: "12px 16px", background: isDark ? "rgba(255,255,255,0.03)" : "#fff", border: `1px solid ${t.surfaceBorder}`, borderRadius: 8, color: t.text, fontWeight: 500 }}>{showData.bank_account_number || "—"}</div>}
               </FF>
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
               <FF label="Payment Method" t={t}>
-                {isEditing ? <FSel value={editData.payment_method} options={paymentMethods} onChange={e => setED({ payment_method: e.target.value })} t={t} /> : <div style={{ padding: "12px 16px", background: isDark ? "rgba(255,255,255,0.03)" : "#fff", border: `1px solid ${t.surfaceBorder}`, borderRadius: 8, color: t.text, fontWeight: 500 }}>{showData.payment_method || "—"}</div>}
+                {activeEditing ? <FSel value={editData.payment_method} options={paymentMethods} onChange={e => setED({ payment_method: e.target.value })} t={t} /> : <div style={{ padding: "12px 16px", background: isDark ? "rgba(255,255,255,0.03)" : "#fff", border: `1px solid ${t.surfaceBorder}`, borderRadius: 8, color: t.text, fontWeight: 500 }}>{showData.payment_method || "—"}</div>}
               </FF>
               <FF label="Marketing Emails?" t={t}>
-                {isEditing ? <FSel value={editData.marketing_emails} options={["Subscribed", "Unsubscribed"]} onChange={e => setED({ marketing_emails: e.target.value })} t={t} /> : <div style={{ padding: "12px 16px", background: isDark ? "rgba(255,255,255,0.03)" : "#fff", border: `1px solid ${t.surfaceBorder}`, borderRadius: 8, color: t.text, fontWeight: 500 }}>{showData.marketing_emails || "—"}</div>}
+                {activeEditing ? <FSel value={editData.marketing_emails} options={["Subscribed", "Unsubscribed"]} onChange={e => setED({ marketing_emails: e.target.value })} t={t} /> : <div style={{ padding: "12px 16px", background: isDark ? "rgba(255,255,255,0.03)" : "#fff", border: `1px solid ${t.surfaceBorder}`, borderRadius: 8, color: t.text, fontWeight: 500 }}>{showData.marketing_emails || "—"}</div>}
               </FF>
             </div>
             <FF label="Notes" t={t}>
-              {isEditing ? (
+              {activeEditing ? (
                 <textarea
                   value={editData.notes || ""}
                   onChange={e => setED({ notes: e.target.value })}
@@ -1428,25 +1432,27 @@ export default function PageMemberAccount({
       case "Notes":
         return (
           <div style={{ display: "flex", flexDirection: "column", gap: 20, maxWidth: 700, paddingBottom: "32px" }}>
-            <div style={{ background: isDark ? "rgba(255,255,255,0.03)" : "#FAFAF9", border: `1px solid ${t.surfaceBorder}`, borderRadius: 12, padding: 20 }}>
-              <div style={{ fontSize: 13, fontWeight: 600, color: t.text, marginBottom: 10 }}>Add Note</div>
-              <textarea
-                value={noteText}
-                onChange={e => setNoteText(e.target.value)}
-                placeholder="Write a note to add to your account record..."
-                rows={4}
-                style={{ width: "100%", padding: "10px 13px", borderRadius: 9, border: `1px solid ${t.surfaceBorder}`, background: isDark ? "rgba(0,0,0,0.2)" : "#fff", color: t.text, fontSize: 13.5, fontFamily: "inherit", resize: "vertical", outline: "none", boxSizing: "border-box" }}
-              />
-              <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 10 }}>
-                <button
-                  disabled={savingNote || !noteText.trim()}
-                  onClick={handleAddNote}
-                  style={{ padding: "9px 22px", borderRadius: 9, background: noteText.trim() ? t.accentGrad : (isDark ? "rgba(255,255,255,0.07)" : "#e5e7eb"), color: noteText.trim() ? "#fff" : t.textMuted, border: "none", fontWeight: 700, fontSize: 13.5, cursor: noteText.trim() && !savingNote ? "pointer" : "default", boxShadow: noteText.trim() ? `0 4px 12px ${t.accentShadow}` : "none" }}
-                >
-                  {savingNote ? "Saving..." : "Save Note"}
-                </button>
+            {!readOnly && (
+              <div style={{ background: isDark ? "rgba(255,255,255,0.03)" : "#FAFAF9", border: `1px solid ${t.surfaceBorder}`, borderRadius: 12, padding: 20 }}>
+                <div style={{ fontSize: 13, fontWeight: 600, color: t.text, marginBottom: 10 }}>Add Note</div>
+                <textarea
+                  value={noteText}
+                  onChange={e => setNoteText(e.target.value)}
+                  placeholder="Write a note to add to your account record..."
+                  rows={4}
+                  style={{ width: "100%", padding: "10px 13px", borderRadius: 9, border: `1px solid ${t.surfaceBorder}`, background: isDark ? "rgba(0,0,0,0.2)" : "#fff", color: t.text, fontSize: 13.5, fontFamily: "inherit", resize: "vertical", outline: "none", boxSizing: "border-box" }}
+                />
+                <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 10 }}>
+                  <button
+                    disabled={savingNote || !noteText.trim()}
+                    onClick={handleAddNote}
+                    style={{ padding: "9px 22px", borderRadius: 9, background: noteText.trim() ? t.accentGrad : (isDark ? "rgba(255,255,255,0.07)" : "#e5e7eb"), color: noteText.trim() ? "#fff" : t.textMuted, border: "none", fontWeight: 700, fontSize: 13.5, cursor: noteText.trim() && !savingNote ? "pointer" : "default", boxShadow: noteText.trim() ? `0 4px 12px ${t.accentShadow}` : "none" }}
+                  >
+                    {savingNote ? "Saving..." : "Save Note"}
+                  </button>
+                </div>
               </div>
-            </div>
+            )}
 
             {notes.length === 0 ? (
               <div style={{ textAlign: "center", padding: "40px 0", color: t.textMuted, fontSize: 13.5 }}>No notes yet. Add the first one above.</div>

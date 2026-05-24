@@ -10,6 +10,7 @@ import InvestmentDocumentsTab from "./InvestmentDocumentsTab";
 import InvestmentChangelogTab from "./InvestmentChangelogTab";
 import { getContactTransactionColumns } from "./ContactTransactionsTanStackConfig";
 import { useAuth } from "../AuthContext";
+import PageMemberAccount from "../pages/PageMemberAccount";
 
 export const InvestorSummaryModal = ({ 
   contact, 
@@ -38,6 +39,7 @@ export const InvestorSummaryModal = ({
 
   const [activeTab, setActiveTab] = useState(initialTab);
   const [viewMode, setViewMode] = useState(defaultView);
+  const [accountViewTab, setAccountViewTab] = useState("Dashboard");
   const [isEditing, setIsEditing] = useState(false);
   const [editData, setEditData] = useState({});
   const [saving, setSaving] = useState(false);
@@ -382,6 +384,49 @@ export const InvestorSummaryModal = ({
 
   // REFACTORED: Tab Content Selector
   const renderTabContent = () => {
+    if (viewMode === "account") {
+      return (
+        <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+          {/* Sub-tab selection for review */}
+          <div style={{ display: "flex", gap: 10, borderBottom: `1px solid ${t.surfaceBorder}`, paddingBottom: 12 }}>
+            {["Dashboard", "Investments"].map(tName => (
+              <button
+                key={tName}
+                onClick={() => setAccountViewTab(tName)}
+                style={{
+                  padding: "8px 16px",
+                  borderRadius: 20,
+                  background: accountViewTab === tName ? t.accentGrad : (isDark ? "rgba(255,255,255,0.05)" : "#f3f4f6"),
+                  color: accountViewTab === tName ? "#fff" : t.textSecondary,
+                  border: `1px solid ${accountViewTab === tName ? "transparent" : t.surfaceBorder}`,
+                  fontSize: 13,
+                  fontWeight: 600,
+                  cursor: "pointer",
+                  transition: "all 0.2s",
+                  boxShadow: accountViewTab === tName ? `0 4px 10px ${t.accentShadow}` : "none"
+                }}
+              >
+                {tName === "Dashboard" ? "My Dashboard" : "My Investments"}
+              </button>
+            ))}
+          </div>
+          <PageMemberAccount
+            t={t}
+            isDark={isDark}
+            CONTACTS={[contact]}
+            INVESTMENTS={INVESTMENTS}
+            SCHEDULES={SCHEDULES}
+            DEALS={DEALS}
+            DIMENSIONS={DIMENSIONS}
+            tenantId={tenantId}
+            LEDGER={LEDGER}
+            USERS={USERS}
+            initialTab={accountViewTab}
+            readOnly={true}
+          />
+        </div>
+      );
+    }
     if (viewMode === "detail") {
       return (
         <div style={{ display: "flex", flexDirection: "column", gap: 24, maxWidth: 800 }}>
@@ -819,11 +864,10 @@ export const InvestorSummaryModal = ({
   };
 
   return (
-    <div style={{ position: "fixed", inset: 0, zIndex: 9999, background: "rgba(0,0,0,0.6)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-      <div onClick={onClose} style={{ position: "absolute", inset: 0 }} />
-      <div ref={modalContainerRef} style={{ position: "relative", background: isDark ? "#0F0F0F" : "#fff", borderRadius: 16, padding: 0, width: resizeW || "95%", maxWidth: resizeW ? "none" : 1100, height: resizeH || "90vh", display: "flex", flexDirection: "column", boxShadow: "0 24px 60px rgba(0,0,0,0.4)", border: `1px solid ${isDark ? "rgba(255,255,255,0.08)" : "#E5E7EB"}`, overflow: "hidden", transform: `translate(${dragOffset.x}px, ${dragOffset.y}px)`, minWidth: 480, minHeight: 360 }}>
+    <>
+      <div style={{ background: isDark ? "#0F0F0F" : "#fff", borderRadius: 16, padding: 0, width: "100%", minHeight: "calc(100vh - 120px)", display: "flex", flexDirection: "column", border: `1px solid ${isDark ? "rgba(255,255,255,0.08)" : "#E5E7EB"}`, overflow: "hidden" }}>
 
-        <div onMouseDown={onHeaderMouseDown} style={{ padding: "32px 40px 0 40px", flexShrink: 0, cursor: isDraggingModal ? "grabbing" : "grab", userSelect: "none" }}>
+        <div style={{ padding: "32px 40px 0 40px", flexShrink: 0, userSelect: "none" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 24 }}>
             <div>
               <div style={{ fontSize: 24, fontWeight: 700, color: isDark ? "#fff" : "#111827", marginBottom: 4 }}>
@@ -862,9 +906,14 @@ export const InvestorSummaryModal = ({
                   Transaction View
                 </button>
                 <button 
-                  onClick={() => setViewMode("detail")} 
+                  onClick={() => { setViewMode("detail"); setIsEditing(false); }} 
                   style={{ padding: "6px 16px", borderRadius: 6, background: viewMode === "detail" ? (isDark ? "#3B82F6" : "#fff") : "transparent", color: viewMode === "detail" ? (isDark ? "#fff" : "#111827") : t.textSecondary, boxShadow: viewMode === "detail" && !isDark ? "0 1px 3px rgba(0,0,0,0.1)" : "none", border: "none", fontWeight: 600, cursor: "pointer", fontSize: 13, transition: "all 0.2s" }}>
                   Detail View
+                </button>
+                <button 
+                  onClick={() => { setViewMode("account"); setIsEditing(false); }} 
+                  style={{ padding: "6px 16px", borderRadius: 6, background: viewMode === "account" ? (isDark ? "#3B82F6" : "#fff") : "transparent", color: viewMode === "account" ? (isDark ? "#fff" : "#111827") : t.textSecondary, boxShadow: viewMode === "account" && !isDark ? "0 1px 3px rgba(0,0,0,0.1)" : "none", border: "none", fontWeight: 600, cursor: "pointer", fontSize: 13, transition: "all 0.2s" }}>
+                  Account View
                 </button>
               </div>
 
@@ -880,7 +929,25 @@ export const InvestorSummaryModal = ({
                   ) : null}
                 </div>
               )}
-              <button onClick={onClose} style={{ width: 36, height: 36, borderRadius: 18, background: isDark ? "rgba(255,255,255,0.1)" : "#F3F4F6", border: `1px solid ${t.surfaceBorder}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, cursor: "pointer", color: t.textSecondary, transition: "background 0.2s" }}>×</button>
+              <button 
+                onClick={onClose} 
+                style={{ 
+                  display: "flex", 
+                  alignItems: "center", 
+                  gap: 8, 
+                  padding: "8px 16px", 
+                  borderRadius: 8, 
+                  background: isDark ? "rgba(255,255,255,0.05)" : "#F3F4F6", 
+                  border: `1px solid ${t.surfaceBorder}`, 
+                  cursor: "pointer", 
+                  color: t.textSecondary, 
+                  fontSize: 13, 
+                  fontWeight: 600,
+                  transition: "background 0.2s" 
+                }}
+              >
+                <X size={16} /> Close
+              </button>
             </div>
           </div>
 
@@ -921,13 +988,6 @@ export const InvestorSummaryModal = ({
 
         <div style={{ flex: 1, overflow: "auto", padding: "32px 40px", background: isDark ? "#141414" : "#F9FAFB" }}>
           {renderTabContent()}
-        </div>
-        <div onMouseDown={onResizeStart} style={{ position: "absolute", right: 0, bottom: 0, width: 22, height: 22, cursor: "nwse-resize", zIndex: 10, display: "flex", alignItems: "flex-end", justifyContent: "flex-end", padding: 4 }}>
-          <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-            <line x1="2" y1="13" x2="13" y2="2" stroke={isDark ? "#6B7280" : "#94A3B8"} strokeWidth="2" strokeLinecap="round"/>
-            <line x1="7" y1="13" x2="13" y2="7" stroke={isDark ? "#6B7280" : "#94A3B8"} strokeWidth="2" strokeLinecap="round"/>
-            <line x1="12" y1="13" x2="13" y2="12" stroke={isDark ? "#6B7280" : "#94A3B8"} strokeWidth="2" strokeLinecap="round"/>
-          </svg>
         </div>
       </div>
       <Modal
@@ -984,7 +1044,7 @@ export const InvestorSummaryModal = ({
           <button onClick={() => setToast(null)} style={{ background: "none", border: "none", color: "inherit", cursor: "pointer", fontSize: 16, marginLeft: 8, opacity: 0.7 }}>✕</button>
         </div>
       )}
-    </div>
+    </>
   );
 };
 

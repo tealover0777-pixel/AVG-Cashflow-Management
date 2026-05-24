@@ -813,6 +813,27 @@ export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [
 
   if (!canView) return <div style={{ padding: 40, color: t.textMuted }}>You don't have permission to view this page.</div>;
 
+  if (drillInvestment) {
+    return (
+      <InvestorSummaryModal 
+        contact={drillContact}
+        selectedInvestmentId={drillInvestment?.investment_id || drillInvestment?.id}
+        defaultView={drillOptions.view}
+        initialTab={drillOptions.tab}
+        onClose={() => setDrillInvestment(null)}
+        isDark={isDark}
+        t={t}
+        INVESTMENTS={INVESTMENTS}
+        SCHEDULES={SCHEDULES}
+        DEALS={DEALS}
+        DIMENSIONS={DIMENSIONS}
+        LEDGER={LEDGER}
+        USERS={USERS}
+        onUpdateInvestment={handleUpdateInvestmentModal}
+      />
+    );
+  }
+
   return (<>
     <div style={{ marginBottom: 28, display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}><div><h1 style={{ fontFamily: t.titleFont, fontWeight: t.titleWeight, fontSize: t.titleSize, color: isDark ? "#fff" : "#1C1917", letterSpacing: t.titleTracking, lineHeight: 1, marginBottom: 6 }}>Investments</h1><p style={{ fontSize: 13.5, color: t.textMuted }}>Manage investments</p></div>
       <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
@@ -1177,22 +1198,7 @@ export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [
         </div>
       </Modal>
     )}
-    <InvestorSummaryModal 
-      contact={drillContact}
-      selectedInvestmentId={drillInvestment?.investment_id || drillInvestment?.id}
-      defaultView={drillOptions.view}
-      initialTab={drillOptions.tab}
-      onClose={() => setDrillInvestment(null)}
-      isDark={isDark}
-      t={t}
-      INVESTMENTS={INVESTMENTS}
-      SCHEDULES={SCHEDULES}
-      DEALS={DEALS}
-      DIMENSIONS={DIMENSIONS}
-      LEDGER={LEDGER}
-      USERS={USERS}
-      onUpdateInvestment={handleUpdateInvestmentModal}
-    />
+
   </>);
 }
 

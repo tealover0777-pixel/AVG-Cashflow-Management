@@ -349,6 +349,26 @@ export default function PageContacts({ t, isDark, CONTACTS = [], INVESTMENTS = [
     return getContactColumns(permissions, isDark, t, columnContext);
   }, [permissions, isDark, t, columnContext]);
 
+  if (detailContact) {
+    return (
+      <InvestorSummaryModal 
+        contact={detailContact}
+        onClose={() => setDetailContact(null)}
+        isDark={isDark}
+        t={t}
+        INVESTMENTS={INVESTMENTS}
+        SCHEDULES={SCHEDULES}
+        DEALS={DEALS}
+        DIMENSIONS={DIMENSIONS}
+        onUpdate={handleUpdateContact}
+        onUpdateInvestment={handleUpdateInvestment}
+        tenantId={tenantId}
+        LEDGER={LEDGER}
+        USERS={USERS}
+      />
+    );
+  }
+
   return (<>
     {processing && (
       <div style={{ position: "fixed", inset: 0, zIndex: 9999, background: "rgba(0,0,0,0.6)", backdropFilter: "blur(4px)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", color: "#fff" }}>
@@ -438,21 +458,7 @@ export default function PageContacts({ t, isDark, CONTACTS = [], INVESTMENTS = [
       t={t}
       isDark={isDark}
     />
-    <InvestorSummaryModal 
-      contact={detailContact}
-      onClose={() => setDetailContact(null)}
-      isDark={isDark}
-      t={t}
-      INVESTMENTS={INVESTMENTS}
-      SCHEDULES={SCHEDULES}
-      DEALS={DEALS}
-      DIMENSIONS={DIMENSIONS}
-      onUpdate={handleUpdateContact}
-      onUpdateInvestment={handleUpdateInvestment}
-      tenantId={tenantId}
-      LEDGER={LEDGER}
-      USERS={USERS}
-    />
+
     <Modal
       open={!!inviteResult}
       onClose={() => { setInviteResult(null); setLinkCopied(false); }}

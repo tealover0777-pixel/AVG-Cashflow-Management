@@ -2360,6 +2360,92 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
     return "$" + num.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 });
   }
 
+  if (detailContact) {
+    return (
+      <div style={{ animation: "fadeIn 0.3s ease-out" }}>
+        <style>{`
+          @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+        `}</style>
+        <InvestorSummaryModal
+          contact={detailContact?.data || detailContact}
+          defaultView={detailContact?.view || "simple"}
+          onClose={() => setDetailContact(null)}
+          isDark={isDark}
+          t={t}
+          INVESTMENTS={INVESTMENTS}
+          SCHEDULES={SCHEDULES}
+          DEALS={DEALS}
+          DIMENSIONS={DIMENSIONS}
+          onUpdate={async (updatedData) => {
+            const d = updatedData;
+            const payload = {
+              first_name: d.first_name || "",
+              last_name: d.last_name || "",
+              contact_type: d.contact_type || d.type || "Individual",
+              role_type: d.role_type || d.role || "Investor",
+              email: d.email || "",
+              phone: d.phone || "",
+              address: d.address || "",
+              bank_information: d.bank_information || "",
+              bank_address: d.bank_address || "",
+              bank_routing_number: d.bank_routing_number || "",
+              bank_account_number: d.bank_account_number || "",
+              tax_id: d.tax_id || "",
+              payment_method: d.payment_method || "",
+              updatedAt: serverTimestamp()
+            };
+            try {
+              const docId = d.docId || d.id;
+              if (!docId) throw new Error("Missing document ID");
+              let tId = tenantId;
+              if (!tId && investmentCollection.includes("tenants/")) {
+                tId = investmentCollection.split("/")[1];
+              }
+              if (!tId) throw new Error("Missing tenant ID");
+
+              await updateDoc(doc(db, "tenants", tId, "contacts", docId), payload);
+              setDetailContact({ ...detailContact, data: { ...d, ...payload } });
+
+              const ledgerRef = collection(db, "tenants", tId, "ledger");
+              await addDoc(ledgerRef, {
+                entity_type: "Contact",
+                entity_id: docId,
+                note: `Contact profile updated: ${Object.keys(payload).filter(k => k !== 'updatedAt').join(", ")}`,
+                created_at: serverTimestamp(),
+                user_id: user?.uid || "system"
+              });
+            } catch (err) {
+              console.error("Update error:", err);
+              showToast("Failed to update contact: " + err.message, "error");
+            }
+          }}
+          onUpdateInvestment={handleUpdateInvestmentModal}
+          onAddNote={async ({ text }) => {
+            const contact = detailContact?.data || detailContact;
+            const contactId = contact?.docId || contact?.id;
+            if (!contactId || !tenantId) throw new Error("Missing contact or tenant ID");
+            const noteRef = await addDoc(
+              collection(db, "tenants", tenantId, "contacts", contactId, "notes"),
+              { text, created_at: serverTimestamp(), author: "" }
+            );
+            return { id: noteRef.id, text, created_at: new Date().toISOString(), author: "" };
+          }}
+          tenantId={tenantId}
+          LEDGER={LEDGER}
+          USERS={USERS}
+          currentUser={user}
+        />
+        {toast && (
+          <div style={{ position: "fixed", bottom: 28, right: 28, zIndex: 9999, background: toast.type === "success" ? (isDark ? "#052e16" : "#f0fdf4") : (isDark ? "#2d0a0a" : "#fef2f2"), border: `1px solid ${toast.type === "success" ? "#22c55e" : "#ef4444"}`, color: toast.type === "success" ? "#22c55e" : "#ef4444", borderRadius: 12, padding: "14px 20px", fontSize: 13.5, fontWeight: 600, boxShadow: "0 8px 32px rgba(0,0,0,0.18)", display: "flex", alignItems: "center", gap: 10, maxWidth: 380 }}>
+            <span>{toast.type === "success" ? "✅" : "❌"}</span>
+            <span>{toast.msg}</span>
+            <button onClick={() => setToast(null)} style={{ background: "none", border: "none", color: "inherit", cursor: "pointer", fontSize: 16, marginLeft: 8, opacity: 0.7 }}>✕</button>
+          </div>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div style={{ animation: "fadeIn 0.3s ease-out" }}>
       <style>{`
@@ -4619,78 +4705,6 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
           />
         </div>
       </Modal>
-
-      <InvestorSummaryModal
-        contact={detailContact?.data || detailContact}
-        defaultView={detailContact?.view || "simple"}
-        onClose={() => setDetailContact(null)}
-        isDark={isDark}
-        t={t}
-        INVESTMENTS={INVESTMENTS}
-        SCHEDULES={SCHEDULES}
-        DEALS={DEALS}
-        DIMENSIONS={DIMENSIONS}
-        onUpdate={async (updatedData) => {
-          const d = updatedData;
-          const payload = {
-            first_name: d.first_name || "",
-            last_name: d.last_name || "",
-            contact_type: d.contact_type || d.type || "Individual",
-            role_type: d.role_type || d.role || "Investor",
-            email: d.email || "",
-            phone: d.phone || "",
-            address: d.address || "",
-            bank_information: d.bank_information || "",
-            bank_address: d.bank_address || "",
-            bank_routing_number: d.bank_routing_number || "",
-            bank_account_number: d.bank_account_number || "",
-            tax_id: d.tax_id || "",
-            payment_method: d.payment_method || "",
-            updatedAt: serverTimestamp()
-          };
-          try {
-            const docId = d.docId || d.id;
-            if (!docId) throw new Error("Missing document ID");
-            // If tenantId is not provided, try to extract from investmentCollection path
-            let tId = tenantId;
-            if (!tId && investmentCollection.includes("tenants/")) {
-              tId = investmentCollection.split("/")[1];
-            }
-            if (!tId) throw new Error("Missing tenant ID");
-
-
-            await updateDoc(doc(db, "tenants", tId, "contacts", docId), payload);
-            setDetailContact({ ...detailContact, data: { ...d, ...payload } });
-
-            const ledgerRef = collection(db, "tenants", tId, "ledger");
-            await addDoc(ledgerRef, {
-              entity_type: "Contact",
-              entity_id: docId,
-              note: `Contact profile updated: ${Object.keys(payload).filter(k => k !== 'updatedAt').join(", ")}`,
-              created_at: serverTimestamp(),
-              user_id: user?.uid || "system"
-            });
-          } catch (err) {
-            console.error("Update error:", err);
-            showToast("Failed to update contact: " + err.message, "error");
-          }
-        }}
-        onUpdateInvestment={handleUpdateInvestmentModal}
-        onAddNote={async ({ text }) => {
-          const contact = detailContact?.data || detailContact;
-          const contactId = contact?.docId || contact?.id;
-          if (!contactId || !tenantId) throw new Error("Missing contact or tenant ID");
-          const noteRef = await addDoc(
-            collection(db, "tenants", tenantId, "contacts", contactId, "notes"),
-            { text, created_at: serverTimestamp(), author: "" }
-          );
-          return { id: noteRef.id, text, created_at: new Date().toISOString(), author: "" };
-        }}
-        tenantId={tenantId}
-        LEDGER={LEDGER}
-        USERS={USERS}
-        currentUser={user}
-      />
       {toast && (
         <div style={{ position: "fixed", bottom: 28, right: 28, zIndex: 9999, background: toast.type === "success" ? (isDark ? "#052e16" : "#f0fdf4") : (isDark ? "#2d0a0a" : "#fef2f2"), border: `1px solid ${toast.type === "success" ? "#22c55e" : "#ef4444"}`, color: toast.type === "success" ? "#22c55e" : "#ef4444", borderRadius: 12, padding: "14px 20px", fontSize: 13.5, fontWeight: 600, boxShadow: "0 8px 32px rgba(0,0,0,0.18)", display: "flex", alignItems: "center", gap: 10, maxWidth: 380 }}>
           <span>{toast.type === "success" ? "✅" : "❌"}</span>

@@ -1834,6 +1834,38 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
   ];
   if (!canView) return <div style={{ padding: 40, color: t.textMuted }}>You don't have permission to view this page.</div>;
 
+  if (detailContact) {
+    return (
+      <InvestorSummaryModal
+        contact={detailContact}
+        onClose={() => setDetailContact(null)}
+        isDark={isDark}
+        t={t}
+        INVESTMENTS={INVESTMENTS}
+        SCHEDULES={SCHEDULES}
+        DEALS={DEALS}
+        DIMENSIONS={DIMENSIONS}
+        tenantId={tenantId}
+        LEDGER={LEDGER}
+        USERS={USERS}
+        currentUser={user}
+        onUpdateInvestment={async (inv) => {
+          console.log("Updating investment:", inv);
+          await handleUpdateInvestment(inv);
+        }}
+        onAddNote={async ({ text }) => {
+          const contactId = detailContact?.docId || detailContact?.id;
+          if (!contactId || !tenantId) throw new Error("Missing contact or tenant ID");
+          const noteRef = await addDoc(
+            collection(db, "tenants", tenantId, "contacts", contactId, "notes"),
+            { text, created_at: serverTimestamp(), author: user?.displayName || user?.email || "" }
+          );
+          return { id: noteRef.id, text, created_at: new Date().toISOString(), author: user?.displayName || user?.email || "" };
+        }}
+      />
+    );
+  }
+
   return (<>
     <div style={{ marginBottom: 28, display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
       <div>
@@ -3127,62 +3159,7 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
         </div>
       </Modal>
     )}
-    <InvestorSummaryModal
-      contact={detailContact}
-      onClose={() => setDetailContact(null)}
-      isDark={isDark}
-      t={t}
-      INVESTMENTS={INVESTMENTS}
-      SCHEDULES={SCHEDULES}
-      DEALS={DEALS}
-      DIMENSIONS={DIMENSIONS}
-      tenantId={tenantId}
-      LEDGER={LEDGER}
-      USERS={USERS}
-      currentUser={user}
-      onUpdateInvestment={async (inv) => {
-        console.log("Updating investment:", inv);
-        await handleUpdateInvestment(inv);
-      }}
-      onAddNote={async ({ text }) => {
-        const contactId = detailContact?.docId || detailContact?.id;
-        if (!contactId || !tenantId) throw new Error("Missing contact or tenant ID");
-        const noteRef = await addDoc(
-          collection(db, "tenants", tenantId, "contacts", contactId, "notes"),
-          { text, created_at: serverTimestamp(), author: "" }
-        );
-        return { id: noteRef.id, text, created_at: new Date().toISOString(), author: "" };
-      }}
-      onUpdate={async (updatedData) => {
-        const d = updatedData;
-        const payload = {
-          contact_name: `${d.first_name || ""} ${d.last_name || ""}`.trim() || d.name || "",
-          first_name: d.first_name || "",
-          last_name: d.last_name || "",
-          contact_type: d.contact_type || d.type || "Individual",
-          role_type: d.role_type || d.role || "Investor",
-          email: d.email || "",
-          phone: d.phone || "",
-          address: d.address || "",
-          bank_information: d.bank_information || "",
-          bank_address: d.bank_address || "",
-          bank_routing_number: d.bank_routing_number || "",
-          bank_account_number: d.bank_account_number || "",
-          tax_id: d.tax_id || "",
-          payment_method: d.payment_method || "",
-          updatedAt: serverTimestamp()
-        };
-        try {
-          const docId = d.docId || d.id;
-          if (!docId) throw new Error("Missing document ID");
-          await updateDoc(doc(db, "tenants", tenantId, "contacts", docId), payload);
-          setDetailContact({ ...d, ...payload });
-        } catch (err) {
-          console.error("Update error:", err);
-          showDialog("Failed to update contact: " + err.message, "Error", "alert");
-        }
-      }}
-    />
+
       {/* Distribution Memo Drilldown Modal */}
       {distMemoDrillDown.open && (
         <Modal

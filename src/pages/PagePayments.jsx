@@ -452,6 +452,27 @@ export default function PagePayments({ t, isDark, PAYMENTS = [], INVESTMENTS = [
     setDelT({ bulk: true, count: sel.size, ids: Array.from(sel) });
   };
 
+  if (drillContact) {
+    return (
+      <InvestorSummaryModal 
+        contact={drillContact} 
+        selectedInvestmentId={drillInvestment?.investment_id || drillInvestment?.id} 
+        defaultView={drillOptions.view} 
+        initialTab={drillOptions.tab} 
+        onClose={() => { setDrillInvestment(null); setDrillContact(null); }} 
+        isDark={isDark} 
+        t={t} 
+        INVESTMENTS={INVESTMENTS} 
+        SCHEDULES={SCHEDULES} 
+        DEALS={DEALS} 
+        DIMENSIONS={DIMENSIONS} 
+        LEDGER={LEDGER} 
+        USERS={USERS} 
+        onUpdateInvestment={handleUpdateInvestmentModal} 
+      />
+    );
+  }
+
   return (<>
     <div style={{ marginBottom: 28, display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
       <div>
@@ -807,24 +828,7 @@ export default function PagePayments({ t, isDark, PAYMENTS = [], INVESTMENTS = [
         </div>
       </Modal>
     )}
-    {drillContact && (
-      <InvestorSummaryModal 
-        contact={drillContact} 
-        selectedInvestmentId={drillInvestment?.investment_id || drillInvestment?.id} 
-        defaultView={drillOptions.view} 
-        initialTab={drillOptions.tab} 
-        onClose={() => { setDrillInvestment(null); setDrillContact(null); }} 
-        isDark={isDark} 
-        t={t} 
-        INVESTMENTS={INVESTMENTS} 
-        SCHEDULES={SCHEDULES} 
-        DEALS={DEALS} 
-        DIMENSIONS={DIMENSIONS} 
-        LEDGER={LEDGER} 
-        USERS={USERS} 
-        onUpdateInvestment={handleUpdateInvestmentModal} 
-      />
-    )}
+
 
   </>);
 }
