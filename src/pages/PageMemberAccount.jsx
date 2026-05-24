@@ -1150,7 +1150,7 @@ export default function PageMemberAccount({
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
           <div>
             <div style={{ fontSize: 24, fontWeight: 700, color: isDark ? "#fff" : "#1C1917", marginBottom: 4, fontFamily: t.titleFont }}>
-              Investor Dashboard
+              My Dashboard
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
               <span style={{ fontSize: 13, color: t.textMuted }}>
@@ -1161,97 +1161,12 @@ export default function PageMemberAccount({
             </div>
           </div>
         </div>
-
-        {/* Cohesive Navigation tabs bar */}
-        <div style={{ display: "flex", gap: 24, borderBottom: `1px solid ${t.surfaceBorder}`, marginTop: "24px" }}>
-          {tabs.map(tab => (
-            <div
-              key={tab}
-              onClick={() => {
-                setActiveTab(tab);
-                setIsEditing(false);
-              }}
-              style={{
-                padding: "12px 0",
-                cursor: "pointer",
-                fontSize: 14,
-                fontWeight: activeTab === tab ? 600 : 500,
-                color: activeTab === tab ? t.accent : t.textMuted,
-                borderBottom: activeTab === tab ? `2px solid ${t.accent}` : "2px solid transparent",
-                transition: "all 0.2s"
-              }}
-            >
-              {tab}
-            </div>
-          ))}
-        </div>
       </div>
 
       {/* Tab Render panel */}
       <div style={{ flex: 1, overflow: "auto" }}>
         {renderTabContent()}
       </div>
-
-      {/* Floating Action Button "New Investment" */}
-      <button
-        onClick={() => setNewInvModalOpen(true)}
-        style={{
-          position: "fixed",
-          bottom: "32px",
-          right: "32px",
-          background: isDark ? "linear-gradient(135deg, #818CF8, #4F46E5)" : "linear-gradient(135deg, #6366F1, #4a20dd)",
-          color: "#fff",
-          border: "none",
-          borderRadius: "12px",
-          padding: "14px 20px",
-          display: "flex",
-          alignItems: "center",
-          gap: "8px",
-          fontWeight: 600,
-          fontSize: "14px",
-          boxShadow: isDark ? "0 10px 25px rgba(99, 102, 241, 0.4)" : "0 10px 25px rgba(74, 32, 221, 0.3)",
-          cursor: "pointer",
-          transition: "transform 0.2s ease, box-shadow 0.2s ease",
-          zIndex: 50
-        }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.transform = "translateY(-2px)";
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.transform = "translateY(0)";
-        }}
-      >
-        <Plus size={16} strokeWidth={2.5} />
-        <span>New Investment</span>
-      </button>
-
-      {/* Floating Action Modal */}
-      <Modal
-        open={newInvModalOpen}
-        onClose={() => setNewInvModalOpen(false)}
-        title="New Investment Request"
-        onSave={() => {
-          setActiveTab("Notes");
-          setNoteText("Hi, I would like to request a new investment in...");
-          setNewInvModalOpen(false);
-        }}
-        saveLabel="Go to Notes"
-        isDark={isDark}
-        t={t}
-      >
-        <div style={{ padding: "8px 0", fontSize: "14px", lineHeight: "1.6", color: t.textSecondary }}>
-          <p style={{ marginBottom: "12px" }}>
-            To request a new investment or make changes to your portfolio, you can:
-          </p>
-          <ul style={{ paddingLeft: "20px", marginBottom: "16px", listStyleType: "disc" }}>
-            <li style={{ marginBottom: "6px" }}>Contact your American Vision Group account manager directly.</li>
-            <li style={{ marginBottom: "6px" }}>Add a request note under your account records in the **Notes** tab of this portal.</li>
-          </ul>
-          <p>
-            Click **"Go to Notes"** below to write a message directly to your portal notes.
-          </p>
-        </div>
-      </Modal>
 
       {/* Toast popup */}
       {toast && (

@@ -134,7 +134,7 @@ function AppContent() {
     const hasMemberAccount = hasPermission && hasPermission("MEMBERACCOUNT_VIEW");
     const hasDashboard = hasPermission && hasPermission("DASHBOARD_VIEW");
     if ((isMember || hasMemberAccount) && !hasDashboard && activePage === "Dashboard") {
-      setActivePage("Member Account");
+      setActivePage("My Dashboard");
     } else if (!hasDashboard && !isMember && !hasMemberAccount && activePage === "Dashboard" && hasPermission) {
       setActivePage("Profile");
     }
@@ -900,7 +900,7 @@ function AppContent() {
         <div style={{ padding: "16px", borderTop: `1px solid ${t.sidebarBorder}` }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <Tooltip text="View your profile settings" t={t}>
-              <div onClick={() => setActivePage((isMember || (hasPermission && hasPermission("MEMBERACCOUNT_VIEW"))) ? "Member Account" : "Profile")} style={{ cursor: "pointer", width: isDark ? 32 : 34, height: isDark ? 32 : 34, borderRadius: isDark ? 8 : 9, background: isDark ? "linear-gradient(135deg,#60A5FA,#3B82F6)" : "linear-gradient(135deg,#F472B6,#EC4899)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff" }}>
+              <div onClick={() => setActivePage((isMember || (hasPermission && hasPermission("MEMBERACCOUNT_VIEW"))) ? "My Dashboard" : "Profile")} style={{ cursor: "pointer", width: isDark ? 32 : 34, height: isDark ? 32 : 34, borderRadius: isDark ? 8 : 9, background: isDark ? "linear-gradient(135deg,#60A5FA,#3B82F6)" : "linear-gradient(135deg,#F472B6,#EC4899)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff" }}>
                 <User size={18} />
               </div>
             </Tooltip>
@@ -959,7 +959,7 @@ function AppContent() {
             )}
           </div>
           <div style={{ display: "flex", gap: 16, fontSize: 12.5, alignItems: "center" }}>
-            <span style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer" }} onClick={() => setActivePage((isMember || (hasPermission && hasPermission("MEMBERACCOUNT_VIEW"))) ? "Member Account" : "Profile")}>
+            <span style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer" }} onClick={() => setActivePage((isMember || (hasPermission && hasPermission("MEMBERACCOUNT_VIEW"))) ? "My Dashboard" : "Profile")}>
               <span style={{ color: t.text, fontWeight: 500 }}>
                 {[profile?.first_name, profile?.last_name].filter(Boolean).join(" ") || user.email}
               </span>
@@ -1021,7 +1021,7 @@ function AppContent() {
                   {activePage === "Company" && <PageCompany t={t} isDark={isDark} activeTenantId={activeTenantId} USERS={rawUsers} GLOBAL_USERS={globalUsers} CONTACTS={rawContacts} platformConfig={platformConfig} isGlobalConsolidated={isGlobalConsolidated} />}
                   {activePage === "Platform Company" && <PagePlatformCompany t={t} isDark={isDark} USERS={globalUsers} CONTACTS={rawContacts} />}
                   {activePage === "Backup & Restore" && <PageBackupRestore t={t} isDark={isDark} TENANTS={TENANTS} />}
-                  {activePage === "Member Account" && (
+                  {activePage === "My Dashboard" && (
                     <PageMemberAccount
                       t={t}
                       isDark={isDark}
