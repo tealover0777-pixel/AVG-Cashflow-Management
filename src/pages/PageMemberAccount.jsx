@@ -7,39 +7,39 @@ import InvestmentDocumentsTab from "../components/InvestmentDocumentsTab";
 import InvestmentChangelogTab from "../components/InvestmentChangelogTab";
 import { getContactTransactionColumns } from "../components/ContactTransactionsTanStackConfig";
 import { fmtCurr } from "../utils";
-import { 
-  ArrowUp, 
-  Info, 
-  RotateCcw, 
-  TrendingUp, 
-  PieChart, 
-  Coins, 
-  Undo, 
-  History, 
-  User, 
-  Wallet, 
-  FileText, 
-  Settings, 
-  Plus, 
-  Search, 
-  ArrowUpRight, 
-  ArrowDownRight, 
-  HelpCircle, 
-  LogOut, 
+import {
+  ArrowUp,
+  Info,
+  RotateCcw,
+  TrendingUp,
+  PieChart,
+  Coins,
+  Undo,
+  History,
+  User,
+  Wallet,
+  FileText,
+  Settings,
+  Plus,
+  Search,
+  ArrowUpRight,
+  ArrowDownRight,
+  HelpCircle,
+  LogOut,
   ChevronRight,
   PlusCircle
 } from "lucide-react";
 
-export default function PageMemberAccount({ 
-  t, 
-  isDark, 
-  CONTACTS = [], 
-  INVESTMENTS = [], 
-  SCHEDULES = [], 
-  DEALS = [], 
-  DIMENSIONS = [], 
-  tenantId = "", 
-  LEDGER = [], 
+export default function PageMemberAccount({
+  t,
+  isDark,
+  CONTACTS = [],
+  INVESTMENTS = [],
+  SCHEDULES = [],
+  DEALS = [],
+  DIMENSIONS = [],
+  tenantId = "",
+  LEDGER = [],
   USERS = [],
   loading = false
 }) {
@@ -93,7 +93,7 @@ export default function PageMemberAccount({
     if (!tenantId || !contact?.id) return;
     const q = query(collection(db, "tenants", tenantId, "contacts", contact.id, "notes"));
     const unsub = onSnapshot(q, (snap) => {
-      setNotes(snap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a,b) => {
+      setNotes(snap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => {
         const da = a.created_at?.seconds || 0;
         const db = b.created_at?.seconds || 0;
         return db - da;
@@ -154,7 +154,7 @@ export default function PageMemberAccount({
   }, [partySchedules]);
 
   const totalContributions = useMemo(() => {
-    return contributions.reduce((sum, s) => sum + (Number(s.signed_payment_amount || s.payment_amount || String(s.amount || 0).replace(/[^0-9.-]/g,'')) || 0), 0);
+    return contributions.reduce((sum, s) => sum + (Number(s.signed_payment_amount || s.payment_amount || String(s.amount || 0).replace(/[^0-9.-]/g, '')) || 0), 0);
   }, [contributions]);
 
   const withdrawals = useMemo(() => {
@@ -165,7 +165,7 @@ export default function PageMemberAccount({
   }, [partySchedules]);
 
   const totalWithdrawals = useMemo(() => {
-    return withdrawals.reduce((sum, s) => sum + (Number(s.signed_payment_amount || s.payment_amount || String(s.amount || 0).replace(/[^0-9.-]/g,'')) || 0), 0);
+    return withdrawals.reduce((sum, s) => sum + (Number(s.signed_payment_amount || s.payment_amount || String(s.amount || 0).replace(/[^0-9.-]/g, '')) || 0), 0);
   }, [withdrawals]);
 
   const capitalBalance = totalContributions - Math.abs(totalWithdrawals);
@@ -181,7 +181,7 @@ export default function PageMemberAccount({
     return distributions.reduce((sum, s) => {
       const st = (s.status || s.PaymentStatus || "").trim();
       if (st === "Paid" || st === "Partial") {
-        return sum + (Number(s.signed_payment_amount || s.payment_amount || String(s.amount || 0).replace(/[^0-9.-]/g,'')) || 0);
+        return sum + (Number(s.signed_payment_amount || s.payment_amount || String(s.amount || 0).replace(/[^0-9.-]/g, '')) || 0);
       }
       return sum;
     }, 0);
@@ -219,10 +219,10 @@ export default function PageMemberAccount({
         notes: editData.notes || "",
         updated_at: serverTimestamp(),
       };
-      
+
       const docRef = contact._path ? doc(db, contact._path) : doc(db, "tenants", tenantId, "contacts", contact.docId || contact.id);
       await updateDoc(docRef, payload);
-      
+
       try {
         const tenantPath = docRef.path.split("/contacts")[0];
         const ledgerRef = collection(db, tenantPath, "ledger");
@@ -293,7 +293,7 @@ export default function PageMemberAccount({
           {items.map((s, i) => {
             const d = DEALS.find(dd => dd.id === s.deal_id);
             const dealName = d?.name || s.deal_id || s.project || "—";
-            const amtNum = Number(String(s.signed_payment_amount || s.payment_amount || s.amount || 0).replace(/[^0-9.-]/g,''));
+            const amtNum = Number(String(s.signed_payment_amount || s.payment_amount || s.amount || 0).replace(/[^0-9.-]/g, ''));
             const amtColor = amtNum > 0 ? (isDark ? "#34D399" : "#10B981") : amtNum < 0 ? (isDark ? "#F87171" : "#EF4444") : (isDark ? "#fff" : "#1C1917");
             return (
               <tr key={i} style={{ borderBottom: i < items.length - 1 ? `1px solid ${t.surfaceBorder}` : "none" }}>
@@ -330,7 +330,7 @@ export default function PageMemberAccount({
     })).sort((a, b) => b.value - a.value);
   }, [partyInvestments, DEALS]);
 
-  const donutColors = isDark 
+  const donutColors = isDark
     ? ["#818CF8", "#6366F1", "#4F46E5", "#FBBF24", "#3B82F6", "#10B981"]
     : ["#4a20dd", "#6344f5", "#a78bfa", "#ffe088", "#3b82f6", "#10b981"];
 
@@ -344,8 +344,8 @@ export default function PageMemberAccount({
       gradientParts.push(`${color} ${start.toFixed(1)}% ${end.toFixed(1)}%`);
       accumulated = end;
     });
-    return gradientParts.length > 0 
-      ? `conic-gradient(${gradientParts.join(', ')})` 
+    return gradientParts.length > 0
+      ? `conic-gradient(${gradientParts.join(', ')})`
       : `conic-gradient(${isDark ? 'rgba(255,255,255,0.1)' : '#e5e7eb'} 0% 100%)`;
   }, [dealDistribution, isDark]);
 
@@ -356,12 +356,12 @@ export default function PageMemberAccount({
         const type = (s.payment_type || s.type || "").toLowerCase();
         const status = (s.status || s.PaymentStatus || "").toLowerCase();
         return type.includes("principal_deposit") || type.includes("deposit") || type.includes("fund") ||
-               status.includes("withdrawal") || type.includes("withdrawal") || type.includes("repayment");
+          status.includes("withdrawal") || type.includes("withdrawal") || type.includes("repayment");
       })
       .map(s => {
         const date = new Date(s.receivedDate || s.dueDate || s.date || 0);
         const isDeposit = (s.payment_type || s.type || "").toLowerCase().includes("deposit") || (s.payment_type || s.type || "").toLowerCase().includes("fund");
-        const amt = Number(String(s.signed_payment_amount || s.payment_amount || s.amount || 0).replace(/[^0-9.-]/g,'')) || 0;
+        const amt = Number(String(s.signed_payment_amount || s.payment_amount || s.amount || 0).replace(/[^0-9.-]/g, '')) || 0;
         return {
           date,
           amount: isDeposit ? amt : -Math.abs(amt)
@@ -382,7 +382,7 @@ export default function PageMemberAccount({
     const points = [...chartPoints];
     const width = 800;
     const height = 200;
-    
+
     if (points.length === 0) {
       return {
         path: "M 0 150 Q 200 130 400 140 T 800 80",
@@ -452,7 +452,7 @@ export default function PageMemberAccount({
     const status = (item.status || item.PaymentStatus || "").toLowerCase();
     const deal = DEALS.find(d => d.id === item.deal_id);
     const dealName = deal?.name || item.deal_id || "Portfolio";
-    
+
     if (type.includes("interest") || type.includes("distribution")) {
       return {
         title: "Interest Paid",
@@ -827,12 +827,12 @@ export default function PageMemberAccount({
             </div>
             <FF label="Notes" t={t}>
               {isEditing ? (
-                <textarea 
-                  value={editData.notes || ""} 
-                  onChange={e => setED({ notes: e.target.value })} 
-                  placeholder="Additional notes..." 
-                  rows={3} 
-                  style={{ width: "100%", background: isDark ? "rgba(255,255,255,0.03)" : "#fff", border: `1px solid ${t.surfaceBorder}`, borderRadius: 8, padding: "12px 16px", color: t.text, fontSize: 13.5, fontFamily: "inherit", outline: "none", resize: "vertical", boxSizing: "border-box" }} 
+                <textarea
+                  value={editData.notes || ""}
+                  onChange={e => setED({ notes: e.target.value })}
+                  placeholder="Additional notes..."
+                  rows={3}
+                  style={{ width: "100%", background: isDark ? "rgba(255,255,255,0.03)" : "#fff", border: `1px solid ${t.surfaceBorder}`, borderRadius: 8, padding: "12px 16px", color: t.text, fontSize: 13.5, fontFamily: "inherit", outline: "none", resize: "vertical", boxSizing: "border-box" }}
                 />
               ) : (
                 <div style={{ padding: "12px 16px", background: isDark ? "rgba(255,255,255,0.03)" : "#fff", border: `1px solid ${t.surfaceBorder}`, borderRadius: 8, color: t.text, fontWeight: 500, minHeight: 46, whiteSpace: "pre-wrap" }}>
@@ -849,9 +849,9 @@ export default function PageMemberAccount({
             {/* Inner Sub-tab navigation */}
             <div style={{ display: "flex", background: isDark ? "rgba(255,255,255,0.05)" : "#F3F4F6", padding: 4, borderRadius: 8, alignSelf: "flex-start" }}>
               {["Capital Transactions", "Distributions"].map(sub => (
-                <button 
+                <button
                   key={sub}
-                  onClick={() => setTransactionSubTab(sub)} 
+                  onClick={() => setTransactionSubTab(sub)}
                   style={{ padding: "6px 16px", borderRadius: 6, background: transactionSubTab === sub ? (isDark ? "#3B82F6" : "#fff") : "transparent", color: transactionSubTab === sub ? (isDark ? "#fff" : "#111827") : t.textSecondary, border: "none", fontWeight: 600, cursor: "pointer", fontSize: 13, transition: "all 0.2s" }}>
                   {sub}
                 </button>
@@ -890,7 +890,7 @@ export default function PageMemberAccount({
                   <div style={{ padding: "20px 24px", borderBottom: `1px solid ${t.surfaceBorder}`, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                     <div style={{ fontSize: 16, fontWeight: 700, color: isDark ? "#fff" : "#111827" }}>All Transactions</div>
                     <div style={{ fontSize: 14, fontWeight: 600, color: t.accent }}>
-                      {fmtCurr(partySchedules.reduce((sum, s) => sum + (Number(s.signed_payment_amount || s.payment_amount || String(s.amount || 0).replace(/[^0-9.-]/g,'')) || 0), 0))}
+                      {fmtCurr(partySchedules.reduce((sum, s) => sum + (Number(s.signed_payment_amount || s.payment_amount || String(s.amount || 0).replace(/[^0-9.-]/g, '')) || 0), 0))}
                     </div>
                   </div>
                   <div style={{ height: "calc(100vh - 340px)" }}>
@@ -946,8 +946,8 @@ export default function PageMemberAccount({
             {partyInvestments.length > 1 && (
               <div style={{ marginBottom: 24, padding: "16px 20px", background: isDark ? "rgba(59,130,246,0.1)" : "#EFF6FF", borderRadius: 12, border: `1px solid ${isDark ? "rgba(59,130,246,0.2)" : "#BFDBFE"}` }}>
                 <FF label="Switch Investment" t={t}>
-                  <select 
-                    value={selectedInvestmentId} 
+                  <select
+                    value={selectedInvestmentId}
                     onChange={e => setSelectedInvestmentId(e.target.value)}
                     style={{ width: "100%", background: t.searchBg, border: `1px solid ${t.searchBorder}`, borderRadius: 9, padding: "10px 13px", color: t.searchText, fontSize: 13.5, fontFamily: "inherit", outline: "none", cursor: "pointer" }}
                   >
@@ -1023,14 +1023,14 @@ export default function PageMemberAccount({
                         <span style={{ marginLeft: 10, fontSize: 13, color: t.textSecondary }}>Rollover Principal</span>
                       </div>
                       {selectedInv.rollover && (
-                        <div style={{ 
-                          padding: "10px 14px", 
-                          background: isDark ? "rgba(99,102,241,0.08)" : "#EEF2FF", 
-                          border: `1px solid ${isDark ? "rgba(99,102,241,0.2)" : "#C7D2FE"}`, 
-                          borderRadius: 8, 
-                          display: "flex", 
-                          gap: 10, 
-                          alignItems: "flex-start" 
+                        <div style={{
+                          padding: "10px 14px",
+                          background: isDark ? "rgba(99,102,241,0.08)" : "#EEF2FF",
+                          border: `1px solid ${isDark ? "rgba(99,102,241,0.2)" : "#C7D2FE"}`,
+                          borderRadius: 8,
+                          display: "flex",
+                          gap: 10,
+                          alignItems: "flex-start"
                         }}>
                           <RotateCcw size={16} style={{ marginTop: 2, color: isDark ? "#818CF8" : "#4F46E5", flexShrink: 0 }} />
                           <div style={{ fontSize: 12, color: isDark ? "#A5B4FC" : "#3730A3", lineHeight: 1.5 }}>
@@ -1154,13 +1154,10 @@ export default function PageMemberAccount({
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
               <span style={{ fontSize: 13, color: t.textMuted }}>
-                AVG Cashflow Management — Welcome back, <strong>{[contact.first_name, contact.last_name].filter(Boolean).join(" ") || "Member"}</strong>
+                Welcome back, <strong>{[contact.first_name, contact.last_name].filter(Boolean).join(" ") || "Member"}</strong>
               </span>
               <div style={{ width: 1, height: 14, background: t.surfaceBorder }} />
-              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                <span style={{ fontSize: 12, color: t.textMuted }}>Profile:</span>
-                <Bdg status={contact.role_type || contact.role || "Member"} isDark={isDark} />
-              </div>
+
             </div>
           </div>
         </div>
@@ -1168,16 +1165,16 @@ export default function PageMemberAccount({
         {/* Cohesive Navigation tabs bar */}
         <div style={{ display: "flex", gap: 24, borderBottom: `1px solid ${t.surfaceBorder}`, marginTop: "24px" }}>
           {tabs.map(tab => (
-            <div 
+            <div
               key={tab}
               onClick={() => {
                 setActiveTab(tab);
                 setIsEditing(false);
               }}
-              style={{ 
-                padding: "12px 0", 
-                cursor: "pointer", 
-                fontSize: 14, 
+              style={{
+                padding: "12px 0",
+                cursor: "pointer",
+                fontSize: 14,
                 fontWeight: activeTab === tab ? 600 : 500,
                 color: activeTab === tab ? t.accent : t.textMuted,
                 borderBottom: activeTab === tab ? `2px solid ${t.accent}` : "2px solid transparent",
@@ -1196,7 +1193,7 @@ export default function PageMemberAccount({
       </div>
 
       {/* Floating Action Button "New Investment" */}
-      <button 
+      <button
         onClick={() => setNewInvModalOpen(true)}
         style={{
           position: "fixed",
@@ -1229,15 +1226,15 @@ export default function PageMemberAccount({
       </button>
 
       {/* Floating Action Modal */}
-      <Modal 
-        open={newInvModalOpen} 
-        onClose={() => setNewInvModalOpen(false)} 
-        title="New Investment Request" 
+      <Modal
+        open={newInvModalOpen}
+        onClose={() => setNewInvModalOpen(false)}
+        title="New Investment Request"
         onSave={() => {
           setActiveTab("Notes");
           setNoteText("Hi, I would like to request a new investment in...");
           setNewInvModalOpen(false);
-        }} 
+        }}
         saveLabel="Go to Notes"
         isDark={isDark}
         t={t}
@@ -1255,7 +1252,7 @@ export default function PageMemberAccount({
           </p>
         </div>
       </Modal>
-      
+
       {/* Toast popup */}
       {toast && (
         <div style={{ position: "fixed", bottom: 28, right: 28, zIndex: 9999, background: toast.type === "success" ? (isDark ? "#052e16" : "#f0fdf4") : (isDark ? "#2d0a0a" : "#fef2f2"), border: `1px solid ${toast.type === "success" ? "#22c55e" : "#ef4444"}`, color: toast.type === "success" ? "#22c55e" : "#ef4444", borderRadius: 12, padding: "14px 20px", fontSize: 13.5, fontWeight: 600, boxShadow: "0 8px 32px rgba(0,0,0,0.18)", display: "flex", alignItems: "center", gap: 10, maxWidth: 380 }}>
