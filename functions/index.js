@@ -92,6 +92,56 @@ exports.inviteUser = functions.https.onCall(async (data, context) => {
     // 3. Set Custom Claims (include isGlobal for Firestore rules)
     await admin.auth().setCustomUserClaims(uid, { role, tenantId, isGlobal });
 
+    // 4. Determine user_id (Check if already in tenant)
+    let user_id = providedUserId;
+    if (!user_id && tenantId) {
+      if (role === 'R10001') {
+        // Resolve contact/member ID (M...)
+        let effectiveContactId = contactId || partyId;
+        if (!effectiveContactId) {
+          const emailSnap = await db.collection(`tenants/${tenantId}/contacts`).where('email', '==', email).limit(1).get();
+          if (!emailSnap.empty) {
+            effectiveContactId = emailSnap.docs[0].id;
+          } else {
+            const uidSnap = await db.collection(`tenants/${tenantId}/contacts`).where('auth_uid', '==', uid).limit(1).get();
+            if (!uidSnap.empty) {
+              effectiveContactId = uidSnap.docs[0].id;
+            }
+          }
+        }
+        if (!effectiveContactId) {
+          const contactsSnap = await db.collection(`tenants/${tenantId}/contacts`).get();
+          let maxNum = 10000;
+          contactsSnap.forEach(d => {
+            const m = (d.id || '').match(/^M(\d+)$/);
+            if (m) {
+              const num = parseInt(m[1]);
+              if (num > maxNum) maxNum = num;
+            }
+          });
+          effectiveContactId = 'M' + (maxNum + 1);
+        }
+        user_id = effectiveContactId;
+      } else {
+        const existingUserSnap = await db.collection(`tenants/${tenantId}/users`).where('auth_uid', '==', uid).get();
+        if (!existingUserSnap.empty) {
+          user_id = existingUserSnap.docs[0].id;
+        } else {
+          const usersSnap = await db.collection(`tenants/${tenantId}/users`).get();
+          if (!usersSnap.empty) {
+            const maxNum = Math.max(...usersSnap.docs.map(d => {
+              const m = (d.data().user_id || '').match(/^U(\d+)$/);
+              return m ? Number(m[1]) : 0;
+            }));
+            user_id = 'U' + String(maxNum + 1).padStart(5, '0');
+          } else {
+            user_id = 'U10001';
+          }
+        }
+      }
+    }
+    if (!user_id) user_id = 'U' + Date.now(); // Final fallback
+
     // 4. Create/Update Firestore Global Profile
     const globalData = {
       email,
@@ -99,6 +149,7 @@ exports.inviteUser = functions.https.onCall(async (data, context) => {
       tenantId,
       isGlobal,
       status: 'Pending',
+      user_id, // Always write user_id to global_users
       last_updated: admin.firestore.FieldValue.serverTimestamp()
     };
 
@@ -121,37 +172,14 @@ exports.inviteUser = functions.https.onCall(async (data, context) => {
       globalData.city = admin.firestore.FieldValue.delete();
       globalData.state = admin.firestore.FieldValue.delete();
       globalData.zip = admin.firestore.FieldValue.delete();
-      globalData.user_id = admin.firestore.FieldValue.delete();
       globalData.notes = admin.firestore.FieldValue.delete();
     }
 
     await db.collection('global_users').doc(uid).set(globalData, { merge: true });
 
-    // 4. Determine user_id (Check if already in tenant)
-    let user_id = providedUserId;
-    if (!user_id && tenantId) {
-      const existingUserSnap = await db.collection(`tenants/${tenantId}/users`).where('auth_uid', '==', uid).get();
-      if (!existingUserSnap.empty) {
-        user_id = existingUserSnap.docs[0].id;
-      } else {
-        const usersSnap = await db.collection(`tenants/${tenantId}/users`).get();
-        if (!usersSnap.empty) {
-          const maxNum = Math.max(...usersSnap.docs.map(d => {
-            const m = (d.data().user_id || '').match(/^U(\d+)$/);
-            return m ? Number(m[1]) : 0;
-          }));
-          user_id = 'U' + String(maxNum + 1).padStart(5, '0');
-        } else {
-          user_id = 'U10001';
-        }
-      }
-    }
-    if (!user_id) user_id = 'U' + Date.now(); // Final fallback
-
     if (isGlobal) {
-      // Update global_users with user_id and notes
+      // Update global_users with notes if global
       await db.collection('global_users').doc(uid).update({
-        user_id: user_id,
         notes: notes || ''
       });
     }
@@ -160,7 +188,7 @@ exports.inviteUser = functions.https.onCall(async (data, context) => {
     if (role === 'R10001') {
       if (tenantId) {
         // Write/update contact record
-        let effectiveContactId = contactId || partyId;
+        let effectiveContactId = user_id;
         if (!effectiveContactId) {
           const emailSnap = await db.collection(`tenants/${tenantId}/contacts`).where('email', '==', email).limit(1).get();
           if (!emailSnap.empty) {
@@ -609,7 +637,7 @@ exports.updateUserTenant = functions.https.onCall(async (data, context) => {
     throw new functions.https.HttpsError('unauthenticated', 'Must be authenticated.');
   }
 
-  const { uid, email, newTenantId, oldTenantId, role, user_id, first_name, last_name, phone, notes, street1, street2, city, state, zip } = data;
+  const { uid, email, newTenantId, oldTenantId, role, user_id: providedUserId, first_name, last_name, phone, notes, street1, street2, city, state, zip } = data;
   if (!uid || !email || !newTenantId) {
     throw new functions.https.HttpsError('invalid-argument', 'Missing required fields: uid, email, newTenantId.');
   }
@@ -638,11 +666,75 @@ exports.updateUserTenant = functions.https.onCall(async (data, context) => {
       console.warn('Could not check role_types:', e.message);
     }
 
+    // 2.5 Determine resolved user_id based on role type
+    let resolvedUserId = providedUserId;
+    if (role === 'R10001') {
+      let effectiveContactId = null;
+      const newContactSnap = await db.collection(`tenants/${newTenantId}/contacts`).where('auth_uid', '==', uid).limit(1).get();
+      if (!newContactSnap.empty) {
+        effectiveContactId = newContactSnap.docs[0].id;
+      } else {
+        const emailSnap = await db.collection(`tenants/${newTenantId}/contacts`).where('email', '==', email).limit(1).get();
+        if (!emailSnap.empty) {
+          effectiveContactId = emailSnap.docs[0].id;
+        }
+      }
+
+      if (!effectiveContactId && oldTenantId) {
+        const oldContactSnap = await db.collection(`tenants/${oldTenantId}/contacts`).where('auth_uid', '==', uid).limit(1).get();
+        if (!oldContactSnap.empty) {
+          effectiveContactId = oldContactSnap.docs[0].id;
+        }
+      }
+
+      if (!effectiveContactId && newTenantId) {
+        const contactsSnap = await db.collection(`tenants/${newTenantId}/contacts`).get();
+        let maxNum = 10000;
+        contactsSnap.forEach(d => {
+          const m = (d.id || '').match(/^M(\d+)$/);
+          if (m) {
+            const num = parseInt(m[1]);
+            if (num > maxNum) maxNum = num;
+          }
+        });
+        effectiveContactId = 'M' + (maxNum + 1);
+      }
+      resolvedUserId = effectiveContactId;
+    } else if (role >= 'R10002' && role <= 'R10005') {
+      let effectiveUserId = resolvedUserId;
+      if (!effectiveUserId) {
+        const newTenantUserSnap = await db.collection(`tenants/${newTenantId}/users`).where('auth_uid', '==', uid).get();
+        if (!newTenantUserSnap.empty) {
+          effectiveUserId = newTenantUserSnap.docs[0].id;
+        } else if (oldTenantId) {
+          const oldTenantUserSnap = await db.collection(`tenants/${oldTenantId}/users`).where('auth_uid', '==', uid).get();
+          if (!oldTenantUserSnap.empty) {
+            effectiveUserId = oldTenantUserSnap.docs[0].id;
+          }
+        }
+      }
+
+      if (!effectiveUserId && newTenantId) {
+        const usersSnap = await db.collection(`tenants/${newTenantId}/users`).get();
+        let maxNum = 10000;
+        usersSnap.forEach(d => {
+          const m = (d.id || '').match(/^U(\d+)$/);
+          if (m) {
+            const num = parseInt(m[1]);
+            if (num > maxNum) maxNum = num;
+          }
+        });
+        effectiveUserId = 'U' + (maxNum + 1);
+      }
+      resolvedUserId = effectiveUserId;
+    }
+
     const globalPayload = {
       email: email,
       tenantId: newTenantId,
       role: role,
       isGlobal: isGlobal,
+      user_id: resolvedUserId || '', // Always keep user_id in global_users
       last_updated: admin.firestore.FieldValue.serverTimestamp()
     };
 
@@ -656,7 +748,6 @@ exports.updateUserTenant = functions.https.onCall(async (data, context) => {
       globalPayload.zip = zip || '';
       globalPayload.phone = phone || '';
       globalPayload.notes = notes || '';
-      globalPayload.user_id = user_id || '';
     } else {
       // Symmetrical Structure: Strip detailed profile fields for tenant users
       globalPayload.first_name = admin.firestore.FieldValue.delete();
@@ -668,7 +759,6 @@ exports.updateUserTenant = functions.https.onCall(async (data, context) => {
       globalPayload.zip = admin.firestore.FieldValue.delete();
       globalPayload.phone = admin.firestore.FieldValue.delete();
       globalPayload.notes = admin.firestore.FieldValue.delete();
-      globalPayload.user_id = admin.firestore.FieldValue.delete();
       globalPayload.contact_id = admin.firestore.FieldValue.delete();
     }
 
@@ -677,39 +767,7 @@ exports.updateUserTenant = functions.https.onCall(async (data, context) => {
 
     // 4. Move/Update Tenant Profile based on role boundaries
     if (role === 'R10001') {
-      let effectiveContactId = null;
-      // Search in new tenant first
-      const newContactSnap = await db.collection(`tenants/${newTenantId}/contacts`).where('auth_uid', '==', uid).limit(1).get();
-      if (!newContactSnap.empty) {
-        effectiveContactId = newContactSnap.docs[0].id;
-      } else {
-        const emailSnap = await db.collection(`tenants/${newTenantId}/contacts`).where('email', '==', email).limit(1).get();
-        if (!emailSnap.empty) {
-          effectiveContactId = emailSnap.docs[0].id;
-        }
-      }
-
-      if (!effectiveContactId && oldTenantId) {
-        // Search in old tenant
-        const oldContactSnap = await db.collection(`tenants/${oldTenantId}/contacts`).where('auth_uid', '==', uid).limit(1).get();
-        if (!oldContactSnap.empty) {
-          effectiveContactId = oldContactSnap.docs[0].id;
-        }
-      }
-
-      if (!effectiveContactId && newTenantId) {
-        // Generate new contact ID
-        const contactsSnap = await db.collection(`tenants/${newTenantId}/contacts`).get();
-        let maxNum = 10000;
-        contactsSnap.forEach(d => {
-          const m = (d.id || '').match(/^M(\d+)$/);
-          if (m) {
-            const num = parseInt(m[1]);
-            if (num > maxNum) maxNum = num;
-          }
-        });
-        effectiveContactId = 'M' + (maxNum + 1);
-      }
+      let effectiveContactId = resolvedUserId;
 
       if (effectiveContactId) {
         let contactData = {
@@ -763,7 +821,7 @@ exports.updateUserTenant = functions.https.onCall(async (data, context) => {
       }
 
     } else if (role >= 'R10002' && role <= 'R10005') {
-      let effectiveUserId = user_id;
+      let effectiveUserId = resolvedUserId;
       if (!effectiveUserId) {
         // Search in new tenant first
         const newTenantUserSnap = await db.collection(`tenants/${newTenantId}/users`).where('auth_uid', '==', uid).get();

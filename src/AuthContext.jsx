@@ -147,6 +147,7 @@ export function AuthProvider({ children }) {
                                         return {
                                             ...prev,
                                             ...contactData,
+                                            user_id: contactData.id || prev?.user_id || "",
                                             first_name: fName,
                                             last_name: lName,
                                             address1: contactData.address1 || contactData.street1 || "",

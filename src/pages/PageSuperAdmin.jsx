@@ -203,7 +203,7 @@ export default function PageSuperAdmin({ t, isDark, ROLES = [], TENANTS = [] }) 
             payload.city = deleteField();
             payload.state = deleteField();
             payload.zip = deleteField();
-            payload.user_id = deleteField();
+            payload.user_id = String(d.user_id || d.id || "");
             payload.contact_id = deleteField();
         }
 

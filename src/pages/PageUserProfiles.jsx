@@ -282,7 +282,7 @@ export default function PageUserProfiles({ t, isDark, USERS = [], GLOBAL_USERS =
                         city: deleteField(),
                         state: deleteField(),
                         zip: deleteField(),
-                        user_id: deleteField(),
+                        user_id: String(d.user_id || d.id || ""),
                         contact_id: deleteField()
                     };
                     await setDoc(doc(db, "global_users", authUid), globalData, { merge: true });
