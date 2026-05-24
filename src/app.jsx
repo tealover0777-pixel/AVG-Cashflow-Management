@@ -109,12 +109,7 @@ function AppContent() {
   });
   
   const [activePage, setActivePage] = useState("Dashboard");
-  const [resetKeys, setResetKeys] = useState({
-    Contacts: 0,
-    Investments: 0,
-    "Payment Schedule": 0,
-    Payments: 0
-  });
+  const [resetKeys, setResetKeys] = useState({});
 
   const [isAuthAction, setIsAuthAction] = useState(false);
 
@@ -1009,34 +1004,35 @@ function AppContent() {
               </div>
               : (
                 <>
-                  {activePage === "Dashboard" && hasPermission("DASHBOARD_VIEW") && <PageDashboard t={t} isDark={isDark} DEALS={DEALS} INVESTMENTS={INVESTMENTS} CONTACTS={CONTACTS} SCHEDULES={SCHEDULES} PAYMENTS={PAYMENTS} MONTHLY={MONTHLY} DIMENSIONS={DIMENSIONS} setActivePage={setActivePage} />}
-                  {activePage === "Deals" && <PageDeals t={t} isDark={isDark} DEALS={DEALS} INVESTMENTS={INVESTMENTS} SCHEDULES={SCHEDULES} FEES_DATA={FEES_DATA} DIMENSIONS={DIMENSIONS} collectionPath={isGlobalConsolidated ? "GROUP:deals" : fetchPaths.deals} setActivePage={setActivePage} setSelectedDealId={setSelectedDealId} tenantFeatures={tenantFeatures} />}
-                  {activePage === "Deal Summary" && <PageDealSummary t={t} isDark={isDark} dealId={selectedDealId} DEALS={DEALS} INVESTMENTS={INVESTMENTS} CONTACTS={CONTACTS} DIMENSIONS={DIMENSIONS} FEES_DATA={FEES_DATA} SCHEDULES={SCHEDULES} USERS={rawUsers} LEDGER={LEDGER} setActivePage={setActivePage} selectedDistMemoId={selectedDistMemoId} setSelectedDistMemoId={setSelectedDistMemoId} investmentCollection={isGlobalConsolidated ? "investments" : fetchPaths.investments} scheduleCollection={isGlobalConsolidated ? "paymentSchedules" : fetchPaths.paymentSchedules} tenantId={activeTenantId} tenantFeatures={tenantFeatures} />}
+                  {activePage === "Dashboard" && hasPermission("DASHBOARD_VIEW") && <PageDashboard key={`Dashboard-${resetKeys.Dashboard || 0}`} t={t} isDark={isDark} DEALS={DEALS} INVESTMENTS={INVESTMENTS} CONTACTS={CONTACTS} SCHEDULES={SCHEDULES} PAYMENTS={PAYMENTS} MONTHLY={MONTHLY} DIMENSIONS={DIMENSIONS} setActivePage={setActivePage} />}
+                  {activePage === "Deals" && <PageDeals key={`Deals-${resetKeys.Deals || 0}`} t={t} isDark={isDark} DEALS={DEALS} INVESTMENTS={INVESTMENTS} SCHEDULES={SCHEDULES} FEES_DATA={FEES_DATA} DIMENSIONS={DIMENSIONS} collectionPath={isGlobalConsolidated ? "GROUP:deals" : fetchPaths.deals} setActivePage={setActivePage} setSelectedDealId={setSelectedDealId} tenantFeatures={tenantFeatures} />}
+                  {activePage === "Deal Summary" && <PageDealSummary key={`DealSummary-${resetKeys["Deal Summary"] || 0}`} t={t} isDark={isDark} dealId={selectedDealId} DEALS={DEALS} INVESTMENTS={INVESTMENTS} CONTACTS={CONTACTS} DIMENSIONS={DIMENSIONS} FEES_DATA={FEES_DATA} SCHEDULES={SCHEDULES} USERS={rawUsers} LEDGER={LEDGER} setActivePage={setActivePage} selectedDistMemoId={selectedDistMemoId} setSelectedDistMemoId={setSelectedDistMemoId} investmentCollection={isGlobalConsolidated ? "investments" : fetchPaths.investments} scheduleCollection={isGlobalConsolidated ? "paymentSchedules" : fetchPaths.paymentSchedules} tenantId={activeTenantId} tenantFeatures={tenantFeatures} />}
                   {activePage === "Contacts" && <PageContacts key={`contacts-${resetKeys.Contacts}`} t={t} isDark={isDark} CONTACTS={CONTACTS} INVESTMENTS={INVESTMENTS} SCHEDULES={SCHEDULES} DEALS={DEALS} collectionPath={isGlobalConsolidated ? "GROUP:contacts" : fetchPaths.contacts} DIMENSIONS={DIMENSIONS} tenantId={activeTenantId} LEDGER={LEDGER} USERS={rawUsers} ROLES={rawRoles} />}
                   {activePage === "Investments" && <PageInvestments key={`investments-${resetKeys.Investments}`} t={t} isDark={isDark} INVESTMENTS={INVESTMENTS} DEALS={DEALS} CONTACTS={CONTACTS} DIMENSIONS={DIMENSIONS} FEES_DATA={FEES_DATA} SCHEDULES={SCHEDULES} LEDGER={LEDGER} USERS={rawUsers} collectionPath={isGlobalConsolidated ? "GROUP:investments" : fetchPaths.investments} schedulePath={isGlobalConsolidated ? "GROUP:paymentSchedules" : fetchPaths.paymentSchedules} tenantId={activeTenantId} />}
                   {activePage === "Payment Schedule" && <PageSchedule key={`schedules-${resetKeys["Payment Schedule"]}`} t={t} isDark={isDark} SCHEDULES={SCHEDULES} INVESTMENTS={INVESTMENTS} CONTACTS={CONTACTS} DEALS={DEALS} DIMENSIONS={DIMENSIONS} FEES_DATA={FEES_DATA} USERS={rawUsers} LEDGER={LEDGER} collectionPath={isGlobalConsolidated ? "GROUP:paymentSchedules" : fetchPaths.paymentSchedules} setActivePage={setActivePage} setSelectedDealId={setSelectedDealId} selectedDistMemoId={selectedDistMemoId} setSelectedDistMemoId={setSelectedDistMemoId} tenantId={activeTenantId} />}
                   {activePage === "Payments" && <PagePayments key={`payments-${resetKeys.Payments}`} t={t} isDark={isDark} PAYMENTS={PAYMENTS} INVESTMENTS={INVESTMENTS} CONTACTS={CONTACTS} SCHEDULES={SCHEDULES} DEALS={DEALS} DIMENSIONS={DIMENSIONS} ACH_BATCHES={ACH_BATCHES} LEDGER={LEDGER} collectionPath={isGlobalConsolidated ? "GROUP:payments" : fetchPaths.payments} achBatchPath={isGlobalConsolidated ? "GROUP:achBatches" : fetchPaths.achBatches} ledgerPath={isGlobalConsolidated ? "GROUP:ledger" : fetchPaths.ledger} setActivePage={setActivePage} setSelectedDistMemoId={setSelectedDistMemoId} setSelectedDealId={setSelectedDealId} />}
-                  {activePage === "Fees" && <PageFees t={t} isDark={isDark} FEES_DATA={FEES_DATA} DIMENSIONS={DIMENSIONS} collectionPath={isGlobalConsolidated ? "GROUP:fees" : fetchPaths.fees} />}
-                  {activePage === "Platform Tenant Admin" && <PageTenants t={t} isDark={isDark} TENANTS={TENANTS} GLOBAL_USERS={globalUsers} ROLES={rawRoles} collectionPath={fetchPaths.tenants} />}
-                  {activePage === "User Profiles" && <PageUserProfiles t={t} isDark={isDark} USERS={rawUsers} GLOBAL_USERS={globalUsers} ROLES={rawRoles} collectionPath={fetchPaths.users} DIMENSIONS={DIMENSIONS} tenantId={activeTenantId} TENANTS={TENANTS} CONTACTS={CONTACTS} />}
-                  {activePage === "Role Types" && <PageRoles t={t} isDark={isDark} collectionPath={fetchPaths.roles} DIMENSIONS={DIMENSIONS} USERS={rawUsers} readOnly={true} />}
-                  {activePage === "Platform Role Types" && <PageRoles t={t} isDark={isDark} collectionPath={fetchPaths.roles} DIMENSIONS={DIMENSIONS} USERS={rawUsers} />}
-                                    {activePage === "Platform User Admin" && isR10010 && <PageSuperAdmin t={t} isDark={isDark} ROLES={rawRoles} TENANTS={TENANTS} />}
+                  {activePage === "Fees" && <PageFees key={`Fees-${resetKeys.Fees || 0}`} t={t} isDark={isDark} FEES_DATA={FEES_DATA} DIMENSIONS={DIMENSIONS} collectionPath={isGlobalConsolidated ? "GROUP:fees" : fetchPaths.fees} />}
+                  {activePage === "Platform Tenant Admin" && <PageTenants key={`PlatformTenantAdmin-${resetKeys["Platform Tenant Admin"] || 0}`} t={t} isDark={isDark} TENANTS={TENANTS} GLOBAL_USERS={globalUsers} ROLES={rawRoles} collectionPath={fetchPaths.tenants} />}
+                  {activePage === "User Profiles" && <PageUserProfiles key={`UserProfiles-${resetKeys["User Profiles"] || 0}`} t={t} isDark={isDark} USERS={rawUsers} GLOBAL_USERS={globalUsers} ROLES={rawRoles} collectionPath={fetchPaths.users} DIMENSIONS={DIMENSIONS} tenantId={activeTenantId} TENANTS={TENANTS} CONTACTS={CONTACTS} />}
+                  {activePage === "Role Types" && <PageRoles key={`RoleTypes-${resetKeys["Role Types"] || 0}`} t={t} isDark={isDark} collectionPath={fetchPaths.roles} DIMENSIONS={DIMENSIONS} USERS={rawUsers} readOnly={true} />}
+                  {activePage === "Platform Role Types" && <PageRoles key={`PlatformRoleTypes-${resetKeys["Platform Role Types"] || 0}`} t={t} isDark={isDark} collectionPath={fetchPaths.roles} DIMENSIONS={DIMENSIONS} USERS={rawUsers} />}
+                                    {activePage === "Platform User Admin" && isR10010 && <PageSuperAdmin key={`PlatformUserAdmin-${resetKeys["Platform User Admin"] || 0}`} t={t} isDark={isDark} ROLES={rawRoles} TENANTS={TENANTS} />}
 
-                  {activePage === "Profile" && <PageProfile t={t} isDark={isDark} setIsDark={setIsDark} ROLES={rawRoles} collectionPath={fetchPaths.users} activeTenantId={activeTenantId} />}
-                  {activePage === "Dimensions" && <PageDimensions t={t} isDark={isDark} DIMENSIONS={DIMENSIONS} rawDimensions={rawDimensions} collectionPath={fetchPaths.dimensions} />}
-                  {activePage === "Reports" && <PageReports t={t} isDark={isDark} MONTHLY={MONTHLY} activeTenantId={activeTenantId} />}
-                  {activePage === "Marketing emails" && <PageMarketingEmails t={t} isDark={isDark} setActivePage={setActivePage} MARKETING_EMAILS={rawMarketingEmails} setActiveEmailTemplate={setActiveEmailTemplate} activeTenantId={activeTenantId} USERS={rawUsers} CONTACTS={CONTACTS} />}
-                  {activePage === "Resource management" && <PageResourceManagement t={t} isDark={isDark} activeTenantId={activeTenantId} />}
-                  {activePage === "Select Template" && <PageSelectTemplate t={t} isDark={isDark} setActivePage={setActivePage} allTemplates={allTemplates} setActiveEmailTemplate={setActiveEmailTemplate} />}
-                  {activePage === "Manage Templates" && <PageManageTemplates t={t} isDark={isDark} setActivePage={setActivePage} setActiveEmailTemplate={setActiveEmailTemplate} allTemplates={allTemplates} loading={loadingTemplates} fetchTemplates={fetchTemplates} />}
-                  {activePage === "Email Builder" && <PageEmailBuilder t={t} isDark={isDark} setActivePage={setActivePage} activeEmailTemplate={activeEmailTemplate} setActiveEmailTemplate={setActiveEmailTemplate} refreshTemplates={() => fetchTemplates(true)} activeTenantId={activeTenantId} backTo={prevPage} USERS={rawUsers} CONTACTS={CONTACTS} DIMENSIONS={DIMENSIONS} organizationName={determinedTenantName} />}
-                  {activePage === "AI Admin" && <PageAdminHelp t={t} isDark={isDark} />}
-                  {activePage === "Company" && <PageCompany t={t} isDark={isDark} activeTenantId={activeTenantId} USERS={rawUsers} GLOBAL_USERS={globalUsers} CONTACTS={rawContacts} platformConfig={platformConfig} isGlobalConsolidated={isGlobalConsolidated} />}
-                  {activePage === "Platform Company" && <PagePlatformCompany t={t} isDark={isDark} USERS={globalUsers} CONTACTS={rawContacts} />}
-                  {activePage === "Backup & Restore" && <PageBackupRestore t={t} isDark={isDark} TENANTS={TENANTS} />}
+                  {activePage === "Profile" && <PageProfile key={`Profile-${resetKeys.Profile || 0}`} t={t} isDark={isDark} setIsDark={setIsDark} ROLES={rawRoles} collectionPath={fetchPaths.users} activeTenantId={activeTenantId} />}
+                  {activePage === "Dimensions" && <PageDimensions key={`Dimensions-${resetKeys.Dimensions || 0}`} t={t} isDark={isDark} DIMENSIONS={DIMENSIONS} rawDimensions={rawDimensions} collectionPath={fetchPaths.dimensions} />}
+                  {activePage === "Reports" && <PageReports key={`Reports-${resetKeys.Reports || 0}`} t={t} isDark={isDark} MONTHLY={MONTHLY} activeTenantId={activeTenantId} />}
+                  {activePage === "Marketing emails" && <PageMarketingEmails key={`MarketingEmails-${resetKeys["Marketing emails"] || 0}`} t={t} isDark={isDark} setActivePage={setActivePage} MARKETING_EMAILS={rawMarketingEmails} setActiveEmailTemplate={setActiveEmailTemplate} activeTenantId={activeTenantId} USERS={rawUsers} CONTACTS={CONTACTS} />}
+                  {activePage === "Resource management" && <PageResourceManagement key={`ResourceManagement-${resetKeys["Resource management"] || 0}`} t={t} isDark={isDark} activeTenantId={activeTenantId} />}
+                  {activePage === "Select Template" && <PageSelectTemplate key={`SelectTemplate-${resetKeys["Select Template"] || 0}`} t={t} isDark={isDark} setActivePage={setActivePage} allTemplates={allTemplates} setActiveEmailTemplate={setActiveEmailTemplate} />}
+                  {activePage === "Manage Templates" && <PageManageTemplates key={`ManageTemplates-${resetKeys["Manage Templates"] || 0}`} t={t} isDark={isDark} setActivePage={setActivePage} setActiveEmailTemplate={setActiveEmailTemplate} allTemplates={allTemplates} loading={loadingTemplates} fetchTemplates={fetchTemplates} />}
+                  {activePage === "Email Builder" && <PageEmailBuilder key={`EmailBuilder-${resetKeys["Email Builder"] || 0}`} t={t} isDark={isDark} setActivePage={setActivePage} activeEmailTemplate={activeEmailTemplate} setActiveEmailTemplate={setActiveEmailTemplate} refreshTemplates={() => fetchTemplates(true)} activeTenantId={activeTenantId} backTo={prevPage} USERS={rawUsers} CONTACTS={CONTACTS} DIMENSIONS={DIMENSIONS} organizationName={determinedTenantName} />}
+                  {activePage === "AI Admin" && <PageAdminHelp key={`AIAdmin-${resetKeys["AI Admin"] || 0}`} t={t} isDark={isDark} />}
+                  {activePage === "Company" && <PageCompany key={`Company-${resetKeys.Company || 0}`} t={t} isDark={isDark} activeTenantId={activeTenantId} USERS={rawUsers} GLOBAL_USERS={globalUsers} CONTACTS={rawContacts} platformConfig={platformConfig} isGlobalConsolidated={isGlobalConsolidated} />}
+                  {activePage === "Platform Company" && <PagePlatformCompany key={`PlatformCompany-${resetKeys["Platform Company"] || 0}`} t={t} isDark={isDark} USERS={globalUsers} CONTACTS={rawContacts} />}
+                  {activePage === "Backup & Restore" && <PageBackupRestore key={`BackupRestore-${resetKeys["Backup & Restore"] || 0}`} t={t} isDark={isDark} TENANTS={TENANTS} />}
                   {activePage === "My Dashboard" && (
                     <PageMemberAccount
+                      key={`MyDashboard-${resetKeys["My Dashboard"] || 0}`}
                       t={t}
                       isDark={isDark}
                       CONTACTS={CONTACTS}
@@ -1053,6 +1049,7 @@ function AppContent() {
                   )}
                   {activePage === "My Investments" && (
                     <PageMemberAccount
+                      key={`MyInvestments-${resetKeys["My Investments"] || 0}`}
                       t={t}
                       isDark={isDark}
                       CONTACTS={CONTACTS}

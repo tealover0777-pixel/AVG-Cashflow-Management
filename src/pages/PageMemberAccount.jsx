@@ -1326,6 +1326,14 @@ export default function PageMemberAccount({
       case "Investment Details":
         return (
           <div style={{ maxWidth: 800, paddingBottom: "32px" }}>
+            <div style={{ marginBottom: 16 }}>
+              <button 
+                onClick={() => setActiveTab("Investments")} 
+                style={{ background: "none", border: "none", color: t.accent, fontSize: 13, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 4, padding: 0 }}
+              >
+                <span>‹</span> Back to Investments
+              </button>
+            </div>
             {partyInvestments.length > 1 && (
               <div style={{ marginBottom: 24, padding: "16px 20px", background: isDark ? "rgba(59,130,246,0.1)" : "#EFF6FF", borderRadius: 12, border: `1px solid ${isDark ? "rgba(59,130,246,0.2)" : "#BFDBFE"}` }}>
                 <FF label="Switch Investment" t={t}>
