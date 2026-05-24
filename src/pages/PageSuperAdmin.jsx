@@ -349,7 +349,7 @@ export default function PageSuperAdmin({ t, isDark, ROLES = [], TENANTS = [] }) 
             {canCreate && <button className="primary-btn" onClick={openInvite} style={{ background: t.accentGrad, color: "#fff", padding: "11px 22px", borderRadius: 11, fontSize: 13.5, fontWeight: 600, boxShadow: `0 4px 16px ${t.accentShadow}` }}>✉️ Invite Global User</button>}
         </div>
 
-        <div style={{ height: 'calc(100vh - 180px)', width: "100%" }}>
+        <div style={{ height: 'calc(100vh - 220px)', width: "100%" }}>
             <TanStackTable
                 data={filteredUsers}
                 columns={columnDefs}

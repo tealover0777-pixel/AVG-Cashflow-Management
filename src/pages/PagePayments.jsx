@@ -530,7 +530,7 @@ export default function PagePayments({ t, isDark, PAYMENTS = [], INVESTMENTS = [
       </div>
     )}
 
-    <div style={{ height: "calc(100vh - 280px)", width: "100%", position: "relative" }}>
+    <div style={{ height: "calc(100vh - 340px)", width: "100%", position: "relative" }}>
       <TanStackTable
         ref={gridRef}
         data={rowData}

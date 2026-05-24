@@ -415,7 +415,7 @@ export default function PageUserProfiles({ t, isDark, USERS = [], GLOBAL_USERS =
             </div>
         </div>
 
-        <div style={{ height: 'calc(100vh - 180px)', width: "100%" }}>
+        <div style={{ height: 'calc(100vh - 220px)', width: "100%" }}>
             <TanStackTable
                 data={filteredUsers}
                 columns={columnDefs}

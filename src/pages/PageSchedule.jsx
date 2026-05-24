@@ -1980,7 +1980,7 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
     </div>
 
     {scheduleView === "memo" ? (
-      <div style={{ height: "calc(100vh - 280px)", width: "100%" }}>
+      <div style={{ height: "calc(100vh - 340px)", width: "100%" }}>
         <TanStackTable
           key="dist-memo-table"
           data={distMemos}
@@ -2002,7 +2002,7 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
         />
       </div>
     ) : scheduleView === "table" ? (
-      <div style={{ height: "calc(100vh - 280px)", width: "100%" }}>
+      <div style={{ height: "calc(100vh - 340px)", width: "100%" }}>
         <TanStackTable
           data={rowData}
           columns={columnDefs}
