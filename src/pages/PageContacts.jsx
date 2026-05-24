@@ -367,7 +367,7 @@ export default function PageContacts({ t, isDark, CONTACTS = [], INVESTMENTS = [
     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
       <div style={{ display: "flex", gap: 8 }}>{chips.map((c, i) => { const isA = chip === c; return (<span key={c} className="filter-chip" onClick={() => setChip(c)} style={{ fontSize: 12, fontWeight: isA ? 600 : 500, padding: "5px 14px", borderRadius: 20, background: isA ? t.accent : t.chipBg, color: isA ? "#fff" : t.textSecondary, border: `1px solid ${isA ? t.accent : t.chipBorder}`, cursor: "pointer" }}>{c}</span>); })}</div>
     </div>
-    <div style={{ height: 'calc(100vh - 480px)', width: '100%', minHeight: '500px' }}>
+    <div style={{ height: 'calc(100vh - 480px)', width: '100%', }}>
       <TanStackTable
         ref={gridRef}
         data={filteredData}

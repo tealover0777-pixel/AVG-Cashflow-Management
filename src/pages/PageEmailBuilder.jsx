@@ -2160,7 +2160,7 @@ function SimpleDraftLayout({ t, isDark, settings, onSettingsChange, profile, DIM
           suppressContentEditableWarning
           className="simple-editor"
           onInput={e => onBodyHtmlChange(e.currentTarget.innerHTML)}
-          style={{ minHeight: 400, padding: "24px 64px", fontSize: 15, lineHeight: 1.8, color: "#111827", outline: "none" }}
+          style={{ padding: "24px 64px", fontSize: 15, lineHeight: 1.8, color: "#111827", outline: "none" }}
         />
       </div>
     </div>
@@ -2499,7 +2499,7 @@ function SettingsPanel({ t, isDark, settings, onChange, profile, DIMENSIONS = []
           setShowRecipients(false);
         }}
       >
-        <div style={{ height: 500, width: "100%" }}>
+        <div style={{ height: 'calc(100vh - 350px)', width: "100%" }}>
           <TanStackTable
             data={tableData}
             columns={recipientColumns}
@@ -2551,7 +2551,7 @@ function SettingsPanel({ t, isDark, settings, onChange, profile, DIMENSIONS = []
           setShowDoNotSend(false);
         }}
       >
-        <div style={{ height: 500, width: "100%" }}>
+        <div style={{ height: 'calc(100vh - 350px)', width: "100%" }}>
           <TanStackTable
             data={doNotSendTableData}
             columns={doNotSendColumns}

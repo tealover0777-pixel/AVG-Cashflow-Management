@@ -3212,7 +3212,7 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
                 </div>
               ))}
             </div>
-            <div style={{ flex: 1, minHeight: 400, display: "flex", flexDirection: "column" }}>
+            <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
               <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 12 }}>
                 {distMemoSel.size > 0 && (
                   <div style={{ display: "flex", gap: 8, alignItems: "center", background: isDark ? "rgba(255,255,255,0.04)" : "#F9FAFB", padding: "6px 12px", borderRadius: 10, border: `1px solid ${t.surfaceBorder}` }}>

@@ -152,7 +152,7 @@ export default function PageRoles({ t, isDark, collectionPath = "", DIMENSIONS =
             </div>
         </div>
 
-        <div style={{ height: 'calc(100vh - 350px)', width: "100%", minHeight: '500px' }}>
+        <div style={{ height: 'calc(100vh - 350px)', width: "100%", }}>
             <TanStackTable
                 data={filtered}
                 columns={columnDefs}

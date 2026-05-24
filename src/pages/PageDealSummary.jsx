@@ -2609,7 +2609,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
               style={{ padding: "6px 10px", borderRadius: 8, border: `1px solid ${t.chipBorder}`, background: t.inputBg, color: t.text, fontSize: 13 }}
             />
           </div>
-          <div style={{ height: '1200px', width: "100%", minHeight: '1200px' }}>
+          <div style={{ height: 'calc(100vh - 350px)', width: "100%", }}>
             <TanStackTable
               key="investments-table"
               data={dealInvestments}
@@ -2624,7 +2624,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
         </div>
       ) : activeTab === "Lending" ? (
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-          <div style={{ height: '1200px', width: "100%", minHeight: '1200px' }}>
+          <div style={{ height: 'calc(100vh - 350px)', width: "100%", }}>
             <TanStackTable
               key="lending-table"
               data={dealLendings}
@@ -2724,7 +2724,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
           <div style={{ marginBottom: 20 }} />
 
           {distributionView === "memo" ? (
-            <div style={{ height: '1000px', width: "100%", minHeight: '1000px' }}>
+            <div style={{ height: 'calc(100vh - 350px)', width: "100%", }}>
               <TanStackTable
                 key="dist-memo-table"
                 data={filteredDistMemos}
@@ -2747,7 +2747,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
               />
             </div>
           ) : distributionView === "table" ? (
-            <div style={{ height: '1000px', width: "100%", minHeight: '1000px' }}>
+            <div style={{ height: 'calc(100vh - 350px)', width: "100%", }}>
               <TanStackTable
                 key="distributions-table"
                 data={filteredDealSchedules}
@@ -3550,7 +3550,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
           </div>
         </div>
       ) : activeTab === "Contacts" ? (
-        <div style={{ height: '500px', width: "100%", minHeight: '500px' }}>
+        <div style={{ height: 'calc(100vh - 350px)', width: "100%" }}>
           <TanStackTable
             data={dealContacts}
             columns={contactColumnDefs}
@@ -3560,7 +3560,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
           />
         </div>
       ) : activeTab === "Documents" ? (
-        <div style={{ minHeight: '500px' }}>
+        <div style={{  }}>
           <DocumentsTab t={t} isDark={isDark} dealId={dealId} dealPath={dealPath} tenantId={tenantId} />
         </div>
       ) : (
@@ -4450,7 +4450,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
                 </div>
               ))}
             </div>
-            <div style={{ flex: 1, minHeight: 400, display: "flex", flexDirection: "column" }}>
+            <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
               <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 12 }}>
                 {distMemoSel.size > 0 && (
                   <div style={{ display: "flex", gap: 8, alignItems: "center", background: isDark ? "rgba(255,255,255,0.04)" : "#F9FAFB", padding: "6px 12px", borderRadius: 10, border: `1px solid ${t.surfaceBorder}` }}>
@@ -4609,7 +4609,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
         saveLabel="Close"
         showCancel={false}
       >
-        <div style={{ height: 450, width: "100%", padding: "10px 0" }}>
+        <div style={{ height: 'calc(100vh - 350px)', width: "100%", padding: "10px 0" }}>
           <TanStackTable
             data={drillDown.records}
             columns={drillDownColumns}

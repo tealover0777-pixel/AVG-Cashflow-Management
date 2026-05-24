@@ -944,7 +944,7 @@ export default function PageMarketingEmails({ t, isDark, setActivePage, MARKETIN
       </div>
 
       {/* TanStack Table */}
-      <div style={{ height: "calc(100vh - 380px)", width: "100%", minHeight: 400 }}>
+      <div style={{ height: "calc(100vh - 380px)", width: "100%" }}>
         <TanStackTable
           ref={gridRef}
           data={tableData}
