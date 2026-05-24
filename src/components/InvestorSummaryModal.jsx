@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import { fmtCurr } from "../utils";
 import {
-  X, Info, ArrowUp, AlertCircle, RotateCcw
+  X, Info, ArrowUp, AlertCircle, RotateCcw, ArrowLeft
 } from "lucide-react";
 import { db } from "../firebase";
 import { doc, updateDoc, serverTimestamp } from "firebase/firestore";
@@ -868,6 +868,11 @@ export const InvestorSummaryModal = ({
       <div style={{ background: isDark ? "#0F0F0F" : "#fff", borderRadius: 16, padding: 0, width: "100%", minHeight: "calc(100vh - 120px)", display: "flex", flexDirection: "column", border: `1px solid ${isDark ? "rgba(255,255,255,0.08)" : "#E5E7EB"}`, overflow: "hidden" }}>
 
         <div style={{ padding: "32px 40px 0 40px", flexShrink: 0, userSelect: "none" }}>
+          <div style={{ marginBottom: 16 }}>
+            <button onClick={onClose} style={{ background: "none", border: "none", color: t.accent, fontSize: 13, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 4, padding: 0 }}>
+              <span>‹</span> Back
+            </button>
+          </div>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 24 }}>
             <div>
               <div style={{ fontSize: 24, fontWeight: 700, color: isDark ? "#fff" : "#111827", marginBottom: 4 }}>
@@ -946,7 +951,7 @@ export const InvestorSummaryModal = ({
                   transition: "background 0.2s" 
                 }}
               >
-                <X size={16} /> Close
+                <ArrowLeft size={16} /> Back
               </button>
             </div>
           </div>

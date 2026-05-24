@@ -109,6 +109,12 @@ function AppContent() {
   });
   
   const [activePage, setActivePage] = useState("Dashboard");
+  const [resetKeys, setResetKeys] = useState({
+    Contacts: 0,
+    Investments: 0,
+    "Payment Schedule": 0,
+    Payments: 0
+  });
 
   const [isAuthAction, setIsAuthAction] = useState(false);
 
@@ -848,7 +854,11 @@ function AppContent() {
                         key={child.label}
                         className="nav-item"
                         onClick={() => {
-                          setActivePage(child.label);
+                          if (activePage === child.label) {
+                            setResetKeys(prev => ({ ...prev, [child.label]: (prev[child.label] || 0) + 1 }));
+                          } else {
+                            setActivePage(child.label);
+                          }
                           // Clear selectedDealId when navigating to Deals list
                           if (child.label === "Deals") {
                             setSelectedDealId(null);
@@ -881,7 +891,11 @@ function AppContent() {
             // Regular non-expandable item
             return (
               <div key={item.label} className="nav-item" onClick={() => {
-                setActivePage(item.label);
+                if (activePage === item.label) {
+                  setResetKeys(prev => ({ ...prev, [item.label]: (prev[item.label] || 0) + 1 }));
+                } else {
+                  setActivePage(item.label);
+                }
                 // Clear selectedDealId when navigating away from Deal Summary
                 if (item.label !== "Deal Summary") {
                   setSelectedDealId(null);
@@ -998,10 +1012,10 @@ function AppContent() {
                   {activePage === "Dashboard" && hasPermission("DASHBOARD_VIEW") && <PageDashboard t={t} isDark={isDark} DEALS={DEALS} INVESTMENTS={INVESTMENTS} CONTACTS={CONTACTS} SCHEDULES={SCHEDULES} PAYMENTS={PAYMENTS} MONTHLY={MONTHLY} DIMENSIONS={DIMENSIONS} setActivePage={setActivePage} />}
                   {activePage === "Deals" && <PageDeals t={t} isDark={isDark} DEALS={DEALS} INVESTMENTS={INVESTMENTS} SCHEDULES={SCHEDULES} FEES_DATA={FEES_DATA} DIMENSIONS={DIMENSIONS} collectionPath={isGlobalConsolidated ? "GROUP:deals" : fetchPaths.deals} setActivePage={setActivePage} setSelectedDealId={setSelectedDealId} tenantFeatures={tenantFeatures} />}
                   {activePage === "Deal Summary" && <PageDealSummary t={t} isDark={isDark} dealId={selectedDealId} DEALS={DEALS} INVESTMENTS={INVESTMENTS} CONTACTS={CONTACTS} DIMENSIONS={DIMENSIONS} FEES_DATA={FEES_DATA} SCHEDULES={SCHEDULES} USERS={rawUsers} LEDGER={LEDGER} setActivePage={setActivePage} selectedDistMemoId={selectedDistMemoId} setSelectedDistMemoId={setSelectedDistMemoId} investmentCollection={isGlobalConsolidated ? "investments" : fetchPaths.investments} scheduleCollection={isGlobalConsolidated ? "paymentSchedules" : fetchPaths.paymentSchedules} tenantId={activeTenantId} tenantFeatures={tenantFeatures} />}
-                  {activePage === "Contacts" && <PageContacts t={t} isDark={isDark} CONTACTS={CONTACTS} INVESTMENTS={INVESTMENTS} SCHEDULES={SCHEDULES} DEALS={DEALS} collectionPath={isGlobalConsolidated ? "GROUP:contacts" : fetchPaths.contacts} DIMENSIONS={DIMENSIONS} tenantId={activeTenantId} LEDGER={LEDGER} USERS={rawUsers} ROLES={rawRoles} />}
-                  {activePage === "Investments" && <PageInvestments t={t} isDark={isDark} INVESTMENTS={INVESTMENTS} DEALS={DEALS} CONTACTS={CONTACTS} DIMENSIONS={DIMENSIONS} FEES_DATA={FEES_DATA} SCHEDULES={SCHEDULES} LEDGER={LEDGER} USERS={rawUsers} collectionPath={isGlobalConsolidated ? "GROUP:investments" : fetchPaths.investments} schedulePath={isGlobalConsolidated ? "GROUP:paymentSchedules" : fetchPaths.paymentSchedules} tenantId={activeTenantId} />}
-                  {activePage === "Payment Schedule" && <PageSchedule t={t} isDark={isDark} SCHEDULES={SCHEDULES} INVESTMENTS={INVESTMENTS} CONTACTS={CONTACTS} DEALS={DEALS} DIMENSIONS={DIMENSIONS} FEES_DATA={FEES_DATA} USERS={rawUsers} LEDGER={LEDGER} collectionPath={isGlobalConsolidated ? "GROUP:paymentSchedules" : fetchPaths.paymentSchedules} setActivePage={setActivePage} setSelectedDealId={setSelectedDealId} selectedDistMemoId={selectedDistMemoId} setSelectedDistMemoId={setSelectedDistMemoId} tenantId={activeTenantId} />}
-                  {activePage === "Payments" && <PagePayments t={t} isDark={isDark} PAYMENTS={PAYMENTS} INVESTMENTS={INVESTMENTS} CONTACTS={CONTACTS} SCHEDULES={SCHEDULES} DEALS={DEALS} DIMENSIONS={DIMENSIONS} ACH_BATCHES={ACH_BATCHES} LEDGER={LEDGER} collectionPath={isGlobalConsolidated ? "GROUP:payments" : fetchPaths.payments} achBatchPath={isGlobalConsolidated ? "GROUP:achBatches" : fetchPaths.achBatches} ledgerPath={isGlobalConsolidated ? "GROUP:ledger" : fetchPaths.ledger} setActivePage={setActivePage} setSelectedDistMemoId={setSelectedDistMemoId} setSelectedDealId={setSelectedDealId} />}
+                  {activePage === "Contacts" && <PageContacts key={`contacts-${resetKeys.Contacts}`} t={t} isDark={isDark} CONTACTS={CONTACTS} INVESTMENTS={INVESTMENTS} SCHEDULES={SCHEDULES} DEALS={DEALS} collectionPath={isGlobalConsolidated ? "GROUP:contacts" : fetchPaths.contacts} DIMENSIONS={DIMENSIONS} tenantId={activeTenantId} LEDGER={LEDGER} USERS={rawUsers} ROLES={rawRoles} />}
+                  {activePage === "Investments" && <PageInvestments key={`investments-${resetKeys.Investments}`} t={t} isDark={isDark} INVESTMENTS={INVESTMENTS} DEALS={DEALS} CONTACTS={CONTACTS} DIMENSIONS={DIMENSIONS} FEES_DATA={FEES_DATA} SCHEDULES={SCHEDULES} LEDGER={LEDGER} USERS={rawUsers} collectionPath={isGlobalConsolidated ? "GROUP:investments" : fetchPaths.investments} schedulePath={isGlobalConsolidated ? "GROUP:paymentSchedules" : fetchPaths.paymentSchedules} tenantId={activeTenantId} />}
+                  {activePage === "Payment Schedule" && <PageSchedule key={`schedules-${resetKeys["Payment Schedule"]}`} t={t} isDark={isDark} SCHEDULES={SCHEDULES} INVESTMENTS={INVESTMENTS} CONTACTS={CONTACTS} DEALS={DEALS} DIMENSIONS={DIMENSIONS} FEES_DATA={FEES_DATA} USERS={rawUsers} LEDGER={LEDGER} collectionPath={isGlobalConsolidated ? "GROUP:paymentSchedules" : fetchPaths.paymentSchedules} setActivePage={setActivePage} setSelectedDealId={setSelectedDealId} selectedDistMemoId={selectedDistMemoId} setSelectedDistMemoId={setSelectedDistMemoId} tenantId={activeTenantId} />}
+                  {activePage === "Payments" && <PagePayments key={`payments-${resetKeys.Payments}`} t={t} isDark={isDark} PAYMENTS={PAYMENTS} INVESTMENTS={INVESTMENTS} CONTACTS={CONTACTS} SCHEDULES={SCHEDULES} DEALS={DEALS} DIMENSIONS={DIMENSIONS} ACH_BATCHES={ACH_BATCHES} LEDGER={LEDGER} collectionPath={isGlobalConsolidated ? "GROUP:payments" : fetchPaths.payments} achBatchPath={isGlobalConsolidated ? "GROUP:achBatches" : fetchPaths.achBatches} ledgerPath={isGlobalConsolidated ? "GROUP:ledger" : fetchPaths.ledger} setActivePage={setActivePage} setSelectedDistMemoId={setSelectedDistMemoId} setSelectedDealId={setSelectedDealId} />}
                   {activePage === "Fees" && <PageFees t={t} isDark={isDark} FEES_DATA={FEES_DATA} DIMENSIONS={DIMENSIONS} collectionPath={isGlobalConsolidated ? "GROUP:fees" : fetchPaths.fees} />}
                   {activePage === "Platform Tenant Admin" && <PageTenants t={t} isDark={isDark} TENANTS={TENANTS} GLOBAL_USERS={globalUsers} ROLES={rawRoles} collectionPath={fetchPaths.tenants} />}
                   {activePage === "User Profiles" && <PageUserProfiles t={t} isDark={isDark} USERS={rawUsers} GLOBAL_USERS={globalUsers} ROLES={rawRoles} collectionPath={fetchPaths.users} DIMENSIONS={DIMENSIONS} tenantId={activeTenantId} TENANTS={TENANTS} CONTACTS={CONTACTS} />}
