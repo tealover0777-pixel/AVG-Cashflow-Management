@@ -321,7 +321,7 @@ export default function PageTenants({ t, isDark, TENANTS = [], GLOBAL_USERS = []
             {[{ label: "Total Tenants", value: TENANTS.length, accent: isDark ? "#60A5FA" : "#3B82F6", bg: isDark ? "rgba(96,165,250,0.08)" : "#EFF6FF", border: isDark ? "rgba(96,165,250,0.15)" : "#BFDBFE" }].map(s => <StatCard key={s.label} {...s} titleFont={t.titleFont} isDark={isDark} />)}
         </div>
 
-        <div style={{ height: 'calc(100vh - 420px)', width: "100%", }}>
+        <div style={{ height: 'calc(100vh - 220px)', width: "100%" }}>
             <TanStackTable
                 ref={gridRef}
                 data={TENANTS}

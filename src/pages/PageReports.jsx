@@ -66,7 +66,7 @@ export default function PageReports({ t, isDark, activeTenantId = "" }) {
         borderRadius: 0,
         border: `1px solid ${t.surfaceBorder}`,
         padding: 0,
-        height: "calc(100vh - 300px)",
+        height: "calc(100vh - 180px)",
         minHeight: 700,
         overflowX: "hidden",
         overflowY: "hidden",

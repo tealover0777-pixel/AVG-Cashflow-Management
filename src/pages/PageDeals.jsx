@@ -294,7 +294,7 @@ export default function PageDeals({ t, isDark, DEALS = [], INVESTMENTS = [], SCH
     </div>
 
 
-    <div style={{ height: 'calc(100vh - 420px)', width: '100%', }}>
+    <div style={{ height: 'calc(100vh - 280px)', width: '100%' }}>
       <TanStackTable
         ref={gridRef}
         data={DEALS}
