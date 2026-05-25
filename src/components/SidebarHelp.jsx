@@ -1,40 +1,16 @@
 import React, { useState, useEffect, useRef } from "react";
-import { getGenerativeModel } from "@firebase/vertexai";
-import { vertexAI } from "../firebase";
+import { httpsCallable } from "firebase/functions";
+import { db, functions } from "../firebase";
 import { Send, X, ThumbsUp, ThumbsDown, Bot, Loader2 } from "lucide-react";
 import { useAuth } from "../AuthContext";
-import { readKnowledgeBase, saveConversation, updateConversation } from "../utils/helpStorage";
+import { saveConversation, updateConversation } from "../utils/helpStorage";
 
-export default function SidebarHelp({ open, onClose, t, isDark }) {
+export default function SidebarHelp({ open, onClose, t, isDark, tenantId }) {
   const { user } = useAuth();
   const [messages, setMessages] = useState([{ role: "model", text: "Hello! I'm your Intelligent Cashflow assistant. How can I help you today?" }]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
-  const [modelOptions, setModelOptions] = useState(null);
   const scrollRef = useRef(null);
-
-  // Fetch knowledge base from Storage and initialize model options
-  useEffect(() => {
-    async function fetchKB() {
-      if (!open || !user?.uid) return;
-      try {
-        console.log("Refreshing Knowledge Base for User:", user.email);
-        const kbText = await readKnowledgeBase();
-        setModelOptions({
-          model: "gemini-2.5-flash",
-          systemInstruction: kbText || "You are a helpful assistant for Intelligent Cashflow Management. Answer questions concisely and professionally. You assist users with Projects, Contacts, Schedules, and Payments. If you don't know an answer, tell the user to contact the admin at admin@avg-cashflow.com.",
-        });
-        console.log("Model Initialized with latest KB.");
-      } catch (err) {
-        console.error("Failed to load KB from Storage:", err);
-        setModelOptions({
-          model: "gemini-2.5-flash",
-          systemInstruction: "You are a helpful assistant for Intelligent Cashflow Management. You provide information about Projects, Contacts, and Schedules. If you don't know the answer, politely suggest contacting the admin.",
-        });
-      }
-    }
-    fetchKB();
-  }, [open, user?.uid]);
 
   // Auto-scroll to bottom of chat
   useEffect(() => {
@@ -44,7 +20,7 @@ export default function SidebarHelp({ open, onClose, t, isDark }) {
   }, [messages, loading]);
 
   const handleSend = async () => {
-    if (!input.trim() || !modelOptions || loading) return;
+    if (!input.trim() || loading) return;
 
     const userText = input.trim();
     setInput("");
@@ -54,17 +30,19 @@ export default function SidebarHelp({ open, onClose, t, isDark }) {
     setLoading(true);
 
     try {
-      const model = getGenerativeModel(vertexAI, modelOptions);
-      const chatHistory = messages.filter(m => m.id).map(m => ({
-        role: m.role,
-        parts: [{ text: m.text }]
-      }));
+      const askAIFn = httpsCallable(functions, "askAI");
+      const result = await askAIFn({ query: userText, selectedTenantId: tenantId });
+      
+      let aiResponseText = "";
+      if (result.data && result.data.success) {
+        aiResponseText = result.data.answer;
+      } else if (result.data && result.data.warning) {
+        aiResponseText = `⚠️ Warning: ${result.data.warning}`;
+      } else {
+        aiResponseText = "Received an invalid response from the assistant backend.";
+      }
 
-      const chat = model.startChat({ history: chatHistory });
-      const result = await chat.sendMessage(userText);
-      const aiResponseText = result.response.text();
-
-      // Save Q&A to Firebase Storage
+      // Save Q&A to Firebase Storage (metadata logs)
       const savedId = await saveConversation({
         user_id: user?.uid || "unknown",
         user_email: user?.email || "unknown",
@@ -95,7 +73,6 @@ export default function SidebarHelp({ open, onClose, t, isDark }) {
       console.error("Failed to save feedback", err);
     }
   };
-
   if (!open) return null;
 
   return (
@@ -143,7 +120,7 @@ export default function SidebarHelp({ open, onClose, t, isDark }) {
                   border: isUser ? "none" : `1px solid ${t.surfaceBorder}`,
                   wordBreak: "break-word"
                 }}>
-                  {msg.text.split('\\n').map((line, j) => <React.Fragment key={j}>{line}<br /></React.Fragment>)}
+                  {renderMessageText(msg.text)}
                 </div>
                 {!isUser && msg.docId && (
                   <div style={{ display: "flex", gap: 12, paddingLeft: 8, marginTop: 2 }}>
@@ -182,8 +159,7 @@ export default function SidebarHelp({ open, onClose, t, isDark }) {
             value={input}
             onChange={e => setInput(e.target.value)}
             onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
-            placeholder={modelOptions ? "Ask about Projects, Schedules..." : "Loading assistant..."}
-            disabled={!modelOptions}
+            placeholder="Ask about Deals, Investments, Ledger..."
             style={{
               flex: 1, minHeight: 40, maxHeight: 120, padding: "10px 10px 10px 14px",
               background: "transparent",
@@ -195,7 +171,7 @@ export default function SidebarHelp({ open, onClose, t, isDark }) {
           />
           <button
             onClick={handleSend}
-            disabled={!input.trim() || loading || !modelOptions}
+            disabled={!input.trim() || loading}
             style={{
               width: 44, height: 44, borderRadius: 12, flexShrink: 0,
               background: input.trim() ? t.accentGrad : (isDark ? "rgba(255,255,255,0.08)" : "#E5E7EB"),
@@ -221,3 +197,119 @@ export default function SidebarHelp({ open, onClose, t, isDark }) {
     </div>
   );
 }
+
+/**
+ * Basic markdown parser to render bold text, bullet points, and tables.
+ */
+function renderMessageText(text) {
+  if (!text) return "";
+  
+  const lines = text.split('\n');
+  let inList = false;
+  let inTable = false;
+  let tableRows = [];
+  const renderedElements = [];
+
+  for (let i = 0; i < lines.length; i++) {
+    let line = lines[i].trim();
+
+    // Check for tables
+    if (line.startsWith('|') && line.endsWith('|')) {
+      if (inList) {
+        renderedElements.push(<ul key={`list-${i}`} style={{ listStyleType: 'disc', margin: '8px 0' }}>{inList}</ul>);
+        inList = false;
+      }
+      inTable = true;
+      if (line.includes('---')) continue;
+      
+      const cells = line.split('|').map(c => c.trim()).filter((_, idx, arr) => idx > 0 && idx < arr.length - 1);
+      tableRows.push(cells);
+      continue;
+    } else if (inTable) {
+      if (tableRows.length > 0) {
+        renderedElements.push(
+          <table key={`table-${i}`} style={{ borderCollapse: 'collapse', margin: '12px 0', fontSize: '13px', width: '100%', border: '1px solid rgba(128,128,128,0.2)' }}>
+            <thead>
+              <tr style={{ background: 'rgba(128,128,128,0.1)', borderBottom: '2px solid rgba(128,128,128,0.3)' }}>
+                {tableRows[0].map((cell, idx) => (
+                  <th key={idx} style={{ padding: '8px', textAlign: 'left', fontWeight: 'bold' }}>{parseInlineMarkdown(cell)}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {tableRows.slice(1).map((row, rowIdx) => (
+                <tr key={rowIdx} style={{ borderBottom: '1px solid rgba(128,128,128,0.15)' }}>
+                  {row.map((cell, idx) => (
+                    <td key={idx} style={{ padding: '8px' }}>{parseInlineMarkdown(cell)}</td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        );
+      }
+      tableRows = [];
+      inTable = false;
+    }
+
+    // Check for bullet points
+    if (line.startsWith('* ') || line.startsWith('- ')) {
+      if (!inList) {
+        inList = [];
+      }
+      const itemText = line.substring(2);
+      inList.push(<li key={`li-${i}`} style={{ marginLeft: '16px', marginBottom: '4px' }}>{parseInlineMarkdown(itemText)}</li>);
+      continue;
+    } else if (inList) {
+      renderedElements.push(<ul key={`list-${i}`} style={{ listStyleType: 'disc', margin: '8px 0' }}>{inList}</ul>);
+      inList = false;
+    }
+
+    // Regular line
+    if (line === '') {
+      renderedElements.push(<div key={`br-${i}`} style={{ height: '8px' }} />);
+    } else {
+      renderedElements.push(<p key={`p-${i}`} style={{ marginBottom: '8px' }}>{parseInlineMarkdown(line)}</p>);
+    }
+  }
+
+  if (inTable && tableRows.length > 0) {
+    renderedElements.push(
+      <table key="table-end" style={{ borderCollapse: 'collapse', margin: '12px 0', fontSize: '13px', width: '100%', border: '1px solid rgba(128,128,128,0.2)' }}>
+        <thead>
+          <tr style={{ background: 'rgba(128,128,128,0.1)', borderBottom: '2px solid rgba(128,128,128,0.3)' }}>
+            {tableRows[0].map((cell, idx) => (
+              <th key={idx} style={{ padding: '8px', textAlign: 'left', fontWeight: 'bold' }}>{parseInlineMarkdown(cell)}</th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {tableRows.slice(1).map((row, rowIdx) => (
+            <tr key={rowIdx} style={{ borderBottom: '1px solid rgba(128,128,128,0.15)' }}>
+              {row.map((cell, idx) => (
+                <td key={idx} style={{ padding: '8px' }}>{parseInlineMarkdown(cell)}</td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    );
+  }
+  if (inList) {
+    renderedElements.push(<ul key="list-end" style={{ listStyleType: 'disc', margin: '8px 0' }}>{inList}</ul>);
+  }
+
+  return renderedElements;
+}
+
+function parseInlineMarkdown(text) {
+  if (typeof text !== 'string') return text;
+  const parts = text.split(/(\*\*.*?\*\*)/g);
+  return parts.map((part, idx) => {
+    if (part.startsWith('**') && part.endsWith('**')) {
+      return <strong key={idx}>{part.slice(2, -2)}</strong>;
+    }
+    return part;
+  });
+}
+

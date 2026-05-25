@@ -1106,7 +1106,7 @@ function AppContent() {
               )}
         </div>
       </div>
-      <SidebarHelp open={helpOpen} onClose={() => setHelpOpen(false)} t={t} isDark={isDark} />
+      <SidebarHelp open={helpOpen} onClose={() => setHelpOpen(false)} t={t} isDark={isDark} tenantId={activeTenantId} />
     </div>
   );
 }

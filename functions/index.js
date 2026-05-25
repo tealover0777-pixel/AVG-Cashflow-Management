@@ -1528,3 +1528,169 @@ exports.assignTenantOwner = functions.https.onCall(async (data, context) => {
     throw new functions.https.HttpsError('internal', error.message);
   }
 });
+
+/**
+ * Helper to fetch general tenant data for AI analysis.
+ */
+async function fetchTenantData(db, tenantId) {
+  const data = {};
+  
+  // Fetch deals
+  const dealsSnap = await db.collection(`tenants/${tenantId}/deals`).limit(100).get();
+  data.deals = dealsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+  // Fetch investments
+  const invSnap = await db.collection(`tenants/${tenantId}/investments`).limit(200).get();
+  data.investments = invSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+  // Fetch ledger (sort in memory to avoid index requirements)
+  const ledgerSnap = await db.collection(`tenants/${tenantId}/ledger`).limit(500).get();
+  data.ledger = ledgerSnap.docs
+    .map(doc => ({ id: doc.id, ...doc.data() }))
+    .sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
+
+  // Fetch payment schedules
+  const scheduleSnap = await db.collection(`tenants/${tenantId}/paymentSchedules`).limit(500).get();
+  data.paymentSchedules = scheduleSnap.docs
+    .map(doc => ({ id: doc.id, ...doc.data() }))
+    .sort((a, b) => new Date(b.payment_date || 0) - new Date(a.payment_date || 0));
+
+  return data;
+}
+
+/**
+ * Helper to resolve auth UID to contact ID for a member.
+ */
+async function resolveContactId(db, tenantId, authUid) {
+  const contactSnap = await db.collection(`tenants/${tenantId}/contacts`).where('auth_uid', '==', authUid).limit(1).get();
+  if (!contactSnap.empty) {
+    return contactSnap.docs[0].id;
+  }
+  return null;
+}
+
+/**
+ * Helper to fetch member-specific data for AI analysis.
+ */
+async function fetchMemberData(db, tenantId, contactId) {
+  const data = {};
+
+  // Fetch investments for contact
+  const invSnap = await db.collection(`tenants/${tenantId}/investments`).where('contact_id', '==', contactId).limit(100).get();
+  data.investments = invSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+  // Fetch ledger for contact
+  const ledgerSnap = await db.collection(`tenants/${tenantId}/ledger`).where('contact_id', '==', contactId).limit(200).get();
+  data.ledger = ledgerSnap.docs
+    .map(doc => ({ id: doc.id, ...doc.data() }))
+    .sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
+
+  // Fetch payment schedules for contact
+  const scheduleSnap = await db.collection(`tenants/${tenantId}/paymentSchedules`).where('contact_id', '==', contactId).limit(200).get();
+  data.paymentSchedules = scheduleSnap.docs
+    .map(doc => ({ id: doc.id, ...doc.data() }))
+    .sort((a, b) => new Date(b.payment_date || 0) - new Date(a.payment_date || 0));
+
+  return data;
+}
+
+/**
+ * Cloud Function to securely run query analysis with Gemini.
+ */
+exports.askAI = functions.runWith({
+  secrets: ['GEMINI_API_KEY']
+}).https.onCall(async (data, context) => {
+  if (!context.auth) {
+    throw new functions.https.HttpsError('unauthenticated', 'Must be authenticated.');
+  }
+
+  const { query, selectedTenantId } = data;
+  if (!query) {
+    throw new functions.https.HttpsError('invalid-argument', 'Missing query.');
+  }
+
+  const uid = context.auth.uid;
+  const callerClaims = context.auth.token || {};
+  const callerRole = callerClaims.role || 'R10001';
+  const callerTenantId = callerClaims.tenantId || '';
+
+  const db = admin.firestore();
+  let analysisData = {};
+  let warningMessage = null;
+
+  try {
+    const isGlobal = callerClaims.isGlobal === true || callerClaims.email === "kyuahn@yahoo.com" || callerRole === "Super Admin" || callerRole === "L2 Admin" || (callerRole >= 'R10006' && callerRole <= 'R10010');
+    const isTenantUser = !isGlobal && (callerRole >= 'R10002' && callerRole <= 'R10005');
+    const isMember = !isGlobal && !isTenantUser && callerRole === 'R10001';
+
+    if (isGlobal) {
+      if (!selectedTenantId || selectedTenantId === 'CONSOLIDATED' || selectedTenantId === 'ALL') {
+        warningMessage = "Consolidated view contains data from all tenants. Cross-tenant consolidated analysis is not supported for data privacy. Please select a specific tenant to perform AI analysis.";
+      } else {
+        analysisData = await fetchTenantData(db, selectedTenantId);
+      }
+    } else if (isTenantUser) {
+      if (!callerTenantId) {
+        throw new functions.https.HttpsError('permission-denied', 'No tenant ID associated with caller profile.');
+      }
+      analysisData = await fetchTenantData(db, callerTenantId);
+    } else if (isMember) {
+      if (!callerTenantId) {
+        throw new functions.https.HttpsError('permission-denied', 'No tenant ID associated with caller profile.');
+      }
+      const contactId = await resolveContactId(db, callerTenantId, uid);
+      if (!contactId) {
+        throw new functions.https.HttpsError('permission-denied', 'Could not locate contact profile for member.');
+      }
+      analysisData = await fetchMemberData(db, callerTenantId, contactId);
+    } else {
+      throw new functions.https.HttpsError('permission-denied', 'Unauthorized role.');
+    }
+
+    if (warningMessage) {
+      return { success: false, warning: warningMessage };
+    }
+
+    const { GoogleGenAI } = require('@google/genai');
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) {
+      throw new Error("GEMINI_API_KEY environment variable is not configured.");
+    }
+    const ai = new GoogleGenAI({ apiKey });
+    
+    const response = await ai.models.generateContent({
+      model: 'gemini-2.5-flash',
+      contents: [
+        {
+          role: 'user',
+          parts: [
+            {
+              text: `You are an expert financial analysis assistant for AVG Cashflow Management.
+Your task is to analyze the provided cashflow management data and answer the user's query.
+
+Guidelines:
+- Base your analysis strictly on the provided JSON data.
+- If data is missing or incomplete, mention this clearly.
+- Provide clean, professional answers. Use markdown tables where appropriate.
+- Do not mention user IDs or internal document paths unless relevant to query.
+- Use a friendly, professional financial advisor tone.
+
+User Query: "${query}"
+
+Here is the data in JSON format:
+${JSON.stringify(analysisData, null, 2)}`
+            }
+          ]
+        }
+      ]
+    });
+
+    const aiText = response.text || "No response generated by the AI.";
+    return { success: true, answer: aiText };
+
+  } catch (error) {
+    console.error("Ask AI Error:", error);
+    throw new functions.https.HttpsError('internal', error.message);
+  }
+});
+
