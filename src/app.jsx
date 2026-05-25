@@ -111,6 +111,44 @@ function AppContent() {
   const [activePage, setActivePage] = useState("Dashboard");
   const [resetKeys, setResetKeys] = useState({});
 
+  // Sync activePage and selectedDealId with Browser History
+  useEffect(() => {
+    const currentState = window.history.state;
+    if (!currentState || currentState.page !== activePage || (activePage === "Deal Summary" && currentState.dealId !== selectedDealId)) {
+      window.history.pushState({ 
+        page: activePage, 
+        dealId: activePage === "Deal Summary" ? selectedDealId : undefined 
+      }, "", "");
+    }
+  }, [activePage, selectedDealId]);
+
+  useEffect(() => {
+    const handlePopState = (e) => {
+      const state = e.state;
+      if (state && state.page) {
+        setActivePage(state.page);
+        if (state.page === "Deal Summary" && state.dealId) {
+          setSelectedDealId(state.dealId);
+        } else {
+          setSelectedDealId(null);
+        }
+      } else {
+        // Fallback to Dashboard
+        setActivePage("Dashboard");
+        setSelectedDealId(null);
+      }
+    };
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, []);
+
+  // Replace initial history state with Dashboard on mount
+  useEffect(() => {
+    if (!window.history.state) {
+      window.history.replaceState({ page: "Dashboard" }, "", "");
+    }
+  }, []);
+
   const [isAuthAction, setIsAuthAction] = useState(false);
 
   useEffect(() => {

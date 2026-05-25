@@ -35,6 +35,36 @@ export default function PagePayments({ t, isDark, PAYMENTS = [], INVESTMENTS = [
   const [drillInvestment, setDrillInvestment] = useState(null);
   const [drillContact, setDrillContact] = useState(null);
   const [drillOptions, setDrillOptions] = useState({ view: "summary", tab: "Details" });
+
+  useEffect(() => {
+    if (drillContact) {
+      const currentState = window.history.state;
+      if (currentState && !currentState.isDetail) {
+        window.history.pushState({ page: "Payments", isDetail: true }, "", "");
+      }
+    }
+  }, [drillContact]);
+
+  useEffect(() => {
+    const handlePopState = (e) => {
+      const state = e.state;
+      if (!state || !state.isDetail) {
+        setDrillContact(null);
+        setDrillInvestment(null);
+      }
+    };
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, []);
+
+  const handleCloseDetail = () => {
+    setDrillContact(null);
+    setDrillInvestment(null);
+    const currentState = window.history.state;
+    if (currentState && currentState.isDetail) {
+      window.history.back();
+    }
+  };
   
   const gridRef = useRef(null);
   const [pageSize, setPageSize] = useState(30);
@@ -459,7 +489,7 @@ export default function PagePayments({ t, isDark, PAYMENTS = [], INVESTMENTS = [
         selectedInvestmentId={drillInvestment?.investment_id || drillInvestment?.id} 
         defaultView={drillOptions.view} 
         initialTab={drillOptions.tab} 
-        onClose={() => { setDrillInvestment(null); setDrillContact(null); }} 
+        onClose={handleCloseDetail} 
         isDark={isDark} 
         t={t} 
         INVESTMENTS={INVESTMENTS} 

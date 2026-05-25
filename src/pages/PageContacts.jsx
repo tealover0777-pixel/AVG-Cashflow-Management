@@ -211,6 +211,34 @@ export default function PageContacts({ t, isDark, CONTACTS = [], INVESTMENTS = [
     }
   };
   const [detailContact, setDetailContact] = useState(null);
+
+  useEffect(() => {
+    if (detailContact) {
+      const currentState = window.history.state;
+      if (currentState && !currentState.isDetail) {
+        window.history.pushState({ page: "Contacts", isDetail: true }, "", "");
+      }
+    }
+  }, [detailContact]);
+
+  useEffect(() => {
+    const handlePopState = (e) => {
+      const state = e.state;
+      if (!state || !state.isDetail) {
+        setDetailContact(null);
+      }
+    };
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, []);
+
+  const handleCloseDetail = () => {
+    setDetailContact(null);
+    const currentState = window.history.state;
+    if (currentState && currentState.isDetail) {
+      window.history.back();
+    }
+  };
   const [invitingId, setInvitingId] = useState(null);
   const [processing, setProcessing] = useState(false);
   const [inviteResult, setInviteResult] = useState(null);
@@ -353,7 +381,7 @@ export default function PageContacts({ t, isDark, CONTACTS = [], INVESTMENTS = [
     return (
       <InvestorSummaryModal 
         contact={detailContact}
-        onClose={() => setDetailContact(null)}
+        onClose={handleCloseDetail}
         isDark={isDark}
         t={t}
         INVESTMENTS={INVESTMENTS}

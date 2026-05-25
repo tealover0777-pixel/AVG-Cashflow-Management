@@ -24,6 +24,34 @@ export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [
   const [genConfirm, setGenConfirm] = useState(null);
   const [genResult, setGenResult] = useState(null); // { title, message }
   const [drillInvestment, setDrillInvestment] = useState(null);
+
+  useEffect(() => {
+    if (drillInvestment) {
+      const currentState = window.history.state;
+      if (currentState && !currentState.isDetail) {
+        window.history.pushState({ page: "Investments", isDetail: true }, "", "");
+      }
+    }
+  }, [drillInvestment]);
+
+  useEffect(() => {
+    const handlePopState = (e) => {
+      const state = e.state;
+      if (!state || !state.isDetail) {
+        setDrillInvestment(null);
+      }
+    };
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, []);
+
+  const handleCloseDetail = () => {
+    setDrillInvestment(null);
+    const currentState = window.history.state;
+    if (currentState && currentState.isDetail) {
+      window.history.back();
+    }
+  };
   const [drillOptions, setDrillOptions] = useState({ view: "simple", tab: "Capital Transactions" });
   const drillContact = useMemo(() => {
     if (!drillInvestment) return null;
@@ -820,7 +848,7 @@ export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [
         selectedInvestmentId={drillInvestment?.investment_id || drillInvestment?.id}
         defaultView={drillOptions.view}
         initialTab={drillOptions.tab}
-        onClose={() => setDrillInvestment(null)}
+        onClose={handleCloseDetail}
         isDark={isDark}
         t={t}
         INVESTMENTS={INVESTMENTS}

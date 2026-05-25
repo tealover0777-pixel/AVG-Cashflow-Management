@@ -60,6 +60,34 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
   const [modal, setModal] = useState({ open: false, mode: "add", data: {} });
   const [assetModal, setAssetModal] = useState({ open: false, mode: "add", data: {} });
   const [detailContact, setDetailContact] = useState(null);
+
+  useEffect(() => {
+    if (detailContact) {
+      const currentState = window.history.state;
+      if (currentState && !currentState.isDetail) {
+        window.history.pushState({ page: "Deal Summary", dealId, isDetail: true }, "", "");
+      }
+    }
+  }, [detailContact, dealId]);
+
+  useEffect(() => {
+    const handlePopState = (e) => {
+      const state = e.state;
+      if (!state || !state.isDetail) {
+        setDetailContact(null);
+      }
+    };
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, []);
+
+  const handleCloseDetail = () => {
+    setDetailContact(null);
+    const currentState = window.history.state;
+    if (currentState && currentState.isDetail) {
+      window.history.back();
+    }
+  };
   const [delT, setDelT] = useState(null);
   const [assetDelT, setAssetDelT] = useState(null);
   const [sel, setSel] = useState(new Set());
@@ -2369,7 +2397,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
         <InvestorSummaryModal
           contact={detailContact?.data || detailContact}
           defaultView={detailContact?.view || "simple"}
-          onClose={() => setDetailContact(null)}
+          onClose={handleCloseDetail}
           isDark={isDark}
           t={t}
           INVESTMENTS={INVESTMENTS}
