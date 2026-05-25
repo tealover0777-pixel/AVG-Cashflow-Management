@@ -5,7 +5,7 @@ import { uploadFile, deleteFile } from "../utils/storageUtils";
 import { ref, listAll, getDownloadURL, getMetadata } from "firebase/storage";
 import { useAuth } from "../AuthContext";
 import { FileText, File, Trash2, Download, Plus, Loader2, X, HelpCircle, Eye } from "lucide-react";
-import { Modal, FF, FIn, FSel, Tooltip, DelModal } from "../components";
+import { Modal, FF, FIn, FSel, Tooltip, DelModal } from "../components.jsx";
 
 export default function InvestmentDocumentsTab({ t, isDark, tenantId, contact, party, DEALS, INVESTMENTS }) {
     const { activeTenantId } = useAuth();

@@ -5,7 +5,7 @@ import {
 } from "lucide-react";
 import { db } from "../firebase";
 import { doc, updateDoc, serverTimestamp } from "firebase/firestore";
-import { Bdg, FF, FIn, FSel, TanStackTable, Tooltip, Modal } from "../components"; // We will export these from the main components file
+import { Bdg, FF, FIn, FSel, TanStackTable, Tooltip, Modal } from "../components.jsx"; // We will export these from the main components file
 import InvestmentDocumentsTab from "./InvestmentDocumentsTab";
 import InvestmentChangelogTab from "./InvestmentChangelogTab";
 import { getContactTransactionColumns } from "./ContactTransactionsTanStackConfig";

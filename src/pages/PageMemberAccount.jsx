@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from "react";
 import { db } from "../firebase";
 import { doc, updateDoc, serverTimestamp, collection, query, onSnapshot, addDoc } from "firebase/firestore";
 import { useAuth } from "../AuthContext";
-import { Bdg, FF, FIn, FSel, TanStackTable, Tooltip, Modal, ConfirmModal } from "../components";
+import { Bdg, FF, FIn, FSel, TanStackTable, Tooltip, Modal, ConfirmModal } from "../components.jsx";
 import InvestmentDocumentsTab from "../components/InvestmentDocumentsTab";
 import InvestmentChangelogTab from "../components/InvestmentChangelogTab";
 import { getContactTransactionColumns } from "../components/ContactTransactionsTanStackConfig";
