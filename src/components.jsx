@@ -10,10 +10,7 @@ import {
   ArrowUp, ArrowDown, MoreHorizontal, Copy, UserPlus
 } from "lucide-react";
 import ReactDOM from "react-dom";
-import InvestmentDocumentsTab from "./components/InvestmentDocumentsTab";
-import InvestmentChangelogTab from "./components/InvestmentChangelogTab";
 export { default as TanStackTable } from "./components/TanStackTable";
-import { getContactTransactionColumns } from "./components/ContactTransactionsTanStackConfig";
 
 export const Bdg = ({ status, label, isDark, bg, text, border }) => {
   const actualStatus = status || label || "";

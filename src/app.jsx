@@ -110,6 +110,7 @@ function AppContent() {
   
   const [activePage, setActivePage] = useState("Dashboard");
   const [resetKeys, setResetKeys] = useState({});
+  const [selectedDealId, setSelectedDealId] = useState(null);
 
   // Sync activePage and selectedDealId with Browser History
   useEffect(() => {
@@ -179,7 +180,6 @@ function AppContent() {
     }
   }, [isMember, hasPermission, activePage]);
 
-  const [selectedDealId, setSelectedDealId] = useState(null);
   const [selectedDistMemoId, setSelectedDistMemoId] = useState(null);
   const [activeTenantId, setActiveTenantId] = useState("");
   const [helpOpen, setHelpOpen] = useState(false);
