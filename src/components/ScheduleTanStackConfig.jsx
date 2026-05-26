@@ -45,7 +45,7 @@ export const getScheduleColumns = (permissions, isDark, t, context) => {
       }
     },
     {
-      header: "Sched ID",
+      header: "Payment ID",
       accessorKey: "schedule_id",
       size: 90,
       cell: ({ row, getValue }) => {

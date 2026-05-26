@@ -399,9 +399,9 @@ function AppContent() {
 
   const firstError = e1 || e2 || e3 || e4 || e5 || e6 || e7 || e8 || e9 || e10 || e11 || e12 || e14;
 
-  // Auto-select first tenant for Super Admins if none selected
+  // Auto-select first tenant for Super Admins if none selected or set to GLOBAL
   useEffect(() => {
-    if ((isSuperAdmin || isGlobalRole) && !activeTenantId && rawTenants.length > 0) {
+    if ((isSuperAdmin || isGlobalRole) && (!activeTenantId || activeTenantId === "GLOBAL") && rawTenants.length > 0) {
       setActiveTenantId(rawTenants[0].id || rawTenants[0].tenant_id || "");
     }
   }, [isSuperAdmin, isGlobalRole, activeTenantId, rawTenants]);
@@ -1000,7 +1000,6 @@ function AppContent() {
                   }}
                 >
                   <option value="" disabled>Select Tenant</option>
-                  <option value="GLOBAL" style={{ fontWeight: "bold", color: isDark ? "#34D399" : "#059669" }}>Consolidated (All Tenants)</option>
                   {TENANTS.map(ten => <option key={ten.id} value={ten.id}>{ten.name} ({ten.id})</option>)}
                 </select>
               </div>
