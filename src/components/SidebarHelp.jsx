@@ -25,7 +25,8 @@ export default function SidebarHelp({ open, onClose, t, isDark, tenantId, width,
   const resize = (e) => {
     if (!isResizingRef.current) return;
     const newWidth = window.innerWidth - e.clientX;
-    if (newWidth > 320 && newWidth < 900) {
+    const maxAllowedWidth = Math.min(1800, window.innerWidth - 100);
+    if (newWidth > 320 && newWidth < maxAllowedWidth) {
       setWidth(newWidth);
     }
   };
