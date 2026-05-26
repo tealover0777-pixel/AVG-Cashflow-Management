@@ -1530,32 +1530,70 @@ exports.assignTenantOwner = functions.https.onCall(async (data, context) => {
 });
 
 /**
- * Helper to fetch general tenant data for AI analysis.
+ * Helper to fetch general tenant data for AI analysis in parallel and prune fields.
  */
 async function fetchTenantData(db, tenantId) {
-  const data = {};
-  
-  // Fetch deals
-  const dealsSnap = await db.collection(`tenants/${tenantId}/deals`).limit(100).get();
-  data.deals = dealsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  const [dealsSnap, invSnap, ledgerSnap, scheduleSnap] = await Promise.all([
+    db.collection(`tenants/${tenantId}/deals`).limit(100).get(),
+    db.collection(`tenants/${tenantId}/investments`).limit(200).get(),
+    db.collection(`tenants/${tenantId}/ledger`).limit(500).get(),
+    db.collection(`tenants/${tenantId}/paymentSchedules`).limit(500).get()
+  ]);
 
-  // Fetch investments
-  const invSnap = await db.collection(`tenants/${tenantId}/investments`).limit(200).get();
-  data.investments = invSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-
-  // Fetch ledger (sort in memory to avoid index requirements)
-  const ledgerSnap = await db.collection(`tenants/${tenantId}/ledger`).limit(500).get();
-  data.ledger = ledgerSnap.docs
-    .map(doc => ({ id: doc.id, ...doc.data() }))
-    .sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
-
-  // Fetch payment schedules
-  const scheduleSnap = await db.collection(`tenants/${tenantId}/paymentSchedules`).limit(500).get();
-  data.paymentSchedules = scheduleSnap.docs
-    .map(doc => ({ id: doc.id, ...doc.data() }))
-    .sort((a, b) => new Date(b.payment_date || 0) - new Date(a.payment_date || 0));
-
-  return data;
+  return {
+    deals: dealsSnap.docs.map(doc => {
+      const d = doc.data();
+      return {
+        id: doc.id,
+        deal_name: d.deal_name || "",
+        deal_type: d.deal_type || "",
+        status: d.status || "",
+        valuation_amount: d.valuation_amount || 0,
+        start_date: d.start_date || "",
+        end_date: d.end_date || ""
+      };
+    }),
+    investments: invSnap.docs.map(doc => {
+      const d = doc.data();
+      return {
+        id: doc.id,
+        investment_id: d.investment_id || "",
+        deal_id: d.deal_id || "",
+        contact_id: d.contact_id || d.party_id || "",
+        amount: d.amount || 0,
+        interest_rate: d.interest_rate || 0,
+        payment_frequency: d.payment_frequency || "",
+        status: d.status || ""
+      };
+    }),
+    ledger: ledgerSnap.docs
+      .map(doc => {
+        const d = doc.data();
+        return {
+          id: doc.id,
+          entity_type: d.entity_type || "",
+          amount: d.amount || 0,
+          notes: d.notes || d.note || "",
+          date: d.date || ""
+        };
+      })
+      .sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0)),
+    paymentSchedules: scheduleSnap.docs
+      .map(doc => {
+        const d = doc.data();
+        return {
+          id: doc.id,
+          investment_id: d.investment_id || "",
+          payment_type: d.payment_type || d.type || "",
+          payment_amount: d.payment_amount || 0,
+          status: d.status || "",
+          direction: d.direction_from_company || "",
+          due_date: d.due_date || "",
+          payment_date: d.payment_date || ""
+        };
+      })
+      .sort((a, b) => new Date(b.payment_date || 0) - new Date(a.payment_date || 0))
+  };
 }
 
 /**
@@ -1570,35 +1608,63 @@ async function resolveContactId(db, tenantId, authUid) {
 }
 
 /**
- * Helper to fetch member-specific data for AI analysis.
+ * Helper to fetch member-specific data for AI analysis in parallel and prune fields.
  */
 async function fetchMemberData(db, tenantId, contactId) {
-  const data = {};
+  const [invSnap, ledgerSnap, scheduleSnap] = await Promise.all([
+    db.collection(`tenants/${tenantId}/investments`).where('contact_id', '==', contactId).limit(100).get(),
+    db.collection(`tenants/${tenantId}/ledger`).where('contact_id', '==', contactId).limit(200).get(),
+    db.collection(`tenants/${tenantId}/paymentSchedules`).where('contact_id', '==', contactId).limit(200).get()
+  ]);
 
-  // Fetch investments for contact
-  const invSnap = await db.collection(`tenants/${tenantId}/investments`).where('contact_id', '==', contactId).limit(100).get();
-  data.investments = invSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-
-  // Fetch ledger for contact
-  const ledgerSnap = await db.collection(`tenants/${tenantId}/ledger`).where('contact_id', '==', contactId).limit(200).get();
-  data.ledger = ledgerSnap.docs
-    .map(doc => ({ id: doc.id, ...doc.data() }))
-    .sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
-
-  // Fetch payment schedules for contact
-  const scheduleSnap = await db.collection(`tenants/${tenantId}/paymentSchedules`).where('contact_id', '==', contactId).limit(200).get();
-  data.paymentSchedules = scheduleSnap.docs
-    .map(doc => ({ id: doc.id, ...doc.data() }))
-    .sort((a, b) => new Date(b.payment_date || 0) - new Date(a.payment_date || 0));
-
-  return data;
+  return {
+    investments: invSnap.docs.map(doc => {
+      const d = doc.data();
+      return {
+        id: doc.id,
+        investment_id: d.investment_id || "",
+        deal_id: d.deal_id || "",
+        amount: d.amount || 0,
+        interest_rate: d.interest_rate || 0,
+        payment_frequency: d.payment_frequency || "",
+        status: d.status || ""
+      };
+    }),
+    ledger: ledgerSnap.docs
+      .map(doc => {
+        const d = doc.data();
+        return {
+          id: doc.id,
+          amount: d.amount || 0,
+          notes: d.notes || d.note || "",
+          date: d.date || ""
+        };
+      })
+      .sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0)),
+    paymentSchedules: scheduleSnap.docs
+      .map(doc => {
+        const d = doc.data();
+        return {
+          id: doc.id,
+          payment_type: d.payment_type || d.type || "",
+          payment_amount: d.payment_amount || 0,
+          status: d.status || "",
+          direction: d.direction_from_company || "",
+          due_date: d.due_date || "",
+          payment_date: d.payment_date || ""
+        };
+      })
+      .sort((a, b) => new Date(b.payment_date || 0) - new Date(a.payment_date || 0))
+  };
 }
 
 /**
  * Cloud Function to securely run query analysis with Gemini.
  */
 exports.askAI = functions.runWith({
-  secrets: ['GEMINI_API_KEY']
+  secrets: ['GEMINI_API_KEY'],
+  minInstances: 1
+
 }).https.onCall(async (data, context) => {
   if (!context.auth) {
     throw new functions.https.HttpsError('unauthenticated', 'Must be authenticated.');

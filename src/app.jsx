@@ -183,6 +183,7 @@ function AppContent() {
   const [selectedDistMemoId, setSelectedDistMemoId] = useState(null);
   const [activeTenantId, setActiveTenantId] = useState("");
   const [helpOpen, setHelpOpen] = useState(false);
+  const [helpWidth, setHelpWidth] = useState(380);
   const [expandedMenus, setExpandedMenus] = useState({}); // Track which menus are expanded (all collapsed by default)
 
   // Email Template Caching
@@ -972,7 +973,7 @@ function AppContent() {
       </div>
 
       {/* ── Main ── */}
-      <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", marginRight: helpOpen ? 380 : 0, transition: "margin-right 0.2s ease" }}>
+      <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", marginRight: helpOpen ? helpWidth : 0 }}>
         {/* Topbar */}
         <div style={{ height: 58, borderBottom: `1px solid ${t.topbarBorder}`, background: t.topbar, backdropFilter: t.glass ? "blur(10px)" : "none", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 32px", flexShrink: 0 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12.5, color: t.breadcrumb }}>
@@ -1106,7 +1107,7 @@ function AppContent() {
               )}
         </div>
       </div>
-      <SidebarHelp open={helpOpen} onClose={() => setHelpOpen(false)} t={t} isDark={isDark} tenantId={activeTenantId} />
+      <SidebarHelp open={helpOpen} onClose={() => setHelpOpen(false)} t={t} isDark={isDark} tenantId={activeTenantId} width={helpWidth} setWidth={setHelpWidth} />
     </div>
   );
 }

@@ -5,12 +5,38 @@ import { Send, X, ThumbsUp, ThumbsDown, Bot, Loader2 } from "lucide-react";
 import { useAuth } from "../AuthContext";
 import { saveConversation, updateConversation } from "../utils/helpStorage";
 
-export default function SidebarHelp({ open, onClose, t, isDark, tenantId }) {
+export default function SidebarHelp({ open, onClose, t, isDark, tenantId, width, setWidth }) {
   const { user } = useAuth();
   const [messages, setMessages] = useState([{ role: "model", text: "Hello! I'm your Intelligent Cashflow assistant. How can I help you today?" }]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const scrollRef = useRef(null);
+  const isResizingRef = useRef(false);
+
+  const startResize = (e) => {
+    e.preventDefault();
+    isResizingRef.current = true;
+    document.addEventListener("mousemove", resize);
+    document.addEventListener("mouseup", stopResize);
+    document.body.style.cursor = "col-resize";
+    document.body.style.userSelect = "none";
+  };
+
+  const resize = (e) => {
+    if (!isResizingRef.current) return;
+    const newWidth = window.innerWidth - e.clientX;
+    if (newWidth > 320 && newWidth < 900) {
+      setWidth(newWidth);
+    }
+  };
+
+  const stopResize = () => {
+    isResizingRef.current = false;
+    document.removeEventListener("mousemove", resize);
+    document.removeEventListener("mouseup", stopResize);
+    document.body.style.cursor = "";
+    document.body.style.userSelect = "";
+  };
 
   // Auto-scroll to bottom of chat
   useEffect(() => {
@@ -77,7 +103,7 @@ export default function SidebarHelp({ open, onClose, t, isDark, tenantId }) {
 
   return (
     <div style={{
-      position: "fixed", top: 0, bottom: 0, right: 0, width: 380,
+      position: "fixed", top: 0, bottom: 0, right: 0, width: width,
       background: isDark ? "#1C1917" : "#FFFFFF",
       borderLeft: `1px solid ${t.surfaceBorder}`,
       boxShadow: "-6px 0 24px rgba(0,0,0,0.12)",
@@ -85,6 +111,23 @@ export default function SidebarHelp({ open, onClose, t, isDark, tenantId }) {
       zIndex: 10001,
       animation: "slideInFromRight 0.2s ease",
     }}>
+      {/* Resize Handle */}
+      <div
+        onMouseDown={startResize}
+        style={{
+          position: "absolute",
+          left: -3,
+          top: 0,
+          bottom: 0,
+          width: 8,
+          cursor: "col-resize",
+          background: "transparent",
+          transition: "background 0.2s",
+          zIndex: 10002,
+        }}
+        onMouseOver={e => e.currentTarget.style.background = "rgba(139, 92, 246, 0.25)"}
+        onMouseOut={e => e.currentTarget.style.background = "transparent"}
+      />
       {/* Header */}
       <div style={{ padding: "20px 24px", borderBottom: `1px solid ${t.surfaceBorder}`, display: "flex", alignItems: "center", justifyContent: "space-between", background: t.topbar }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
