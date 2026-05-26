@@ -1533,11 +1533,12 @@ exports.assignTenantOwner = functions.https.onCall(async (data, context) => {
  * Helper to fetch general tenant data for AI analysis in parallel and prune fields.
  */
 async function fetchTenantData(db, tenantId) {
-  const [dealsSnap, invSnap, ledgerSnap, scheduleSnap] = await Promise.all([
+  const [dealsSnap, invSnap, ledgerSnap, scheduleSnap, contactsSnap] = await Promise.all([
     db.collection(`tenants/${tenantId}/deals`).limit(100).get(),
     db.collection(`tenants/${tenantId}/investments`).limit(200).get(),
     db.collection(`tenants/${tenantId}/ledger`).limit(500).get(),
-    db.collection(`tenants/${tenantId}/paymentSchedules`).limit(500).get()
+    db.collection(`tenants/${tenantId}/paymentSchedules`).limit(500).get(),
+    db.collection(`tenants/${tenantId}/contacts`).limit(300).get()
   ]);
 
   return {
@@ -1592,7 +1593,16 @@ async function fetchTenantData(db, tenantId) {
           payment_date: d.payment_date || ""
         };
       })
-      .sort((a, b) => new Date(b.payment_date || 0) - new Date(a.payment_date || 0))
+      .sort((a, b) => new Date(b.payment_date || 0) - new Date(a.payment_date || 0)),
+    contacts: contactsSnap.docs.map(doc => {
+      const d = doc.data();
+      return {
+        id: doc.id,
+        first_name: d.first_name || "",
+        last_name: d.last_name || "",
+        contact_name: d.contact_name || d.party_name || ""
+      };
+    })
   };
 }
 
