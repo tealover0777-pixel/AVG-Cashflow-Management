@@ -72,6 +72,7 @@ export default function PageBackupRestore({ t, isDark, TENANTS = [] }) {
   const [isLoadingPreview, setIsLoadingPreview] = useState(false);
 
   // ── Retention Automation State ──
+  const [autoScheduleEnabled, setAutoScheduleEnabled] = useState(true);
   const [retentionAutoEnabled, setRetentionAutoEnabled] = useState(false);
   const [retentionScheduleTime, setRetentionScheduleTime] = useState("02:00");
   const [lastRetentionRun, setLastRetentionRun] = useState(null);
@@ -223,19 +224,19 @@ export default function PageBackupRestore({ t, isDark, TENANTS = [] }) {
         const configData = configSnap.data();
         setRetentionCount(configData.retentionCount ?? 14);
         setAutoSchedule(configData.autoSchedule ?? "daily");
+        setAutoScheduleEnabled(configData.autoScheduleEnabled ?? (configData.autoSchedule !== "disabled"));
       } else {
         // Defaults
         setRetentionCount(14);
         setAutoSchedule("daily");
+        setAutoScheduleEnabled(true);
       }
 
       // 2. Fetch Backups registry from global "backups" collection
       const backupsRef = collection(db, "backups");
-      const q = query(
-        backupsRef, 
-        where("tenantId", "==", selectedTenantId),
-        orderBy("createdAt", "desc")
-      );
+      const q = selectedTenantId === "T10004"
+        ? query(backupsRef, orderBy("createdAt", "desc"))
+        : query(backupsRef, where("tenantId", "==", selectedTenantId), orderBy("createdAt", "desc"));
       const snapshot = await getDocs(q);
       const backupsList = snapshot.docs.map(doc => {
         const data = doc.data();
@@ -852,6 +853,7 @@ export default function PageBackupRestore({ t, isDark, TENANTS = [] }) {
         setRetentionAutoEnabled(cfg.retentionAutoEnabled ?? false);
         setRetentionScheduleTime(cfg.retentionScheduleTime ?? "02:00");
         setLastRetentionRun(cfg.lastRetentionRun?.toDate ? cfg.lastRetentionRun.toDate().toISOString() : cfg.lastRetentionRun ?? null);
+        setAutoScheduleEnabled(cfg.autoScheduleEnabled ?? (cfg.autoSchedule !== "disabled"));
       }
     } catch (err) {
       console.warn("Could not load retention config:", err);
@@ -870,6 +872,7 @@ export default function PageBackupRestore({ t, isDark, TENANTS = [] }) {
       await setDoc(configRef, {
         retentionCount,
         autoSchedule,
+        autoScheduleEnabled,
         retentionAutoEnabled,
         retentionScheduleTime,
         updatedAt: serverTimestamp(),
@@ -1331,12 +1334,37 @@ export default function PageBackupRestore({ t, isDark, TENANTS = [] }) {
               </div>
 
               <div>
-                <label style={{ fontSize: 11, fontWeight: 700, color: t.textSecondary, textTransform: "uppercase", display: "block", marginBottom: 8, fontFamily: t.mono }}>
-                  Automated Schedule
-                </label>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                  <label style={{ fontSize: 11, fontWeight: 700, color: t.textSecondary, textTransform: "uppercase", fontFamily: t.mono }}>
+                    Automated Backup Schedule
+                  </label>
+                  <button
+                    onClick={() => setAutoScheduleEnabled(!autoScheduleEnabled)}
+                    style={{
+                      background: autoScheduleEnabled 
+                        ? (isDark ? "rgba(52,211,153,0.15)" : "#ECFDF5") 
+                        : (isDark ? "rgba(248,113,113,0.15)" : "#FEF2F2"),
+                      color: autoScheduleEnabled 
+                        ? (isDark ? "#34D399" : "#059669") 
+                        : (isDark ? "#F87171" : "#DC2626"),
+                      border: `1px solid ${autoScheduleEnabled ? (isDark ? "rgba(52,211,153,0.2)" : "#A7F3D0") : (isDark ? "rgba(248,113,113,0.2)" : "#FCA5A5")}`,
+                      borderRadius: 6,
+                      padding: "2px 8px",
+                      fontSize: 11,
+                      fontWeight: 700,
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 4
+                    }}
+                  >
+                    {autoScheduleEnabled ? "● Running" : "■ Paused"}
+                  </button>
+                </div>
                 <select
                   value={autoSchedule}
                   onChange={e => setAutoSchedule(e.target.value)}
+                  disabled={!autoScheduleEnabled}
                   style={{
                     width: "100%",
                     background: isDark ? "rgba(255,255,255,0.03)" : "#fff",
@@ -1346,16 +1374,16 @@ export default function PageBackupRestore({ t, isDark, TENANTS = [] }) {
                     padding: "10px 12px",
                     fontSize: 13.5,
                     outline: "none",
-                    cursor: "pointer"
+                    cursor: "pointer",
+                    opacity: autoScheduleEnabled ? 1 : 0.5
                   }}
                 >
-                  <option value="disabled">Disabled (Manual Only)</option>
                   <option value="daily">Daily at 00:00 UTC</option>
                   <option value="weekly">Weekly on Sundays</option>
                   <option value="monthly">Monthly on 1st</option>
                 </select>
                 <span style={{ fontSize: 11, color: t.textMuted, marginTop: 4, display: "block" }}>
-                  Scheduler invokes automated tenant task loops.
+                  {autoScheduleEnabled ? "Scheduler invokes automated tenant task loops." : "Automated backups are currently paused."}
                 </span>
               </div>
             </div>
@@ -1364,17 +1392,35 @@ export default function PageBackupRestore({ t, isDark, TENANTS = [] }) {
           {/* ── Retention Automation Row ── */}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, marginTop: 4 }}>
             <div>
-              <label style={{ fontSize: 11, fontWeight: 700, color: t.textSecondary, textTransform: "uppercase", display: "flex", alignItems: "center", gap: 6, marginBottom: 8, fontFamily: t.mono }}>
-                <Timer size={12} /> Auto Retention Cleanup
-              </label>
-              <label style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 13, cursor: "pointer", color: t.text }}>
-                <input
-                  type="checkbox"
-                  checked={retentionAutoEnabled}
-                  onChange={e => setRetentionAutoEnabled(e.target.checked)}
-                  style={{ width: 18, height: 18, accentColor: t.accent }}
-                />
-                Enable automatic snapshot pruning
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                <label style={{ fontSize: 11, fontWeight: 700, color: t.textSecondary, textTransform: "uppercase", display: "flex", alignItems: "center", gap: 6, fontFamily: t.mono }}>
+                  <Timer size={12} /> Auto Retention Cleanup
+                </label>
+                <button
+                  onClick={() => setRetentionAutoEnabled(!retentionAutoEnabled)}
+                  style={{
+                    background: retentionAutoEnabled 
+                      ? (isDark ? "rgba(52,211,153,0.15)" : "#ECFDF5") 
+                      : (isDark ? "rgba(248,113,113,0.15)" : "#FEF2F2"),
+                    color: retentionAutoEnabled 
+                      ? (isDark ? "#34D399" : "#059669") 
+                      : (isDark ? "#F87171" : "#DC2626"),
+                    border: `1px solid ${retentionAutoEnabled ? (isDark ? "rgba(52,211,153,0.2)" : "#A7F3D0") : (isDark ? "rgba(248,113,113,0.2)" : "#FCA5A5")}`,
+                    borderRadius: 6,
+                    padding: "2px 8px",
+                    fontSize: 11,
+                    fontWeight: 700,
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 4
+                  }}
+                >
+                  {retentionAutoEnabled ? "● Running" : "■ Paused"}
+                </button>
+              </div>
+              <label style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 13, color: t.text }}>
+                <span>Automatic snapshot pruning {retentionAutoEnabled ? "runs at schedule time." : "is paused."}</span>
               </label>
               <span style={{ fontSize: 11, color: t.textMuted, marginTop: 4, display: "block" }}>
                 {retentionAutoEnabled ? `Prunes beyond ${retentionCount} snapshots automatically.` : "Disabled — manual cleanup only."}
