@@ -1396,6 +1396,19 @@ export default function PageBackupRestore({ t, isDark, TENANTS = [] }) {
                 <label style={{ fontSize: 11, fontWeight: 700, color: t.textSecondary, textTransform: "uppercase", display: "flex", alignItems: "center", gap: 6, fontFamily: t.mono }}>
                   <Timer size={12} /> Auto Retention Cleanup
                 </label>
+              </div>
+              <label style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 13, color: t.text }}>
+                <span>Automatic snapshot pruning {retentionAutoEnabled ? "runs at schedule time." : "is paused."}</span>
+              </label>
+              <span style={{ fontSize: 11, color: t.textMuted, marginTop: 4, display: "block" }}>
+                {retentionAutoEnabled ? `Prunes beyond ${retentionCount} snapshots automatically.` : "Disabled — manual cleanup only."}
+              </span>
+            </div>
+            <div>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                <label style={{ fontSize: 11, fontWeight: 700, color: t.textSecondary, textTransform: "uppercase", display: "block", fontFamily: t.mono }}>
+                  Cleanup Schedule Time (UTC)
+                </label>
                 <button
                   onClick={() => setRetentionAutoEnabled(!retentionAutoEnabled)}
                   style={{
@@ -1419,17 +1432,6 @@ export default function PageBackupRestore({ t, isDark, TENANTS = [] }) {
                   {retentionAutoEnabled ? "● Running" : "■ Paused"}
                 </button>
               </div>
-              <label style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 13, color: t.text }}>
-                <span>Automatic snapshot pruning {retentionAutoEnabled ? "runs at schedule time." : "is paused."}</span>
-              </label>
-              <span style={{ fontSize: 11, color: t.textMuted, marginTop: 4, display: "block" }}>
-                {retentionAutoEnabled ? `Prunes beyond ${retentionCount} snapshots automatically.` : "Disabled — manual cleanup only."}
-              </span>
-            </div>
-            <div>
-              <label style={{ fontSize: 11, fontWeight: 700, color: t.textSecondary, textTransform: "uppercase", display: "block", marginBottom: 8, fontFamily: t.mono }}>
-                Cleanup Schedule Time (UTC)
-              </label>
               <input
                 type="time"
                 value={retentionScheduleTime}
