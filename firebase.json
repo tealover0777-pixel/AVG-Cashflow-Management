@@ -20,6 +20,10 @@
     ],
     "rewrites": [
       {
+        "source": "/api/askAIStream",
+        "function": "askAIStream"
+      },
+      {
         "source": "**",
         "destination": "/index.html"
       }

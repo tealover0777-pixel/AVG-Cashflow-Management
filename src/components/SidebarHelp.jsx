@@ -57,16 +57,55 @@ export default function SidebarHelp({ open, onClose, t, isDark, tenantId, width,
     setLoading(true);
 
     try {
-      const askAIFn = httpsCallable(functions, "askAI");
-      const result = await askAIFn({ query: userText, selectedTenantId: tenantId });
-      
+      const idToken = await user.getIdToken();
+      const response = await fetch('/api/askAIStream', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${idToken}`
+        },
+        body: JSON.stringify({ data: { query: userText, selectedTenantId: tenantId } })
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const aiMessageId = Date.now().toString() + "_ai";
+      setMessages(prev => [...prev, { id: aiMessageId, role: "model", text: "" }]);
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
       let aiResponseText = "";
-      if (result.data && result.data.success) {
-        aiResponseText = result.data.answer;
-      } else if (result.data && result.data.warning) {
-        aiResponseText = `⚠️ Warning: ${result.data.warning}`;
-      } else {
-        aiResponseText = "Received an invalid response from the assistant backend.";
+      let buffer = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        
+        buffer += decoder.decode(value, { stream: true });
+        const parts = buffer.split('\n\n');
+        buffer = parts.pop(); // keep the incomplete part in the buffer
+        
+        for (let part of parts) {
+          if (part.startsWith('data: ')) {
+            const dataStr = part.replace('data: ', '').trim();
+            if (dataStr) {
+              try {
+                const parsed = JSON.parse(dataStr);
+                if (parsed.error) {
+                   aiResponseText += `\n[Error: ${parsed.error}]`;
+                } else if (parsed.text) {
+                   aiResponseText += parsed.text;
+                }
+                
+                setMessages(prev => prev.map(m => m.id === aiMessageId ? { ...m, text: aiResponseText } : m));
+              } catch (e) {
+                // ignore parse error for incomplete JSON chunk if any
+              }
+            }
+          }
+        }
       }
 
       // Save Q&A to Firebase Storage (metadata logs)
@@ -74,15 +113,12 @@ export default function SidebarHelp({ open, onClose, t, isDark, tenantId, width,
         user_id: user?.uid || "unknown",
         user_email: user?.email || "unknown",
         question: userText,
-        answer: aiResponseText,
+        answer: aiResponseText || "No response.",
         feedback: null,
         status: "pending",
       });
 
-      setMessages(prev => [
-        ...prev,
-        { id: savedId, role: "model", text: aiResponseText, docId: savedId }
-      ]);
+      setMessages(prev => prev.map(m => m.id === aiMessageId ? { ...m, id: savedId, docId: savedId } : m));
 
     } catch (err) {
       console.error("Error from AI/Storage:", err);
