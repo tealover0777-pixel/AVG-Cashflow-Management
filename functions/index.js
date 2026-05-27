@@ -1779,7 +1779,7 @@ ${JSON.stringify(analysisData, null, 2)}`);
 
 const cors = require('cors')({ origin: true });
 
-exports.askAIStream = functions.https.onRequest((req, res) => {
+exports.askAIStream = functions.runWith({ secrets: ['GEMINI_API_KEY'] }).https.onRequest((req, res) => {
   cors(req, res, async () => {
     try {
       const authHeader = req.headers.authorization;
