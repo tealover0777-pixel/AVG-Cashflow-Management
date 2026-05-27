@@ -1882,8 +1882,14 @@ exports.askAIStream = functions.runWith({
       
       let functionCall = null;
       for await (const chunk of result.stream) {
-        if (chunk.functionCalls && chunk.functionCalls().length > 0) {
-          functionCall = chunk.functionCalls()[0];
+        let calls = null;
+        if (chunk.functionCalls) {
+          try {
+            calls = typeof chunk.functionCalls === 'function' ? chunk.functionCalls() : chunk.functionCalls;
+          } catch (err) {}
+        }
+        if (calls && calls.length > 0) {
+          functionCall = calls[0];
         }
         try {
           const t = chunk.text();
