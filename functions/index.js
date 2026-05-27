@@ -1779,8 +1779,30 @@ ${JSON.stringify(analysisData, null, 2)}`);
 
 const cors = require('cors')({ origin: true });
 
-exports.askAIStream = functions.runWith({ secrets: ['GEMINI_API_KEY'] }).https.onRequest((req, res) => {
+exports.askAIStream = functions.runWith({
+  timeoutSeconds: 300,
+  secrets: ['GEMINI_API_KEY']
+}).https.onRequest((req, res) => {
   cors(req, res, async () => {
+    // Helper to retry Gemini stream calls on transient errors
+    async function sendMessageStreamWithRetry(chat, content, retries = 3, delay = 1000) {
+      for (let i = 0; i < retries; i++) {
+        try {
+          return await chat.sendMessageStream(content);
+        } catch (error) {
+          const status = error.status || (error.message && error.message.match(/\[(\d+)\]/) ? parseInt(error.message.match(/\[(\d+)\]/)[1]) : null);
+          const isTransient = status === 503 || status === 500 || status === 429 || 
+                              error.message.includes('503') || error.message.includes('500') || error.message.includes('429');
+          if (isTransient && i < retries - 1) {
+            console.warn(`Transient Gemini API error (attempt ${i + 1}/${retries}): ${error.message}. Retrying in ${delay * Math.pow(2, i)}ms...`);
+            await new Promise(resolve => setTimeout(resolve, delay * Math.pow(2, i)));
+            continue;
+          }
+          throw error;
+        }
+      }
+    }
+
     try {
       const authHeader = req.headers.authorization;
       if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -1856,7 +1878,7 @@ exports.askAIStream = functions.runWith({ secrets: ['GEMINI_API_KEY'] }).https.o
       });
       const chat = model.startChat();
 
-      const result = await chat.sendMessageStream(query);
+      const result = await sendMessageStreamWithRetry(chat, query);
       
       let functionCall = null;
       for await (const chunk of result.stream) {
@@ -1887,7 +1909,7 @@ exports.askAIStream = functions.runWith({ secrets: ['GEMINI_API_KEY'] }).https.o
            await Promise.all(tasks);
         }
 
-        const followUp = await chat.sendMessageStream([{
+        const followUp = await sendMessageStreamWithRetry(chat, [{
           functionResponse: {
             name: functionCall.name,
             response: analysisData
