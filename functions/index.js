@@ -1849,13 +1849,12 @@ exports.askAIStream = functions.https.onRequest((req, res) => {
         }]
       }];
 
-      const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash", tools });
-      const chat = model.startChat({
-         systemInstruction: `You are an expert financial analysis assistant for AVG Cashflow Management. 
-Your task is to analyze the user's query and if you need data, call fetch_data with the exact categories needed.
-Only fetch what is necessary. Once you have the data, answer the user professionally.
-Do not mention user IDs or internal document paths.`
+      const model = genAI.getGenerativeModel({ 
+        model: "gemini-2.5-flash", 
+        tools,
+        systemInstruction: `You are an expert financial analysis assistant for AVG Cashflow Management. \nYour task is to analyze the user's query and if you need data, call fetch_data with the exact categories needed.\nOnly fetch what is necessary. Once you have the data, answer the user professionally.\nDo not mention user IDs or internal document paths.`
       });
+      const chat = model.startChat();
 
       const result = await chat.sendMessageStream(query);
       
