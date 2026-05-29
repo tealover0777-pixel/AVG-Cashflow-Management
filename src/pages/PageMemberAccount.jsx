@@ -495,10 +495,16 @@ export default function PageMemberAccount({
 
   // Recent Activity timeline mapper
   const recentActivity = useMemo(() => {
+    const getTimestamp = (val) => {
+      if (!val) return 0;
+      if (typeof val === "object" && val.seconds) return val.seconds * 1000;
+      const t = new Date(val).getTime();
+      return isNaN(t) ? 0 : t;
+    };
     return [...partySchedules]
       .sort((a, b) => {
-        const dateA = new Date(a.receivedDate || a.dueDate || a.date || 0).getTime();
-        const dateB = new Date(b.receivedDate || b.dueDate || b.date || 0).getTime();
+        const dateA = getTimestamp(a.updated_at || a.receivedDate || a.dueDate || a.date);
+        const dateB = getTimestamp(b.updated_at || b.receivedDate || b.dueDate || b.date);
         return dateB - dateA;
       })
       .slice(0, 5);
@@ -558,10 +564,14 @@ export default function PageMemberAccount({
     }
   };
 
-  const formatDate = (dateStr) => {
-    if (!dateStr) return "—";
-    const d = new Date(dateStr);
-    if (isNaN(d.getTime())) return dateStr;
+  const formatDate = (dateVal) => {
+    if (!dateVal) return "—";
+    if (typeof dateVal === "object" && dateVal.seconds) {
+      const d = new Date(dateVal.seconds * 1000);
+      return d.toLocaleDateString("en-US", { month: "short", day: "2-digit", year: "numeric" });
+    }
+    const d = new Date(dateVal);
+    if (isNaN(d.getTime())) return String(dateVal);
     return d.toLocaleDateString("en-US", { month: "short", day: "2-digit", year: "numeric" });
   };
 
@@ -1108,7 +1118,7 @@ export default function PageMemberAccount({
                                 <p style={{ fontSize: "13px", fontWeight: 600, color: isDark ? "#fff" : "#111827", margin: "0" }}>{details.title}</p>
                                 <p style={{ fontSize: "11px", color: t.textMuted, margin: "2px 0 0 0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{details.sub}</p>
                               </div>
-                              <span style={{ fontSize: "11px", color: t.textMuted }} className="tabular-nums">{formatDate(item.receivedDate || item.dueDate || item.date)}</span>
+                              <span style={{ fontSize: "11px", color: t.textMuted }} className="tabular-nums">{formatDate(item.updated_at || item.receivedDate || item.dueDate || item.date)}</span>
                             </div>
                             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "8px" }}>
                               <span style={{ fontSize: "14px", fontWeight: 700, color: details.amtColor }} className="tabular-nums">
