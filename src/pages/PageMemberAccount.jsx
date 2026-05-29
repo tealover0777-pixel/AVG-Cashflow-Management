@@ -186,8 +186,8 @@ export default function PageMemberAccount({
 
   const distributedAmount = useMemo(() => {
     return distributions.reduce((sum, s) => {
-      const st = (s.status || s.PaymentStatus || "").trim();
-      if (st === "Paid" || st === "Partial") {
+      const st = (s.status || s.PaymentStatus || "").trim().toLowerCase();
+      if (st === "paid" || st === "distributed" || st === "completed" || st === "settled" || st === "partial") {
         return sum + (Number(s.signed_payment_amount || s.payment_amount || String(s.amount || 0).replace(/[^0-9.-]/g, '')) || 0);
       }
       return sum;
@@ -219,15 +219,18 @@ export default function PageMemberAccount({
       );
       
       const totalDist = invSchedules.reduce((sum, s) => {
-        const st = (s.status || s.PaymentStatus || "").trim();
-        if (st === "Paid" || st === "Partial") {
+        const st = (s.status || s.PaymentStatus || "").trim().toLowerCase();
+        if (st === "paid" || st === "distributed" || st === "completed" || st === "settled" || st === "partial") {
           return sum + (Number(s.signed_payment_amount || s.payment_amount || s.amount || 0) || 0);
         }
         return sum;
       }, 0);
 
       const paidSchedules = invSchedules
-        .filter(s => (s.status || s.PaymentStatus || "").trim() === "Paid")
+        .filter(s => {
+          const st = (s.status || s.PaymentStatus || "").trim().toLowerCase();
+          return st === "paid" || st === "distributed" || st === "completed" || st === "settled" || st === "partial";
+        })
         .sort((a, b) => new Date(b.receivedDate || b.dueDate || b.date).getTime() - new Date(a.receivedDate || a.dueDate || a.date).getTime());
       
       const lastDate = paidSchedules.length > 0 ? (paidSchedules[0].receivedDate || paidSchedules[0].dueDate || paidSchedules[0].date) : null;
@@ -699,8 +702,8 @@ export default function PageMemberAccount({
                             ((s.payment_type || s.type || "").toLowerCase().includes("interest") || (s.payment_type || s.type || "").toLowerCase().includes("distribution"))
                           )
                           .reduce((sum, s) => {
-                            const st = (s.status || s.PaymentStatus || "").trim();
-                            if (st === "Paid" || st === "Partial") {
+                            const st = (s.status || s.PaymentStatus || "").trim().toLowerCase();
+                            if (st === "paid" || st === "distributed" || st === "completed" || st === "settled" || st === "partial") {
                               return sum + (Number(s.signed_payment_amount || s.payment_amount || s.amount || 0) || 0);
                             }
                             return sum;

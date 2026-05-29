@@ -318,8 +318,8 @@ export const InvestorSummaryModal = ({
       return ty.includes("interest") || ty.includes("distribution");
   });
   const distributedAmount = distributions.reduce((sum, s) => {
-    const st = (s.status || s.PaymentStatus || "").trim();
-    if (st === "Paid" || st === "Partial") {
+    const st = (s.status || s.PaymentStatus || "").trim().toLowerCase();
+    if (st === "paid" || st === "distributed" || st === "completed" || st === "settled" || st === "partial") {
       return sum + (Number(s.signed_payment_amount || s.payment_amount || String(s.amount || 0).replace(/[^0-9.-]/g,'')) || 0);
     }
     return sum;
@@ -706,8 +706,8 @@ export const InvestorSummaryModal = ({
           return true;
         });
         const filteredTotal = filteredDist.reduce((sum, s) => {
-          const st = (s.status || s.PaymentStatus || "").trim();
-          if (st === "Paid" || st === "Partial") {
+          const st = (s.status || s.PaymentStatus || "").trim().toLowerCase();
+          if (st === "paid" || st === "distributed" || st === "completed" || st === "settled" || st === "partial") {
             return sum + (Number(s.signed_payment_amount || s.payment_amount || String(s.amount || 0).replace(/[^0-9.-]/g,'')) || 0);
           }
           return sum;
