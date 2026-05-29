@@ -509,21 +509,22 @@ export default function PageMemberAccount({
     const status = (item.status || item.PaymentStatus || "").toLowerCase();
     const deal = DEALS.find(d => d.id === item.deal_id);
     const dealName = deal?.name || item.deal_id || "Portfolio";
+    const isPaid = status === "paid" || status === "distributed" || status === "completed" || status === "settled";
 
     if (type.includes("interest") || type.includes("distribution")) {
       return {
-        title: "Interest Paid",
+        title: isPaid ? "Interest Paid" : "Interest Due",
         sub: `${dealName} Investment`,
         icon: Coins,
-        iconColor: isDark ? "#34D399" : "#10B981",
-        iconBg: isDark ? "rgba(52, 211, 153, 0.1)" : "#ECFDF5",
-        iconBorder: isDark ? "rgba(52, 211, 153, 0.2)" : "#A7F3D0",
-        amtColor: isDark ? "#34D399" : "#10B981",
-        prefix: "+"
+        iconColor: isPaid ? (isDark ? "#34D399" : "#10B981") : (isDark ? "#FBBF24" : "#D97706"),
+        iconBg: isPaid ? (isDark ? "rgba(52, 211, 153, 0.1)" : "#ECFDF5") : (isDark ? "rgba(251, 191, 36, 0.1)" : "#FEF3C7"),
+        iconBorder: isPaid ? (isDark ? "rgba(52, 211, 153, 0.2)" : "#A7F3D0") : (isDark ? "rgba(251, 191, 36, 0.2)" : "#FDE68A"),
+        amtColor: isPaid ? (isDark ? "#34D399" : "#10B981") : (isDark ? "#FBBF24" : "#D97706"),
+        prefix: isPaid ? "+" : ""
       };
     } else if (type.includes("principal_deposit") || type.includes("deposit") || type.includes("fund")) {
       return {
-        title: "Capital Investment",
+        title: isPaid ? "Capital Investment" : "Capital Investment (Scheduled)",
         sub: `${dealName}`,
         icon: PlusCircle,
         iconColor: isDark ? "#818CF8" : "#4a20dd",
@@ -532,20 +533,20 @@ export default function PageMemberAccount({
         amtColor: isDark ? "#fff" : "#1C1917",
         prefix: ""
       };
-    } else if (status.includes("withdrawal") || type.includes("withdrawal") || type.includes("repayment")) {
+    } else if (status.includes("withdrawal") || type.includes("withdrawal") || type.includes("repayment") || type.includes("principal_payment")) {
       return {
-        title: "Return of Capital",
+        title: isPaid ? "Return of Capital" : "Return of Capital (Due)",
         sub: `${dealName} (Exit)`,
         icon: Undo,
-        iconColor: isDark ? "#FBBF24" : "#D97706",
-        iconBg: isDark ? "rgba(251, 191, 36, 0.1)" : "#FEF3C7",
-        iconBorder: isDark ? "rgba(251, 191, 36, 0.2)" : "#FDE68A",
-        amtColor: isDark ? "#FBBF24" : "#D97706",
-        prefix: "-"
+        iconColor: isPaid ? (isDark ? "#FBBF24" : "#D97706") : (isDark ? "#A78BFA" : "#7C3AED"),
+        iconBg: isPaid ? (isDark ? "rgba(251, 191, 36, 0.1)" : "#FEF3C7") : (isDark ? "rgba(139, 92, 246, 0.1)" : "#F3E8FF"),
+        iconBorder: isPaid ? (isDark ? "rgba(251, 191, 36, 0.2)" : "#FDE68A") : (isDark ? "rgba(139, 92, 246, 0.25)" : "#E9D5FF"),
+        amtColor: isPaid ? (isDark ? "#FBBF24" : "#D97706") : (isDark ? "#A78BFA" : "#7C3AED"),
+        prefix: isPaid ? "-" : ""
       };
     } else {
       return {
-        title: item.payment_type || item.type || "Transaction",
+        title: isPaid ? (item.payment_type || item.type || "Transaction") : `${item.payment_type || item.type || "Transaction"} (Due)`,
         sub: `${dealName}`,
         icon: Coins,
         iconColor: isDark ? "#818CF8" : "#4a20dd",
