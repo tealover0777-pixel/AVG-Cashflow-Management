@@ -1378,7 +1378,8 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
         const docRef = await addDoc(collection(db, collectionPath), {
           ...payload,
           created_at: serverTimestamp(),
-          updated_at: serverTimestamp()
+          updated_at: serverTimestamp(),
+          updated_by: user?.displayName || user?.email || user?.uid || "system"
         });
         // If this was a late payment, link back to original
         if ((modal.mode === "add_late" || modal.mode === "add_partial") && modal.originalDocId) {
@@ -1449,7 +1450,11 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
           const s = SCHEDULES.find(s => s.schedule_id === sid);
           if (s && s.docId) {
             const ref = s._path ? doc(db, s._path) : doc(db, collectionPath, s.docId);
-            return updateDoc(ref, { status, updated_at: serverTimestamp() });
+            return updateDoc(ref, {
+              status,
+              updated_at: serverTimestamp(),
+              updated_by: user?.displayName || user?.email || user?.uid || "system"
+            });
           }
           return Promise.resolve();
         }));
@@ -1782,7 +1787,11 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
                   if (s && s.docId) {
                     try {
                       const ref = s._path ? doc(db, s._path) : doc(db, collectionPath, s.docId);
-                      await updateDoc(ref, { status: newStatus, updated_at: serverTimestamp() });
+                      await updateDoc(ref, {
+                        status: newStatus,
+                        updated_at: serverTimestamp(),
+                        updated_by: user?.displayName || user?.email || user?.uid || "system"
+                      });
                     } catch (err) {
                       console.error("Update error:", err);
                     }
@@ -1819,7 +1828,11 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
           const s = distMemoDrillDown.schedules.find(s => s.schedule_id === sid);
           if (s && s.docId) {
             const ref = s._path ? doc(db, s._path) : doc(db, collectionPath, s.docId);
-            return updateDoc(ref, { status, updated_at: serverTimestamp() });
+            return updateDoc(ref, {
+              status,
+              updated_at: serverTimestamp(),
+              updated_by: user?.displayName || user?.email || user?.uid || "system"
+            });
           }
           return Promise.resolve();
         }));
