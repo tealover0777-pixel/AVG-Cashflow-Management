@@ -1115,7 +1115,31 @@ export default function PageMemberAccount({
                           <div style={{ flex: 1, minWidth: 0 }}>
                             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
                               <div>
-                                <p style={{ fontSize: "13px", fontWeight: 600, color: isDark ? "#fff" : "#111827", margin: "0" }}>{details.title}</p>
+                                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                                  <p style={{ fontSize: "13px", fontWeight: 600, color: isDark ? "#fff" : "#111827", margin: "0" }}>{details.title}</p>
+                                  <span style={{ 
+                                    fontSize: "9px", 
+                                    fontWeight: 700, 
+                                    textTransform: "uppercase", 
+                                    padding: "2px 6px", 
+                                    borderRadius: "4px",
+                                    letterSpacing: "0.03em",
+                                    lineHeight: 1,
+                                    background: item.status?.toLowerCase() === "paid" || item.status?.toLowerCase() === "distributed" || item.status?.toLowerCase() === "completed" || item.status?.toLowerCase() === "settled" 
+                                      ? (isDark ? "rgba(52, 211, 153, 0.12)" : "#E6F4EA") 
+                                      : (isDark ? "rgba(251, 191, 36, 0.12)" : "#FEF7E0"),
+                                    color: item.status?.toLowerCase() === "paid" || item.status?.toLowerCase() === "distributed" || item.status?.toLowerCase() === "completed" || item.status?.toLowerCase() === "settled" 
+                                      ? (isDark ? "#34D399" : "#137333") 
+                                      : (isDark ? "#FBBF24" : "#B06000"),
+                                    border: `1px solid ${
+                                      item.status?.toLowerCase() === "paid" || item.status?.toLowerCase() === "distributed" || item.status?.toLowerCase() === "completed" || item.status?.toLowerCase() === "settled" 
+                                        ? (isDark ? "rgba(52, 211, 153, 0.25)" : "#CEEAD6") 
+                                        : (isDark ? "rgba(251, 191, 36, 0.25)" : "#FADF91")
+                                    }`
+                                  }}>
+                                    {item.status || "Due"}
+                                  </span>
+                                </div>
                                 <p style={{ fontSize: "11px", color: t.textMuted, margin: "2px 0 0 0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{details.sub}</p>
                               </div>
                               <span style={{ fontSize: "11px", color: t.textMuted }} className="tabular-nums">{formatDate(item.updated_at || item.receivedDate || item.dueDate || item.date)}</span>
