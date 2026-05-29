@@ -1012,12 +1012,14 @@ function AppContent() {
               </span>
               <span style={{ color: t.textSecondary }}>Profile</span>
             </span>
-            <Tooltip text="Ask AI Assistant" t={t}>
-              <button className="theme-toggle" onClick={() => setHelpOpen(true)}
-                style={{ background: isDark ? "rgba(139, 92, 246, 0.1)" : "#F3E8FF", color: isDark ? "#A78BFA" : "#7C3AED", border: `1px solid ${isDark ? "rgba(139, 92, 246, 0.25)" : "#E9D5FF"}`, padding: "4px 12px", borderRadius: 6, fontSize: 12, fontWeight: 500, display: "flex", alignItems: "center", gap: 6 }}>
-                <Sparkles size={14} /> Ask AI
-              </button>
-            </Tooltip>
+            {hasPermission && hasPermission("AIASSISTANT") && (
+              <Tooltip text="Ask AI Assistant" t={t}>
+                <button className="theme-toggle" onClick={() => setHelpOpen(true)}
+                  style={{ background: isDark ? "rgba(139, 92, 246, 0.1)" : "#F3E8FF", color: isDark ? "#A78BFA" : "#7C3AED", border: `1px solid ${isDark ? "rgba(139, 92, 246, 0.25)" : "#E9D5FF"}`, padding: "4px 12px", borderRadius: 6, fontSize: 12, fontWeight: 500, display: "flex", alignItems: "center", gap: 6 }}>
+                  <Sparkles size={14} /> Ask AI
+                </button>
+              </Tooltip>
+            )}
             <Tooltip text={isDark ? "Switch to light theme" : "Switch to dark theme"} t={t}>
               <button className="theme-toggle" onClick={() => setIsDark(!isDark)}
                 style={{ background: isDark ? "rgba(52,211,153,0.1)" : "#EEF2FF", color: isDark ? "#34D399" : "#4F46E5", border: `1px solid ${isDark ? "rgba(52,211,153,0.25)" : "#C7D2FE"}`, padding: "4px 12px", borderRadius: 6, fontSize: 12, fontWeight: 500, display: "flex", alignItems: "center", gap: 6 }}>
@@ -1106,7 +1108,9 @@ function AppContent() {
               )}
         </div>
       </div>
-      <SidebarHelp open={helpOpen} onClose={() => setHelpOpen(false)} t={t} isDark={isDark} tenantId={activeTenantId} width={helpWidth} setWidth={setHelpWidth} />
+      {hasPermission && hasPermission("AIASSISTANT") && (
+        <SidebarHelp open={helpOpen} onClose={() => setHelpOpen(false)} t={t} isDark={isDark} tenantId={activeTenantId} width={helpWidth} setWidth={setHelpWidth} />
+      )}
     </div>
   );
 }
