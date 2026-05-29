@@ -1375,7 +1375,11 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
           updated_at: serverTimestamp() 
         });
       } else {
-        const docRef = await addDoc(collection(db, collectionPath), { ...payload, created_at: serverTimestamp() });
+        const docRef = await addDoc(collection(db, collectionPath), {
+          ...payload,
+          created_at: serverTimestamp(),
+          updated_at: serverTimestamp()
+        });
         // If this was a late payment, link back to original
         if ((modal.mode === "add_late" || modal.mode === "add_partial") && modal.originalDocId) {
           const orig = SCHEDULES.find(s => s.docId === modal.originalDocId);

@@ -10,7 +10,7 @@ import { useAuth } from "../AuthContext";
 import { Check, Plus, Construction, AlertTriangle, FileCheck, CreditCard } from "lucide-react";
 
 export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [], CONTACTS = [], DIMENSIONS = [], FEES_DATA = [], SCHEDULES = [], LEDGER = [], USERS = [], collectionPath = "", schedulePath = "", tenantId = "" }) {
-  const { hasPermission, isSuperAdmin } = useAuth();
+  const { hasPermission, isSuperAdmin, user } = useAuth();
   const canView = isSuperAdmin || hasPermission("Administration_view");
   const canCreate = isSuperAdmin || hasPermission("Administration_create");
   const canUpdate = isSuperAdmin || hasPermission("Administration_update");
@@ -635,14 +635,20 @@ export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [
                 version_id: vId,
                 payment_id: existing.payment_id || existing.schedule_id,
                 notes: `${newEntry.notes} (Refreshed ${todayStr})`,
-                updated_at: serverTimestamp()
+                updated_at: serverTimestamp(),
+                updated_by: user?.displayName || user?.email || user?.uid || "system"
               });
               totalUpdated++;
             }
           } else {
             const isLocked = lockedSchedules.some(s => s.due_date === newEntry.due_date && s.payment_type === newEntry.payment_type && (s.fee_id || "") === (newEntry.fee_id || ""));
             if (!isLocked) {
-              await addDoc(collection(db, schedulePath), newEntry);
+              await addDoc(collection(db, schedulePath), {
+                ...newEntry,
+                created_at: serverTimestamp(),
+                updated_at: serverTimestamp(),
+                updated_by: user?.displayName || user?.email || user?.uid || "system"
+              });
               totalCreated++;
             }
           }
