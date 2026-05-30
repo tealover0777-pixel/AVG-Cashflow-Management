@@ -1,0 +1,11 @@
+# AVG Cashflow Management Agentic Settings
+
+## Mandatory Pre-Flight Checks
+Before proposing or executing any updates (including creating implementation plans, writing code, or modifying data models), you MUST perform the following checks:
+
+1. **Review Central Dimensions Page:**
+   - Always read and analyze the current state of `src/pages/PageDimensions.jsx` (and ideally the dimensions audit history) during the Planning phase.
+   - Do NOT rely on local file context or manual fallback values for dimension items (e.g. `PaymentStatus`, `ContactRole`, etc.).
+   - If a dimension item or status is being modified or added, verify against the central dimension definitions.
+
+By embedding this in the Perceive -> Plan -> Act loop, we ensure that the dimensions definitions act as the single source of truth across the application.
