@@ -564,6 +564,27 @@ export const av = (name, isDark) => isDark
 
 export const badge = (status, isDark) => {
   const norm = status ? status.charAt(0).toUpperCase() + status.slice(1).toLowerCase() : "";
+  
+  if (status && typeof window !== "undefined" && window.__dimensions) {
+    for (const dim of window.__dimensions) {
+      if (Array.isArray(dim.items)) {
+        const found = dim.items.find(item => {
+          if (item && typeof item === "object") {
+            return (item.value || "").toLowerCase() === status.toLowerCase() || (item.label || "").toLowerCase() === status.toLowerCase();
+          }
+          return typeof item === "string" && item.toLowerCase() === status.toLowerCase();
+        });
+        if (found && typeof found === "object" && found.color) {
+          const hex = found.color;
+          const bg = isDark ? `${hex}25` : `${hex}15`;
+          const text = hex;
+          const border = isDark ? `${hex}40` : `${hex}30`;
+          return [bg, text, border];
+        }
+      }
+    }
+  }
+
   const map = {
     Active: [isDark ? "rgba(52,211,153,0.15)" : "#ECFDF5", isDark ? "#34D399" : "#059669", isDark ? "rgba(52,211,153,0.3)" : "#A7F3D0"],
     Open: [isDark ? "rgba(96,165,250,0.15)" : "#EFF6FF", isDark ? "#60A5FA" : "#2563EB", isDark ? "rgba(96,165,250,0.3)" : "#BFDBFE"],

@@ -111,15 +111,31 @@ function processItems(items, filterDir) {
   if (!Array.isArray(items)) return [];
   
   let result = items;
+  
+  // Filter inactive items
+  result = result.filter(item => {
+    if (item && typeof item === 'object') {
+      return item.active !== false;
+    }
+    return true;
+  });
+
   if (filterDir) {
-    result = items.filter(item => {
+    result = result.filter(item => {
       if (typeof item === 'string') return true;
       const dir = (item?.direction || '').toUpperCase();
       return dir === filterDir || dir === 'BOTH';
     });
   }
 
-  return result.map(item => {
+  // Sort by order if available
+  const sorted = [...result].sort((a, b) => {
+    const orderA = (a && typeof a === 'object' && typeof a.order === 'number') ? a.order : 999;
+    const orderB = (b && typeof b === 'object' && typeof b.order === 'number') ? b.order : 999;
+    return orderA - orderB;
+  });
+
+  return sorted.map(item => {
     if (typeof item === 'string') return item;
     return item?.value || item?.label || '';
   }).filter(Boolean);
@@ -146,11 +162,7 @@ export function getDimension(DIMENSIONS = [], name) {
   // 1. Direct lookup
   const found = DIMENSIONS.find(d => d && d.name === name);
   if (found?.items?.length) {
-    // If it's PaymentType we resolve values, otherwise return raw items (which might be objects like in Fees/Permissions, or flat strings)
-    if (name === "PaymentType") {
-      return processItems(found.items);
-    }
-    return found.items;
+    return processItems(found.items);
   }
 
   // 2. Try canonical alias
@@ -161,10 +173,7 @@ export function getDimension(DIMENSIONS = [], name) {
     }
     const aliased = DIMENSIONS.find(d => d && d.name === canonical);
     if (aliased?.items?.length) {
-      if (canonical === "PaymentType") {
-        return processItems(aliased.items);
-      }
-      return aliased.items;
+      return processItems(aliased.items);
     }
   }
 
@@ -176,10 +185,7 @@ export function getDimension(DIMENSIONS = [], name) {
     for (const alias of allAliases) {
       const dim = DIMENSIONS.find(d => d && d.name === alias);
       if (dim?.items?.length) {
-        if (canonical === "PaymentType") {
-          return processItems(dim.items);
-        }
-        return dim.items;
+        return processItems(dim.items);
       }
     }
   }

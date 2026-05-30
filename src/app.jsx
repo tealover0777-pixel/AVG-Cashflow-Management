@@ -795,6 +795,10 @@ function AppContent() {
     return { name: d.category || d.name || d.id, items, ...style, doc_id: d.id || d.doc_id };
   });
 
+  if (typeof window !== "undefined") {
+    window.__dimensions = DIMENSIONS;
+  }
+
   const nav = getNav(isSuperAdmin, isTenantAdmin, hasPermission, isR10010, isMember);
 
   if (isAuthAction) {

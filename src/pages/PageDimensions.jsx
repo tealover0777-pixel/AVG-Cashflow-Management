@@ -19,13 +19,36 @@ export default function PageDimensions({ t, isDark, DIMENSIONS = [], rawDimensio
   const [toast, setToast] = useState(null);
   const showToast = (msg, type = "info") => { setToast({ msg, type }); setTimeout(() => setToast(null), 4000); };
   const [confirmDelete, setConfirmDelete] = useState(null);
-  const [editingItem, setEditingItem] = useState(null); // { group, item, value }
+  const [editingItem, setEditingItem] = useState(null); // { groupName, originalItem, item }
 
   const getRawDoc = (name) => rawDimensions.find(d => (d.category || d.name || d.id) === name);
   const getItemsField = (rawDoc) => {
     if (!rawDoc) return "items";
     if (Array.isArray(rawDoc.options)) return "options";
     return "items";
+  };
+
+  const normalizeItem = (item, index) => {
+    if (!item) return { value: "", label: "", order: index + 1, active: true, color: "#9CA3AF" };
+    if (typeof item === "object") {
+      return {
+        value: item.value || item.label || "",
+        label: item.label || item.value || "",
+        order: typeof item.order === "number" ? item.order : index + 1,
+        active: item.active !== false,
+        color: item.color || "#9CA3AF",
+        ...item
+      };
+    }
+    const isMap = typeof item === "string" && item.includes(":");
+    const [label, val] = isMap ? item.split(":") : [item, null];
+    return {
+      value: val || label,
+      label: label,
+      order: index + 1,
+      active: true,
+      color: "#9CA3AF"
+    };
   };
 
   const handleAdd = async (groupName) => {
@@ -36,18 +59,30 @@ export default function PageDimensions({ t, isDark, DIMENSIONS = [], rawDimensio
     const field = getItemsField(rawDoc);
     const current = rawDoc[field] || [];
     
-    const isRich = current.some(v => v && typeof v === "object");
-    const valToAdd = isRich ? { value: val, label: val, direction: "BOTH" } : val;
+    // Always add new items as rich objects
+    const nextOrder = current.length + 1;
+    const valToAdd = {
+      value: val,
+      label: val,
+      order: nextOrder,
+      color: "#9CA3AF",
+      active: true,
+      ...(groupName === "PaymentType" ? { direction: "BOTH" } : {})
+    };
 
     const exists = current.some(v => {
       const existingStr = (v && typeof v === "object") ? (v.value || v.label || "") : v;
       return existingStr.toLowerCase() === val.toLowerCase();
     });
-    if (exists) return;
+    if (exists) {
+      showToast(`"${val}" already exists.`, "error");
+      return;
+    }
 
     try {
       await updateDoc(doc(db, collectionPath, rawDoc.doc_id), { [field]: [...current, valToAdd] });
       setNewVals(v => ({ ...v, [groupName]: "" }));
+      showToast("Value added successfully.", "success");
     } catch (err) {
       console.error("Add dimension value error:", err);
       showToast("Failed to add value: " + (err.message || err), "error");
@@ -61,6 +96,7 @@ export default function PageDimensions({ t, isDark, DIMENSIONS = [], rawDimensio
     const current = rawDoc[field] || [];
     try {
       await updateDoc(doc(db, collectionPath, rawDoc.doc_id), { [field]: current.filter(v => v !== item) });
+      showToast("Value removed.", "success");
     } catch (err) {
       console.error("Remove dimension value error:", err);
       showToast("Failed to remove value: " + (err.message || err), "error");
@@ -75,17 +111,22 @@ export default function PageDimensions({ t, isDark, DIMENSIONS = [], rawDimensio
     try {
       await deleteDoc(doc(db, collectionPath, rawDoc.doc_id));
       if (editing === groupName) setEditing(null);
+      showToast("Dimension deleted.", "success");
     } catch (err) {
       console.error("Delete dimension error:", err);
       showToast("Failed to delete dimension: " + (err.message || err), "error");
     }
   };
 
-  const handleRenameItem = async (groupName, oldVal, newVal) => {
-    const trimmed = newVal.trim();
-    if (!trimmed) { setEditingItem(null); return; }
-    const oldStr = (oldVal && typeof oldVal === "object") ? (oldVal.label || oldVal.value || "") : oldVal;
-    if (trimmed === oldStr) { setEditingItem(null); return; }
+  const handleSaveItemDetails = async () => {
+    if (!editingItem) return;
+    const { groupName, originalItem, item } = editingItem;
+    const trimmedVal = item.value.trim();
+    const trimmedLab = item.label.trim();
+    if (!trimmedVal || !trimmedLab) {
+      showToast("Value and Label are required.", "error");
+      return;
+    }
 
     const rawDoc = getRawDoc(groupName);
     if (!rawDoc) return;
@@ -93,26 +134,35 @@ export default function PageDimensions({ t, isDark, DIMENSIONS = [], rawDimensio
     const current = rawDoc[field] || [];
 
     const exists = current.some(v => {
-      const existingStr = (v && typeof v === "object") ? (v.label || v.value || "") : v;
-      return existingStr.toLowerCase() === trimmed.toLowerCase() && v !== oldVal;
+      if (v === originalItem) return false;
+      const existingStr = (v && typeof v === "object") ? (v.value || v.label || "") : v;
+      return existingStr.toLowerCase() === trimmedVal.toLowerCase();
     });
-    if (exists) { showToast(`"${trimmed}" already exists.`, "error"); return; }
+    if (exists) {
+      showToast(`An item with value "${trimmedVal}" already exists in this dimension.`, "error");
+      return;
+    }
 
     try {
       const updatedList = current.map(v => {
-        if (v === oldVal) {
-          if (v && typeof v === "object") {
-            return { ...v, label: trimmed, value: v.value || trimmed };
-          }
-          return trimmed;
+        if (v === originalItem) {
+          return {
+            ...item,
+            value: trimmedVal,
+            label: trimmedLab,
+            order: Number(item.order) || 1,
+            active: !!item.active
+          };
         }
         return v;
       });
+
       await updateDoc(doc(db, collectionPath, rawDoc.doc_id), { [field]: updatedList });
       setEditingItem(null);
+      showToast("Configuration saved successfully.", "success");
     } catch (err) {
-      console.error("Rename dimension value error:", err);
-      showToast("Failed to rename value: " + (err.message || err), "error");
+      console.error("Save item details error:", err);
+      showToast("Failed to save configuration: " + (err.message || err), "error");
     }
   };
 
@@ -120,7 +170,17 @@ export default function PageDimensions({ t, isDark, DIMENSIONS = [], rawDimensio
     if (!newName.trim()) return;
     setLoading(true);
     try {
-      const items = newValuesStr.split(",").map(v => v.trim()).filter(Boolean);
+      const items = newValuesStr.split(",").map((v, index) => {
+        const val = v.trim();
+        return {
+          value: val,
+          label: val,
+          order: index + 1,
+          active: true,
+          color: "#9CA3AF"
+        };
+      }).filter(item => item.value);
+
       await addDoc(collection(db, collectionPath), {
         category: newName.trim(),
         items: items,
@@ -129,6 +189,7 @@ export default function PageDimensions({ t, isDark, DIMENSIONS = [], rawDimensio
       setShowNewModal(false);
       setNewName("");
       setNewValuesStr("");
+      showToast("Dimension created successfully.", "success");
     } catch (err) {
       console.error("Create dimension error:", err);
       showToast("Failed to create dimension: " + (err.message || err), "error");
@@ -175,56 +236,57 @@ export default function PageDimensions({ t, isDark, DIMENSIONS = [], rawDimensio
               </div>
             </div>
             <div style={{ padding: "16px 20px", display: "flex", flexWrap: "wrap", gap: 8 }}>
-              {g.items.map((item, index) => {
-                const isEditingThis = editingItem?.group === g.name && editingItem?.item === item;
-                
-                let label = "";
-                let val = null;
+              {g.items
+                .map((item, idx) => ({ original: item, normalized: normalizeItem(item, idx) }))
+                .sort((a, b) => a.normalized.order - b.normalized.order)
+                .map(({ original, normalized }) => {
+                  const hexColor = normalized.color || "#9CA3AF";
+                  const badgeBg = isDark ? `${hexColor}25` : `${hexColor}15`;
+                  const badgeBorder = isDark ? `${hexColor}40` : `${hexColor}30`;
+                  const isActive = normalized.active !== false;
 
-                if (item && typeof item === "object") {
-                  label = item.label || item.value || "";
-                  val = item.direction ? `direction:${item.direction}` : null;
-                } else {
-                  const isMap = typeof item === "string" && item.includes(":");
-                  [label, val] = isMap ? item.split(":") : [item, null];
-                }
-
-                if (isEditingThis) {
                   return (
-                    <div key={label || index} style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                      <input
-                        autoFocus
-                        value={editingItem.value}
-                        onChange={e => setEditingItem(prev => ({ ...prev, value: e.target.value }))}
-                        onKeyDown={e => {
-                          if (e.key === "Enter") handleRenameItem(g.name, item, editingItem.value);
-                          if (e.key === "Escape") setEditingItem(null);
-                        }}
-                        onBlur={() => handleRenameItem(g.name, item, editingItem.value)}
-                        style={{ background: t.searchBg, border: `1px solid ${t.accent}`, borderRadius: 20, padding: "3px 10px", color: t.searchText, fontSize: 12.5, width: 110, outline: "none" }}
-                      />
+                    <div
+                      key={normalized.value}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 5,
+                        fontSize: 11.5,
+                        fontWeight: 500,
+                        padding: "2px 10px",
+                        borderRadius: 20,
+                        background: badgeBg,
+                        color: hexColor,
+                        border: `1px solid ${badgeBorder}`,
+                        whiteSpace: "nowrap",
+                        opacity: isActive ? 1 : 0.55
+                      }}
+                    >
+                      <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                        <span>{normalized.label}</span>
+                        {!isActive && <span style={{ fontSize: 9.5, opacity: 0.6, fontStyle: "italic" }}>(inactive)</span>}
+                        {normalized.direction && <span style={{ opacity: 0.6, fontSize: 9.5, fontFamily: t.mono, background: isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.05)", padding: "1px 4px", borderRadius: 4 }}>{normalized.direction}</span>}
+                      </div>
+                      {isEd && (
+                        <>
+                          <span
+                            onClick={() => setEditingItem({
+                              groupName: g.name,
+                              originalItem: original,
+                              item: normalized
+                            })}
+                            style={{ fontSize: 11, color: t.textMuted, lineHeight: 1, marginLeft: 2, cursor: "pointer", opacity: 0.7 }}
+                            title="Edit details"
+                          >
+                            ✏️
+                          </span>
+                          <span onClick={() => handleRemove(g.name, original)} style={{ fontSize: 13, color: isDark ? "#F87171" : "#DC2626", fontWeight: 700, lineHeight: 1, cursor: "pointer" }}>×</span>
+                        </>
+                      )}
                     </div>
                   );
-                }
-                return (
-                  <div key={label || index} style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 11.5, fontWeight: 500, padding: "2px 10px", borderRadius: 20, background: t.tagBg, color: t.tagColor, border: `1px solid ${t.tagBorder}`, whiteSpace: "nowrap" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                      <span>{label}</span>
-                      {val && <span style={{ opacity: 0.5, fontSize: 10, fontFamily: t.mono, background: isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.05)", padding: "1px 6px", borderRadius: 4 }}>{val}</span>}
-                    </div>
-                    {isEd && (
-                      <>
-                        <span onClick={() => setEditingItem({ 
-                          group: g.name, 
-                          item, 
-                          value: (item && typeof item === "object") ? (item.label || item.value || "") : item 
-                        })} style={{ fontSize: 11, color: t.textMuted, lineHeight: 1, marginLeft: 2, cursor: "pointer", opacity: 0.7 }}>✏️</span>
-                        <span onClick={() => handleRemove(g.name, item)} style={{ fontSize: 13, color: isDark ? "#F87171" : "#DC2626", fontWeight: 700, lineHeight: 1, cursor: "pointer" }}>×</span>
-                      </>
-                    )}
-                  </div>
-                );
-              })}
+                })}
               {isEd && <div style={{ display: "flex", alignItems: "center", gap: 6 }}><input value={newVals[g.name] || ""} onChange={e => setNewVals(v => ({ ...v, [g.name]: e.target.value }))} onKeyDown={e => { if (e.key === "Enter") handleAdd(g.name); }} placeholder="Add value..." style={{ background: t.searchBg, border: `1px solid ${t.searchBorder}`, borderRadius: 20, padding: "5px 12px", color: t.searchText, fontSize: 12.5, width: 120 }} /><button onClick={() => handleAdd(g.name)} style={{ width: 28, height: 28, borderRadius: 8, background: t.addItemBg, color: t.addItemColor, border: `1px solid ${t.addItemBorder}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, cursor: "pointer", fontWeight: 700 }}>+</button></div>}
             </div>
           </div>
@@ -256,6 +318,122 @@ export default function PageDimensions({ t, isDark, DIMENSIONS = [], rawDimensio
           }}
         />
         <div style={{ fontSize: 11, color: t.textMuted, marginTop: 4 }}>Separate items with commas.</div>
+      </FF>
+    </Modal>
+
+    <Modal
+      open={!!editingItem}
+      onClose={() => setEditingItem(null)}
+      title={`Configure Item - ${editingItem?.groupName}`}
+      onSave={handleSaveItemDetails}
+      saveLabel="Save Configuration"
+      t={t}
+      isDark={isDark}
+      width={450}
+    >
+      <FF label="Label (Display Name)" t={t}>
+        <FIn 
+          value={editingItem?.item?.label || ""} 
+          onChange={e => setEditingItem(prev => ({ ...prev, item: { ...prev.item, label: e.target.value } }))} 
+          t={t} 
+        />
+      </FF>
+      <FF label="Value (Database Key)" t={t}>
+        <FIn 
+          value={editingItem?.item?.value || ""} 
+          onChange={e => setEditingItem(prev => ({ ...prev, item: { ...prev.item, value: e.target.value } }))} 
+          t={t} 
+        />
+      </FF>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+        <FF label="Sort Order" t={t}>
+          <input
+            type="number"
+            value={editingItem?.item?.order ?? ""}
+            onChange={e => setEditingItem(prev => ({ ...prev, item: { ...prev.item, order: parseInt(e.target.value) || 0 } }))}
+            style={{
+              width: "100%", background: t.searchBg, border: `1px solid ${t.searchBorder}`,
+              borderRadius: 9, padding: "10px 13px", color: t.searchText, fontSize: 13.5, fontFamily: "inherit", outline: "none"
+            }}
+          />
+        </FF>
+        {editingItem?.groupName === "PaymentType" && (
+          <FF label="Direction" t={t}>
+            <select
+              value={editingItem?.item?.direction || "BOTH"}
+              onChange={e => setEditingItem(prev => ({ ...prev, item: { ...prev.item, direction: e.target.value } }))}
+              style={{
+                width: "100%", background: t.searchBg, border: `1px solid ${t.searchBorder}`,
+                borderRadius: 9, padding: "10px 13px", color: t.searchText, fontSize: 13.5, fontFamily: "inherit", outline: "none", cursor: "pointer"
+              }}
+            >
+              <option value="BOTH">BOTH</option>
+              <option value="IN">IN</option>
+              <option value="OUT">OUT</option>
+            </select>
+          </FF>
+        )}
+      </div>
+
+      <FF label="Status" t={t}>
+        <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer", fontSize: 13.5, color: t.searchText }}>
+          <input
+            type="checkbox"
+            checked={editingItem?.item?.active !== false}
+            onChange={e => setEditingItem(prev => ({ ...prev, item: { ...prev.item, active: e.target.checked } }))}
+            style={{ accentColor: t.accent, width: 16, height: 16, cursor: "pointer" }}
+          />
+          <span>Active (available for selection)</span>
+        </label>
+      </FF>
+
+      <FF label="Badge Color" t={t}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+            {[
+              { hex: "#10B981", name: "Green" },
+              { hex: "#3B82F6", name: "Blue" },
+              { hex: "#F59E0B", name: "Amber" },
+              { hex: "#F97316", name: "Orange" },
+              { hex: "#EF4444", name: "Red" },
+              { hex: "#8B5CF6", name: "Purple" },
+              { hex: "#EC4899", name: "Pink" },
+              { hex: "#9CA3AF", name: "Gray" }
+            ].map(preset => {
+              const isSelected = editingItem?.item?.color?.toLowerCase() === preset.hex.toLowerCase();
+              return (
+                <button
+                  key={preset.hex}
+                  type="button"
+                  onClick={() => setEditingItem(prev => ({ ...prev, item: { ...prev.item, color: preset.hex } }))}
+                  style={{
+                    width: 32, height: 32, borderRadius: "50%", background: preset.hex,
+                    border: isSelected ? `3px solid ${isDark ? "#fff" : "#1C1917"}` : `1px solid ${t.surfaceBorder}`,
+                    cursor: "pointer", boxShadow: isSelected ? "0 0 8px rgba(0,0,0,0.3)" : "none",
+                    position: "relative", display: "flex", alignItems: "center", justifyContent: "center"
+                  }}
+                  title={preset.name}
+                >
+                  {isSelected && <Check size={14} color="#fff" strokeWidth={3} />}
+                </button>
+              );
+            })}
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <span style={{ fontSize: 12, color: t.textMuted }}>Custom HEX:</span>
+            <input
+              type="text"
+              value={editingItem?.item?.color || ""}
+              onChange={e => setEditingItem(prev => ({ ...prev, item: { ...prev.item, color: e.target.value } }))}
+              placeholder="#FFFFFF"
+              style={{
+                width: 100, background: t.searchBg, border: `1px solid ${t.searchBorder}`,
+                borderRadius: 6, padding: "6px 10px", color: t.searchText, fontSize: 12.5, fontFamily: t.mono, outline: "none"
+              }}
+            />
+            <div style={{ width: 24, height: 24, borderRadius: 6, background: editingItem?.item?.color || "#9CA3AF", border: `1px solid ${t.surfaceBorder}` }} />
+          </div>
+        </div>
       </FF>
     </Modal>
 
