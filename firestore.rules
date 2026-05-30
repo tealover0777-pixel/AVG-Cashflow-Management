@@ -192,6 +192,11 @@ service cloud.firestore {
 
 
 
+    match /tenants/{tenantId}/distributionMemos/{docId} {
+        allow read: if isTenantMember(tenantId);
+        allow create, update, delete: if isTenantMember(tenantId) && hasPermission('PAYMENT_SCHEDULE_UPDATE');
+    }
+
     match /tenants/{tenantId}/paymentSchedules/{docId} {
         allow read: if isTenantMember(tenantId) && (hasPermission('PAYMENT_SCHEDULE_VIEW') || isDocumentOwner(tenantId, resource.data));
         allow create: if isTenantMember(tenantId) && hasPermission('PAYMENT_SCHEDULE_CREATE');

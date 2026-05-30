@@ -295,6 +295,16 @@ export default function PageCompany({ t, isDark, activeTenantId = "", USERS = []
 
     const handlePhotoChange = (e) => uploadLogoFile(e.target.files[0]);
 
+    const handleDragOver = (e) => {
+        e.preventDefault();
+        setDragOver(true);
+    };
+
+    const handleDragLeave = (e) => {
+        e.preventDefault();
+        setDragOver(false);
+    };
+
     const handleDrop = (e) => {
         e.preventDefault();
         setDragOver(false);
