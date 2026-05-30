@@ -75,10 +75,55 @@ const DEFAULTS = {
     "Current quarter", "Last quarter", "Total distributed",
     "Total Invested", "Capital balance"
   ],
-  IN_PaymentType: [],
-  OUT_PaymentType: [],
-  PaymentType: []
+  IN_PaymentType: [
+    "INVESTOR_PRINCIPAL_DEPOSIT",
+    "INVESTOR_ROLLOVER",
+    "FEE",
+    "BORROWER_PRINCIPAL_RECEIVED",
+    "BORROWER_INTEREST_PAYMENT"
+  ],
+  OUT_PaymentType: [
+    "INVESTOR_WITHDRAWAL",
+    "INVESTOR_INTEREST_PAYMENT",
+    "INVESTOR_PRINCIPAL_PAYMENT",
+    "BORROWER_DISBURSEMENT"
+  ],
+  PaymentType: [
+    "INVESTOR_PRINCIPAL_DEPOSIT",
+    "INVESTOR_ROLLOVER",
+    "FEE",
+    "BORROWER_PRINCIPAL_RECEIVED",
+    "BORROWER_INTEREST_PAYMENT",
+    "INVESTOR_WITHDRAWAL",
+    "INVESTOR_INTEREST_PAYMENT",
+    "INVESTOR_PRINCIPAL_PAYMENT",
+    "BORROWER_DISBURSEMENT",
+    "INVESTOR_INTEREST_ACCRUAL",
+    "BORROWER_INTEREST_PAYMENT_ACCRUAL",
+    "BORROWER_INTEREST_PAYMENT_RECEIVED"
+  ]
 };
+
+/**
+ * Helper to convert rich object items to string arrays or filter them
+ */
+function processItems(items, filterDir) {
+  if (!Array.isArray(items)) return [];
+  
+  let result = items;
+  if (filterDir) {
+    result = items.filter(item => {
+      if (typeof item === 'string') return true;
+      const dir = (item?.direction || '').toUpperCase();
+      return dir === filterDir || dir === 'BOTH';
+    });
+  }
+
+  return result.map(item => {
+    if (typeof item === 'string') return item;
+    return item?.value || item?.label || '';
+  }).filter(Boolean);
+}
 
 /**
  * Resolve a dimension by canonical name.
@@ -89,15 +134,38 @@ export function getDimension(DIMENSIONS = [], name) {
     DIMENSIONS = [];
   }
 
+  // Handle special dynamic filters for consolidated PaymentType
+  if (name === "IN_PaymentType" || name === "OUT_PaymentType") {
+    const parentDim = DIMENSIONS.find(d => d && (d.name === "PaymentType" || d.name === "Payment Type"));
+    if (parentDim?.items?.length) {
+      return processItems(parentDim.items, name === "IN_PaymentType" ? "IN" : "OUT");
+    }
+    return DEFAULTS[name];
+  }
+
   // 1. Direct lookup
   const found = DIMENSIONS.find(d => d && d.name === name);
-  if (found?.items?.length) return found.items;
+  if (found?.items?.length) {
+    // If it's PaymentType we resolve values, otherwise return raw items (which might be objects like in Fees/Permissions, or flat strings)
+    if (name === "PaymentType") {
+      return processItems(found.items);
+    }
+    return found.items;
+  }
 
   // 2. Try canonical alias
   const canonical = ALIASES[name];
   if (canonical && canonical !== name) {
+    if (canonical === "IN_PaymentType" || canonical === "OUT_PaymentType") {
+      return getDimension(DIMENSIONS, canonical);
+    }
     const aliased = DIMENSIONS.find(d => d && d.name === canonical);
-    if (aliased?.items?.length) return aliased.items;
+    if (aliased?.items?.length) {
+      if (canonical === "PaymentType") {
+        return processItems(aliased.items);
+      }
+      return aliased.items;
+    }
   }
 
   // 3. Reverse alias: check if any alias of the canonical name exists
@@ -107,7 +175,12 @@ export function getDimension(DIMENSIONS = [], name) {
       .map(([k]) => k);
     for (const alias of allAliases) {
       const dim = DIMENSIONS.find(d => d && d.name === alias);
-      if (dim?.items?.length) return dim.items;
+      if (dim?.items?.length) {
+        if (canonical === "PaymentType") {
+          return processItems(dim.items);
+        }
+        return dim.items;
+      }
     }
   }
 

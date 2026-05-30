@@ -35,9 +35,18 @@ export default function PageDimensions({ t, isDark, DIMENSIONS = [], rawDimensio
     if (!rawDoc) return;
     const field = getItemsField(rawDoc);
     const current = rawDoc[field] || [];
-    if (current.includes(val)) return;
+    
+    const isRich = current.some(v => v && typeof v === "object");
+    const valToAdd = isRich ? { value: val, label: val, direction: "BOTH" } : val;
+
+    const exists = current.some(v => {
+      const existingStr = (v && typeof v === "object") ? (v.value || v.label || "") : v;
+      return existingStr.toLowerCase() === val.toLowerCase();
+    });
+    if (exists) return;
+
     try {
-      await updateDoc(doc(db, collectionPath, rawDoc.doc_id), { [field]: [...current, val] });
+      await updateDoc(doc(db, collectionPath, rawDoc.doc_id), { [field]: [...current, valToAdd] });
       setNewVals(v => ({ ...v, [groupName]: "" }));
     } catch (err) {
       console.error("Add dimension value error:", err);
@@ -74,14 +83,32 @@ export default function PageDimensions({ t, isDark, DIMENSIONS = [], rawDimensio
 
   const handleRenameItem = async (groupName, oldVal, newVal) => {
     const trimmed = newVal.trim();
-    if (!trimmed || trimmed === oldVal) { setEditingItem(null); return; }
+    if (!trimmed) { setEditingItem(null); return; }
+    const oldStr = (oldVal && typeof oldVal === "object") ? (oldVal.label || oldVal.value || "") : oldVal;
+    if (trimmed === oldStr) { setEditingItem(null); return; }
+
     const rawDoc = getRawDoc(groupName);
     if (!rawDoc) return;
     const field = getItemsField(rawDoc);
     const current = rawDoc[field] || [];
-    if (current.includes(trimmed)) { showToast(`"${trimmed}" already exists.`, "error"); return; }
+
+    const exists = current.some(v => {
+      const existingStr = (v && typeof v === "object") ? (v.label || v.value || "") : v;
+      return existingStr.toLowerCase() === trimmed.toLowerCase() && v !== oldVal;
+    });
+    if (exists) { showToast(`"${trimmed}" already exists.`, "error"); return; }
+
     try {
-      await updateDoc(doc(db, collectionPath, rawDoc.doc_id), { [field]: current.map(v => v === oldVal ? trimmed : v) });
+      const updatedList = current.map(v => {
+        if (v === oldVal) {
+          if (v && typeof v === "object") {
+            return { ...v, label: trimmed, value: v.value || trimmed };
+          }
+          return trimmed;
+        }
+        return v;
+      });
+      await updateDoc(doc(db, collectionPath, rawDoc.doc_id), { [field]: updatedList });
       setEditingItem(null);
     } catch (err) {
       console.error("Rename dimension value error:", err);
@@ -148,14 +175,23 @@ export default function PageDimensions({ t, isDark, DIMENSIONS = [], rawDimensio
               </div>
             </div>
             <div style={{ padding: "16px 20px", display: "flex", flexWrap: "wrap", gap: 8 }}>
-              {g.items.map(item => {
+              {g.items.map((item, index) => {
                 const isEditingThis = editingItem?.group === g.name && editingItem?.item === item;
-                const isMap = typeof item === "string" && item.includes(":");
-                const [label, val] = isMap ? item.split(":") : [item, null];
+                
+                let label = "";
+                let val = null;
+
+                if (item && typeof item === "object") {
+                  label = item.label || item.value || "";
+                  val = item.direction ? `direction:${item.direction}` : null;
+                } else {
+                  const isMap = typeof item === "string" && item.includes(":");
+                  [label, val] = isMap ? item.split(":") : [item, null];
+                }
 
                 if (isEditingThis) {
                   return (
-                    <div key={item} style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                    <div key={label || index} style={{ display: "flex", alignItems: "center", gap: 4 }}>
                       <input
                         autoFocus
                         value={editingItem.value}
@@ -171,14 +207,18 @@ export default function PageDimensions({ t, isDark, DIMENSIONS = [], rawDimensio
                   );
                 }
                 return (
-                  <div key={item} style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 11.5, fontWeight: 500, padding: "2px 10px", borderRadius: 20, background: t.tagBg, color: t.tagColor, border: `1px solid ${t.tagBorder}`, whiteSpace: "nowrap" }}>
+                  <div key={label || index} style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 11.5, fontWeight: 500, padding: "2px 10px", borderRadius: 20, background: t.tagBg, color: t.tagColor, border: `1px solid ${t.tagBorder}`, whiteSpace: "nowrap" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
                       <span>{label}</span>
                       {val && <span style={{ opacity: 0.5, fontSize: 10, fontFamily: t.mono, background: isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.05)", padding: "1px 6px", borderRadius: 4 }}>{val}</span>}
                     </div>
                     {isEd && (
                       <>
-                        <span onClick={() => setEditingItem({ group: g.name, item, value: item })} style={{ fontSize: 11, color: t.textMuted, lineHeight: 1, marginLeft: 2, cursor: "pointer", opacity: 0.7 }}>✏️</span>
+                        <span onClick={() => setEditingItem({ 
+                          group: g.name, 
+                          item, 
+                          value: (item && typeof item === "object") ? (item.label || item.value || "") : item 
+                        })} style={{ fontSize: 11, color: t.textMuted, lineHeight: 1, marginLeft: 2, cursor: "pointer", opacity: 0.7 }}>✏️</span>
                         <span onClick={() => handleRemove(g.name, item)} style={{ fontSize: 13, color: isDark ? "#F87171" : "#DC2626", fontWeight: 700, lineHeight: 1, cursor: "pointer" }}>×</span>
                       </>
                     )}
