@@ -8,6 +8,7 @@ import { useAuth } from "../AuthContext";
 import { getDealInvestmentColumns } from "../components/DealSummaryTanStackConfig";
 import { getDistributionColumns } from "../components/DistributionScheduleTanStackConfig";
 import { getContactColumns } from "../components/ContactsTanStackConfig";
+import { getDimension } from "../utils/dimensionResolver";
 import { getAssetColumns } from "../components/AssetsTanStackConfig";
 import { getDistributionMemoColumns } from "../components/DistributionMemoTanStackConfig";
 import TanStackTable from "../components/TanStackTable";
@@ -30,13 +31,13 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
   const canAssetCreate = isSuperAdmin || hasPermission("DEAL_CREATE");
   const canAssetUpdate = isSuperAdmin || hasPermission("DEAL_UPDATE");
   const canAssetDelete = isSuperAdmin || hasPermission("DEAL_DELETE");
-  const paymentMethods = (DIMENSIONS.find(d => d.name === "Payment Method" || d.name === "PaymentMethod") || {}).items || [];
-  const investmentStatusOpts = (DIMENSIONS.find(d => d.name === "InvestmentStatus" || d.name === "Investment Status") || {}).items?.filter(i => i) || ["Open", "Active", "Closed"];
-  const paymentStatusOpts = (DIMENSIONS.find(d => d.name === "PaymentStatus" || d.name === "Payment Status" || d.name === "ScheduleStatus" || d.name === "Schedule Status") || {}).items?.filter(i => i) || ["Paid", "Due", "Partial", "Hold", "Not Paid", "Reinvested"];
+  const paymentMethods = getDimension(DIMENSIONS, "PaymentMethod");
+  const investmentStatusOpts = getDimension(DIMENSIONS, "InvestmentStatus");
+  const paymentStatusOpts = getDimension(DIMENSIONS, "PaymentStatus");
   const paymentTypeOpts = useMemo(() => {
     const fromDim = [
-      ...((DIMENSIONS.find(d => d.name === "IN_PaymentType") || {}).items || []),
-      ...((DIMENSIONS.find(d => d.name === "OUT_PaymentType") || {}).items || []),
+      ...getDimension(DIMENSIONS, "IN_PaymentType"),
+      ...getDimension(DIMENSIONS, "OUT_PaymentType"),
     ].filter(Boolean);
     if (fromDim.length) return [...new Set(fromDim)];
     return [...new Set(SCHEDULES.map(s => s.type || s.payment_type || "").filter(Boolean))].sort();
@@ -128,10 +129,10 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
     }
   }, [selectedDistMemoId, distMemos, SCHEDULES, setSelectedDistMemoId]);
 
-  const roleOpts = (DIMENSIONS.find(d => d.name === "ContactRole") || {}).items || ["Investor", "Borrower"];
-  const contactTypeOpts = (DIMENSIONS.find(d => d.name === "ContactType") || {}).items || ["Individual", "Company", "Trust", "Partnership"];
-  const investorTypeOpts = (DIMENSIONS.find(d => d.name === "InvestorType") || {}).items || ["Fixed", "Equity", "Both"];
-  const assetTypeOpts = (DIMENSIONS.find(d => d.name === "AssetType") || {}).items || ["Multi-family", "Retail", "Industrial", "Office", "Mixed-Use", "Other"];
+  const roleOpts = getDimension(DIMENSIONS, "ContactRole");
+  const contactTypeOpts = getDimension(DIMENSIONS, "ContactType");
+  const investorTypeOpts = getDimension(DIMENSIONS, "InvestorType");
+  const assetTypeOpts = getDimension(DIMENSIONS, "AssetType");
 
   const [pivotColWidths, setPivotColWidths] = useState([110, 110, 130, 100, 100, 80, 70, 120]); // First, Last, Type, Start, End, Freq, Rate, Method
   const [columnFilters, setColumnFilters] = useState([]);
@@ -865,12 +866,12 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
   const gridRef = useRef();
   const tabs = ["Investments", ...(canAssetView ? ["Assets"] : []), "Distributions", "Documents", "Valuation forms", "Lending", "Contacts"];
 
-  const calculatorOpts = (DIMENSIONS.find(d => d.name === "Calculator") || {}).items || ["ACT/360+30/360"];
-  const investorEditTypeOpts = (DIMENSIONS.find(d => d.name === "InvestorInvestmentEditType") || {}).items || [];
-  const borrowerEditTypeOpts = (DIMENSIONS.find(d => d.name === "BorrowerInvestmentEditType") || {}).items || [];
-  const investorNewTypeOpts = (DIMENSIONS.find(d => d.name === "InvestorInvestmentNewType") || {}).items || [];
-  const borrowerNewTypeOpts = (DIMENSIONS.find(d => d.name === "BorrowerInvestmentNewType") || {}).items || [];
-  const scheduleFrequencyOpts = (DIMENSIONS.find(d => d.name === "ScheduleFrequency" || d.name === "Schedule Frequency") || {}).items || ["Monthly", "Quarterly", "Semi-Annual", "Annual", "At Maturity"];
+  const calculatorOpts = getDimension(DIMENSIONS, "CalculatorType");
+  const investorEditTypeOpts = getDimension(DIMENSIONS, "InvestorInvestmentEditType");
+  const borrowerEditTypeOpts = getDimension(DIMENSIONS, "BorrowerInvestmentEditType");
+  const investorNewTypeOpts = getDimension(DIMENSIONS, "InvestorInvestmentNewType");
+  const borrowerNewTypeOpts = getDimension(DIMENSIONS, "BorrowerInvestmentNewType");
+  const scheduleFrequencyOpts = getDimension(DIMENSIONS, "ScheduleFrequency");
 
   const selectedContact = CONTACTS.find(p => p.id === modal.data.contact_id || p.docId === modal.data.contact_id);
   const contactRole = selectedContact ? selectedContact.role : "";
@@ -1458,7 +1459,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
     if (selected.length === 0) return;
 
     // 1. Preparation - Load mapping from DIMENSIONS
-    const findDim = n => (DIMENSIONS.find(d => d.name === n) || {}).items || [];
+    const findDim = n => getDimension(DIMENSIONS, n);
     const inPT = findDim("IN_PaymentType");
     const outPT = findDim("OUT_PaymentType");
 
@@ -3832,7 +3833,7 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
                     <FSel 
                       value={modal.data.lag_type || "Days"} 
                       onChange={e => setF("lag_type", e.target.value)} 
-                      options={(DIMENSIONS.find(d => d.name === "PaymentLag")?.items || ["Days", "Months", "Quarter-End"]).map(opt => ({ value: opt, label: opt }))} 
+                      options={getDimension(DIMENSIONS, "PaymentLag").map(opt => ({ value: opt, label: opt }))} 
                       t={t} 
                     />
                   </FF>

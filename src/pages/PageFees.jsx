@@ -5,15 +5,16 @@ import { db } from "../firebase";
 import { doc, setDoc, updateDoc, deleteDoc, serverTimestamp } from "firebase/firestore";
 import { StatCard, Modal, FF, FIn, FSel, DelModal, Tooltip } from "../components";
 import { useAuth } from "../AuthContext";
+import { getDimension } from "../utils/dimensionResolver";
 
 export default function PageFees({ t, isDark, FEES_DATA = [], DIMENSIONS = [], collectionPath = "" }) {
   const { hasPermission, isSuperAdmin } = useAuth();
   const canCreate = isSuperAdmin || hasPermission("FEE_CREATE");
   const canUpdate = isSuperAdmin || hasPermission("FEE_UPDATE");
   const canDelete = isSuperAdmin || hasPermission("FEE_DELETE");
-  const feeChargeAtOpts = (DIMENSIONS.find(d => d.name === "FeeChargeAt") || {}).items || [];
-  const feeFrequencyOpts = (DIMENSIONS.find(d => d.name === "FeeFrequency") || {}).items || [];
-  const feeTypeOpts = (DIMENSIONS.find(d => d.name === "FeeType") || {}).items || [];
+  const feeChargeAtOpts = getDimension(DIMENSIONS, "FeeChargeAt");
+  const feeFrequencyOpts = getDimension(DIMENSIONS, "FeeFrequency");
+  const feeTypeOpts = getDimension(DIMENSIONS, "FeeType");
   const [modal, setModal] = useState({ open: false, mode: "add", data: {} });
   const [delT, setDelT] = useState(null);
   const gridRef = useRef(null);

@@ -8,6 +8,7 @@ import { sortData, mkId, fmtCurr, normalizeDateAtNoon, pmtCalculator_ACT360_3036
 import { Bdg, StatCard, Pagination, Modal, FF, FIn, FSel, DelModal, Tooltip } from "../components";
 import { useAuth } from "../AuthContext";
 import { Check, Plus, CreditCard } from "lucide-react";
+import { getDimension } from "../utils/dimensionResolver";
 
 const PT_INTEREST = "INVESTOR_INTEREST_PAYMENT";
 const PT_FEE = "FEE";
@@ -47,8 +48,8 @@ export default function PageDeals({ t, isDark, DEALS = [], INVESTMENTS = [], SCH
     const maxNum = Math.max(...DEALS.map(p => { const m = String(p.id).match(/^D(\d+)$/); return m ? Number(m[1]) : 0; }));
     return "D" + (maxNum + 1);
   })();
-  const dealStatuses = DIMENSIONS.find(d => d.name === "Deal Status" || d.name === "DealStatus")?.items || ["Active", "Closed"];
-  const dealTypes = DIMENSIONS.find(d => d.name === "Deal Type" || d.name === "DealType")?.items || [];
+  const dealStatuses = getDimension(DIMENSIONS, "DealStatus");
+  const dealTypes = getDimension(DIMENSIONS, "DealType");
 
   const openAdd = () => {
     setAssetImages([]);
@@ -372,7 +373,7 @@ export default function PageDeals({ t, isDark, DEALS = [], INVESTMENTS = [], SCH
                   <FSel 
                     value={modal.data.lag_type || "Days"} 
                     onChange={e => setF("lag_type", e.target.value)} 
-                    options={(DIMENSIONS.find(d => d.name === "PaymentLag")?.items || ["Days", "Months", "Quarter-End"]).map(opt => ({ value: opt, label: opt }))} 
+                    options={getDimension(DIMENSIONS, "PaymentLag").map(opt => ({ value: opt, label: opt }))} 
                     t={t} 
                   />
                 </FF>

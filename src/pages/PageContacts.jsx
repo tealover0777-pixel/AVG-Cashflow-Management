@@ -8,6 +8,7 @@ import { initials, av, badge, sortData, fmtCurr } from "../utils";
 import { StatCard, Bdg, Pagination, ActBtns, Modal, FF, FIn, FSel, DelModal, Tooltip, ConfirmModal } from "../components";
 import { InvestorSummaryModal } from "../components/InvestorSummaryModal";
 import { useAuth } from "../AuthContext";
+import { getDimension } from "../utils/dimensionResolver";
 
 export default function PageContacts({ t, isDark, CONTACTS = [], INVESTMENTS = [], SCHEDULES = [], DEALS = [], collectionPath = "", DIMENSIONS = [], tenantId = "", LEDGER = [], USERS = [], ROLES = [] }) {
   const { hasPermission, isSuperAdmin, user } = useAuth();
@@ -15,10 +16,10 @@ export default function PageContacts({ t, isDark, CONTACTS = [], INVESTMENTS = [
   const canUpdate = hasPermission("CONTACT_UPDATE");
   const canDelete = hasPermission("CONTACT_DELETE");
   const canInvite = isSuperAdmin || hasPermission("CONTACT_INVITE");
-  const roleOpts = (DIMENSIONS.find(d => d.name === "ContactRole") || {}).items || ["Investor", "Borrower"];
-  const contactTypeOpts = (DIMENSIONS.find(d => d.name === "ContactType") || {}).items || ["Individual", "Company", "Trust", "Partnership"];
-  const investorTypeOpts = (DIMENSIONS.find(d => d.name === "InvestorType") || {}).items || ["Fixed", "Equity", "Both"];
-  const paymentMethods = (DIMENSIONS.find(d => d.name === "Payment Method" || d.name === "PaymentMethod") || {}).items || [];
+  const roleOpts = getDimension(DIMENSIONS, "ContactRole");
+  const contactTypeOpts = getDimension(DIMENSIONS, "ContactType");
+  const investorTypeOpts = getDimension(DIMENSIONS, "InvestorType");
+  const paymentMethods = getDimension(DIMENSIONS, "PaymentMethod");
   
   const getRoleInfo = (id) => {
     const r = ROLES.find(x => (x.id || x.role_id) === id);

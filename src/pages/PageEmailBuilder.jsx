@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { PromptModal, DelModal, Modal, TanStackTable } from "../components";
 import { US_TIMEZONES, resolveTimeZone } from "../utils/timeZoneUtils";
+import { getDimension } from "../utils/dimensionResolver";
 
 const CDown = () => <ChevronDown size={12} strokeWidth={2.5} style={{ opacity: 0.7 }} />;
 
@@ -1434,7 +1435,7 @@ const FloatingTextBar = ({ t, isDark, DIMENSIONS = [] }) => {
   const [showTags, setShowTags] = useState(false);
   const tagDropRef = useRef(null);
 
-  const rawTags = DIMENSIONS.find(d => d.name === "EmailTags")?.items || ["First name", "Last name", "Full name", "Current year", "Current quarter", "Last quarter", "Total distributed", "Total Invested", "Capital balance"];
+  const rawTags = getDimension(DIMENSIONS, "EmailTags");
   const emailTags = Array.isArray(rawTags) ? rawTags : ["First name", "Last name", "Full name", "Current year", "Current quarter", "Last quarter", "Total distributed", "Total Invested", "Capital balance"];
 
   const cmd = (name, val = null) => {

@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { useAuth } from '../AuthContext';
+import { getDimension } from '../utils/dimensionResolver';
 
 export function useDashboardData({ DEALS = [], INVESTMENTS = [], CONTACTS = [], SCHEDULES = [], PAYMENTS = [], MONTHLY = [], DIMENSIONS = [] }) {
     const { profile, isSuperAdmin, isTenantAdmin, isMember, isGlobalRole } = useAuth();
@@ -39,12 +40,12 @@ export function useDashboardData({ DEALS = [], INVESTMENTS = [], CONTACTS = [], 
         const allFilteredSchedules = allSchedules.filter(s => s.active_version !== false);
 
         // Derive valid Schedule Status values dynamically from Dimensions
-        const scheduleStatusDim = DIMENSIONS.find(d => d.name === "ScheduleStatus" || d.name === "Schedule Status");
+        const scheduleStatusItems = getDimension(DIMENSIONS, "PaymentStatus");
         // Statuses considered "zeroed out" — excluded from metric/chart calculations
         const ZEROED_STATUSES = new Set(["Missed", "Cancelled", "VOID", "Waived", "Replaced"]);
         // All valid statuses from Dimensions (or fallback to what's actually in the data)
-        const allValidStatuses = scheduleStatusDim?.items?.length
-            ? new Set(scheduleStatusDim.items.map(i => typeof i === 'string' ? i : i.value || i.label || i.name).filter(Boolean))
+        const allValidStatuses = scheduleStatusItems.length
+            ? new Set(scheduleStatusItems.map(i => typeof i === 'string' ? i : i.value || i.label || i.name).filter(Boolean))
             : new Set(allFilteredSchedules.map(s => s.status).filter(Boolean));
         // liveStatuses = all valid statuses minus the zeroed-out ones (used for metrics)
         const liveStatuses = [...allValidStatuses].filter(s => !ZEROED_STATUSES.has(s));

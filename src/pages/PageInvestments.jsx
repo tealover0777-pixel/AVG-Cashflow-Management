@@ -8,6 +8,7 @@ import { StatCard, Bdg, Pagination, Modal, FF, FIn, FSel, DelModal, Tooltip } fr
 import { InvestorSummaryModal } from "../components/InvestorSummaryModal";
 import { useAuth } from "../AuthContext";
 import { Check, Plus, Construction, AlertTriangle, FileCheck, CreditCard } from "lucide-react";
+import { getDimension } from "../utils/dimensionResolver";
 
 export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [], CONTACTS = [], DIMENSIONS = [], FEES_DATA = [], SCHEDULES = [], LEDGER = [], USERS = [], collectionPath = "", schedulePath = "", tenantId = "" }) {
   const { hasPermission, isSuperAdmin, user } = useAuth();
@@ -258,7 +259,7 @@ export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [
       setDelT(null);
     } catch (err) { console.error("Delete investment error:", err); }
   }
-  const investmentStatusOpts = (DIMENSIONS.find(d => d.name === "InvestmentStatus" || d.name === "Investment Status" || d.name === "Payment Status") || {}).items?.filter(i => i) || ["Open", "Active", "Closed"];
+  const investmentStatusOpts = getDimension(DIMENSIONS, "InvestmentStatus");
   const [bulkStatus, setBulkStatus] = useState(investmentStatusOpts[0] || "");
   function handleBulkStatus(status) {
     if (!status || sel.size === 0) return;
@@ -318,7 +319,7 @@ export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [
   async function generateSchedulesForInvestments(selectedList) {
 
     // 1. Preparation - Load mapping from DIMENSIONS
-    const findDim = n => (DIMENSIONS.find(d => d.name === n) || {}).items || [];
+    const findDim = n => getDimension(DIMENSIONS, n);
     const inPT = findDim("IN_PaymentType");
     const outPT = findDim("OUT_PaymentType");
 
@@ -760,12 +761,12 @@ export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [
     }
     return next;
   });
-  const calculatorOpts = (DIMENSIONS.find(d => d.name === "Calculator") || {}).items || ["ACT/360+30/360"];
-  const investorEditTypeOpts = (DIMENSIONS.find(d => d.name === "InvestorInvestmentEditType") || {}).items || [];
-  const borrowerEditTypeOpts = (DIMENSIONS.find(d => d.name === "BorrowerInvestmentEditType") || {}).items || [];
-  const investorNewTypeOpts = (DIMENSIONS.find(d => d.name === "InvestorInvestmentNewType") || {}).items || [];
-  const borrowerNewTypeOpts = (DIMENSIONS.find(d => d.name === "BorrowerInvestmentNewType") || {}).items || [];
-  const scheduleFrequencyOpts = (DIMENSIONS.find(d => d.name === "ScheduleFrequency" || d.name === "Schedule Frequency") || {}).items || ["Monthly", "Quarterly", "Semi-Annual", "Annual", "At Maturity"];
+  const calculatorOpts = getDimension(DIMENSIONS, "CalculatorType");
+  const investorEditTypeOpts = getDimension(DIMENSIONS, "InvestorInvestmentEditType");
+  const borrowerEditTypeOpts = getDimension(DIMENSIONS, "BorrowerInvestmentEditType");
+  const investorNewTypeOpts = getDimension(DIMENSIONS, "InvestorInvestmentNewType");
+  const borrowerNewTypeOpts = getDimension(DIMENSIONS, "BorrowerInvestmentNewType");
+  const scheduleFrequencyOpts = getDimension(DIMENSIONS, "ScheduleFrequency");
   const selectedContact = CONTACTS.find(p => p.id === modal.data.contact_id || p.docId === modal.data.contact_id);
   const contactRole = selectedContact ? selectedContact.role : "";
   const getTypeOpts = () => {
@@ -1093,7 +1094,7 @@ export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [
                   <FSel 
                     value={modal.data.lag_type || "Days"} 
                     onChange={e => setF("lag_type", e.target.value)} 
-                    options={(DIMENSIONS.find(d => d.name === "PaymentLag")?.items || ["Days", "Months", "Quarter-End"]).map(opt => ({ value: opt, label: opt }))} 
+                    options={getDimension(DIMENSIONS, "PaymentLag").map(opt => ({ value: opt, label: opt }))} 
                     t={t} 
                   />
                 </FF>

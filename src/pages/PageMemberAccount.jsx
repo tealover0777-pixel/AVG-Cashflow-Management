@@ -7,6 +7,7 @@ import InvestmentDocumentsTab from "../components/InvestmentDocumentsTab";
 import InvestmentChangelogTab from "../components/InvestmentChangelogTab";
 import { getContactTransactionColumns } from "../components/ContactTransactionsTanStackConfig";
 import { fmtCurr } from "../utils";
+import { getDimension } from "../utils/dimensionResolver";
 import {
   ArrowUp,
   Info,
@@ -248,10 +249,10 @@ export default function PageMemberAccount({
   }, [partyInvestments, partySchedules, DEALS]);
 
   // Dimension option fallbacks
-  const roleOpts = (DIMENSIONS.find(d => d.name === "ContactRole" || d.name === "Contact Role") || {}).items || ["Investor", "Borrower", "Member"];
-  const contactTypeOpts = (DIMENSIONS.find(d => d.name === "ContactType" || d.name === "Contact Type") || {}).items || ["Individual", "Company", "Trust", "Partnership"];
-  const investorTypeOpts = ["Fixed", "Equity", "Both"];
-  const paymentMethods = (DIMENSIONS.find(d => d.name === "Payment Method" || d.name === "PaymentMethod") || {}).items || [];
+  const roleOpts = getDimension(DIMENSIONS, "ContactRole");
+  const contactTypeOpts = getDimension(DIMENSIONS, "ContactType");
+  const investorTypeOpts = getDimension(DIMENSIONS, "InvestorType");
+  const paymentMethods = getDimension(DIMENSIONS, "PaymentMethod");
 
   // Profile Save Changes handler
   const handleSave = async () => {

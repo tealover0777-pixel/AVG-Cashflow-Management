@@ -14,6 +14,7 @@ import { sortData, badge, initials, av, pmtCalculator_ACT360_30360, getFeeFreque
 import { StatCard, Bdg, Pagination, Modal, FF, FIn, FSel, FMultiSel, DelModal, Tooltip } from "../components";
 import { InvestorSummaryModal } from "../components/InvestorSummaryModal";
 import { useAuth } from "../AuthContext";
+import { getDimension } from "../utils/dimensionResolver";
 
 const fmtCurr = v => {
   if (v == null || v === "") return "";
@@ -33,10 +34,10 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
   const canDelete = isSuperAdmin || hasPermission("Administration_delete");
   const canUpdate = isSuperAdmin || hasPermission("Administration_update");
   const getNextScheduleId = () => mkId("S");
-  const paymentStatusOpts = (DIMENSIONS.find(d => d.name === "ScheduleStatus" || d.name === "Schedule Status" || d.name === "Payment Status" || d.name === "PaymentStatus") || {}).items
+  const paymentStatusOpts = getDimension(DIMENSIONS, "PaymentStatus")
     ?.map(i => String(i || "").trim())
-    ?.filter(i => i !== "") || ["Paid", "Due", "Partial", "Hold", "Not Paid", "Reinvested"];
-  const paymentMethods = (DIMENSIONS.find(d => d.name === "Payment Method" || d.name === "PaymentMethod") || {}).items || [];
+    ?.filter(i => i !== "");
+  const paymentMethods = getDimension(DIMENSIONS, "PaymentMethod");
   const [hov, setHov] = useState(null); const [sel, setSel] = useState(new Set()); const [activeFilter, setActiveFilter] = useState("All");
   const [distMemoSel, setDistMemoSel] = useState(new Set());
   const [distMemoBulkStatus, setDistMemoBulkStatus] = useState("");
@@ -124,8 +125,8 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
 
   const paymentTypeOpts = useMemo(() => {
     const fromDim = [
-      ...((DIMENSIONS.find(d => d.name === "IN_PaymentType") || {}).items || []),
-      ...((DIMENSIONS.find(d => d.name === "OUT_PaymentType") || {}).items || []),
+      ...getDimension(DIMENSIONS, "IN_PaymentType"),
+      ...getDimension(DIMENSIONS, "OUT_PaymentType"),
     ].filter(Boolean);
     if (fromDim.length) return [...new Set(fromDim)];
     return [...new Set(SCHEDULES.map(s => s.type || s.payment_type || "").filter(Boolean))].sort();
@@ -2666,7 +2667,7 @@ export default function PageSchedule({ t, isDark, SCHEDULES = [], INVESTMENTS = 
                 setModal(m => ({ ...m, data: { ...m.data, ...updates } }));
               }} options={modal.data.rollover 
                 ? Array.from(new Set(["Rollover", modal.data.status]))
-                : (DIMENSIONS.find(d => d.name === "Payment Status")?.items || ["Due", "Paid", "Missed", "Partial", "Cancelled", "Waived", "Rollover", "Withdrawal"])
+                : getDimension(DIMENSIONS, "PaymentStatus")
               } t={t} disabled={freeze} />
             </FF>
           </div>

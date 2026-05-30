@@ -11,6 +11,7 @@ import InvestmentChangelogTab from "./InvestmentChangelogTab";
 import { getContactTransactionColumns } from "./ContactTransactionsTanStackConfig";
 import { useAuth } from "../AuthContext";
 import PageMemberAccount from "../pages/PageMemberAccount";
+import { getDimension } from "../utils/dimensionResolver";
 
 export const InvestorSummaryModal = ({ 
   contact, 
@@ -258,10 +259,10 @@ export const InvestorSummaryModal = ({
   const dp = contact;
   const showData = isEditing ? editData : resolvedContact;
 
-  const roleOpts = (DIMENSIONS.find(d => d.name === "ContactRole" || d.name === "Contact Role") || {}).items || ["Investor", "Borrower"];
-  const contactTypeOpts = (DIMENSIONS.find(d => d.name === "ContactType" || d.name === "Contact Type") || {}).items || ["Individual", "Company", "Trust", "Partnership"];
-  const investorTypeOpts = ["Fixed", "Equity", "Both"];
-  const paymentMethods = (DIMENSIONS.find(d => d.name === "Payment Method" || d.name === "PaymentMethod") || {}).items || [];
+  const roleOpts = getDimension(DIMENSIONS, "ContactRole");
+  const contactTypeOpts = getDimension(DIMENSIONS, "ContactType");
+  const investorTypeOpts = getDimension(DIMENSIONS, "InvestorType");
+  const paymentMethods = getDimension(DIMENSIONS, "PaymentMethod");
 
   const handleSave = async () => {
     if (!onUpdate) return;
@@ -341,12 +342,12 @@ export const InvestorSummaryModal = ({
 
   const setIED = (newVal) => setInvestmentEditData(prev => ({ ...prev, ...newVal }));
 
-  const investorEditTypeOpts = (DIMENSIONS.find(d => d.name === "InvestorInvestmentEditType") || {}).items || [];
-  const borrowerEditTypeOpts = (DIMENSIONS.find(d => d.name === "BorrowerInvestmentEditType") || {}).items || [];
-  const scheduleFrequencyOpts = (DIMENSIONS.find(d => d.name === "ScheduleFrequency" || d.name === "Schedule Frequency") || {}).items || ["Monthly", "Quarterly", "Semi-Annual", "Annual", "At Maturity"];
-  const calculatorOpts = (DIMENSIONS.find(d => d.name === "CalculatorType") || {}).items || ["ACT/360", "30/360", "ACT/ACT", "ACT/365"];
-  const FEES_DATA = (DIMENSIONS.find(d => d.name === "Fees") || {}).items || [];
-  const scheduleStatusOpts = (DIMENSIONS.find(d => d.name === "ScheduleStatus" || d.name === "Schedule Status" || d.name === "PaymentStatus" || d.name === "Payment Status") || {}).items?.map(i => String(i || "").trim()).filter(Boolean) || ["Paid", "Due", "Partial", "Hold", "Not Paid", "Reinvested"];
+  const investorEditTypeOpts = getDimension(DIMENSIONS, "InvestorInvestmentEditType");
+  const borrowerEditTypeOpts = getDimension(DIMENSIONS, "BorrowerInvestmentEditType");
+  const scheduleFrequencyOpts = getDimension(DIMENSIONS, "ScheduleFrequency");
+  const calculatorOpts = getDimension(DIMENSIONS, "CalculatorType");
+  const FEES_DATA = getDimension(DIMENSIONS, "Fees");
+  const scheduleStatusOpts = getDimension(DIMENSIONS, "PaymentStatus")?.map(i => String(i || "").trim()).filter(Boolean);
 
   const renderDealTable = (items, emptyMsg) => {
       if (!items || items.length === 0) return <div style={{ fontSize: 13, color: t.textMuted, padding: "16px 24px" }}>{emptyMsg}</div>;

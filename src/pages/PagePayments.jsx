@@ -9,6 +9,7 @@ import { sortData, fmtCurr, fmtDate, splitInvestorName } from "../utils";
 import { Modal, FF, FIn, FSel, DelModal, Tooltip, Bdg } from "../components";
 import { InvestorSummaryModal } from "../components/InvestorSummaryModal";
 import { useAuth } from "../AuthContext";
+import { getDimension } from "../utils/dimensionResolver";
 
 export default function PagePayments({ t, isDark, PAYMENTS = [], INVESTMENTS = [], CONTACTS = [], SCHEDULES = [], DEALS = [], DIMENSIONS = [], ACH_BATCHES = [], LEDGER = [], USERS = [], collectionPath = "", achBatchPath = "", ledgerPath = "", setActivePage, setSelectedDistMemoId, setSelectedDealId }) {
   const { hasPermission, isSuperAdmin, user } = useAuth();
@@ -103,7 +104,7 @@ export default function PagePayments({ t, isDark, PAYMENTS = [], INVESTMENTS = [
     }
   }, [SCHEDULES, distMemoDrillDown.open, distMemoDrillDown.memo?.id]);
 
-  const paymentStatusOpts = (DIMENSIONS.find(d => d.name === "PaymentStatus" || d.name === "Payment Status") || {}).items || ["Paid", "Due", "Partial", "Hold", "Not Paid", "Reinvested", "Pending", "Scheduled", "Processing", "Sent", "Failed", "Cancelled", "Missed"];
+  const paymentStatusOpts = getDimension(DIMENSIONS, "PaymentStatus");
 
   const handleInlineScheduleStatus = async (scheduleId, newStatus) => {
     try {
@@ -207,7 +208,7 @@ export default function PagePayments({ t, isDark, PAYMENTS = [], INVESTMENTS = [
     };
   }, []);
 
-  const achBatchStatusOpts = (DIMENSIONS.find(d => d.name === "ACHBatchStatus" || d.name === "ACH Batch Status") || {}).items || ["1. VERSION_CREATED", "2. FILE_GENERATED", "3. PROCESS_COMPLETED", "4. PAYMENT_FAILED"];
+  const achBatchStatusOpts = getDimension(DIMENSIONS, "ACHBatchStatus");
 
   const close = () => setModal(m => ({ ...m, open: false }));
   const setF = (k, v) => setModal(m => ({ ...m, data: { ...m.data, [k]: v } }));
