@@ -392,8 +392,8 @@ export default function PageMemberAccount({
   }, [partyInvestments, DEALS]);
 
   const donutColors = isDark
-    ? ["#818CF8", "#6366F1", "#4F46E5", "#FBBF24", "#3B82F6", "#10B981"]
-    : ["#4a20dd", "#6344f5", "#a78bfa", "#ffe088", "#3b82f6", "#10b981"];
+    ? ["#6366F1", "#10B981", "#F59E0B", "#0EA5E9", "#F43F5E", "#EA580C", "#D946EF", "#14B8A6"]
+    : ["#4F46E5", "#059669", "#D97706", "#0284C7", "#E11D48", "#EA580C", "#C084FC", "#0D9488"];
 
   const donutGradient = useMemo(() => {
     let accumulated = 0;
