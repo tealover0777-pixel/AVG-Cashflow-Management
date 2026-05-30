@@ -1,5 +1,5 @@
 import React from 'react';
-import { Edit2, Trash2, Mail, User, Shield, Info } from 'lucide-react';
+import { Edit2, Trash2, Mail, User, Shield, Info, Eye } from 'lucide-react';
 import { Bdg, Tooltip, ActBtns } from '../components.jsx';
 import { fmtCurr } from '../utils';
 
@@ -253,13 +253,21 @@ export const getContactColumns = (permissions, isDark, t, context) => {
         return (
           <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
             <ActBtns
-              show={canUpdate || canDelete || (canInvite && data.email)}
+              show={true}
               t={t}
               onEdit={canUpdate ? () => callbacks.onEdit(data) : null}
               onDel={canDelete ? () => callbacks.onDelete({ id: data.id, name: data.name, docId: data.docId }) : null}
               onClone={canUpdate ? () => callbacks.onClone(data) : null}
               onInvite={canInvite && data.email ? () => callbacks.onInvite(data) : null}
               isInviting={invitingId === data.id}
+              extraActions={[
+                {
+                  label: "Preview Portal",
+                  icon: Eye,
+                  onClick: () => callbacks.onPreviewPortal(data),
+                  color: "#3B82F6"
+                }
+              ]}
             />
           </div>
         );

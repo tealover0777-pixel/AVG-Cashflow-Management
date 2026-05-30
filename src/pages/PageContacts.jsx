@@ -212,6 +212,7 @@ export default function PageContacts({ t, isDark, CONTACTS = [], INVESTMENTS = [
     }
   };
   const [detailContact, setDetailContact] = useState(null);
+  const [defaultDetailView, setDefaultDetailView] = useState("simple");
 
   useEffect(() => {
     if (detailContact) {
@@ -338,7 +339,8 @@ export default function PageContacts({ t, isDark, CONTACTS = [], INVESTMENTS = [
       onEdit: openEdit,
       onDelete: (target) => setDelT(target),
       onInvite: handleInviteContact,
-      onNameClick: (party) => setDetailContact(party),
+      onNameClick: (party) => { setDefaultDetailView("simple"); setDetailContact(party); },
+      onPreviewPortal: (party) => { setDefaultDetailView("account"); setDetailContact(party); },
       onClone: async (r) => {
         try {
           let maxNum = 10000;
@@ -382,6 +384,7 @@ export default function PageContacts({ t, isDark, CONTACTS = [], INVESTMENTS = [
     return (
       <InvestorSummaryModal 
         contact={detailContact}
+        defaultView={defaultDetailView}
         onClose={handleCloseDetail}
         isDark={isDark}
         t={t}
