@@ -134,15 +134,15 @@ export const getScheduleColumns = (permissions, isDark, t, context) => {
       size: 200,
       filterFn: (row, columnId, filterValue) => {
         const contactId = row.getValue(columnId) || "";
-        const contact = CONTACTS.find(c => c.id === contactId);
-        const contactName = [contact?.first_name, contact?.last_name].filter(Boolean).join(" ");
+        const contact = CONTACTS.find(c => c.id === contactId || c.docId === contactId);
+        const contactName = [contact?.first_name, contact?.last_name].filter(Boolean).join(" ") || contact?.contact_name || contact?.name || "";
         const search = filterValue.toLowerCase();
         return contactId.toLowerCase().includes(search) || contactName.toLowerCase().includes(search);
       },
       cell: ({ getValue, row }) => {
         const contactId = getValue();
-        const contact = CONTACTS.find(c => c.id === contactId);
-        const contactName = [contact?.first_name, contact?.last_name].filter(Boolean).join(" ");
+        const contact = CONTACTS.find(c => c.id === contactId || c.docId === contactId);
+        const contactName = [contact?.first_name, contact?.last_name].filter(Boolean).join(" ") || contact?.contact_name || contact?.name || "";
         return (
           <span
             onClick={() => callbacks.onContactClick?.(row.original.contact_id)}
