@@ -984,12 +984,26 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
 
   const handleRemoveContactFromDeal = async () => {
     if (!contactDelT) return;
+    
+    // Check if contact has any linked investments
+    const contactId = contactDelT.id || contactDelT.docId;
+    const linkedInvestments = INVESTMENTS.filter(inv => {
+      const invContactId = String(inv.contact_id || "").trim();
+      return contactId && (invContactId === String(contactId).trim());
+    });
+
+    if (linkedInvestments.length > 0) {
+      showToast(`Cannot delete contact because it has ${linkedInvestments.length} linked investment(s).`, "error");
+      setContactDelT(null);
+      return;
+    }
+
     try {
       const contactDocId = contactDelT.docId || contactDelT.id;
       if (!contactDocId) throw new Error("Contact document ID not found");
       await deleteDoc(doc(db, "tenants", tenantId, "contacts", contactDocId));
       setContactDelT(null);
-      showToast("Contact deleted", "success");
+      showToast("Contact deleted successfully", "success");
     } catch (err) {
       console.error("Delete contact error:", err);
       showToast("Failed to delete contact: " + err.message, "error");
@@ -1292,6 +1306,21 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
 
   const handleDeleteInvestment = async () => {
     if (!delT || !delT.docId) return;
+    const invId = delT.investment_id || delT.id;
+    const linkedSchedules = (SCHEDULES || []).filter(s => {
+      const sInvId = String(s.investment_id || s.investment || "").trim();
+      return invId && sInvId === String(invId).trim();
+    });
+
+    if (linkedSchedules.length > 0) {
+      setGenResult({
+        title: "Cannot Delete Investment",
+        message: `This investment has ${linkedSchedules.length} linked schedule entry/entries. Please remove schedules before deleting the investment.`
+      });
+      setDelT(null);
+      return;
+    }
+
     try {
       await deleteDoc(doc(db, investmentCollection, delT.docId));
       setDelT(null);
@@ -1322,6 +1351,28 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
 
   function handleBulkInvestmentDelete() {
     if (sel.size === 0) return;
+
+    // Check for schedules linked to selected investments
+    const withSchedules = [];
+    [...sel].forEach(id => {
+      const linked = (SCHEDULES || []).filter(s => {
+        const sInvId = String(s.investment_id || s.investment || "").trim();
+        return id && sInvId === String(id).trim();
+      });
+      if (linked.length > 0) {
+        withSchedules.push({ id, count: linked.length });
+      }
+    });
+
+    if (withSchedules.length > 0) {
+      setGenResult({
+        title: "Cannot Bulk Delete",
+        message: `Deletion blocked: ${withSchedules.length} investment(s) have linked schedules (e.g. Investment ${withSchedules[0].id} has ${withSchedules[0].count} entries). Please delete these schedules first.`
+      });
+      setSel(new Set());
+      return;
+    }
+
     setConfirmAction({
       title: "Confirm Delete",
       message: `Are you sure you want to delete ${sel.size} investment(s)? This action cannot be undone.`,

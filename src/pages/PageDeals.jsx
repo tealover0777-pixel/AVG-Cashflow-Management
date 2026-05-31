@@ -219,10 +219,23 @@ export default function PageDeals({ t, isDark, DEALS = [], INVESTMENTS = [], SCH
   };
   const handleDeleteDeal = async () => {
     try {
+      const dealId = delT?.id || delT?.docId;
+      const linkedInvestments = INVESTMENTS.filter(inv => {
+        const invDealId = String(inv.deal_id || "").trim();
+        return dealId && (invDealId === String(dealId).trim());
+      });
+
+      if (linkedInvestments.length > 0) {
+        showToast(`Cannot delete deal because it has ${linkedInvestments.length} linked investment(s).`, "error");
+        setDelT(null);
+        return;
+      }
+
       const docRef = delT._path ? doc(db, delT._path) : (delT.docId ? doc(db, collectionPath, delT.docId) : null);
       if (docRef) {
         await deleteDoc(docRef);
         setDelT(null);
+        showToast("Deal deleted successfully.", "success");
       }
     } catch (err) {
       console.error("Delete deal error:", err);

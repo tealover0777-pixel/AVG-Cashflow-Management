@@ -156,11 +156,25 @@ export default function PageContacts({ t, isDark, CONTACTS = [], INVESTMENTS = [
   };
 
   const handleDeleteContact = async () => {
+    // Check if contact has any linked investments
+    const contactId = delT?.id || delT?.docId;
+    const linkedInvestments = INVESTMENTS.filter(inv => {
+      const invContactId = String(inv.contact_id || "").trim();
+      return contactId && (invContactId === String(contactId).trim());
+    });
+
+    if (linkedInvestments.length > 0) {
+      showToast(`Cannot delete contact because it has ${linkedInvestments.length} linked investment(s).`, "error");
+      setDelT(null);
+      return;
+    }
+
     try {
       const docRef = delT._path ? doc(db, delT._path) : (delT.docId ? doc(db, collectionPath, delT.docId) : null);
       if (docRef) {
         await deleteDoc(docRef);
         setDelT(null);
+        showToast("Contact deleted successfully.", "success");
       }
     } catch (err) { 
       console.error("Delete contact error:", err); 

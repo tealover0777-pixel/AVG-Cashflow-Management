@@ -253,6 +253,24 @@ export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [
 
   async function handleDeleteInvestment() {
     if (!delT || (!delT.docId && !delT._path)) return;
+    const invId = delT.investment_id || delT.id;
+    const linkedSchedules = SCHEDULES.filter(s => {
+      const sInvId = String(s.investment_id || s.investment || "").trim();
+      return invId && sInvId === String(invId).trim();
+    });
+
+    if (linkedSchedules.length > 0) {
+      setGenResult({
+        title: "Cannot Delete Investment",
+        lines: [
+          `This investment has ${linkedSchedules.length} linked schedule entry/entries.`,
+          "Please delete or re-assign the schedule entries before deleting the investment."
+        ]
+      });
+      setDelT(null);
+      return;
+    }
+
     try {
       const docRef = delT._path ? doc(db, delT._path) : doc(db, collectionPath, delT.docId);
       await deleteDoc(docRef);
@@ -284,6 +302,38 @@ export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [
   }
   function handleBulkDelete() {
     if (sel.size === 0) return;
+    
+    // Check for schedules linked to selected investments
+    const withSchedules = [];
+    const clearToDelete = [];
+
+    [...sel].forEach(id => {
+      const linked = SCHEDULES.filter(s => {
+        const sInvId = String(s.investment_id || s.investment || "").trim();
+        return id && sInvId === String(id).trim();
+      });
+      if (linked.length > 0) {
+        withSchedules.push({ id, count: linked.length });
+      } else {
+        clearToDelete.push(id);
+      }
+    });
+
+    if (withSchedules.length > 0) {
+      setGenResult({
+        title: "Cannot Bulk Delete",
+        lines: [
+          `Of the selected items, ${withSchedules.length} investment(s) have linked schedules and cannot be deleted:`,
+          ...withSchedules.map(item => `- Investment ${item.id}: ${item.count} schedule entries`),
+          "",
+          "Please remove schedules from these investments first."
+        ]
+      });
+      setSel(new Set());
+      gridRef.current?.resetRowSelection();
+      return;
+    }
+
     setConfirmAction({
       title: "Confirm Delete",
       message: `Are you sure you want to delete ${sel.size} investment(s)? This action cannot be undone.`,
