@@ -108,6 +108,23 @@ export default function PageDeals({ t, isDark, DEALS = [], INVESTMENTS = [], SCH
 
   const handleSaveDeal = async () => {
     const d = modal.data;
+
+    // Validate mandatory fields
+    const missing = [];
+    if (!d.name?.trim()) missing.push("Deal Name");
+    if (!d.startDate) missing.push("Start Date");
+    if (!d.endDate) missing.push("End Date");
+
+    if (missing.length > 0) {
+      showToast(`Cannot save deal. Missing mandatory field(s): ${missing.join(", ")}`, "error");
+      return;
+    }
+
+    if (d.startDate && d.endDate && new Date(d.endDate) <= new Date(d.startDate)) {
+      showToast("Cannot save deal. End Date must be after Start Date.", "error");
+      return;
+    }
+
     const payload = {
       deal_name: d.name || "",
       status: d.status || (dealStatuses[0] || "Active"),
