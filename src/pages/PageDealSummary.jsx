@@ -1575,13 +1575,28 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
 
       for (const c of selected) {
         const principal = parseNum(c.amount);
-        const rate = parseNum(c.rate) / 100;
+        const rateVal = c.rate !== undefined ? c.rate : c.interest_rate;
+        const rate = parseNum(rateVal) / 100;
         const startDate = normalizeDateAtNoon(c.start_date);
         const matDate = normalizeDateAtNoon(c.maturity_date);
 
-        if (!startDate || !matDate || matDate <= startDate || principal <= 0) {
-          totalSkipped++;
-          continue;
+        // Validate mandatory fields
+        const missingFields = [];
+        if (!c.type && !c.investment_type) missingFields.push("Type");
+        if (principal <= 0) missingFields.push("Amount");
+        if (rateVal === null || rateVal === undefined || rateVal === "" || isNaN(parseNum(rateVal))) missingFields.push("Rate");
+        if (!c.freq && !c.payment_frequency) missingFields.push("Frequency");
+        if (!c.term_months) missingFields.push("Term");
+        if (!c.start_date) missingFields.push("Start Date");
+        if (!c.maturity_date) missingFields.push("Maturity Date");
+        if (!c.calculator) missingFields.push("Calculator");
+
+        if (missingFields.length > 0) {
+          throw new Error(`Investment ${c.investment_id || c.id || "Unknown"} cannot proceed. Missing or invalid field(s): ${missingFields.join(", ")}`);
+        }
+
+        if (!startDate || !matDate || matDate <= startDate) {
+          throw new Error(`Investment ${c.investment_id || c.id || "Unknown"} has invalid dates. Maturity Date must be after Start Date.`);
         }
 
         const entries = [];

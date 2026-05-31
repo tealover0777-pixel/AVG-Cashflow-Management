@@ -426,9 +426,29 @@ export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [
 
       for (const c of selectedList) {
         const principal = parseNum(c.amount);
-        const rate = parseNum(c.rate) / 100;
+        const rateVal = c.rate !== undefined ? c.rate : c.interest_rate;
+        const rate = parseNum(rateVal) / 100;
         const startDate = normalizeDateAtNoon(c.start_date);
         const matDate = normalizeDateAtNoon(c.maturity_date);
+
+        // Validate mandatory fields
+        const missingFields = [];
+        if (!c.type && !c.investment_type) missingFields.push("Type");
+        if (principal <= 0) missingFields.push("Amount");
+        if (rateVal === null || rateVal === undefined || rateVal === "" || isNaN(parseNum(rateVal))) missingFields.push("Rate");
+        if (!c.freq && !c.payment_frequency) missingFields.push("Frequency");
+        if (!c.term_months) missingFields.push("Term");
+        if (!c.start_date) missingFields.push("Start Date");
+        if (!c.maturity_date) missingFields.push("Maturity Date");
+        if (!c.calculator) missingFields.push("Calculator");
+
+        if (missingFields.length > 0) {
+          throw new Error(`Investment ${c.investment_id || c.id || "Unknown"} cannot proceed. Missing or invalid field(s): ${missingFields.join(", ")}`);
+        }
+
+        if (!startDate || !matDate || matDate <= startDate) {
+          throw new Error(`Investment ${c.investment_id || c.id || "Unknown"} has invalid dates. Maturity Date must be after Start Date.`);
+        }
 
         // --- 1a. Payment Lag Strategy ---
         // Investment config overrides Deal config if enabled.
@@ -441,11 +461,6 @@ export default function PageInvestments({ t, isDark, INVESTMENTS = [], DEALS = [
           if (!lagConfig) return dateStr;
           return calculateScheduledDate(dateStr, lagConfig);
         };
-
-        if (!startDate || !matDate || matDate <= startDate || principal <= 0) {
-          totalSkipped++;
-          continue;
-        }
 
         const entries = [];
         const cTypeUpper = (c.type || "").toUpperCase();
