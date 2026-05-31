@@ -1058,8 +1058,13 @@ export default function PageDealSummary({ t, isDark, dealId, DEALS = [], INVESTM
       }
 
       if (isNew) {
-        if (!contactModal.data.first_name || !contactModal.data.last_name || !contactModal.data.email) {
-          showToast("Please fill in first name, last name, and email.", "error");
+        const missing = [];
+        if (contactModal.data.type !== "Company" && !contactModal.data.first_name?.trim()) missing.push("First Name");
+        if (contactModal.data.type === "Company" && !contactModal.data.company_name?.trim()) missing.push("Company Name");
+        if (!contactModal.data.email?.trim()) missing.push("Email");
+
+        if (missing.length > 0) {
+          showToast(`Cannot save contact. Missing mandatory field(s): ${missing.join(", ")}`, "error");
           return;
         }
 

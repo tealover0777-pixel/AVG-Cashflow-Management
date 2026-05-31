@@ -89,6 +89,18 @@ export default function PageContacts({ t, isDark, CONTACTS = [], INVESTMENTS = [
 
   const handleSaveContact = async () => {
     const d = modal.data;
+    
+    // Validate mandatory fields
+    const missing = [];
+    if (d.type !== "Company" && !d.first_name?.trim()) missing.push("First Name");
+    if (d.type === "Company" && !d.company_name?.trim()) missing.push("Company Name");
+    if (!d.email?.trim()) missing.push("Email");
+
+    if (missing.length > 0) {
+      showToast(`Cannot save contact. Missing mandatory field(s): ${missing.join(", ")}`, "error");
+      return;
+    }
+
     const payload = {
       contact_name: d.type === "Company" ? (d.company_name || "") : `${d.first_name || ""} ${d.last_name || ""}`.trim(),
       first_name: d.first_name || "",
