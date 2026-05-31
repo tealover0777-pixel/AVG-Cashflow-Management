@@ -100,7 +100,20 @@ export default function PageSuperAdmin({ t, isDark, ROLES = [], TENANTS = [] }) 
     // Invite user via Cloud Function
     const handleInviteUser = async () => {
         const d = modal.data;
-        if (!d.email || !d.role) return;
+        const missing = [];
+        if (!d.first_name?.trim()) missing.push("First Name");
+        if (!d.email?.trim()) missing.push("Email Address");
+
+        if (missing.length > 0) {
+            showToast(`Cannot invite user. Missing mandatory field(s): ${missing.join(", ")}`, "error");
+            return;
+        }
+
+        if (!d.role) {
+            showToast("Cannot invite user. Please select a Global Role.", "error");
+            return;
+        }
+
         setInviting(true);
         try {
             const inviteUserFn = httpsCallable(functions, "inviteUser");

@@ -125,7 +125,20 @@ export default function PageUserProfiles({ t, isDark, USERS = [], GLOBAL_USERS =
 
     const handleInviteUser = async () => {
         const d = modal.data;
-        if (!d.email || !d.role_id) return;
+        const missing = [];
+        if (!d.first_name?.trim()) missing.push("First Name");
+        if (!d.email?.trim()) missing.push("Email Address");
+
+        if (missing.length > 0) {
+            showToast(`Cannot create user. Missing mandatory field(s): ${missing.join(", ")}`, "error");
+            return;
+        }
+
+        if (!d.role_id) {
+            showToast("Cannot create user. Please select a Role.", "error");
+            return;
+        }
+
         setInviteConfirm({ ...d, tenantId: isSelectedRoleGlobal(d.role_id) ? "" : (d.inviteTenantId || tenantId || "") });
     };
 
