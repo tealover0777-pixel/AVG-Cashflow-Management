@@ -303,7 +303,35 @@ export const InvestorSummaryModal = ({
   const selectedInv = partyInvestments.find(i => i.id === selectedInvestmentId || i.investment_id === selectedInvestmentId);
 
 
-  const contributions = partySchedules.filter(s => (s.payment_type || s.type) === "INVESTOR_PRINCIPAL_DEPOSIT" || (s.type === 'deposit'));
+  const contributions = useMemo(() => {
+    const list = partySchedules.filter(s => (s.payment_type || s.type) === "INVESTOR_PRINCIPAL_DEPOSIT" || (s.type === 'deposit'));
+    
+    // Add placeholder entries for investments that do not have any schedules populated
+    partyInvestments.forEach(inv => {
+      const hasSchedules = SCHEDULES.some(s => {
+        const sInvId = String(s.investment_id || s.investment || "").trim();
+        const curInvId = String(inv.id || inv.investment_id || "").trim();
+        return curInvId && sInvId === curInvId;
+      });
+
+      if (!hasSchedules) {
+        list.push({
+          deal_id: inv.deal_id,
+          project: inv.deal || inv.deal_name,
+          type: "INVESTOR_PRINCIPAL_DEPOSIT",
+          memo: `Initial for ${inv.id} (No schedule populated)`,
+          amount: inv.amount || 0,
+          signed_payment_amount: Number(String(inv.amount || 0).replace(/[^0-9.-]/g, "")) || 0,
+          receivedDate: inv.start_date || "—",
+          isUnpopulatedPlaceholder: true,
+          investment: inv.id
+        });
+      }
+    });
+
+    return list;
+  }, [partySchedules, partyInvestments, SCHEDULES]);
+
   const totalContributions = contributions.reduce((sum, s) => sum + (Number(s.signed_payment_amount || s.payment_amount || String(s.amount || 0).replace(/[^0-9.-]/g,'')) || 0), 0);
 
   const withdrawals = partySchedules.filter(s => {
@@ -368,11 +396,13 @@ export const InvestorSummaryModal = ({
               const dealName = d?.name || s.deal_id || s.project || "—";
               const amtNum = Number(String(s.signed_payment_amount || s.payment_amount || s.amount || 0).replace(/[^0-9.-]/g,''));
               const amtColor = amtNum > 0 ? (isDark ? "#34D399" : "#10B981") : amtNum < 0 ? (isDark ? "#F87171" : "#EF4444") : (isDark ? "#fff" : "#1C1917");
+              const isPl = !!s.isUnpopulatedPlaceholder;
+              const rowBg = isPl ? (isDark ? "rgba(234, 179, 8, 0.15)" : "#FEF9C3") : "transparent";
               return (
-                <tr key={i} style={{ borderBottom: i < items.length - 1 ? `1px solid ${t.surfaceBorder}` : "none" }}>
+                <tr key={i} style={{ borderBottom: i < items.length - 1 ? `1px solid ${t.surfaceBorder}` : "none", background: rowBg }}>
                   <td style={{ padding: "14px 24px", fontSize: 13, fontWeight: 600, color: isDark ? "#fff" : "#1C1917" }}>{dealName}</td>
                   <td style={{ padding: "14px 24px", fontSize: 13, color: t.textSecondary }}>{s.type || s.payment_type}</td>
-                  <td style={{ padding: "14px 24px", fontSize: 13, color: t.textSecondary }}>{s.memo || s.notes || "—"}</td>
+                  <td style={{ padding: "14px 24px", fontSize: 13, color: isPl ? (isDark ? "#FDE047" : "#A16207") : t.textSecondary, fontWeight: isPl ? 600 : 400 }}>{s.memo || s.notes || "—"}</td>
                   <td style={{ padding: "14px 24px", fontSize: 13, fontWeight: 600, color: amtColor, textAlign: "right" }}>{fmtCurr(s.signed_payment_amount || s.payment_amount || s.amount)}</td>
                   <td style={{ padding: "14px 24px", fontSize: 13, color: t.textSecondary, textAlign: "right" }}>{s.receivedDate || s.dueDate || s.date || "—"}</td>
                 </tr>
