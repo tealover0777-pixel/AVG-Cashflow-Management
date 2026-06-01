@@ -131,7 +131,7 @@ export const getScheduleColumns = (permissions, isDark, t, context) => {
     {
       header: "Contact ID",
       accessorKey: "contact_id",
-      size: 200,
+      size: 90,
       filterFn: (row, columnId, filterValue) => {
         const contactId = row.getValue(columnId) || "";
         const contact = CONTACTS.find(c => c.id === contactId || c.docId === contactId);
@@ -141,42 +141,69 @@ export const getScheduleColumns = (permissions, isDark, t, context) => {
       },
       cell: ({ getValue, row }) => {
         const contactId = getValue();
-        const contact = CONTACTS.find(c => c.id === contactId || c.docId === contactId);
-        const contactName = [contact?.first_name, contact?.last_name].filter(Boolean).join(" ") || contact?.contact_name || contact?.name || "";
         return (
           <span
             onClick={() => callbacks.onContactClick?.(row.original.contact_id)}
             style={{ fontSize: '11px', color: isDark ? "#60A5FA" : "#4F46E5", fontWeight: 600, cursor: 'pointer' }}
           >
             <span style={{ fontFamily: t.mono }}>{contactId}</span>
-            {contactName && <span style={{ fontFamily: t.font, marginLeft: 6 }}>- {contactName}</span>}
           </span>
         );
       }
     },
     {
+      header: "Contact First Name",
+      id: "contact_first_name",
+      accessorFn: (row) => {
+        const contactId = row.contact_id || "";
+        const contact = CONTACTS.find(c => c.id === contactId || c.docId === contactId);
+        return contact?.first_name || "";
+      },
+      size: 130,
+      cell: ({ getValue }) => <span style={{ fontSize: '11.5px', color: t.textSecondary }}>{getValue() || <span style={{ color: t.textMuted }}>—</span>}</span>
+    },
+    {
+      header: "Contact Last Name",
+      id: "contact_last_name",
+      accessorFn: (row) => {
+        const contactId = row.contact_id || "";
+        const contact = CONTACTS.find(c => c.id === contactId || c.docId === contactId);
+        return contact?.last_name || "";
+      },
+      size: 130,
+      cell: ({ getValue }) => <span style={{ fontSize: '11.5px', color: t.textSecondary }}>{getValue() || <span style={{ color: t.textMuted }}>—</span>}</span>
+    },
+    {
       header: "Deal ID",
       accessorKey: "deal_id",
-      size: 200,
+      size: 90,
       filterFn: (row, columnId, filterValue) => {
         const dealId = row.getValue(columnId) || "";
         const deal = DEALS.find(d => d.id === dealId);
-        const dealName = deal?.name || "";
+        const dealName = deal?.deal_name || deal?.name || "";
         const search = filterValue.toLowerCase();
         return dealId.toLowerCase().includes(search) || dealName.toLowerCase().includes(search);
       },
       cell: ({ getValue }) => {
         const dealId = getValue();
         if (!dealId) return <span style={{ color: t.textMuted }}>—</span>;
-        const deal = DEALS.find(d => d.id === dealId);
-        const dealName = deal?.name || "";
         return (
           <span style={{ fontSize: '11px', fontWeight: 600 }}>
             <span style={{ fontFamily: t.mono }}>{dealId}</span>
-            {dealName && <span style={{ fontFamily: t.font, marginLeft: 6 }}>- {dealName}</span>}
           </span>
         );
       }
+    },
+    {
+      header: "Deal Name",
+      id: "deal_name",
+      accessorFn: (row) => {
+        const dealId = row.deal_id || "";
+        const deal = DEALS.find(d => d.id === dealId);
+        return deal?.deal_name || deal?.name || "";
+      },
+      size: 150,
+      cell: ({ getValue }) => <span style={{ fontSize: '11.5px', color: t.textSecondary }}>{getValue() || <span style={{ color: t.textMuted }}>—</span>}</span>
     },
     {
       header: "Start Date",
