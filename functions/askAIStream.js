@@ -55,13 +55,13 @@ exports.askAIStream = functions.https.onRequest((req, res) => {
       const tools = [{
         functionDeclarations: [{
           name: "fetch_data",
-          description: "Fetch required financial records for the tenant",
+          description: "Fetch required payment schedules for the tenant",
           parameters: {
             type: "OBJECT",
             properties: {
               categories: {
                 type: "ARRAY",
-                description: "Array of categories to fetch. Allowed: deals, investments, ledger, paymentSchedules, contacts",
+                description: "Array of categories to fetch. Allowed: paymentSchedules",
                 items: { type: "STRING" }
               }
             },
@@ -72,10 +72,7 @@ exports.askAIStream = functions.https.onRequest((req, res) => {
 
       const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash", tools });
       const chat = model.startChat({
-         systemInstruction: `You are an expert financial analysis assistant for AVG Cashflow Management. 
-Your task is to analyze the user's query and if you need data, call fetch_data with the exact categories needed.
-Only fetch what is necessary. Once you have the data, answer the user professionally.
-Do not mention user IDs or internal document paths.`
+         systemInstruction: `You are an expert financial analysis assistant for AVG Cashflow Management. \nYour task is to analyze the user's query and if you need data, call fetch_data with the exact categories needed (only paymentSchedules is available).\nOnce you have the data, answer the user professionally.\nDo not mention user IDs or internal document paths.`
       });
 
       const result = await chat.sendMessageStream(query);
@@ -92,21 +89,15 @@ Do not mention user IDs or internal document paths.`
       }
 
       if (functionCall) {
-        const categories = functionCall.args.categories || ["deals", "investments", "ledger", "paymentSchedules", "contacts"];
+        const categories = functionCall.args.categories || ["paymentSchedules"];
         let analysisData = {};
         
-        // Optimize fetching based on categories
-        const tasks = [];
         if (isMember) {
-           // For member, just fetch all member data
            analysisData = await fetchMemberData(db, resolvedTenantId, contactId);
         } else {
-           if (categories.includes("deals")) tasks.push(db.collection(`tenants/${resolvedTenantId}/deals`).limit(100).get().then(s => analysisData.deals = s.docs.map(d=>d.data())));
-           if (categories.includes("investments")) tasks.push(db.collection(`tenants/${resolvedTenantId}/investments`).limit(200).get().then(s => analysisData.investments = s.docs.map(d=>d.data())));
-           if (categories.includes("ledger")) tasks.push(db.collection(`tenants/${resolvedTenantId}/ledger`).limit(500).get().then(s => analysisData.ledger = s.docs.map(d=>d.data())));
-           if (categories.includes("paymentSchedules")) tasks.push(db.collection(`tenants/${resolvedTenantId}/paymentSchedules`).limit(500).get().then(s => analysisData.paymentSchedules = s.docs.map(d=>d.data())));
-           if (categories.includes("contacts")) tasks.push(db.collection(`tenants/${resolvedTenantId}/contacts`).limit(300).get().then(s => analysisData.contacts = s.docs.map(d=>d.data())));
-           await Promise.all(tasks);
+           if (categories.includes("paymentSchedules")) {
+              analysisData = await fetchTenantData(db, resolvedTenantId);
+           }
         }
 
         const followUp = await chat.sendMessageStream([{

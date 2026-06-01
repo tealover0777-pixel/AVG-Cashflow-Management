@@ -1533,52 +1533,9 @@ exports.assignTenantOwner = functions.https.onCall(async (data, context) => {
  * Helper to fetch general tenant data for AI analysis in parallel and prune fields.
  */
 async function fetchTenantData(db, tenantId) {
-  const [dealsSnap, invSnap, ledgerSnap, scheduleSnap, contactsSnap] = await Promise.all([
-    db.collection(`tenants/${tenantId}/deals`).limit(100).get(),
-    db.collection(`tenants/${tenantId}/investments`).limit(200).get(),
-    db.collection(`tenants/${tenantId}/ledger`).limit(500).get(),
-    db.collection(`tenants/${tenantId}/paymentSchedules`).limit(500).get(),
-    db.collection(`tenants/${tenantId}/contacts`).limit(300).get()
-  ]);
+  const scheduleSnap = await db.collection(`tenants/${tenantId}/paymentSchedules`).limit(500).get();
 
   return {
-    deals: dealsSnap.docs.map(doc => {
-      const d = doc.data();
-      return {
-        id: doc.id,
-        deal_name: d.deal_name || "",
-        deal_type: d.deal_type || "",
-        status: d.status || "",
-        valuation_amount: d.valuation_amount || 0,
-        start_date: d.start_date || "",
-        end_date: d.end_date || ""
-      };
-    }),
-    investments: invSnap.docs.map(doc => {
-      const d = doc.data();
-      return {
-        id: doc.id,
-        investment_id: d.investment_id || "",
-        deal_id: d.deal_id || "",
-        contact_id: d.contact_id || d.party_id || "",
-        amount: d.amount || 0,
-        interest_rate: d.interest_rate || 0,
-        payment_frequency: d.payment_frequency || "",
-        status: d.status || ""
-      };
-    }),
-    ledger: ledgerSnap.docs
-      .map(doc => {
-        const d = doc.data();
-        return {
-          id: doc.id,
-          entity_type: d.entity_type || "",
-          amount: d.amount || 0,
-          notes: d.notes || d.note || "",
-          date: d.date || ""
-        };
-      })
-      .sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0)),
     paymentSchedules: scheduleSnap.docs
       .map(doc => {
         const d = doc.data();
@@ -1593,16 +1550,7 @@ async function fetchTenantData(db, tenantId) {
           payment_date: d.payment_date || ""
         };
       })
-      .sort((a, b) => new Date(b.payment_date || 0) - new Date(a.payment_date || 0)),
-    contacts: contactsSnap.docs.map(doc => {
-      const d = doc.data();
-      return {
-        id: doc.id,
-        first_name: d.first_name || "",
-        last_name: d.last_name || "",
-        contact_name: d.contact_name || d.party_name || ""
-      };
-    })
+      .sort((a, b) => new Date(b.payment_date || 0) - new Date(a.payment_date || 0))
   };
 }
 
@@ -1621,36 +1569,9 @@ async function resolveContactId(db, tenantId, authUid) {
  * Helper to fetch member-specific data for AI analysis in parallel and prune fields.
  */
 async function fetchMemberData(db, tenantId, contactId) {
-  const [invSnap, ledgerSnap, scheduleSnap] = await Promise.all([
-    db.collection(`tenants/${tenantId}/investments`).where('contact_id', '==', contactId).limit(100).get(),
-    db.collection(`tenants/${tenantId}/ledger`).where('contact_id', '==', contactId).limit(200).get(),
-    db.collection(`tenants/${tenantId}/paymentSchedules`).where('contact_id', '==', contactId).limit(200).get()
-  ]);
+  const scheduleSnap = await db.collection(`tenants/${tenantId}/paymentSchedules`).where('contact_id', '==', contactId).limit(200).get();
 
   return {
-    investments: invSnap.docs.map(doc => {
-      const d = doc.data();
-      return {
-        id: doc.id,
-        investment_id: d.investment_id || "",
-        deal_id: d.deal_id || "",
-        amount: d.amount || 0,
-        interest_rate: d.interest_rate || 0,
-        payment_frequency: d.payment_frequency || "",
-        status: d.status || ""
-      };
-    }),
-    ledger: ledgerSnap.docs
-      .map(doc => {
-        const d = doc.data();
-        return {
-          id: doc.id,
-          amount: d.amount || 0,
-          notes: d.notes || d.note || "",
-          date: d.date || ""
-        };
-      })
-      .sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0)),
     paymentSchedules: scheduleSnap.docs
       .map(doc => {
         const d = doc.data();
@@ -1734,11 +1655,7 @@ exports.askAI = functions.runWith({
     }
 
     console.log(`[askAI] Database fetch complete.
-      Deals: ${analysisData.deals?.length || 0}
-      Investments: ${analysisData.investments?.length || 0}
-      Ledger: ${analysisData.ledger?.length || 0}
-      Schedules: ${analysisData.paymentSchedules?.length || 0}
-      Contacts: ${analysisData.contacts?.length || 0}`);
+      Schedules: ${analysisData.paymentSchedules?.length || 0}`);
 
     const { GoogleGenerativeAI } = require('@google/generative-ai');
     const apiKey = process.env.GEMINI_API_KEY;
@@ -1751,10 +1668,10 @@ exports.askAI = functions.runWith({
     
     console.log(`[askAI] Calling Gemini model generateContent...`);
     const result = await model.generateContent(`You are an expert financial analysis assistant for AVG Cashflow Management.
-Your task is to analyze the provided cashflow management data and answer the user's query.
+Your task is to analyze the provided payment schedules data for the tenant and answer the user's query.
 
 Guidelines:
-- Base your analysis strictly on the provided JSON data.
+- Base your analysis strictly on the provided payment schedules JSON data.
 - If data is missing or incomplete, mention this clearly.
 - Provide clean, professional answers. Use markdown tables where appropriate.
 - Do not mention user IDs or internal document paths unless relevant to query.
@@ -1856,13 +1773,13 @@ exports.askAIStream = functions.runWith({
       const tools = [{
         functionDeclarations: [{
           name: "fetch_data",
-          description: "Fetch required financial records for the tenant",
+          description: "Fetch required payment schedules for the tenant",
           parameters: {
             type: "OBJECT",
             properties: {
               categories: {
                 type: "ARRAY",
-                description: "Array of categories to fetch. Allowed: deals, investments, ledger, paymentSchedules, contacts",
+                description: "Array of categories to fetch. Allowed: paymentSchedules",
                 items: { type: "STRING" }
               }
             },
@@ -1874,7 +1791,7 @@ exports.askAIStream = functions.runWith({
       const model = genAI.getGenerativeModel({ 
         model: "gemini-2.5-flash", 
         tools,
-        systemInstruction: `You are an expert financial analysis assistant for AVG Cashflow Management. \nYour task is to analyze the user's query and if you need data, call fetch_data with the exact categories needed.\nOnly fetch what is necessary. Once you have the data, answer the user professionally.\nDo not mention user IDs or internal document paths.`
+        systemInstruction: `You are an expert financial analysis assistant for AVG Cashflow Management. \nYour task is to analyze the user's query and if you need data, call fetch_data with the exact categories needed (only paymentSchedules is available).\nOnce you have the data, answer the user professionally.\nDo not mention user IDs or internal document paths.`
       });
       const chat = model.startChat();
 
@@ -1898,21 +1815,15 @@ exports.askAIStream = functions.runWith({
       }
 
       if (functionCall) {
-        const categories = functionCall.args.categories || ["deals", "investments", "ledger", "paymentSchedules", "contacts"];
+        const categories = functionCall.args.categories || ["paymentSchedules"];
         let analysisData = {};
         
-        // Optimize fetching based on categories
-        const tasks = [];
         if (isMember) {
-           // For member, just fetch all member data
            analysisData = await fetchMemberData(db, resolvedTenantId, contactId);
         } else {
-           if (categories.includes("deals")) tasks.push(db.collection(`tenants/${resolvedTenantId}/deals`).limit(100).get().then(s => analysisData.deals = s.docs.map(d=>d.data())));
-           if (categories.includes("investments")) tasks.push(db.collection(`tenants/${resolvedTenantId}/investments`).limit(200).get().then(s => analysisData.investments = s.docs.map(d=>d.data())));
-           if (categories.includes("ledger")) tasks.push(db.collection(`tenants/${resolvedTenantId}/ledger`).limit(500).get().then(s => analysisData.ledger = s.docs.map(d=>d.data())));
-           if (categories.includes("paymentSchedules")) tasks.push(db.collection(`tenants/${resolvedTenantId}/paymentSchedules`).limit(500).get().then(s => analysisData.paymentSchedules = s.docs.map(d=>d.data())));
-           if (categories.includes("contacts")) tasks.push(db.collection(`tenants/${resolvedTenantId}/contacts`).limit(300).get().then(s => analysisData.contacts = s.docs.map(d=>d.data())));
-           await Promise.all(tasks);
+           if (categories.includes("paymentSchedules")) {
+              analysisData = await fetchTenantData(db, resolvedTenantId);
+           }
         }
 
         const followUp = await sendMessageStreamWithRetry(chat, [{
