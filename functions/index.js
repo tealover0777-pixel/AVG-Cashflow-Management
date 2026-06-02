@@ -1533,12 +1533,32 @@ exports.assignTenantOwner = functions.https.onCall(async (data, context) => {
  * Helper to fetch general tenant data for AI analysis in parallel and prune fields.
  */
 async function fetchTenantData(db, tenantId) {
-  const scheduleSnap = await db.collection(`tenants/${tenantId}/paymentSchedules`).limit(500).get();
+  const [scheduleSnap, contactsSnap, dealsSnap] = await Promise.all([
+    db.collection(`tenants/${tenantId}/paymentSchedules`).limit(500).get(),
+    db.collection(`tenants/${tenantId}/contacts`).limit(1000).get(),
+    db.collection(`tenants/${tenantId}/deals`).limit(200).get()
+  ]);
+
+  const contactsMap = {};
+  contactsSnap.docs.forEach(doc => {
+    const d = doc.data();
+    contactsMap[doc.id] = {
+      first_name: d.first_name || d.full_name || d.name || "",
+      last_name: d.last_name || ""
+    };
+  });
+
+  const dealsMap = {};
+  dealsSnap.docs.forEach(doc => {
+    const d = doc.data();
+    dealsMap[doc.id] = d.deal_name || d.name || "";
+  });
 
   return {
     paymentSchedules: scheduleSnap.docs
       .map(doc => {
         const d = doc.data();
+        const contact = contactsMap[d.contact_id] || {};
         return {
           id: doc.id,
           investment_id: d.investment_id || "",
@@ -1547,7 +1567,12 @@ async function fetchTenantData(db, tenantId) {
           status: d.status || "",
           direction: d.direction_from_company || "",
           due_date: d.due_date || "",
-          payment_date: d.payment_date || ""
+          payment_date: d.payment_date || "",
+          contact_id: d.contact_id || "",
+          contact_first_name: contact.first_name || "",
+          contact_last_name: contact.last_name || "",
+          deal_id: d.deal_id || "",
+          deal_name: dealsMap[d.deal_id] || ""
         };
       })
       .sort((a, b) => new Date(b.payment_date || 0) - new Date(a.payment_date || 0))
@@ -1569,7 +1594,23 @@ async function resolveContactId(db, tenantId, authUid) {
  * Helper to fetch member-specific data for AI analysis in parallel and prune fields.
  */
 async function fetchMemberData(db, tenantId, contactId) {
-  const scheduleSnap = await db.collection(`tenants/${tenantId}/paymentSchedules`).where('contact_id', '==', contactId).limit(200).get();
+  const [scheduleSnap, contactSnap, dealsSnap] = await Promise.all([
+    db.collection(`tenants/${tenantId}/paymentSchedules`).where('contact_id', '==', contactId).limit(200).get(),
+    db.collection(`tenants/${tenantId}/contacts`).doc(contactId).get(),
+    db.collection(`tenants/${tenantId}/deals`).limit(200).get()
+  ]);
+
+  const cData = contactSnap.exists ? contactSnap.data() : {};
+  const contact = {
+    first_name: cData.first_name || cData.full_name || cData.name || "",
+    last_name: cData.last_name || ""
+  };
+
+  const dealsMap = {};
+  dealsSnap.docs.forEach(doc => {
+    const d = doc.data();
+    dealsMap[doc.id] = d.deal_name || d.name || "";
+  });
 
   return {
     paymentSchedules: scheduleSnap.docs
@@ -1582,7 +1623,12 @@ async function fetchMemberData(db, tenantId, contactId) {
           status: d.status || "",
           direction: d.direction_from_company || "",
           due_date: d.due_date || "",
-          payment_date: d.payment_date || ""
+          payment_date: d.payment_date || "",
+          contact_id: d.contact_id || "",
+          contact_first_name: contact.first_name || "",
+          contact_last_name: contact.last_name || "",
+          deal_id: d.deal_id || "",
+          deal_name: dealsMap[d.deal_id] || ""
         };
       })
       .sort((a, b) => new Date(b.payment_date || 0) - new Date(a.payment_date || 0))
