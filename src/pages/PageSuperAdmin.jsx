@@ -116,6 +116,14 @@ export default function PageSuperAdmin({ t, isDark, ROLES = [], TENANTS = [] }) 
 
         setInviting(true);
         try {
+            const checkEmailFn = httpsCallable(functions, "checkEmailExists");
+            const emailRes = await checkEmailFn({ email: d.email });
+            if (emailRes.data.exists) {
+                showToast("This email is already in use by another user.", "error");
+                setInviting(false);
+                return;
+            }
+
             const inviteUserFn = httpsCallable(functions, "inviteUser");
             const result = await inviteUserFn({
                 email: d.email,
@@ -182,6 +190,18 @@ export default function PageSuperAdmin({ t, isDark, ROLES = [], TENANTS = [] }) 
             return;
         }
         setProcessing(true);
+
+        try {
+            const checkEmailFn = httpsCallable(functions, "checkEmailExists");
+            const emailRes = await checkEmailFn({ email: d.email });
+            if (emailRes.data.exists && emailRes.data.uid !== d.uid) {
+                showToast("This email is already in use by another user.", "error");
+                setProcessing(false);
+                return;
+            }
+        } catch (err) {
+            console.error("Check email error:", err);
+        }
 
         // Ensure all values are plain strings, not Firestore objects
         const isGlobal = isRoleGlobal(d.role);

@@ -146,8 +146,17 @@ export default function PageUserProfiles({ t, isDark, USERS = [], GLOBAL_USERS =
         setProcessing(true);
         setInviting(true);
         try {
-            const inviteUserFn = httpsCallable(functions, "inviteUser");
+            const checkEmailFn = httpsCallable(functions, "checkEmailExists");
             const party = inviteConfirm;
+            const emailRes = await checkEmailFn({ email: party.email });
+            if (emailRes.data.exists) {
+                showToast("This email is already in use by another user.", "error");
+                setInviting(false);
+                setProcessing(false);
+                return;
+            }
+
+            const inviteUserFn = httpsCallable(functions, "inviteUser");
             let firstName = party.first_name || "";
             let lastName = party.last_name || "";
 
@@ -224,6 +233,14 @@ export default function PageUserProfiles({ t, isDark, USERS = [], GLOBAL_USERS =
         const isTenantChange = d._origTenantId && tid !== d._origTenantId;
         setSaving(true);
         try {
+            const checkEmailFn = httpsCallable(functions, "checkEmailExists");
+            const emailRes = await checkEmailFn({ email: d.email });
+            if (emailRes.data.exists && emailRes.data.uid !== (d.auth_uid || d.id)) {
+                showToast("This email is already in use by another user.", "error");
+                setSaving(false);
+                return;
+            }
+
             if (isTenantChange && isSuperAdmin) {
                 const updateTenantFn = httpsCallable(functions, "updateUserTenant");
                 await updateTenantFn({

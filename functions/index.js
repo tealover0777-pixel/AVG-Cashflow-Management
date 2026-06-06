@@ -16,6 +16,27 @@ exports.createFirstAdmin = functions.https.onRequest(async (req, res) => {
 });
 
 /**
+ * Checks if a user email already exists in Firebase Authentication.
+ * Returns { exists: true, uid: string } if it exists, otherwise { exists: false }.
+ */
+exports.checkEmailExists = functions.https.onCall(async (data, context) => {
+  if (!context.auth) {
+    throw new functions.https.HttpsError('unauthenticated', 'The function must be called while authenticated.');
+  }
+  const { email } = data;
+  if (!email) return { exists: false };
+  try {
+    const userRecord = await admin.auth().getUserByEmail(email);
+    return { exists: true, uid: userRecord.uid };
+  } catch (error) {
+    if (error.code === 'auth/user-not-found') {
+      return { exists: false };
+    }
+    throw new functions.https.HttpsError('internal', error.message);
+  }
+});
+
+/**
    * Invites a new user to a tenant.
    * 1. Creates Firebase Auth user (if not exists).
    * 2. Sets Custom Claims (role, tenantId).

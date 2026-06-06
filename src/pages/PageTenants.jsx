@@ -136,6 +136,20 @@ export default function PageTenants({ t, isDark, TENANTS = [], GLOBAL_USERS = []
         };
 
         try {
+            // Check email uniqueness before proceeding
+            if (!d.selectedOwnerId && d.email) {
+                if (modal.mode === "add" || (modal.mode === "edit" && d.email !== d.tenant_email)) {
+                    const checkEmailFn = httpsCallable(functions, "checkEmailExists");
+                    const emailRes = await checkEmailFn({ email: d.email });
+                    if (emailRes.data.exists) {
+                        if (modal.mode === "add" || emailRes.data.uid !== d.owner_doc_id) {
+                            showToast("This email is already in use by another user.", "error");
+                            return;
+                        }
+                    }
+                }
+            }
+
             if (modal.mode === "edit" && d.docId) {
                 // Case A: Select Existing User as Owner
                 if (d.selectedOwnerId && d.selectedOwnerId !== d.owner_id) {

@@ -124,6 +124,17 @@ export default function PageContacts({ t, isDark, CONTACTS = [], INVESTMENTS = [
       updated_at: serverTimestamp(),
     };
     try {
+      if (d.email && d.type !== "Company") {
+          // In edit mode, if email hasn't changed, we can skip checking, 
+          // or we can check and compare with the contact's auth_uid.
+          const checkEmailFn = httpsCallable(functions, "checkEmailExists");
+          const emailRes = await checkEmailFn({ email: d.email });
+          if (emailRes.data.exists && emailRes.data.uid !== (d.auth_uid || d.uid)) {
+              showToast("This email is already in use by another user.", "error");
+              return;
+          }
+      }
+
       if (modal.mode === "add" && d.type !== "Company") {
         const newFirst = (d.first_name || "").toLowerCase().trim();
         const newLast = (d.last_name || "").toLowerCase().trim();
@@ -219,6 +230,15 @@ export default function PageContacts({ t, isDark, CONTACTS = [], INVESTMENTS = [
       updated_at: serverTimestamp(),
     };
     try {
+      if (d.email && d.contact_type !== "Company" && d.type !== "Company") {
+          const checkEmailFn = httpsCallable(functions, "checkEmailExists");
+          const emailRes = await checkEmailFn({ email: d.email });
+          if (emailRes.data.exists && emailRes.data.uid !== (d.auth_uid || d.uid)) {
+              showToast("This email is already in use by another user.", "error");
+              return;
+          }
+      }
+
       const docRef = d._path ? doc(db, d._path) : doc(db, collectionPath, d.docId || d.id);
       await updateDoc(docRef, payload);
       setDetailContact(prev => ({ ...prev, ...payload }));
