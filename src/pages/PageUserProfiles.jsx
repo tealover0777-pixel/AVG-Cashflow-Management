@@ -127,6 +127,7 @@ export default function PageUserProfiles({ t, isDark, USERS = [], GLOBAL_USERS =
         const d = modal.data;
         const missing = [];
         if (!d.first_name?.trim()) missing.push("First Name");
+        if (!d.last_name?.trim()) missing.push("Last Name");
         if (!d.email?.trim()) missing.push("Email Address");
 
         if (missing.length > 0) {
@@ -231,6 +232,16 @@ export default function PageUserProfiles({ t, isDark, USERS = [], GLOBAL_USERS =
         const d = modal.data;
         const tid = d.tenantId || d.tenant_id || d.Tenant_ID || tenantId;
         const isTenantChange = d._origTenantId && tid !== d._origTenantId;
+
+        const missing = [];
+        if (!d.first_name?.trim()) missing.push("First Name");
+        if (!d.last_name?.trim()) missing.push("Last Name");
+        if (!d.email?.trim()) missing.push("Email Address");
+        if (missing.length > 0) {
+            showToast(`Cannot save user. Missing mandatory field(s): ${missing.join(", ")}`, "error");
+            return;
+        }
+
         setSaving(true);
         try {
             const checkEmailFn = httpsCallable(functions, "checkEmailExists");
@@ -452,6 +463,12 @@ export default function PageUserProfiles({ t, isDark, USERS = [], GLOBAL_USERS =
                 pageSize={pageSize}
                 t={t}
                 isDark={isDark}
+                rowStyle={(r) => {
+                    if (!r.first_name?.trim() || !r.last_name?.trim() || !r.email?.trim()) {
+                        return { background: isDark ? 'rgba(239, 68, 68, 0.15)' : 'rgba(254, 226, 226, 0.7)' };
+                    }
+                    return {};
+                }}
                 onSelectionChange={(selected) => setSel(new Set(selected.map(r => r.docId || r.id)))}
             />
         </div>

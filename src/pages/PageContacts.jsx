@@ -92,7 +92,10 @@ export default function PageContacts({ t, isDark, CONTACTS = [], INVESTMENTS = [
     
     // Validate mandatory fields
     const missing = [];
-    if (d.type !== "Company" && !d.first_name?.trim()) missing.push("First Name");
+    if (d.type !== "Company") {
+      if (!d.first_name?.trim()) missing.push("First Name");
+      if (!d.last_name?.trim()) missing.push("Last Name");
+    }
     if (d.type === "Company" && !d.company_name?.trim()) missing.push("Company Name");
     if (!d.email?.trim()) missing.push("Email");
 
@@ -207,6 +210,19 @@ export default function PageContacts({ t, isDark, CONTACTS = [], INVESTMENTS = [
 
   const handleUpdateContact = async (updatedData) => {
     const d = updatedData;
+    const missing = [];
+    if (d.contact_type !== "Company" && d.type !== "Company") {
+      if (!d.first_name?.trim()) missing.push("First Name");
+      if (!d.last_name?.trim()) missing.push("Last Name");
+    }
+    if ((d.contact_type === "Company" || d.type === "Company") && !d.company_name?.trim()) missing.push("Company Name");
+    if (!d.email?.trim()) missing.push("Email");
+
+    if (missing.length > 0) {
+      showToast(`Cannot update contact. Missing mandatory field(s): ${missing.join(", ")}`, "error");
+      throw new Error(`Missing mandatory field(s): ${missing.join(", ")}`);
+    }
+
     const payload = {
       contact_name: d.contact_type === "Company" || d.type === "Company" ? (d.company_name || "") : `${d.first_name || ""} ${d.last_name || ""}`.trim(),
       first_name: d.first_name || "",
@@ -472,6 +488,18 @@ export default function PageContacts({ t, isDark, CONTACTS = [], INVESTMENTS = [
         columns={columnDefs}
         isDark={isDark}
         t={t}
+        rowStyle={(r) => {
+            let missing = false;
+            if (r.type === "Company" || r.contact_type === "Company") {
+                missing = !r.company_name?.trim() || !r.email?.trim();
+            } else {
+                missing = !r.first_name?.trim() || !r.last_name?.trim() || !r.email?.trim();
+            }
+            if (missing) {
+                return { background: isDark ? 'rgba(239, 68, 68, 0.15)' : 'rgba(254, 226, 226, 0.7)' };
+            }
+            return {};
+        }}
         pageSize={pageSize}
         onSelectionChange={(selected) => setSel(new Set(selected.map(r => r.id)))}
       />

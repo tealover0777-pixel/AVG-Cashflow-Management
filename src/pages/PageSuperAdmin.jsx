@@ -102,6 +102,7 @@ export default function PageSuperAdmin({ t, isDark, ROLES = [], TENANTS = [] }) 
         const d = modal.data;
         const missing = [];
         if (!d.first_name?.trim()) missing.push("First Name");
+        if (!d.last_name?.trim()) missing.push("Last Name");
         if (!d.email?.trim()) missing.push("Email Address");
 
         if (missing.length > 0) {
@@ -189,6 +190,16 @@ export default function PageSuperAdmin({ t, isDark, ROLES = [], TENANTS = [] }) 
             showToast("Missing User ID (UID). Cannot save.", "error");
             return;
         }
+
+        const missing = [];
+        if (!d.first_name?.trim()) missing.push("First Name");
+        if (!d.last_name?.trim()) missing.push("Last Name");
+        if (!d.email?.trim()) missing.push("Email Address");
+        if (missing.length > 0) {
+            showToast(`Cannot save user. Missing mandatory field(s): ${missing.join(", ")}`, "error");
+            return;
+        }
+
         setProcessing(true);
 
         try {
@@ -389,6 +400,12 @@ export default function PageSuperAdmin({ t, isDark, ROLES = [], TENANTS = [] }) 
                 pageSize={20}
                 t={t}
                 isDark={isDark}
+                rowStyle={(r) => {
+                    if (!r.first_name?.trim() || !r.last_name?.trim() || !r.email?.trim()) {
+                        return { background: isDark ? 'rgba(239, 68, 68, 0.15)' : 'rgba(254, 226, 226, 0.7)' };
+                    }
+                    return {};
+                }}
             />
         </div>
 

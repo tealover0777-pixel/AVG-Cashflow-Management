@@ -120,6 +120,18 @@ export default function PageTenants({ t, isDark, TENANTS = [], GLOBAL_USERS = []
         const d = modal.data;
         const tenantId = d.id;
         const ownerId = d.owner_id || "";
+
+        if (!d.selectedOwnerId) {
+            const missing = [];
+            if (!d.first_name?.trim()) missing.push("First Name");
+            if (!d.last_name?.trim()) missing.push("Last Name");
+            if (!d.email?.trim()) missing.push("Email");
+
+            if (missing.length > 0) {
+                showToast(`Cannot save tenant. Missing mandatory owner field(s): ${missing.join(", ")}`, "error");
+                return;
+            }
+        }
         
         const payload = {
             tenant_name: d.name || "",
