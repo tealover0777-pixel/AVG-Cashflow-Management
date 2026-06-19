@@ -384,6 +384,147 @@ export default function PageUserProfiles({ t, isDark, USERS = [], GLOBAL_USERS =
         )}
 
 
+
+
+        <div style={{ marginBottom: 28, display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
+            <div>
+                <h1 style={{ fontFamily: t.titleFont, fontWeight: t.titleWeight, fontSize: t.titleSize, color: isDark ? "#fff" : "#1C1917", letterSpacing: t.titleTracking, lineHeight: 1, marginBottom: 6 }}>User Profiles</h1>
+                <p style={{ fontSize: 13.5, color: t.textMuted }}>Manage Users of your company</p>
+            </div>
+            <div style={{ display: "flex", gap: 12 }}>
+                {(canCreate || canInvite) && <Tooltip text="Create a new user profile" t={t}><button className="primary-btn" onClick={openInvite} style={{ background: t.accentGrad, color: "#fff", padding: "11px 22px", borderRadius: 11, fontSize: 13.5, fontWeight: 600, boxShadow: `0 4px 16px ${t.accentShadow}` }}>➕ Create User</button></Tooltip>}
+            </div>
+        </div>
+
+        <div style={{ height: 'calc(100vh - 220px)', width: "100%" }}>
+            <TanStackTable
+                data={filteredUsers}
+                columns={columnDefs}
+                pageSize={pageSize}
+                t={t}
+                isDark={isDark}
+                rowStyle={(r) => {
+                    if (!r.first_name?.trim() || !r.last_name?.trim() || !r.email?.trim()) {
+                        return { background: isDark ? 'rgba(239, 68, 68, 0.15)' : 'rgba(254, 226, 226, 0.7)' };
+                    }
+                    return {};
+                }}
+                onSelectionChange={(selected) => setSel(new Set(selected.map(r => r.docId || r.id)))}
+            />
+        </div>
+
+        {/* Invite Modal */}
+        <Modal open={modal.open && modal.mode === "invite"} onClose={close} title="Create New User" onSave={handleInviteUser} saveLabel={inviting ? "Processing..." : "Create User"} width={520} t={t} isDark={isDark}>
+            <p style={{ fontSize: 12.5, color: t.textMuted, marginBottom: 16, lineHeight: 1.6 }}>
+                This will create a user in your organization responsible for monitoring operations and managing users associated with your business processes.
+            </p>
+            <FF label="Upcoming User ID" t={t}>
+                <div style={{ fontFamily: t.mono, fontSize: 13, color: t.idText, background: isDark ? "rgba(255,255,255,0.04)" : "#F5F4F1", border: `1px solid ${t.surfaceBorder}`, borderRadius: 9, padding: "10px 13px" }}>{nextUserId}</div>
+            </FF>
+            <FF label="Email Address *" t={t}><FIn value={modal.data.email} onChange={e => setF("email", e.target.value)} placeholder="user@company.com" t={t} /></FF>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+                <FF label="First Name *" t={t}><FIn value={modal.data.first_name || ""} onChange={e => setF("first_name", e.target.value)} placeholder="Jane" t={t} /></FF>
+                <FF label="Last Name *" t={t}><FIn value={modal.data.last_name || ""} onChange={e => setF("last_name", e.target.value)} placeholder="Doe" t={t} /></FF>
+            </div>
+            <FF label="Phone (optional)" t={t}><FIn value={modal.data.phone || ""} onChange={e => setF("phone", e.target.value)} placeholder="+1 555 000 0000" t={t} /></FF>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginTop: 8 }}>
+              <FF label="Street 1" t={t}><FIn value={modal.data.street1 || ""} onChange={e => setF("street1", e.target.value)} placeholder="123 Main St" t={t} /></FF>
+              <FF label="Street 2" t={t}><FIn value={modal.data.street2 || ""} onChange={e => setF("street2", e.target.value)} placeholder="Apt 4B" t={t} /></FF>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "1.5fr 1fr 1fr", gap: 16 }}>
+              <FF label="City" t={t}><FIn value={modal.data.city || ""} onChange={e => setF("city", e.target.value)} placeholder="New York" t={t} /></FF>
+              <FF label="State" t={t}>
+                <select value={modal.data.state || ""} onChange={e => setF("state", e.target.value)} style={{ background: isDark ? "rgba(255,255,255,0.04)" : "#fff", color: isDark ? "#fff" : "#000", border: `1px solid ${t.border}`, borderRadius: 9, padding: "10px 13px", fontSize: 13.5, outline: "none", width: "100%", fontFamily: t.font }}>
+                    <option value="">Select...</option>
+                    {US_STATES.map(s => <option key={s} value={s}>{s}</option>)}
+                </select>
+              </FF>
+              <FF label="Zip" t={t}><FIn value={modal.data.zip || ""} onChange={e => setF("zip", e.target.value)} placeholder="10001" t={t} /></FF>
+            </div>
+            <FF label="Role *" t={t}>
+                <select value={modal.data.role_id || ""} onChange={e => setF("role_id", e.target.value)} style={{ background: isDark ? "rgba(255,255,255,0.04)" : "#fff", color: isDark ? "#fff" : "#000", border: `1px solid ${t.border}`, borderRadius: 9, padding: "10px 13px", fontSize: 13.5, outline: "none", width: "100%", fontFamily: t.font, appearance: "none" }}>
+                    <option value="" disabled style={{ color: "#000" }}>Select a role...</option>
+                    {ROLES.filter(r => ["R10002", "R10003", "R10004", "R10005"].includes(r.id || r.role_id)).map(r => (
+                        <option key={r.id || r.role_id} value={r.id || r.role_id} style={{ color: "#000" }}>{r.role_name || r.name || r.id}</option>
+                    ))}
+                </select>
+            </FF>
+            <div style={{ marginBottom: 16 }}>
+                <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer", fontSize: 13.5, color: t.text }}>
+                    <input
+                        type="checkbox"
+                        checked={!!modal.data.inviteUser}
+                        onChange={e => setF("inviteUser", e.target.checked)}
+                        style={{ width: 18, height: 18, accentColor: t.accent }}
+                    />
+                    Invite user (Send verification email)
+                </label>
+            </div>
+            <FF label="Notes" t={t}><textarea value={modal.data.notes || ""} onChange={e => setF("notes", e.target.value)} placeholder="Private notes about this user..." style={{ background: isDark ? "rgba(255,255,255,0.04)" : "#fff", color: t.text, border: `1px solid ${t.border}`, borderRadius: 9, padding: "10px 13px", fontSize: 13.5, outline: "none", width: "100%", minHeight: 80, fontFamily: t.font, resize: "vertical" }} /></FF>
+        </Modal>
+
+        {/* Resend Invite Modal */}
+        <Modal open={modal.open && modal.mode === "resend"} onClose={close} title="Invite / Re-send Verification" onSave={handleResendInvite} saveLabel={inviting ? "Sending..." : "Send Verification Email ✉️"} width={480} t={t} isDark={isDark}>
+            <p style={{ fontSize: 13, color: t.textMuted, lineHeight: 1.6 }}>
+                Sending this will re-trigger the verification email for <strong>{modal.data.email}</strong> and generate a new secure sign-in link. This follows your high-fidelity security protocols and does not modify any existing profile data.
+            </p>
+        </Modal>
+
+        <Modal open={modal.open && modal.mode === "edit"} onClose={close} title="Edit User Profile" onSave={handleSaveUser} saveLabel={saving ? "Saving..." : "Save Changes"} width={520} t={t} isDark={isDark}>
+            <FF label="User ID" t={t}><FIn value={modal.data.user_id} onChange={e => setF("user_id", e.target.value)} t={t} /></FF>
+            <FF label="Auth UID (Firebase)" t={t}><FIn value={modal.data.auth_uid || modal.data.id} disabled t={t} /></FF>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+                <FF label="First Name *" t={t}><FIn value={modal.data.first_name || ""} onChange={e => setF("first_name", e.target.value)} placeholder="Jane" t={t} /></FF>
+                <FF label="Last Name *" t={t}><FIn value={modal.data.last_name || ""} onChange={e => setF("last_name", e.target.value)} placeholder="Doe" t={t} /></FF>
+            </div>
+            <FF label="Email *" t={t}><FIn value={modal.data.email} onChange={e => setF("email", e.target.value)} t={t} /></FF>
+            <FF label="Role *" t={t}>
+                <select value={modal.data.role_id || ""} onChange={e => setF("role_id", e.target.value)} style={{ background: isDark ? "rgba(255,255,255,0.04)" : "#fff", color: isDark ? "#fff" : "#000", border: `1px solid ${t.border}`, borderRadius: 9, padding: "10px 13px", fontSize: 13.5, outline: "none", width: "100%", fontFamily: t.font, appearance: "none" }}>
+                    {ROLES.filter(r => ["R10002", "R10003", "R10004", "R10005"].includes(r.id || r.role_id)).map(r => (
+                        <option key={r.id || r.role_id} value={r.id || r.role_id} style={{ color: "#000" }}>{r.role_name || r.name || r.id}</option>
+                    ))}
+                </select>
+            </FF>
+            <FF label="Status *" t={t}>
+                <select value={modal.data.status || "Active"} onChange={e => setF("status", e.target.value)} style={{ background: isDark ? "rgba(255,255,255,0.04)" : "#fff", color: isDark ? "#fff" : "#000", border: `1px solid ${t.border}`, borderRadius: 9, padding: "10px 13px", fontSize: 13.5, outline: "none", width: "100%", fontFamily: t.font, appearance: "none" }}>
+                    <option value="Active" style={{ color: "#000" }}>Active</option>
+                    <option value="Pending" style={{ color: "#000" }}>Pending</option>
+                    <option value="Inactive" style={{ color: "#000" }}>Inactive</option>
+                </select>
+            </FF>
+            {isSuperAdmin && (
+                <FF label="Tenant (Move User)" t={t}>
+                    <select value={modal.data.tenantId || ""} onChange={e => setF("tenantId", e.target.value)} style={{ background: isDark ? "rgba(255,255,255,0.04)" : "#fff", color: isDark ? "#fff" : "#000", border: `1px solid ${t.border}`, borderRadius: 9, padding: "10px 13px", fontSize: 13.5, outline: "none", width: "100%", fontFamily: t.font }}>
+                        {TENANTS.map(ten => <option key={ten.id} value={ten.id} style={{ color: "#000" }}>{ten.name} ({ten.id})</option>)}
+                    </select>
+                </FF>
+            )}
+            <FF label="Phone" t={t}><FIn value={modal.data.phone || ""} onChange={e => setF("phone", e.target.value)} t={t} /></FF>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginTop: 8 }}>
+              <FF label="Street 1" t={t}><FIn value={modal.data.street1 || ""} onChange={e => setF("street1", e.target.value)} placeholder="123 Main St" t={t} /></FF>
+              <FF label="Street 2" t={t}><FIn value={modal.data.street2 || ""} onChange={e => setF("street2", e.target.value)} placeholder="Apt 4B" t={t} /></FF>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "1.5fr 1fr 1fr", gap: 16 }}>
+              <FF label="City" t={t}><FIn value={modal.data.city || ""} onChange={e => setF("city", e.target.value)} placeholder="New York" t={t} /></FF>
+              <FF label="State" t={t}>
+                <select value={modal.data.state || ""} onChange={e => setF("state", e.target.value)} style={{ background: isDark ? "rgba(255,255,255,0.04)" : "#fff", color: isDark ? "#fff" : "#000", border: `1px solid ${t.border}`, borderRadius: 9, padding: "10px 13px", fontSize: 13.5, outline: "none", width: "100%", fontFamily: t.font }}>
+                    <option value="">Select...</option>
+                    {US_STATES.map(s => <option key={s} value={s}>{s}</option>)}
+                </select>
+              </FF>
+              <FF label="Zip" t={t}><FIn value={modal.data.zip || ""} onChange={e => setF("zip", e.target.value)} placeholder="10001" t={t} /></FF>
+            </div>
+            <FF label="Notes" t={t}><textarea value={modal.data.notes || ""} onChange={e => setF("notes", e.target.value)} placeholder="Private notes..." style={{ background: isDark ? "rgba(255,255,255,0.04)" : "#fff", color: t.text, border: `1px solid ${t.border}`, borderRadius: 9, padding: "10px 13px", fontSize: 13.5, outline: "none", width: "100%", minHeight: 80, fontFamily: t.font, resize: "vertical" }} /></FF>
+        </Modal>
+
+        <DelModal open={!!delT} onClose={() => setDelT(null)} onDel={handleDeleteUser} title="Delete User?" t={t}>
+            <p style={{ fontSize: 13.5, lineHeight: 1.6, color: t.textMuted }}>
+                Are you sure? This will remove the Firestore profile for <strong>{delT?.email}</strong> and attempt to delete their Firebase Authentication login.
+                <br /><br />
+                <span style={{ color: "#EF4444", fontWeight: 600 }}>⚠️ This action is permanent and cannot be undone.</span>
+            </p>
+        </DelModal>
+
         {/* Invite Confirm Modal */}
         <Modal open={!!inviteConfirm} onClose={() => setInviteConfirm(null)} title="Confirm User Creation" onSave={executeInvite} saveLabel={processing ? "Processing..." : "Create User"} width={480} t={t} isDark={isDark} loading={processing}>
             <div style={{ fontSize: 13.5, color: t.text, marginBottom: 12, fontWeight: 600 }}>Create {inviteConfirm?.first_name || (inviteConfirm?.name || "").split(" ")[0] || "User"}?</div>
@@ -445,144 +586,5 @@ export default function PageUserProfiles({ t, isDark, USERS = [], GLOBAL_USERS =
                 </div>
             )}
         </Modal>
-
-        <div style={{ marginBottom: 28, display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
-            <div>
-                <h1 style={{ fontFamily: t.titleFont, fontWeight: t.titleWeight, fontSize: t.titleSize, color: isDark ? "#fff" : "#1C1917", letterSpacing: t.titleTracking, lineHeight: 1, marginBottom: 6 }}>User Profiles</h1>
-                <p style={{ fontSize: 13.5, color: t.textMuted }}>Manage Users of your company</p>
-            </div>
-            <div style={{ display: "flex", gap: 12 }}>
-                {(canCreate || canInvite) && <Tooltip text="Create a new user profile" t={t}><button className="primary-btn" onClick={openInvite} style={{ background: t.accentGrad, color: "#fff", padding: "11px 22px", borderRadius: 11, fontSize: 13.5, fontWeight: 600, boxShadow: `0 4px 16px ${t.accentShadow}` }}>➕ Create User</button></Tooltip>}
-            </div>
-        </div>
-
-        <div style={{ height: 'calc(100vh - 220px)', width: "100%" }}>
-            <TanStackTable
-                data={filteredUsers}
-                columns={columnDefs}
-                pageSize={pageSize}
-                t={t}
-                isDark={isDark}
-                rowStyle={(r) => {
-                    if (!r.first_name?.trim() || !r.last_name?.trim() || !r.email?.trim()) {
-                        return { background: isDark ? 'rgba(239, 68, 68, 0.15)' : 'rgba(254, 226, 226, 0.7)' };
-                    }
-                    return {};
-                }}
-                onSelectionChange={(selected) => setSel(new Set(selected.map(r => r.docId || r.id)))}
-            />
-        </div>
-
-        {/* Invite Modal */}
-        <Modal open={modal.open && modal.mode === "invite"} onClose={close} title="Create New User" onSave={handleInviteUser} saveLabel={inviting ? "Processing..." : "Create User"} width={520} t={t} isDark={isDark}>
-            <p style={{ fontSize: 12.5, color: t.textMuted, marginBottom: 16, lineHeight: 1.6 }}>
-                This will create a user in your organization responsible for monitoring operations and managing users associated with your business processes.
-            </p>
-            <FF label="Upcoming User ID" t={t}>
-                <div style={{ fontFamily: t.mono, fontSize: 13, color: t.idText, background: isDark ? "rgba(255,255,255,0.04)" : "#F5F4F1", border: `1px solid ${t.surfaceBorder}`, borderRadius: 9, padding: "10px 13px" }}>{nextUserId}</div>
-            </FF>
-            <FF label="Email Address" t={t}><FIn value={modal.data.email} onChange={e => setF("email", e.target.value)} placeholder="user@company.com" t={t} /></FF>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-                <FF label="First Name (optional)" t={t}><FIn value={modal.data.first_name || ""} onChange={e => setF("first_name", e.target.value)} placeholder="Jane" t={t} /></FF>
-                <FF label="Last Name (optional)" t={t}><FIn value={modal.data.last_name || ""} onChange={e => setF("last_name", e.target.value)} placeholder="Doe" t={t} /></FF>
-            </div>
-            <FF label="Phone (optional)" t={t}><FIn value={modal.data.phone || ""} onChange={e => setF("phone", e.target.value)} placeholder="+1 555 000 0000" t={t} /></FF>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginTop: 8 }}>
-              <FF label="Street 1" t={t}><FIn value={modal.data.street1 || ""} onChange={e => setF("street1", e.target.value)} placeholder="123 Main St" t={t} /></FF>
-              <FF label="Street 2" t={t}><FIn value={modal.data.street2 || ""} onChange={e => setF("street2", e.target.value)} placeholder="Apt 4B" t={t} /></FF>
-            </div>
-            <div style={{ display: "grid", gridTemplateColumns: "1.5fr 1fr 1fr", gap: 16 }}>
-              <FF label="City" t={t}><FIn value={modal.data.city || ""} onChange={e => setF("city", e.target.value)} placeholder="New York" t={t} /></FF>
-              <FF label="State" t={t}>
-                <select value={modal.data.state || ""} onChange={e => setF("state", e.target.value)} style={{ background: isDark ? "rgba(255,255,255,0.04)" : "#fff", color: isDark ? "#fff" : "#000", border: `1px solid ${t.border}`, borderRadius: 9, padding: "10px 13px", fontSize: 13.5, outline: "none", width: "100%", fontFamily: t.font }}>
-                    <option value="">Select...</option>
-                    {US_STATES.map(s => <option key={s} value={s}>{s}</option>)}
-                </select>
-              </FF>
-              <FF label="Zip" t={t}><FIn value={modal.data.zip || ""} onChange={e => setF("zip", e.target.value)} placeholder="10001" t={t} /></FF>
-            </div>
-            <FF label="Role" t={t}>
-                <select value={modal.data.role_id || ""} onChange={e => setF("role_id", e.target.value)} style={{ background: isDark ? "rgba(255,255,255,0.04)" : "#fff", color: isDark ? "#fff" : "#000", border: `1px solid ${t.border}`, borderRadius: 9, padding: "10px 13px", fontSize: 13.5, outline: "none", width: "100%", fontFamily: t.font, appearance: "none" }}>
-                    <option value="" disabled style={{ color: "#000" }}>Select a role...</option>
-                    {ROLES.filter(r => ["R10002", "R10003", "R10004", "R10005"].includes(r.id || r.role_id)).map(r => (
-                        <option key={r.id || r.role_id} value={r.id || r.role_id} style={{ color: "#000" }}>{r.role_name || r.name || r.id}</option>
-                    ))}
-                </select>
-            </FF>
-            <div style={{ marginBottom: 16 }}>
-                <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer", fontSize: 13.5, color: t.text }}>
-                    <input
-                        type="checkbox"
-                        checked={!!modal.data.inviteUser}
-                        onChange={e => setF("inviteUser", e.target.checked)}
-                        style={{ width: 18, height: 18, accentColor: t.accent }}
-                    />
-                    Invite user (Send verification email)
-                </label>
-            </div>
-            <FF label="Notes" t={t}><textarea value={modal.data.notes || ""} onChange={e => setF("notes", e.target.value)} placeholder="Private notes about this user..." style={{ background: isDark ? "rgba(255,255,255,0.04)" : "#fff", color: t.text, border: `1px solid ${t.border}`, borderRadius: 9, padding: "10px 13px", fontSize: 13.5, outline: "none", width: "100%", minHeight: 80, fontFamily: t.font, resize: "vertical" }} /></FF>
-        </Modal>
-
-        {/* Resend Invite Modal */}
-        <Modal open={modal.open && modal.mode === "resend"} onClose={close} title="Invite / Re-send Verification" onSave={handleResendInvite} saveLabel={inviting ? "Sending..." : "Send Verification Email ✉️"} width={480} t={t} isDark={isDark}>
-            <p style={{ fontSize: 13, color: t.textMuted, lineHeight: 1.6 }}>
-                Sending this will re-trigger the verification email for <strong>{modal.data.email}</strong> and generate a new secure sign-in link. This follows your high-fidelity security protocols and does not modify any existing profile data.
-            </p>
-        </Modal>
-
-        <Modal open={modal.open && modal.mode === "edit"} onClose={close} title="Edit User Profile" onSave={handleSaveUser} saveLabel={saving ? "Saving..." : "Save Changes"} width={520} t={t} isDark={isDark}>
-            <FF label="User ID" t={t}><FIn value={modal.data.user_id} onChange={e => setF("user_id", e.target.value)} t={t} /></FF>
-            <FF label="Auth UID (Firebase)" t={t}><FIn value={modal.data.auth_uid || modal.data.id} disabled t={t} /></FF>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-                <FF label="First Name" t={t}><FIn value={modal.data.first_name || ""} onChange={e => setF("first_name", e.target.value)} placeholder="Jane" t={t} /></FF>
-                <FF label="Last Name" t={t}><FIn value={modal.data.last_name || ""} onChange={e => setF("last_name", e.target.value)} placeholder="Doe" t={t} /></FF>
-            </div>
-            <FF label="Email" t={t}><FIn value={modal.data.email} onChange={e => setF("email", e.target.value)} t={t} /></FF>
-            <FF label="Role" t={t}>
-                <select value={modal.data.role_id || ""} onChange={e => setF("role_id", e.target.value)} style={{ background: isDark ? "rgba(255,255,255,0.04)" : "#fff", color: isDark ? "#fff" : "#000", border: `1px solid ${t.border}`, borderRadius: 9, padding: "10px 13px", fontSize: 13.5, outline: "none", width: "100%", fontFamily: t.font, appearance: "none" }}>
-                    {ROLES.filter(r => ["R10002", "R10003", "R10004", "R10005"].includes(r.id || r.role_id)).map(r => (
-                        <option key={r.id || r.role_id} value={r.id || r.role_id} style={{ color: "#000" }}>{r.role_name || r.name || r.id}</option>
-                    ))}
-                </select>
-            </FF>
-            <FF label="Status" t={t}>
-                <select value={modal.data.status || "Active"} onChange={e => setF("status", e.target.value)} style={{ background: isDark ? "rgba(255,255,255,0.04)" : "#fff", color: isDark ? "#fff" : "#000", border: `1px solid ${t.border}`, borderRadius: 9, padding: "10px 13px", fontSize: 13.5, outline: "none", width: "100%", fontFamily: t.font, appearance: "none" }}>
-                    <option value="Active" style={{ color: "#000" }}>Active</option>
-                    <option value="Pending" style={{ color: "#000" }}>Pending</option>
-                    <option value="Inactive" style={{ color: "#000" }}>Inactive</option>
-                </select>
-            </FF>
-            {isSuperAdmin && (
-                <FF label="Tenant (Move User)" t={t}>
-                    <select value={modal.data.tenantId || ""} onChange={e => setF("tenantId", e.target.value)} style={{ background: isDark ? "rgba(255,255,255,0.04)" : "#fff", color: isDark ? "#fff" : "#000", border: `1px solid ${t.border}`, borderRadius: 9, padding: "10px 13px", fontSize: 13.5, outline: "none", width: "100%", fontFamily: t.font }}>
-                        {TENANTS.map(ten => <option key={ten.id} value={ten.id} style={{ color: "#000" }}>{ten.name} ({ten.id})</option>)}
-                    </select>
-                </FF>
-            )}
-            <FF label="Phone" t={t}><FIn value={modal.data.phone || ""} onChange={e => setF("phone", e.target.value)} t={t} /></FF>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginTop: 8 }}>
-              <FF label="Street 1" t={t}><FIn value={modal.data.street1 || ""} onChange={e => setF("street1", e.target.value)} placeholder="123 Main St" t={t} /></FF>
-              <FF label="Street 2" t={t}><FIn value={modal.data.street2 || ""} onChange={e => setF("street2", e.target.value)} placeholder="Apt 4B" t={t} /></FF>
-            </div>
-            <div style={{ display: "grid", gridTemplateColumns: "1.5fr 1fr 1fr", gap: 16 }}>
-              <FF label="City" t={t}><FIn value={modal.data.city || ""} onChange={e => setF("city", e.target.value)} placeholder="New York" t={t} /></FF>
-              <FF label="State" t={t}>
-                <select value={modal.data.state || ""} onChange={e => setF("state", e.target.value)} style={{ background: isDark ? "rgba(255,255,255,0.04)" : "#fff", color: isDark ? "#fff" : "#000", border: `1px solid ${t.border}`, borderRadius: 9, padding: "10px 13px", fontSize: 13.5, outline: "none", width: "100%", fontFamily: t.font }}>
-                    <option value="">Select...</option>
-                    {US_STATES.map(s => <option key={s} value={s}>{s}</option>)}
-                </select>
-              </FF>
-              <FF label="Zip" t={t}><FIn value={modal.data.zip || ""} onChange={e => setF("zip", e.target.value)} placeholder="10001" t={t} /></FF>
-            </div>
-            <FF label="Notes" t={t}><textarea value={modal.data.notes || ""} onChange={e => setF("notes", e.target.value)} placeholder="Private notes..." style={{ background: isDark ? "rgba(255,255,255,0.04)" : "#fff", color: t.text, border: `1px solid ${t.border}`, borderRadius: 9, padding: "10px 13px", fontSize: 13.5, outline: "none", width: "100%", minHeight: 80, fontFamily: t.font, resize: "vertical" }} /></FF>
-        </Modal>
-
-        <DelModal open={!!delT} onClose={() => setDelT(null)} onDel={handleDeleteUser} title="Delete User?" t={t}>
-            <p style={{ fontSize: 13.5, lineHeight: 1.6, color: t.textMuted }}>
-                Are you sure? This will remove the Firestore profile for <strong>{delT?.email}</strong> and attempt to delete their Firebase Authentication login.
-                <br /><br />
-                <span style={{ color: "#EF4444", fontWeight: 600 }}>⚠️ This action is permanent and cannot be undone.</span>
-            </p>
-        </DelModal>
     </>);
 }

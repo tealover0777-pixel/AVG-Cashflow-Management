@@ -1,0 +1,23 @@
+# Antigravity Workspace Context
+
+## 1. System Boundaries & Token Controls
+- Max Loop Iterations: Do not exceed 2 tool-use loops or self-correction cycles without pausing for user approval.
+- Context Filtering: Exclude all files in `node_modules/`, `build/`, `dist/`, `.git/`, and any `.log` or `.json` data dumps unless explicitly asked.
+- Focus: Only modify code directly related to the active feature; do not refactor passive files.
+
+## 2. Tech Stack & Architecture
+- Frontend: React (Functional Components, Hooks), TanStack Table (`@tanstack/react-table`) for all tabular data and grids.
+- Backend: Firebase Suite (Authentication, Firestore, Cloud Storage).
+- Storage Strategy: All document types (`.docx`, `.pdf`, `.xlsx`, etc.) and multi-media assets (images, videos, music, audio/sounds) must be stored in Firebase Storage.
+- Data Models: Reference and enforce schemas relative to the `Dimensions` Firestore collection. 
+
+## 3. Core Coding & Security Standards
+- File Upload Pipeline: When handling files, upload the binary blob to Firebase Storage first, retrieve the secure download URL, and store only the resulting URL string metadata inside the corresponding Firestore document (e.g., within the `Dimensions` collection).
+- Security: NEVER hardcode Firebase config API keys, secrets, or environment variables directly into source files. Use environment variables (`.env`).
+- UI Dynamic State: NEVER hardcode menu options, navigation links, or structural layout arrays. Load these dynamically from configuration states or database definitions.
+- Table Implementation: Standardize all tables using TanStack Table hooks to ensure consistent data filtering, sorting, and pagination structures across the UI.
+- Error Handling: Wrap Firebase transactions, storage uploads, and authentication flows in structured try/catch blocks with clean user-facing error boundaries.
+
+## 4. State-of-the-Union (Current Focus)
+- Active Milestone: Implementing React frontend views with TanStack Table integration backed by the `Dimensions` Firestore collection data and setting up the Firebase Storage upload pipeline.
+- Critical Files: `src/config/firebase.js`, `src/components/`, `src/hooks/`.
